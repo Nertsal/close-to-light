@@ -29,7 +29,9 @@ impl GameRender {
         }
 
         // Player
-        self.draw_collider(&model.player.collider, camera, framebuffer);
+        let mut player = model.player.collider.clone();
+        player.position += model.player.shake;
+        self.draw_collider(&player, camera, framebuffer);
     }
 
     fn draw_collider(

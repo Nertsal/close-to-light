@@ -8,9 +8,7 @@ pub struct Config {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PlayerConfig {
-    pub speed: Coord,
-}
+pub struct PlayerConfig {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FearConfig {

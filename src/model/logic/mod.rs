@@ -11,15 +11,13 @@ impl Model {
 
         self.player.target_position = player_target;
         // Move
-        self.player.collider.position += (self.player.target_position
-            - self.player.collider.position)
-            .clamp_len(..=self.config.player.speed * delta_time);
+        self.player.collider.position = self.player.target_position;
         // Shake
-        self.player.collider.position += Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)))
-            .unit_vec()
+        self.player.shake += Angle::from_degrees(r32(rng.gen_range(0.0..=360.0))).unit_vec()
             * self.config.fear.shake
             * self.player.fear_meter.get_ratio()
             * delta_time;
+        self.player.shake = self.player.shake.clamp_len(..=r32(0.2));
 
         self.beat_timer -= delta_time;
         while self.beat_timer < Time::ZERO {

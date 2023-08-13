@@ -20,6 +20,7 @@ pub struct Light {
 
 pub struct Player {
     pub target_position: vec2<Coord>,
+    pub shake: vec2<Coord>,
     pub collider: Collider,
     pub fear_meter: Bounded<Time>,
 }
@@ -45,6 +46,7 @@ impl Model {
             beat_timer: Time::ZERO,
             player: Player {
                 target_position: vec2::ZERO,
+                shake: vec2::ZERO,
                 collider: Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.2) }),
                 fear_meter: Bounded::new_max(r32(1.0)),
             },
