@@ -21,6 +21,7 @@ impl GameRender {
     }
 
     pub fn draw(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
+        // Lights
         for light in &model.lights {
             self.geng.draw2d().draw2d(
                 framebuffer,
@@ -32,5 +33,16 @@ impl GameRender {
                 ),
             );
         }
+
+        // Player
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            &model.camera,
+            &draw2d::Ellipse::circle(
+                model.player.position.as_f32(),
+                model.player.radius.as_f32(),
+                COLOR_LIGHT,
+            ),
+        );
     }
 }

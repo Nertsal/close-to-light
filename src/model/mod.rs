@@ -14,10 +14,16 @@ pub struct Light {
     pub lifetime: Lifetime,
 }
 
+pub struct Player {
+    pub position: vec2<Coord>,
+    pub radius: Coord,
+}
+
 pub struct Model {
     pub camera: Camera2d,
     /// The time until the next music beat.
     pub beat_timer: Time,
+    pub player: Player,
     pub lights: Vec<Light>,
 }
 
@@ -30,6 +36,10 @@ impl Model {
                 fov: 10.0,
             },
             beat_timer: Time::ONE,
+            player: Player {
+                position: vec2::ZERO,
+                radius: r32(0.2),
+            },
             lights: vec![],
         }
     }

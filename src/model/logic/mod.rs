@@ -3,7 +3,10 @@ use super::*;
 use geng_utils::conversions::Vec2RealConversions;
 
 impl Model {
-    pub fn update(&mut self, delta_time: Time) {
+    pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
+        // TODO: interpolation or smth
+        self.player.position = player_target;
+
         self.beat_timer -= delta_time;
         while self.beat_timer < Time::ZERO {
             self.beat_timer += Time::ONE; // TODO bpm
