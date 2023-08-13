@@ -4,10 +4,14 @@ use geng::prelude::*;
 
 pub type Time = R32;
 pub type Coord = R32;
+pub type Hp = R32;
+pub type Lifetime = geng_utils::bounded::Bounded<Hp>;
 
 pub struct Light {
     pub position: vec2<Coord>,
+    pub radius_max: Coord,
     pub radius: Coord,
+    pub lifetime: Lifetime,
 }
 
 pub struct Model {
