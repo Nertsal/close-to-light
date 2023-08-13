@@ -17,18 +17,14 @@ fn main() {
 
     let opts: Opts = clap::Parser::parse();
 
-    let geng = Geng::new_with(geng::ContextOptions {
-        title: "Geng Game".to_string(),
-        ..geng::ContextOptions::from_args(&opts.geng)
-    });
+    let mut options = geng::ContextOptions::default();
+    options.window.title = "Geng Game".to_string();
+    options.with_cli(&opts.geng);
 
-    let future = {
-        let geng = geng.clone();
-        async move {
-            let manager = geng.asset_manager();
-            let assets = assets::Assets::load(manager).await.unwrap();
-            game::Game::new(&geng, &Rc::new(assets))
-        }
-    };
-    geng.run_loading(future)
+    Geng::run_with(&options, |geng| async move {
+        let manager = geng.asset_manager();
+        let assets = assets::Assets::load(manager).await.unwrap();
+        let state = game::Game::new(&geng, &Rc::new(assets));
+        geng.run_state(state).await;
+    });
 }
