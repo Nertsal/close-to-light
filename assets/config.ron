@@ -1,0 +1,5 @@
+Config(
+    fear: FearConfig(
+        restore_speed: 2.0,
+    ),
+)

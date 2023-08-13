@@ -24,7 +24,11 @@ fn main() {
     Geng::run_with(&options, |geng| async move {
         let manager = geng.asset_manager();
         let assets = assets::Assets::load(manager).await.unwrap();
-        let state = game::Game::new(&geng, &Rc::new(assets));
+        let config: model::Config =
+            geng::asset::Load::load(manager, &run_dir().join("assets").join("config.ron"), &())
+                .await
+                .expect("failed to load config");
+        let state = game::Game::new(&geng, &Rc::new(assets), config);
         geng.run_state(state).await;
     });
 }
