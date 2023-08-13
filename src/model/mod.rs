@@ -24,7 +24,7 @@ pub struct Player {
 }
 
 pub struct Model {
-    pub rules: Config,
+    pub config: Config,
     pub camera: Camera2d,
     /// The time until the next music beat.
     pub beat_timer: Time,
@@ -33,9 +33,9 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(rules: Config) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
-            rules,
+            config,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,

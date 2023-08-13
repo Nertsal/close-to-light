@@ -62,5 +62,16 @@ impl Model {
         self.lights.retain(|light| light.lifetime.is_above_min());
 
         // Check if the player is in light
+        let lit = self
+            .lights
+            .iter()
+            .any(|light| self.player.collider.check(&light.collider));
+        if lit {
+            self.player
+                .fear_meter
+                .change(self.config.fear.restore_speed * delta_time);
+        } else {
+            self.player.fear_meter.change(-delta_time);
+        }
     }
 }

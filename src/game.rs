@@ -31,7 +31,8 @@ impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(crate::render::COLOR_DARK), None, None);
-        self.render.draw(&self.model, framebuffer);
+        self.render.draw_world(&self.model, framebuffer);
+        self.render.draw_ui(&self.model, framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {

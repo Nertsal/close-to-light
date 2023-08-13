@@ -22,8 +22,10 @@ impl Shape {
                     let vec2(x, y) = p;
                     parry2d::math::Point::new(x, y)
                 });
-                // All rectangles are convex
-                Box::new(parry2d::shape::ConvexPolygon::from_convex_hull(&points).unwrap())
+                match parry2d::shape::ConvexPolygon::from_convex_hull(&points) {
+                    Some(shape) => Box::new(shape),
+                    None => Box::new(parry2d::shape::Ball::new(0.0)),
+                }
             }
         }
     }
