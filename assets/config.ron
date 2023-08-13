@@ -1,5 +1,9 @@
 Config(
+    player: PlayerConfig(
+        speed: 20.0,
+    ),
     fear: FearConfig(
         restore_speed: 2.0,
+        shake: 5.0,
     ),
 )

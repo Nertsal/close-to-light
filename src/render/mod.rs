@@ -101,9 +101,7 @@ impl GameRender {
             framebuffer,
             camera,
             &draw2d::Quad::new(
-                fear.extend_right(
-                    -(1.0 - model.player.fear_meter.get_ratio().as_f32()) * fear.width(),
-                ),
+                fear.extend_right(-model.player.fear_meter.get_ratio().as_f32() * fear.width()),
                 COLOR_LIGHT,
             ),
         );

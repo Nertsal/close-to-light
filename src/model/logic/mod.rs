@@ -4,15 +4,25 @@ use geng_utils::conversions::Vec2RealConversions;
 
 impl Model {
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
-        // TODO: interpolation or smth
-        self.player.collider.position = player_target;
+        let mut rng = thread_rng();
+
+        self.player.target_position = player_target;
+        // Move
+        self.player.collider.position += (self.player.target_position
+            - self.player.collider.position)
+            .clamp_len(..=self.config.player.speed * delta_time);
+        // Shake
+        self.player.collider.position += Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)))
+            .unit_vec()
+            * self.config.fear.shake
+            * self.player.fear_meter.get_ratio()
+            * delta_time;
 
         self.beat_timer -= delta_time;
         while self.beat_timer < Time::ZERO {
             self.beat_timer += Time::ONE; // TODO bpm
 
             // Spawn a light at a random pos
-            let mut rng = thread_rng();
             let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
             let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
 
@@ -69,9 +79,9 @@ impl Model {
         if lit {
             self.player
                 .fear_meter
-                .change(self.config.fear.restore_speed * delta_time);
+                .change(-self.config.fear.restore_speed * delta_time);
         } else {
-            self.player.fear_meter.change(-delta_time);
+            self.player.fear_meter.change(delta_time);
         }
     }
 }
