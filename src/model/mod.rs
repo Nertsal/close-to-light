@@ -7,10 +7,21 @@ pub type Coord = R32;
 pub type Hp = R32;
 pub type Lifetime = geng_utils::bounded::Bounded<Hp>;
 
+pub enum Shape {
+    Circle {
+        radius: Coord,
+    },
+    /// An infinite line.
+    Line {
+        width: Coord,
+    },
+}
+
 pub struct Light {
     pub position: vec2<Coord>,
-    pub radius_max: Coord,
-    pub radius: Coord,
+    pub rotation: Angle,
+    pub shape_max: Shape,
+    pub shape: Shape,
     pub lifetime: Lifetime,
 }
 

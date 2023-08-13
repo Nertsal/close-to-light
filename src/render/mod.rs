@@ -23,15 +23,32 @@ impl GameRender {
     pub fn draw(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
         // Lights
         for light in &model.lights {
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                &model.camera,
-                &draw2d::Ellipse::circle(
-                    light.position.as_f32(),
-                    light.radius.as_f32(),
-                    COLOR_LIGHT,
-                ),
-            );
+            match light.shape {
+                Shape::Circle { radius } => {
+                    self.geng.draw2d().draw2d(
+                        framebuffer,
+                        &model.camera,
+                        &draw2d::Ellipse::circle(
+                            light.position.as_f32(),
+                            radius.as_f32(),
+                            COLOR_LIGHT,
+                        ),
+                    );
+                }
+                Shape::Line { width } => {
+                    self.geng.draw2d().draw2d(
+                        framebuffer,
+                        &model.camera,
+                        &draw2d::Quad::new(
+                            Aabb2::point(light.position.as_f32()).extend_symmetric(
+                                vec2(model.camera.fov * 3.0, width.as_f32()) / 2.0,
+                            ),
+                            COLOR_LIGHT,
+                        )
+                        .rotate(light.rotation),
+                    );
+                }
+            }
         }
 
         // Player
