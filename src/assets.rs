@@ -1,15 +1,17 @@
 use geng::prelude::*;
 
 #[derive(geng::asset::Load)]
-pub struct Assets {}
+pub struct Assets {
+    #[load(postprocess = "looping", ext = "mp3")]
+    pub music: geng::Sound,
+}
 
-/// Use in Assets as `#[asset(postprocess = "looping")]`
-#[allow(dead_code)]
+/// Use in Assets as `#[load(postprocess = "looping")]`
 fn looping(sfx: &mut geng::Sound) {
     sfx.set_looped(true)
 }
 
-/// Use in Assets as `#[asset(postprocess = "pixel")]`
+/// Use in Assets as `#[load(postprocess = "pixel")]`
 #[allow(dead_code)]
 fn pixel(texture: &mut ugli::Texture) {
     texture.set_filter(ugli::Filter::Nearest);

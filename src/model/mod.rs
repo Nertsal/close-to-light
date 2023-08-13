@@ -42,7 +42,7 @@ impl Model {
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
-            beat_timer: Time::ONE,
+            beat_timer: Time::ZERO,
             player: Player {
                 target_position: vec2::ZERO,
                 collider: Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.2) }),

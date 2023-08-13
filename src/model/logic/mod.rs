@@ -2,6 +2,9 @@ use super::*;
 
 use geng_utils::conversions::Vec2RealConversions;
 
+const BPM: f32 = 170.0;
+const BPS: f32 = BPM / 60.0;
+
 impl Model {
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
         let mut rng = thread_rng();
@@ -20,7 +23,7 @@ impl Model {
 
         self.beat_timer -= delta_time;
         while self.beat_timer < Time::ZERO {
-            self.beat_timer += Time::ONE; // TODO bpm
+            self.beat_timer += r32(1.0 / BPS);
 
             // Spawn a light at a random pos
             let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
@@ -47,7 +50,7 @@ impl Model {
                     }
                 },
                 shape_max,
-                lifetime: Lifetime::new_max(r32(1.5)),
+                lifetime: Lifetime::new_max(r32(1.5 / BPS)),
             });
         }
 

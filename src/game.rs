@@ -16,6 +16,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(geng: &Geng, assets: &Rc<Assets>, rules: Config) -> Self {
+        assets.music.play();
         Self {
             geng: geng.clone(),
             render: GameRender::new(geng, assets),
