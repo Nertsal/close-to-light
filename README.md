@@ -1,2 +1,1 @@
-# geng_template
-A template for projects using [geng](https://github.com/kuviman/geng) engine
+A game *being* made for [1-BIT JAM](https://itch.io/jam/1-bit-jam-wow).
