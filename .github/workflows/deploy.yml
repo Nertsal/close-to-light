@@ -37,9 +37,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-web
-    environment:
-      name: main
-      url: https://nertsal.github.io/horns-of-combustion
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
