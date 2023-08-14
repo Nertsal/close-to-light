@@ -2,8 +2,11 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Light {
+    /// Currently active collider.
     pub collider: Collider,
-    pub shape_max: Shape,
+    /// The base collider used for reference.
+    pub base_collider: Collider,
+    pub movement: Movement,
     pub lifetime: Lifetime,
 }
 

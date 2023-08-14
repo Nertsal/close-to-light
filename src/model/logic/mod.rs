@@ -37,8 +37,11 @@ impl Model {
             }
 
             let t = 1.0 - tele.lifetime.get_ratio().as_f32(); // 0 to 1
-            let t = 3.0 * t * t - 2.0 * t * t * t; // Smoothstep
-            tele.light.collider.shape = tele.light.shape_max.scaled(r32(t));
+            let t = crate::util::smoothstep(t);
+            tele.light.collider = tele.light.base_collider.transformed(Transform {
+                scale: r32(t),
+                ..default()
+            });
         }
         self.telegraphs.retain(|tele| tele.lifetime.is_above_min());
 
@@ -46,10 +49,10 @@ impl Model {
         for light in &mut self.lights {
             light.lifetime.change(-delta_time);
 
-            let t = 1.0 - light.lifetime.get_ratio().as_f32(); // 0 to 1
-            let t = 1.0 - (t - 0.5).abs() * 2.0; // 0 to 1 to 0
-            let t = 3.0 * t * t - 2.0 * t * t * t; // Smoothstep
-            light.collider.shape = light.shape_max.scaled(r32(t));
+            let transform = light
+                .movement
+                .get(light.lifetime.max() - light.lifetime.value());
+            light.collider = light.base_collider.transformed(transform);
         }
         self.lights.retain(|light| light.lifetime.is_above_min());
 
@@ -109,7 +112,7 @@ impl Model {
         let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
         let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
 
-        let shape_max = if rng.gen_bool(0.5) {
+        let shape = if rng.gen_bool(0.5) {
             Shape::Circle {
                 radius: r32(rng.gen_range(0.5..=1.0)),
             }
@@ -119,17 +122,38 @@ impl Model {
             }
         };
 
+        let collider = Collider {
+            position,
+            rotation,
+            shape,
+        };
         Light {
-            collider: {
-                Collider {
-                    position,
-                    rotation,
-                    shape: Shape::Circle {
-                        radius: Coord::ZERO,
+            base_collider: collider.clone(),
+            collider,
+            movement: Movement {
+                key_frames: vec![
+                    MoveFrame {
+                        lerp_time: 0.0,
+                        transform: Transform {
+                            scale: r32(0.0),
+                            ..default()
+                        },
                     },
-                }
-            },
-            shape_max,
+                    MoveFrame {
+                        lerp_time: 1.0,
+                        transform: Transform::identity(),
+                    },
+                    MoveFrame {
+                        lerp_time: 1.0,
+                        transform: Transform {
+                            scale: r32(0.0),
+                            ..default()
+                        },
+                    },
+                ]
+                .into(),
+            }
+            .with_beat_time(self.level.beat_time()),
             lifetime: Lifetime::new_max(r32(2.0) * self.level.beat_time()),
         }
     }

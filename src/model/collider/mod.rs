@@ -28,6 +28,14 @@ impl Collider {
         }
     }
 
+    pub fn transformed(&self, transform: Transform) -> Self {
+        Self {
+            position: self.position + transform.translation,
+            rotation: self.rotation + transform.rotation,
+            shape: self.shape.scaled(transform.scale),
+        }
+    }
+
     pub fn transform_mat(&self) -> mat3<Coord> {
         mat3::translate(self.position) * mat3::rotate(self.rotation)
     }

@@ -8,6 +8,28 @@ Level(
                     position: (0, 0),
                     shape: Circle( radius: 1.0 ),
                     lifetime: 2.0,
+                    movement: (
+                        key_frames: [
+                            (
+                                lerp_time: 0,
+                                transform: (
+                                    scale: 0,
+                                ),
+                            ),
+                            (
+                                lerp_time: 1,
+                                transform: (
+                                    scale: 1,
+                                ),
+                            ),
+                            (
+                                lerp_time: 1,
+                                transform: (
+                                    scale: 0,
+                                ),
+                            ),
+                        ],
+                    ),
                 ),
                 telegraph: (
                     precede_time: 1.0,

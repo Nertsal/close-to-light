@@ -3,8 +3,11 @@ mod config;
 mod level;
 mod light;
 mod logic;
+mod movement;
 
-pub use self::{collider::*, config::*, level::*, light::*};
+pub use self::{collider::*, config::*, level::*, light::*, movement::*};
+
+use std::collections::VecDeque;
 
 use geng::prelude::*;
 use geng_utils::{bounded::Bounded, conversions::Vec2RealConversions};

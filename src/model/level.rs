@@ -27,6 +27,8 @@ pub struct LightSerde {
     #[serde(default = "LightSerde::default_rotation")]
     pub rotation: Coord,
     pub shape: Shape,
+    #[serde(default)]
+    pub movement: Movement,
     /// Lifetime (in beats).
     pub lifetime: Time,
 }
@@ -58,15 +60,15 @@ impl LightSerde {
     }
 
     pub fn instantiate(self, beat_time: Time) -> Light {
+        let collider = Collider {
+            position: self.position,
+            rotation: Angle::from_degrees(self.rotation),
+            shape: self.shape,
+        };
         Light {
-            collider: Collider {
-                position: self.position,
-                rotation: Angle::from_degrees(self.rotation),
-                shape: Shape::Circle {
-                    radius: Coord::ZERO,
-                },
-            },
-            shape_max: self.shape,
+            base_collider: collider.clone(),
+            collider,
+            movement: self.movement.with_beat_time(beat_time),
             lifetime: Lifetime::new_max(self.lifetime * beat_time),
         }
     }
