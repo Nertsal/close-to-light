@@ -1,0 +1,10 @@
+Config(
+    bpm: 170,
+    telegraph_beats: 1.0,
+    player: PlayerConfig(
+    ),
+    fear: FearConfig(
+        restore_speed: 2.0,
+        shake: 5.0,
+    ),
+)
