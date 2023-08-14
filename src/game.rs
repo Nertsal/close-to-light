@@ -15,12 +15,12 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, rules: Config) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, rules: Config, level: Level) -> Self {
         assets.music.play();
         Self {
             geng: geng.clone(),
             render: GameRender::new(geng, assets),
-            model: Model::new(rules),
+            model: Model::new(rules, level),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,

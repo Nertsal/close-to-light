@@ -1,3 +1,5 @@
+mod event;
+
 use super::*;
 
 use geng_utils::conversions::Vec2RealConversions;
@@ -17,41 +19,12 @@ impl Model {
         self.player.shake = self.player.shake.clamp_len(..=r32(0.2));
 
         self.beat_timer -= delta_time;
-        while self.beat_timer < self.config.telegraph_time() {
-            self.beat_timer += self.config.beat_time();
-
-            // Spawn a light at a random pos
-            let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
-            let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
-
-            let shape_max = if rng.gen_bool(0.5) {
-                Shape::Circle {
-                    radius: r32(rng.gen_range(0.5..=1.0)),
-                }
-            } else {
-                Shape::Line {
-                    width: r32(rng.gen_range(0.5..=1.0)),
-                }
-            };
-
-            self.telegraphs.push(Telegraph {
-                light: Light {
-                    collider: {
-                        Collider {
-                            position,
-                            rotation,
-                            shape: Shape::Circle {
-                                radius: Coord::ZERO,
-                            },
-                        }
-                    },
-                    shape_max,
-                    lifetime: Lifetime::new_max(r32(2.0) * self.config.beat_time()),
-                },
-                lifetime: Lifetime::new_max(self.config.telegraph_time() + self.config.beat_time()),
-                spawn_timer: self.config.telegraph_time(),
-            });
+        while self.beat_timer < Time::ZERO {
+            self.beat_timer += self.level.beat_time();
+            self.next_beat();
         }
+
+        self.process_events(delta_time);
 
         // Update telegraphs
         for tele in &mut self.telegraphs {
@@ -91,6 +64,73 @@ impl Model {
                 .change(-self.config.fear.restore_speed * delta_time);
         } else {
             self.player.fear_meter.change(delta_time);
+        }
+    }
+
+    fn next_beat(&mut self) {
+        self.current_beat += 1;
+
+        if self.level.events.is_empty() {
+            // No more events - start rng
+            // TODO: end the level
+            let telegraph = self.random_light_telegraphed();
+            self.telegraphs.push(telegraph);
+        } else {
+            // Get the next events
+            let mut to_remove = Vec::new();
+            for (i, event) in self.level.events.iter().enumerate().rev() {
+                if event.beat.floor().as_f32() as usize == self.current_beat {
+                    to_remove.push(i);
+                }
+            }
+            for i in to_remove {
+                let event = self.level.events.swap_remove(i);
+                self.queued_events.push(QueuedEvent {
+                    delay: event.beat.fract() * self.level.beat_time(),
+                    event: event.event,
+                });
+            }
+        }
+    }
+
+    fn random_light_telegraphed(&self) -> LightTelegraph {
+        self.random_light().into_telegraph(
+            Telegraph {
+                precede_time: r32(1.0),
+                duration: r32(2.0),
+            },
+            self.level.beat_time(),
+        )
+    }
+
+    fn random_light(&self) -> Light {
+        let mut rng = thread_rng();
+
+        let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
+        let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
+
+        let shape_max = if rng.gen_bool(0.5) {
+            Shape::Circle {
+                radius: r32(rng.gen_range(0.5..=1.0)),
+            }
+        } else {
+            Shape::Line {
+                width: r32(rng.gen_range(0.5..=1.0)),
+            }
+        };
+
+        Light {
+            collider: {
+                Collider {
+                    position,
+                    rotation,
+                    shape: Shape::Circle {
+                        radius: Coord::ZERO,
+                    },
+                }
+            },
+            shape_max,
+            lifetime: Lifetime::new_max(r32(2.0) * self.level.beat_time()),
         }
     }
 }

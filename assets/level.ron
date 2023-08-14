@@ -1,0 +1,19 @@
+Level(
+    bpm: 170,
+    events: [
+        TimedEvent(
+            beat: 1,
+            event: Light((
+                light: (
+                    position: (0, 0),
+                    shape: Circle( radius: 1.0 ),
+                    lifetime: 2.0,
+                ),
+                telegraph: (
+                    precede_time: 1.0,
+                    duration: 2.0,
+                ),
+            )),
+        ),
+    ],
+)

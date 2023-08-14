@@ -1,9 +1,10 @@
 mod collider;
 mod config;
+mod level;
+mod light;
 mod logic;
 
-pub use self::collider::*;
-pub use self::config::*;
+pub use self::{collider::*, config::*, level::*, light::*};
 
 use geng::prelude::*;
 use geng_utils::{bounded::Bounded, conversions::Vec2RealConversions};
@@ -12,21 +13,11 @@ pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
 
-#[derive(Debug, Clone)]
-pub struct Light {
-    pub collider: Collider,
-    pub shape_max: Shape,
-    pub lifetime: Lifetime,
-}
-
-#[derive(Debug, Clone)]
-pub struct Telegraph {
-    /// The light to telegraph.
-    pub light: Light,
-    /// Lifetime of the telegraph.
-    pub lifetime: Lifetime,
-    /// The time until the actual light is spawned.
-    pub spawn_timer: Time,
+#[derive(Debug)]
+pub struct QueuedEvent {
+    /// Delay until the event should happen (in seconds).
+    pub delay: Time,
+    pub event: Event,
 }
 
 #[derive(Debug, Clone)]
@@ -39,24 +30,30 @@ pub struct Player {
 
 pub struct Model {
     pub config: Config,
+    pub level: Level,
+    pub current_beat: usize,
     pub camera: Camera2d,
     /// The time until the next music beat.
     pub beat_timer: Time,
+    pub queued_events: Vec<QueuedEvent>,
     pub player: Player,
-    pub telegraphs: Vec<Telegraph>,
+    pub telegraphs: Vec<LightTelegraph>,
     pub lights: Vec<Light>,
 }
 
 impl Model {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, level: Level) -> Self {
         Self {
             config,
+            level,
+            current_beat: 0,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
             beat_timer: Time::ZERO,
+            queued_events: Vec::new(),
             player: Player {
                 target_position: vec2::ZERO,
                 shake: vec2::ZERO,
