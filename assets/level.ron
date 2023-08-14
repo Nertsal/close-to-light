@@ -39,7 +39,7 @@ Level(
                 ),
                 telegraph: (
                     precede_time: 1.0,
-                    duration: 2.0,
+                    speed: 2.0,
                 ),
             )),
         ),
