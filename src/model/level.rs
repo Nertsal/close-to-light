@@ -29,8 +29,8 @@ pub struct LightSerde {
     pub shape: Shape,
     #[serde(default)]
     pub movement: Movement,
-    /// Lifetime (in beats).
-    pub lifetime: Time,
+    // /// Lifetime (in beats).
+    // pub lifetime: Time,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,7 +69,8 @@ impl LightSerde {
             base_collider: collider.clone(),
             collider,
             movement: self.movement.with_beat_time(beat_time),
-            lifetime: Lifetime::new_max(self.lifetime * beat_time),
+            lifetime: Time::ZERO,
+            // lifetime: Lifetime::new_max(self.lifetime * beat_time),
         }
     }
 }

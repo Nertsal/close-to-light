@@ -5,9 +5,9 @@ Level(
             beat: 1,
             event: Light((
                 light: (
-                    position: (0, 0),
+                    position: (-1, 0),
                     shape: Circle( radius: 1.0 ),
-                    lifetime: 2.0,
+                    // lifetime: 2.0,
                     movement: (
                         key_frames: [
                             (
@@ -20,6 +20,12 @@ Level(
                                 lerp_time: 1,
                                 transform: (
                                     scale: 1,
+                                ),
+                            ),
+                            (
+                                lerp_time: 1,
+                                transform: (
+                                    translation: (2, 0),
                                 ),
                             ),
                             (

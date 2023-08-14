@@ -77,12 +77,31 @@ impl Movement {
                     Time::ONE
                 };
                 let t = crate::util::smoothstep(t);
-                return from.lerp(&frame.transform, t);
+
+                // Translation is accumulating
+                let target = Transform {
+                    translation: from.translation + frame.transform.translation,
+                    ..frame.transform
+                };
+                return from.lerp(&target, t);
             }
             time -= frame.lerp_time;
-            from = frame.transform;
+
+            // Translation is accumulating
+            from = Transform {
+                translation: from.translation + frame.transform.translation,
+                ..frame.transform
+            };
         }
         from
+    }
+
+    /// Returns the total duration of the movement.
+    pub fn duration(&self) -> Time {
+        self.key_frames
+            .iter()
+            .map(|frame| frame.lerp_time)
+            .fold(Time::ZERO, Time::add)
     }
 }
 

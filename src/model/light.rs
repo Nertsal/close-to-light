@@ -7,7 +7,8 @@ pub struct Light {
     /// The base collider used for reference.
     pub base_collider: Collider,
     pub movement: Movement,
-    pub lifetime: Lifetime,
+    /// Time since creation.
+    pub lifetime: Time,
 }
 
 #[derive(Debug, Clone)]

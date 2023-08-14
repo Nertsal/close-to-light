@@ -47,14 +47,13 @@ impl Model {
 
         // Update lights
         for light in &mut self.lights {
-            light.lifetime.change(-delta_time);
+            light.lifetime += delta_time;
 
-            let transform = light
-                .movement
-                .get(light.lifetime.max() - light.lifetime.value());
+            let transform = light.movement.get(light.lifetime);
             light.collider = light.base_collider.transformed(transform);
         }
-        self.lights.retain(|light| light.lifetime.is_above_min());
+        self.lights
+            .retain(|light| light.lifetime < light.movement.duration());
 
         // Check if the player is in light
         let lit = self
@@ -154,7 +153,8 @@ impl Model {
                 .into(),
             }
             .with_beat_time(self.level.beat_time()),
-            lifetime: Lifetime::new_max(r32(2.0) * self.level.beat_time()),
+            lifetime: Time::ZERO,
+            // lifetime: Lifetime::new_max(r32(2.0) * self.level.beat_time()),
         }
     }
 }
