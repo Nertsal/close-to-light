@@ -1,4 +1,6 @@
 Config(
+    bpm: 170,
+    telegraph_beats: 1.0,
     player: PlayerConfig(
     ),
     fear: FearConfig(

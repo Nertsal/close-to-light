@@ -29,4 +29,19 @@ impl Shape {
             }
         }
     }
+
+    pub fn scaled(self, scale: Coord) -> Self {
+        match self {
+            Shape::Circle { radius } => Shape::Circle {
+                radius: radius * scale,
+            },
+            Shape::Line { width } => Shape::Line {
+                width: width * scale,
+            },
+            Shape::Rectangle { width, height } => Shape::Rectangle {
+                width: width * scale,
+                height: height * scale,
+            },
+        }
+    }
 }
