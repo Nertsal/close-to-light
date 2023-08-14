@@ -43,8 +43,8 @@ pub struct LightEvent {
 pub struct Telegraph {
     /// How long before the event should the telegraph occur (in beats).
     pub precede_time: Time,
-    /// How long will the telegraph be visible (in beats).
-    pub duration: Time,
+    /// How fast the telegraph is.
+    pub speed: Coord,
 }
 
 impl Level {
@@ -79,7 +79,7 @@ impl Default for Telegraph {
     fn default() -> Self {
         Self {
             precede_time: Time::new(1.0),
-            duration: Time::new(2.0),
+            speed: Coord::new(1.0),
         }
     }
 }

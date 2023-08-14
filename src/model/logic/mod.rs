@@ -28,22 +28,30 @@ impl Model {
 
         // Update telegraphs
         for tele in &mut self.telegraphs {
-            tele.lifetime.change(-delta_time);
+            tele.lifetime += delta_time;
             if tele.spawn_timer > Time::ZERO {
                 tele.spawn_timer -= delta_time;
                 if tele.spawn_timer <= Time::ZERO {
                     self.lights.push(tele.light.clone());
+                    continue;
                 }
             }
 
-            let t = 1.0 - tele.lifetime.get_ratio().as_f32(); // 0 to 1
-            let t = crate::util::smoothstep(t);
-            tele.light.collider = tele.light.base_collider.transformed(Transform {
-                scale: r32(t),
-                ..default()
-            });
+            let t = tele.lifetime * tele.speed;
+            let transform = if t > tele.light.movement.duration() {
+                Transform {
+                    scale: Coord::ZERO,
+                    ..default()
+                }
+            } else {
+                tele.light.movement.get(t)
+            };
+            tele.light.collider = tele.light.base_collider.transformed(transform);
         }
-        self.telegraphs.retain(|tele| tele.lifetime.is_above_min());
+        self.telegraphs.retain(|tele| {
+            tele.spawn_timer > Time::ZERO
+                || tele.lifetime * tele.speed < tele.light.movement.duration()
+        });
 
         // Update lights
         for light in &mut self.lights {
@@ -99,7 +107,7 @@ impl Model {
         self.random_light().into_telegraph(
             Telegraph {
                 precede_time: r32(1.0),
-                duration: r32(2.0),
+                speed: r32(1.0),
             },
             self.level.beat_time(),
         )
