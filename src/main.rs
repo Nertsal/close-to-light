@@ -36,18 +36,17 @@ fn main() {
             geng::asset::Load::load(manager, &assets_path.join("level.ron"), &())
                 .await
                 .expect("failed to load level");
+        let config: model::Config =
+            geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
+                .await
+                .expect("failed to load config");
 
         if opts.edit {
             // Editor
-            let state = editor::Editor::new(geng.clone(), assets, level);
+            let state = editor::Editor::new(geng.clone(), assets, config, level);
             geng.run_state(state).await;
         } else {
             // Game
-            let config: model::Config =
-                geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
-                    .await
-                    .expect("failed to load config");
-
             let state = game::Game::new(&geng, &assets, config, level);
             geng.run_state(state).await;
         }

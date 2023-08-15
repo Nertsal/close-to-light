@@ -1,3 +1,7 @@
+mod util;
+
+pub use util::*;
+
 use crate::{assets::Assets, model::*};
 
 use geng::prelude::*;
@@ -10,6 +14,7 @@ pub const COLOR_DARK: Rgba<f32> = Rgba::BLACK;
 pub struct GameRender {
     geng: Geng,
     assets: Rc<Assets>,
+    util: UtilRender,
 }
 
 impl GameRender {
@@ -17,6 +22,7 @@ impl GameRender {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            util: UtilRender::new(geng, assets),
         }
     }
 
@@ -25,135 +31,20 @@ impl GameRender {
 
         // Telegraphs
         for tele in &model.telegraphs {
-            self.draw_outline(&tele.light.collider, 0.02, camera, framebuffer);
+            self.util
+                .draw_outline(&tele.light.collider, 0.02, camera, framebuffer);
         }
 
         // Lights
         for light in &model.lights {
-            self.draw_collider(&light.collider, camera, framebuffer);
+            self.util
+                .draw_collider(&light.collider, camera, framebuffer);
         }
 
         // Player
         let mut player = model.player.collider.clone();
         player.position += model.player.shake;
-        self.draw_collider(&player, camera, framebuffer);
-    }
-
-    fn draw_collider(
-        &self,
-        collider: &Collider,
-        camera: &Camera2d,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        match collider.shape {
-            Shape::Circle { radius } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Ellipse::circle(
-                        collider.position.as_f32(),
-                        radius.as_f32(),
-                        COLOR_LIGHT,
-                    ),
-                );
-            }
-            Shape::Line { width } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Quad::new(
-                        Aabb2::ZERO.extend_symmetric(vec2(camera.fov * 4.0, width.as_f32()) / 2.0),
-                        COLOR_LIGHT,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
-            }
-            Shape::Rectangle { width, height } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Quad::new(
-                        Aabb2::ZERO.extend_symmetric(vec2(width.as_f32(), height.as_f32()) / 2.0),
-                        COLOR_LIGHT,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
-            }
-        }
-    }
-
-    fn draw_outline(
-        &self,
-        collider: &Collider,
-        outline_width: f32,
-        camera: &Camera2d,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        match collider.shape {
-            Shape::Circle { radius } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Ellipse::circle_with_cut(
-                        collider.position.as_f32(),
-                        radius.as_f32() - outline_width,
-                        radius.as_f32(),
-                        COLOR_LIGHT,
-                    ),
-                );
-            }
-            Shape::Line { width } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Segment::new(
-                        Segment(
-                            vec2(-camera.fov * 2.0, (width.as_f32() - outline_width) / 2.0),
-                            vec2(camera.fov * 2.0, (width.as_f32() - outline_width) / 2.0),
-                        ),
-                        outline_width,
-                        COLOR_LIGHT,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Segment::new(
-                        Segment(
-                            vec2(-camera.fov * 2.0, -(width.as_f32() - outline_width) / 2.0),
-                            vec2(camera.fov * 2.0, -(width.as_f32() - outline_width) / 2.0),
-                        ),
-                        outline_width,
-                        COLOR_LIGHT,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
-            }
-            Shape::Rectangle { width, height } => {
-                let [a, b, c, d] = Aabb2::ZERO
-                    .extend_symmetric(vec2(width.as_f32(), height.as_f32()) / 2.0)
-                    .extend_uniform(-outline_width / 2.0)
-                    .corners();
-                let m = (a + b) / 2.0;
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Chain::new(
-                        Chain::new(vec![m, b, c, d, a, m]),
-                        outline_width,
-                        COLOR_LIGHT,
-                        1,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
-            }
-        }
+        self.util.draw_collider(&player, camera, framebuffer);
     }
 
     pub fn draw_ui(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
