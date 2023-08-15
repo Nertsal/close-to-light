@@ -2,8 +2,6 @@ mod event;
 
 use super::*;
 
-use geng_utils::conversions::Vec2RealConversions;
-
 impl Model {
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
         let mut rng = thread_rng();

@@ -1,4 +1,5 @@
 mod assets;
+mod editor;
 mod game;
 mod model;
 mod render;
@@ -8,6 +9,9 @@ use geng::prelude::*;
 
 #[derive(clap::Parser)]
 struct Opts {
+    /// Open a level in the editor.
+    #[clap(long)]
+    edit: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
 }
@@ -22,20 +26,30 @@ fn main() {
     options.window.title = "Geng Game".to_string();
     options.with_cli(&opts.geng);
 
-    Geng::run_with(&options, |geng| async move {
+    Geng::run_with(&options, move |geng| async move {
         let manager = geng.asset_manager();
         let assets_path = run_dir().join("assets");
 
         let assets = assets::Assets::load(manager).await.unwrap();
-        let config: model::Config =
-            geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
-                .await
-                .expect("failed to load config");
+        let assets = Rc::new(assets);
         let level: model::Level =
             geng::asset::Load::load(manager, &assets_path.join("level.ron"), &())
                 .await
                 .expect("failed to load level");
-        let state = game::Game::new(&geng, &Rc::new(assets), config, level);
-        geng.run_state(state).await;
+
+        if opts.edit {
+            // Editor
+            let state = editor::Editor::new(geng.clone(), assets, level);
+            geng.run_state(state).await;
+        } else {
+            // Game
+            let config: model::Config =
+                geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
+                    .await
+                    .expect("failed to load config");
+
+            let state = game::Game::new(&geng, &assets, config, level);
+            geng.run_state(state).await;
+        }
     });
 }
