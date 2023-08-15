@@ -4,7 +4,7 @@ pub use util::*;
 
 use crate::{assets::Assets, model::*};
 
-use geng::prelude::{*, ugli::Texture};
+use geng::prelude::{ugli::Texture, *};
 use geng_utils::{conversions::Vec2RealConversions, texture::draw_texture_fit};
 
 pub const COLOR_LIGHT: Rgba<f32> = Rgba::WHITE;
@@ -15,7 +15,7 @@ pub struct GameRender {
     geng: Geng,
     assets: Rc<Assets>,
     util: UtilRender,
-    texture: Texture
+    pub texture: Texture,
 }
 
 impl GameRender {
@@ -26,17 +26,17 @@ impl GameRender {
             geng: geng.clone(),
             assets: assets.clone(),
             util: UtilRender::new(geng, assets),
-            texture: texture,
+            texture,
         }
     }
 
     pub fn draw_world(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
         let (mut old_framebuffer, mut framebuffer) = (
             framebuffer,
-            geng_utils::texture::attach_texture(&mut self.texture, self.geng.ugli())
+            geng_utils::texture::attach_texture(&mut self.texture, self.geng.ugli()),
         );
         ugli::clear(&mut framebuffer, Some(Rgba::BLACK), None, None);
-        
+
         let camera = &model.camera;
 
         // Telegraphs
@@ -55,9 +55,16 @@ impl GameRender {
         let mut player = model.player.collider.clone();
         player.position += model.player.shake;
         self.util.draw_collider(&player, camera, &mut framebuffer);
-        
+
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
-        draw_texture_fit(&self.texture, aabb, vec2(0.5, 0.5), &geng::PixelPerfectCamera, &self.geng, &mut old_framebuffer);
+        draw_texture_fit(
+            &self.texture,
+            aabb,
+            vec2(0.5, 0.5),
+            &geng::PixelPerfectCamera,
+            &self.geng,
+            &mut old_framebuffer,
+        );
     }
 
     pub fn draw_ui(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
