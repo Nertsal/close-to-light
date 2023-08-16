@@ -32,6 +32,8 @@ pub struct Editor {
     rendered_lights: Vec<(Light, f32, bool)>,
     /// Telegraphs (with transparency and hover) ready for visualization.
     rendered_telegraphs: Vec<(LightTelegraph, f32, bool)>,
+    /// Index of the hovered light in the `level.events`.
+    hovered_light: Option<usize>,
     current_beat: usize,
     time: Time,
     /// Whether to visualize the lights' movement for the current beat.
@@ -54,6 +56,7 @@ impl Editor {
             model: Model::new(config, level.clone()),
             rendered_lights: vec![],
             rendered_telegraphs: vec![],
+            hovered_light: None,
             current_beat: 0,
             time: Time::ZERO,
             visualize_beat: true,
@@ -133,6 +136,7 @@ impl Editor {
     fn render_lights(&mut self) {
         self.rendered_lights.clear();
         self.rendered_telegraphs.clear();
+        self.hovered_light = None;
 
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
@@ -147,7 +151,7 @@ impl Editor {
             (Some(time), dynamic)
         };
 
-        let mut render_light = |event: &TimedEvent, transparency: f32| {
+        let mut render_light = |index: Option<usize>, event: &TimedEvent, transparency: f32| {
             if event.beat.as_f32() <= self.current_beat as f32 {
                 let start = event.beat * self.level.beat_time();
                 let static_time = static_time.map(|t| t - start);
@@ -170,10 +174,15 @@ impl Editor {
                             })
                         });
 
-                        let hover = static_light
-                            .as_ref()
-                            .map(|light| light.collider.contains(self.cursor_world_pos))
-                            .unwrap_or(false);
+                        let hover = self.hovered_light.is_none()
+                            && index.is_some()
+                            && static_light
+                                .as_ref()
+                                .map(|light| light.collider.contains(self.cursor_world_pos))
+                                .unwrap_or(false);
+                        if hover {
+                            self.hovered_light = index;
+                        }
 
                         if let Some(time) = dynamic_time {
                             // Telegraph
@@ -220,16 +229,16 @@ impl Editor {
             }
         };
 
-        for e in &self.level.events {
+        for (i, e) in self.level.events.iter().enumerate() {
             let transparency = if let State::Movement { .. } = &self.state {
                 0.5
             } else {
                 1.0
             };
-            render_light(e, transparency);
+            render_light(Some(i), e, transparency);
         }
         if let State::Movement { start_beat, light } = &self.state {
-            render_light(&commit_light(*start_beat, light.clone()), 1.0);
+            render_light(None, &commit_light(*start_beat, light.clone()), 1.0);
         };
     }
 }
@@ -265,6 +274,11 @@ impl geng::State for Editor {
                 geng::Key::ArrowLeft => self.current_beat = self.current_beat.saturating_sub(1),
                 geng::Key::ArrowRight => self.current_beat += 1,
                 geng::Key::F => self.visualize_beat = !self.visualize_beat,
+                geng::Key::X => {
+                    if let Some(index) = self.hovered_light {
+                        self.level.events.swap_remove(index);
+                    }
+                }
                 geng::Key::Space => {
                     if let State::Playing { start_beat } = &self.state {
                         self.current_beat = *start_beat;
@@ -295,6 +309,28 @@ impl geng::State for Editor {
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
+                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+                    if let Some(event) = self
+                        .hovered_light
+                        .and_then(|light| self.level.events.get_mut(light))
+                    {
+                        let change = Time::new(delta.signum() as f32);
+                        let Event::Light(light) = &mut event.event;
+                        if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                            // Fade out
+                            if let Some(frame) = light.light.movement.key_frames.back_mut() {
+                                frame.lerp_time += change;
+                            }
+                        } else {
+                            // Fade in
+                            if let Some(frame) = light.light.movement.key_frames.get_mut(1) {
+                                event.beat -= change;
+                                frame.lerp_time += change;
+                            }
+                        }
+                        return;
+                    }
+                }
                 if delta > 0.0 {
                     self.current_beat += 1;
                 } else {
@@ -398,11 +434,27 @@ impl geng::State for Editor {
         // let outline_color = crate::render::COLOR_DARK;
         // let outline_size = 0.05;
 
-        // Current beat
+        // Current beat / Fade in/out
+        let mut text = format!("Beat: {}", self.current_beat);
+        if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+            if let Some(event) = self
+                .hovered_light
+                .and_then(|light| self.level.events.get_mut(light))
+            {
+                let Event::Light(light) = &mut event.event;
+                if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                    if let Some(frame) = light.light.movement.key_frames.back_mut() {
+                        text = format!("Fade out time: {}", frame.lerp_time);
+                    }
+                } else if let Some(frame) = light.light.movement.key_frames.get(1) {
+                    text = format!("Fade in time: {}", frame.lerp_time);
+                }
+            }
+        }
         font.draw(
             screen_buffer,
             camera,
-            &format!("Beat: {}", self.current_beat),
+            &text,
             vec2::splat(geng::TextAlign(0.5)),
             mat3::translate(
                 geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
@@ -427,10 +479,16 @@ impl geng::State for Editor {
         );
 
         // Status
-        let text = match &self.state {
-            State::Place => "Click to create a new light\n1/2 to select different types",
-            State::Movement { .. } => "Left click to create a new waypoint\nRight click to finish",
-            State::Playing { .. } => "Playing the music...\nSpace to stop",
+        let text = if self.hovered_light.is_some() {
+            "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
+        } else {
+            match &self.state {
+                State::Place => "Click to create a new light\n1/2 to select different types",
+                State::Movement { .. } => {
+                    "Left click to create a new waypoint\nRight click to finish"
+                }
+                State::Playing { .. } => "Playing the music...\nSpace to stop",
+            }
         };
         font.draw(
             screen_buffer,
@@ -438,9 +496,9 @@ impl geng::State for Editor {
             text,
             vec2(geng::TextAlign::CENTER, geng::TextAlign::BOTTOM),
             mat3::translate(
-                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, font_size),
+                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.5 * font_size),
             ) * mat3::scale_uniform(font_size)
-                * mat3::translate(vec2(0.0, 0.5)),
+                * mat3::translate(vec2(0.0, 1.0)),
             text_color,
         );
     }
