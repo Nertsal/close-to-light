@@ -321,6 +321,7 @@ impl geng::State for Editor {
         // let outline_color = crate::render::COLOR_DARK;
         // let outline_size = 0.05;
 
+        // Current beat
         font.draw(
             screen_buffer,
             camera,
@@ -330,6 +331,39 @@ impl geng::State for Editor {
                 geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
             ) * mat3::scale_uniform(font_size)
                 * mat3::translate(vec2(0.0, -0.5)),
+            text_color,
+        );
+
+        // Help
+        let text =
+            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music";
+        font.draw(
+            screen_buffer,
+            camera,
+            text,
+            vec2::splat(geng::TextAlign::RIGHT),
+            mat3::translate(
+                geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0)) + vec2(-1.0, -1.0) * font_size,
+            ) * mat3::scale_uniform(font_size * 0.5)
+                * mat3::translate(vec2(0.0, -0.5)),
+            text_color,
+        );
+
+        // Status
+        let text = match &self.state {
+            State::Place => "Click to create a new light\n1/2 to select different types",
+            State::Movement { .. } => "Left click to create a new waypoint\nRight click to finish",
+            State::Playing { .. } => "Playing the music...\nSpace to stop",
+        };
+        font.draw(
+            screen_buffer,
+            camera,
+            text,
+            vec2(geng::TextAlign::CENTER, geng::TextAlign::BOTTOM),
+            mat3::translate(
+                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, font_size),
+            ) * mat3::scale_uniform(font_size)
+                * mat3::translate(vec2(0.0, 0.5)),
             text_color,
         );
     }
