@@ -8,7 +8,13 @@ enum State {
     /// Place a new light.
     Place,
     /// Specify a movement path for the light.
-    Movement { start_beat: Time, light: LightEvent },
+    Movement {
+        start_beat: Time,
+        light: LightEvent,
+    },
+    Playing {
+        start_beat: usize,
+    },
 }
 
 pub struct Editor {
@@ -23,11 +29,12 @@ pub struct Editor {
     /// Simulation model.
     model: Model,
     current_beat: usize,
-    real_time: Time,
+    time: Time,
     /// Whether to visualize the lights' movement for the current beat.
     visualize_beat: bool,
     selected_shape: usize,
     state: State,
+    music: geng::SoundEffect,
 }
 
 impl Editor {
@@ -37,18 +44,19 @@ impl Editor {
         Self {
             util_render: UtilRender::new(&geng, &assets),
             texture,
-            geng,
-            assets,
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             cursor_world_pos: vec2::ZERO,
             model: Model::new(config, level.clone()),
-            level,
             current_beat: 0,
-            real_time: Time::ZERO,
+            time: Time::ZERO,
             visualize_beat: true,
             selected_shape: 0,
             state: State::Place,
+            music: assets.music.effect(),
+            geng,
+            assets,
+            level,
         }
     }
 
@@ -110,6 +118,7 @@ impl Editor {
                     },
                 });
             }
+            State::Playing { .. } => {}
         }
     }
 
@@ -119,7 +128,11 @@ impl Editor {
 impl geng::State for Editor {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
-        self.real_time += delta_time;
+        self.time += delta_time;
+
+        if let State::Playing { .. } = self.state {
+            self.current_beat = (self.time / self.level.beat_time()).floor().as_f32() as usize;
+        }
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
@@ -140,7 +153,24 @@ impl geng::State for Editor {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => self.current_beat = self.current_beat.saturating_sub(1),
                 geng::Key::ArrowRight => self.current_beat += 1,
-                geng::Key::Space => self.visualize_beat = !self.visualize_beat,
+                geng::Key::F => self.visualize_beat = !self.visualize_beat,
+                geng::Key::Space => {
+                    if let State::Playing { start_beat } = &self.state {
+                        self.current_beat = *start_beat;
+                        self.state = State::Place;
+                        self.music.stop();
+                    } else {
+                        self.state = State::Playing {
+                            start_beat: self.current_beat,
+                        };
+                        self.music.stop();
+                        self.music = self.assets.music.effect();
+                        let time = self.current_beat as f32 * self.level.beat_time().as_f32();
+                        self.time = Time::new(time);
+                        self.music
+                            .play_from(time::Duration::from_secs_f64(time as f64));
+                    }
+                }
                 geng::Key::Digit1 => self.handle_digit(1),
                 geng::Key::Digit2 => self.handle_digit(2),
                 geng::Key::Digit3 => self.handle_digit(3),
@@ -191,12 +221,16 @@ impl geng::State for Editor {
         ugli::clear(&mut pixel_buffer, Some(Rgba::BLACK), None, None);
 
         // Level
-        let time = if self.visualize_beat {
-            (self.real_time / self.level.beat_time()).fract() * self.level.beat_time()
+        let time = if let State::Playing { .. } = self.state {
+            // TODO: self.music.play_position()
+            self.time
         } else {
-            Time::ZERO
+            (if self.visualize_beat {
+                (self.time / self.level.beat_time()).fract() * self.level.beat_time()
+            } else {
+                Time::ZERO
+            }) + Time::new(self.current_beat as f32) * self.level.beat_time()
         };
-        let time = time + Time::new(self.current_beat as f32) * self.level.beat_time();
 
         let mut draw_event = |event: &TimedEvent, transparency: f32| {
             if event.beat.as_f32() <= self.current_beat as f32 {
@@ -237,7 +271,6 @@ impl geng::State for Editor {
         };
 
         for event in &self.level.events {
-            // TODO: transparent if State::Movement
             let transparency = if let State::Movement { .. } = &self.state {
                 0.5
             } else {
@@ -251,19 +284,21 @@ impl geng::State for Editor {
         };
 
         // Current action
-        if let Some(&selected_shape) = self.model.config.shapes.get(self.selected_shape) {
-            let collider = Collider {
-                position: self.cursor_world_pos,
-                rotation: Angle::ZERO,
-                shape: selected_shape,
-            };
-            self.util_render.draw_outline(
-                &collider,
-                0.05,
-                1.0,
-                &self.model.camera,
-                &mut pixel_buffer,
-            );
+        if !matches!(self.state, State::Playing { .. }) {
+            if let Some(&selected_shape) = self.model.config.shapes.get(self.selected_shape) {
+                let collider = Collider {
+                    position: self.cursor_world_pos,
+                    rotation: Angle::ZERO,
+                    shape: selected_shape,
+                };
+                self.util_render.draw_outline(
+                    &collider,
+                    0.05,
+                    1.0,
+                    &self.model.camera,
+                    &mut pixel_buffer,
+                );
+            }
         }
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
