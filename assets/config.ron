@@ -1,10 +1,12 @@
 Config(
-    bpm: 170,
-    telegraph_beats: 1.0,
     player: PlayerConfig(
     ),
     fear: FearConfig(
         restore_speed: 2.0,
         shake: 5.0,
     ),
+    shapes: [
+        Circle( radius: 1.0 ),
+        Line( width: 1.0 ),
+    ],
 )

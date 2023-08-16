@@ -117,15 +117,12 @@ impl Model {
         let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
         let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
 
-        let shape = if rng.gen_bool(0.5) {
-            Shape::Circle {
-                radius: r32(rng.gen_range(0.5..=1.0)),
-            }
-        } else {
-            Shape::Line {
-                width: r32(rng.gen_range(0.5..=1.0)),
-            }
-        };
+        let shape = self
+            .config
+            .shapes
+            .choose(&mut rng)
+            .expect("no shapes available")
+            .clone();
 
         let collider = Collider {
             position,

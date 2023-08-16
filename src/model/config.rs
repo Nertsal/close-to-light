@@ -5,6 +5,8 @@ use super::*;
 pub struct Config {
     pub player: PlayerConfig,
     pub fear: FearConfig,
+    /// Possible light shapes to choose from.
+    pub shapes: Vec<Shape>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
