@@ -19,7 +19,8 @@ pub struct Editor {
     geng: Geng,
     assets: Rc<Assets>,
     util_render: UtilRender,
-    texture: ugli::Texture,
+    pixel_texture: ugli::Texture,
+    ui_texture: ugli::Texture,
     framebuffer_size: vec2<usize>,
     cursor_pos: vec2<f64>,
     cursor_world_pos: vec2<Coord>,
@@ -41,19 +42,28 @@ pub struct Editor {
     place_rotation: Angle<Coord>,
     state: State,
     music: geng::SoundEffect,
+    grid_size: Coord,
+    show_grid: bool,
+    snap_to_grid: bool,
 }
 
 impl Editor {
     pub fn new(geng: Geng, assets: Rc<Assets>, config: Config, level: Level) -> Self {
-        let mut texture = geng_utils::texture::new_texture(geng.ugli(), vec2(360 * 16 / 9, 360));
-        texture.set_filter(ugli::Filter::Nearest);
+        let mut pixel_texture =
+            geng_utils::texture::new_texture(geng.ugli(), vec2(360 * 16 / 9, 360));
+        pixel_texture.set_filter(ugli::Filter::Nearest);
+        let mut ui_texture =
+            geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
+        ui_texture.set_filter(ugli::Filter::Nearest);
+
+        let model = Model::new(config, level.clone());
         Self {
             util_render: UtilRender::new(&geng, &assets),
-            texture,
+            pixel_texture,
+            ui_texture,
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             cursor_world_pos: vec2::ZERO,
-            model: Model::new(config, level.clone()),
             rendered_lights: vec![],
             rendered_telegraphs: vec![],
             hovered_light: None,
@@ -64,6 +74,10 @@ impl Editor {
             place_rotation: Angle::ZERO,
             state: State::Place,
             music: assets.music.effect(),
+            grid_size: Coord::new(model.camera.fov / 16.0),
+            show_grid: true,
+            snap_to_grid: true,
+            model,
             geng,
             assets,
             level,
@@ -188,16 +202,16 @@ impl Editor {
                         }
 
                         if let Some(time) = dynamic_time {
+                            let transparency =
+                                transparency * if static_time.is_some() { 0.5 } else { 1.0 };
+
                             // Telegraph
                             if time < duration {
                                 let transform = tele.light.movement.get(time);
                                 tele.light.collider =
                                     tele.light.base_collider.transformed(transform);
-                                self.rendered_telegraphs.push((
-                                    tele.clone(),
-                                    transparency * 0.5,
-                                    hover,
-                                ));
+                                self.rendered_telegraphs
+                                    .push((tele.clone(), transparency, hover));
                             }
 
                             // Light
@@ -208,7 +222,7 @@ impl Editor {
                                     tele.light.base_collider.transformed(transform);
                                 self.rendered_lights.push((
                                     tele.light.clone(),
-                                    transparency * 0.5,
+                                    transparency,
                                     hover,
                                 ));
                             }
@@ -249,6 +263,10 @@ impl Editor {
         self.current_beat = (self.current_beat + delta).max(Time::ZERO);
     }
 
+    fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
+        (pos / self.grid_size).map(Coord::round) * self.grid_size
+    }
+
     fn save(&mut self) {
         let result = (|| -> anyhow::Result<()> {
             // TODO: switch back to ron
@@ -281,16 +299,21 @@ impl geng::State for Editor {
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
-            self.texture.size().as_f32(),
+            self.pixel_texture.size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
             vec2(0.5, 0.5),
         );
         let pos = pos - game_pos.bottom_left();
-        self.cursor_world_pos = self
+        let pos = self
             .model
             .camera
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
+        self.cursor_world_pos = if self.snap_to_grid {
+            self.snap_pos_grid(pos)
+        } else {
+            pos
+        };
 
         self.render_lights();
     }
@@ -325,6 +348,13 @@ impl geng::State for Editor {
                 }
                 geng::Key::Q => self.place_rotation += Angle::from_degrees(r32(15.0)),
                 geng::Key::E => self.place_rotation += Angle::from_degrees(r32(-15.0)),
+                geng::Key::Backquote => {
+                    if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+                        self.show_grid = !self.show_grid;
+                    } else {
+                        self.snap_to_grid = !self.snap_to_grid;
+                    }
+                }
                 geng::Key::Space => {
                     if let State::Playing {
                         start_beat,
@@ -416,12 +446,67 @@ impl geng::State for Editor {
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
         ugli::clear(screen_buffer, Some(crate::render::COLOR_DARK), None, None);
+        let screen_aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
 
-        let mut pixel_buffer =
-            geng_utils::texture::attach_texture(&mut self.texture, self.geng.ugli());
-        ugli::clear(&mut pixel_buffer, Some(Rgba::BLACK), None, None);
+        // World UI
+        let mut ui_buffer =
+            geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+
+        // Grid
+        if self.show_grid {
+            let grid_size = self.grid_size.as_f32();
+            let view = vec2(
+                self.model.camera.fov * ui_buffer.size().as_f32().aspect(),
+                self.model.camera.fov,
+            )
+            .map(|x| (x / 2.0 / grid_size).ceil() as i64);
+            for x in -view.x..=view.x {
+                // Vertical
+                let width = if x % 4 == 0 { 0.05 } else { 0.01 };
+                let x = x as f32;
+                let y = view.y as f32;
+                self.geng.draw2d().draw2d(
+                    &mut ui_buffer,
+                    &self.model.camera,
+                    &draw2d::Segment::new(
+                        Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
+                        width,
+                        Rgba::<f32>::WHITE.map_rgb(|x| x * 0.5),
+                    ),
+                );
+            }
+            for y in -view.y..=view.y {
+                // Horizontal
+                let width = if y % 4 == 0 { 0.05 } else { 0.01 };
+                let y = y as f32;
+                let x = view.x as f32;
+                self.geng.draw2d().draw2d(
+                    &mut ui_buffer,
+                    &self.model.camera,
+                    &draw2d::Segment::new(
+                        Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
+                        width,
+                        Rgba::<f32>::WHITE.map_rgb(|x| x * 0.5),
+                    ),
+                );
+            }
+        }
+
+        geng_utils::texture::draw_texture_fit(
+            &self.ui_texture,
+            screen_aabb,
+            vec2(0.5, 0.5),
+            &geng::PixelPerfectCamera,
+            &self.geng,
+            screen_buffer,
+        );
 
         // Level
+        let mut pixel_buffer =
+            geng_utils::texture::attach_texture(&mut self.pixel_texture, self.geng.ugli());
+        ugli::clear(&mut pixel_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+
         for (tele, transparency, hover) in &self.rendered_telegraphs {
             let color = if *hover {
                 Rgba::CYAN
@@ -468,10 +553,9 @@ impl geng::State for Editor {
             }
         }
 
-        let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(
-            &self.texture,
-            aabb,
+            &self.pixel_texture,
+            screen_aabb,
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,
             &self.geng,
@@ -535,7 +619,7 @@ impl geng::State for Editor {
 
         // Help
         let text =
-            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate";
+            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate\n` (backtick) to toggle grid snap\nCtrl+` to toggle grid visibility";
         font.draw(
             screen_buffer,
             camera,
