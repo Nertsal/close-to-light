@@ -474,7 +474,7 @@ impl geng::State for Editor {
 
         // Help
         let text =
-            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music\nF to pause movement\nCtrl+scroll to rotate";
+            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music\nF to pause movement\nAlt+scroll to rotate";
         font.draw(
             screen_buffer,
             camera,
