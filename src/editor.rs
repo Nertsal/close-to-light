@@ -314,16 +314,18 @@ impl geng::State for Editor {
                         .hovered_light
                         .and_then(|light| self.level.events.get_mut(light))
                     {
-                        let change = Time::new(delta.signum() as f32);
+                        let change = Time::new(delta.signum() as f32 * 0.25); // Change by quarter beats
                         let Event::Light(light) = &mut event.event;
                         if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
                             // Fade out
                             if let Some(frame) = light.light.movement.key_frames.back_mut() {
+                                let change = change.max(-frame.lerp_time + r32(0.25));
                                 frame.lerp_time += change;
                             }
                         } else {
                             // Fade in
                             if let Some(frame) = light.light.movement.key_frames.get_mut(1) {
+                                let change = change.max(-frame.lerp_time + r32(0.25));
                                 event.beat -= change;
                                 frame.lerp_time += change;
                             }
