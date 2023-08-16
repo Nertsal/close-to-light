@@ -168,21 +168,9 @@ impl geng::State for Editor {
                 geng::MouseButton::Middle => {}
                 geng::MouseButton::Right => {
                     if let State::Movement { start_beat, light } = &self.state {
-                        // Add fade out
-                        let mut light = light.clone();
-                        light.light.movement.key_frames.push_back(MoveFrame {
-                            lerp_time: Time::ONE, // in beats
-                            transform: Transform {
-                                scale: Coord::ZERO,
-                                ..default()
-                            },
-                        });
-
-                        // Commit event
-                        self.level.events.push(TimedEvent {
-                            beat: *start_beat,
-                            event: Event::Light(light),
-                        });
+                        self.level
+                            .events
+                            .push(commit_light(*start_beat, light.clone()));
                         self.state = State::Place;
                     }
                 }
@@ -209,7 +197,8 @@ impl geng::State for Editor {
             Time::ZERO
         };
         let time = time + Time::new(self.current_beat as f32) * self.level.beat_time();
-        for event in &self.level.events {
+
+        let mut draw_event = |event: &TimedEvent| {
             if event.beat.as_f32() <= self.current_beat as f32 {
                 let time = time - event.beat * self.level.beat_time();
                 match &event.event {
@@ -243,7 +232,16 @@ impl geng::State for Editor {
                     }
                 }
             }
+        };
+
+        for event in &self.level.events {
+            // TODO: transparent if State::Movement
+            draw_event(event);
         }
+
+        if let State::Movement { start_beat, light } = &self.state {
+            draw_event(&commit_light(*start_beat, light.clone()));
+        };
 
         // Current action
         if let Some(&selected_shape) = self.model.config.shapes.get(self.selected_shape) {
@@ -287,5 +285,22 @@ impl geng::State for Editor {
                 * mat3::translate(vec2(0.0, -0.5)),
             text_color,
         );
+    }
+}
+
+fn commit_light(start_beat: Time, mut light: LightEvent) -> TimedEvent {
+    // Add fade out
+    light.light.movement.key_frames.push_back(MoveFrame {
+        lerp_time: Time::ONE, // in beats
+        transform: Transform {
+            scale: Coord::ZERO,
+            ..default()
+        },
+    });
+
+    // Commit event
+    TimedEvent {
+        beat: start_beat,
+        event: Event::Light(light),
     }
 }
