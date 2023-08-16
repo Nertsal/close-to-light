@@ -238,7 +238,12 @@ impl geng::State for Editor {
 
         for event in &self.level.events {
             // TODO: transparent if State::Movement
-            draw_event(event, 1.0);
+            let transparency = if let State::Movement { .. } = &self.state {
+                0.5
+            } else {
+                1.0
+            };
+            draw_event(event, transparency);
         }
 
         if let State::Movement { start_beat, light } = &self.state {
