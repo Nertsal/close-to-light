@@ -59,6 +59,18 @@ impl Collider {
         (self.get_iso(), self.shape.to_parry())
     }
 
+    /// Check whether the collider contains the point.
+    pub fn contains(&self, point: vec2<Coord>) -> bool {
+        // TODO: better
+        self.check(&Collider {
+            position: point,
+            rotation: Angle::ZERO,
+            shape: Shape::Circle {
+                radius: Coord::ZERO,
+            },
+        })
+    }
+
     /// Check whether two colliders are intersecting.
     pub fn check(&self, other: &Self) -> bool {
         let delta = (other.position - self.position).as_f32();

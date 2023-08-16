@@ -28,10 +28,10 @@ pub struct Editor {
     level: Level,
     /// Simulation model.
     model: Model,
-    /// Lights (with transparency) ready for visualization and hover detection.
-    rendered_lights: Vec<(Light, f32)>,
-    /// Telegraphs (with transparency) ready for visualization.
-    rendered_telegraphs: Vec<(LightTelegraph, f32)>,
+    /// Lights (with transparency and hover) ready for visualization and hover detection.
+    rendered_lights: Vec<(Light, f32, bool)>,
+    /// Telegraphs (with transparency and hover) ready for visualization.
+    rendered_telegraphs: Vec<(LightTelegraph, f32, bool)>,
     current_beat: usize,
     time: Time,
     /// Whether to visualize the lights' movement for the current beat.
@@ -160,14 +160,32 @@ impl Editor {
                             light.into_telegraph(event.telegraph.clone(), self.level.beat_time());
                         let duration = tele.light.movement.duration();
 
+                        let static_light = static_time.and_then(|time| {
+                            let time = time - tele.spawn_timer;
+                            (time > Time::ZERO && time < duration).then(|| {
+                                let transform = tele.light.movement.get(time);
+                                tele.light.collider =
+                                    tele.light.base_collider.transformed(transform);
+                                tele.light.clone()
+                            })
+                        });
+
+                        let hover = static_light
+                            .as_ref()
+                            .map(|light| light.collider.contains(self.cursor_world_pos))
+                            .unwrap_or(false);
+
                         if let Some(time) = dynamic_time {
                             // Telegraph
                             if time < duration {
                                 let transform = tele.light.movement.get(time);
                                 tele.light.collider =
                                     tele.light.base_collider.transformed(transform);
-                                self.rendered_telegraphs
-                                    .push((tele.clone(), transparency * 0.5));
+                                self.rendered_telegraphs.push((
+                                    tele.clone(),
+                                    transparency * 0.5,
+                                    hover,
+                                ));
                             }
 
                             // Light
@@ -176,8 +194,11 @@ impl Editor {
                                 let transform = tele.light.movement.get(time);
                                 tele.light.collider =
                                     tele.light.base_collider.transformed(transform);
-                                self.rendered_lights
-                                    .push((tele.light.clone(), transparency * 0.5));
+                                self.rendered_lights.push((
+                                    tele.light.clone(),
+                                    transparency * 0.5,
+                                    hover,
+                                ));
                             }
                         }
 
@@ -187,17 +208,12 @@ impl Editor {
                                 let transform = tele.light.movement.get(time);
                                 tele.light.collider =
                                     tele.light.base_collider.transformed(transform);
-                                self.rendered_telegraphs.push((tele.clone(), transparency));
+                                self.rendered_telegraphs
+                                    .push((tele.clone(), transparency, hover));
                             }
-
-                            // Light
-                            let time = time - tele.spawn_timer;
-                            if time > Time::ZERO && time < duration {
-                                let transform = tele.light.movement.get(time);
-                                tele.light.collider =
-                                    tele.light.base_collider.transformed(transform);
-                                self.rendered_lights.push((tele.light, transparency));
-                            }
+                        }
+                        if let Some(light) = static_light {
+                            self.rendered_lights.push((light, transparency, hover));
                         }
                     }
                 }
@@ -316,19 +332,29 @@ impl geng::State for Editor {
         ugli::clear(&mut pixel_buffer, Some(Rgba::BLACK), None, None);
 
         // Level
-        for (tele, transparency) in &self.rendered_telegraphs {
+        for (tele, transparency, hover) in &self.rendered_telegraphs {
+            let color = if *hover {
+                Rgba::CYAN
+            } else {
+                crate::render::COLOR_LIGHT
+            };
             self.util_render.draw_outline(
                 &tele.light.collider,
                 0.02,
-                *transparency,
+                crate::util::with_alpha(color, *transparency),
                 &self.model.camera,
                 &mut pixel_buffer,
             );
         }
-        for (light, transparency) in &self.rendered_lights {
+        for (light, transparency, hover) in &self.rendered_lights {
+            let color = if *hover {
+                Rgba::CYAN
+            } else {
+                crate::render::COLOR_LIGHT
+            };
             self.util_render.draw_collider(
                 &light.collider,
-                *transparency,
+                crate::util::with_alpha(color, *transparency),
                 &self.model.camera,
                 &mut pixel_buffer,
             );
@@ -345,7 +371,7 @@ impl geng::State for Editor {
                 self.util_render.draw_outline(
                     &collider,
                     0.05,
-                    1.0,
+                    crate::render::COLOR_LIGHT,
                     &self.model.camera,
                     &mut pixel_buffer,
                 );

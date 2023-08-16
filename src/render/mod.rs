@@ -59,21 +59,26 @@ impl GameRender {
 
         // Telegraphs
         for tele in &model.telegraphs {
-            self.util
-                .draw_outline(&tele.light.collider, 0.025, 1.0, camera, &mut framebuffer);
+            self.util.draw_outline(
+                &tele.light.collider,
+                0.025,
+                COLOR_LIGHT,
+                camera,
+                &mut framebuffer,
+            );
         }
 
         // Lights
         for light in &model.lights {
             self.util
-                .draw_collider(&light.collider, 1.0, camera, &mut framebuffer);
+                .draw_collider(&light.collider, COLOR_LIGHT, camera, &mut framebuffer);
         }
 
         // Player
         let mut player = model.player.collider.clone();
         player.position += model.player.shake;
         self.util
-            .draw_collider(&player, 1.0, camera, &mut framebuffer);
+            .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
 
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
