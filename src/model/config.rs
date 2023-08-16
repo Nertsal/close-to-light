@@ -10,7 +10,9 @@ pub struct Config {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PlayerConfig {}
+pub struct PlayerConfig {
+    pub radius: f32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FearConfig {

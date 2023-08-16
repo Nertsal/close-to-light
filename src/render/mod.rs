@@ -76,9 +76,11 @@ impl GameRender {
 
         // Player
         let mut player = model.player.collider.clone();
-        player.position += model.player.shake;
+        // player.position += model.player.shake;
+        // self.util
+        //     .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
         self.util
-            .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
+            .draw_outline(&player, 0.05, COLOR_LIGHT, camera, &mut framebuffer);
 
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());

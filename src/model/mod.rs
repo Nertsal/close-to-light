@@ -47,6 +47,7 @@ pub struct Model {
 
 impl Model {
     pub fn new(config: Config, level: Level) -> Self {
+        let player_radius = config.player.radius;
         Self {
             config,
             level,
@@ -62,7 +63,12 @@ impl Model {
             player: Player {
                 target_position: vec2::ZERO,
                 shake: vec2::ZERO,
-                collider: Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.2) }),
+                collider: Collider::new(
+                    vec2::ZERO,
+                    Shape::Circle {
+                        radius: r32(player_radius),
+                    },
+                ),
                 fear_meter: Bounded::new_max(r32(1.0)),
             },
             telegraphs: vec![],
