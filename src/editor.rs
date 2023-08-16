@@ -3,6 +3,14 @@ use crate::{assets::*, model::*, render::UtilRender};
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
+#[derive(Debug, Clone)]
+enum State {
+    /// Place a new light.
+    Place,
+    /// Specify a movement path for the light.
+    Movement { start_beat: Time, light: LightEvent },
+}
+
 pub struct Editor {
     geng: Geng,
     assets: Rc<Assets>,
@@ -19,6 +27,7 @@ pub struct Editor {
     /// Whether to visualize the lights' movement for the current beat.
     visualize_beat: bool,
     selected_shape: usize,
+    state: State,
 }
 
 impl Editor {
@@ -39,6 +48,7 @@ impl Editor {
             real_time: Time::ZERO,
             visualize_beat: true,
             selected_shape: 0,
+            state: State::Place,
         }
     }
 
@@ -47,6 +57,63 @@ impl Editor {
             .min(self.model.config.shapes.len())
             .saturating_sub(1);
     }
+
+    fn cursor_down(&mut self) {
+        match &mut self.state {
+            State::Place => {
+                // Fade in
+                let movement = Movement {
+                    key_frames: vec![
+                        MoveFrame {
+                            lerp_time: Time::ZERO, // in beats
+                            transform: Transform {
+                                scale: Coord::ZERO,
+                                ..default()
+                            },
+                        },
+                        MoveFrame {
+                            lerp_time: Time::ONE, // in beats
+                            transform: Transform::identity(),
+                        },
+                    ]
+                    .into(),
+                };
+                let telegraph = Telegraph::default();
+                if let Some(&shape) = self.model.config.shapes.get(self.selected_shape) {
+                    self.state = State::Movement {
+                        start_beat: r32(self.current_beat as f32)
+                            - movement.duration()
+                            - telegraph.precede_time, // extra time for the fade and telegraph
+                        light: LightEvent {
+                            light: LightSerde {
+                                position: self.cursor_world_pos,
+                                rotation: Coord::ZERO, // TODO
+                                shape,
+                                movement,
+                            },
+                            telegraph,
+                        },
+                    };
+                }
+            }
+            State::Movement { start_beat, light } => {
+                // TODO: check negative time
+                let last_beat =
+                    *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
+                let mut last_pos = light.light.movement.get_finish();
+                last_pos.translation += light.light.position;
+                light.light.movement.key_frames.push_back(MoveFrame {
+                    lerp_time: r32(self.current_beat as f32) - last_beat, // in beats
+                    transform: Transform {
+                        translation: self.cursor_world_pos - last_pos.translation,
+                        ..default()
+                    },
+                });
+            }
+        }
+    }
+
+    fn cursor_up(&mut self) {}
 }
 
 impl geng::State for Editor {
@@ -96,8 +163,33 @@ impl geng::State for Editor {
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }
-            geng::Event::MousePress { .. } => {}   // TODO
-            geng::Event::MouseRelease { .. } => {} // TODO
+            geng::Event::MousePress { button } => match button {
+                geng::MouseButton::Left => self.cursor_down(),
+                geng::MouseButton::Middle => {}
+                geng::MouseButton::Right => {
+                    if let State::Movement { start_beat, light } = &self.state {
+                        // Add fade out
+                        let mut light = light.clone();
+                        light.light.movement.key_frames.push_back(MoveFrame {
+                            lerp_time: Time::ONE, // in beats
+                            transform: Transform {
+                                scale: Coord::ZERO,
+                                ..default()
+                            },
+                        });
+
+                        // Commit event
+                        self.level.events.push(TimedEvent {
+                            beat: *start_beat,
+                            event: Event::Light(light),
+                        });
+                        self.state = State::Place;
+                    }
+                }
+            },
+            geng::Event::MouseRelease {
+                button: geng::MouseButton::Left,
+            } => self.cursor_up(),
             _ => {}
         }
     }
@@ -119,6 +211,7 @@ impl geng::State for Editor {
         let time = time + Time::new(self.current_beat as f32) * self.level.beat_time();
         for event in &self.level.events {
             if event.beat.as_f32() <= self.current_beat as f32 {
+                let time = time - event.beat * self.level.beat_time();
                 match &event.event {
                     Event::Light(event) => {
                         let light = event.light.clone().instantiate(self.level.beat_time());

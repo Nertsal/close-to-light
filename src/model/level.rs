@@ -27,6 +27,7 @@ pub struct LightSerde {
     #[serde(default = "LightSerde::default_rotation")]
     pub rotation: Coord,
     pub shape: Shape,
+    /// Movement with timings in beats.
     #[serde(default)]
     pub movement: Movement,
     // /// Lifetime (in beats).

@@ -117,12 +117,11 @@ impl Model {
         let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
         let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
 
-        let shape = self
+        let shape = *self
             .config
             .shapes
             .choose(&mut rng)
-            .expect("no shapes available")
-            .clone();
+            .expect("no shapes available");
 
         let collider = Collider {
             position,

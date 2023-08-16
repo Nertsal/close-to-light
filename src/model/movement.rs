@@ -96,6 +96,18 @@ impl Movement {
         from
     }
 
+    /// Get the transform at the end of the movement.
+    pub fn get_finish(&self) -> Transform {
+        let mut result = Transform::identity();
+        for frame in &self.key_frames {
+            result = Transform {
+                translation: result.translation + frame.transform.translation,
+                ..frame.transform
+            };
+        }
+        result
+    }
+
     /// Returns the total duration of the movement.
     pub fn duration(&self) -> Time {
         self.key_frames
