@@ -6,7 +6,7 @@ Config(
         shake: 5.0,
     ),
     shapes: [
-        Circle( radius: 1.0 ),
-        Line( width: 1.0 ),
+        Circle( radius: 1.3 ),
+        Line( width: 1.7 ),
     ],
 )

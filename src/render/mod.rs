@@ -61,7 +61,7 @@ impl GameRender {
         for tele in &model.telegraphs {
             self.util.draw_outline(
                 &tele.light.collider,
-                0.025,
+                0.05,
                 COLOR_LIGHT,
                 camera,
                 &mut framebuffer,
@@ -89,6 +89,7 @@ impl GameRender {
             ugli::DrawMode::TriangleFan,
             &unit_quad_geometry(self.geng.ugli()),
             ugli::uniforms!(
+                u_time: model.real_time.as_f32(),
                 u_framebuffer_size: framebuffer.size().as_f32(),
                 u_pattern_size: self.assets.dither1.size().as_f32(),
                 u_texture: &self.double_buffer.0,

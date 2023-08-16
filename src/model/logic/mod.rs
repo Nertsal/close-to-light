@@ -22,6 +22,8 @@ impl Model {
             self.next_beat();
         }
 
+        self.real_time += delta_time;
+
         self.process_events(delta_time);
 
         // Update telegraphs

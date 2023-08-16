@@ -37,6 +37,7 @@ pub struct Model {
     pub current_beat: usize,
     pub camera: Camera2d,
     /// The time until the next music beat.
+    pub real_time: Time,
     pub beat_timer: Time,
     pub queued_events: Vec<QueuedEvent>,
     pub player: Player,
@@ -55,6 +56,7 @@ impl Model {
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
+            real_time: Time::ZERO,
             beat_timer: Time::ZERO,
             queued_events: Vec::new(),
             player: Player {
