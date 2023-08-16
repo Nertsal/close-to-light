@@ -14,6 +14,12 @@ pub struct Assets {
     pub dither2: ugli::Texture,
     #[load(postprocess = "dither_pattern", ext = "png")]
     pub dither3: ugli::Texture,
+
+    // Gradients
+    #[load(ext = "png")]
+    pub linear_gradient: ugli::Texture,
+    #[load(ext = "png")]
+    pub radial_gradient: ugli::Texture,
 }
 
 /// Use in Assets as `#[load(postprocess = "dither_pattern")]`

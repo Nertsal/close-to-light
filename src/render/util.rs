@@ -28,16 +28,20 @@ impl UtilRender {
                 self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
-                    &draw2d::Ellipse::circle(collider.position.as_f32(), radius.as_f32(), color),
+                    &draw2d::TexturedQuad::new(
+                        Aabb2::ZERO.extend_symmetric(vec2(radius.as_f32(), radius.as_f32())),
+                        &self.assets.radial_gradient,
+                    )
+                    .translate(collider.position.as_f32()),
                 );
             }
             Shape::Line { width } => {
                 self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
-                    &draw2d::Quad::new(
+                    &draw2d::TexturedQuad::new(
                         Aabb2::ZERO.extend_symmetric(vec2(camera.fov * 4.0, width.as_f32()) / 2.0),
-                        color,
+                        &self.assets.linear_gradient,
                     )
                     .rotate(collider.rotation.map(Coord::as_f32))
                     .translate(collider.position.as_f32()),

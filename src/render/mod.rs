@@ -60,7 +60,7 @@ impl GameRender {
         // Telegraphs
         for tele in &model.telegraphs {
             self.util
-                .draw_outline(&tele.light.collider, 0.02, 1.0, camera, &mut framebuffer);
+                .draw_outline(&tele.light.collider, 0.025, 1.0, camera, &mut framebuffer);
         }
 
         // Lights
@@ -120,7 +120,7 @@ impl GameRender {
         let fear = Aabb2::point(
             geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
         )
-        .extend_symmetric(vec2(7.0, 0.0) * font_size / 2.0)
+        .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
         .extend_up(font_size);
         self.geng.draw2d().draw2d(
             framebuffer,
