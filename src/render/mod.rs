@@ -27,7 +27,7 @@ impl GameRender {
             assets: assets.clone(),
             util: UtilRender::new(geng, assets),
             double_buffer: {
-                let height = 360 as usize;
+                let height = 360;
                 let size = vec2(height * 16 / 9, height);
 
                 let mut first = geng_utils::texture::new_texture(geng.ugli(), size);
@@ -49,7 +49,7 @@ impl GameRender {
     }
 
     pub fn draw_world(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
-        let (mut old_framebuffer, mut framebuffer) = (
+        let (old_framebuffer, mut framebuffer) = (
             framebuffer,
             geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli()),
         );
@@ -83,7 +83,14 @@ impl GameRender {
             &self.assets.dither_shader,
             ugli::DrawMode::TriangleFan,
             &unit_quad_geometry(self.geng.ugli()),
-            ugli::uniforms!(),
+            ugli::uniforms!(
+                u_framebuffer_size: framebuffer.size().as_f32(),
+                u_pattern_size: self.assets.dither1.size().as_f32(),
+                u_texture: &self.double_buffer.0,
+                u_dither1: &self.assets.dither1,
+                u_dither2: &self.assets.dither2,
+                u_dither3: &self.assets.dither3,
+            ),
             ugli::DrawParameters {
                 blend_mode: Some(ugli::BlendMode::straight_alpha()),
                 ..Default::default()
@@ -99,7 +106,7 @@ impl GameRender {
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,
             &self.geng,
-            &mut old_framebuffer,
+            old_framebuffer,
         );
     }
 
