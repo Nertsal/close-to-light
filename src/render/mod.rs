@@ -5,7 +5,9 @@ pub use util::*;
 use crate::{assets::Assets, model::*};
 
 use geng::prelude::{ugli::Texture, *};
-use geng_utils::{conversions::Vec2RealConversions, texture::draw_texture_fit};
+use geng_utils::{
+    conversions::Vec2RealConversions, geometry::unit_quad_geometry, texture::draw_texture_fit,
+};
 
 pub const COLOR_LIGHT: Rgba<f32> = Rgba::WHITE;
 pub const COLOR_DARK: Rgba<f32> = Rgba::BLACK;
@@ -15,25 +17,41 @@ pub struct GameRender {
     geng: Geng,
     assets: Rc<Assets>,
     util: UtilRender,
-    pub texture: Texture,
+    double_buffer: (Texture, Texture),
 }
 
 impl GameRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        let mut texture = geng_utils::texture::new_texture(geng.ugli(), vec2(360 * 16 / 9, 360));
-        texture.set_filter(ugli::Filter::Nearest);
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
             util: UtilRender::new(geng, assets),
-            texture,
+            double_buffer: {
+                let height = 360 as usize;
+                let size = vec2(height * 16 / 9, height);
+
+                let mut first = geng_utils::texture::new_texture(geng.ugli(), size);
+                first.set_filter(ugli::Filter::Nearest);
+                let mut second = geng_utils::texture::new_texture(geng.ugli(), size);
+                second.set_filter(ugli::Filter::Nearest);
+
+                (first, second)
+            },
         }
+    }
+
+    pub fn swap_buffer(&mut self) {
+        std::mem::swap(&mut self.double_buffer.0, &mut self.double_buffer.1);
+    }
+
+    pub fn get_render_size(&mut self) -> vec2<usize> {
+        self.double_buffer.0.size()
     }
 
     pub fn draw_world(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
         let (mut old_framebuffer, mut framebuffer) = (
             framebuffer,
-            geng_utils::texture::attach_texture(&mut self.texture, self.geng.ugli()),
+            geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli()),
         );
         ugli::clear(&mut framebuffer, Some(Rgba::BLACK), None, None);
 
@@ -56,9 +74,26 @@ impl GameRender {
         player.position += model.player.shake;
         self.util.draw_collider(&player, camera, &mut framebuffer);
 
+        let mut other_framebuffer =
+            geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
+
+        ugli::draw(
+            &mut other_framebuffer,
+            &self.assets.dither_shader,
+            ugli::DrawMode::TriangleFan,
+            &unit_quad_geometry(self.geng.ugli()),
+            ugli::uniforms!(),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                ..Default::default()
+            },
+        );
+
+        self.swap_buffer();
+
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         draw_texture_fit(
-            &self.texture,
+            &self.double_buffer.0,
             aabb,
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,

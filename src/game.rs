@@ -59,7 +59,7 @@ impl geng::State for Game {
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
-            self.render.texture.size().as_f32(),
+            self.render.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
             vec2(0.5, 0.5),
         );
