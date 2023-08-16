@@ -325,6 +325,8 @@ impl geng::State for Editor {
                 geng::Key::S if self.geng.window().is_key_pressed(geng::Key::ControlLeft) => {
                     self.save();
                 }
+                geng::Key::Q => self.place_rotation += Angle::from_degrees(r32(15.0)),
+                geng::Key::E => self.place_rotation += Angle::from_degrees(r32(-15.0)),
                 geng::Key::Space => {
                     if let State::Playing { start_beat } = &self.state {
                         self.current_beat = *start_beat;
@@ -377,9 +379,6 @@ impl geng::State for Editor {
                             }
                         }
                     }
-                } else if self.geng.window().is_key_pressed(geng::Key::AltLeft) {
-                    // Rotate lights
-                    self.place_rotation += Angle::from_degrees(r32(15.0 * delta.signum() as f32));
                 } else {
                     let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
                         0.25
@@ -533,7 +532,7 @@ impl geng::State for Editor {
 
         // Help
         let text =
-            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nAlt+scroll to rotate";
+            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate";
         font.draw(
             screen_buffer,
             camera,
