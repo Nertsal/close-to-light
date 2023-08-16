@@ -39,6 +39,8 @@ pub struct Editor {
     /// Whether to visualize the lights' movement for the current beat.
     visualize_beat: bool,
     selected_shape: usize,
+    /// At what rotation the objects should be placed.
+    place_rotation: Angle<Coord>,
     state: State,
     music: geng::SoundEffect,
 }
@@ -61,6 +63,7 @@ impl Editor {
             time: Time::ZERO,
             visualize_beat: true,
             selected_shape: 0,
+            place_rotation: Angle::ZERO,
             state: State::Place,
             music: assets.music.effect(),
             geng,
@@ -104,7 +107,7 @@ impl Editor {
                         light: LightEvent {
                             light: LightSerde {
                                 position: self.cursor_world_pos,
-                                rotation: Coord::ZERO, // TODO
+                                rotation: self.place_rotation.as_degrees(),
                                 shape,
                                 movement,
                             },
@@ -119,10 +122,12 @@ impl Editor {
                     *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
                 let mut last_pos = light.light.movement.get_finish();
                 last_pos.translation += light.light.position;
+                last_pos.rotation += Angle::from_degrees(light.light.rotation);
                 light.light.movement.key_frames.push_back(MoveFrame {
                     lerp_time: r32(self.current_beat as f32) - last_beat, // in beats
                     transform: Transform {
                         translation: self.cursor_world_pos - last_pos.translation,
+                        rotation: last_pos.rotation.angle_to(self.place_rotation),
                         ..default()
                     },
                 });
@@ -314,6 +319,7 @@ impl geng::State for Editor {
                         .hovered_light
                         .and_then(|light| self.level.events.get_mut(light))
                     {
+                        // Control fade time
                         let change = Time::new(delta.signum() as f32 * 0.25); // Change by quarter beats
                         let Event::Light(light) = &mut event.event;
                         if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
@@ -330,10 +336,11 @@ impl geng::State for Editor {
                                 frame.lerp_time += change;
                             }
                         }
-                        return;
                     }
-                }
-                if delta > 0.0 {
+                } else if self.geng.window().is_key_pressed(geng::Key::AltLeft) {
+                    // Rotate lights
+                    self.place_rotation += Angle::from_degrees(r32(15.0 * delta.signum() as f32));
+                } else if delta > 0.0 {
                     self.current_beat += 1;
                 } else {
                     self.current_beat = self.current_beat.saturating_sub(1);
@@ -403,7 +410,7 @@ impl geng::State for Editor {
             if let Some(&selected_shape) = self.model.config.shapes.get(self.selected_shape) {
                 let collider = Collider {
                     position: self.cursor_world_pos,
-                    rotation: Angle::ZERO,
+                    rotation: self.place_rotation,
                     shape: selected_shape,
                 };
                 self.util_render.draw_outline(
@@ -467,7 +474,7 @@ impl geng::State for Editor {
 
         // Help
         let text =
-            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music\nF to pause movement";
+            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music\nF to pause movement\nCtrl+scroll to rotate";
         font.draw(
             screen_buffer,
             camera,

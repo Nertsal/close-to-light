@@ -32,7 +32,7 @@ impl Transform {
     pub fn lerp(&self, target: &Self, t: Time) -> Self {
         Self {
             translation: self.translation + (target.translation - self.translation) * t,
-            rotation: self.rotation + (target.rotation - self.rotation) * t,
+            rotation: self.rotation + self.rotation.angle_to(target.rotation) * t,
             scale: self.scale + (target.scale - self.scale) * t,
         }
     }
@@ -70,6 +70,13 @@ impl Movement {
     pub fn get(&self, mut time: Time) -> Transform {
         let mut from = Transform::identity();
         for frame in &self.key_frames {
+            // Translation and rotation are accumulating
+            let target = Transform {
+                translation: from.translation + frame.transform.translation,
+                rotation: from.rotation + frame.transform.rotation,
+                ..frame.transform
+            };
+
             if time <= frame.lerp_time {
                 let t = if frame.lerp_time > Time::ZERO {
                     time / frame.lerp_time
@@ -77,21 +84,11 @@ impl Movement {
                     Time::ONE
                 };
                 let t = crate::util::smoothstep(t);
-
-                // Translation is accumulating
-                let target = Transform {
-                    translation: from.translation + frame.transform.translation,
-                    ..frame.transform
-                };
                 return from.lerp(&target, t);
             }
             time -= frame.lerp_time;
 
-            // Translation is accumulating
-            from = Transform {
-                translation: from.translation + frame.transform.translation,
-                ..frame.transform
-            };
+            from = target;
         }
         from
     }
@@ -101,7 +98,9 @@ impl Movement {
         let mut result = Transform::identity();
         for frame in &self.key_frames {
             result = Transform {
+                // Translation and rotation are accumulating
                 translation: result.translation + frame.transform.translation,
+                rotation: result.rotation + frame.transform.rotation,
                 ..frame.transform
             };
         }
