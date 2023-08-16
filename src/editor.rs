@@ -28,6 +28,10 @@ pub struct Editor {
     level: Level,
     /// Simulation model.
     model: Model,
+    /// Lights (with transparency) ready for visualization and hover detection.
+    rendered_lights: Vec<(Light, f32)>,
+    /// Telegraphs (with transparency) ready for visualization.
+    rendered_telegraphs: Vec<(LightTelegraph, f32)>,
     current_beat: usize,
     time: Time,
     /// Whether to visualize the lights' movement for the current beat.
@@ -48,6 +52,8 @@ impl Editor {
             cursor_pos: vec2::ZERO,
             cursor_world_pos: vec2::ZERO,
             model: Model::new(config, level.clone()),
+            rendered_lights: vec![],
+            rendered_telegraphs: vec![],
             current_beat: 0,
             time: Time::ZERO,
             visualize_beat: true,
@@ -123,6 +129,93 @@ impl Editor {
     }
 
     fn cursor_up(&mut self) {}
+
+    fn render_lights(&mut self) {
+        self.rendered_lights.clear();
+        self.rendered_telegraphs.clear();
+
+        let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
+            // TODO: self.music.play_position()
+            (None, Some(self.time))
+        } else {
+            let time = Time::new(self.current_beat as f32) * self.level.beat_time();
+            let dynamic = if self.visualize_beat {
+                Some((self.time / self.level.beat_time()).fract() * self.level.beat_time() + time)
+            } else {
+                None
+            };
+            (Some(time), dynamic)
+        };
+
+        let mut render_light = |event: &TimedEvent, transparency: f32| {
+            if event.beat.as_f32() <= self.current_beat as f32 {
+                let start = event.beat * self.level.beat_time();
+                let static_time = static_time.map(|t| t - start);
+                let dynamic_time = dynamic_time.map(|t| t - start);
+
+                match &event.event {
+                    Event::Light(event) => {
+                        let light = event.light.clone().instantiate(self.level.beat_time());
+                        let mut tele =
+                            light.into_telegraph(event.telegraph.clone(), self.level.beat_time());
+                        let duration = tele.light.movement.duration();
+
+                        if let Some(time) = dynamic_time {
+                            // Telegraph
+                            if time < duration {
+                                let transform = tele.light.movement.get(time);
+                                tele.light.collider =
+                                    tele.light.base_collider.transformed(transform);
+                                self.rendered_telegraphs
+                                    .push((tele.clone(), transparency * 0.5));
+                            }
+
+                            // Light
+                            let time = time - tele.spawn_timer;
+                            if time > Time::ZERO && time < duration {
+                                let transform = tele.light.movement.get(time);
+                                tele.light.collider =
+                                    tele.light.base_collider.transformed(transform);
+                                self.rendered_lights
+                                    .push((tele.light.clone(), transparency * 0.5));
+                            }
+                        }
+
+                        if let Some(time) = static_time {
+                            // Telegraph
+                            if time < duration {
+                                let transform = tele.light.movement.get(time);
+                                tele.light.collider =
+                                    tele.light.base_collider.transformed(transform);
+                                self.rendered_telegraphs.push((tele.clone(), transparency));
+                            }
+
+                            // Light
+                            let time = time - tele.spawn_timer;
+                            if time > Time::ZERO && time < duration {
+                                let transform = tele.light.movement.get(time);
+                                tele.light.collider =
+                                    tele.light.base_collider.transformed(transform);
+                                self.rendered_lights.push((tele.light, transparency));
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        for e in &self.level.events {
+            let transparency = if let State::Movement { .. } = &self.state {
+                0.5
+            } else {
+                1.0
+            };
+            render_light(e, transparency);
+        }
+        if let State::Movement { start_beat, light } = &self.state {
+            render_light(&commit_light(*start_beat, light.clone()), 1.0);
+        };
+    }
 }
 
 impl geng::State for Editor {
@@ -146,6 +239,8 @@ impl geng::State for Editor {
             .camera
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
+
+        self.render_lights();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -221,67 +316,23 @@ impl geng::State for Editor {
         ugli::clear(&mut pixel_buffer, Some(Rgba::BLACK), None, None);
 
         // Level
-        let time = if let State::Playing { .. } = self.state {
-            // TODO: self.music.play_position()
-            self.time
-        } else {
-            (if self.visualize_beat {
-                (self.time / self.level.beat_time()).fract() * self.level.beat_time()
-            } else {
-                Time::ZERO
-            }) + Time::new(self.current_beat as f32) * self.level.beat_time()
-        };
-
-        let mut draw_event = |event: &TimedEvent, transparency: f32| {
-            if event.beat.as_f32() <= self.current_beat as f32 {
-                let time = time - event.beat * self.level.beat_time();
-                match &event.event {
-                    Event::Light(event) => {
-                        let light = event.light.clone().instantiate(self.level.beat_time());
-                        let tele =
-                            light.into_telegraph(event.telegraph.clone(), self.level.beat_time());
-                        let duration = tele.light.movement.duration();
-
-                        // Telegraph
-                        if time < duration {
-                            let transform = tele.light.movement.get(time);
-                            self.util_render.draw_outline(
-                                &tele.light.base_collider.transformed(transform),
-                                0.02,
-                                transparency,
-                                &self.model.camera,
-                                &mut pixel_buffer,
-                            );
-                        }
-
-                        // Light
-                        let time = time - tele.spawn_timer;
-                        if time > Time::ZERO && time < duration {
-                            let transform = tele.light.movement.get(time);
-                            self.util_render.draw_collider(
-                                &tele.light.base_collider.transformed(transform),
-                                transparency,
-                                &self.model.camera,
-                                &mut pixel_buffer,
-                            );
-                        }
-                    }
-                }
-            }
-        };
-
-        for event in &self.level.events {
-            let transparency = if let State::Movement { .. } = &self.state {
-                0.5
-            } else {
-                1.0
-            };
-            draw_event(event, transparency);
+        for (tele, transparency) in &self.rendered_telegraphs {
+            self.util_render.draw_outline(
+                &tele.light.collider,
+                0.02,
+                *transparency,
+                &self.model.camera,
+                &mut pixel_buffer,
+            );
         }
-
-        if let State::Movement { start_beat, light } = &self.state {
-            draw_event(&commit_light(*start_beat, light.clone()), 1.0);
-        };
+        for (light, transparency) in &self.rendered_lights {
+            self.util_render.draw_collider(
+                &light.collider,
+                *transparency,
+                &self.model.camera,
+                &mut pixel_buffer,
+            );
+        }
 
         // Current action
         if !matches!(self.state, State::Playing { .. }) {
@@ -336,7 +387,7 @@ impl geng::State for Editor {
 
         // Help
         let text =
-            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music";
+            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music\nF to pause movement";
         font.draw(
             screen_buffer,
             camera,
