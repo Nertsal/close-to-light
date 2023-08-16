@@ -12,6 +12,8 @@ pub struct Editor {
     model: Model,
     current_beat: usize,
     real_time: Time,
+    /// Whether to visualize the lights' movement for the current beat.
+    visualize_beat: bool,
 }
 
 impl Editor {
@@ -24,6 +26,7 @@ impl Editor {
             level,
             current_beat: 0,
             real_time: Time::ZERO,
+            visualize_beat: true,
         }
     }
 }
@@ -38,6 +41,7 @@ impl geng::State for Editor {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => self.current_beat = self.current_beat.saturating_sub(1),
                 geng::Key::ArrowRight => self.current_beat += 1,
+                geng::Key::Space => self.visualize_beat = !self.visualize_beat,
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
@@ -57,7 +61,11 @@ impl geng::State for Editor {
         ugli::clear(framebuffer, Some(crate::render::COLOR_DARK), None, None);
 
         // Level
-        let time = (self.real_time / self.level.beat_time()).fract() * self.level.beat_time();
+        let time = if self.visualize_beat {
+            (self.real_time / self.level.beat_time()).fract() * self.level.beat_time()
+        } else {
+            Time::ZERO
+        };
         let time = time + Time::new(self.current_beat as f32) * self.level.beat_time();
         for event in &self.level.events {
             if event.beat.as_f32() <= self.current_beat as f32 {
