@@ -1,0 +1,76 @@
+{
+  "bpm": 170.0,
+  "events": [
+    {
+      "beat": 1.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              -1.0,
+              0.0
+            ],
+            "rotation": 0.0,
+            "shape": {
+              "Circle": {
+                "radius": 1.0
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 2.0
+          }
+        }
+      }
+    }
+  ]
+}
