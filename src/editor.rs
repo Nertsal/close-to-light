@@ -13,7 +13,7 @@ enum State {
         light: LightEvent,
     },
     Playing {
-        start_beat: usize,
+        start_beat: Time,
     },
 }
 
@@ -34,7 +34,7 @@ pub struct Editor {
     rendered_telegraphs: Vec<(LightTelegraph, f32, bool)>,
     /// Index of the hovered light in the `level.events`.
     hovered_light: Option<usize>,
-    current_beat: usize,
+    current_beat: Time,
     time: Time,
     /// Whether to visualize the lights' movement for the current beat.
     visualize_beat: bool,
@@ -59,7 +59,7 @@ impl Editor {
             rendered_lights: vec![],
             rendered_telegraphs: vec![],
             hovered_light: None,
-            current_beat: 0,
+            current_beat: Time::ZERO,
             time: Time::ZERO,
             visualize_beat: true,
             selected_shape: 0,
@@ -101,7 +101,7 @@ impl Editor {
                 let telegraph = Telegraph::default();
                 if let Some(&shape) = self.model.config.shapes.get(self.selected_shape) {
                     self.state = State::Movement {
-                        start_beat: r32(self.current_beat as f32)
+                        start_beat: self.current_beat
                             - movement.duration()
                             - telegraph.precede_time, // extra time for the fade and telegraph
                         light: LightEvent {
@@ -124,7 +124,7 @@ impl Editor {
                 last_pos.translation += light.light.position;
                 last_pos.rotation += Angle::from_degrees(light.light.rotation);
                 light.light.movement.key_frames.push_back(MoveFrame {
-                    lerp_time: r32(self.current_beat as f32) - last_beat, // in beats
+                    lerp_time: self.current_beat - last_beat, // in beats
                     transform: Transform {
                         translation: self.cursor_world_pos - last_pos.translation,
                         rotation: last_pos.rotation.angle_to(self.place_rotation),
@@ -147,7 +147,7 @@ impl Editor {
             // TODO: self.music.play_position()
             (None, Some(self.time))
         } else {
-            let time = Time::new(self.current_beat as f32) * self.level.beat_time();
+            let time = self.current_beat * self.level.beat_time();
             let dynamic = if self.visualize_beat {
                 Some((self.time / self.level.beat_time()).fract() * self.level.beat_time() + time)
             } else {
@@ -157,7 +157,7 @@ impl Editor {
         };
 
         let mut render_light = |index: Option<usize>, event: &TimedEvent, transparency: f32| {
-            if event.beat.as_f32() <= self.current_beat as f32 {
+            if event.beat <= self.current_beat {
                 let start = event.beat * self.level.beat_time();
                 let static_time = static_time.map(|t| t - start);
                 let dynamic_time = dynamic_time.map(|t| t - start);
@@ -246,6 +246,10 @@ impl Editor {
             render_light(None, &commit_light(*start_beat, light.clone()), 1.0);
         };
     }
+
+    fn scroll_time(&mut self, delta: RealImpl<f32>) {
+        self.current_beat = (self.current_beat + delta).max(Time::ZERO);
+    }
 }
 
 impl geng::State for Editor {
@@ -254,7 +258,7 @@ impl geng::State for Editor {
         self.time += delta_time;
 
         if let State::Playing { .. } = self.state {
-            self.current_beat = (self.time / self.level.beat_time()).floor().as_f32() as usize;
+            self.current_beat = self.time / self.level.beat_time();
         }
 
         let pos = self.cursor_pos.as_f32();
@@ -276,8 +280,22 @@ impl geng::State for Editor {
     fn handle_event(&mut self, event: geng::Event) {
         match event {
             geng::Event::KeyPress { key } => match key {
-                geng::Key::ArrowLeft => self.current_beat = self.current_beat.saturating_sub(1),
-                geng::Key::ArrowRight => self.current_beat += 1,
+                geng::Key::ArrowLeft => {
+                    let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                        0.25
+                    } else {
+                        1.0
+                    };
+                    self.scroll_time(Time::new(-scale));
+                }
+                geng::Key::ArrowRight => {
+                    let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                        0.25
+                    } else {
+                        1.0
+                    };
+                    self.scroll_time(Time::new(scale));
+                }
                 geng::Key::F => self.visualize_beat = !self.visualize_beat,
                 geng::Key::X => {
                     if let Some(index) = self.hovered_light {
@@ -295,10 +313,9 @@ impl geng::State for Editor {
                         };
                         self.music.stop();
                         self.music = self.assets.music.effect();
-                        let time = self.current_beat as f32 * self.level.beat_time().as_f32();
-                        self.time = Time::new(time);
+                        self.time = self.current_beat * self.level.beat_time();
                         self.music
-                            .play_from(time::Duration::from_secs_f64(time as f64));
+                            .play_from(time::Duration::from_secs_f64(self.time.as_f32() as f64));
                     }
                 }
                 geng::Key::Digit1 => self.handle_digit(1),
@@ -340,10 +357,13 @@ impl geng::State for Editor {
                 } else if self.geng.window().is_key_pressed(geng::Key::AltLeft) {
                     // Rotate lights
                     self.place_rotation += Angle::from_degrees(r32(15.0 * delta.signum() as f32));
-                } else if delta > 0.0 {
-                    self.current_beat += 1;
                 } else {
-                    self.current_beat = self.current_beat.saturating_sub(1);
+                    let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                        0.25
+                    } else {
+                        1.0
+                    };
+                    self.scroll_time(Time::new(delta.signum() as f32 * scale));
                 }
             }
             geng::Event::CursorMove { position } => {
@@ -444,7 +464,7 @@ impl geng::State for Editor {
         // let outline_size = 0.05;
 
         // Current beat / Fade in/out
-        let mut text = format!("Beat: {}", self.current_beat);
+        let mut text = format!("Beat: {:.2}", self.current_beat);
         if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
             if let Some(event) = self
                 .hovered_light
@@ -474,7 +494,7 @@ impl geng::State for Editor {
 
         // Help
         let text =
-            "Scroll or arrow keys to go forward or backward in time\nSpace to play the music\nF to pause movement\nAlt+scroll to rotate";
+            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nAlt+scroll to rotate";
         font.draw(
             screen_buffer,
             camera,
