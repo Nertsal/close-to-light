@@ -1,18 +1,18 @@
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Movement<T: Float = Time> {
     pub key_frames: VecDeque<MoveFrame<T>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MoveFrame<T: Float = Time> {
     /// How long should the interpolation from the last frame to that frame last.
     pub lerp_time: T,
     pub transform: Transform,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Transform {
     pub translation: vec2<Coord>,

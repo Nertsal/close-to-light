@@ -33,7 +33,7 @@ fn main() {
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
         let level: model::Level =
-            geng::asset::Load::load(manager, &assets_path.join("level.ron"), &())
+            geng::asset::Load::load(manager, &assets_path.join("level.json"), &())
                 .await
                 .expect("failed to load level");
         let config: model::Config =

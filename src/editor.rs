@@ -247,8 +247,28 @@ impl Editor {
         };
     }
 
-    fn scroll_time(&mut self, delta: RealImpl<f32>) {
+    fn scroll_time(&mut self, delta: Time) {
         self.current_beat = (self.current_beat + delta).max(Time::ZERO);
+    }
+
+    fn save(&mut self) {
+        let result = (|| -> anyhow::Result<()> {
+            // TODO: switch back to ron
+            // https://github.com/geng-engine/geng/issues/71
+            let level = serde_json::to_string_pretty(&self.level)?;
+            let path = run_dir().join("assets").join("level.json");
+            let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+            write!(writer, "{}", level)?;
+            Ok(())
+        })();
+        match result {
+            Ok(()) => {
+                self.model.level = self.level.clone();
+            }
+            Err(err) => {
+                log::error!("Failed to save the level: {:?}", err);
+            }
+        }
     }
 }
 
@@ -301,6 +321,9 @@ impl geng::State for Editor {
                     if let Some(index) = self.hovered_light {
                         self.level.events.swap_remove(index);
                     }
+                }
+                geng::Key::S if self.geng.window().is_key_pressed(geng::Key::ControlLeft) => {
+                    self.save();
                 }
                 geng::Key::Space => {
                     if let State::Playing { start_beat } = &self.state {
@@ -492,6 +515,22 @@ impl geng::State for Editor {
             text_color,
         );
 
+        if self.model.level != self.level {
+            // Save indicator
+            let text = "Ctrl+S to save the level";
+            font.draw(
+                screen_buffer,
+                camera,
+                text,
+                vec2::splat(geng::TextAlign::RIGHT),
+                mat3::translate(
+                    geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0))
+                        + vec2(-1.0, -1.0) * font_size,
+                ) * mat3::scale_uniform(font_size * 0.5),
+                text_color,
+            );
+        }
+
         // Help
         let text =
             "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nAlt+scroll to rotate";
@@ -502,8 +541,7 @@ impl geng::State for Editor {
             vec2::splat(geng::TextAlign::RIGHT),
             mat3::translate(
                 geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0)) + vec2(-1.0, -1.0) * font_size,
-            ) * mat3::scale_uniform(font_size * 0.5)
-                * mat3::translate(vec2(0.0, -0.5)),
+            ) * mat3::scale_uniform(font_size * 0.5),
             text_color,
         );
 

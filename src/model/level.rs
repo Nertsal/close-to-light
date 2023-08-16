@@ -1,26 +1,26 @@
 use super::*;
 
-#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize)]
-#[load(serde = "ron")]
+#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[load(serde = "json")]
 pub struct Level {
     /// Beats per minute.
     pub bpm: R32,
     pub events: Vec<TimedEvent>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TimedEvent {
     /// The beat on which the event should happen.
     pub beat: Time,
     pub event: Event,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Event {
     Light(LightEvent),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LightSerde {
     pub position: vec2<Coord>,
     /// Rotation (in degrees).
@@ -34,13 +34,13 @@ pub struct LightSerde {
     // pub lifetime: Time,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LightEvent {
     pub light: LightSerde,
     pub telegraph: Telegraph,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Telegraph {
     /// How long before the event should the telegraph occur (in beats).
     pub precede_time: Time,

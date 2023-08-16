@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Shape {
     Circle { radius: Coord },
     Line { width: Coord },
