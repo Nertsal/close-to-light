@@ -198,7 +198,7 @@ impl geng::State for Editor {
         };
         let time = time + Time::new(self.current_beat as f32) * self.level.beat_time();
 
-        let mut draw_event = |event: &TimedEvent| {
+        let mut draw_event = |event: &TimedEvent, transparency: f32| {
             if event.beat.as_f32() <= self.current_beat as f32 {
                 let time = time - event.beat * self.level.beat_time();
                 match &event.event {
@@ -214,6 +214,7 @@ impl geng::State for Editor {
                             self.util_render.draw_outline(
                                 &tele.light.base_collider.transformed(transform),
                                 0.02,
+                                transparency,
                                 &self.model.camera,
                                 &mut pixel_buffer,
                             );
@@ -225,6 +226,7 @@ impl geng::State for Editor {
                             let transform = tele.light.movement.get(time);
                             self.util_render.draw_collider(
                                 &tele.light.base_collider.transformed(transform),
+                                transparency,
                                 &self.model.camera,
                                 &mut pixel_buffer,
                             );
@@ -236,11 +238,11 @@ impl geng::State for Editor {
 
         for event in &self.level.events {
             // TODO: transparent if State::Movement
-            draw_event(event);
+            draw_event(event, 1.0);
         }
 
         if let State::Movement { start_beat, light } = &self.state {
-            draw_event(&commit_light(*start_beat, light.clone()));
+            draw_event(&commit_light(*start_beat, light.clone()), 1.0);
         };
 
         // Current action
@@ -250,8 +252,13 @@ impl geng::State for Editor {
                 rotation: Angle::ZERO,
                 shape: selected_shape,
             };
-            self.util_render
-                .draw_outline(&collider, 0.05, &self.model.camera, &mut pixel_buffer);
+            self.util_render.draw_outline(
+                &collider,
+                0.05,
+                1.0,
+                &self.model.camera,
+                &mut pixel_buffer,
+            );
         }
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
