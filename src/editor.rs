@@ -8,12 +8,10 @@ enum State {
     /// Place a new light.
     Place,
     /// Specify a movement path for the light.
-    Movement {
-        start_beat: Time,
-        light: LightEvent,
-    },
+    Movement { start_beat: Time, light: LightEvent },
     Playing {
         start_beat: Time,
+        old_state: Box<State>,
     },
 }
 
@@ -328,13 +326,18 @@ impl geng::State for Editor {
                 geng::Key::Q => self.place_rotation += Angle::from_degrees(r32(15.0)),
                 geng::Key::E => self.place_rotation += Angle::from_degrees(r32(-15.0)),
                 geng::Key::Space => {
-                    if let State::Playing { start_beat } = &self.state {
+                    if let State::Playing {
+                        start_beat,
+                        old_state,
+                    } = &self.state
+                    {
                         self.current_beat = *start_beat;
-                        self.state = State::Place;
+                        self.state = *old_state.clone();
                         self.music.stop();
                     } else {
                         self.state = State::Playing {
                             start_beat: self.current_beat,
+                            old_state: Box::new(self.state.clone()),
                         };
                         self.music.stop();
                         self.music = self.assets.music.effect();
