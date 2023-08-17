@@ -265,6 +265,7 @@ impl Editor {
     fn scroll_time(&mut self, delta: Time) {
         self.current_beat = (self.current_beat + delta).max(Time::ZERO);
         // Play a quarter beat of music
+        self.music.stop();
         self.music = self.assets.music.effect();
         self.music.play_from(time::Duration::from_secs_f64(
             (self.current_beat * self.level.beat_time()).as_f32() as f64,
