@@ -15,6 +15,13 @@ use geng_utils::{bounded::Bounded, conversions::Vec2RealConversions};
 pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
+pub type Score = R32;
+
+#[derive(Debug, Clone)]
+pub struct HoverButton {
+    pub collider: Collider,
+    pub hover_time: Lifetime,
+}
 
 #[derive(Debug)]
 pub struct QueuedEvent {
@@ -32,27 +39,55 @@ pub struct Player {
     pub is_in_light: bool,
 }
 
+#[derive(Debug, Clone)]
+pub enum State {
+    Playing,
+    Lost,
+    Finished,
+}
+
 pub struct Model {
     pub config: Config,
+    /// The level to use when restarting the game.
+    pub level_clone: Level,
     pub level: Level,
+    pub music: geng::SoundEffect,
+    pub state: State,
+    pub score: Score,
     /// Can be negative when initializing (because of simulating negative time).
     pub current_beat: isize,
     pub camera: Camera2d,
-    /// The time until the next music beat.
     pub real_time: Time,
+    /// Time since the last state change.
+    pub switch_time: Time,
+    /// The time until the next music beat.
     pub beat_timer: Time,
     pub queued_events: Vec<QueuedEvent>,
     pub player: Player,
     pub telegraphs: Vec<LightTelegraph>,
     pub lights: Vec<Light>,
+
+    // for Lost/Finished state
+    pub restart_button: HoverButton,
+}
+
+impl Drop for Model {
+    fn drop(&mut self) {
+        self.music.stop();
+    }
 }
 
 impl Model {
-    pub fn new(config: Config, level: Level, start_time: Time) -> Self {
-        let player_radius = config.player.radius;
+    pub fn new(
+        config: Config,
+        level: Level,
+        start_time: Time,
+        mut music: geng::SoundEffect,
+    ) -> Self {
+        music.play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
         let mut model = Self {
-            config,
-            level,
+            state: State::Playing,
+            score: Score::ZERO,
             current_beat: 0,
             camera: Camera2d {
                 center: vec2::ZERO,
@@ -60,6 +95,7 @@ impl Model {
                 fov: 10.0,
             },
             real_time: Time::ZERO,
+            switch_time: Time::ZERO,
             beat_timer: Time::ZERO,
             queued_events: Vec::new(),
             player: Player {
@@ -68,14 +104,25 @@ impl Model {
                 collider: Collider::new(
                     vec2::ZERO,
                     Shape::Circle {
-                        radius: r32(player_radius),
+                        radius: r32(config.player.radius),
                     },
                 ),
-                fear_meter: Bounded::new_max(r32(1.0)),
+                fear_meter: Bounded::new(r32(0.0), r32(0.0)..=r32(1.0)),
                 is_in_light: false,
             },
             telegraphs: vec![],
             lights: vec![],
+            restart_button: HoverButton {
+                collider: Collider::new(
+                    vec2(0.0, 0.0).as_r32(),
+                    Shape::Circle { radius: r32(1.0) },
+                ),
+                hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(1.5)),
+            },
+            config,
+            level_clone: level.clone(),
+            level,
+            music,
         };
         model.init(start_time);
         model

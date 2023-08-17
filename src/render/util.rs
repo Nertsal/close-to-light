@@ -13,6 +13,29 @@ impl UtilRender {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_text(
+        &self,
+        text: impl AsRef<str>,
+        position: vec2<Coord>,
+        size: f32,
+        align: vec2<f32>,
+        color: Rgba<f32>,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.geng.default_font().draw(
+            framebuffer,
+            camera,
+            text.as_ref(),
+            align.map(geng::TextAlign),
+            mat3::translate(position.as_f32())
+                * mat3::scale_uniform(size)
+                * mat3::translate(vec2(0.0, -0.25)),
+            color,
+        );
+    }
+
     pub fn draw_collider(
         &self,
         collider: &Collider,
@@ -131,6 +154,53 @@ impl UtilRender {
                     .translate(collider.position.as_f32()),
                 );
             }
+        }
+    }
+
+    pub fn draw_button(
+        &self,
+        button: &HoverButton,
+        text: impl AsRef<str>,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let frame = |time: f32, scale: f32| -> MoveFrame {
+            MoveFrame {
+                lerp_time: Time::new(time),
+                transform: Transform {
+                    scale: Coord::new(scale),
+                    ..default()
+                },
+            }
+        };
+        let movement = Movement {
+            key_frames: vec![
+                frame(0.0, 2.25),
+                frame(0.5, 5.0),
+                frame(0.25, 75.0),
+                frame(0.2, 0.0),
+            ]
+            .into(),
+        };
+
+        let t = button.hover_time.get_ratio();
+        let scale = movement.get(t).scale;
+        let collider = button
+            .collider
+            .transformed(Transform { scale, ..default() });
+        self.draw_collider(&collider, crate::render::COLOR_LIGHT, camera, framebuffer);
+
+        if t.as_f32() < 0.5 {
+            self.geng.default_font().draw(
+                framebuffer,
+                camera,
+                text.as_ref(),
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(collider.position.as_f32())
+                    * mat3::scale_uniform(1.0)
+                    * mat3::translate(vec2(0.0, -0.25)),
+                crate::render::COLOR_DARK,
+            );
         }
     }
 }

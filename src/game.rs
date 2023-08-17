@@ -13,7 +13,6 @@ pub struct Game {
     /// Cursor position in screen space.
     cursor_pos: vec2<f64>,
     active_touch: Option<u64>,
-    music: geng::SoundEffect,
 }
 
 impl Game {
@@ -24,24 +23,15 @@ impl Game {
         level: Level,
         start_time: Time,
     ) -> Self {
-        let mut music = assets.music.effect();
-        music.play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
         Self {
             geng: geng.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
-            model: Model::new(rules, level, start_time),
+            model: Model::new(rules, level, start_time, assets.music.effect()),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
-            music,
         }
-    }
-}
-
-impl Drop for Game {
-    fn drop(&mut self) {
-        self.music.stop()
     }
 }
 

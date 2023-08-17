@@ -43,6 +43,7 @@ impl Model {
         }
 
         self.real_time += delta_time;
+        self.switch_time += delta_time;
 
         self.process_events(delta_time);
 
@@ -95,33 +96,72 @@ impl Model {
         } else {
             self.player.fear_meter.change(delta_time);
         }
+
+        if let State::Playing = self.state {
+            if self.player.fear_meter.is_max() {
+                self.state = State::Lost;
+                self.music.stop();
+                self.switch_time = Time::ZERO;
+            }
+        } else if self.switch_time > Time::ONE {
+            // 1 second before the UI is active
+            self.restart_button.hover_time.change(
+                if self.restart_button.collider.check(&self.player.collider) {
+                    delta_time
+                } else {
+                    -delta_time
+                },
+            );
+            if self.restart_button.hover_time.is_max() {
+                self.restart();
+            }
+        }
+    }
+
+    fn restart(&mut self) {
+        self.level = self.level_clone.clone();
+        self.player.fear_meter.set_ratio(Time::ZERO);
+        self.current_beat = 0;
+        self.state = State::Playing;
+        self.switch_time = Time::ZERO;
+        self.beat_timer = Time::ZERO;
+        self.score = Score::ZERO;
+        self.queued_events.clear();
+        self.telegraphs.clear();
+        self.lights.clear();
+        self.restart_button.hover_time.set_ratio(Time::ZERO);
+        self.init(Time::ZERO);
     }
 
     fn next_beat(&mut self) {
         self.current_beat += 1;
 
-        if self.level.events.is_empty() {
-            if self.level.rng_end {
-                // No more events - start rng
-                let telegraph = self.random_light_telegraphed();
-                self.telegraphs.push(telegraph);
-            } else {
-                // TODO: end the level
-            }
-        } else {
-            // Get the next events
-            let mut to_remove = Vec::new();
-            for (i, event) in self.level.events.iter().enumerate().rev() {
-                if event.beat.floor().as_f32() as isize == self.current_beat {
-                    to_remove.push(i);
+        if let State::Playing = self.state {
+            if self.level.events.is_empty() {
+                if self.level.rng_end {
+                    // No more events - start rng
+                    let telegraph = self.random_light_telegraphed();
+                    self.telegraphs.push(telegraph);
+                } else {
+                    self.state = State::Finished;
+                    self.music.stop();
+                    self.switch_time = Time::ZERO;
                 }
-            }
-            for i in to_remove {
-                let event = self.level.events.swap_remove(i);
-                self.queued_events.push(QueuedEvent {
-                    delay: event.beat.fract() * self.level.beat_time(),
-                    event: event.event,
-                });
+            } else {
+                // Get the next events
+                let mut to_remove = Vec::new();
+                for (i, event) in self.level.events.iter().enumerate().rev() {
+                    if event.beat.floor().as_f32() as isize == self.current_beat {
+                        to_remove.push(i);
+                    }
+                }
+                for i in to_remove {
+                    let event = self.level.events.swap_remove(i);
+                    self.queued_events.push(QueuedEvent {
+                        delay: event.beat.fract() * self.level.beat_time(),
+                        event: event.event,
+                    });
+                }
             }
         }
     }

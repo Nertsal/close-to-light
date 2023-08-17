@@ -52,6 +52,47 @@ impl GameRender {
         self.util
             .draw_outline(&player, 0.05, COLOR_PLAYER, camera, &mut framebuffer);
 
+        if let State::Lost | State::Finished = model.state {
+            self.util
+                .draw_button(&model.restart_button, "RESTART", camera, &mut framebuffer);
+
+            self.util.draw_text(
+                "made in rust btw",
+                vec2(0.0, 4.0).as_r32(),
+                0.5,
+                vec2::splat(0.5),
+                COLOR_DARK,
+                camera,
+                &mut framebuffer,
+            );
+        }
+
+        match model.state {
+            State::Playing => {}
+            State::Lost => {
+                self.util.draw_text(
+                    "YOU FAILED TO CHASE THE LIGHT",
+                    vec2(0.0, 3.0).as_r32(),
+                    1.0,
+                    vec2::splat(0.5),
+                    COLOR_LIGHT,
+                    camera,
+                    &mut framebuffer,
+                );
+            }
+            State::Finished => {
+                self.util.draw_text(
+                    "YOU CAUGHT THE LIGHT",
+                    vec2(0.0, 3.0).as_r32(),
+                    1.0,
+                    vec2::splat(0.5),
+                    COLOR_LIGHT,
+                    camera,
+                    &mut framebuffer,
+                );
+            }
+        }
+
         // let t = R32::ONE - (model.player.fear_meter.get_ratio() / r32(0.5)).min(R32::ONE);
         let t = if model.player.is_in_light {
             R32::ONE
