@@ -105,7 +105,10 @@ impl Editor {
             };
             render_light(Some(i), e, transparency);
         }
-        if let State::Movement { start_beat, light } = &self.state {
+        if let State::Movement {
+            start_beat, light, ..
+        } = &self.state
+        {
             render_light(None, &commit_light(*start_beat, light.clone()), 1.0);
         };
     }
@@ -293,6 +296,30 @@ impl Editor {
             );
         }
 
+        // Undo/redo stack
+        let text = match &self.state {
+            State::Playing { .. } => "".to_string(),
+            State::Movement {
+                light, redo_stack, ..
+            } => format!(
+                "New light stack\nUndo: {}\nRedo: {}\n",
+                light.light.movement.key_frames.len() - 2,
+                redo_stack.len()
+            ),
+            State::Place => "Level stack not implemented KEKW".to_string(),
+        };
+        font.draw(
+            screen_buffer,
+            camera,
+            &text,
+            vec2(geng::TextAlign::LEFT, geng::TextAlign::CENTER),
+            mat3::translate(
+                geng_utils::layout::aabb_pos(screen, vec2(0.0, 0.5)) + vec2(1.0, 1.0) * font_size,
+            ) * mat3::scale_uniform(font_size * 0.5)
+                * mat3::translate(vec2(0.0, -0.5)),
+            text_color,
+        );
+
         // Help
         let text =
             "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate\n` (backtick) to toggle grid snap\nCtrl+` to toggle grid visibility";
@@ -314,7 +341,7 @@ impl Editor {
             match &self.state {
                 State::Place => "Click to create a new light\n1/2 to select different types",
                 State::Movement { .. } => {
-                    "Left click to create a new waypoint\nRight click to finish"
+                    "Left click to create a new waypoint\nRight click to finish\nEscape to cancel"
                 }
                 State::Playing { .. } => "Playing the music...\nSpace to stop",
             }

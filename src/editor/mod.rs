@@ -14,7 +14,11 @@ enum State {
     /// Place a new light.
     Place,
     /// Specify a movement path for the light.
-    Movement { start_beat: Time, light: LightEvent },
+    Movement {
+        start_beat: Time,
+        light: LightEvent,
+        redo_stack: Vec<MoveFrame>,
+    },
     Playing {
         start_beat: Time,
         old_state: Box<State>,
@@ -114,6 +118,41 @@ impl Editor {
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
         (pos / self.grid_size).map(Coord::round) * self.grid_size
+    }
+
+    fn undo(&mut self) {
+        match &mut self.state {
+            State::Playing { .. } => {}
+            State::Movement {
+                light, redo_stack, ..
+            } => {
+                let frames = &mut light.light.movement.key_frames;
+                // Skip the fade in frames
+                if frames.len() > 2 {
+                    let frame = frames.pop_back().unwrap();
+                    redo_stack.push(frame);
+                }
+            }
+            State::Place => {
+                // TODO: remove last added sequence or restore last removed
+            }
+        }
+    }
+
+    fn redo(&mut self) {
+        match &mut self.state {
+            State::Playing { .. } => {}
+            State::Movement {
+                light, redo_stack, ..
+            } => {
+                if let Some(frame) = redo_stack.pop() {
+                    light.light.movement.key_frames.push_back(frame);
+                }
+            }
+            State::Place => {
+                // TODO
+            }
+        }
     }
 
     fn save(&mut self) {

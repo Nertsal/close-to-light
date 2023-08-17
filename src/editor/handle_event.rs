@@ -2,22 +2,16 @@ use super::*;
 
 impl Editor {
     pub fn handle_event(&mut self, event: geng::Event) {
+        let ctrl = self.geng.window().is_key_pressed(geng::Key::ControlLeft);
+        let shift = self.geng.window().is_key_pressed(geng::Key::ShiftLeft);
         match event {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => {
-                    let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-                        0.25
-                    } else {
-                        1.0
-                    };
+                    let scale = if shift { 0.25 } else { 1.0 };
                     self.scroll_time(Time::new(-scale));
                 }
                 geng::Key::ArrowRight => {
-                    let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-                        0.25
-                    } else {
-                        1.0
-                    };
+                    let scale = if shift { 0.25 } else { 1.0 };
                     self.scroll_time(Time::new(scale));
                 }
                 geng::Key::F => self.visualize_beat = !self.visualize_beat,
@@ -26,16 +20,29 @@ impl Editor {
                         self.level.events.swap_remove(index);
                     }
                 }
-                geng::Key::S if self.geng.window().is_key_pressed(geng::Key::ControlLeft) => {
+                geng::Key::S if ctrl => {
                     self.save();
                 }
                 geng::Key::Q => self.place_rotation += Angle::from_degrees(r32(15.0)),
                 geng::Key::E => self.place_rotation += Angle::from_degrees(r32(-15.0)),
+                geng::Key::Z if ctrl => {
+                    if shift {
+                        self.redo();
+                    } else {
+                        self.undo();
+                    }
+                }
                 geng::Key::Backquote => {
-                    if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+                    if ctrl {
                         self.show_grid = !self.show_grid;
                     } else {
                         self.snap_to_grid = !self.snap_to_grid;
+                    }
+                }
+                geng::Key::Escape => {
+                    // Cancel creation
+                    if let State::Movement { .. } = self.state {
+                        self.state = State::Place;
                     }
                 }
                 geng::Key::Space => {
@@ -72,7 +79,7 @@ impl Editor {
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
-                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+                if ctrl {
                     if let Some(event) = self
                         .hovered_light
                         .and_then(|light| self.level.events.get_mut(light))
@@ -80,7 +87,7 @@ impl Editor {
                         // Control fade time
                         let change = Time::new(delta.signum() as f32 * 0.25); // Change by quarter beats
                         let Event::Light(light) = &mut event.event;
-                        if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                        if shift {
                             // Fade out
                             if let Some(frame) = light.light.movement.key_frames.back_mut() {
                                 let change = change.max(-frame.lerp_time + r32(0.25));
@@ -96,11 +103,7 @@ impl Editor {
                         }
                     }
                 } else {
-                    let scale = if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-                        0.25
-                    } else {
-                        1.0
-                    };
+                    let scale = if shift { 0.25 } else { 1.0 };
                     self.scroll_time(Time::new(delta.signum() as f32 * scale));
                 }
             }
@@ -111,7 +114,10 @@ impl Editor {
                 geng::MouseButton::Left => self.cursor_down(),
                 geng::MouseButton::Middle => {}
                 geng::MouseButton::Right => {
-                    if let State::Movement { start_beat, light } = &self.state {
+                    if let State::Movement {
+                        start_beat, light, ..
+                    } = &self.state
+                    {
                         self.level
                             .events
                             .push(commit_light(*start_beat, light.clone()));
@@ -167,10 +173,15 @@ impl Editor {
                             },
                             telegraph,
                         },
+                        redo_stack: Vec::new(),
                     };
                 }
             }
-            State::Movement { start_beat, light } => {
+            State::Movement {
+                start_beat,
+                light,
+                redo_stack,
+            } => {
                 // TODO: check negative time
                 let last_beat =
                     *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
@@ -185,6 +196,7 @@ impl Editor {
                         ..default()
                     },
                 });
+                redo_stack.clear();
             }
             State::Playing { .. } => {}
         }
