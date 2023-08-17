@@ -16,6 +16,7 @@ void main() {
 #ifdef FRAGMENT_SHADER
 
 uniform float u_time;
+uniform float u_bg_noise;
 uniform vec2 u_framebuffer_size;
 uniform vec2 u_pattern_size;
 uniform sampler2D u_texture;
@@ -81,6 +82,8 @@ void main() {
 	
 	float amp = color.r;
 	amp += 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
+	float mul = length(v_vt - vec2(0.5)) * 2.0;
+	amp += u_bg_noise * 0.05 * mul;
 #if 1
 	if (amp < 0.125) {
 		color = vec3(0.0);
