@@ -57,7 +57,7 @@ impl Render {
         framebuffer
     }
 
-    pub fn dither(&mut self, time: Time) {
+    pub fn dither(&mut self, time: Time) -> ugli::Framebuffer {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 
@@ -81,5 +81,6 @@ impl Render {
             },
         );
         self.swap_buffer();
+        geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli())
     }
 }

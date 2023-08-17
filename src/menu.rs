@@ -45,9 +45,9 @@ impl MainMenu {
             },
             time: Time::ZERO,
             play_button: Collider {
-                position: vec2(0.0, 2.0).as_r32(),
+                position: vec2(0.0, 0.0).as_r32(),
                 rotation: Angle::ZERO,
-                shape: Shape::Circle { radius: r32(1.3) },
+                shape: Shape::Circle { radius: r32(1.0) },
             },
             play_hold_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(1.5)),
             player: Collider::new(
@@ -64,6 +64,8 @@ impl MainMenu {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
+            let config = self.config.clone();
+
             async move {
                 let manager = geng.asset_manager();
                 let assets_path = run_dir().join("assets");
@@ -72,10 +74,6 @@ impl MainMenu {
                     geng::asset::Load::load(manager, &assets_path.join("level.json"), &())
                         .await
                         .expect("failed to load level");
-                let config: Config =
-                    geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
-                        .await
-                        .expect("failed to load config");
 
                 crate::game::Game::new(&geng, &assets, config, level, Time::ZERO)
             }
@@ -121,27 +119,6 @@ impl geng::State for MainMenu {
             self.play_hold_time.set_ratio(Time::ZERO);
             self.play();
         }
-
-        let frame = |time: f32, scale: f32| -> MoveFrame {
-            MoveFrame {
-                lerp_time: Time::new(time),
-                transform: Transform {
-                    scale: Coord::new(scale),
-                    ..default()
-                },
-            }
-        };
-        let movement = Movement {
-            key_frames: vec![
-                frame(0.0, 0.5),
-                frame(0.5, 1.5),
-                frame(0.25, 50.0),
-                frame(0.2, 0.0),
-            ]
-            .into(),
-        };
-        let radius = movement.get(self.play_hold_time.get_ratio()).scale;
-        self.play_button.shape = Shape::Circle { radius };
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -168,20 +145,56 @@ impl geng::State for MainMenu {
 
         let mut framebuffer = self.render.start();
 
+        let frame = |time: f32, scale: f32| -> MoveFrame {
+            MoveFrame {
+                lerp_time: Time::new(time),
+                transform: Transform {
+                    scale: Coord::new(scale),
+                    ..default()
+                },
+            }
+        };
+        let movement = Movement {
+            key_frames: vec![
+                frame(0.0, 2.25),
+                frame(0.5, 5.0),
+                frame(0.25, 75.0),
+                frame(0.2, 0.0),
+            ]
+            .into(),
+        };
+        let t = self.play_hold_time.get_ratio();
+        let scale = movement.get(t).scale;
+        let button = self
+            .play_button
+            .transformed(Transform { scale, ..default() });
         self.util_render.draw_collider(
-            &self.play_button,
+            &button,
             crate::render::COLOR_LIGHT,
             &self.camera,
             &mut framebuffer,
         );
 
-        self.util_render.draw_outline(
-            &self.player,
-            0.05,
-            crate::render::COLOR_LIGHT,
-            &self.camera,
-            &mut framebuffer,
-        );
+        if t.as_f32() < 0.5 {
+            self.geng.default_font().draw(
+                &mut framebuffer,
+                &self.camera,
+                "START",
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(self.play_button.position.as_f32())
+                    * mat3::scale_uniform(1.0)
+                    * mat3::translate(vec2(0.0, -0.25)),
+                crate::render::COLOR_DARK,
+            );
+
+            self.util_render.draw_outline(
+                &self.player,
+                0.05,
+                crate::render::COLOR_LIGHT,
+                &self.camera,
+                &mut framebuffer,
+            );
+        }
 
         self.render.dither(self.time);
 
