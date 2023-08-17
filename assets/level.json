@@ -14274,15 +14274,15 @@
       }
     },
     {
-      "beat": 189.0,
+      "beat": 218.0,
       "event": {
         "Light": {
           "light": {
             "position": [
-              1.25,
+              -2.5,
               2.5
             ],
-            "rotation": -720.00037,
+            "rotation": -540.00006,
             "shape": {
               "Circle": {
                 "radius": 1.3
@@ -14313,18 +14313,18 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      1.25,
-                      -5.0
+                      0.0,
+                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 0.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -15416,6 +15416,388 @@
             "shape": {
               "Circle": {
                 "radius": 1.3
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 2.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 219.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              -2.5,
+              -2.5
+            ],
+            "rotation": -540.00006,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 217.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              0.0,
+              -0.0
+            ],
+            "rotation": -540.00006,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 221.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              2.5,
+              2.5
+            ],
+            "rotation": -540.00006,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 220.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              2.5,
+              -0.0
+            ],
+            "rotation": -540.00006,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 222.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              -0.0,
+              -0.0
+            ],
+            "rotation": -585.0001,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 223.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              -2.5,
+              -2.5
+            ],
+            "rotation": -585.0001,
+            "shape": {
+              "Line": {
+                "width": 1.7
               }
             },
             "movement": {
