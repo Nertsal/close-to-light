@@ -53,7 +53,6 @@ impl GameRender {
             .draw_outline(&player, 0.05, COLOR_LIGHT, camera, &mut framebuffer);
 
         self.render.dither(model.real_time);
-        self.render.swap_buffer();
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         draw_texture_fit(

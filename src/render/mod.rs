@@ -38,7 +38,7 @@ impl Render {
         }
     }
 
-    pub fn swap_buffer(&mut self) {
+    fn swap_buffer(&mut self) {
         std::mem::swap(&mut self.double_buffer.0, &mut self.double_buffer.1);
     }
 
@@ -46,7 +46,7 @@ impl Render {
         self.double_buffer.0.size()
     }
 
-    fn get_buffer(&self) -> &ugli::Texture2d<Rgba<f32>> {
+    pub fn get_buffer(&self) -> &ugli::Texture2d<Rgba<f32>> {
         &self.double_buffer.0
     }
 
@@ -57,7 +57,7 @@ impl Render {
         framebuffer
     }
 
-    fn dither(&mut self, time: Time) {
+    pub fn dither(&mut self, time: Time) {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 
@@ -80,5 +80,6 @@ impl Render {
                 ..Default::default()
             },
         );
+        self.swap_buffer();
     }
 }

@@ -1,6 +1,7 @@
 mod assets;
 mod editor;
 mod game;
+mod menu;
 mod model;
 mod render;
 mod util;
@@ -32,10 +33,6 @@ fn main() {
 
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
-        let level: model::Level =
-            geng::asset::Load::load(manager, &assets_path.join("level.json"), &())
-                .await
-                .expect("failed to load level");
         let config: model::Config =
             geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
                 .await
@@ -43,6 +40,11 @@ fn main() {
 
         if opts.edit {
             // Editor
+            let level: model::Level =
+                geng::asset::Load::load(manager, &assets_path.join("level.json"), &())
+                    .await
+                    .expect("failed to load level");
+
             let editor_config: editor::EditorConfig =
                 geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
                     .await
@@ -50,8 +52,8 @@ fn main() {
             let state = editor::Editor::new(geng.clone(), assets, editor_config, config, level);
             geng.run_state(state).await;
         } else {
-            // Game
-            let state = game::Game::new(&geng, &assets, config, level, model::Time::ZERO);
+            // Main menu
+            let state = menu::MainMenu::new(&geng, &assets, config);
             geng.run_state(state).await;
         }
     });
