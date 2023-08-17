@@ -5,6 +5,7 @@ use super::*;
 impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
+        log::info!("Replaying to the requested time...");
         self.current_beat = self
             .level
             .events
@@ -19,8 +20,11 @@ impl Model {
         // Simulate at 60 fps
         let delta_time = Time::new(1.0 / 60.0);
         while (self.current_beat as f32) + 1.0 - self.beat_timer.as_f32() < target_beat.as_f32() {
+            self.state = State::Playing;
+            self.score = Score::ZERO;
             self.update(vec2::ZERO, delta_time);
         }
+        log::info!("Replay finished");
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
@@ -93,6 +97,7 @@ impl Model {
             self.player
                 .fear_meter
                 .change(-self.config.fear.restore_speed * delta_time);
+            self.score += delta_time * r32(10.0);
         } else {
             self.player.fear_meter.change(delta_time);
         }
@@ -119,6 +124,7 @@ impl Model {
     }
 
     fn restart(&mut self) {
+        log::info!("Restarting...");
         self.level = self.level_clone.clone();
         self.player.fear_meter.set_ratio(Time::ZERO);
         self.current_beat = 0;
