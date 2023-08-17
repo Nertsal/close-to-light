@@ -42,6 +42,8 @@ pub struct Editor {
     place_rotation: Angle<Coord>,
     state: State,
     music: geng::SoundEffect,
+    /// Stop the music after the timer runs out.
+    music_timer: Time,
     grid_size: Coord,
     show_grid: bool,
     snap_to_grid: bool,
@@ -74,6 +76,7 @@ impl Editor {
             place_rotation: Angle::ZERO,
             state: State::Place,
             music: assets.music.effect(),
+            music_timer: Time::ZERO,
             grid_size: Coord::new(model.camera.fov / 16.0),
             show_grid: true,
             snap_to_grid: true,
@@ -261,6 +264,12 @@ impl Editor {
 
     fn scroll_time(&mut self, delta: Time) {
         self.current_beat = (self.current_beat + delta).max(Time::ZERO);
+        // Play a quarter beat of music
+        self.music = self.assets.music.effect();
+        self.music.play_from(time::Duration::from_secs_f64(
+            (self.current_beat * self.level.beat_time()).as_f32() as f64,
+        ));
+        self.music_timer = self.level.beat_time() * r32(0.25);
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
@@ -292,6 +301,13 @@ impl geng::State for Editor {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
+
+        if self.music_timer > Time::ZERO {
+            self.music_timer -= delta_time;
+            if self.music_timer <= Time::ZERO {
+                self.music.stop();
+            }
+        }
 
         if let State::Playing { .. } = self.state {
             self.current_beat = self.time / self.level.beat_time();
