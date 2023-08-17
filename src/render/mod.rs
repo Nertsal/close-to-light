@@ -62,13 +62,16 @@ impl Render {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 
+        let t = time.as_f32();
+        let t = (t.fract() - 0.5).abs();
+
         ugli::draw(
             &mut other_framebuffer,
             &self.assets.dither_shader,
             ugli::DrawMode::TriangleFan,
             &unit_quad_geometry(self.geng.ugli()),
             ugli::uniforms!(
-                u_time: time.as_f32(),
+                u_time: t,
                 u_bg_noise: bg_noise.as_f32(),
                 u_framebuffer_size: self.double_buffer.0.size().as_f32(),
                 u_pattern_size: self.assets.dither1.size().as_f32(),
