@@ -23,6 +23,7 @@ pub struct MainMenu {
     time: Time,
     play_button: Collider,
     play_hold_time: Lifetime,
+    player: Collider,
 }
 
 impl MainMenu {
@@ -30,7 +31,6 @@ impl MainMenu {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            config,
             transition: None,
             render: Render::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
@@ -49,7 +49,14 @@ impl MainMenu {
                 rotation: Angle::ZERO,
                 shape: Shape::Circle { radius: r32(1.3) },
             },
-            play_hold_time: Lifetime::new(Time::ZERO, Time::ZERO..=Time::ONE),
+            play_hold_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(1.5)),
+            player: Collider::new(
+                vec2::ZERO,
+                Shape::Circle {
+                    radius: r32(config.player.radius),
+                },
+            ),
+            config,
         }
     }
 
@@ -101,6 +108,40 @@ impl geng::State for MainMenu {
         );
         let pos = pos - game_pos.bottom_left();
         self.cursor_world_pos = self.camera.screen_to_world(game_pos.size(), pos).as_r32();
+
+        self.player.position = self.cursor_world_pos;
+
+        self.play_hold_time
+            .change(if self.player.check(&self.play_button) {
+                delta_time
+            } else {
+                -delta_time
+            });
+        if self.play_hold_time.is_max() {
+            self.play_hold_time.set_ratio(Time::ZERO);
+            self.play();
+        }
+
+        let frame = |time: f32, scale: f32| -> MoveFrame {
+            MoveFrame {
+                lerp_time: Time::new(time),
+                transform: Transform {
+                    scale: Coord::new(scale),
+                    ..default()
+                },
+            }
+        };
+        let movement = Movement {
+            key_frames: vec![
+                frame(0.0, 0.5),
+                frame(0.5, 1.5),
+                frame(0.25, 50.0),
+                frame(0.2, 0.0),
+            ]
+            .into(),
+        };
+        let radius = movement.get(self.play_hold_time.get_ratio()).scale;
+        self.play_button.shape = Shape::Circle { radius };
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -127,25 +168,15 @@ impl geng::State for MainMenu {
 
         let mut framebuffer = self.render.start();
 
-        let button = self.play_button.transformed(Transform {
-            scale: r32(1.0), // TODO
-            ..default()
-        });
         self.util_render.draw_collider(
-            &button,
+            &self.play_button,
             crate::render::COLOR_LIGHT,
             &self.camera,
             &mut framebuffer,
         );
 
-        let player = Collider::new(
-            self.cursor_world_pos,
-            Shape::Circle {
-                radius: r32(self.config.player.radius),
-            },
-        );
         self.util_render.draw_outline(
-            &player,
+            &self.player,
             0.05,
             crate::render::COLOR_LIGHT,
             &self.camera,
