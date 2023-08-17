@@ -128,9 +128,14 @@ impl Editor {
                 self.model.camera.fov,
             )
             .map(|x| (x / 2.0 / grid_size).ceil() as i64);
+            let thick = self.config.grid.thick_every as i64;
             for x in -view.x..=view.x {
                 // Vertical
-                let width = if x % 4 == 0 { 0.05 } else { 0.01 };
+                let width = if thick > 0 && x % thick == 0 {
+                    0.05
+                } else {
+                    0.01
+                };
                 let x = x as f32;
                 let y = view.y as f32;
                 self.geng.draw2d().draw2d(
@@ -145,7 +150,11 @@ impl Editor {
             }
             for y in -view.y..=view.y {
                 // Horizontal
-                let width = if y % 4 == 0 { 0.05 } else { 0.01 };
+                let width = if thick > 0 && y % thick == 0 {
+                    0.05
+                } else {
+                    0.01
+                };
                 let y = y as f32;
                 let x = view.x as f32;
                 self.geng.draw2d().draw2d(

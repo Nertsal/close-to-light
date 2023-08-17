@@ -90,7 +90,7 @@ impl Editor {
             state: State::Place,
             music: assets.music.effect(),
             music_timer: Time::ZERO,
-            grid_size: Coord::new(model.camera.fov / 16.0),
+            grid_size: Coord::new(model.camera.fov) / config.grid.height,
             show_grid: true,
             snap_to_grid: true,
             model,
