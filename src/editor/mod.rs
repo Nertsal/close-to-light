@@ -191,16 +191,21 @@ impl geng::State for Editor {
 
         if self.scrolling {
             self.was_scrolling = true;
-        } else if self.was_scrolling {
-            // Stopped scrolling
-            // Play some music
-            self.music.stop();
-            self.music = self.assets.music.effect();
-            self.music.play_from(time::Duration::from_secs_f64(
-                (self.current_beat * self.level.beat_time()).as_f32() as f64,
-            ));
-            self.music_timer = self.level.beat_time() * self.config.playback_duration;
+        } else {
+            if self.was_scrolling {
+                // Stopped scrolling
+                // Play some music
+                self.music.stop();
+                self.music = self.assets.music.effect();
+                self.music.play_from(time::Duration::from_secs_f64(
+                    (self.current_beat * self.level.beat_time()).as_f32() as f64,
+                ));
+                self.music_timer = self.level.beat_time() * self.config.playback_duration;
+            }
+            self.was_scrolling = false;
         }
+
+        self.scrolling = false;
 
         if let State::Playing { .. } = self.state {
             self.current_beat = self.time / self.level.beat_time();
