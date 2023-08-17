@@ -143,7 +143,10 @@ impl Model {
                     // No more events - start rng
                     let telegraph = self.random_light_telegraphed();
                     self.telegraphs.push(telegraph);
-                } else if self.lights.is_empty() {
+                } else if self.queued_events.is_empty()
+                    && self.lights.is_empty()
+                    && self.telegraphs.is_empty()
+                {
                     self.state = State::Finished;
                     self.music.stop();
                     self.switch_time = Time::ZERO;
