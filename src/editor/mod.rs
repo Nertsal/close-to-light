@@ -55,6 +55,11 @@ pub struct Editor {
     music: geng::SoundEffect,
     /// Stop the music after the timer runs out.
     music_timer: Time,
+    /// Whether the last frame was scrolled through time.
+    was_scrolling: bool,
+    /// Whether currently scrolling through time.
+    /// Used as a hack to not replay the music every frame.
+    scrolling: bool,
     grid_size: Coord,
     show_grid: bool,
     snap_to_grid: bool,
@@ -94,6 +99,8 @@ impl Editor {
             state: State::Place,
             music: assets.music.effect(),
             music_timer: Time::ZERO,
+            was_scrolling: false,
+            scrolling: false,
             grid_size: Coord::new(model.camera.fov) / config.grid.height,
             show_grid: true,
             snap_to_grid: true,
@@ -107,13 +114,7 @@ impl Editor {
 
     fn scroll_time(&mut self, delta: Time) {
         self.current_beat = (self.current_beat + delta).max(Time::ZERO);
-        // Play a quarter beat of music
-        self.music.stop();
-        self.music = self.assets.music.effect();
-        self.music.play_from(time::Duration::from_secs_f64(
-            (self.current_beat * self.level.beat_time()).as_f32() as f64,
-        ));
-        self.music_timer = self.level.beat_time() * self.config.playback_duration;
+        self.scrolling = true;
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
@@ -186,6 +187,19 @@ impl geng::State for Editor {
             if self.music_timer <= Time::ZERO {
                 self.music.stop();
             }
+        }
+
+        if self.scrolling {
+            self.was_scrolling = true;
+        } else if self.was_scrolling {
+            // Stopped scrolling
+            // Play some music
+            self.music.stop();
+            self.music = self.assets.music.effect();
+            self.music.play_from(time::Duration::from_secs_f64(
+                (self.current_beat * self.level.beat_time()).as_f32() as f64,
+            ));
+            self.music_timer = self.level.beat_time() * self.config.playback_duration;
         }
 
         if let State::Playing { .. } = self.state {
