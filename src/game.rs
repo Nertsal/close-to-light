@@ -27,7 +27,7 @@ impl Game {
             geng: geng.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
-            model: Model::new(rules, level, start_time, assets.music.effect()),
+            model: Model::new(assets, rules, level, start_time),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,

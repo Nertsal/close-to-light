@@ -5,7 +5,7 @@ use super::*;
 impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
-        log::info!("Replaying to the requested time...");
+        log::info!("Replaying to the requested time {:.2}...", target_time);
         self.current_beat = self
             .level
             .events
@@ -22,6 +22,7 @@ impl Model {
         while (self.current_beat as f32) + 1.0 - self.beat_timer.as_f32() < target_beat.as_f32() {
             self.state = State::Playing;
             self.score = Score::ZERO;
+            self.player.fear_meter.set_ratio(Time::ZERO);
             self.update(vec2::ZERO, delta_time);
         }
         log::info!("Replay finished");
@@ -125,18 +126,12 @@ impl Model {
 
     fn restart(&mut self) {
         log::info!("Restarting...");
-        self.level = self.level_clone.clone();
-        self.player.fear_meter.set_ratio(Time::ZERO);
-        self.current_beat = 0;
-        self.state = State::Playing;
-        self.switch_time = Time::ZERO;
-        self.beat_timer = Time::ZERO;
-        self.score = Score::ZERO;
-        self.queued_events.clear();
-        self.telegraphs.clear();
-        self.lights.clear();
-        self.restart_button.hover_time.set_ratio(Time::ZERO);
-        self.init(Time::ZERO);
+        *self = Self::new(
+            &self.assets,
+            self.config.clone(),
+            self.level_clone.clone(),
+            Time::ZERO,
+        );
     }
 
     fn next_beat(&mut self) {

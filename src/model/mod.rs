@@ -7,6 +7,8 @@ mod movement;
 
 pub use self::{collider::*, config::*, level::*, light::*, movement::*};
 
+use crate::assets::Assets;
+
 use std::collections::VecDeque;
 
 use geng::prelude::*;
@@ -47,6 +49,7 @@ pub enum State {
 }
 
 pub struct Model {
+    pub assets: Rc<Assets>,
     pub config: Config,
     /// The level to use when restarting the game.
     pub level_clone: Level,
@@ -78,14 +81,9 @@ impl Drop for Model {
 }
 
 impl Model {
-    pub fn new(
-        config: Config,
-        level: Level,
-        start_time: Time,
-        mut music: geng::SoundEffect,
-    ) -> Self {
-        music.play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
+    pub fn new(assets: &Rc<Assets>, config: Config, level: Level, start_time: Time) -> Self {
         let mut model = Self {
+            assets: assets.clone(),
             state: State::Playing,
             score: Score::ZERO,
             current_beat: 0,
@@ -122,9 +120,12 @@ impl Model {
             config,
             level_clone: level.clone(),
             level,
-            music,
+            music: assets.music.effect(),
         };
         model.init(start_time);
+        model
+            .music
+            .play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
         model
     }
 }
