@@ -34,7 +34,8 @@ pub struct Player {
 pub struct Model {
     pub config: Config,
     pub level: Level,
-    pub current_beat: usize,
+    /// Can be negative when initializing (because of simulating negative time).
+    pub current_beat: isize,
     pub camera: Camera2d,
     /// The time until the next music beat.
     pub real_time: Time,
@@ -48,7 +49,7 @@ pub struct Model {
 impl Model {
     pub fn new(config: Config, level: Level) -> Self {
         let player_radius = config.player.radius;
-        Self {
+        let mut model = Self {
             config,
             level,
             current_beat: 0,
@@ -73,6 +74,8 @@ impl Model {
             },
             telegraphs: vec![],
             lights: vec![],
-        }
+        };
+        model.init();
+        model
     }
 }

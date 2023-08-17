@@ -3,6 +3,24 @@ mod event;
 use super::*;
 
 impl Model {
+    /// Initialize the level by playing the events from the negative time.
+    pub fn init(&mut self) {
+        self.current_beat = self
+            .level
+            .events
+            .iter()
+            .map(|event| event.beat)
+            .min()
+            .map(|x| x.as_f32().floor() as isize - 1)
+            .unwrap_or(0);
+
+        // Simulate at 60 fps
+        let delta_time = Time::new(1.0 / 60.0);
+        while self.current_beat < 0 {
+            self.update(vec2::ZERO, delta_time);
+        }
+    }
+
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
         let mut rng = thread_rng();
 
@@ -89,7 +107,7 @@ impl Model {
             // Get the next events
             let mut to_remove = Vec::new();
             for (i, event) in self.level.events.iter().enumerate().rev() {
-                if event.beat.floor().as_f32() as usize == self.current_beat {
+                if event.beat.floor().as_f32() as isize == self.current_beat {
                     to_remove.push(i);
                 }
             }
