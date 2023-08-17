@@ -6,29 +6,50 @@ use geng_utils::conversions::Vec2RealConversions;
 #[allow(dead_code)]
 pub struct Game {
     geng: Geng,
+    transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
     cursor_pos: vec2<f64>,
     active_touch: Option<u64>,
+    music: geng::SoundEffect,
 }
 
 impl Game {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, rules: Config, level: Level) -> Self {
-        assets.music.play();
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        rules: Config,
+        level: Level,
+        start_time: Time,
+    ) -> Self {
+        let mut music = assets.music.effect();
+        music.play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
         Self {
             geng: geng.clone(),
+            transition: None,
             render: GameRender::new(geng, assets),
-            model: Model::new(rules, level),
+            model: Model::new(rules, level, start_time),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
+            music,
         }
     }
 }
 
+impl Drop for Game {
+    fn drop(&mut self) {
+        self.music.stop()
+    }
+}
+
 impl geng::State for Game {
+    fn transition(&mut self) -> Option<geng::state::Transition> {
+        self.transition.take()
+    }
+
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(crate::render::COLOR_DARK), None, None);
@@ -38,6 +59,11 @@ impl geng::State for Game {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
+            geng::Event::KeyPress {
+                key: geng::Key::Escape,
+            } => {
+                self.transition = Some(geng::state::Transition::Pop);
+            }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }

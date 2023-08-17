@@ -28,6 +28,7 @@ enum State {
 pub struct Editor {
     geng: Geng,
     assets: Rc<Assets>,
+    transition: Option<geng::state::Transition>,
     config: EditorConfig,
     util_render: UtilRender,
     pixel_texture: ugli::Texture,
@@ -80,8 +81,9 @@ impl Editor {
             geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
         ui_texture.set_filter(ugli::Filter::Nearest);
 
-        let model = Model::new(game_config, level.clone());
+        let model = Model::new(game_config, level.clone(), Time::ZERO);
         Self {
+            transition: None,
             util_render: UtilRender::new(&geng, &assets),
             pixel_texture,
             ui_texture,
@@ -119,6 +121,19 @@ impl Editor {
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
         (pos / self.grid_size).map(Coord::round) * self.grid_size
+    }
+
+    /// Start playing the game from the current time.
+    fn play_game(&mut self) {
+        self.transition = Some(geng::state::Transition::Push(Box::new(
+            crate::game::Game::new(
+                &self.geng,
+                &self.assets,
+                self.model.config.clone(),
+                self.level.clone(),
+                self.current_beat * self.level.beat_time(),
+            ),
+        )));
     }
 
     fn undo(&mut self) {
@@ -178,6 +193,10 @@ impl Editor {
 }
 
 impl geng::State for Editor {
+    fn transition(&mut self) -> Option<geng::state::Transition> {
+        self.transition.take()
+    }
+
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;

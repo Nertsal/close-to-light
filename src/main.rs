@@ -51,7 +51,7 @@ fn main() {
             geng.run_state(state).await;
         } else {
             // Game
-            let state = game::Game::new(&geng, &assets, config, level);
+            let state = game::Game::new(&geng, &assets, config, level, model::Time::ZERO);
             geng.run_state(state).await;
         }
     });

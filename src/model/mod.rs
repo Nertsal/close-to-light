@@ -47,7 +47,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(config: Config, level: Level) -> Self {
+    pub fn new(config: Config, level: Level, start_time: Time) -> Self {
         let player_radius = config.player.radius;
         let mut model = Self {
             config,
@@ -75,7 +75,7 @@ impl Model {
             telegraphs: vec![],
             lights: vec![],
         };
-        model.init();
+        model.init(start_time);
         model
     }
 }

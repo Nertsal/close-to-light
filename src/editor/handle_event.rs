@@ -84,6 +84,7 @@ impl Editor {
                 geng::Key::Digit8 => self.handle_digit(8),
                 geng::Key::Digit9 => self.handle_digit(9),
                 geng::Key::Digit0 => self.handle_digit(0),
+                geng::Key::F5 => self.play_game(),
                 _ => {}
             },
             geng::Event::Wheel { delta } => {

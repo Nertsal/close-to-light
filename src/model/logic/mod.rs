@@ -4,7 +4,7 @@ use super::*;
 
 impl Model {
     /// Initialize the level by playing the events from the negative time.
-    pub fn init(&mut self) {
+    pub fn init(&mut self, target_time: Time) {
         self.current_beat = self
             .level
             .events
@@ -14,9 +14,11 @@ impl Model {
             .map(|x| x.as_f32().floor() as isize - 1)
             .unwrap_or(0);
 
+        let target_beat = target_time / self.level.beat_time();
+
         // Simulate at 60 fps
         let delta_time = Time::new(1.0 / 60.0);
-        while self.current_beat < 0 {
+        while (self.current_beat as f32) + 1.0 - self.beat_timer.as_f32() < target_beat.as_f32() {
             self.update(vec2::ZERO, delta_time);
         }
     }
