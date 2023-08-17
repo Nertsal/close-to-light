@@ -1,3 +1,7 @@
+mod config;
+
+pub use self::config::*;
+
 use crate::{assets::*, model::*, render::UtilRender};
 
 use geng::prelude::*;
@@ -18,6 +22,7 @@ enum State {
 pub struct Editor {
     geng: Geng,
     assets: Rc<Assets>,
+    config: EditorConfig,
     util_render: UtilRender,
     pixel_texture: ugli::Texture,
     ui_texture: ugli::Texture,
@@ -50,7 +55,13 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(geng: Geng, assets: Rc<Assets>, config: Config, level: Level) -> Self {
+    pub fn new(
+        geng: Geng,
+        assets: Rc<Assets>,
+        config: EditorConfig,
+        game_config: Config,
+        level: Level,
+    ) -> Self {
         let mut pixel_texture =
             geng_utils::texture::new_texture(geng.ugli(), vec2(360 * 16 / 9, 360));
         pixel_texture.set_filter(ugli::Filter::Nearest);
@@ -58,7 +69,7 @@ impl Editor {
             geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
         ui_texture.set_filter(ugli::Filter::Nearest);
 
-        let model = Model::new(config, level.clone());
+        let model = Model::new(game_config, level.clone());
         Self {
             util_render: UtilRender::new(&geng, &assets),
             pixel_texture,
@@ -83,6 +94,7 @@ impl Editor {
             model,
             geng,
             assets,
+            config,
             level,
         }
     }
@@ -270,7 +282,7 @@ impl Editor {
         self.music.play_from(time::Duration::from_secs_f64(
             (self.current_beat * self.level.beat_time()).as_f32() as f64,
         ));
-        self.music_timer = self.level.beat_time() * r32(0.25);
+        self.music_timer = self.level.beat_time() * self.config.playback_duration;
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {

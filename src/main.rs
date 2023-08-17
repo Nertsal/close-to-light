@@ -43,7 +43,11 @@ fn main() {
 
         if opts.edit {
             // Editor
-            let state = editor::Editor::new(geng.clone(), assets, config, level);
+            let editor_config: editor::EditorConfig =
+                geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+                    .await
+                    .expect("failed to load editor config");
+            let state = editor::Editor::new(geng.clone(), assets, editor_config, config, level);
             geng.run_state(state).await;
         } else {
             // Game
