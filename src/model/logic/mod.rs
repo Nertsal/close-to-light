@@ -99,10 +99,13 @@ impl Model {
         self.current_beat += 1;
 
         if self.level.events.is_empty() {
-            // No more events - start rng
-            // TODO: end the level
-            let telegraph = self.random_light_telegraphed();
-            self.telegraphs.push(telegraph);
+            if self.level.rng_end {
+                // No more events - start rng
+                let telegraph = self.random_light_telegraphed();
+                self.telegraphs.push(telegraph);
+            } else {
+                // TODO: end the level
+            }
         } else {
             // Get the next events
             let mut to_remove = Vec::new();

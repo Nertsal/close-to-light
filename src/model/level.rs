@@ -5,6 +5,9 @@ use super::*;
 pub struct Level {
     /// Beats per minute.
     pub bpm: R32,
+    /// Whether to start rng after the predefined level is finished.
+    #[serde(default)]
+    pub rng_end: bool,
     pub events: Vec<TimedEvent>,
 }
 
