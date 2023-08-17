@@ -58,10 +58,30 @@ impl GameRender {
 
             self.util.draw_text(
                 "made in rust btw",
-                vec2(0.0, 4.0).as_r32(),
-                0.5,
+                vec2(0.0, -3.0).as_r32(),
+                0.7,
                 vec2::splat(0.5),
                 COLOR_DARK,
+                camera,
+                &mut framebuffer,
+            );
+
+            self.util.draw_text(
+                format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                vec2(0.0, 3.0).as_r32(),
+                1.0,
+                vec2::splat(0.5),
+                COLOR_LIGHT,
+                camera,
+                &mut framebuffer,
+            );
+        } else {
+            self.util.draw_text(
+                format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                vec2(0.0, 4.5).as_r32(),
+                0.7,
+                vec2::splat(0.5),
+                COLOR_LIGHT,
                 camera,
                 &mut framebuffer,
             );
@@ -72,7 +92,7 @@ impl GameRender {
             State::Lost => {
                 self.util.draw_text(
                     "YOU FAILED TO CHASE THE LIGHT",
-                    vec2(0.0, 3.0).as_r32(),
+                    vec2(0.0, 4.0).as_r32(),
                     1.0,
                     vec2::splat(0.5),
                     COLOR_LIGHT,
@@ -83,7 +103,7 @@ impl GameRender {
             State::Finished => {
                 self.util.draw_text(
                     "YOU CAUGHT THE LIGHT",
-                    vec2(0.0, 3.0).as_r32(),
+                    vec2(0.0, 4.0).as_r32(),
                     1.0,
                     vec2::splat(0.5),
                     COLOR_LIGHT,

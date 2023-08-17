@@ -89,21 +89,21 @@ impl Model {
         self.lights
             .retain(|light| light.lifetime < light.movement.duration());
 
-        // Check if the player is in light
-        self.player.is_in_light = self
-            .lights
-            .iter()
-            .any(|light| self.player.collider.check(&light.collider));
-        if self.player.is_in_light {
-            self.player
-                .fear_meter
-                .change(-self.config.fear.restore_speed * delta_time);
-            self.score += delta_time * r32(10.0);
-        } else {
-            self.player.fear_meter.change(delta_time);
-        }
-
         if let State::Playing = self.state {
+            // Check if the player is in light
+            self.player.is_in_light = self
+                .lights
+                .iter()
+                .any(|light| self.player.collider.check(&light.collider));
+            if self.player.is_in_light {
+                self.player
+                    .fear_meter
+                    .change(-self.config.fear.restore_speed * delta_time);
+                self.score += delta_time * r32(10.0);
+            } else {
+                self.player.fear_meter.change(delta_time);
+            }
+
             if self.player.fear_meter.is_max() {
                 self.state = State::Lost;
                 self.music.stop();
