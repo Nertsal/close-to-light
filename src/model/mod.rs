@@ -29,6 +29,7 @@ pub struct Player {
     pub shake: vec2<Coord>,
     pub collider: Collider,
     pub fear_meter: Bounded<Time>,
+    pub is_in_light: bool,
 }
 
 pub struct Model {
@@ -71,6 +72,7 @@ impl Model {
                     },
                 ),
                 fear_meter: Bounded::new_max(r32(1.0)),
+                is_in_light: false,
             },
             telegraphs: vec![],
             lights: vec![],

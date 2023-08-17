@@ -190,13 +190,13 @@ impl geng::State for MainMenu {
             self.util_render.draw_outline(
                 &self.player,
                 0.05,
-                crate::render::COLOR_LIGHT,
+                crate::render::COLOR_PLAYER,
                 &self.camera,
                 &mut framebuffer,
             );
         }
 
-        self.render.dither(self.time);
+        self.render.dither(self.time, R32::ZERO); // TODO
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(

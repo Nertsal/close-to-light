@@ -50,9 +50,15 @@ impl GameRender {
         // self.util
         //     .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
         self.util
-            .draw_outline(&player, 0.05, COLOR_LIGHT, camera, &mut framebuffer);
+            .draw_outline(&player, 0.05, COLOR_PLAYER, camera, &mut framebuffer);
 
-        self.render.dither(model.real_time);
+        // let t = R32::ONE - (model.player.fear_meter.get_ratio() / r32(0.5)).min(R32::ONE);
+        let t = if model.player.is_in_light {
+            R32::ONE
+        } else {
+            R32::ZERO
+        };
+        self.render.dither(model.real_time, t);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         draw_texture_fit(

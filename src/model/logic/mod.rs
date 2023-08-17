@@ -84,11 +84,11 @@ impl Model {
             .retain(|light| light.lifetime < light.movement.duration());
 
         // Check if the player is in light
-        let lit = self
+        self.player.is_in_light = self
             .lights
             .iter()
             .any(|light| self.player.collider.check(&light.collider));
-        if lit {
+        if self.player.is_in_light {
             self.player
                 .fear_meter
                 .change(-self.config.fear.restore_speed * delta_time);

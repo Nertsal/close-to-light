@@ -10,6 +10,7 @@ use geng_utils::{
     conversions::Vec2RealConversions, geometry::unit_quad_geometry, texture::draw_texture_fit,
 };
 
+pub const COLOR_PLAYER: Rgba<f32> = Rgba::WHITE;
 pub const COLOR_LIGHT: Rgba<f32> = Rgba::WHITE;
 pub const COLOR_DARK: Rgba<f32> = Rgba::BLACK;
 
@@ -57,7 +58,7 @@ impl Render {
         framebuffer
     }
 
-    pub fn dither(&mut self, time: Time) -> ugli::Framebuffer {
+    pub fn dither(&mut self, time: Time, bg_noise: R32) -> ugli::Framebuffer {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 
@@ -68,6 +69,7 @@ impl Render {
             &unit_quad_geometry(self.geng.ugli()),
             ugli::uniforms!(
                 u_time: time.as_f32(),
+                u_bg_noise: bg_noise.as_f32(),
                 u_framebuffer_size: self.double_buffer.0.size().as_f32(),
                 u_pattern_size: self.assets.dither1.size().as_f32(),
                 u_texture: &self.double_buffer.0,
