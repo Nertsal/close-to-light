@@ -59,11 +59,11 @@ impl geng::State for Game {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
-            geng::Event::KeyPress {
-                key: geng::Key::Escape,
-            } => {
-                self.transition = Some(geng::state::Transition::Pop);
-            }
+            geng::Event::KeyPress { key } => match key {
+                geng::Key::Escape => self.transition = Some(geng::state::Transition::Pop),
+                geng::Key::F11 => self.geng.window().toggle_fullscreen(),
+                _ => {}
+            },
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }
