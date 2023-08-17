@@ -115,7 +115,7 @@ impl Model {
                     vec2(0.0, 0.0).as_r32(),
                     Shape::Circle { radius: r32(1.0) },
                 ),
-                hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(1.5)),
+                hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(3.0)),
             },
             config,
             level_clone: level.clone(),

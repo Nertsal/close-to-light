@@ -52,9 +52,12 @@ impl GameRender {
         self.util
             .draw_outline(&player, 0.05, COLOR_PLAYER, camera, &mut framebuffer);
 
+        let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
+
         if let State::Lost | State::Finished = model.state {
+            let button = smooth_button(&model.restart_button, model.switch_time);
             self.util
-                .draw_button(&model.restart_button, "RESTART", camera, &mut framebuffer);
+                .draw_button(&button, "RESTART", camera, &mut framebuffer);
 
             self.util.draw_text(
                 "made in rust btw",
@@ -66,15 +69,17 @@ impl GameRender {
                 &mut framebuffer,
             );
 
-            self.util.draw_text(
-                format!("SCORE: {}", model.score.floor().as_f32() as u64),
-                vec2(0.0, 3.0).as_r32(),
-                1.0,
-                vec2::splat(0.5),
-                COLOR_LIGHT,
-                camera,
-                &mut framebuffer,
-            );
+            if !fading {
+                self.util.draw_text(
+                    format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                    vec2(0.0, 3.0).as_r32(),
+                    1.0,
+                    vec2::splat(0.5),
+                    COLOR_LIGHT,
+                    camera,
+                    &mut framebuffer,
+                );
+            }
         } else {
             self.util.draw_text(
                 format!("SCORE: {}", model.score.floor().as_f32() as u64),
@@ -87,29 +92,31 @@ impl GameRender {
             );
         }
 
-        match model.state {
-            State::Playing => {}
-            State::Lost => {
-                self.util.draw_text(
-                    "YOU FAILED TO CHASE THE LIGHT",
-                    vec2(0.0, 4.0).as_r32(),
-                    1.0,
-                    vec2::splat(0.5),
-                    COLOR_LIGHT,
-                    camera,
-                    &mut framebuffer,
-                );
-            }
-            State::Finished => {
-                self.util.draw_text(
-                    "YOU CAUGHT THE LIGHT",
-                    vec2(0.0, 4.0).as_r32(),
-                    1.0,
-                    vec2::splat(0.5),
-                    COLOR_LIGHT,
-                    camera,
-                    &mut framebuffer,
-                );
+        if !fading {
+            match model.state {
+                State::Playing => {}
+                State::Lost => {
+                    self.util.draw_text(
+                        "YOU FAILED TO CHASE THE LIGHT",
+                        vec2(0.0, 4.0).as_r32(),
+                        1.0,
+                        vec2::splat(0.5),
+                        COLOR_LIGHT,
+                        camera,
+                        &mut framebuffer,
+                    );
+                }
+                State::Finished => {
+                    self.util.draw_text(
+                        "YOU CAUGHT THE LIGHT",
+                        vec2(0.0, 4.0).as_r32(),
+                        1.0,
+                        vec2::splat(0.5),
+                        COLOR_LIGHT,
+                        camera,
+                        &mut framebuffer,
+                    );
+                }
             }
         }
 
@@ -138,32 +145,48 @@ impl GameRender {
 
         let font_size = screen.height() * 0.05;
 
-        // Fear meter
-        let fear = Aabb2::point(
-            geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
-        )
-        .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
-        .extend_up(font_size);
-        self.geng.draw2d().draw2d(
-            framebuffer,
-            camera,
-            &draw2d::Quad::new(fear.extend_uniform(font_size * 0.1), COLOR_LIGHT),
-        );
-        self.geng
-            .draw2d()
-            .draw2d(framebuffer, camera, &draw2d::Quad::new(fear, COLOR_DARK));
-        self.geng.draw2d().draw2d(
-            framebuffer,
-            camera,
-            &draw2d::Quad::new(
-                fear.extend_symmetric(
-                    vec2(
-                        -model.player.fear_meter.get_ratio().as_f32() * fear.width(),
-                        0.0,
-                    ) / 2.0,
+        if let State::Playing = model.state {
+            // Fear meter
+            let fear = Aabb2::point(
+                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
+            )
+            .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
+            .extend_up(font_size);
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Quad::new(fear.extend_uniform(font_size * 0.1), COLOR_LIGHT),
+            );
+            self.geng
+                .draw2d()
+                .draw2d(framebuffer, camera, &draw2d::Quad::new(fear, COLOR_DARK));
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Quad::new(
+                    fear.extend_symmetric(
+                        vec2(
+                            -model.player.fear_meter.get_ratio().as_f32() * fear.width(),
+                            0.0,
+                        ) / 2.0,
+                    ),
+                    COLOR_LIGHT,
                 ),
-                COLOR_LIGHT,
-            ),
-        );
+            );
+        }
     }
+}
+
+fn smooth_button(button: &HoverButton, time: Time) -> HoverButton {
+    // Appear at 1.0
+    // Fade in until 2.0
+    let t = (time - Time::ONE).clamp(Time::ZERO, Time::ONE);
+    let t = crate::util::smoothstep(t);
+
+    let mut button = button.clone();
+    button.collider = button.collider.transformed(Transform {
+        scale: t,
+        ..default()
+    });
+    button
 }
