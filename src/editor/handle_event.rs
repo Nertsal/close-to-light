@@ -4,15 +4,23 @@ impl Editor {
     pub fn handle_event(&mut self, event: geng::Event) {
         let ctrl = self.geng.window().is_key_pressed(geng::Key::ControlLeft);
         let shift = self.geng.window().is_key_pressed(geng::Key::ShiftLeft);
+        let alt = self.geng.window().is_key_pressed(geng::Key::AltLeft);
+
+        let scroll_speed = if shift {
+            self.config.scroll_slow
+        } else if alt {
+            self.config.scroll_fast
+        } else {
+            Time::ONE
+        };
+
         match event {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => {
-                    let scale = if shift { 0.25 } else { 1.0 };
-                    self.scroll_time(Time::new(-scale));
+                    self.scroll_time(-scroll_speed);
                 }
                 geng::Key::ArrowRight => {
-                    let scale = if shift { 0.25 } else { 1.0 };
-                    self.scroll_time(Time::new(scale));
+                    self.scroll_time(scroll_speed);
                 }
                 geng::Key::F => self.visualize_beat = !self.visualize_beat,
                 geng::Key::X => {
@@ -85,7 +93,7 @@ impl Editor {
                         .and_then(|light| self.level.events.get_mut(light))
                     {
                         // Control fade time
-                        let change = Time::new(delta.signum() as f32 * 0.25); // Change by quarter beats
+                        let change = Time::new(delta.signum() as f32) * self.config.scroll_slow;
                         let Event::Light(light) = &mut event.event;
                         if shift {
                             // Fade out
@@ -103,8 +111,7 @@ impl Editor {
                         }
                     }
                 } else {
-                    let scale = if shift { 0.25 } else { 1.0 };
-                    self.scroll_time(Time::new(delta.signum() as f32 * scale));
+                    self.scroll_time(Time::new(delta.signum() as f32) * scroll_speed);
                 }
             }
             geng::Event::CursorMove { position } => {
