@@ -44,7 +44,7 @@ pub async fn submit(
     };
 
     // let meta = serde_json::to_string(&diff).unwrap();
-    let meta = "TODO".to_string();
+    let meta = "v0".to_string();
     leaderboard
         .send_score_with_meta(score, &meta)
         .await

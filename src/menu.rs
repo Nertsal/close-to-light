@@ -80,6 +80,14 @@ impl MainMenu {
                     geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
                         .await
                         .ok();
+                let secrets = secrets.or_else(|| {
+                    Some(crate::Secrets {
+                        leaderboard: crate::LeaderboardSecrets {
+                            id: option_env!("LEADERBOARD_ID")?.to_string(),
+                            key: option_env!("LEADERBOARD_KEY")?.to_string(),
+                        },
+                    })
+                });
                 // TODO: check env variable (for CI)
 
                 crate::game::Game::new(
