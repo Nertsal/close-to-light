@@ -144,12 +144,14 @@ impl Model {
 
     fn restart(&mut self) {
         log::info!("Restarting...");
+        let high_score = self.high_score.max(self.score);
         *self = Self::new(
             &self.assets,
             self.config.clone(),
             self.level_clone.clone(),
             Time::ZERO,
         );
+        self.high_score = high_score;
     }
 
     fn next_beat(&mut self) {
