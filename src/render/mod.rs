@@ -62,8 +62,9 @@ impl Render {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 
+        let timespan = 32.0;
         let t = time.as_f32();
-        let t = (t.fract() - 0.5).abs();
+        let t = ((t / timespan / 2.0).fract() * timespan * 2.0 - timespan).abs();
 
         ugli::draw(
             &mut other_framebuffer,
