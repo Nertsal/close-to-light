@@ -147,16 +147,31 @@ impl geng::State for MainMenu {
 
         let mut framebuffer = self.render.start();
 
+        let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
         self.util_render
-            .draw_button(&self.play_button, "START", &self.camera, &mut framebuffer);
+            .draw_button(&button, "START", &self.camera, &mut framebuffer);
 
-        self.util_render.draw_outline(
-            &self.player,
-            0.05,
-            crate::render::COLOR_PLAYER,
-            &self.camera,
-            &mut framebuffer,
-        );
+        let fading = self.play_button.hover_time.get_ratio().as_f32() > 0.5;
+
+        if !fading {
+            self.util_render.draw_text(
+                "CLOSE TO LIGHT",
+                vec2(0.0, 3.5).as_r32(),
+                1.2,
+                vec2::splat(0.5),
+                crate::render::COLOR_LIGHT,
+                &self.camera,
+                &mut framebuffer,
+            );
+
+            self.util_render.draw_outline(
+                &self.player,
+                0.05,
+                crate::render::COLOR_PLAYER,
+                &self.camera,
+                &mut framebuffer,
+            );
+        }
 
         self.render.dither(self.time, R32::ZERO); // TODO
 
