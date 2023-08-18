@@ -7,7 +7,7 @@ mod movement;
 
 pub use self::{collider::*, config::*, level::*, light::*, movement::*};
 
-use crate::assets::Assets;
+use crate::{assets::Assets, leaderboard::Leaderboard, LeaderboardSecrets};
 
 use std::collections::VecDeque;
 
@@ -34,6 +34,7 @@ pub struct QueuedEvent {
 
 #[derive(Debug, Clone)]
 pub struct Player {
+    pub name: String,
     pub target_position: vec2<Coord>,
     pub shake: vec2<Coord>,
     pub collider: Collider,
@@ -58,6 +59,8 @@ pub enum State {
 pub struct Model {
     pub assets: Rc<Assets>,
     pub config: Config,
+    pub secrets: Option<LeaderboardSecrets>,
+    pub leaderboard: Option<Leaderboard>,
     /// The level to use when restarting the game.
     pub level_clone: Level,
     pub level: Level,
@@ -89,12 +92,18 @@ impl Drop for Model {
 }
 
 impl Model {
-    pub fn new(assets: &Rc<Assets>, config: Config, level: Level, start_time: Time) -> Self {
+    pub fn new(
+        assets: &Rc<Assets>,
+        config: Config,
+        level: Level,
+        leaderboard: Option<LeaderboardSecrets>,
+        start_time: Time,
+    ) -> Self {
         let mut model = Self {
             assets: assets.clone(),
             state: State::Playing,
             score: Score::ZERO,
-            high_score: Score::ZERO, // TODO: load
+            high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
             current_beat: 0,
             camera: Camera2d {
                 center: vec2::ZERO,
@@ -106,6 +115,7 @@ impl Model {
             beat_timer: Time::ZERO,
             queued_events: Vec::new(),
             player: Player {
+                name: "".to_string(),
                 target_position: vec2::ZERO,
                 shake: vec2::ZERO,
                 collider: Collider::new(
@@ -121,12 +131,14 @@ impl Model {
             lights: vec![],
             restart_button: HoverButton {
                 collider: Collider::new(
-                    vec2(0.0, 0.0).as_r32(),
+                    vec2(-3.0, 0.0).as_r32(),
                     Shape::Circle { radius: r32(1.0) },
                 ),
                 hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(3.0)),
             },
             config,
+            secrets: leaderboard,
+            leaderboard: None,
             level_clone: level.clone(),
             level,
             music: assets.music.effect(),

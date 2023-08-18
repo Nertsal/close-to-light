@@ -81,7 +81,7 @@ impl Editor {
             geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
         ui_texture.set_filter(ugli::Filter::Nearest);
 
-        let mut model = Model::new(&assets, game_config, level.clone(), Time::ZERO);
+        let mut model = Model::new(&assets, game_config, level.clone(), None, Time::ZERO);
         model.music.stop();
         Self {
             transition: None,
@@ -132,6 +132,7 @@ impl Editor {
                 &self.assets,
                 self.model.config.clone(),
                 self.level.clone(),
+                None,
                 self.current_beat * self.level.beat_time(),
             ),
         )));

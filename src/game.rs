@@ -1,4 +1,4 @@
-use crate::{assets::Assets, model::*, render::GameRender};
+use crate::{assets::Assets, model::*, render::GameRender, LeaderboardSecrets};
 
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
@@ -21,13 +21,14 @@ impl Game {
         assets: &Rc<Assets>,
         rules: Config,
         level: Level,
+        leaderboard: Option<LeaderboardSecrets>,
         start_time: Time,
     ) -> Self {
         Self {
             geng: geng.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
-            model: Model::new(assets, rules, level, start_time),
+            model: Model::new(assets, rules, level, leaderboard, start_time),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,

@@ -1,6 +1,7 @@
 mod assets;
 mod editor;
 mod game;
+mod leaderboard;
 mod menu;
 mod model;
 mod render;
@@ -15,6 +16,18 @@ struct Opts {
     edit: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
+}
+
+#[derive(geng::asset::Load, Deserialize)]
+#[load(serde = "toml")]
+struct Secrets {
+    leaderboard: LeaderboardSecrets,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct LeaderboardSecrets {
+    id: String,
+    key: String,
 }
 
 fn main() {

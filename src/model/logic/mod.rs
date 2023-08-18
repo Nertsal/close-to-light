@@ -123,9 +123,7 @@ impl Model {
             }
 
             if self.player.fear_meter.is_max() {
-                self.state = State::Lost;
-                self.music.stop();
-                self.switch_time = Time::ZERO;
+                self.lose();
             }
         } else if self.switch_time > Time::ONE {
             // 1 second before the UI is active
@@ -145,10 +143,12 @@ impl Model {
     fn restart(&mut self) {
         log::info!("Restarting...");
         let high_score = self.high_score.max(self.score);
+        preferences::save("highscore", &high_score);
         *self = Self::new(
             &self.assets,
             self.config.clone(),
             self.level_clone.clone(),
+            self.secrets.clone(),
             Time::ZERO,
         );
         self.high_score = high_score;
@@ -167,9 +167,7 @@ impl Model {
                     && self.lights.is_empty()
                     && self.telegraphs.is_empty()
                 {
-                    self.state = State::Finished;
-                    self.music.stop();
-                    self.switch_time = Time::ZERO;
+                    self.finish();
                 }
             } else {
                 // Get the next events
@@ -188,6 +186,30 @@ impl Model {
                 }
             }
         }
+    }
+
+    pub fn finish(&mut self) {
+        self.state = State::Finished;
+        self.music.stop();
+        self.switch_time = Time::ZERO;
+
+        if let Some(secrets) = &self.secrets {
+            // Check name
+            if self.player.name.trim().is_empty() {
+                return;
+            }
+            self.leaderboard = Some(Leaderboard::submit(
+                &self.player.name,
+                self.score.as_f32(),
+                secrets,
+            ));
+        }
+    }
+
+    pub fn lose(&mut self) {
+        self.state = State::Lost;
+        self.music.stop();
+        self.switch_time = Time::ZERO;
     }
 
     fn random_light_telegraphed(&self) -> LightTelegraph {

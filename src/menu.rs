@@ -76,7 +76,20 @@ impl MainMenu {
                         .await
                         .expect("failed to load level");
 
-                crate::game::Game::new(&geng, &assets, config, level, Time::ZERO)
+                let secrets: Option<crate::Secrets> =
+                    geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+                        .await
+                        .ok();
+                // TODO: check env variable (for CI)
+
+                crate::game::Game::new(
+                    &geng,
+                    &assets,
+                    config,
+                    level,
+                    secrets.map(|s| s.leaderboard),
+                    Time::ZERO,
+                )
             }
             .boxed_local()
         };
