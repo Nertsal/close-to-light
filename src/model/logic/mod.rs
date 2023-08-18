@@ -149,6 +149,7 @@ impl Model {
             self.config.clone(),
             self.level_clone.clone(),
             self.secrets.clone(),
+            self.player.name.clone(),
             Time::ZERO,
         );
         self.high_score = high_score;

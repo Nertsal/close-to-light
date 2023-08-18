@@ -97,6 +97,7 @@ impl Model {
         config: Config,
         level: Level,
         leaderboard: Option<LeaderboardSecrets>,
+        player_name: String,
         start_time: Time,
     ) -> Self {
         let mut model = Self {
@@ -115,7 +116,7 @@ impl Model {
             beat_timer: Time::ZERO,
             queued_events: Vec::new(),
             player: Player {
-                name: "".to_string(),
+                name: player_name,
                 target_position: vec2::ZERO,
                 shake: vec2::ZERO,
                 collider: Collider::new(

@@ -23,10 +23,13 @@ pub struct MainMenu {
     time: Time,
     play_button: HoverButton,
     player: Collider,
+    name: String,
 }
 
 impl MainMenu {
     pub fn new(geng: &Geng, assets: &Rc<Assets>, config: Config) -> Self {
+        let name: String = preferences::load("name").unwrap_or_default();
+        geng.window().start_text_edit(&name);
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
@@ -58,14 +61,21 @@ impl MainMenu {
                 },
             ),
             config,
+            name,
         }
     }
 
     fn play(&mut self) {
+        self.name = self.name.trim().to_string();
+
+        self.geng.window().stop_text_edit();
+        preferences::save("name", &self.name);
+
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
             let config = self.config.clone();
+            let player_name = self.name.clone();
 
             async move {
                 let manager = geng.asset_manager();
@@ -88,7 +98,6 @@ impl MainMenu {
                         },
                     })
                 });
-                // TODO: check env variable (for CI)
 
                 crate::game::Game::new(
                     &geng,
@@ -96,6 +105,7 @@ impl MainMenu {
                     config,
                     level,
                     secrets.map(|s| s.leaderboard),
+                    player_name,
                     Time::ZERO,
                 )
             }
@@ -117,6 +127,11 @@ impl geng::State for MainMenu {
     }
 
     fn update(&mut self, delta_time: f64) {
+        // In case we come back to that state after playing the game
+        if !self.geng.window().is_editing_text() {
+            self.geng.window().start_text_edit(&self.name);
+        }
+
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
 
@@ -146,6 +161,9 @@ impl geng::State for MainMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
+            geng::Event::EditText(new_name) => {
+                self.name = new_name;
+            }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }
@@ -189,6 +207,26 @@ impl geng::State for MainMenu {
                 &self.player,
                 0.05,
                 crate::render::COLOR_PLAYER,
+                &self.camera,
+                &mut framebuffer,
+            );
+
+            // Name
+            self.util_render.draw_text(
+                &self.name,
+                vec2(0.0, -3.0).as_r32(),
+                0.8,
+                vec2::splat(0.5),
+                crate::render::COLOR_LIGHT,
+                &self.camera,
+                &mut framebuffer,
+            );
+            self.util_render.draw_text(
+                "TYPE YOUR NAME",
+                vec2(0.0, -3.8).as_r32(),
+                0.7,
+                vec2::splat(0.5),
+                crate::render::COLOR_LIGHT,
                 &self.camera,
                 &mut framebuffer,
             );

@@ -22,13 +22,14 @@ impl Game {
         rules: Config,
         level: Level,
         leaderboard: Option<LeaderboardSecrets>,
+        player_name: String,
         start_time: Time,
     ) -> Self {
         Self {
             geng: geng.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
-            model: Model::new(assets, rules, level, leaderboard, start_time),
+            model: Model::new(assets, rules, level, leaderboard, player_name, start_time),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
