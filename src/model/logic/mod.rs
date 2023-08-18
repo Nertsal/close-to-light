@@ -50,6 +50,20 @@ impl Model {
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
+        if let State::Lost = self.state {
+            if let Some(music) = &mut self.music {
+                let speed = (1.0 - self.switch_time.as_f32() / 0.5).max(0.0) + 0.5;
+                music.set_speed(speed as f64);
+
+                let volume = 1.0 - self.switch_time.as_f32() / 5.0;
+                if volume < 0.0 {
+                    self.stop_music();
+                } else {
+                    music.set_volume(volume as f64);
+                }
+            }
+        }
+
         self.process_events(delta_time);
 
         // Update telegraphs
@@ -198,7 +212,10 @@ impl Model {
 
     pub fn lose(&mut self) {
         self.state = State::Lost;
-        self.stop_music();
+        // if let Some(music) = &mut self.music {
+        //     music.set_speed(0.5);
+        //     music.set_volume(1.2); // Compensate for lower speed being quiter
+        // }
         self.switch_time = Time::ZERO;
         self.get_leaderboard(false);
     }
