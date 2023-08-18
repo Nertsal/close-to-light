@@ -193,15 +193,23 @@ impl geng::State for MainMenu {
         let fading = self.play_button.hover_time.get_ratio().as_f32() > 0.5;
 
         if !fading {
-            self.util_render.draw_text(
-                "CLOSE TO LIGHT",
-                vec2(0.0, 3.5).as_r32(),
-                1.2,
-                vec2::splat(0.5),
-                crate::render::COLOR_LIGHT,
+            geng_utils::texture::draw_texture_fit_height(
+                &self.assets.title,
+                Aabb2::point(vec2(0.0, 3.5)).extend_symmetric(vec2(0.0, 1.2) / 2.0),
+                0.5,
                 &self.camera,
+                &self.geng,
                 &mut framebuffer,
             );
+            // self.util_render.draw_text(
+            //     "CLOSE TO LIGHT",
+            //     vec2(0.0, 3.5).as_r32(),
+            //     1.2,
+            //     vec2::splat(0.5),
+            //     crate::render::COLOR_LIGHT,
+            //     &self.camera,
+            //     &mut framebuffer,
+            // );
 
             self.util_render.draw_outline(
                 &self.player,

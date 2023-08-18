@@ -4,6 +4,8 @@ use geng::prelude::*;
 pub struct Assets {
     #[load(postprocess = "looping", ext = "mp3")]
     pub music: geng::Sound,
+    #[load(postprocess = "pixel")]
+    pub title: ugli::Texture,
 
     // Dither postprocess shader
     #[load(ext = "glsl")]
