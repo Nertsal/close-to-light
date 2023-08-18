@@ -751,13 +751,13 @@
       }
     },
     {
-      "beat": 297.0,
+      "beat": 295.0,
       "event": {
         "Light": {
           "light": {
             "position": [
-              0.0,
-              -2.5
+              -2.5,
+              -0.0
             ],
             "rotation": -810.0004,
             "shape": {
@@ -791,50 +791,6 @@
                 },
                 {
                   "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 16.0,
                   "transform": {
                     "translation": [
                       0.0,
@@ -1030,7 +986,7 @@
       }
     },
     {
-      "beat": 135.0,
+      "beat": 134.5,
       "event": {
         "Light": {
           "light": {
@@ -1058,7 +1014,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -1740,7 +1696,7 @@
       }
     },
     {
-      "beat": 126.0,
+      "beat": 125.5,
       "event": {
         "Light": {
           "light": {
@@ -1768,7 +1724,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -1991,7 +1947,7 @@
       }
     },
     {
-      "beat": 127.0,
+      "beat": 126.5,
       "event": {
         "Light": {
           "light": {
@@ -2019,7 +1975,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -3323,7 +3279,7 @@
       }
     },
     {
-      "beat": 62.0,
+      "beat": 61.5,
       "event": {
         "Light": {
           "light": {
@@ -3351,7 +3307,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -3394,7 +3350,7 @@
       }
     },
     {
-      "beat": 64.0,
+      "beat": 63.5,
       "event": {
         "Light": {
           "light": {
@@ -3422,7 +3378,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -3465,7 +3421,7 @@
       }
     },
     {
-      "beat": 66.0,
+      "beat": 65.5,
       "event": {
         "Light": {
           "light": {
@@ -3493,7 +3449,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -4758,7 +4714,7 @@
       }
     },
     {
-      "beat": 76.0,
+      "beat": 75.5,
       "event": {
         "Light": {
           "light": {
@@ -4786,7 +4742,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -4829,7 +4785,7 @@
       }
     },
     {
-      "beat": 74.0,
+      "beat": 73.5,
       "event": {
         "Light": {
           "light": {
@@ -4857,7 +4813,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -5102,7 +5058,7 @@
       }
     },
     {
-      "beat": 79.0,
+      "beat": 78.5,
       "event": {
         "Light": {
           "light": {
@@ -5130,7 +5086,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -5233,7 +5189,7 @@
       }
     },
     {
-      "beat": 83.0,
+      "beat": 82.5,
       "event": {
         "Light": {
           "light": {
@@ -5261,7 +5217,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -5293,7 +5249,7 @@
       }
     },
     {
-      "beat": 82.0,
+      "beat": 81.5,
       "event": {
         "Light": {
           "light": {
@@ -5321,7 +5277,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -5353,7 +5309,7 @@
       }
     },
     {
-      "beat": 81.0,
+      "beat": 80.5,
       "event": {
         "Light": {
           "light": {
@@ -5381,7 +5337,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -5768,7 +5724,7 @@
       }
     },
     {
-      "beat": 84.0,
+      "beat": 83.5,
       "event": {
         "Light": {
           "light": {
@@ -5796,7 +5752,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6079,7 +6035,7 @@
       }
     },
     {
-      "beat": 139.0,
+      "beat": 138.5,
       "event": {
         "Light": {
           "light": {
@@ -6107,7 +6063,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6150,7 +6106,7 @@
       }
     },
     {
-      "beat": 86.0,
+      "beat": 85.5,
       "event": {
         "Light": {
           "light": {
@@ -6178,7 +6134,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6210,7 +6166,7 @@
       }
     },
     {
-      "beat": 89.0,
+      "beat": 88.5,
       "event": {
         "Light": {
           "light": {
@@ -6238,7 +6194,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6401,7 +6357,7 @@
       }
     },
     {
-      "beat": 136.0,
+      "beat": 135.5,
       "event": {
         "Light": {
           "light": {
@@ -6429,7 +6385,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6783,7 +6739,7 @@
       }
     },
     {
-      "beat": 92.0,
+      "beat": 91.5,
       "event": {
         "Light": {
           "light": {
@@ -6811,7 +6767,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6854,7 +6810,7 @@
       }
     },
     {
-      "beat": 137.0,
+      "beat": 136.5,
       "event": {
         "Light": {
           "light": {
@@ -6882,7 +6838,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -6925,7 +6881,7 @@
       }
     },
     {
-      "beat": 89.0,
+      "beat": 88.5,
       "event": {
         "Light": {
           "light": {
@@ -6953,7 +6909,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7089,7 +7045,7 @@
       }
     },
     {
-      "beat": 137.0,
+      "beat": 136.5,
       "event": {
         "Light": {
           "light": {
@@ -7117,7 +7073,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7482,7 +7438,7 @@
       }
     },
     {
-      "beat": 96.0,
+      "beat": 95.5,
       "event": {
         "Light": {
           "light": {
@@ -7510,7 +7466,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7542,7 +7498,7 @@
       }
     },
     {
-      "beat": 97.0,
+      "beat": 96.5,
       "event": {
         "Light": {
           "light": {
@@ -7570,7 +7526,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7602,7 +7558,7 @@
       }
     },
     {
-      "beat": 100.0,
+      "beat": 99.5,
       "event": {
         "Light": {
           "light": {
@@ -7630,7 +7586,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7793,7 +7749,7 @@
       }
     },
     {
-      "beat": 99.0,
+      "beat": 98.5,
       "event": {
         "Light": {
           "light": {
@@ -7821,7 +7777,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7853,7 +7809,7 @@
       }
     },
     {
-      "beat": 98.0,
+      "beat": 97.5,
       "event": {
         "Light": {
           "light": {
@@ -7881,7 +7837,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7913,7 +7869,7 @@
       }
     },
     {
-      "beat": 95.0,
+      "beat": 94.5,
       "event": {
         "Light": {
           "light": {
@@ -7941,7 +7897,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -7973,7 +7929,7 @@
       }
     },
     {
-      "beat": 94.0,
+      "beat": 93.5,
       "event": {
         "Light": {
           "light": {
@@ -8001,7 +7957,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -8726,7 +8682,7 @@
       }
     },
     {
-      "beat": 107.0,
+      "beat": 106.5,
       "event": {
         "Light": {
           "light": {
@@ -8754,7 +8710,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -8808,7 +8764,7 @@
       }
     },
     {
-      "beat": 106.0,
+      "beat": 105.5,
       "event": {
         "Light": {
           "light": {
@@ -8836,7 +8792,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -8868,7 +8824,7 @@
       }
     },
     {
-      "beat": 105.0,
+      "beat": 104.5,
       "event": {
         "Light": {
           "light": {
@@ -8896,7 +8852,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -8928,7 +8884,7 @@
       }
     },
     {
-      "beat": 104.0,
+      "beat": 103.5,
       "event": {
         "Light": {
           "light": {
@@ -8956,7 +8912,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -8988,7 +8944,7 @@
       }
     },
     {
-      "beat": 101.0,
+      "beat": 100.5,
       "event": {
         "Light": {
           "light": {
@@ -9016,7 +8972,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9070,7 +9026,7 @@
       }
     },
     {
-      "beat": 115.0,
+      "beat": 114.5,
       "event": {
         "Light": {
           "light": {
@@ -9098,7 +9054,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9141,7 +9097,7 @@
       }
     },
     {
-      "beat": 117.0,
+      "beat": 116.5,
       "event": {
         "Light": {
           "light": {
@@ -9169,7 +9125,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9201,7 +9157,7 @@
       }
     },
     {
-      "beat": 114.0,
+      "beat": 113.5,
       "event": {
         "Light": {
           "light": {
@@ -9229,7 +9185,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9261,7 +9217,7 @@
       }
     },
     {
-      "beat": 113.0,
+      "beat": 112.5,
       "event": {
         "Light": {
           "light": {
@@ -9289,7 +9245,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9381,7 +9337,7 @@
       }
     },
     {
-      "beat": 111.0,
+      "beat": 110.5,
       "event": {
         "Light": {
           "light": {
@@ -9409,7 +9365,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9441,7 +9397,7 @@
       }
     },
     {
-      "beat": 121.0,
+      "beat": 120.5,
       "event": {
         "Light": {
           "light": {
@@ -9469,7 +9425,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9512,7 +9468,7 @@
       }
     },
     {
-      "beat": 119.0,
+      "beat": 118.5,
       "event": {
         "Light": {
           "light": {
@@ -9540,77 +9496,6 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 0.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 118.0,
-      "event": {
-        "Light": {
-          "light": {
-            "position": [
-              0.0,
-              -0.0
-            ],
-            "rotation": -540.00006,
-            "shape": {
-              "Line": {
-                "width": 1.7
-              }
-            },
-            "movement": {
-              "key_frames": [
-                {
-                  "lerp_time": 0.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 0.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
                   "lerp_time": 1.5,
                   "transform": {
                     "translation": [
@@ -9618,6 +9503,17 @@
                       0.0
                     ],
                     "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
                     "scale": 0.0
                   }
                 }
@@ -9632,15 +9528,15 @@
       }
     },
     {
-      "beat": 120.0,
+      "beat": 119.5,
       "event": {
         "Light": {
           "light": {
             "position": [
-              -2.5,
-              0.0
+              2.5,
+              -0.0
             ],
-            "rotation": -540.00006,
+            "rotation": 0.0,
             "shape": {
               "Circle": {
                 "radius": 1.3
@@ -9660,7 +9556,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -9692,7 +9588,111 @@
       }
     },
     {
-      "beat": 112.0,
+      "beat": 297.0,
+      "event": {
+        "Light": {
+          "light": {
+            "position": [
+              0.0,
+              -2.5
+            ],
+            "rotation": 0.0,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                },
+                {
+                  "lerp_time": 2.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 16.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 111.5,
       "event": {
         "Light": {
           "light": {
@@ -9720,7 +9720,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -10096,7 +10096,7 @@
       }
     },
     {
-      "beat": 123.0,
+      "beat": 122.5,
       "event": {
         "Light": {
           "light": {
@@ -10124,7 +10124,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -10227,7 +10227,7 @@
       }
     },
     {
-      "beat": 125.0,
+      "beat": 124.5,
       "event": {
         "Light": {
           "light": {
@@ -10255,7 +10255,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -10418,7 +10418,7 @@
       }
     },
     {
-      "beat": 136.0,
+      "beat": 135.5,
       "event": {
         "Light": {
           "light": {
@@ -10446,7 +10446,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -10478,7 +10478,7 @@
       }
     },
     {
-      "beat": 128.0,
+      "beat": 127.5,
       "event": {
         "Light": {
           "light": {
@@ -10506,7 +10506,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -10538,7 +10538,7 @@
       }
     },
     {
-      "beat": 129.0,
+      "beat": 128.5,
       "event": {
         "Light": {
           "light": {
@@ -10566,7 +10566,7 @@
                   }
                 },
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
@@ -11804,15 +11804,15 @@
       }
     },
     {
-      "beat": 295.0,
+      "beat": 117.5,
       "event": {
         "Light": {
           "light": {
             "position": [
               -2.5,
-              -0.0
+              0.0
             ],
-            "rotation": -810.0004,
+            "rotation": 0.0,
             "shape": {
               "Circle": {
                 "radius": 1.3
@@ -11832,7 +11832,7 @@
                   }
                 },
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.5,
                   "transform": {
                     "translation": [
                       0.0,
