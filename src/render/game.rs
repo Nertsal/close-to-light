@@ -73,7 +73,7 @@ impl GameRender {
                 self.util.draw_text(
                     format!("SCORE: {}", model.score.floor().as_f32() as u64),
                     vec2(2.5, 0.5).as_r32(),
-                    1.0,
+                    0.8,
                     vec2(0.0, 0.5),
                     COLOR_LIGHT,
                     camera,
@@ -82,7 +82,7 @@ impl GameRender {
                 self.util.draw_text(
                     format!("HIGH SCORE: {}", model.high_score.floor().as_f32() as u64),
                     vec2(2.5, -0.5).as_r32(),
-                    1.0,
+                    0.8,
                     vec2(0.0, 0.5),
                     COLOR_LIGHT,
                     camera,
@@ -130,11 +130,11 @@ impl GameRender {
         }
 
         // let t = R32::ONE - (model.player.fear_meter.get_ratio() / r32(0.5)).min(R32::ONE);
-        let t = if model.player.is_in_light() {
-            R32::ONE
-        } else {
-            R32::ZERO
-        };
+        let t = model
+            .player
+            .light_distance_normalized
+            .map(|d| (r32(1.0) - d + r32(0.5)).min(r32(1.0)))
+            .unwrap_or(R32::ZERO);
         self.render.dither(model.real_time, t);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
