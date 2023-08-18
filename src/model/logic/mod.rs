@@ -203,14 +203,8 @@ impl Model {
         self.get_leaderboard(false);
     }
 
-    pub fn get_leaderboard(&mut self, submit: bool) {
-        if let Some(secrets) = &self.secrets {
-            self.leaderboard = Some(Leaderboard::submit(
-                &self.player.name,
-                submit.then_some(self.score.as_f32()),
-                secrets,
-            ));
-        }
+    pub fn get_leaderboard(&mut self, submit_score: bool) {
+        self.transition = Some(Transition::LoadLeaderboard { submit_score });
     }
 
     fn random_light_telegraphed(&self) -> LightTelegraph {

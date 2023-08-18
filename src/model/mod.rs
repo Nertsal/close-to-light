@@ -56,7 +56,12 @@ pub enum State {
     Finished,
 }
 
+pub enum Transition {
+    LoadLeaderboard { submit_score: bool },
+}
+
 pub struct Model {
+    pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
     pub config: Config,
     pub secrets: Option<LeaderboardSecrets>,
@@ -100,7 +105,20 @@ impl Model {
         player_name: String,
         start_time: Time,
     ) -> Self {
-        let mut model = Self {
+        let mut model = Self::empty(assets, config, level);
+        model.secrets = leaderboard;
+        model.player.name = player_name;
+
+        model.init(start_time);
+        model
+            .music
+            .play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
+        model
+    }
+
+    pub fn empty(assets: &Rc<Assets>, config: Config, level: Level) -> Self {
+        Self {
+            transition: None,
             assets: assets.clone(),
             state: State::Playing,
             score: Score::ZERO,
@@ -116,7 +134,7 @@ impl Model {
             beat_timer: Time::ZERO,
             queued_events: Vec::new(),
             player: Player {
-                name: player_name,
+                name: "anonymous".to_string(),
                 target_position: vec2::ZERO,
                 shake: vec2::ZERO,
                 collider: Collider::new(
@@ -138,16 +156,11 @@ impl Model {
                 hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(3.0)),
             },
             config,
-            secrets: leaderboard,
+            secrets: None,
             leaderboard: None,
             level_clone: level.clone(),
             level,
             music: assets.music.effect(),
-        };
-        model.init(start_time);
-        model
-            .music
-            .play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
-        model
+        }
     }
 }

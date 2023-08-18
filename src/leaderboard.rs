@@ -8,8 +8,8 @@ pub struct Leaderboard {
 }
 
 impl Leaderboard {
-    pub fn submit(name: &str, score: Option<f32>, secrets: &LeaderboardSecrets) -> Self {
-        let (my_position, top10) = futures::executor::block_on(submit(name, score, secrets));
+    pub async fn submit(name: &str, score: Option<f32>, secrets: &LeaderboardSecrets) -> Self {
+        let (my_position, top10) = submit(name, score, secrets).await;
         Self { my_position, top10 }
     }
 }

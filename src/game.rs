@@ -3,9 +3,9 @@ use crate::{assets::Assets, model::*, render::GameRender, LeaderboardSecrets};
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
-#[allow(dead_code)]
 pub struct Game {
     geng: Geng,
+    assets: Rc<Assets>,
     transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
@@ -25,21 +25,79 @@ impl Game {
         player_name: String,
         start_time: Time,
     ) -> Self {
+        Self::preloaded(
+            geng,
+            assets,
+            Model::new(assets, rules, level, leaderboard, player_name, start_time),
+        )
+    }
+
+    fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
         Self {
             geng: geng.clone(),
+            assets: assets.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
-            model: Model::new(assets, rules, level, leaderboard, player_name, start_time),
+            model,
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
+        }
+    }
+
+    fn load_leaderboard(&mut self, submit_score: bool) -> Option<geng::state::Transition> {
+        if let Some(secrets) = &self.model.secrets {
+            log::info!("Querying the leaderboard");
+            let future = {
+                let geng = self.geng.clone();
+                let assets = self.assets.clone();
+                let secrets = secrets.clone();
+
+                // Transfer state to a new variable
+                let mut model = Model::empty(
+                    &self.assets,
+                    self.model.config.clone(),
+                    self.model.level.clone(),
+                );
+                std::mem::swap(&mut self.model, &mut model);
+
+                async move {
+                    model.leaderboard = Some(
+                        crate::leaderboard::Leaderboard::submit(
+                            &model.player.name,
+                            submit_score.then_some(model.score.as_f32()),
+                            &secrets,
+                        )
+                        .await,
+                    );
+                    Self::preloaded(&geng, &assets, model)
+                }
+            };
+            Some(geng::state::Transition::Switch(Box::new(
+                geng::LoadingScreen::new(
+                    &self.geng,
+                    geng::EmptyLoadingScreen::new(&self.geng),
+                    future,
+                ),
+            )))
+        } else {
+            None
         }
     }
 }
 
 impl geng::State for Game {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take()
+        self.transition.take().or_else(|| {
+            self.model
+                .transition
+                .take()
+                .and_then(|transition| match transition {
+                    Transition::LoadLeaderboard { submit_score } => {
+                        self.load_leaderboard(submit_score)
+                    }
+                })
+        })
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
