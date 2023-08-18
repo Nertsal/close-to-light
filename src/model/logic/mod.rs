@@ -91,15 +91,34 @@ impl Model {
 
         if let State::Playing = self.state {
             // Check if the player is in light
-            self.player.is_in_light = self
-                .lights
-                .iter()
-                .any(|light| self.player.collider.check(&light.collider));
-            if self.player.is_in_light {
+            let mut distance_normalized: Option<R32> = None;
+            for light in self.lights.iter() {
+                // let distance = (self.player.collider.position - light.collider.position).len();
+                let collider = &light.base_collider;
+                let delta_pos = self.player.collider.position - collider.position;
+                let distance = match collider.shape {
+                    Shape::Circle { radius } => delta_pos.len() / radius,
+                    Shape::Line { width } => {
+                        let dir = light.collider.rotation.unit_vec();
+                        let dir = vec2(-dir.y, dir.x); // perpendicular
+                        let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
+                        dot.abs() / (width / r32(2.0))
+                    }
+                    _ => todo!(),
+                };
+                distance_normalized = Some(distance.min(distance_normalized.unwrap_or(distance)));
+            }
+            self.player.light_distance_normalized = match distance_normalized {
+                Some(distance) if distance <= r32(1.0) => Some(distance),
+                _ => None,
+            };
+            if self.player.is_in_light() {
+                let distance = self.player.light_distance_normalized.unwrap();
+                let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                 self.player
                     .fear_meter
                     .change(-self.config.fear.restore_speed * delta_time);
-                self.score += delta_time * r32(10.0);
+                self.score += delta_time * score_multiplier * r32(100.0);
             } else {
                 self.player.fear_meter.change(delta_time);
             }

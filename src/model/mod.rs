@@ -38,7 +38,14 @@ pub struct Player {
     pub shake: vec2<Coord>,
     pub collider: Collider,
     pub fear_meter: Bounded<Time>,
-    pub is_in_light: bool,
+    // pub is_in_light: bool,
+    pub light_distance_normalized: Option<R32>,
+}
+
+impl Player {
+    pub fn is_in_light(&self) -> bool {
+        self.light_distance_normalized.is_some()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -106,7 +113,7 @@ impl Model {
                     },
                 ),
                 fear_meter: Bounded::new(r32(0.0), r32(0.0)..=r32(1.0)),
-                is_in_light: false,
+                light_distance_normalized: None,
             },
             telegraphs: vec![],
             lights: vec![],

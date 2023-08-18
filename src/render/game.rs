@@ -121,7 +121,7 @@ impl GameRender {
         }
 
         // let t = R32::ONE - (model.player.fear_meter.get_ratio() / r32(0.5)).min(R32::ONE);
-        let t = if model.player.is_in_light {
+        let t = if model.player.is_in_light() {
             R32::ONE
         } else {
             R32::ZERO
