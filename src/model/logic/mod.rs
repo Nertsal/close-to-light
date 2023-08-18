@@ -191,14 +191,14 @@ impl Model {
 
     pub fn finish(&mut self) {
         self.state = State::Finished;
-        self.music.stop();
+        self.stop_music();
         self.switch_time = Time::ZERO;
         self.get_leaderboard(true);
     }
 
     pub fn lose(&mut self) {
         self.state = State::Lost;
-        self.music.stop();
+        self.stop_music();
         self.switch_time = Time::ZERO;
         self.get_leaderboard(false);
     }

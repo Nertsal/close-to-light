@@ -69,7 +69,7 @@ pub struct Model {
     /// The level to use when restarting the game.
     pub level_clone: Level,
     pub level: Level,
-    pub music: geng::SoundEffect,
+    pub music: Option<geng::SoundEffect>,
     pub state: State,
     pub score: Score,
     pub high_score: Score,
@@ -92,7 +92,7 @@ pub struct Model {
 
 impl Drop for Model {
     fn drop(&mut self) {
-        self.music.stop();
+        self.stop_music();
     }
 }
 
@@ -110,9 +110,9 @@ impl Model {
         model.player.name = player_name;
 
         model.init(start_time);
-        model
-            .music
-            .play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
+        let mut music = model.assets.music.effect();
+        music.play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
+        model.music = Some(music);
         model
     }
 
@@ -160,7 +160,13 @@ impl Model {
             leaderboard: None,
             level_clone: level.clone(),
             level,
-            music: assets.music.effect(),
+            music: None,
+        }
+    }
+
+    fn stop_music(&mut self) {
+        if let Some(mut music) = self.music.take() {
+            music.stop();
         }
     }
 }
