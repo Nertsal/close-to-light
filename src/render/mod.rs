@@ -51,10 +51,14 @@ impl Render {
         &self.double_buffer.0
     }
 
-    pub fn start(&mut self) -> ugli::Framebuffer {
+    pub fn start(&mut self, clear_color: Rgba<f32>) -> ugli::Framebuffer {
+        let mut framebuffer =
+            geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
+        ugli::clear(&mut framebuffer, Some(clear_color), None, None);
+
         let mut framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli());
-        ugli::clear(&mut framebuffer, Some(Rgba::BLACK), None, None);
+        ugli::clear(&mut framebuffer, Some(clear_color), None, None);
         framebuffer
     }
 

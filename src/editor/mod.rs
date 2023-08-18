@@ -4,7 +4,11 @@ mod handle_event;
 
 pub use self::config::*;
 
-use crate::{assets::*, model::*, render::UtilRender};
+use crate::{
+    assets::*,
+    model::*,
+    render::{Render, UtilRender},
+};
 
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
@@ -30,8 +34,8 @@ pub struct Editor {
     assets: Rc<Assets>,
     transition: Option<geng::state::Transition>,
     config: EditorConfig,
+    render: Render,
     util_render: UtilRender,
-    pixel_texture: ugli::Texture,
     ui_texture: ugli::Texture,
     framebuffer_size: vec2<usize>,
     cursor_pos: vec2<f64>,
@@ -74,9 +78,6 @@ impl Editor {
         game_config: Config,
         level: Level,
     ) -> Self {
-        let mut pixel_texture =
-            geng_utils::texture::new_texture(geng.ugli(), vec2(360 * 16 / 9, 360));
-        pixel_texture.set_filter(ugli::Filter::Nearest);
         let mut ui_texture =
             geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
         ui_texture.set_filter(ugli::Filter::Nearest);
@@ -84,8 +85,8 @@ impl Editor {
         let model = Model::empty(&assets, game_config, level.clone());
         Self {
             transition: None,
+            render: Render::new(&geng, &assets),
             util_render: UtilRender::new(&geng, &assets),
-            pixel_texture,
             ui_texture,
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
@@ -234,7 +235,7 @@ impl geng::State for Editor {
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
-            self.pixel_texture.size().as_f32(),
+            self.render.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
             vec2(0.5, 0.5),
         );

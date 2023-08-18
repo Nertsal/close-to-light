@@ -118,80 +118,11 @@ impl Editor {
         ugli::clear(screen_buffer, Some(crate::render::COLOR_DARK), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
 
-        // World UI
-        let mut ui_buffer =
-            geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
-
-        // Grid
-        if self.show_grid {
-            let grid_size = self.grid_size.as_f32();
-            let view = vec2(
-                self.model.camera.fov * ui_buffer.size().as_f32().aspect(),
-                self.model.camera.fov,
-            )
-            .map(|x| (x / 2.0 / grid_size).ceil() as i64);
-            let thick = self.config.grid.thick_every as i64;
-            for x in -view.x..=view.x {
-                // Vertical
-                let width = if thick > 0 && x % thick == 0 {
-                    0.05
-                } else {
-                    0.01
-                };
-                let x = x as f32;
-                let y = view.y as f32;
-                self.geng.draw2d().draw2d(
-                    &mut ui_buffer,
-                    &self.model.camera,
-                    &draw2d::Segment::new(
-                        Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
-                        width,
-                        Rgba::<f32>::WHITE.map_rgb(|x| x * 0.5),
-                    ),
-                );
-            }
-            for y in -view.y..=view.y {
-                // Horizontal
-                let width = if thick > 0 && y % thick == 0 {
-                    0.05
-                } else {
-                    0.01
-                };
-                let y = y as f32;
-                let x = view.x as f32;
-                self.geng.draw2d().draw2d(
-                    &mut ui_buffer,
-                    &self.model.camera,
-                    &draw2d::Segment::new(
-                        Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
-                        width,
-                        Rgba::<f32>::WHITE.map_rgb(|x| x * 0.5),
-                    ),
-                );
-            }
-        }
-
-        geng_utils::texture::draw_texture_fit(
-            &self.ui_texture,
-            screen_aabb,
-            vec2(0.5, 0.5),
-            &geng::PixelPerfectCamera,
-            &self.geng,
-            screen_buffer,
-        );
-
         // Level
-        let mut pixel_buffer =
-            geng_utils::texture::attach_texture(&mut self.pixel_texture, self.geng.ugli());
-        ugli::clear(&mut pixel_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+        let mut pixel_buffer = self.render.start(crate::render::COLOR_DARK);
 
-        for (tele, transparency, hover) in &self.rendered_telegraphs {
-            let color = if *hover {
-                Rgba::CYAN
-            } else {
-                crate::render::COLOR_LIGHT
-            };
+        let color = crate::render::COLOR_LIGHT;
+        for (tele, transparency, _) in &self.rendered_telegraphs {
             self.util_render.draw_outline(
                 &tele.light.collider,
                 0.02,
@@ -200,12 +131,7 @@ impl Editor {
                 &mut pixel_buffer,
             );
         }
-        for (light, transparency, hover) in &self.rendered_lights {
-            let color = if *hover {
-                Rgba::CYAN
-            } else {
-                crate::render::COLOR_LIGHT
-            };
+        for (light, transparency, _) in &self.rendered_lights {
             self.util_render.draw_collider(
                 &light.collider,
                 crate::util::with_alpha(color, *transparency),
@@ -232,8 +158,105 @@ impl Editor {
             }
         }
 
+        let mut pixel_buffer = self.render.dither(self.time, R32::ZERO);
+
+        // Hover
+        let hover_color = Rgba::CYAN;
+        for (tele, _, hover) in &self.rendered_telegraphs {
+            if !*hover {
+                continue;
+            }
+            self.util_render.draw_outline(
+                &tele.light.collider,
+                0.02,
+                hover_color,
+                &self.model.camera,
+                &mut pixel_buffer,
+            );
+        }
+        for (light, _, hover) in &self.rendered_lights {
+            if !*hover {
+                continue;
+            }
+            self.util_render.draw_collider(
+                &light.collider,
+                hover_color,
+                &self.model.camera,
+                &mut pixel_buffer,
+            );
+        }
+
         geng_utils::texture::draw_texture_fit(
-            &self.pixel_texture,
+            self.render.get_buffer(),
+            screen_aabb,
+            vec2(0.5, 0.5),
+            &geng::PixelPerfectCamera,
+            &self.geng,
+            screen_buffer,
+        );
+
+        // World UI
+        let mut ui_buffer =
+            geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+
+        // Grid
+        if self.show_grid {
+            let color = Rgba {
+                r: 0.7,
+                g: 0.7,
+                b: 0.7,
+                a: 0.7,
+            };
+            let grid_size = self.grid_size.as_f32();
+            let view = vec2(
+                self.model.camera.fov * ui_buffer.size().as_f32().aspect(),
+                self.model.camera.fov,
+            )
+            .map(|x| (x / 2.0 / grid_size).ceil() as i64);
+            let thick = self.config.grid.thick_every as i64;
+            for x in -view.x..=view.x {
+                // Vertical
+                let width = if thick > 0 && x % thick == 0 {
+                    0.05
+                } else {
+                    0.01
+                };
+                let x = x as f32;
+                let y = view.y as f32;
+                self.geng.draw2d().draw2d(
+                    &mut ui_buffer,
+                    &self.model.camera,
+                    &draw2d::Segment::new(
+                        Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
+                        width,
+                        color,
+                    ),
+                );
+            }
+            for y in -view.y..=view.y {
+                // Horizontal
+                let width = if thick > 0 && y % thick == 0 {
+                    0.05
+                } else {
+                    0.01
+                };
+                let y = y as f32;
+                let x = view.x as f32;
+                self.geng.draw2d().draw2d(
+                    &mut ui_buffer,
+                    &self.model.camera,
+                    &draw2d::Segment::new(
+                        Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
+                        width,
+                        color,
+                    ),
+                );
+            }
+        }
+
+        geng_utils::texture::draw_texture_fit(
+            &self.ui_texture,
             screen_aabb,
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,

@@ -23,7 +23,7 @@ impl GameRender {
     }
 
     pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
-        let mut framebuffer = self.render.start();
+        let mut framebuffer = self.render.start(COLOR_DARK);
 
         let camera = &model.camera;
 

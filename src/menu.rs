@@ -184,7 +184,7 @@ impl geng::State for MainMenu {
         self.framebuffer_size = screen_buffer.size();
         ugli::clear(screen_buffer, Some(crate::render::COLOR_DARK), None, None);
 
-        let mut framebuffer = self.render.start();
+        let mut framebuffer = self.render.start(crate::render::COLOR_DARK);
 
         let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
         self.util_render
