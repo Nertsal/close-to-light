@@ -19,6 +19,7 @@ pub struct Collider {
     pub shape: Shape,
 }
 
+#[allow(dead_code)]
 impl Collider {
     pub fn new(position: vec2<Coord>, shape: Shape) -> Self {
         Self {
