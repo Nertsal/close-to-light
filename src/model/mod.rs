@@ -64,6 +64,7 @@ pub struct Model {
     pub music: geng::SoundEffect,
     pub state: State,
     pub score: Score,
+    pub high_score: Score,
     /// Can be negative when initializing (because of simulating negative time).
     pub current_beat: isize,
     pub camera: Camera2d,
@@ -93,6 +94,7 @@ impl Model {
             assets: assets.clone(),
             state: State::Playing,
             score: Score::ZERO,
+            high_score: Score::ZERO, // TODO: load
             current_beat: 0,
             camera: Camera2d {
                 center: vec2::ZERO,
