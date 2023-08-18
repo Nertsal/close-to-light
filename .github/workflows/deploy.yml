@@ -46,20 +46,20 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: web
 
-  # deploy-itch:
-  #   name: Deploy Itch
-  #   if: github.ref == 'refs/heads/main' && github.repository_owner == 'nertsal'
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - build-web
-  #   steps:
-  #     - name: Download artifacts
-  #       uses: actions/download-artifact@v3
-  #     - name: Upload itch.io (Web)
-  #       uses: josephbmanley/butler-publish-itchio-action@master
-  #       env:
-  #         BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-  #         CHANNEL: html5
-  #         ITCH_GAME: close-to-light
-  #         ITCH_USER: nertsal
-  #         PACKAGE: web
+  deploy-itch:
+    name: Deploy Itch
+    if: github.ref == 'refs/heads/main' && github.repository_owner == 'nertsal'
+    runs-on: ubuntu-latest
+    needs:
+      - build-web
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+      - name: Upload itch.io (Web)
+        uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+          CHANNEL: html5
+          ITCH_GAME: close-to-light
+          ITCH_USER: nertsal
+          PACKAGE: web
