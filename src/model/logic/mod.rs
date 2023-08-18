@@ -94,9 +94,8 @@ impl Model {
             let mut distance_normalized: Option<R32> = None;
             for light in self.lights.iter() {
                 // let distance = (self.player.collider.position - light.collider.position).len();
-                let collider = &light.base_collider;
-                let delta_pos = self.player.collider.position - collider.position;
-                let distance = match collider.shape {
+                let delta_pos = self.player.collider.position - light.collider.position;
+                let distance = match light.base_collider.shape {
                     Shape::Circle { radius } => delta_pos.len() / radius,
                     Shape::Line { width } => {
                         let dir = light.collider.rotation.unit_vec();
