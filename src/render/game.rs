@@ -87,17 +87,16 @@ impl GameRender {
                     let mut pos = vec2(4.0, 2.5);
                     draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
                     pos.y -= 0.8;
-                    draw_text(
-                        &format!(
-                            "SCORE: {:.0} - {} PLACE",
-                            model.score,
-                            leaderboard.my_position + 1
-                        ),
-                        pos,
-                        0.7,
-                        vec2(0.5, 1.0),
-                    );
-                    pos.y -= 0.7;
+                    {
+                        let mut text = format!("SCORE: {:.0}", model.score,);
+                        if let Some(place) = leaderboard.my_position {
+                            text += &format!(" - {} PLACE", place + 1);
+                        } else {
+                            text += " - FINISH TO COMPETE";
+                        }
+                        draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
+                        pos.y -= 0.7;
+                    }
                     for score in &leaderboard.top10 {
                         let font_size = 0.6;
                         draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));

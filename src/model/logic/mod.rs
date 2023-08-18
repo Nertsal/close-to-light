@@ -193,24 +193,24 @@ impl Model {
         self.state = State::Finished;
         self.music.stop();
         self.switch_time = Time::ZERO;
-
-        if let Some(secrets) = &self.secrets {
-            // Check name
-            if self.player.name.trim().is_empty() {
-                return;
-            }
-            self.leaderboard = Some(Leaderboard::submit(
-                &self.player.name,
-                self.score.as_f32(),
-                secrets,
-            ));
-        }
+        self.get_leaderboard(true);
     }
 
     pub fn lose(&mut self) {
         self.state = State::Lost;
         self.music.stop();
         self.switch_time = Time::ZERO;
+        self.get_leaderboard(false);
+    }
+
+    pub fn get_leaderboard(&mut self, submit: bool) {
+        if let Some(secrets) = &self.secrets {
+            self.leaderboard = Some(Leaderboard::submit(
+                &self.player.name,
+                submit.then_some(self.score.as_f32()),
+                secrets,
+            ));
+        }
     }
 
     fn random_light_telegraphed(&self) -> LightTelegraph {

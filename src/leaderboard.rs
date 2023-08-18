@@ -3,12 +3,12 @@ use crate::LeaderboardSecrets;
 use geng::prelude::*;
 
 pub struct Leaderboard {
-    pub my_position: usize,
+    pub my_position: Option<usize>,
     pub top10: Vec<jornet::Score>,
 }
 
 impl Leaderboard {
-    pub fn submit(name: &str, score: f32, secrets: &LeaderboardSecrets) -> Self {
+    pub fn submit(name: &str, score: Option<f32>, secrets: &LeaderboardSecrets) -> Self {
         let (my_position, top10) = futures::executor::block_on(submit(name, score, secrets));
         Self { my_position, top10 }
     }
@@ -16,9 +16,9 @@ impl Leaderboard {
 
 pub async fn submit(
     name: &str,
-    score: f32,
+    score: Option<f32>,
     secrets: &LeaderboardSecrets,
-) -> (usize, Vec<jornet::Score>) {
+) -> (Option<usize>, Vec<jornet::Score>) {
     let mut leaderboard = jornet::Leaderboard::with_host_and_leaderboard(
         None,
         secrets.id.parse().unwrap(),
@@ -45,10 +45,12 @@ pub async fn submit(
 
     // let meta = serde_json::to_string(&diff).unwrap();
     let meta = "v0".to_string();
-    leaderboard
-        .send_score_with_meta(score, &meta)
-        .await
-        .unwrap();
+    if let Some(score) = score {
+        leaderboard
+            .send_score_with_meta(score, &meta)
+            .await
+            .unwrap();
+    }
 
     let mut scores = leaderboard.get_leaderboard().await.unwrap();
     scores.retain(|score| score.meta.as_deref() == Some(meta.as_str()));
@@ -62,7 +64,7 @@ pub async fn submit(
             if !names_seen.contains(&scores[i].player) {
                 names_seen.insert(scores[i].player.clone());
                 i += 1;
-            } else if scores[i].score == score {
+            } else if Some(scores[i].score) == score {
                 i += 1;
             } else {
                 scores.remove(i);
@@ -70,7 +72,7 @@ pub async fn submit(
         }
     }
 
-    let my_pos = scores.iter().position(|this| this.score == score).unwrap();
+    let my_pos = score.map(|score| scores.iter().position(|this| this.score == score).unwrap());
 
     {
         // Only leave unique names
