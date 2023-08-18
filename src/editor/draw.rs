@@ -140,21 +140,23 @@ impl Editor {
             );
         }
 
-        // Current action
-        if !matches!(self.state, State::Playing { .. }) {
-            if let Some(&selected_shape) = self.model.config.shapes.get(self.selected_shape) {
-                let collider = Collider {
-                    position: self.cursor_world_pos,
-                    rotation: self.place_rotation,
-                    shape: selected_shape,
-                };
-                self.util_render.draw_outline(
-                    &collider,
-                    0.05,
-                    crate::render::COLOR_LIGHT,
-                    &self.model.camera,
-                    &mut pixel_buffer,
-                );
+        if !self.hide_ui {
+            // Current action
+            if !matches!(self.state, State::Playing { .. }) {
+                if let Some(&selected_shape) = self.model.config.shapes.get(self.selected_shape) {
+                    let collider = Collider {
+                        position: self.cursor_world_pos,
+                        rotation: self.place_rotation,
+                        shape: selected_shape,
+                    };
+                    self.util_render.draw_outline(
+                        &collider,
+                        0.05,
+                        crate::render::COLOR_LIGHT,
+                        &self.model.camera,
+                        &mut pixel_buffer,
+                    );
+                }
             }
         }
 
@@ -195,117 +197,161 @@ impl Editor {
             screen_buffer,
         );
 
-        // World UI
-        let mut ui_buffer =
-            geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+        if !self.hide_ui {
+            // World UI
+            let mut ui_buffer =
+                geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+            ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
 
-        // Grid
-        if self.show_grid {
-            let color = Rgba {
-                r: 0.7,
-                g: 0.7,
-                b: 0.7,
-                a: 0.7,
-            };
-            let grid_size = self.grid_size.as_f32();
-            let view = vec2(
-                self.model.camera.fov * ui_buffer.size().as_f32().aspect(),
-                self.model.camera.fov,
-            )
-            .map(|x| (x / 2.0 / grid_size).ceil() as i64);
-            let thick = self.config.grid.thick_every as i64;
-            for x in -view.x..=view.x {
-                // Vertical
-                let width = if thick > 0 && x % thick == 0 {
-                    0.05
-                } else {
-                    0.01
+            // Grid
+            if self.show_grid {
+                let color = Rgba {
+                    r: 0.7,
+                    g: 0.7,
+                    b: 0.7,
+                    a: 0.7,
                 };
-                let x = x as f32;
-                let y = view.y as f32;
-                self.geng.draw2d().draw2d(
-                    &mut ui_buffer,
-                    &self.model.camera,
-                    &draw2d::Segment::new(
-                        Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
-                        width,
-                        color,
-                    ),
-                );
-            }
-            for y in -view.y..=view.y {
-                // Horizontal
-                let width = if thick > 0 && y % thick == 0 {
-                    0.05
-                } else {
-                    0.01
-                };
-                let y = y as f32;
-                let x = view.x as f32;
-                self.geng.draw2d().draw2d(
-                    &mut ui_buffer,
-                    &self.model.camera,
-                    &draw2d::Segment::new(
-                        Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
-                        width,
-                        color,
-                    ),
-                );
-            }
-        }
-
-        geng_utils::texture::draw_texture_fit(
-            &self.ui_texture,
-            screen_aabb,
-            vec2(0.5, 0.5),
-            &geng::PixelPerfectCamera,
-            &self.geng,
-            screen_buffer,
-        );
-
-        // UI
-        let framebuffer_size = screen_buffer.size().as_f32();
-        let camera = &geng::PixelPerfectCamera;
-        let screen = Aabb2::ZERO.extend_positive(framebuffer_size);
-        let font_size = framebuffer_size.y * 0.05;
-        let font = self.geng.default_font();
-        let text_color = crate::render::COLOR_LIGHT;
-        // let outline_color = crate::render::COLOR_DARK;
-        // let outline_size = 0.05;
-
-        // Current beat / Fade in/out
-        let mut text = format!("Beat: {:.2}", self.current_beat);
-        if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
-            if let Some(event) = self
-                .hovered_light
-                .and_then(|light| self.level.events.get_mut(light))
-            {
-                let Event::Light(light) = &mut event.event;
-                if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-                    if let Some(frame) = light.light.movement.key_frames.back_mut() {
-                        text = format!("Fade out time: {}", frame.lerp_time);
-                    }
-                } else if let Some(frame) = light.light.movement.key_frames.get(1) {
-                    text = format!("Fade in time: {}", frame.lerp_time);
+                let grid_size = self.grid_size.as_f32();
+                let view = vec2(
+                    self.model.camera.fov * ui_buffer.size().as_f32().aspect(),
+                    self.model.camera.fov,
+                )
+                .map(|x| (x / 2.0 / grid_size).ceil() as i64);
+                let thick = self.config.grid.thick_every as i64;
+                for x in -view.x..=view.x {
+                    // Vertical
+                    let width = if thick > 0 && x % thick == 0 {
+                        0.05
+                    } else {
+                        0.01
+                    };
+                    let x = x as f32;
+                    let y = view.y as f32;
+                    self.geng.draw2d().draw2d(
+                        &mut ui_buffer,
+                        &self.model.camera,
+                        &draw2d::Segment::new(
+                            Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
+                            width,
+                            color,
+                        ),
+                    );
+                }
+                for y in -view.y..=view.y {
+                    // Horizontal
+                    let width = if thick > 0 && y % thick == 0 {
+                        0.05
+                    } else {
+                        0.01
+                    };
+                    let y = y as f32;
+                    let x = view.x as f32;
+                    self.geng.draw2d().draw2d(
+                        &mut ui_buffer,
+                        &self.model.camera,
+                        &draw2d::Segment::new(
+                            Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
+                            width,
+                            color,
+                        ),
+                    );
                 }
             }
-        }
-        font.draw(
-            screen_buffer,
-            camera,
-            &text,
-            vec2::splat(geng::TextAlign(0.5)),
-            mat3::translate(
-                geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
-            ) * mat3::scale_uniform(font_size)
-                * mat3::translate(vec2(0.0, -0.5)),
-            text_color,
-        );
 
-        if self.model.level != self.level {
-            // Save indicator
-            let text = "Ctrl+S to save the level";
+            geng_utils::texture::draw_texture_fit(
+                &self.ui_texture,
+                screen_aabb,
+                vec2(0.5, 0.5),
+                &geng::PixelPerfectCamera,
+                &self.geng,
+                screen_buffer,
+            );
+        }
+
+        if !self.hide_ui {
+            // UI
+            let framebuffer_size = screen_buffer.size().as_f32();
+            let camera = &geng::PixelPerfectCamera;
+            let screen = Aabb2::ZERO.extend_positive(framebuffer_size);
+            let font_size = framebuffer_size.y * 0.05;
+            let font = self.geng.default_font();
+            let text_color = crate::render::COLOR_LIGHT;
+            // let outline_color = crate::render::COLOR_DARK;
+            // let outline_size = 0.05;
+
+            // Current beat / Fade in/out
+            let mut text = format!("Beat: {:.2}", self.current_beat);
+            if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+                if let Some(event) = self
+                    .hovered_light
+                    .and_then(|light| self.level.events.get_mut(light))
+                {
+                    let Event::Light(light) = &mut event.event;
+                    if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                        if let Some(frame) = light.light.movement.key_frames.back_mut() {
+                            text = format!("Fade out time: {}", frame.lerp_time);
+                        }
+                    } else if let Some(frame) = light.light.movement.key_frames.get(1) {
+                        text = format!("Fade in time: {}", frame.lerp_time);
+                    }
+                }
+            }
+            font.draw(
+                screen_buffer,
+                camera,
+                &text,
+                vec2::splat(geng::TextAlign(0.5)),
+                mat3::translate(
+                    geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
+                ) * mat3::scale_uniform(font_size)
+                    * mat3::translate(vec2(0.0, -0.5)),
+                text_color,
+            );
+
+            if self.model.level != self.level {
+                // Save indicator
+                let text = "Ctrl+S to save the level";
+                font.draw(
+                    screen_buffer,
+                    camera,
+                    text,
+                    vec2::splat(geng::TextAlign::RIGHT),
+                    mat3::translate(
+                        geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0))
+                            + vec2(-1.0, -1.0) * font_size,
+                    ) * mat3::scale_uniform(font_size * 0.5),
+                    text_color,
+                );
+            }
+
+            // Undo/redo stack
+            let text = match &self.state {
+                State::Playing { .. } => "".to_string(),
+                State::Movement {
+                    light, redo_stack, ..
+                } => format!(
+                    "New light stack\nUndo: {}\nRedo: {}\n",
+                    light.light.movement.key_frames.len() - 2,
+                    redo_stack.len()
+                ),
+                State::Place => "Level stack not implemented KEKW".to_string(),
+            };
+            font.draw(
+                screen_buffer,
+                camera,
+                &text,
+                vec2(geng::TextAlign::LEFT, geng::TextAlign::CENTER),
+                mat3::translate(
+                    geng_utils::layout::aabb_pos(screen, vec2(0.0, 0.5))
+                        + vec2(1.0, 1.0) * font_size,
+                ) * mat3::scale_uniform(font_size * 0.5)
+                    * mat3::translate(vec2(0.0, -0.5)),
+                text_color,
+            );
+
+            // Help
+            let text =
+            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate\n` (backtick) to toggle grid snap\nCtrl+` to toggle grid visibility";
             font.draw(
                 screen_buffer,
                 camera,
@@ -317,68 +363,31 @@ impl Editor {
                 ) * mat3::scale_uniform(font_size * 0.5),
                 text_color,
             );
-        }
 
-        // Undo/redo stack
-        let text = match &self.state {
-            State::Playing { .. } => "".to_string(),
-            State::Movement {
-                light, redo_stack, ..
-            } => format!(
-                "New light stack\nUndo: {}\nRedo: {}\n",
-                light.light.movement.key_frames.len() - 2,
-                redo_stack.len()
-            ),
-            State::Place => "Level stack not implemented KEKW".to_string(),
-        };
-        font.draw(
-            screen_buffer,
-            camera,
-            &text,
-            vec2(geng::TextAlign::LEFT, geng::TextAlign::CENTER),
-            mat3::translate(
-                geng_utils::layout::aabb_pos(screen, vec2(0.0, 0.5)) + vec2(1.0, 1.0) * font_size,
-            ) * mat3::scale_uniform(font_size * 0.5)
-                * mat3::translate(vec2(0.0, -0.5)),
-            text_color,
-        );
-
-        // Help
-        let text =
-            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate\n` (backtick) to toggle grid snap\nCtrl+` to toggle grid visibility";
-        font.draw(
-            screen_buffer,
-            camera,
-            text,
-            vec2::splat(geng::TextAlign::RIGHT),
-            mat3::translate(
-                geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0)) + vec2(-1.0, -1.0) * font_size,
-            ) * mat3::scale_uniform(font_size * 0.5),
-            text_color,
-        );
-
-        // Status
-        let text = if self.hovered_light.is_some() {
-            "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
-        } else {
-            match &self.state {
+            // Status
+            let text = if self.hovered_light.is_some() {
+                "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
+            } else {
+                match &self.state {
                 State::Place => "Click to create a new light\n1/2 to select different types",
                 State::Movement { .. } => {
                     "Left click to create a new waypoint\nRight click to finish\nEscape to cancel"
                 }
                 State::Playing { .. } => "Playing the music...\nSpace to stop",
             }
-        };
-        font.draw(
-            screen_buffer,
-            camera,
-            text,
-            vec2(geng::TextAlign::CENTER, geng::TextAlign::BOTTOM),
-            mat3::translate(
-                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.5 * font_size),
-            ) * mat3::scale_uniform(font_size)
-                * mat3::translate(vec2(0.0, 1.0)),
-            text_color,
-        );
+            };
+            font.draw(
+                screen_buffer,
+                camera,
+                text,
+                vec2(geng::TextAlign::CENTER, geng::TextAlign::BOTTOM),
+                mat3::translate(
+                    geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0))
+                        + vec2(0.0, 1.5 * font_size),
+                ) * mat3::scale_uniform(font_size)
+                    * mat3::translate(vec2(0.0, 1.0)),
+                text_color,
+            );
+        }
     }
 }

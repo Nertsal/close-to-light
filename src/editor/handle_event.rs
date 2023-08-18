@@ -40,6 +40,7 @@ impl Editor {
                         self.undo();
                     }
                 }
+                geng::Key::H => self.hide_ui = !self.hide_ui,
                 geng::Key::Backquote => {
                     if ctrl {
                         self.show_grid = !self.show_grid;

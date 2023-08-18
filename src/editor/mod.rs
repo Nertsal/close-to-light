@@ -68,6 +68,7 @@ pub struct Editor {
     grid_size: Coord,
     show_grid: bool,
     snap_to_grid: bool,
+    hide_ui: bool,
 }
 
 impl Editor {
@@ -107,6 +108,7 @@ impl Editor {
             grid_size: Coord::new(model.camera.fov) / config.grid.height,
             show_grid: true,
             snap_to_grid: true,
+            hide_ui: false,
             model,
             geng,
             assets,
