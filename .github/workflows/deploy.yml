@@ -25,6 +25,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
       - run: cargo geng build --release --target wasm32-unknown-unknown
+        env:
+          LEADERBOARD_ID: ${{ secrets.LEADERBOARD_ID }}
+          LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v2
         with:
