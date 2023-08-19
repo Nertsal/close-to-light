@@ -25,6 +25,10 @@ impl Model {
             self.player.fear_meter.set_ratio(Time::ZERO);
             self.update(vec2::ZERO, delta_time);
         }
+        self.state = State::Starting {
+            start_timer: r32(1.0),
+            music_start_time: target_time,
+        };
         log::info!("Replay finished");
     }
 
@@ -41,10 +45,13 @@ impl Model {
             * delta_time;
         self.player.shake = self.player.shake.clamp_len(..=r32(0.2));
 
-        self.beat_timer -= delta_time;
-        while self.beat_timer < Time::ZERO {
-            self.beat_timer += self.level.beat_time();
-            self.next_beat();
+        if let State::Starting { .. } = self.state {
+        } else {
+            self.beat_timer -= delta_time;
+            while self.beat_timer < Time::ZERO {
+                self.beat_timer += self.level.beat_time();
+                self.next_beat();
+            }
         }
 
         self.real_time += delta_time;
@@ -64,93 +71,111 @@ impl Model {
             }
         }
 
-        self.process_events(delta_time);
+        if let State::Starting { .. } = self.state {
+        } else {
+            self.process_events(delta_time);
 
-        // Update telegraphs
-        for tele in &mut self.telegraphs {
-            tele.lifetime += delta_time;
-            if tele.spawn_timer > Time::ZERO {
-                tele.spawn_timer -= delta_time;
-                if tele.spawn_timer <= Time::ZERO {
-                    self.lights.push(tele.light.clone());
-                    continue;
-                }
-            }
-
-            let t = tele.lifetime * tele.speed;
-            let transform = if t > tele.light.movement.duration() {
-                Transform {
-                    scale: Coord::ZERO,
-                    ..default()
-                }
-            } else {
-                tele.light.movement.get(t)
-            };
-            tele.light.collider = tele.light.base_collider.transformed(transform);
-        }
-        self.telegraphs.retain(|tele| {
-            tele.spawn_timer > Time::ZERO
-                || tele.lifetime * tele.speed < tele.light.movement.duration()
-        });
-
-        // Update lights
-        for light in &mut self.lights {
-            light.lifetime += delta_time;
-
-            let transform = light.movement.get(light.lifetime);
-            light.collider = light.base_collider.transformed(transform);
-        }
-        self.lights
-            .retain(|light| light.lifetime < light.movement.duration());
-
-        if let State::Playing = self.state {
-            // Check if the player is in light
-            let mut distance_normalized: Option<R32> = None;
-            for light in self.lights.iter() {
-                // let distance = (self.player.collider.position - light.collider.position).len();
-                let delta_pos = self.player.collider.position - light.collider.position;
-                let distance = match light.base_collider.shape {
-                    Shape::Circle { radius } => delta_pos.len() / radius,
-                    Shape::Line { width } => {
-                        let dir = light.collider.rotation.unit_vec();
-                        let dir = vec2(-dir.y, dir.x); // perpendicular
-                        let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
-                        dot.abs() / (width / r32(2.0))
+            // Update telegraphs
+            for tele in &mut self.telegraphs {
+                tele.lifetime += delta_time;
+                if tele.spawn_timer > Time::ZERO {
+                    tele.spawn_timer -= delta_time;
+                    if tele.spawn_timer <= Time::ZERO {
+                        self.lights.push(tele.light.clone());
+                        continue;
                     }
-                    _ => todo!(),
-                };
-                distance_normalized = Some(distance.min(distance_normalized.unwrap_or(distance)));
-            }
-            self.player.light_distance_normalized = match distance_normalized {
-                Some(distance) if distance <= r32(1.0) => Some(distance),
-                _ => None,
-            };
-            if self.player.is_in_light() {
-                let distance = self.player.light_distance_normalized.unwrap();
-                let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
-                self.player
-                    .fear_meter
-                    .change(-self.config.fear.restore_speed * delta_time);
-                self.score += delta_time * score_multiplier * r32(100.0);
-            } else {
-                self.player.fear_meter.change(delta_time);
-            }
+                }
 
-            if self.player.fear_meter.is_max() {
-                self.lose();
-            }
-        } else if self.switch_time > Time::ONE {
-            // 1 second before the UI is active
-            self.restart_button.hover_time.change(
-                if self.restart_button.collider.check(&self.player.collider) {
-                    delta_time
+                let t = tele.lifetime * tele.speed;
+                let transform = if t > tele.light.movement.duration() {
+                    Transform {
+                        scale: Coord::ZERO,
+                        ..default()
+                    }
                 } else {
-                    -delta_time
-                },
-            );
-            if self.restart_button.hover_time.is_max() {
-                self.restart();
+                    tele.light.movement.get(t)
+                };
+                tele.light.collider = tele.light.base_collider.transformed(transform);
             }
+            self.telegraphs.retain(|tele| {
+                tele.spawn_timer > Time::ZERO
+                    || tele.lifetime * tele.speed < tele.light.movement.duration()
+            });
+
+            // Update lights
+            for light in &mut self.lights {
+                light.lifetime += delta_time;
+
+                let transform = light.movement.get(light.lifetime);
+                light.collider = light.base_collider.transformed(transform);
+            }
+            self.lights
+                .retain(|light| light.lifetime < light.movement.duration());
+        }
+
+        // Check if the player is in light
+        let mut distance_normalized: Option<R32> = None;
+        for light in self.lights.iter() {
+            // let distance = (self.player.collider.position - light.collider.position).len();
+            let delta_pos = self.player.collider.position - light.collider.position;
+            let distance = match light.base_collider.shape {
+                Shape::Circle { radius } => delta_pos.len() / radius,
+                Shape::Line { width } => {
+                    let dir = light.collider.rotation.unit_vec();
+                    let dir = vec2(-dir.y, dir.x); // perpendicular
+                    let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
+                    dot.abs() / (width / r32(2.0))
+                }
+                _ => todo!(),
+            };
+            distance_normalized = Some(distance.min(distance_normalized.unwrap_or(distance)));
+        }
+        self.player.light_distance_normalized = match distance_normalized {
+            Some(distance) if distance <= r32(1.0) => Some(distance),
+            _ => None,
+        };
+
+        match &mut self.state {
+            State::Starting {
+                start_timer,
+                music_start_time,
+            } => {
+                let music_start_time = *music_start_time;
+                *start_timer -= delta_time;
+                if *start_timer <= Time::ZERO && self.player.is_in_light() {
+                    self.start(music_start_time);
+                }
+            }
+            State::Playing => {
+                if self.player.is_in_light() {
+                    let distance = self.player.light_distance_normalized.unwrap();
+                    let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
+                    self.player
+                        .fear_meter
+                        .change(-self.config.fear.restore_speed * delta_time);
+                    self.score += delta_time * score_multiplier * r32(100.0);
+                } else {
+                    self.player.fear_meter.change(delta_time);
+                }
+
+                if self.player.fear_meter.is_max() {
+                    self.lose();
+                }
+            }
+            _ if self.switch_time > Time::ONE => {
+                // 1 second before the UI is active
+                self.restart_button.hover_time.change(
+                    if self.restart_button.collider.check(&self.player.collider) {
+                        delta_time
+                    } else {
+                        -delta_time
+                    },
+                );
+                if self.restart_button.hover_time.is_max() {
+                    self.restart();
+                }
+            }
+            _ => (),
         }
     }
 
@@ -201,6 +226,16 @@ impl Model {
                 }
             }
         }
+    }
+
+    pub fn start(&mut self, music_start_time: Time) {
+        self.state = State::Playing;
+        self.stop_music();
+        let mut music = self.assets.music.effect();
+        music.play_from(time::Duration::from_secs_f64(
+            music_start_time.as_f32() as f64
+        ));
+        self.music = Some(music);
     }
 
     pub fn finish(&mut self) {

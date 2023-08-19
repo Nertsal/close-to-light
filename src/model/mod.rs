@@ -51,6 +51,13 @@ impl Player {
 
 #[derive(Debug, Clone)]
 pub enum State {
+    /// Wait for the player to hover the light and some additional time.
+    Starting {
+        /// Time until we can start the game.
+        start_timer: Time,
+        /// Time to start playing music from.
+        music_start_time: Time,
+    },
     Playing,
     Lost,
     Finished,
@@ -116,9 +123,6 @@ impl Model {
         model.player.name = player_name;
 
         model.init(start_time);
-        let mut music = model.assets.music.effect();
-        music.play_from(time::Duration::from_secs_f64(start_time.as_f32() as f64));
-        model.music = Some(music);
         model
     }
 
@@ -126,7 +130,10 @@ impl Model {
         Self {
             transition: None,
             assets: assets.clone(),
-            state: State::Playing,
+            state: State::Starting {
+                start_timer: Time::ZERO, // reset during init
+                music_start_time: Time::ZERO,
+            },
             score: Score::ZERO,
             high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
             current_beat: 0,

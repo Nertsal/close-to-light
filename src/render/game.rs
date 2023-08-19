@@ -148,7 +148,7 @@ impl GameRender {
 
         if !fading {
             match model.state {
-                State::Playing => {}
+                State::Starting { .. } | State::Playing => {}
                 State::Lost => {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
