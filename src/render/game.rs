@@ -81,20 +81,20 @@ impl GameRender {
                 );
             };
 
-            draw_text(
-                &format!("SCORE: {:.0}", model.score),
-                vec2(-3.0, -3.0),
-                0.7,
-                vec2(0.5, 1.0),
-            );
-            draw_text(
-                &format!("HIGHSCORE: {:.0}", model.high_score),
-                vec2(-3.0, -4.0),
-                0.7,
-                vec2(0.5, 1.0),
-            );
-
             if !fading {
+                draw_text(
+                    &format!("SCORE: {:.0}", model.score),
+                    vec2(-3.0, -3.0),
+                    0.7,
+                    vec2(0.5, 1.0),
+                );
+                draw_text(
+                    &format!("HIGHSCORE: {:.0}", model.high_score),
+                    vec2(-3.0, -4.0),
+                    0.7,
+                    vec2(0.5, 1.0),
+                );
+
                 // Leaderboard
                 match &model.leaderboard {
                     LeaderboardState::None => {
