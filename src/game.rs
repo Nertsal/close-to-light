@@ -51,6 +51,7 @@ impl Game {
         if let Some(secrets) = &self.model.secrets {
             self.model.leaderboard = LeaderboardState::Pending;
             let player_name = self.model.player.name.clone();
+            let submit_score = submit_score && !player_name.trim().is_empty();
             let score = submit_score.then_some(self.model.score.as_f32());
             let secrets = secrets.clone();
             self.leaderboard_future = Some(

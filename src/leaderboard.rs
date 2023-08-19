@@ -46,7 +46,9 @@ impl Leaderboard {
         }
 
         let mut scores = leaderboard.get_leaderboard().await.unwrap();
-        scores.retain(|score| score.meta.as_deref() == Some(meta.as_str()));
+        scores.retain(|score| {
+            !score.player.is_empty() && score.meta.as_deref() == Some(meta.as_str())
+        });
         scores.sort_by_key(|score| -r32(score.score));
 
         {

@@ -114,8 +114,12 @@ impl GameRender {
                         {
                             let text = if let Some(place) = leaderboard.my_position {
                                 format!("{} PLACE", place + 1)
-                            } else {
+                            } else if let State::Lost = model.state {
                                 "FINISH TO COMPETE".to_string()
+                            } else if model.player.name.trim().is_empty() {
+                                "CANNOT SUBMIT WITHOUT A NAME".to_string()
+                            } else {
+                                "".to_string()
                             };
                             draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
                             pos.y -= 0.7;
