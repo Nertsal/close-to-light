@@ -60,12 +60,18 @@ pub enum Transition {
     LoadLeaderboard { submit_score: bool },
 }
 
+pub enum LeaderboardState {
+    None,
+    Pending,
+    Ready(Leaderboard),
+}
+
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
     pub config: Config,
     pub secrets: Option<LeaderboardSecrets>,
-    pub leaderboard: Option<Leaderboard>,
+    pub leaderboard: LeaderboardState,
     /// The level to use when restarting the game.
     pub level_clone: Level,
     pub level: Level,
@@ -157,7 +163,7 @@ impl Model {
             },
             config,
             secrets: None,
-            leaderboard: None,
+            leaderboard: LeaderboardState::None,
             level_clone: level.clone(),
             level,
             music: None,

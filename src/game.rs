@@ -1,11 +1,13 @@
-use crate::{assets::Assets, model::*, render::GameRender, LeaderboardSecrets};
+use crate::{
+    assets::Assets, leaderboard::Leaderboard, model::*, render::GameRender, LeaderboardSecrets,
+};
 
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
 pub struct Game {
     geng: Geng,
-    assets: Rc<Assets>,
+    leaderboard_future: Option<Pin<Box<dyn Future<Output = Leaderboard>>>>,
     transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
@@ -35,7 +37,7 @@ impl Game {
     fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
+            leaderboard_future: None,
             transition: None,
             render: GameRender::new(geng, assets),
             model,
@@ -45,59 +47,21 @@ impl Game {
         }
     }
 
-    fn load_leaderboard(&mut self, submit_score: bool) -> Option<geng::state::Transition> {
+    fn load_leaderboard(&mut self, submit_score: bool) {
         if let Some(secrets) = &self.model.secrets {
-            log::info!("Querying the leaderboard");
-            let future = {
-                let geng = self.geng.clone();
-                let assets = self.assets.clone();
+            self.leaderboard_future = Some({
+                let player_name = self.model.player.name.clone();
+                let score = submit_score.then_some(self.model.score.as_f32());
                 let secrets = secrets.clone();
-
-                // Transfer state to a new variable
-                let mut model = Model::empty(
-                    &self.assets,
-                    self.model.config.clone(),
-                    self.model.level.clone(),
-                );
-                std::mem::swap(&mut self.model, &mut model);
-
-                async move {
-                    model.leaderboard = Some(
-                        crate::leaderboard::Leaderboard::submit(
-                            &model.player.name,
-                            submit_score.then_some(model.score.as_f32()),
-                            &secrets,
-                        )
-                        .await,
-                    );
-                    Self::preloaded(&geng, &assets, model)
-                }
-            };
-            Some(geng::state::Transition::Switch(Box::new(
-                geng::LoadingScreen::new(
-                    &self.geng,
-                    geng::EmptyLoadingScreen::new(&self.geng),
-                    future,
-                ),
-            )))
-        } else {
-            None
+                crate::leaderboard::Leaderboard::submit(player_name, score, secrets).boxed_local()
+            });
         }
     }
 }
 
 impl geng::State for Game {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take().or_else(|| {
-            self.model
-                .transition
-                .take()
-                .and_then(|transition| match transition {
-                    Transition::LoadLeaderboard { submit_score } => {
-                        self.load_leaderboard(submit_score)
-                    }
-                })
-        })
+        self.transition.take()
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
@@ -133,6 +97,18 @@ impl geng::State for Game {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as _);
 
+        if let Some(future) = &mut self.leaderboard_future {
+            // Poll leaderboard
+            // FIXME: completes after a single poll (and takes a long time)
+            if let std::task::Poll::Ready(leaderboard) = future.as_mut().poll(
+                &mut std::task::Context::from_waker(futures::task::noop_waker_ref()),
+            ) {
+                self.leaderboard_future = None;
+                log::info!("Loaded leaderboard");
+                self.model.leaderboard = LeaderboardState::Ready(leaderboard);
+            }
+        }
+
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
             self.render.get_render_size().as_f32(),
@@ -146,5 +122,14 @@ impl geng::State for Game {
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
         self.model.update(target_pos, delta_time);
+
+        if let Some(transition) = self.model.transition.take() {
+            match transition {
+                Transition::LoadLeaderboard { submit_score } => {
+                    self.model.leaderboard = LeaderboardState::Pending;
+                    self.load_leaderboard(submit_score);
+                }
+            }
+        }
     }
 }

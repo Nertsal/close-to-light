@@ -70,63 +70,67 @@ impl GameRender {
             );
 
             if !fading {
-                // Leaderboard
-                if let Some(leaderboard) = &model.leaderboard {
-                    let mut draw_text =
-                        |text: &str, position: vec2<f32>, size: f32, align: vec2<f32>| {
-                            self.util.draw_text(
-                                text,
-                                position.as_r32(),
-                                size,
-                                align,
-                                COLOR_LIGHT,
-                                camera,
-                                &mut framebuffer,
-                            );
-                        };
-                    let mut pos = vec2(4.0, 2.5);
-                    draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
-                    pos.y -= 0.8;
-                    {
-                        let mut text = format!("SCORE: {:.0}", model.score,);
-                        if let Some(place) = leaderboard.my_position {
-                            text += &format!(" - {} PLACE", place + 1);
-                        } else {
-                            text += " - FINISH TO COMPETE";
-                        }
-                        draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
-                        pos.y -= 0.7;
-                    }
-                    for score in &leaderboard.top10 {
-                        let font_size = 0.6;
-                        draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));
-                        draw_text(
-                            &format!(" - {:.0}", score.score),
-                            pos,
-                            font_size,
-                            vec2(0.0, 1.0),
+                let mut draw_text =
+                    |text: &str, position: vec2<f32>, size: f32, align: vec2<f32>| {
+                        self.util.draw_text(
+                            text,
+                            position.as_r32(),
+                            size,
+                            align,
+                            COLOR_LIGHT,
+                            camera,
+                            &mut framebuffer,
                         );
-                        pos.y -= font_size;
+                    };
+
+                // Leaderboard
+                match &model.leaderboard {
+                    LeaderboardState::None => {
+                        draw_text(
+                            &format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                            vec2(2.5, 0.5),
+                            0.8,
+                            vec2(0.0, 0.5),
+                        );
+                        draw_text(
+                            &format!("HIGH SCORE: {}", model.high_score.floor().as_f32() as u64),
+                            vec2(2.5, -0.5),
+                            0.8,
+                            vec2(0.0, 0.5),
+                        );
                     }
-                } else {
-                    self.util.draw_text(
-                        format!("SCORE: {}", model.score.floor().as_f32() as u64),
-                        vec2(2.5, 0.5).as_r32(),
-                        0.8,
-                        vec2(0.0, 0.5),
-                        COLOR_LIGHT,
-                        camera,
-                        &mut framebuffer,
-                    );
-                    self.util.draw_text(
-                        format!("HIGH SCORE: {}", model.high_score.floor().as_f32() as u64),
-                        vec2(2.5, -0.5).as_r32(),
-                        0.8,
-                        vec2(0.0, 0.5),
-                        COLOR_LIGHT,
-                        camera,
-                        &mut framebuffer,
-                    );
+                    LeaderboardState::Pending => {
+                        let mut pos = vec2(4.0, 2.5);
+                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
+                        pos.y -= 0.8;
+                        draw_text("LOADING...", pos, 0.7, vec2(0.5, 1.0));
+                    }
+                    LeaderboardState::Ready(leaderboard) => {
+                        let mut pos = vec2(4.0, 2.5);
+                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
+                        pos.y -= 0.8;
+                        {
+                            let mut text = format!("SCORE: {:.0}", model.score,);
+                            if let Some(place) = leaderboard.my_position {
+                                text += &format!(" - {} PLACE", place + 1);
+                            } else {
+                                text += " - FINISH TO COMPETE";
+                            }
+                            draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
+                            pos.y -= 0.7;
+                        }
+                        for score in &leaderboard.top10 {
+                            let font_size = 0.6;
+                            draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));
+                            draw_text(
+                                &format!(" - {:.0}", score.score),
+                                pos,
+                                font_size,
+                                vec2(0.0, 1.0),
+                            );
+                            pos.y -= font_size;
+                        }
+                    }
                 }
             }
         } else {
