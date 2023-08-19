@@ -70,7 +70,7 @@ jobs:
           toolchain: stable
           profile: minimal
       - name: Install cargo-geng
-        run: cargo install cargo-geng --git https://github.com/kuviman/geng
+        run: cargo install cargo-geng --git https://github.com/kuviman/geng --force
       - name: Build
         uses: actions-rs/cargo@v1
         with:
