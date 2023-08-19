@@ -49,12 +49,13 @@ impl Game {
 
     fn load_leaderboard(&mut self, submit_score: bool) {
         if let Some(secrets) = &self.model.secrets {
-            self.leaderboard_future = Some({
-                let player_name = self.model.player.name.clone();
-                let score = submit_score.then_some(self.model.score.as_f32());
-                let secrets = secrets.clone();
-                crate::leaderboard::Leaderboard::submit(player_name, score, secrets).boxed_local()
-            });
+            self.model.leaderboard = LeaderboardState::Pending;
+            let player_name = self.model.player.name.clone();
+            let score = submit_score.then_some(self.model.score.as_f32());
+            let secrets = secrets.clone();
+            self.leaderboard_future = Some(
+                crate::leaderboard::Leaderboard::submit(player_name, score, secrets).boxed_local(),
+            );
         }
     }
 }
@@ -126,7 +127,6 @@ impl geng::State for Game {
         if let Some(transition) = self.model.transition.take() {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
-                    self.model.leaderboard = LeaderboardState::Pending;
                     self.load_leaderboard(submit_score);
                 }
             }

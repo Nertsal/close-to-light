@@ -69,35 +69,37 @@ impl GameRender {
                 &mut framebuffer,
             );
 
-            if !fading {
-                let mut draw_text =
-                    |text: &str, position: vec2<f32>, size: f32, align: vec2<f32>| {
-                        self.util.draw_text(
-                            text,
-                            position.as_r32(),
-                            size,
-                            align,
-                            COLOR_LIGHT,
-                            camera,
-                            &mut framebuffer,
-                        );
-                    };
+            let mut draw_text = |text: &str, position: vec2<f32>, size: f32, align: vec2<f32>| {
+                self.util.draw_text(
+                    text,
+                    position.as_r32(),
+                    size,
+                    align,
+                    COLOR_LIGHT,
+                    camera,
+                    &mut framebuffer,
+                );
+            };
 
+            draw_text(
+                &format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                vec2(-3.0, -3.0),
+                0.7,
+                vec2(0.5, 1.0),
+            );
+            draw_text(
+                &format!("HIGHSCORE: {}", model.high_score.floor().as_f32() as u64),
+                vec2(-3.0, -4.0),
+                0.7,
+                vec2(0.5, 1.0),
+            );
+
+            if !fading {
                 // Leaderboard
                 match &model.leaderboard {
                     LeaderboardState::None => {
-                        draw_text(
-                            &format!("SCORE: {}", model.score.floor().as_f32() as u64),
-                            vec2(2.5, 0.5),
-                            0.8,
-                            vec2(0.0, 0.5),
-                        );
-                        draw_text(
-                            &format!("HIGH SCORE: {}", model.high_score.floor().as_f32() as u64),
-                            vec2(2.5, -0.5),
-                            0.8,
-                            vec2(0.0, 0.5),
-                        );
+                        draw_text("LEADERBOARD", vec2(4.0, 0.5), 0.8, vec2(0.5, 0.5));
+                        draw_text("NOT AVAILABLE", vec2(4.0, -0.5), 0.8, vec2(0.5, 0.5));
                     }
                     LeaderboardState::Pending => {
                         let mut pos = vec2(4.0, 2.5);
@@ -110,12 +112,11 @@ impl GameRender {
                         draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
                         pos.y -= 0.8;
                         {
-                            let mut text = format!("SCORE: {:.0}", model.score,);
-                            if let Some(place) = leaderboard.my_position {
-                                text += &format!(" - {} PLACE", place + 1);
+                            let text = if let Some(place) = leaderboard.my_position {
+                                format!("{} PLACE", place + 1)
                             } else {
-                                text += " - FINISH TO COMPETE";
-                            }
+                                "FINISH TO COMPETE".to_string()
+                            };
                             draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
                             pos.y -= 0.7;
                         }
