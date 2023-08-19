@@ -161,8 +161,12 @@ impl geng::State for MainMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
-            geng::Event::EditText(new_name) => {
-                self.name = new_name;
+            geng::Event::EditText(text) => {
+                self.name = text;
+                self.name = self.name.to_lowercase();
+                // self.name.retain(|c| self.assets.font.can_render(c));
+                self.name = self.name.chars().take(10).collect();
+                self.geng.window().start_text_edit(&self.name);
             }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
