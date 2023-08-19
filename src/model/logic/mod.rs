@@ -179,21 +179,6 @@ impl Model {
         }
     }
 
-    fn restart(&mut self) {
-        log::info!("Restarting...");
-        let high_score = self.high_score.max(self.score);
-        preferences::save("highscore", &high_score);
-        *self = Self::new(
-            &self.assets,
-            self.config.clone(),
-            self.level_clone.clone(),
-            self.secrets.clone(),
-            self.player.name.clone(),
-            Time::ZERO,
-        );
-        self.high_score = high_score;
-    }
-
     fn next_beat(&mut self) {
         self.current_beat += 1;
 
@@ -228,6 +213,24 @@ impl Model {
         }
     }
 
+    pub fn save_highscore(&self) {
+        let high_score = self.high_score.max(self.score);
+        preferences::save("highscore", &high_score);
+    }
+
+    fn restart(&mut self) {
+        log::info!("Restarting...");
+        self.save_highscore();
+        *self = Self::new(
+            &self.assets,
+            self.config.clone(),
+            self.level_clone.clone(),
+            self.secrets.clone(),
+            self.player.name.clone(),
+            Time::ZERO,
+        );
+    }
+
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
         self.stop_music();
@@ -239,6 +242,7 @@ impl Model {
     }
 
     pub fn finish(&mut self) {
+        self.save_highscore();
         self.state = State::Finished;
         self.stop_music();
         self.switch_time = Time::ZERO;
@@ -246,6 +250,7 @@ impl Model {
     }
 
     pub fn lose(&mut self) {
+        self.save_highscore();
         self.state = State::Lost;
         // if let Some(music) = &mut self.music {
         //     music.set_speed(0.5);

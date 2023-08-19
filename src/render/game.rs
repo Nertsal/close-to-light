@@ -82,13 +82,13 @@ impl GameRender {
             };
 
             draw_text(
-                &format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                &format!("SCORE: {:.0}", model.score),
                 vec2(-3.0, -3.0),
                 0.7,
                 vec2(0.5, 1.0),
             );
             draw_text(
-                &format!("HIGHSCORE: {}", model.high_score.floor().as_f32() as u64),
+                &format!("HIGHSCORE: {:.0}", model.high_score),
                 vec2(-3.0, -4.0),
                 0.7,
                 vec2(0.5, 1.0),
@@ -136,7 +136,7 @@ impl GameRender {
             }
         } else {
             self.util.draw_text(
-                format!("SCORE: {}", model.score.floor().as_f32() as u64),
+                format!("SCORE: {:.0}", model.score),
                 vec2(0.0, 4.5).as_r32(),
                 0.7,
                 vec2::splat(0.5),
