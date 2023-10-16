@@ -2,9 +2,10 @@ Config(
     player: PlayerConfig(
         radius: 0.5
     ),
-    fear: FearConfig(
-        restore_speed: 0.5,
-        shake: 5.0,
+    health: HealthConfig(
+        max: 1.5,
+        decrease_rate: 1.0,
+        restore_rate: 0.5,
     ),
     shapes: [
         Circle( radius: 1.3 ),

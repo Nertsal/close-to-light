@@ -31,7 +31,7 @@ pub struct Player {
     pub target_position: vec2<Coord>,
     pub shake: vec2<Coord>,
     pub collider: Collider,
-    pub fear_meter: Bounded<Time>,
+    pub health: Bounded<Time>,
     // pub is_in_light: bool,
     pub light_distance_normalized: Option<R32>,
 }
@@ -75,16 +75,18 @@ pub struct Model {
     pub config: Config,
     pub secrets: Option<LeaderboardSecrets>,
     pub leaderboard: LeaderboardState,
-    /// The level being played. Immutable.
-    pub level: Level,
-    /// Current state of the level.
-    pub level_state: LevelState,
     pub music: Option<geng::SoundEffect>,
-    pub state: State,
-    pub score: Score,
+
     pub high_score: Score,
     pub camera: Camera2d,
     pub player: Player,
+
+    /// The level being played. Not changed.
+    pub level: Level,
+    /// Current state of the level.
+    pub level_state: LevelState,
+    pub state: State,
+    pub score: Score,
 
     pub real_time: Time,
     /// Time since the last state change.
@@ -147,7 +149,7 @@ impl Model {
                         radius: r32(config.player.radius),
                     },
                 ),
-                fear_meter: Bounded::new(r32(0.0), r32(0.0)..=r32(1.0)),
+                health: Bounded::new_max(config.health.max),
                 light_distance_normalized: None,
             },
             restart_button: HoverButton {

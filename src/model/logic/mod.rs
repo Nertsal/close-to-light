@@ -5,7 +5,7 @@ impl Model {
     pub fn init(&mut self, target_time: Time) {
         log::info!("Starting at the requested time {:.2}...", target_time);
         self.beat_time = target_time / self.level.beat_time();
-        self.player.fear_meter.set_ratio(Time::ZERO);
+        self.player.health.set_ratio(Time::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
             music_start_time: target_time,
@@ -13,17 +13,9 @@ impl Model {
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
-        let mut rng = thread_rng();
-
         self.player.target_position = player_target;
         // Move
         self.player.collider.position = self.player.target_position;
-        // Shake
-        self.player.shake += Angle::from_degrees(r32(rng.gen_range(0.0..=360.0))).unit_vec()
-            * self.config.fear.shake
-            * self.player.fear_meter.get_ratio()
-            * delta_time;
-        self.player.shake = self.player.shake.clamp_len(..=r32(0.2));
 
         if let State::Starting { .. } = self.state {
         } else {
@@ -100,14 +92,16 @@ impl Model {
                         let distance = self.player.light_distance_normalized.unwrap();
                         let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                         self.player
-                            .fear_meter
-                            .change(-self.config.fear.restore_speed * delta_time);
+                            .health
+                            .change(self.config.health.restore_rate * delta_time);
                         self.score += delta_time * score_multiplier * r32(100.0);
                     } else {
-                        self.player.fear_meter.change(delta_time);
+                        self.player
+                            .health
+                            .change(-delta_time * self.config.health.decrease_rate);
                     }
 
-                    if self.player.fear_meter.is_max() {
+                    if self.player.health.is_min() {
                         self.lose();
                     }
                 }
