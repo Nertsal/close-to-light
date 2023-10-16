@@ -4,7 +4,6 @@ impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
         log::info!("Starting at the requested time {:.2}...", target_time);
-        let target_time = r32(100.0);
         self.beat_time = target_time / self.level.beat_time();
         self.player.fear_meter.set_ratio(Time::ZERO);
         self.state = State::Starting {
