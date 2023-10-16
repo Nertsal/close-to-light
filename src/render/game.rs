@@ -28,7 +28,7 @@ impl GameRender {
         let camera = &model.camera;
 
         // Telegraphs
-        for tele in &model.telegraphs {
+        for tele in &model.level_state.telegraphs {
             self.util.draw_outline(
                 &tele.light.collider,
                 0.05,
@@ -39,7 +39,7 @@ impl GameRender {
         }
 
         // Lights
-        for light in &model.lights {
+        for light in &model.level_state.lights {
             self.util
                 .draw_collider(&light.collider, COLOR_LIGHT, camera, &mut framebuffer);
         }

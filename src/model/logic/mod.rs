@@ -1,5 +1,3 @@
-mod event;
-
 use super::*;
 
 impl Model {
@@ -71,51 +69,15 @@ impl Model {
             }
         }
 
-        if let State::Starting { .. } = self.state {
-        } else {
-            self.process_events(delta_time);
-
-            // Update telegraphs
-            for tele in &mut self.telegraphs {
-                tele.lifetime += delta_time;
-                if tele.spawn_timer > Time::ZERO {
-                    tele.spawn_timer -= delta_time;
-                    if tele.spawn_timer <= Time::ZERO {
-                        self.lights.push(tele.light.clone());
-                        continue;
-                    }
-                }
-
-                let t = tele.lifetime * tele.speed;
-                let transform = if t > tele.light.movement.duration() {
-                    Transform {
-                        scale: Coord::ZERO,
-                        ..default()
-                    }
-                } else {
-                    tele.light.movement.get(t)
-                };
-                tele.light.collider = tele.light.base_collider.transformed(transform);
-            }
-            self.telegraphs.retain(|tele| {
-                tele.spawn_timer > Time::ZERO
-                    || tele.lifetime * tele.speed < tele.light.movement.duration()
-            });
-
-            // Update lights
-            for light in &mut self.lights {
-                light.lifetime += delta_time;
-
-                let transform = light.movement.get(light.lifetime);
-                light.collider = light.base_collider.transformed(transform);
-            }
-            self.lights
-                .retain(|light| light.lifetime < light.movement.duration());
-        }
+        // Update level state
+        self.level_state = LevelState::render(
+            &self.level,
+            r32(self.current_beat as f32 + 1.0) - self.beat_timer / self.level.beat_time(),
+        );
 
         // Check if the player is in light
         let mut distance_normalized: Option<R32> = None;
-        for light in self.lights.iter() {
+        for light in self.level_state.lights.iter() {
             // let distance = (self.player.collider.position - light.collider.position).len();
             let delta_pos = self.player.collider.position - light.collider.position;
             let distance = match light.base_collider.shape {
@@ -184,30 +146,13 @@ impl Model {
 
         if let State::Playing = self.state {
             if self.level.events.is_empty() {
-                if self.level.rng_end {
-                    // No more events - start rng
-                    let telegraph = self.random_light_telegraphed();
-                    self.telegraphs.push(telegraph);
-                } else if self.queued_events.is_empty()
-                    && self.lights.is_empty()
-                    && self.telegraphs.is_empty()
-                {
+                // if self.level.rng_end {
+                //     // No more events - start rng
+                //     let telegraph = self.random_light_telegraphed();
+                //     self.telegraphs.push(telegraph);
+                // } else
+                if self.level_state.lights.is_empty() && self.level_state.telegraphs.is_empty() {
                     self.finish();
-                }
-            } else {
-                // Get the next events
-                let mut to_remove = Vec::new();
-                for (i, event) in self.level.events.iter().enumerate().rev() {
-                    if event.beat.floor().as_f32() as isize == self.current_beat {
-                        to_remove.push(i);
-                    }
-                }
-                for i in to_remove {
-                    let event = self.level.events.swap_remove(i);
-                    self.queued_events.push(QueuedEvent {
-                        delay: event.beat.fract() * self.level.beat_time(),
-                        event: event.event,
-                    });
                 }
             }
         }
@@ -224,7 +169,7 @@ impl Model {
         *self = Self::new(
             &self.assets,
             self.config.clone(),
-            self.level_clone.clone(),
+            self.level.clone(),
             self.secrets.clone(),
             self.player.name.clone(),
             Time::ZERO,

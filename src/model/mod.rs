@@ -25,13 +25,6 @@ pub struct HoverButton {
     pub hover_time: Lifetime,
 }
 
-#[derive(Debug)]
-pub struct QueuedEvent {
-    /// Delay until the event should happen (in seconds).
-    pub delay: Time,
-    pub event: Event,
-}
-
 #[derive(Debug, Clone)]
 pub struct Player {
     pub name: String,
@@ -79,9 +72,10 @@ pub struct Model {
     pub config: Config,
     pub secrets: Option<LeaderboardSecrets>,
     pub leaderboard: LeaderboardState,
-    /// The level to use when restarting the game.
-    pub level_clone: Level,
+    /// The level being played. Immutable.
     pub level: Level,
+    /// Current state of the level.
+    pub level_state: LevelState,
     pub music: Option<geng::SoundEffect>,
     pub state: State,
     pub score: Score,
@@ -94,10 +88,7 @@ pub struct Model {
     pub switch_time: Time,
     /// The time until the next music beat.
     pub beat_timer: Time,
-    pub queued_events: Vec<QueuedEvent>,
     pub player: Player,
-    pub telegraphs: Vec<LightTelegraph>,
-    pub lights: Vec<Light>,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -145,7 +136,6 @@ impl Model {
             real_time: Time::ZERO,
             switch_time: Time::ZERO,
             beat_timer: Time::ZERO,
-            queued_events: Vec::new(),
             player: Player {
                 name: "anonymous".to_string(),
                 target_position: vec2::ZERO,
@@ -159,8 +149,6 @@ impl Model {
                 fear_meter: Bounded::new(r32(0.0), r32(0.0)..=r32(1.0)),
                 light_distance_normalized: None,
             },
-            telegraphs: vec![],
-            lights: vec![],
             restart_button: HoverButton {
                 collider: Collider::new(
                     vec2(-3.0, 0.0).as_r32(),
@@ -171,7 +159,7 @@ impl Model {
             config,
             secrets: None,
             leaderboard: LeaderboardState::None,
-            level_clone: level.clone(),
+            level_state: LevelState::default(),
             level,
             music: None,
         }
