@@ -28,7 +28,7 @@ impl GameRender {
         let camera = &model.camera;
 
         // Telegraphs
-        for tele in &model.telegraphs {
+        for tele in &model.level_state.telegraphs {
             self.util.draw_outline(
                 &tele.light.collider,
                 0.05,
@@ -39,7 +39,7 @@ impl GameRender {
         }
 
         // Lights
-        for light in &model.lights {
+        for light in &model.level_state.lights {
             self.util
                 .draw_collider(&light.collider, COLOR_LIGHT, camera, &mut framebuffer);
         }
@@ -54,7 +54,7 @@ impl GameRender {
 
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
 
-        if let State::Lost | State::Finished = model.state {
+        if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
             self.util
                 .draw_button(&button, "RESTART", camera, &mut framebuffer);
@@ -114,7 +114,7 @@ impl GameRender {
                         {
                             let text = if let Some(place) = leaderboard.my_position {
                                 format!("{} PLACE", place + 1)
-                            } else if let State::Lost = model.state {
+                            } else if let State::Lost { .. } = model.state {
                                 "FINISH TO COMPETE".to_string()
                             } else if model.player.name.trim().is_empty() {
                                 "CANNOT SUBMIT WITHOUT A NAME".to_string()
@@ -153,7 +153,7 @@ impl GameRender {
         if !fading {
             match model.state {
                 State::Starting { .. } | State::Playing => {}
-                State::Lost => {
+                State::Lost { .. } => {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
@@ -178,7 +178,7 @@ impl GameRender {
             }
         }
 
-        // let t = R32::ONE - (model.player.fear_meter.get_ratio() / r32(0.5)).min(R32::ONE);
+        // let t = R32::ONE - (model.player.health.get_ratio() / r32(0.5)).min(R32::ONE);
         let t = if let State::Playing = model.state {
             model
                 .player
@@ -208,8 +208,8 @@ impl GameRender {
         let font_size = screen.height() * 0.05;
 
         if let State::Playing = model.state {
-            // Fear meter
-            let fear = Aabb2::point(
+            // Health
+            let health = Aabb2::point(
                 geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
             )
             .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
@@ -217,18 +217,18 @@ impl GameRender {
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw2d::Quad::new(fear.extend_uniform(font_size * 0.1), COLOR_LIGHT),
+                &draw2d::Quad::new(health.extend_uniform(font_size * 0.1), COLOR_LIGHT),
             );
             self.geng
                 .draw2d()
-                .draw2d(framebuffer, camera, &draw2d::Quad::new(fear, COLOR_DARK));
+                .draw2d(framebuffer, camera, &draw2d::Quad::new(health, COLOR_DARK));
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
                 &draw2d::Quad::new(
-                    fear.extend_symmetric(
+                    health.extend_symmetric(
                         vec2(
-                            -model.player.fear_meter.get_ratio().as_f32() * fear.width(),
+                            (model.player.health.get_ratio().as_f32() - 1.0) * health.width(),
                             0.0,
                         ) / 2.0,
                     ),

@@ -25,20 +25,13 @@ pub struct HoverButton {
     pub hover_time: Lifetime,
 }
 
-#[derive(Debug)]
-pub struct QueuedEvent {
-    /// Delay until the event should happen (in seconds).
-    pub delay: Time,
-    pub event: Event,
-}
-
 #[derive(Debug, Clone)]
 pub struct Player {
     pub name: String,
     pub target_position: vec2<Coord>,
     pub shake: vec2<Coord>,
     pub collider: Collider,
-    pub fear_meter: Bounded<Time>,
+    pub health: Bounded<Time>,
     // pub is_in_light: bool,
     pub light_distance_normalized: Option<R32>,
 }
@@ -59,7 +52,10 @@ pub enum State {
         music_start_time: Time,
     },
     Playing,
-    Lost,
+    Lost {
+        /// The time of death.
+        death_beat_time: Time,
+    },
     Finished,
 }
 
@@ -79,25 +75,24 @@ pub struct Model {
     pub config: Config,
     pub secrets: Option<LeaderboardSecrets>,
     pub leaderboard: LeaderboardState,
-    /// The level to use when restarting the game.
-    pub level_clone: Level,
-    pub level: Level,
     pub music: Option<geng::SoundEffect>,
+
+    pub high_score: Score,
+    pub camera: Camera2d,
+    pub player: Player,
+
+    /// The level being played. Not changed.
+    pub level: Level,
+    /// Current state of the level.
+    pub level_state: LevelState,
     pub state: State,
     pub score: Score,
-    pub high_score: Score,
-    /// Can be negative when initializing (because of simulating negative time).
-    pub current_beat: isize,
-    pub camera: Camera2d,
+
     pub real_time: Time,
     /// Time since the last state change.
     pub switch_time: Time,
-    /// The time until the next music beat.
-    pub beat_timer: Time,
-    pub queued_events: Vec<QueuedEvent>,
-    pub player: Player,
-    pub telegraphs: Vec<LightTelegraph>,
-    pub lights: Vec<Light>,
+    /// Current time with beats as measure.
+    pub beat_time: Time,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -136,7 +131,7 @@ impl Model {
             },
             score: Score::ZERO,
             high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
-            current_beat: 0,
+            beat_time: Time::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -144,8 +139,6 @@ impl Model {
             },
             real_time: Time::ZERO,
             switch_time: Time::ZERO,
-            beat_timer: Time::ZERO,
-            queued_events: Vec::new(),
             player: Player {
                 name: "anonymous".to_string(),
                 target_position: vec2::ZERO,
@@ -156,11 +149,9 @@ impl Model {
                         radius: r32(config.player.radius),
                     },
                 ),
-                fear_meter: Bounded::new(r32(0.0), r32(0.0)..=r32(1.0)),
+                health: Bounded::new_max(config.health.max),
                 light_distance_normalized: None,
             },
-            telegraphs: vec![],
-            lights: vec![],
             restart_button: HoverButton {
                 collider: Collider::new(
                     vec2(-3.0, 0.0).as_r32(),
@@ -171,7 +162,7 @@ impl Model {
             config,
             secrets: None,
             leaderboard: LeaderboardState::None,
-            level_clone: level.clone(),
+            level_state: LevelState::default(),
             level,
             music: None,
         }

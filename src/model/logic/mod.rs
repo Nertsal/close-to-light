@@ -1,63 +1,31 @@
-mod event;
-
 use super::*;
 
 impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
-        log::info!("Replaying to the requested time {:.2}...", target_time);
-        self.current_beat = self
-            .level
-            .events
-            .iter()
-            .map(|event| event.beat)
-            .min()
-            .map(|x| x.as_f32().floor() as isize - 1)
-            .unwrap_or(0);
-
-        let target_beat = target_time / self.level.beat_time();
-
-        // Simulate at 60 fps
-        let delta_time = Time::new(1.0 / 60.0);
-        while (self.current_beat as f32) + 1.0 - self.beat_timer.as_f32() < target_beat.as_f32() {
-            self.state = State::Playing;
-            self.score = Score::ZERO;
-            self.player.fear_meter.set_ratio(Time::ZERO);
-            self.update(vec2::ZERO, delta_time);
-        }
+        log::info!("Starting at the requested time {:.2}...", target_time);
+        self.beat_time = target_time / self.level.beat_time();
+        self.player.health.set_ratio(Time::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
             music_start_time: target_time,
         };
-        log::info!("Replay finished");
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
-        let mut rng = thread_rng();
-
         self.player.target_position = player_target;
         // Move
         self.player.collider.position = self.player.target_position;
-        // Shake
-        self.player.shake += Angle::from_degrees(r32(rng.gen_range(0.0..=360.0))).unit_vec()
-            * self.config.fear.shake
-            * self.player.fear_meter.get_ratio()
-            * delta_time;
-        self.player.shake = self.player.shake.clamp_len(..=r32(0.2));
 
         if let State::Starting { .. } = self.state {
         } else {
-            self.beat_timer -= delta_time;
-            while self.beat_timer < Time::ZERO {
-                self.beat_timer += self.level.beat_time();
-                self.next_beat();
-            }
+            self.beat_time += delta_time / self.level.beat_time();
         }
 
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
-        if let State::Lost = self.state {
+        if let State::Lost { .. } = self.state {
             if let Some(music) = &mut self.music {
                 let speed = (1.0 - self.switch_time.as_f32() / 0.5).max(0.0) + 0.5;
                 music.set_speed(speed as f64);
@@ -71,51 +39,16 @@ impl Model {
             }
         }
 
-        if let State::Starting { .. } = self.state {
-        } else {
-            self.process_events(delta_time);
-
-            // Update telegraphs
-            for tele in &mut self.telegraphs {
-                tele.lifetime += delta_time;
-                if tele.spawn_timer > Time::ZERO {
-                    tele.spawn_timer -= delta_time;
-                    if tele.spawn_timer <= Time::ZERO {
-                        self.lights.push(tele.light.clone());
-                        continue;
-                    }
-                }
-
-                let t = tele.lifetime * tele.speed;
-                let transform = if t > tele.light.movement.duration() {
-                    Transform {
-                        scale: Coord::ZERO,
-                        ..default()
-                    }
-                } else {
-                    tele.light.movement.get(t)
-                };
-                tele.light.collider = tele.light.base_collider.transformed(transform);
-            }
-            self.telegraphs.retain(|tele| {
-                tele.spawn_timer > Time::ZERO
-                    || tele.lifetime * tele.speed < tele.light.movement.duration()
-            });
-
-            // Update lights
-            for light in &mut self.lights {
-                light.lifetime += delta_time;
-
-                let transform = light.movement.get(light.lifetime);
-                light.collider = light.base_collider.transformed(transform);
-            }
-            self.lights
-                .retain(|light| light.lifetime < light.movement.duration());
-        }
+        // Update level state
+        let ignore_time = match self.state {
+            State::Lost { death_beat_time } => Some(death_beat_time),
+            _ => None,
+        };
+        self.level_state = LevelState::render(&self.level, self.beat_time, ignore_time);
 
         // Check if the player is in light
         let mut distance_normalized: Option<R32> = None;
-        for light in self.lights.iter() {
+        for light in self.level_state.lights.iter() {
             // let distance = (self.player.collider.position - light.collider.position).len();
             let delta_pos = self.player.collider.position - light.collider.position;
             let distance = match light.base_collider.shape {
@@ -147,19 +80,30 @@ impl Model {
                 }
             }
             State::Playing => {
-                if self.player.is_in_light() {
-                    let distance = self.player.light_distance_normalized.unwrap();
-                    let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
-                    self.player
-                        .fear_meter
-                        .change(-self.config.fear.restore_speed * delta_time);
-                    self.score += delta_time * score_multiplier * r32(100.0);
+                if self.level_state.is_finished {
+                    // if self.level.rng_end {
+                    //     // No more events - start rng
+                    //     let telegraph = self.random_light_telegraphed();
+                    //     self.telegraphs.push(telegraph);
+                    // } else
+                    self.finish();
                 } else {
-                    self.player.fear_meter.change(delta_time);
-                }
+                    if self.player.is_in_light() {
+                        let distance = self.player.light_distance_normalized.unwrap();
+                        let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
+                        self.player
+                            .health
+                            .change(self.config.health.restore_rate * delta_time);
+                        self.score += delta_time * score_multiplier * r32(100.0);
+                    } else {
+                        self.player
+                            .health
+                            .change(-delta_time * self.config.health.decrease_rate);
+                    }
 
-                if self.player.fear_meter.is_max() {
-                    self.lose();
+                    if self.player.health.is_min() {
+                        self.lose();
+                    }
                 }
             }
             _ if self.switch_time > Time::ONE => {
@@ -179,40 +123,6 @@ impl Model {
         }
     }
 
-    fn next_beat(&mut self) {
-        self.current_beat += 1;
-
-        if let State::Playing = self.state {
-            if self.level.events.is_empty() {
-                if self.level.rng_end {
-                    // No more events - start rng
-                    let telegraph = self.random_light_telegraphed();
-                    self.telegraphs.push(telegraph);
-                } else if self.queued_events.is_empty()
-                    && self.lights.is_empty()
-                    && self.telegraphs.is_empty()
-                {
-                    self.finish();
-                }
-            } else {
-                // Get the next events
-                let mut to_remove = Vec::new();
-                for (i, event) in self.level.events.iter().enumerate().rev() {
-                    if event.beat.floor().as_f32() as isize == self.current_beat {
-                        to_remove.push(i);
-                    }
-                }
-                for i in to_remove {
-                    let event = self.level.events.swap_remove(i);
-                    self.queued_events.push(QueuedEvent {
-                        delay: event.beat.fract() * self.level.beat_time(),
-                        event: event.event,
-                    });
-                }
-            }
-        }
-    }
-
     pub fn save_highscore(&self) {
         let high_score = self.high_score.max(self.score);
         preferences::save("highscore", &high_score);
@@ -224,7 +134,7 @@ impl Model {
         *self = Self::new(
             &self.assets,
             self.config.clone(),
-            self.level_clone.clone(),
+            self.level.clone(),
             self.secrets.clone(),
             self.player.name.clone(),
             Time::ZERO,
@@ -251,7 +161,9 @@ impl Model {
 
     pub fn lose(&mut self) {
         self.save_highscore();
-        self.state = State::Lost;
+        self.state = State::Lost {
+            death_beat_time: self.beat_time,
+        };
         // if let Some(music) = &mut self.music {
         //     music.set_speed(0.5);
         //     music.set_volume(1.2); // Compensate for lower speed being quiter
@@ -264,62 +176,62 @@ impl Model {
         self.transition = Some(Transition::LoadLeaderboard { submit_score });
     }
 
-    fn random_light_telegraphed(&self) -> LightTelegraph {
-        self.random_light().into_telegraph(
-            Telegraph {
-                precede_time: r32(1.0),
-                speed: r32(1.0),
-            },
-            self.level.beat_time(),
-        )
-    }
+    // fn random_light_telegraphed(&self) -> LightTelegraph {
+    //     self.random_light().into_telegraph(
+    //         Telegraph {
+    //             precede_time: r32(1.0),
+    //             speed: r32(1.0),
+    //         },
+    //         self.level.beat_time(),
+    //     )
+    // }
 
-    fn random_light(&self) -> Light {
-        let mut rng = thread_rng();
+    // fn random_light(&self) -> Light {
+    //     let mut rng = thread_rng();
 
-        let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
-        let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
+    //     let position = vec2(rng.gen_range(-5.0..=5.0), rng.gen_range(-5.0..=5.0)).as_r32();
+    //     let rotation = Angle::from_degrees(r32(rng.gen_range(0.0..=360.0)));
 
-        let shape = *self
-            .config
-            .shapes
-            .choose(&mut rng)
-            .expect("no shapes available");
+    //     let shape = *self
+    //         .config
+    //         .shapes
+    //         .choose(&mut rng)
+    //         .expect("no shapes available");
 
-        let collider = Collider {
-            position,
-            rotation,
-            shape,
-        };
-        Light {
-            base_collider: collider.clone(),
-            collider,
-            movement: Movement {
-                key_frames: vec![
-                    MoveFrame {
-                        lerp_time: 0.0,
-                        transform: Transform {
-                            scale: r32(0.0),
-                            ..default()
-                        },
-                    },
-                    MoveFrame {
-                        lerp_time: 1.0,
-                        transform: Transform::identity(),
-                    },
-                    MoveFrame {
-                        lerp_time: 1.0,
-                        transform: Transform {
-                            scale: r32(0.0),
-                            ..default()
-                        },
-                    },
-                ]
-                .into(),
-            }
-            .with_beat_time(self.level.beat_time()),
-            lifetime: Time::ZERO,
-            // lifetime: Lifetime::new_max(r32(2.0) * self.level.beat_time()),
-        }
-    }
+    //     let collider = Collider {
+    //         position,
+    //         rotation,
+    //         shape,
+    //     };
+    //     Light {
+    //         base_collider: collider.clone(),
+    //         collider,
+    //         movement: Movement {
+    //             key_frames: vec![
+    //                 MoveFrame {
+    //                     lerp_time: 0.0,
+    //                     transform: Transform {
+    //                         scale: r32(0.0),
+    //                         ..default()
+    //                     },
+    //                 },
+    //                 MoveFrame {
+    //                     lerp_time: 1.0,
+    //                     transform: Transform::identity(),
+    //                 },
+    //                 MoveFrame {
+    //                     lerp_time: 1.0,
+    //                     transform: Transform {
+    //                         scale: r32(0.0),
+    //                         ..default()
+    //                     },
+    //                 },
+    //             ]
+    //             .into(),
+    //         }
+    //         .with_beat_time(self.level.beat_time()),
+    //         lifetime: Time::ZERO,
+    //         // lifetime: Lifetime::new_max(r32(2.0) * self.level.beat_time()),
+    //     }
+    // }
 }
