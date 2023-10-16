@@ -80,15 +80,14 @@ pub struct Model {
     pub state: State,
     pub score: Score,
     pub high_score: Score,
-    /// Can be negative when initializing (because of simulating negative time).
-    pub current_beat: isize,
     pub camera: Camera2d,
+    pub player: Player,
+
     pub real_time: Time,
     /// Time since the last state change.
     pub switch_time: Time,
-    /// The time until the next music beat.
-    pub beat_timer: Time,
-    pub player: Player,
+    /// Current time with beats as measure.
+    pub beat_time: Time,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -127,7 +126,7 @@ impl Model {
             },
             score: Score::ZERO,
             high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
-            current_beat: 0,
+            beat_time: Time::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -135,7 +134,6 @@ impl Model {
             },
             real_time: Time::ZERO,
             switch_time: Time::ZERO,
-            beat_timer: Time::ZERO,
             player: Player {
                 name: "anonymous".to_string(),
                 target_position: vec2::ZERO,
