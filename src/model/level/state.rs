@@ -9,7 +9,7 @@ pub struct LevelState {
 }
 
 impl LevelState {
-    pub fn render(level: &Level, beat_time: Time) -> Self {
+    pub fn render(level: &Level, beat_time: Time, ignore_events_after: Option<Time>) -> Self {
         let mut lights = Vec::new();
         let mut telegraphs = Vec::new();
         let mut is_finished = true;
@@ -20,6 +20,12 @@ impl LevelState {
             if beat_time < event.beat {
                 is_finished = false;
                 return;
+            }
+
+            if let Some(time) = ignore_events_after {
+                if event.beat > time {
+                    return;
+                }
             }
 
             let start = event.beat * level.beat_time();

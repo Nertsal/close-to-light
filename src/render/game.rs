@@ -54,7 +54,7 @@ impl GameRender {
 
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
 
-        if let State::Lost | State::Finished = model.state {
+        if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
             self.util
                 .draw_button(&button, "RESTART", camera, &mut framebuffer);
@@ -114,7 +114,7 @@ impl GameRender {
                         {
                             let text = if let Some(place) = leaderboard.my_position {
                                 format!("{} PLACE", place + 1)
-                            } else if let State::Lost = model.state {
+                            } else if let State::Lost { .. } = model.state {
                                 "FINISH TO COMPETE".to_string()
                             } else if model.player.name.trim().is_empty() {
                                 "CANNOT SUBMIT WITHOUT A NAME".to_string()
@@ -153,7 +153,7 @@ impl GameRender {
         if !fading {
             match model.state {
                 State::Starting { .. } | State::Playing => {}
-                State::Lost => {
+                State::Lost { .. } => {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),

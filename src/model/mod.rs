@@ -52,7 +52,10 @@ pub enum State {
         music_start_time: Time,
     },
     Playing,
-    Lost,
+    Lost {
+        /// The time of death.
+        death_beat_time: Time,
+    },
     Finished,
 }
 

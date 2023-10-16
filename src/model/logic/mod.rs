@@ -33,7 +33,7 @@ impl Model {
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
-        if let State::Lost = self.state {
+        if let State::Lost { .. } = self.state {
             if let Some(music) = &mut self.music {
                 let speed = (1.0 - self.switch_time.as_f32() / 0.5).max(0.0) + 0.5;
                 music.set_speed(speed as f64);
@@ -48,7 +48,11 @@ impl Model {
         }
 
         // Update level state
-        self.level_state = LevelState::render(&self.level, self.beat_time);
+        let ignore_time = match self.state {
+            State::Lost { death_beat_time } => Some(death_beat_time),
+            _ => None,
+        };
+        self.level_state = LevelState::render(&self.level, self.beat_time, ignore_time);
 
         // Check if the player is in light
         let mut distance_normalized: Option<R32> = None;
@@ -163,7 +167,9 @@ impl Model {
 
     pub fn lose(&mut self) {
         self.save_highscore();
-        self.state = State::Lost;
+        self.state = State::Lost {
+            death_beat_time: self.beat_time,
+        };
         // if let Some(music) = &mut self.music {
         //     music.set_speed(0.5);
         //     music.set_volume(1.2); // Compensate for lower speed being quiter
