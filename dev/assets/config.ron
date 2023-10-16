@@ -1,0 +1,14 @@
+Config(
+    player: PlayerConfig(
+        radius: 0.5
+    ),
+    health: HealthConfig(
+        max: 1.5,
+        decrease_rate: 1.0,
+        restore_rate: 0.5,
+    ),
+    shapes: [
+        Circle( radius: 1.3 ),
+        Line( width: 1.7 ),
+    ],
+)

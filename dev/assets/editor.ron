@@ -1,0 +1,9 @@
+EditorConfig(
+    grid: GridConfig(
+        height: 16.0,
+        thick_every: 4, // 0 to disable thickness, 1 to make everything thick
+    ),
+    playback_duration: 0.5,
+    scroll_slow: 0.25,
+    scroll_fast: 16.0,
+)
