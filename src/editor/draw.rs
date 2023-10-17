@@ -26,6 +26,7 @@ impl Editor {
                 let dynamic_time = dynamic_time.map(|t| t - start);
 
                 match &event.event {
+                    Event::Theme(_) => {}
                     Event::Light(event) => {
                         let light = event.light.clone().instantiate(self.level.beat_time());
                         let mut tele =
@@ -291,13 +292,14 @@ impl Editor {
                     .hovered_light
                     .and_then(|light| self.level.events.get_mut(light))
                 {
-                    let Event::Light(light) = &mut event.event;
-                    if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-                        if let Some(frame) = light.light.movement.key_frames.back_mut() {
-                            text = format!("Fade out time: {}", frame.lerp_time);
+                    if let Event::Light(light) = &mut event.event {
+                        if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+                            if let Some(frame) = light.light.movement.key_frames.back_mut() {
+                                text = format!("Fade out time: {}", frame.lerp_time);
+                            }
+                        } else if let Some(frame) = light.light.movement.key_frames.get(1) {
+                            text = format!("Fade in time: {}", frame.lerp_time);
                         }
-                    } else if let Some(frame) = light.light.movement.key_frames.get(1) {
-                        text = format!("Fade in time: {}", frame.lerp_time);
                     }
                 }
             }

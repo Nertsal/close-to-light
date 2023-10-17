@@ -21,6 +21,7 @@ pub struct LevelConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct LevelTheme {
     pub player: Color,
     pub dark: Color,
@@ -69,16 +70,17 @@ pub struct HealthConfig {
     pub restore_rate: Time,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TimedEvent {
     /// The beat on which the event should happen.
     pub beat: Time,
     pub event: Event,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Event {
     Light(LightEvent),
+    Theme(LevelTheme),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

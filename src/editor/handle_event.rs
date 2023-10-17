@@ -97,19 +97,20 @@ impl Editor {
                     {
                         // Control fade time
                         let change = Time::new(delta.signum() as f32) * self.config.scroll_slow;
-                        let Event::Light(light) = &mut event.event;
-                        if shift {
-                            // Fade out
-                            if let Some(frame) = light.light.movement.key_frames.back_mut() {
-                                let change = change.max(-frame.lerp_time + r32(0.25));
-                                frame.lerp_time += change;
-                            }
-                        } else {
-                            // Fade in
-                            if let Some(frame) = light.light.movement.key_frames.get_mut(1) {
-                                let change = change.max(-frame.lerp_time + r32(0.25));
-                                event.beat -= change;
-                                frame.lerp_time += change;
+                        if let Event::Light(light) = &mut event.event {
+                            if shift {
+                                // Fade out
+                                if let Some(frame) = light.light.movement.key_frames.back_mut() {
+                                    let change = change.max(-frame.lerp_time + r32(0.25));
+                                    frame.lerp_time += change;
+                                }
+                            } else {
+                                // Fade in
+                                if let Some(frame) = light.light.movement.key_frames.get_mut(1) {
+                                    let change = change.max(-frame.lerp_time + r32(0.25));
+                                    event.beat -= change;
+                                    frame.lerp_time += change;
+                                }
                             }
                         }
                     }

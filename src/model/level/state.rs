@@ -14,6 +14,7 @@ impl LevelState {
         let mut lights = Vec::new();
         let mut telegraphs = Vec::new();
         let mut is_finished = true;
+        let mut config = level.config.clone();
 
         let time = beat_time * level.beat_time();
 
@@ -33,6 +34,7 @@ impl LevelState {
             let time = time - start;
 
             match &event.event {
+                Event::Theme(new_theme) => config.theme = new_theme.clone(),
                 Event::Light(event) => {
                     let light = event.light.clone().instantiate(level.beat_time());
                     let mut tele = light.into_telegraph(event.telegraph.clone(), level.beat_time());
@@ -63,7 +65,7 @@ impl LevelState {
         is_finished = is_finished && lights.is_empty() && telegraphs.is_empty();
 
         Self {
-            config: level.config.clone(),
+            config,
             lights,
             telegraphs,
             is_finished,
