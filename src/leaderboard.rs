@@ -78,7 +78,6 @@ impl Leaderboard {
                     names_seen.insert(scores[i].player.clone());
                     i += 1;
                 } else {
-                    dbg!(&scores[i]);
                     scores.remove(i);
                 }
             }
