@@ -3,6 +3,7 @@ use super::*;
 /// A renderable state of the level at some given time.
 #[derive(Debug, Default)]
 pub struct LevelState {
+    pub config: LevelConfig,
     pub lights: Vec<Light>,
     pub telegraphs: Vec<LightTelegraph>,
     pub is_finished: bool,
@@ -62,6 +63,7 @@ impl LevelState {
         is_finished = is_finished && lights.is_empty() && telegraphs.is_empty();
 
         Self {
+            config: level.config.clone(),
             lights,
             telegraphs,
             is_finished,

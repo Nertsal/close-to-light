@@ -93,12 +93,12 @@ impl Model {
                         let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                         self.player
                             .health
-                            .change(self.config.health.restore_rate * delta_time);
+                            .change(self.level_state.config.health.restore_rate * delta_time);
                         self.score += delta_time * score_multiplier * r32(100.0);
                     } else {
                         self.player
                             .health
-                            .change(-delta_time * self.config.health.decrease_rate);
+                            .change(-delta_time * self.level_state.config.health.decrease_rate);
                     }
 
                     if self.player.health.is_min() {

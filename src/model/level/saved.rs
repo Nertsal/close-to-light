@@ -3,12 +3,41 @@ use super::*;
 #[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[load(serde = "json")]
 pub struct Level {
-    /// Beats per minute.
-    pub bpm: R32,
+    pub config: LevelConfig,
     // /// Whether to start rng after the predefined level is finished.
     // #[serde(default)]
     // pub rng_end: bool,
     pub events: Vec<TimedEvent>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LevelConfig {
+    /// Beats per minute.
+    pub bpm: R32,
+    pub health: HealthConfig,
+}
+
+impl Default for LevelConfig {
+    fn default() -> Self {
+        Self {
+            bpm: r32(150.0),
+            health: HealthConfig {
+                max: r32(1.5),
+                decrease_rate: r32(1.0),
+                restore_rate: r32(0.5),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HealthConfig {
+    /// Max health value.
+    pub max: Time,
+    /// How fast health decreases per second.
+    pub decrease_rate: Time,
+    /// How much health restores per second while in light.
+    pub restore_rate: Time,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -54,7 +83,7 @@ pub struct Telegraph {
 impl Level {
     /// Returns the duration (in seconds) of a single beat.
     pub fn beat_time(&self) -> Time {
-        r32(60.0) / self.bpm
+        r32(60.0) / self.config.bpm
     }
 }
 

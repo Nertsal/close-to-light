@@ -149,7 +149,7 @@ impl Model {
                         radius: r32(config.player.radius),
                     },
                 ),
-                health: Bounded::new_max(config.health.max),
+                health: Bounded::new_max(level.config.health.max),
                 light_distance_normalized: None,
             },
             restart_button: HoverButton {
