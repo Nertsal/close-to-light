@@ -29,23 +29,24 @@ impl GameRender {
 
         // Telegraphs
         for tele in &model.level_state.telegraphs {
-            self.util.draw_outline(
-                &tele.light.collider,
-                0.05,
-                model.level_state.config.theme.light,
-                camera,
-                &mut framebuffer,
-            );
+            let color = if tele.light.danger {
+                model.level_state.config.theme.danger
+            } else {
+                model.level_state.config.theme.light
+            };
+            self.util
+                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
         }
 
         // Lights
         for light in &model.level_state.lights {
-            self.util.draw_collider(
-                &light.collider,
-                model.level_state.config.theme.light,
-                camera,
-                &mut framebuffer,
-            );
+            let color = if light.danger {
+                model.level_state.config.theme.danger
+            } else {
+                model.level_state.config.theme.light
+            };
+            self.util
+                .draw_collider(&light.collider, color, camera, &mut framebuffer);
         }
 
         // Player

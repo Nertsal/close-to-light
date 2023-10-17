@@ -43,7 +43,8 @@ impl Default for HealthConfig {
     fn default() -> Self {
         Self {
             max: r32(1.5),
-            decrease_rate: r32(1.0),
+            dark_decrease_rate: r32(1.0),
+            danger_decrease_rate: r32(2.0),
             restore_rate: r32(0.5),
         }
     }
@@ -61,11 +62,14 @@ impl Default for LevelTheme {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
 pub struct HealthConfig {
     /// Max health value.
     pub max: Time,
-    /// How fast health decreases per second.
-    pub decrease_rate: Time,
+    /// How fast health decreases per second in darkness.
+    pub dark_decrease_rate: Time,
+    /// How fast health decreases per second in danger.
+    pub danger_decrease_rate: Time,
     /// How much health restores per second while in light.
     pub restore_rate: Time,
 }
@@ -86,6 +90,9 @@ pub enum Event {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LightSerde {
     pub position: vec2<Coord>,
+    /// Whether the light is dangerous.
+    #[serde(default)]
+    pub danger: bool,
     /// Rotation (in degrees).
     #[serde(default = "LightSerde::default_rotation")]
     pub rotation: Coord,
@@ -135,6 +142,7 @@ impl LightSerde {
             movement: self.movement.with_beat_time(beat_time),
             lifetime: Time::ZERO,
             // lifetime: Lifetime::new_max(self.lifetime * beat_time),
+            danger: self.danger,
         }
     }
 }

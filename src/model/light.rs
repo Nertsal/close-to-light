@@ -9,6 +9,8 @@ pub struct Light {
     pub movement: Movement,
     /// Time since creation.
     pub lifetime: Time,
+    /// Whether the light is dangerous.
+    pub danger: bool,
 }
 
 #[derive(Debug, Clone)]

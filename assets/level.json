@@ -3,7 +3,8 @@
     "bpm": 170.0,
     "health": {
         "max": 1.5,
-        "decrease_rate": 1.0,
+        "dark_decrease_rate": 1.0,
+        "danger_decrease_rate": 2.0,
         "restore_rate": 0.5
     }
   },

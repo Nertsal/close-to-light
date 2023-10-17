@@ -28,13 +28,10 @@ pub struct Player {
     pub collider: Collider,
     pub health: Bounded<Time>,
     // pub is_in_light: bool,
+    /// Normalized distance to the closest friendly light.
     pub light_distance_normalized: Option<R32>,
-}
-
-impl Player {
-    pub fn is_in_light(&self) -> bool {
-        self.light_distance_normalized.is_some()
-    }
+    /// Normalized distance to the closest dangerous light.
+    pub danger_distance_normalized: Option<R32>,
 }
 
 #[derive(Debug, Clone)]
@@ -146,6 +143,7 @@ impl Model {
                 ),
                 health: Bounded::new_max(level.config.health.max),
                 light_distance_normalized: None,
+                danger_distance_normalized: None,
             },
             restart_button: HoverButton {
                 collider: Collider::new(

@@ -48,6 +48,7 @@ impl Model {
 
         // Check if the player is in light
         let mut distance_normalized: Option<R32> = None;
+        let mut distance_danger_normalized: Option<R32> = None;
         for light in self.level_state.lights.iter() {
             // let distance = (self.player.collider.position - light.collider.position).len();
             let delta_pos = self.player.collider.position - light.collider.position;
@@ -59,11 +60,21 @@ impl Model {
                     let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
                     dot.abs() / (width / r32(2.0))
                 }
-                _ => todo!(),
+                Shape::Rectangle { .. } => todo!(),
             };
-            distance_normalized = Some(distance.min(distance_normalized.unwrap_or(distance)));
+
+            if light.danger {
+                distance_danger_normalized =
+                    Some(distance.min(distance_danger_normalized.unwrap_or(distance)));
+            } else {
+                distance_normalized = Some(distance.min(distance_normalized.unwrap_or(distance)));
+            }
         }
         self.player.light_distance_normalized = match distance_normalized {
+            Some(distance) if distance <= r32(1.0) => Some(distance),
+            _ => None,
+        };
+        self.player.danger_distance_normalized = match distance_danger_normalized {
             Some(distance) if distance <= r32(1.0) => Some(distance),
             _ => None,
         };
@@ -75,7 +86,7 @@ impl Model {
             } => {
                 let music_start_time = *music_start_time;
                 *start_timer -= delta_time;
-                if *start_timer <= Time::ZERO && self.player.is_in_light() {
+                if *start_timer <= Time::ZERO && self.player.light_distance_normalized.is_some() {
                     self.start(music_start_time);
                 }
             }
@@ -88,17 +99,23 @@ impl Model {
                     // } else
                     self.finish();
                 } else {
-                    if self.player.is_in_light() {
-                        let distance = self.player.light_distance_normalized.unwrap();
+                    if let Some(distance) = self.player.danger_distance_normalized {
+                        let multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
+                        self.player.health.change(
+                            -self.level_state.config.health.danger_decrease_rate
+                                * multiplier
+                                * delta_time,
+                        );
+                    } else if let Some(distance) = self.player.light_distance_normalized {
                         let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                         self.player
                             .health
                             .change(self.level_state.config.health.restore_rate * delta_time);
                         self.score += delta_time * score_multiplier * r32(100.0);
                     } else {
-                        self.player
-                            .health
-                            .change(-delta_time * self.level_state.config.health.decrease_rate);
+                        self.player.health.change(
+                            -self.level_state.config.health.dark_decrease_rate * delta_time,
+                        );
                     }
 
                     if self.player.health.is_min() {

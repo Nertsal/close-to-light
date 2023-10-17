@@ -181,6 +181,7 @@ impl Editor {
                                 rotation: self.place_rotation.as_degrees(),
                                 shape,
                                 movement,
+                                danger: false, // TODO
                             },
                             telegraph,
                         },
