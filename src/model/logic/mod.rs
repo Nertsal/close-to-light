@@ -50,7 +50,6 @@ impl Model {
         let mut distance_normalized: Option<R32> = None;
         let mut distance_danger_normalized: Option<R32> = None;
         for light in self.level_state.lights.iter() {
-            // let distance = (self.player.collider.position - light.collider.position).len();
             let delta_pos = self.player.collider.position - light.collider.position;
             let distance = match light.base_collider.shape {
                 Shape::Circle { radius } => delta_pos.len() / radius,

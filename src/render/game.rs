@@ -1,9 +1,8 @@
 use super::*;
 
-#[allow(dead_code)]
 pub struct GameRender {
     geng: Geng,
-    assets: Rc<Assets>,
+    // assets: Rc<Assets>,
     render: Render,
     util: UtilRender,
 }
@@ -12,7 +11,7 @@ impl GameRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
+            // assets: assets.clone(),
             render: Render::new(geng, assets),
             util: UtilRender::new(geng, assets),
         }
@@ -51,9 +50,6 @@ impl GameRender {
 
         // Player
         let player = model.player.collider.clone();
-        // player.position += model.player.shake;
-        // self.util
-        //     .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
         self.util.draw_outline(
             &player,
             0.05,

@@ -112,7 +112,7 @@ pub struct LightEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Telegraph {
-    /// How long before the event should the telegraph occur (in beats).
+    /// How long (in beats) before the event should the telegraph occur.
     pub precede_time: Time,
     /// How fast the telegraph is.
     pub speed: Coord,
@@ -130,7 +130,7 @@ impl LightSerde {
         Coord::ZERO
     }
 
-    pub fn instantiate(self, beat_time: Time) -> Light {
+    pub fn instantiate(self, event_id: Option<usize>) -> Light {
         let collider = Collider {
             position: self.position,
             rotation: Angle::from_degrees(self.rotation),
@@ -139,10 +139,11 @@ impl LightSerde {
         Light {
             base_collider: collider.clone(),
             collider,
-            movement: self.movement.with_beat_time(beat_time),
+            // movement: self.movement,
             lifetime: Time::ZERO,
             // lifetime: Lifetime::new_max(self.lifetime * beat_time),
             danger: self.danger,
+            event_id,
         }
     }
 }

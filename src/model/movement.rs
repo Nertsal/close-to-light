@@ -1,14 +1,14 @@
 use super::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Movement<T: Float = Time> {
-    pub key_frames: VecDeque<MoveFrame<T>>,
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Movement {
+    pub key_frames: VecDeque<MoveFrame>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct MoveFrame<T: Float = Time> {
-    /// How long should the interpolation from the last frame to that frame last.
-    pub lerp_time: T,
+pub struct MoveFrame {
+    /// How long (in beats) should the interpolation from the last frame to that frame last.
+    pub lerp_time: Time,
     pub transform: Transform,
 }
 
@@ -41,27 +41,6 @@ impl Transform {
 impl Default for Transform {
     fn default() -> Self {
         Self::identity()
-    }
-}
-
-impl<T: Float> MoveFrame<T> {
-    pub fn with_beat_time(self, beat_time: Time) -> MoveFrame<Time> {
-        MoveFrame {
-            lerp_time: Time::new(self.lerp_time.as_f32()) * beat_time,
-            transform: self.transform,
-        }
-    }
-}
-
-impl<T: Float> Movement<T> {
-    pub fn with_beat_time(self, beat_time: Time) -> Movement<Time> {
-        Movement {
-            key_frames: self
-                .key_frames
-                .into_iter()
-                .map(|m| m.with_beat_time(beat_time))
-                .collect(),
-        }
     }
 }
 
@@ -113,13 +92,5 @@ impl Movement {
             .iter()
             .map(|frame| frame.lerp_time)
             .fold(Time::ZERO, Time::add)
-    }
-}
-
-impl Default for Movement {
-    fn default() -> Self {
-        Self {
-            key_frames: VecDeque::new(),
-        }
     }
 }

@@ -25,6 +25,29 @@ enum State {
     },
 }
 
+#[derive(Default)]
+struct EditorLevelState {
+    /// Interactable level state representing current time.
+    static_level: Option<LevelState>,
+    /// Dynamic level state showing the upcoming animations.
+    dynamic_level: Option<LevelState>,
+    /// Index of the hovered static light.
+    hovered_light: Option<usize>,
+}
+
+impl EditorLevelState {
+    /// Returns the index of the hovered event (if any).
+    fn hovered_event(&self) -> Option<usize> {
+        self.hovered_light
+            .and_then(|i| {
+                self.static_level
+                    .as_ref()
+                    .and_then(|level| level.lights.get(i))
+            })
+            .and_then(|light| light.event_id)
+    }
+}
+
 pub struct Editor {
     geng: Geng,
     assets: Rc<Assets>,
@@ -39,14 +62,9 @@ pub struct Editor {
     level: Level,
     /// Simulation model.
     model: Model,
-    /// Lights (with transparency and hover) ready for visualization and hover detection.
-    rendered_lights: Vec<(Light, f32, bool)>,
-    /// Telegraphs (with transparency and hover) ready for visualization.
-    rendered_telegraphs: Vec<(LightTelegraph, f32, bool)>,
-    /// Index of the hovered light in the `level.events`.
-    hovered_light: Option<usize>,
+    level_state: EditorLevelState,
     current_beat: Time,
-    time: Time,
+    real_time: Time,
     /// Whether to visualize the lights' movement for the current beat.
     visualize_beat: bool,
     selected_shape: usize,
@@ -88,11 +106,9 @@ impl Editor {
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             cursor_world_pos: vec2::ZERO,
-            rendered_lights: vec![],
-            rendered_telegraphs: vec![],
-            hovered_light: None,
+            level_state: EditorLevelState::default(),
             current_beat: Time::ZERO,
-            time: Time::ZERO,
+            real_time: Time::ZERO,
             visualize_beat: true,
             selected_shape: 0,
             place_rotation: Angle::ZERO,
@@ -200,7 +216,7 @@ impl geng::State for Editor {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
-        self.time += delta_time;
+        self.real_time += delta_time;
 
         if self.music_timer > Time::ZERO {
             self.music_timer -= delta_time;
@@ -228,7 +244,7 @@ impl geng::State for Editor {
         self.scrolling = false;
 
         if let State::Playing { .. } = self.state {
-            self.current_beat = self.time / self.level.beat_time();
+            self.current_beat = self.real_time / self.level.beat_time();
         }
 
         let pos = self.cursor_pos.as_f32();

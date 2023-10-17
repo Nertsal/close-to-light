@@ -6,11 +6,13 @@ pub struct Light {
     pub collider: Collider,
     /// The base collider used for reference.
     pub base_collider: Collider,
-    pub movement: Movement,
+    // pub movement: Movement,
     /// Time since creation.
     pub lifetime: Time,
     /// Whether the light is dangerous.
     pub danger: bool,
+    /// Id of the original event in the level.
+    pub event_id: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -21,17 +23,17 @@ pub struct LightTelegraph {
     pub speed: Coord,
     /// Time since creation.
     pub lifetime: Time,
-    /// The time until the actual light is spawned.
-    pub spawn_timer: Time,
+    // /// The time (in beats) until the actual light is spawned.
+    // pub spawn_timer: Time,
 }
 
 impl Light {
-    pub fn into_telegraph(self, telegraph: Telegraph, beat_time: Time) -> LightTelegraph {
+    pub fn into_telegraph(self, telegraph: Telegraph) -> LightTelegraph {
         LightTelegraph {
             light: self,
             speed: telegraph.speed,
             lifetime: Time::ZERO,
-            spawn_timer: telegraph.precede_time * beat_time,
+            // spawn_timer: telegraph.precede_time,
         }
     }
 }

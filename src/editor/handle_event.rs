@@ -24,7 +24,7 @@ impl Editor {
                 }
                 geng::Key::F => self.visualize_beat = !self.visualize_beat,
                 geng::Key::X => {
-                    if let Some(index) = self.hovered_light {
+                    if let Some(index) = self.level_state.hovered_event() {
                         self.level.events.swap_remove(index);
                     }
                 }
@@ -70,9 +70,11 @@ impl Editor {
                         };
                         self.music.stop();
                         self.music = self.assets.music.effect();
-                        self.time = self.current_beat * self.level.beat_time();
-                        self.music
-                            .play_from(time::Duration::from_secs_f64(self.time.as_f32() as f64));
+                        // TODO: future proof in case level beat time is not constant
+                        self.real_time = self.current_beat * self.level.beat_time();
+                        self.music.play_from(time::Duration::from_secs_f64(
+                            self.real_time.as_f32() as f64,
+                        ));
                     }
                 }
                 geng::Key::Digit1 => self.handle_digit(1),
@@ -92,7 +94,8 @@ impl Editor {
             geng::Event::Wheel { delta } => {
                 if ctrl {
                     if let Some(event) = self
-                        .hovered_light
+                        .level_state
+                        .hovered_event()
                         .and_then(|light| self.level.events.get_mut(light))
                     {
                         // Control fade time
