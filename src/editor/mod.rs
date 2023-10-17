@@ -5,13 +5,9 @@ mod handle_event;
 pub use self::config::*;
 
 use crate::{
-    assets::*,
-    model::*,
+    prelude::*,
     render::{Render, UtilRender},
 };
-
-use geng::prelude::*;
-use geng_utils::conversions::Vec2RealConversions;
 
 #[derive(Debug, Clone)]
 enum State {

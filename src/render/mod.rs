@@ -3,16 +3,10 @@ mod util;
 
 pub use self::{game::*, util::*};
 
-use crate::{assets::Assets, model::*};
+use crate::prelude::*;
 
-use geng::prelude::{ugli::Texture, *};
-use geng_utils::{
-    conversions::Vec2RealConversions, geometry::unit_quad_geometry, texture::draw_texture_fit,
-};
-
-pub const COLOR_PLAYER: Rgba<f32> = Rgba::WHITE;
-pub const COLOR_LIGHT: Rgba<f32> = Rgba::WHITE;
-pub const COLOR_DARK: Rgba<f32> = Rgba::BLACK;
+use geng_utils::{geometry::unit_quad_geometry, texture::draw_texture_fit};
+use ugli::Texture;
 
 pub struct Render {
     geng: Geng,

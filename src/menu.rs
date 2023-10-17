@@ -1,16 +1,13 @@
 use crate::{
-    assets::Assets,
-    model::*,
+    prelude::*,
     render::{Render, UtilRender},
 };
-
-use geng::prelude::*;
-use geng_utils::conversions::Vec2RealConversions;
 
 pub struct MainMenu {
     geng: Geng,
     assets: Rc<Assets>,
     config: Config,
+    theme: LevelTheme,
     transition: Option<geng::state::Transition>,
     render: Render,
     util_render: UtilRender,
@@ -33,6 +30,7 @@ impl MainMenu {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            theme: LevelTheme::default(),
             transition: None,
             render: Render::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
@@ -186,13 +184,18 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        ugli::clear(screen_buffer, Some(crate::render::COLOR_DARK), None, None);
+        ugli::clear(screen_buffer, Some(self.theme.dark), None, None);
 
-        let mut framebuffer = self.render.start(crate::render::COLOR_DARK);
+        let mut framebuffer = self.render.start(self.theme.dark);
 
         let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
-        self.util_render
-            .draw_button(&button, "START", &self.camera, &mut framebuffer);
+        self.util_render.draw_button(
+            &button,
+            "START",
+            &self.theme,
+            &self.camera,
+            &mut framebuffer,
+        );
 
         let fading = self.play_button.hover_time.get_ratio().as_f32() > 0.5;
 
@@ -218,7 +221,7 @@ impl geng::State for MainMenu {
             self.util_render.draw_outline(
                 &self.player,
                 0.05,
-                crate::render::COLOR_PLAYER,
+                self.theme.player,
                 &self.camera,
                 &mut framebuffer,
             );
@@ -229,7 +232,7 @@ impl geng::State for MainMenu {
                 vec2(0.0, -3.0).as_r32(),
                 0.8,
                 vec2::splat(0.5),
-                crate::render::COLOR_LIGHT,
+                self.theme.light,
                 &self.camera,
                 &mut framebuffer,
             );
@@ -238,7 +241,7 @@ impl geng::State for MainMenu {
                 vec2(0.0, -3.8).as_r32(),
                 0.7,
                 vec2::splat(0.5),
-                crate::render::COLOR_LIGHT,
+                self.theme.light,
                 &self.camera,
                 &mut framebuffer,
             );

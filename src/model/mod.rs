@@ -7,12 +7,7 @@ mod movement;
 
 pub use self::{collider::*, config::*, level::*, light::*, movement::*};
 
-use crate::{assets::Assets, leaderboard::Leaderboard, LeaderboardSecrets};
-
-use std::collections::VecDeque;
-
-use geng::prelude::*;
-use geng_utils::{bounded::Bounded, conversions::Vec2RealConversions};
+use crate::{leaderboard::Leaderboard, prelude::*, LeaderboardSecrets};
 
 pub type Time = R32;
 pub type Coord = R32;

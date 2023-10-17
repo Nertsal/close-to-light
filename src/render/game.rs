@@ -23,7 +23,7 @@ impl GameRender {
     }
 
     pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
-        let mut framebuffer = self.render.start(COLOR_DARK);
+        let mut framebuffer = self.render.start(model.level_state.config.theme.dark);
 
         let camera = &model.camera;
 
@@ -32,7 +32,7 @@ impl GameRender {
             self.util.draw_outline(
                 &tele.light.collider,
                 0.05,
-                COLOR_LIGHT,
+                model.level_state.config.theme.light,
                 camera,
                 &mut framebuffer,
             );
@@ -40,8 +40,12 @@ impl GameRender {
 
         // Lights
         for light in &model.level_state.lights {
-            self.util
-                .draw_collider(&light.collider, COLOR_LIGHT, camera, &mut framebuffer);
+            self.util.draw_collider(
+                &light.collider,
+                model.level_state.config.theme.light,
+                camera,
+                &mut framebuffer,
+            );
         }
 
         // Player
@@ -49,22 +53,32 @@ impl GameRender {
         // player.position += model.player.shake;
         // self.util
         //     .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
-        self.util
-            .draw_outline(&player, 0.05, COLOR_PLAYER, camera, &mut framebuffer);
+        self.util.draw_outline(
+            &player,
+            0.05,
+            model.level_state.config.theme.player,
+            camera,
+            &mut framebuffer,
+        );
 
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
 
         if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
-            self.util
-                .draw_button(&button, "RESTART", camera, &mut framebuffer);
+            self.util.draw_button(
+                &button,
+                "RESTART",
+                &model.level_state.config.theme,
+                camera,
+                &mut framebuffer,
+            );
 
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
                 0.7,
                 vec2::splat(0.5),
-                COLOR_DARK,
+                model.level_state.config.theme.dark,
                 camera,
                 &mut framebuffer,
             );
@@ -75,7 +89,7 @@ impl GameRender {
                     position.as_r32(),
                     size,
                     align,
-                    COLOR_LIGHT,
+                    model.level_state.config.theme.light,
                     camera,
                     &mut framebuffer,
                 );
@@ -144,7 +158,7 @@ impl GameRender {
                 vec2(0.0, 4.5).as_r32(),
                 0.7,
                 vec2::splat(0.5),
-                COLOR_LIGHT,
+                model.level_state.config.theme.light,
                 camera,
                 &mut framebuffer,
             );
@@ -159,7 +173,7 @@ impl GameRender {
                         vec2(0.0, 3.5).as_r32(),
                         1.0,
                         vec2::splat(0.5),
-                        COLOR_LIGHT,
+                        model.level_state.config.theme.light,
                         camera,
                         &mut framebuffer,
                     );
@@ -170,7 +184,7 @@ impl GameRender {
                         vec2(0.0, 3.5).as_r32(),
                         1.0,
                         vec2::splat(0.5),
-                        COLOR_LIGHT,
+                        model.level_state.config.theme.light,
                         camera,
                         &mut framebuffer,
                     );
@@ -217,11 +231,16 @@ impl GameRender {
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw2d::Quad::new(health.extend_uniform(font_size * 0.1), COLOR_LIGHT),
+                &draw2d::Quad::new(
+                    health.extend_uniform(font_size * 0.1),
+                    model.level_state.config.theme.light,
+                ),
             );
-            self.geng
-                .draw2d()
-                .draw2d(framebuffer, camera, &draw2d::Quad::new(health, COLOR_DARK));
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Quad::new(health, model.level_state.config.theme.dark),
+            );
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
@@ -232,7 +251,7 @@ impl GameRender {
                             0.0,
                         ) / 2.0,
                     ),
-                    COLOR_LIGHT,
+                    model.level_state.config.theme.light,
                 ),
             );
         }

@@ -115,13 +115,18 @@ impl Editor {
 
     pub fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        ugli::clear(screen_buffer, Some(crate::render::COLOR_DARK), None, None);
+        ugli::clear(
+            screen_buffer,
+            Some(self.level.config.theme.dark),
+            None,
+            None,
+        );
         let screen_aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
 
         // Level
-        let mut pixel_buffer = self.render.start(crate::render::COLOR_DARK);
+        let mut pixel_buffer = self.render.start(self.level.config.theme.dark);
 
-        let color = crate::render::COLOR_LIGHT;
+        let color = self.level.config.theme.light;
         for (tele, transparency, _) in &self.rendered_telegraphs {
             self.util_render.draw_outline(
                 &tele.light.collider,
@@ -152,7 +157,7 @@ impl Editor {
                     self.util_render.draw_outline(
                         &collider,
                         0.05,
-                        crate::render::COLOR_LIGHT,
+                        self.level.config.theme.light,
                         &self.model.camera,
                         &mut pixel_buffer,
                     );
@@ -275,7 +280,7 @@ impl Editor {
             let screen = Aabb2::ZERO.extend_positive(framebuffer_size);
             let font_size = framebuffer_size.y * 0.05;
             let font = self.geng.default_font();
-            let text_color = crate::render::COLOR_LIGHT;
+            let text_color = self.level.config.theme.light;
             // let outline_color = crate::render::COLOR_DARK;
             // let outline_size = 0.05;
 

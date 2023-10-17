@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[load(serde = "json")]
 pub struct Level {
     pub config: LevelConfig,
@@ -10,22 +10,51 @@ pub struct Level {
     pub events: Vec<TimedEvent>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelConfig {
     /// Beats per minute.
     pub bpm: R32,
+    #[serde(default)]
     pub health: HealthConfig,
+    #[serde(default)]
+    pub theme: LevelTheme,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LevelTheme {
+    pub player: Color,
+    pub dark: Color,
+    pub light: Color,
+    pub danger: Color,
 }
 
 impl Default for LevelConfig {
     fn default() -> Self {
         Self {
             bpm: r32(150.0),
-            health: HealthConfig {
-                max: r32(1.5),
-                decrease_rate: r32(1.0),
-                restore_rate: r32(0.5),
-            },
+            health: default(),
+            theme: default(),
+        }
+    }
+}
+
+impl Default for HealthConfig {
+    fn default() -> Self {
+        Self {
+            max: r32(1.5),
+            decrease_rate: r32(1.0),
+            restore_rate: r32(0.5),
+        }
+    }
+}
+
+impl Default for LevelTheme {
+    fn default() -> Self {
+        Self {
+            player: Color::WHITE,
+            dark: Color::BLACK,
+            light: Color::WHITE,
+            danger: Color::RED,
         }
     }
 }

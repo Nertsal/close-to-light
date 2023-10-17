@@ -4,6 +4,7 @@ mod game;
 mod leaderboard;
 mod menu;
 mod model;
+mod prelude;
 mod render;
 mod util;
 

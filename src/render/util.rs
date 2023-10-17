@@ -161,6 +161,7 @@ impl UtilRender {
         &self,
         button: &HoverButton,
         text: impl AsRef<str>,
+        theme: &LevelTheme,
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -188,7 +189,7 @@ impl UtilRender {
         let collider = button
             .collider
             .transformed(Transform { scale, ..default() });
-        self.draw_collider(&collider, crate::render::COLOR_LIGHT, camera, framebuffer);
+        self.draw_collider(&collider, theme.light, camera, framebuffer);
 
         if t.as_f32() < 0.5 {
             self.geng.default_font().draw(
@@ -199,7 +200,7 @@ impl UtilRender {
                 mat3::translate(collider.position.as_f32())
                     * mat3::scale_uniform(1.0)
                     * mat3::translate(vec2(0.0, -0.25)),
-                crate::render::COLOR_DARK,
+                theme.dark,
             );
         }
     }
