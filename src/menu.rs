@@ -78,9 +78,10 @@ impl MainMenu {
             async move {
                 let manager = geng.asset_manager();
                 let assets_path = run_dir().join("assets");
+                let levels_path = assets_path.join("levels");
 
                 let level: Level =
-                    geng::asset::Load::load(manager, &assets_path.join("level.json"), &())
+                    geng::asset::Load::load(manager, &levels_path.join("level.json"), &())
                         .await
                         .expect("failed to load level");
 
@@ -201,7 +202,7 @@ impl geng::State for MainMenu {
 
         if !fading {
             geng_utils::texture::draw_texture_fit_height(
-                &self.assets.title,
+                &self.assets.sprites.title,
                 Aabb2::point(vec2(0.0, 3.5)).extend_symmetric(vec2(0.0, 1.2) / 2.0),
                 0.5,
                 &self.camera,

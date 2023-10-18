@@ -66,18 +66,18 @@ impl Render {
 
         ugli::draw(
             &mut other_framebuffer,
-            &self.assets.dither_shader,
+            &self.assets.dither.dither_shader,
             ugli::DrawMode::TriangleFan,
             &unit_quad_geometry(self.geng.ugli()),
             ugli::uniforms!(
                 u_time: t,
                 u_bg_noise: bg_noise.as_f32(),
                 u_framebuffer_size: self.double_buffer.0.size().as_f32(),
-                u_pattern_size: self.assets.dither1.size().as_f32(),
+                u_pattern_size: self.assets.dither.dither1.size().as_f32(),
                 u_texture: &self.double_buffer.0,
-                u_dither1: &self.assets.dither1,
-                u_dither2: &self.assets.dither2,
-                u_dither3: &self.assets.dither3,
+                u_dither1: &self.assets.dither.dither1,
+                u_dither2: &self.assets.dither.dither2,
+                u_dither3: &self.assets.dither.dither3,
             ),
             ugli::DrawParameters {
                 blend_mode: Some(ugli::BlendMode::straight_alpha()),

@@ -50,7 +50,7 @@ impl UtilRender {
                     camera,
                     &draw2d::TexturedQuad::colored(
                         Aabb2::ZERO.extend_symmetric(vec2(radius.as_f32(), radius.as_f32())),
-                        &self.assets.radial_gradient,
+                        &self.assets.sprites.radial_gradient,
                         color,
                     )
                     .translate(collider.position.as_f32()),
@@ -62,7 +62,7 @@ impl UtilRender {
                     camera,
                     &draw2d::TexturedQuad::colored(
                         Aabb2::ZERO.extend_symmetric(vec2(camera.fov * 4.0, width.as_f32()) / 2.0),
-                        &self.assets.linear_gradient,
+                        &self.assets.sprites.linear_gradient,
                         color,
                     )
                     .rotate(collider.rotation.map(Coord::as_f32))

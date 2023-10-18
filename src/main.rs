@@ -54,10 +54,13 @@ fn main() {
 
         if opts.edit {
             // Editor
-            let level: model::Level =
-                geng::asset::Load::load(manager, &assets_path.join("level.json"), &())
-                    .await
-                    .expect("failed to load level");
+            let level: model::Level = geng::asset::Load::load(
+                manager,
+                &assets_path.join("levels").join("level.json"),
+                &(),
+            )
+            .await
+            .expect("failed to load level");
 
             let editor_config: editor::EditorConfig =
                 geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())

@@ -193,7 +193,7 @@ impl Editor {
             // TODO: switch back to ron
             // https://github.com/geng-engine/geng/issues/71
             let level = serde_json::to_string_pretty(&self.level)?;
-            let path = run_dir().join("assets").join("level.json");
+            let path = run_dir().join("assets").join("levels").join("level.json");
             let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
             write!(writer, "{}", level)?;
             Ok(())
