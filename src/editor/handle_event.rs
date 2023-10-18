@@ -22,7 +22,7 @@ impl EditorState {
                 geng::Key::ArrowRight => {
                     self.scroll_time(scroll_speed);
                 }
-                geng::Key::F => self.visualize_beat = !self.visualize_beat,
+                geng::Key::F => self.editor.visualize_beat = !self.editor.visualize_beat,
                 geng::Key::X => {
                     if let Some(index) = self.editor.level_state.hovered_event() {
                         self.editor.level.events.swap_remove(index);
@@ -45,7 +45,7 @@ impl EditorState {
                     if ctrl {
                         self.render_options.show_grid = !self.render_options.show_grid;
                     } else {
-                        self.snap_to_grid = !self.snap_to_grid;
+                        self.editor.snap_to_grid = !self.editor.snap_to_grid;
                     }
                 }
                 geng::Key::Escape => {

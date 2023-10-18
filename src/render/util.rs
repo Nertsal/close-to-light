@@ -74,7 +74,7 @@ impl UtilRender {
         &self,
         collider: &Collider,
         color: Rgba<f32>,
-        camera: &Camera2d,
+        camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         match collider.shape {
@@ -91,11 +91,12 @@ impl UtilRender {
                 );
             }
             Shape::Line { width } => {
+                let inf = 999.0;
                 self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
                     &draw2d::TexturedQuad::colored(
-                        Aabb2::ZERO.extend_symmetric(vec2(camera.fov * 4.0, width.as_f32()) / 2.0),
+                        Aabb2::ZERO.extend_symmetric(vec2(inf, width.as_f32()) / 2.0),
                         &self.assets.sprites.linear_gradient,
                         color,
                     )

@@ -45,7 +45,7 @@ impl EditorRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.draw_game(editor, options);
-        self.draw_ui(editor, ui);
+        self.draw_ui(editor, ui, options);
 
         // let framebuffer_size = framebuffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;
@@ -65,7 +65,7 @@ impl EditorRender {
         );
     }
 
-    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI) {
+    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI, render_options: &RenderOptions) {
         let screen_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
@@ -78,14 +78,18 @@ impl EditorRender {
             None,
         );
 
-        {
-            // General info
-            let pos = vec2(ui.general.center().x, ui.general.min.y);
-            let font_size = ui.screen.height() * 0.04;
-            let options = TextRenderOptions::new(font_size)
-                .align(vec2(0.5, 0.0))
-                .color(editor.level.config.theme.light);
+        let font_size = ui.screen.height() * 0.04;
+        let options = TextRenderOptions::new(font_size)
+            .color(editor.level.config.theme.light)
+            .align(vec2(0.5, 1.0));
 
+        {
+            // Level info
+            let pos = vec2(ui.level_info.center().x, ui.level_info.max.y);
+            self.util
+                .draw_text("Level", pos, options, camera, screen_buffer);
+
+            let pos = pos - vec2(0.0, font_size);
             let name = editor
                 .level_path
                 .file_name()
@@ -93,10 +97,48 @@ impl EditorRender {
                 .unwrap_or("<invalid>");
             self.util
                 .draw_text(name, pos, options, camera, screen_buffer);
+        }
 
-            let pos = pos + vec2(0.0, font_size);
-            self.util
-                .draw_text("Level", pos, options, camera, screen_buffer);
+        {
+            // General
+            let options = options.align(vec2(0.0, 0.5));
+            let mut pos = vec2(ui.general.min.x + font_size, ui.general.max.y - font_size);
+            for (name, checked) in [
+                ("Show movement", editor.visualize_beat),
+                ("Show grid", render_options.show_grid),
+                ("Snap to grid", editor.snap_to_grid),
+            ] {
+                let checkbox = Aabb2::point(pos).extend_uniform(font_size / 3.0);
+                if checked {
+                    let checkbox = checkbox.extend_uniform(-font_size * 0.05);
+                    for (a, b) in [
+                        (checkbox.bottom_left(), checkbox.top_right()),
+                        (checkbox.top_left(), checkbox.bottom_right()),
+                    ] {
+                        self.geng.draw2d().draw2d(
+                            screen_buffer,
+                            camera,
+                            &draw2d::Segment::new(Segment(a, b), font_size * 0.07, options.color),
+                        );
+                    }
+                }
+                self.util.draw_outline(
+                    &Collider::aabb(checkbox.map(r32)),
+                    font_size * 0.1,
+                    options.color,
+                    camera,
+                    screen_buffer,
+                );
+                self.util.draw_text(
+                    name,
+                    pos + vec2(font_size, 0.0),
+                    options,
+                    camera,
+                    screen_buffer,
+                );
+
+                pos -= vec2(0.0, font_size);
+            }
         }
 
         // Leave the game area transparent

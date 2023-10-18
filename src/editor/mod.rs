@@ -64,10 +64,7 @@ pub struct EditorState {
     framebuffer_size: vec2<usize>,
     cursor_pos: vec2<f64>,
     render_options: RenderOptions,
-    snap_to_grid: bool,
     ui: EditorUI,
-    /// Whether to visualize the lights' movement for the current beat.
-    visualize_beat: bool,
 }
 
 pub struct Editor {
@@ -93,6 +90,9 @@ pub struct Editor {
     /// Whether currently scrolling through time.
     /// Used as a hack to not replay the music every frame.
     pub scrolling: bool,
+    pub snap_to_grid: bool,
+    /// Whether to visualize the lights' movement for the current beat.
+    pub visualize_beat: bool,
 }
 
 impl EditorState {
@@ -110,8 +110,6 @@ impl EditorState {
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
-            visualize_beat: true,
-            snap_to_grid: true,
             render_options: RenderOptions {
                 show_grid: true,
                 hide_ui: false,
@@ -130,6 +128,8 @@ impl EditorState {
                 music_timer: Time::ZERO,
                 was_scrolling: false,
                 scrolling: false,
+                visualize_beat: true,
+                snap_to_grid: true,
                 config,
                 model,
                 level_path,
@@ -267,13 +267,13 @@ impl geng::State for EditorState {
             .camera
             .screen_to_world(self.ui.game.size(), pos)
             .as_r32();
-        self.editor.cursor_world_pos = if self.snap_to_grid {
+        self.editor.cursor_world_pos = if self.editor.snap_to_grid {
             self.snap_pos_grid(pos)
         } else {
             pos
         };
 
-        self.editor.render_lights(self.visualize_beat);
+        self.editor.render_lights(self.editor.visualize_beat);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
