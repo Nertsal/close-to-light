@@ -1,9 +1,13 @@
-use super::*;
+use super::{
+    dither::DitherRender,
+    util::{TextRenderOptions, UtilRender},
+    *,
+};
 
 pub struct GameRender {
     geng: Geng,
     // assets: Rc<Assets>,
-    render: Render,
+    dither: DitherRender,
     util: UtilRender,
 }
 
@@ -12,17 +16,17 @@ impl GameRender {
         Self {
             geng: geng.clone(),
             // assets: assets.clone(),
-            render: Render::new(geng, assets),
+            dither: DitherRender::new(geng, assets),
             util: UtilRender::new(geng, assets),
         }
     }
 
     pub fn get_render_size(&self) -> vec2<usize> {
-        self.render.get_render_size()
+        self.dither.get_render_size()
     }
 
     pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
-        let mut framebuffer = self.render.start(model.level_state.config.theme.dark);
+        let mut framebuffer = self.dither.start(model.level_state.config.theme.dark);
 
         let camera = &model.camera;
 
@@ -191,11 +195,11 @@ impl GameRender {
         } else {
             R32::ZERO
         };
-        self.render.dither(model.real_time, t);
+        self.dither.finish(model.real_time, t);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
-        draw_texture_fit(
-            self.render.get_buffer(),
+        geng_utils::texture::draw_texture_fit(
+            self.dither.get_buffer(),
             aabb,
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,

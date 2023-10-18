@@ -17,6 +17,10 @@ impl TextRenderOptions {
         Self { size, ..default() }
     }
 
+    pub fn size(self, size: f32) -> Self {
+        Self { size, ..self }
+    }
+
     pub fn align(self, align: vec2<f32>) -> Self {
         Self { align, ..self }
     }

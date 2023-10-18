@@ -292,6 +292,10 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
+    pub fn get_selected_shape(&self) -> Option<Shape> {
+        self.model.config.shapes.get(self.selected_shape).copied()
+    }
+
     pub fn render_lights(&mut self, visualize_beat: bool) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()

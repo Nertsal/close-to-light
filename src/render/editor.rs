@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    dither::DitherRender,
+    util::{TextRenderOptions, UtilRender},
+    *,
+};
 
 use crate::editor::{State, *};
 
@@ -7,8 +11,10 @@ use geng::prelude::ugli::{BlendEquation, BlendFactor, BlendMode, ChannelBlendMod
 pub struct EditorRender {
     geng: Geng,
     assets: Rc<Assets>,
-    render: Render,
+    dither: DitherRender,
+    dither_small: DitherRender,
     util: UtilRender,
+    unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
 }
@@ -30,8 +36,10 @@ impl EditorRender {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            render: Render::new(geng, assets),
+            dither: DitherRender::new(geng, assets),
+            dither_small: DitherRender::new_sized(geng, assets, vec2::splat(360)),
             util: UtilRender::new(geng, assets),
+            unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
         }
@@ -141,12 +149,49 @@ impl EditorRender {
             }
         }
 
+        if let Some(shape) = editor.get_selected_shape() {
+            // Place new
+            let pos = vec2(ui.selected.center().x, ui.selected.max.y);
+            self.util.draw_text(
+                "Left click to place a new light",
+                pos,
+                options.size(font_size * 0.7),
+                camera,
+                screen_buffer,
+            );
+
+            let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
+            self.util.draw_collider(
+                &Collider::new(vec2::ZERO, shape),
+                editor.level.config.theme.light,
+                &Camera2d {
+                    center: vec2::ZERO,
+                    rotation: Angle::ZERO,
+                    fov: 3.0,
+                },
+                &mut dither_buffer,
+            );
+            self.dither_small.finish(editor.real_time, R32::ZERO);
+
+            let size = ui.selected.width() * 0.5;
+            let size = vec2::splat(size);
+            let pos = pos - vec2(0.0, font_size + size.y / 2.0);
+            let pos = Aabb2::point(pos).extend_symmetric(size / 2.0);
+            self.geng.draw2d().textured_quad(
+                screen_buffer,
+                camera,
+                pos,
+                self.dither_small.get_buffer(),
+                Color::WHITE,
+            );
+        }
+
         // Leave the game area transparent
         ugli::draw(
             screen_buffer,
             &self.assets.shaders.solid,
             ugli::DrawMode::TriangleFan,
-            &self.render.unit_quad,
+            &self.unit_quad,
             (
                 ugli::uniforms! {
                     u_model_matrix: mat3::translate(ui.game.center()) * mat3::scale(ui.game.size() / 2.0),
@@ -188,7 +233,7 @@ impl EditorRender {
 
         // Level
         let mut pixel_buffer = self
-            .render
+            .dither
             .start(editor.level_state.relevant().config.theme.dark);
 
         let base_alpha = if let State::Movement { .. } = &editor.state {
@@ -270,8 +315,7 @@ impl EditorRender {
         if !options.hide_ui {
             // Current action
             if !matches!(editor.state, State::Playing { .. }) {
-                if let Some(&selected_shape) = editor.model.config.shapes.get(editor.selected_shape)
-                {
+                if let Some(selected_shape) = editor.get_selected_shape() {
                     let collider = Collider {
                         position: editor.cursor_world_pos,
                         rotation: editor.place_rotation,
@@ -288,10 +332,10 @@ impl EditorRender {
             }
         }
 
-        self.render.dither(editor.real_time, R32::ZERO);
+        self.dither.finish(editor.real_time, R32::ZERO);
 
         geng_utils::texture::draw_texture_fit(
-            self.render.get_buffer(),
+            self.dither.get_buffer(),
             screen_aabb,
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,

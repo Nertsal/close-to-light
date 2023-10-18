@@ -1,6 +1,9 @@
 use crate::{
     prelude::*,
-    render::{Render, TextRenderOptions, UtilRender},
+    render::{
+        dither::DitherRender,
+        util::{TextRenderOptions, UtilRender},
+    },
 };
 
 pub struct MainMenu {
@@ -9,7 +12,7 @@ pub struct MainMenu {
     config: Config,
     theme: LevelTheme,
     transition: Option<geng::state::Transition>,
-    render: Render,
+    dither: DitherRender,
     util_render: UtilRender,
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
@@ -32,7 +35,7 @@ impl MainMenu {
             assets: assets.clone(),
             theme: LevelTheme::default(),
             transition: None,
-            render: Render::new(geng, assets),
+            dither: DitherRender::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
@@ -136,7 +139,7 @@ impl geng::State for MainMenu {
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
-            self.render.get_render_size().as_f32(),
+            self.dither.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
             vec2(0.5, 0.5),
         );
@@ -187,7 +190,7 @@ impl geng::State for MainMenu {
         self.framebuffer_size = screen_buffer.size();
         ugli::clear(screen_buffer, Some(self.theme.dark), None, None);
 
-        let mut framebuffer = self.render.start(self.theme.dark);
+        let mut framebuffer = self.dither.start(self.theme.dark);
 
         let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
         self.util_render.draw_button(
@@ -244,11 +247,11 @@ impl geng::State for MainMenu {
             );
         }
 
-        self.render.dither(self.time, R32::ZERO); // TODO
+        self.dither.finish(self.time, R32::ZERO); // TODO
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(
-            self.render.get_buffer(),
+            self.dither.get_buffer(),
             aabb,
             vec2(0.5, 0.5),
             &geng::PixelPerfectCamera,

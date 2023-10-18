@@ -1,5 +1,6 @@
 use crate::{
-    assets::Assets, leaderboard::Leaderboard, model::*, render::GameRender, LeaderboardSecrets,
+    assets::Assets, leaderboard::Leaderboard, model::*, render::game::GameRender,
+    LeaderboardSecrets,
 };
 
 use geng::prelude::*;

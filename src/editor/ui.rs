@@ -6,6 +6,7 @@ pub struct EditorUI {
     pub game: Aabb2<f32>,
     pub level_info: Aabb2<f32>,
     pub general: Aabb2<f32>,
+    pub selected: Aabb2<f32>,
 }
 
 impl EditorUI {
@@ -16,6 +17,7 @@ impl EditorUI {
             game: default_aabb,
             level_info: default_aabb,
             general: default_aabb,
+            selected: default_aabb,
         }
     }
 
@@ -50,7 +52,7 @@ impl EditorUI {
 
         {
             let info_size = side_bar.size() * vec2(1.0, 0.2);
-            self.level_info = geng_utils::layout::align_aabb(info_size, side_bar, vec2(1.0, 0.0));
+            self.level_info = geng_utils::layout::align_aabb(info_size, side_bar, vec2(0.5, 0.0));
         }
 
         {
@@ -58,8 +60,13 @@ impl EditorUI {
             self.general = geng_utils::layout::align_aabb(
                 general_size,
                 side_bar.extend_down(-self.level_info.height()),
-                vec2(1.0, 0.0),
+                vec2(0.5, 0.0),
             );
+        }
+
+        {
+            let select_size = side_bar.size() * vec2(1.0, 0.45);
+            self.selected = geng_utils::layout::align_aabb(select_size, side_bar, vec2(0.5, 1.0));
         }
     }
 }
