@@ -1,15 +1,15 @@
 use super::*;
 
-impl Editor {
+impl EditorState {
     pub fn handle_event(&mut self, event: geng::Event) {
         let ctrl = self.geng.window().is_key_pressed(geng::Key::ControlLeft);
         let shift = self.geng.window().is_key_pressed(geng::Key::ShiftLeft);
         let alt = self.geng.window().is_key_pressed(geng::Key::AltLeft);
 
         let scroll_speed = if shift {
-            self.config.scroll_slow
+            self.editor.config.scroll_slow
         } else if alt {
-            self.config.scroll_fast
+            self.editor.config.scroll_fast
         } else {
             Time::ONE
         };
@@ -24,15 +24,15 @@ impl Editor {
                 }
                 geng::Key::F => self.visualize_beat = !self.visualize_beat,
                 geng::Key::X => {
-                    if let Some(index) = self.level_state.hovered_event() {
-                        self.level.events.swap_remove(index);
+                    if let Some(index) = self.editor.level_state.hovered_event() {
+                        self.editor.level.events.swap_remove(index);
                     }
                 }
                 geng::Key::S if ctrl => {
                     self.save();
                 }
-                geng::Key::Q => self.place_rotation += Angle::from_degrees(r32(15.0)),
-                geng::Key::E => self.place_rotation += Angle::from_degrees(r32(-15.0)),
+                geng::Key::Q => self.editor.place_rotation += Angle::from_degrees(r32(15.0)),
+                geng::Key::E => self.editor.place_rotation += Angle::from_degrees(r32(-15.0)),
                 geng::Key::Z if ctrl => {
                     if shift {
                         self.redo();
@@ -40,40 +40,41 @@ impl Editor {
                         self.undo();
                     }
                 }
-                geng::Key::H => self.hide_ui = !self.hide_ui,
+                geng::Key::H => self.render_options.hide_ui = !self.render_options.hide_ui,
                 geng::Key::Backquote => {
                     if ctrl {
-                        self.show_grid = !self.show_grid;
+                        self.render_options.show_grid = !self.render_options.show_grid;
                     } else {
                         self.snap_to_grid = !self.snap_to_grid;
                     }
                 }
                 geng::Key::Escape => {
                     // Cancel creation
-                    if let State::Movement { .. } = self.state {
-                        self.state = State::Place;
+                    if let State::Movement { .. } = self.editor.state {
+                        self.editor.state = State::Place;
                     }
                 }
                 geng::Key::Space => {
                     if let State::Playing {
                         start_beat,
                         old_state,
-                    } = &self.state
+                    } = &self.editor.state
                     {
-                        self.current_beat = *start_beat;
-                        self.state = *old_state.clone();
-                        self.music.stop();
+                        self.editor.current_beat = *start_beat;
+                        self.editor.state = *old_state.clone();
+                        self.editor.music.stop();
                     } else {
-                        self.state = State::Playing {
-                            start_beat: self.current_beat,
-                            old_state: Box::new(self.state.clone()),
+                        self.editor.state = State::Playing {
+                            start_beat: self.editor.current_beat,
+                            old_state: Box::new(self.editor.state.clone()),
                         };
-                        self.music.stop();
-                        self.music = self.assets.music.effect();
+                        self.editor.music.stop();
+                        self.editor.music = self.assets.music.effect();
                         // TODO: future proof in case level beat time is not constant
-                        self.real_time = self.current_beat * self.level.beat_time();
-                        self.music.play_from(time::Duration::from_secs_f64(
-                            self.real_time.as_f32() as f64,
+                        self.editor.real_time =
+                            self.editor.current_beat * self.editor.level.beat_time();
+                        self.editor.music.play_from(time::Duration::from_secs_f64(
+                            self.editor.real_time.as_f32() as f64,
                         ));
                     }
                 }
@@ -94,12 +95,14 @@ impl Editor {
             geng::Event::Wheel { delta } => {
                 if ctrl {
                     if let Some(event) = self
+                        .editor
                         .level_state
                         .hovered_event()
-                        .and_then(|light| self.level.events.get_mut(light))
+                        .and_then(|light| self.editor.level.events.get_mut(light))
                     {
                         // Control fade time
-                        let change = Time::new(delta.signum() as f32) * self.config.scroll_slow;
+                        let change =
+                            Time::new(delta.signum() as f32) * self.editor.config.scroll_slow;
                         if let Event::Light(light) = &mut event.event {
                             if shift {
                                 // Fade out
@@ -130,12 +133,13 @@ impl Editor {
                 geng::MouseButton::Right => {
                     if let State::Movement {
                         start_beat, light, ..
-                    } = &self.state
+                    } = &self.editor.state
                     {
-                        self.level
+                        self.editor
+                            .level
                             .events
                             .push(commit_light(*start_beat, light.clone()));
-                        self.state = State::Place;
+                        self.editor.state = State::Place;
                     }
                 }
             },
@@ -147,13 +151,13 @@ impl Editor {
     }
 
     fn handle_digit(&mut self, digit: u8) {
-        self.selected_shape = (digit as usize)
-            .min(self.model.config.shapes.len())
+        self.editor.selected_shape = (digit as usize)
+            .min(self.editor.model.config.shapes.len())
             .saturating_sub(1);
     }
 
     fn cursor_down(&mut self) {
-        match &mut self.state {
+        match &mut self.editor.state {
             State::Place => {
                 // Fade in
                 let movement = Movement {
@@ -173,15 +177,21 @@ impl Editor {
                     .into(),
                 };
                 let telegraph = Telegraph::default();
-                if let Some(&shape) = self.model.config.shapes.get(self.selected_shape) {
-                    self.state = State::Movement {
-                        start_beat: self.current_beat
+                if let Some(&shape) = self
+                    .editor
+                    .model
+                    .config
+                    .shapes
+                    .get(self.editor.selected_shape)
+                {
+                    self.editor.state = State::Movement {
+                        start_beat: self.editor.current_beat
                             - movement.duration()
                             - telegraph.precede_time, // extra time for the fade and telegraph
                         light: LightEvent {
                             light: LightSerde {
-                                position: self.cursor_world_pos,
-                                rotation: self.place_rotation.as_degrees(),
+                                position: self.editor.cursor_world_pos,
+                                rotation: self.editor.place_rotation.as_degrees(),
                                 shape,
                                 movement,
                                 danger: false, // TODO
@@ -204,10 +214,10 @@ impl Editor {
                 last_pos.translation += light.light.position;
                 last_pos.rotation += Angle::from_degrees(light.light.rotation);
                 light.light.movement.key_frames.push_back(MoveFrame {
-                    lerp_time: self.current_beat - last_beat, // in beats
+                    lerp_time: self.editor.current_beat - last_beat, // in beats
                     transform: Transform {
-                        translation: self.cursor_world_pos - last_pos.translation,
-                        rotation: last_pos.rotation.angle_to(self.place_rotation),
+                        translation: self.editor.cursor_world_pos - last_pos.translation,
+                        rotation: last_pos.rotation.angle_to(self.editor.place_rotation),
                         ..default()
                     },
                 });

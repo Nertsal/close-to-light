@@ -54,19 +54,23 @@ fn main() {
 
         if opts.edit {
             // Editor
-            let level: model::Level = geng::asset::Load::load(
-                manager,
-                &assets_path.join("levels").join("level.json"),
-                &(),
-            )
-            .await
-            .expect("failed to load level");
+            let level_path = assets_path.join("levels").join("level.json");
+            let level: model::Level = geng::asset::Load::load(manager, &level_path, &())
+                .await
+                .expect("failed to load level");
 
             let editor_config: editor::EditorConfig =
                 geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
                     .await
                     .expect("failed to load editor config");
-            let state = editor::Editor::new(geng.clone(), assets, editor_config, config, level);
+            let state = editor::EditorState::new(
+                geng.clone(),
+                assets,
+                editor_config,
+                config,
+                level,
+                level_path,
+            );
             geng.run_state(state).await;
         } else {
             // Main menu

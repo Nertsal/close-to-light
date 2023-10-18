@@ -6,6 +6,7 @@ pub struct Assets {
     pub music: geng::Sound,
     pub sprites: Sprites,
     pub dither: DitherAssets,
+    pub shaders: Shaders,
 }
 
 #[derive(geng::asset::Load)]
@@ -17,9 +18,13 @@ pub struct Sprites {
 }
 
 #[derive(geng::asset::Load)]
+pub struct Shaders {
+    pub solid: ugli::Program,
+}
+
+#[derive(geng::asset::Load)]
 pub struct DitherAssets {
     /// Dither postprocess shader
-    #[load(ext = "glsl")]
     pub dither_shader: ugli::Program,
     #[load(postprocess = "dither_pattern")]
     pub dither1: ugli::Texture,

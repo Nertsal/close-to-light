@@ -1,3 +1,4 @@
+pub mod editor;
 mod game;
 mod util;
 
@@ -11,6 +12,7 @@ use ugli::Texture;
 pub struct Render {
     geng: Geng,
     assets: Rc<Assets>,
+    unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     double_buffer: (Texture, Texture),
 }
 
@@ -19,6 +21,7 @@ impl Render {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            unit_quad: unit_quad_geometry(geng.ugli()),
             double_buffer: {
                 let height = 360;
                 let size = vec2(height * 16 / 9, height);
@@ -68,7 +71,7 @@ impl Render {
             &mut other_framebuffer,
             &self.assets.dither.dither_shader,
             ugli::DrawMode::TriangleFan,
-            &unit_quad_geometry(self.geng.ugli()),
+            &self.unit_quad,
             ugli::uniforms!(
                 u_time: t,
                 u_bg_noise: bg_noise.as_f32(),
