@@ -73,9 +73,7 @@ impl GameRender {
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                0.7,
-                vec2::splat(0.5),
-                model.level_state.config.theme.dark,
+                TextRenderOptions::new(0.7).color(model.level_state.config.theme.dark),
                 camera,
                 &mut framebuffer,
             );
@@ -84,9 +82,9 @@ impl GameRender {
                 self.util.draw_text(
                     text,
                     position.as_r32(),
-                    size,
-                    align,
-                    model.level_state.config.theme.light,
+                    TextRenderOptions::new(size)
+                        .align(align)
+                        .color(model.level_state.config.theme.light),
                     camera,
                     &mut framebuffer,
                 );
@@ -153,9 +151,7 @@ impl GameRender {
             self.util.draw_text(
                 format!("SCORE: {:.0}", model.score),
                 vec2(0.0, 4.5).as_r32(),
-                0.7,
-                vec2::splat(0.5),
-                model.level_state.config.theme.light,
+                TextRenderOptions::new(0.7).color(model.level_state.config.theme.light),
                 camera,
                 &mut framebuffer,
             );
@@ -168,9 +164,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        1.0,
-                        vec2::splat(0.5),
-                        model.level_state.config.theme.light,
+                        TextRenderOptions::new(1.0).color(model.level_state.config.theme.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -179,9 +173,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        1.0,
-                        vec2::splat(0.5),
-                        model.level_state.config.theme.light,
+                        TextRenderOptions::new(1.0).color(model.level_state.config.theme.light),
                         camera,
                         &mut framebuffer,
                     );

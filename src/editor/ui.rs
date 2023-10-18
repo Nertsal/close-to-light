@@ -4,6 +4,7 @@ use super::*;
 pub struct EditorUI {
     pub screen: Aabb2<f32>,
     pub game: Aabb2<f32>,
+    pub general: Aabb2<f32>,
 }
 
 impl EditorUI {
@@ -12,6 +13,7 @@ impl EditorUI {
         Self {
             screen: default_aabb,
             game: default_aabb,
+            general: default_aabb,
         }
     }
 
@@ -20,7 +22,7 @@ impl EditorUI {
         self.screen = screen;
 
         {
-            let max_size = screen.size(); // * 0.8;
+            let max_size = screen.size() * 0.8;
 
             let ratio = 16.0 / 9.0;
             let max_height = max_size.y.min(max_size.x / ratio);
@@ -29,6 +31,24 @@ impl EditorUI {
             let game_size = vec2(game_height * ratio, game_height);
 
             self.game = geng_utils::layout::align_aabb(game_size, screen, vec2(0.0, 1.0));
+        }
+
+        let margin = screen.width().min(screen.height()) * 0.02;
+
+        let side_bar = Aabb2 {
+            min: vec2(self.game.max.x, screen.min.y),
+            max: self.screen.max,
+        }
+        .extend_uniform(-margin);
+        let _bottom_bar = Aabb2 {
+            min: self.screen.min,
+            max: vec2(self.game.max.x, self.game.min.y),
+        }
+        .extend_uniform(-margin);
+
+        {
+            let general_size = side_bar.size() * vec2(1.0, 0.5);
+            self.general = geng_utils::layout::align_aabb(general_size, side_bar, vec2(1.0, 0.0));
         }
     }
 }

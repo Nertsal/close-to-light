@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    render::{Render, UtilRender},
+    render::{Render, TextRenderOptions, UtilRender},
 };
 
 pub struct MainMenu {
@@ -231,18 +231,14 @@ impl geng::State for MainMenu {
             self.util_render.draw_text(
                 &self.name,
                 vec2(0.0, -3.0).as_r32(),
-                0.8,
-                vec2::splat(0.5),
-                self.theme.light,
+                TextRenderOptions::new(0.8).color(self.theme.light),
                 &self.camera,
                 &mut framebuffer,
             );
             self.util_render.draw_text(
                 "TYPE YOUR NAME",
                 vec2(0.0, -3.8).as_r32(),
-                0.7,
-                vec2::splat(0.5),
-                self.theme.light,
+                TextRenderOptions::new(0.7).color(self.theme.light),
                 &self.camera,
                 &mut framebuffer,
             );

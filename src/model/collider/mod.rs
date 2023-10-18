@@ -29,6 +29,10 @@ impl Collider {
         }
     }
 
+    pub fn aabb(aabb: Aabb2<Coord>) -> Self {
+        Self::new(aabb.center(), Shape::rectangle(aabb.size()))
+    }
+
     pub fn transformed(&self, transform: Transform) -> Self {
         Self {
             position: self.position + transform.translation,

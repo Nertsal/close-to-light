@@ -5,6 +5,37 @@ pub struct UtilRender {
     assets: Rc<Assets>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct TextRenderOptions {
+    pub size: f32,
+    pub align: vec2<f32>,
+    pub color: Color,
+}
+
+impl TextRenderOptions {
+    pub fn new(size: f32) -> Self {
+        Self { size, ..default() }
+    }
+
+    pub fn align(self, align: vec2<f32>) -> Self {
+        Self { align, ..self }
+    }
+
+    pub fn color(self, color: Color) -> Self {
+        Self { color, ..self }
+    }
+}
+
+impl Default for TextRenderOptions {
+    fn default() -> Self {
+        Self {
+            size: 1.0,
+            align: vec2::splat(0.5),
+            color: Color::WHITE,
+        }
+    }
+}
+
 impl UtilRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
@@ -13,26 +44,29 @@ impl UtilRender {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn draw_text(
         &self,
         text: impl AsRef<str>,
-        position: vec2<Coord>,
-        size: f32,
-        align: vec2<f32>,
-        color: Rgba<f32>,
-        camera: &Camera2d,
+        position: vec2<impl Float>,
+        options: TextRenderOptions,
+        camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        self.geng.default_font().draw(
+        let text = text.as_ref();
+        let font = self.geng.default_font();
+        let size = font
+            .measure(text, options.align.map(geng::TextAlign))
+            .map_or(vec2::splat(1.0), |aabb| aabb.size());
+        let align = size * (options.align - vec2::splat(0.5)); // Centered by default
+        font.draw(
             framebuffer,
             camera,
-            text.as_ref(),
-            align.map(geng::TextAlign),
-            mat3::translate(position.as_f32())
-                * mat3::scale_uniform(size)
-                * mat3::translate(vec2(0.0, -0.25)),
-            color,
+            text,
+            vec2::splat(geng::TextAlign::CENTER),
+            mat3::translate(position.map(Float::as_f32))
+                * mat3::scale_uniform(options.size)
+                * mat3::translate(vec2(0.0, -0.25) - align),
+            options.color,
         );
     }
 
@@ -89,7 +123,7 @@ impl UtilRender {
         collider: &Collider,
         outline_width: f32,
         color: Rgba<f32>,
-        camera: &Camera2d,
+        camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         match collider.shape {
@@ -106,13 +140,14 @@ impl UtilRender {
                 );
             }
             Shape::Line { width } => {
+                let inf = 1e3; // camera.fov;
                 self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
                     &draw2d::Segment::new(
                         Segment(
-                            vec2(-camera.fov * 2.0, (width.as_f32() - outline_width) / 2.0),
-                            vec2(camera.fov * 2.0, (width.as_f32() - outline_width) / 2.0),
+                            vec2(-inf * 2.0, (width.as_f32() - outline_width) / 2.0),
+                            vec2(inf * 2.0, (width.as_f32() - outline_width) / 2.0),
                         ),
                         outline_width,
                         color,
@@ -125,8 +160,8 @@ impl UtilRender {
                     camera,
                     &draw2d::Segment::new(
                         Segment(
-                            vec2(-camera.fov * 2.0, -(width.as_f32() - outline_width) / 2.0),
-                            vec2(camera.fov * 2.0, -(width.as_f32() - outline_width) / 2.0),
+                            vec2(-inf * 2.0, -(width.as_f32() - outline_width) / 2.0),
+                            vec2(inf * 2.0, -(width.as_f32() - outline_width) / 2.0),
                         ),
                         outline_width,
                         color,

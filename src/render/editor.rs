@@ -37,10 +37,6 @@ impl EditorRender {
         }
     }
 
-    pub fn get_render_size(&self) -> vec2<usize> {
-        self.render.get_render_size()
-    }
-
     pub fn draw_editor(
         &mut self,
         editor: &Editor,
@@ -49,7 +45,7 @@ impl EditorRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.draw_game(editor, options);
-        self.draw_ui(editor);
+        self.draw_ui(editor, ui);
 
         // let framebuffer_size = framebuffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;
@@ -69,7 +65,7 @@ impl EditorRender {
         );
     }
 
-    fn draw_ui(&mut self, editor: &Editor) {
+    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI) {
         let screen_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
@@ -77,10 +73,33 @@ impl EditorRender {
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(
             screen_buffer,
-            Some(editor.level_state.relevant().config.theme.dark),
+            Some(editor.level.config.theme.dark),
             None,
             None,
         );
+
+        {
+            // General info
+            let pos = vec2(ui.general.center().x, ui.general.min.y);
+            let font_size = ui.screen.height() * 0.04;
+            let options = TextRenderOptions::new(font_size)
+                .align(vec2(0.5, 0.0))
+                .color(editor.level.config.theme.light);
+
+            let name = editor
+                .level_path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("<invalid>");
+            self.util
+                .draw_text(name, pos, options, camera, screen_buffer);
+
+            let pos = pos + vec2(0.0, font_size);
+            self.util
+                .draw_text("Level", pos, options, camera, screen_buffer);
+        }
+
+        // Leave the game area transparent
         ugli::draw(
             screen_buffer,
             &self.assets.shaders.solid,
@@ -88,7 +107,7 @@ impl EditorRender {
             &self.render.unit_quad,
             (
                 ugli::uniforms! {
-                    u_model_matrix: mat3::scale(framebuffer_size),
+                    u_model_matrix: mat3::translate(ui.game.center()) * mat3::scale(ui.game.size() / 2.0),
                     u_color: Color::TRANSPARENT_BLACK,
                 },
                 camera.uniforms(framebuffer_size),
@@ -101,6 +120,16 @@ impl EditorRender {
                 })),
                 ..default()
             },
+        );
+
+        // Game border
+        let width = 5.0;
+        self.util.draw_outline(
+            &Collider::aabb(ui.game.extend_uniform(width).map(r32)),
+            width,
+            Color::WHITE,
+            camera,
+            screen_buffer,
         );
     }
 
