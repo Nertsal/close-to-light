@@ -15,6 +15,7 @@ pub enum State {
     /// Place a new light.
     Place {
         shape: Shape,
+        danger: bool,
     },
     /// Specify a movement path for the light.
     Movement {

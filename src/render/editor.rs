@@ -110,51 +110,46 @@ impl EditorRender {
 
         {
             // General
-            let options = options.align(vec2(0.0, 0.5));
             let mut pos = vec2(ui.general.min.x + font_size, ui.general.max.y - font_size);
             for (name, checked) in [
                 ("Show movement", editor.visualize_beat),
                 ("Show grid", render_options.show_grid),
                 ("Snap to grid", editor.snap_to_grid),
             ] {
-                let checkbox = Aabb2::point(pos).extend_uniform(font_size / 3.0);
-                if checked {
-                    let checkbox = checkbox.extend_uniform(-font_size * 0.05);
-                    for (a, b) in [
-                        (checkbox.bottom_left(), checkbox.top_right()),
-                        (checkbox.top_left(), checkbox.bottom_right()),
-                    ] {
-                        self.geng.draw2d().draw2d(
-                            screen_buffer,
-                            camera,
-                            &draw2d::Segment::new(Segment(a, b), font_size * 0.07, options.color),
-                        );
-                    }
-                }
-                self.util.draw_outline(
-                    &Collider::aabb(checkbox.map(r32)),
-                    font_size * 0.1,
-                    options.color,
-                    camera,
-                    screen_buffer,
-                );
-                self.util.draw_text(
-                    name,
-                    pos + vec2(font_size, 0.0),
-                    options,
-                    camera,
-                    screen_buffer,
-                );
-
+                self.util
+                    .draw_checkbox(pos, name, checked, options, screen_buffer);
                 pos -= vec2(0.0, font_size);
             }
         }
 
-        if let State::Place { shape } = editor.state {
+        let selected = if let State::Place { shape, danger } = editor.state {
             // Place new
+            let light = LightSerde {
+                position: vec2::ZERO,
+                danger,
+                rotation: editor.place_rotation.as_degrees(),
+                shape,
+                movement: Movement::default(),
+            };
+            Some(("Left click to place a new light", light))
+        } else if let Some(selected_event) = editor
+            .selected_light
+            .and_then(|i| editor.level_state.light_event(i))
+            .and_then(|i| editor.level.events.get(i))
+        {
+            if let Event::Light(event) = &selected_event.event {
+                Some(("Selected light", event.light.clone()))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if let Some((text, light)) = selected {
+            // Selected light
             let pos = vec2(ui.selected.center().x, ui.selected.max.y);
             self.util.draw_text(
-                "Left click to place a new light",
+                text,
                 pos,
                 options.size(font_size * 0.7),
                 camera,
@@ -162,9 +157,16 @@ impl EditorRender {
             );
 
             let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
+            let mut collider = Collider::new(vec2::ZERO, light.shape);
+            collider.rotation = Angle::from_degrees(light.rotation);
+            let color = if light.danger {
+                editor.level.config.theme.danger
+            } else {
+                editor.level.config.theme.light
+            };
             self.util.draw_collider(
-                &Collider::new(vec2::ZERO, shape),
-                editor.level.config.theme.light,
+                &collider,
+                color,
                 &Camera2d {
                     center: vec2::ZERO,
                     rotation: Angle::ZERO,
@@ -176,14 +178,22 @@ impl EditorRender {
 
             let size = ui.light_size.as_f32();
             let pos = pos - vec2(0.0, font_size + size.y / 2.0);
-            let pos = Aabb2::point(pos).extend_symmetric(size / 2.0);
+            let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
             self.geng.draw2d().textured_quad(
                 screen_buffer,
                 camera,
-                pos,
+                aabb,
                 self.dither_small.get_buffer(),
                 Color::WHITE,
             );
+
+            let mut pos = vec2(ui.selected.min.x, aabb.min.y) + vec2(1.0, -1.0) * font_size;
+            {
+                let (name, checked) = ("Danger", light.danger);
+                self.util
+                    .draw_checkbox(pos, name, checked, options, screen_buffer);
+                pos -= vec2(0.0, font_size);
+            }
         }
 
         {
@@ -248,12 +258,23 @@ impl EditorRender {
             .dither
             .start(editor.level_state.relevant().config.theme.dark);
 
-        let base_alpha = if let State::Movement { .. } = &editor.state {
-            0.5
+        let (active_danger, base_alpha) = if let State::Movement { light, .. } = &editor.state {
+            (light.light.danger, 0.5)
         } else {
-            1.0
+            (false, 1.0)
         };
-        let color = crate::util::with_alpha(editor.level.config.theme.light, base_alpha);
+
+        let light_color = editor.level.config.theme.light;
+        let danger_color = editor.level.config.theme.danger;
+
+        let active_color = if active_danger {
+            danger_color
+        } else {
+            light_color
+        };
+
+        let light_color = crate::util::with_alpha(light_color, base_alpha);
+        let danger_color = crate::util::with_alpha(danger_color, base_alpha);
 
         let hover_color = crate::util::with_alpha(editor.config.theme.hover, base_alpha);
         let hovered_event = editor.level_state.hovered_event();
@@ -264,14 +285,27 @@ impl EditorRender {
             .and_then(|i| editor.level_state.light_event(i));
 
         let get_color = |event_id: Option<usize>| -> Color {
-            let check = |a: Option<usize>| -> bool { a.is_some() && a == event_id };
-
-            if check(selected_event) {
-                select_color
-            } else if check(hovered_event) {
-                hover_color
+            if let Some(event_id) = event_id {
+                let check = |a: Option<usize>| -> bool { a == Some(event_id) };
+                if check(selected_event) {
+                    select_color
+                } else if check(hovered_event) {
+                    hover_color
+                } else if editor
+                    .level
+                    .events
+                    .get(event_id)
+                    .map_or(false, |e| match &e.event {
+                        Event::Light(event) => event.light.danger,
+                        _ => false,
+                    })
+                {
+                    danger_color
+                } else {
+                    light_color
+                }
             } else {
-                color
+                active_color
             }
         };
 
@@ -327,21 +361,29 @@ impl EditorRender {
 
         if !options.hide_ui {
             // Current action
-            if !matches!(editor.state, State::Playing { .. }) {
-                if let State::Place { shape } = editor.state {
-                    let collider = Collider {
-                        position: editor.cursor_world_pos,
-                        rotation: editor.place_rotation,
-                        shape,
-                    };
-                    self.util.draw_outline(
-                        &collider,
-                        0.05,
-                        editor.level.config.theme.light,
-                        &editor.model.camera,
-                        &mut pixel_buffer,
-                    );
-                }
+            let shape = match editor.state {
+                State::Place { shape, danger } => Some((shape, danger)),
+                State::Movement { ref light, .. } => Some((light.light.shape, light.light.danger)),
+                _ => None,
+            };
+            if let Some((shape, danger)) = shape {
+                let collider = Collider {
+                    position: editor.cursor_world_pos,
+                    rotation: editor.place_rotation,
+                    shape,
+                };
+                let color = if danger {
+                    editor.level.config.theme.danger
+                } else {
+                    editor.level.config.theme.light
+                };
+                self.util.draw_outline(
+                    &collider,
+                    0.05,
+                    color,
+                    &editor.model.camera,
+                    &mut pixel_buffer,
+                );
             }
         }
 

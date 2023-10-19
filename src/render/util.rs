@@ -244,4 +244,45 @@ impl UtilRender {
             );
         }
     }
+
+    pub fn draw_checkbox(
+        &self,
+        pos: vec2<f32>,
+        text: &str,
+        checked: bool,
+        options: TextRenderOptions,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let camera = &geng::PixelPerfectCamera;
+        let options = options.align(vec2(0.0, 0.5)); // TODO
+
+        let checkbox = Aabb2::point(pos).extend_uniform(options.size / 3.0);
+        if checked {
+            let checkbox = checkbox.extend_uniform(-options.size * 0.05);
+            for (a, b) in [
+                (checkbox.bottom_left(), checkbox.top_right()),
+                (checkbox.top_left(), checkbox.bottom_right()),
+            ] {
+                self.geng.draw2d().draw2d(
+                    framebuffer,
+                    camera,
+                    &draw2d::Segment::new(Segment(a, b), options.size * 0.07, options.color),
+                );
+            }
+        }
+        self.draw_outline(
+            &Collider::aabb(checkbox.map(r32)),
+            options.size * 0.1,
+            options.color,
+            camera,
+            framebuffer,
+        );
+        self.draw_text(
+            text,
+            pos + vec2(options.size, 0.0),
+            options,
+            camera,
+            framebuffer,
+        );
+    }
 }

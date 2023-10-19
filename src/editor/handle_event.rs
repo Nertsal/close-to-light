@@ -41,6 +41,30 @@ impl EditorState {
                     }
                 }
                 geng::Key::H => self.render_options.hide_ui = !self.render_options.hide_ui,
+                geng::Key::D => {
+                    // Toggle danger
+                    match &mut self.editor.state {
+                        State::Idle => {
+                            if let Some(event) = self
+                                .editor
+                                .selected_light
+                                .and_then(|i| self.editor.level_state.light_event(i))
+                                .and_then(|i| self.editor.level.events.get_mut(i))
+                            {
+                                if let Event::Light(event) = &mut event.event {
+                                    event.light.danger = !event.light.danger;
+                                }
+                            }
+                        }
+                        State::Place { danger, .. } => {
+                            *danger = !*danger;
+                        }
+                        State::Movement { light, .. } => {
+                            light.light.danger = !light.light.danger;
+                        }
+                        _ => {}
+                    }
+                }
                 geng::Key::Backquote => {
                     if ctrl {
                         self.render_options.show_grid = !self.render_options.show_grid;
@@ -165,7 +189,10 @@ impl EditorState {
                 .shapes
                 .get((digit as usize).saturating_sub(1))
             {
-                self.editor.state = State::Place { shape };
+                self.editor.state = State::Place {
+                    shape,
+                    danger: false,
+                };
             }
         }
     }
@@ -178,8 +205,10 @@ impl EditorState {
                     self.editor.selected_light = Some(hovered);
                 }
             }
-            State::Place { shape } => {
+            State::Place { shape, danger } => {
                 let shape = *shape;
+                let danger = *danger;
+
                 // Fade in
                 let movement = Movement {
                     key_frames: vec![
@@ -208,7 +237,7 @@ impl EditorState {
                             rotation: self.editor.place_rotation.as_degrees(),
                             shape,
                             movement,
-                            danger: false, // TODO
+                            danger,
                         },
                         telegraph,
                     },
