@@ -253,6 +253,8 @@ impl EditorRender {
                 1.0
             };
             let color = crate::util::with_alpha(color, alpha);
+            let hover_color = crate::util::with_alpha(hover_color, alpha);
+
             for tele in &level.telegraphs {
                 let color = if hovered_event.is_some() && hovered_event == tele.light.event_id {
                     hover_color
