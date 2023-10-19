@@ -7,6 +7,8 @@ pub struct EditorUI {
     pub level_info: Aabb2<f32>,
     pub general: Aabb2<f32>,
     pub selected: Aabb2<f32>,
+    /// The size for the light texture to render pixel-perfectly.
+    pub light_size: vec2<usize>,
 }
 
 impl EditorUI {
@@ -18,6 +20,7 @@ impl EditorUI {
             level_info: default_aabb,
             general: default_aabb,
             selected: default_aabb,
+            light_size: vec2(1, 1),
         }
     }
 
@@ -67,6 +70,12 @@ impl EditorUI {
         {
             let select_size = side_bar.size() * vec2(1.0, 0.45);
             self.selected = geng_utils::layout::align_aabb(select_size, side_bar, vec2(0.5, 1.0));
+        }
+
+        {
+            let size = self.selected.width() * 0.5;
+            let size = vec2::splat(size);
+            self.light_size = size.map(|x| x.round() as usize);
         }
     }
 }

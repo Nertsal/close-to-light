@@ -19,13 +19,7 @@ impl DitherRender {
             geng: geng.clone(),
             assets: assets.clone(),
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
-            double_buffer: {
-                let mut first = geng_utils::texture::new_texture(geng.ugli(), size);
-                first.set_filter(ugli::Filter::Nearest);
-                let mut second = geng_utils::texture::new_texture(geng.ugli(), size);
-                second.set_filter(ugli::Filter::Nearest);
-                (first, second)
-            },
+            double_buffer: init_buffers(geng.ugli(), size),
         }
     }
 
@@ -39,6 +33,12 @@ impl DitherRender {
 
     pub fn get_buffer(&self) -> &ugli::Texture {
         &self.double_buffer.0
+    }
+
+    pub fn update_render_size(&mut self, new_size: vec2<usize>) {
+        if self.get_render_size() != new_size {
+            self.double_buffer = init_buffers(self.geng.ugli(), new_size);
+        }
     }
 
     pub fn start(&mut self, clear_color: Rgba<f32>) -> ugli::Framebuffer {
@@ -83,4 +83,12 @@ impl DitherRender {
         self.swap_buffer();
         geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli())
     }
+}
+
+fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
+    let mut first = geng_utils::texture::new_texture(ugli, size);
+    first.set_filter(ugli::Filter::Nearest);
+    let mut second = geng_utils::texture::new_texture(ugli, size);
+    second.set_filter(ugli::Filter::Nearest);
+    (first, second)
 }

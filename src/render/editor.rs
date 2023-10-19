@@ -52,6 +52,7 @@ impl EditorRender {
         options: &RenderOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        self.dither_small.update_render_size(ui.light_size);
         self.draw_game(editor, options);
         self.draw_ui(editor, ui, options);
 
@@ -173,8 +174,7 @@ impl EditorRender {
             );
             self.dither_small.finish(editor.real_time, R32::ZERO);
 
-            let size = ui.selected.width() * 0.5;
-            let size = vec2::splat(size);
+            let size = ui.light_size.as_f32();
             let pos = pos - vec2(0.0, font_size + size.y / 2.0);
             let pos = Aabb2::point(pos).extend_symmetric(size / 2.0);
             self.geng.draw2d().textured_quad(
