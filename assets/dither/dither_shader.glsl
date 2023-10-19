@@ -94,7 +94,7 @@ vec3 hsv2rgb(vec3 c) {
 
 void main() {
 	vec3 rgb = (v_color * texture2D(u_texture, v_vt)).rgb;
-	vec2 pixel_pos = v_vt * vec2(360.0 * 16.0 / 9.0, 360.0) / u_pattern_size + vec2(0.5) / vec2(360.0 * 16.0 / 9.0, 360.0);
+	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
 	
 	vec3 hsv = rgb2hsv(rgb);
 	float amp = hsv.z;
