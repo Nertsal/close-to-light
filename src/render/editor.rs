@@ -150,7 +150,7 @@ impl EditorRender {
             }
         }
 
-        if let Some(shape) = editor.get_selected_shape() {
+        if let State::Place { shape } = editor.state {
             // Place new
             let pos = vec2(ui.selected.center().x, ui.selected.max.y);
             self.util.draw_text(
@@ -183,6 +183,18 @@ impl EditorRender {
                 pos,
                 self.dither_small.get_buffer(),
                 Color::WHITE,
+            );
+        }
+
+        {
+            // Beat
+            let text = format!("Beat: {:.2}", editor.current_beat);
+            self.util.draw_text(
+                text,
+                ui.current_beat.center(),
+                options,
+                camera,
+                screen_buffer,
             );
         }
 
@@ -243,8 +255,25 @@ impl EditorRender {
         };
         let color = crate::util::with_alpha(editor.level.config.theme.light, base_alpha);
 
-        let hover_color = crate::util::with_alpha(Rgba::CYAN, base_alpha);
+        let hover_color = crate::util::with_alpha(editor.config.theme.hover, base_alpha);
         let hovered_event = editor.level_state.hovered_event();
+
+        let select_color = crate::util::with_alpha(editor.config.theme.select, base_alpha);
+        let selected_event = editor
+            .selected_light
+            .and_then(|i| editor.level_state.light_event(i));
+
+        let get_color = |event_id: Option<usize>| -> Color {
+            let check = |a: Option<usize>| -> bool { a.is_some() && a == event_id };
+
+            if check(selected_event) {
+                select_color
+            } else if check(hovered_event) {
+                hover_color
+            } else {
+                color
+            }
+        };
 
         if let Some(level) = &editor.level_state.dynamic_level {
             let alpha = if editor.level_state.static_level.is_some() {
@@ -252,15 +281,9 @@ impl EditorRender {
             } else {
                 1.0
             };
-            let color = crate::util::with_alpha(color, alpha);
-            let hover_color = crate::util::with_alpha(hover_color, alpha);
 
             for tele in &level.telegraphs {
-                let color = if hovered_event.is_some() && hovered_event == tele.light.event_id {
-                    hover_color
-                } else {
-                    color
-                };
+                let color = crate::util::with_alpha(get_color(tele.light.event_id), alpha);
                 self.util.draw_outline(
                     &tele.light.collider,
                     0.02,
@@ -270,11 +293,7 @@ impl EditorRender {
                 );
             }
             for light in &level.lights {
-                let color = if hovered_event.is_some() && hovered_event == light.event_id {
-                    hover_color
-                } else {
-                    color
-                };
+                let color = crate::util::with_alpha(get_color(light.event_id), alpha);
                 self.util.draw_collider(
                     &light.collider,
                     color,
@@ -286,11 +305,7 @@ impl EditorRender {
 
         if let Some(level) = &editor.level_state.static_level {
             for tele in &level.telegraphs {
-                let color = if hovered_event.is_some() && hovered_event == tele.light.event_id {
-                    hover_color
-                } else {
-                    color
-                };
+                let color = get_color(tele.light.event_id);
                 self.util.draw_outline(
                     &tele.light.collider,
                     0.02,
@@ -300,11 +315,7 @@ impl EditorRender {
                 );
             }
             for light in &level.lights {
-                let color = if hovered_event.is_some() && hovered_event == light.event_id {
-                    hover_color
-                } else {
-                    color
-                };
+                let color = get_color(light.event_id);
                 self.util.draw_collider(
                     &light.collider,
                     color,
@@ -317,11 +328,11 @@ impl EditorRender {
         if !options.hide_ui {
             // Current action
             if !matches!(editor.state, State::Playing { .. }) {
-                if let Some(selected_shape) = editor.get_selected_shape() {
+                if let State::Place { shape } = editor.state {
                     let collider = Collider {
                         position: editor.cursor_world_pos,
                         rotation: editor.place_rotation,
-                        shape: selected_shape,
+                        shape,
                     };
                     self.util.draw_outline(
                         &collider,
@@ -428,31 +439,31 @@ impl EditorRender {
             // let outline_size = 0.05;
 
             // Current beat / Fade in/out
-            let mut text = format!("Beat: {:.2}", editor.current_beat);
-            if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
-                if let Some(event) = hovered_event.and_then(|i| editor.level.events.get(i)) {
-                    if let Event::Light(light) = &event.event {
-                        if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-                            if let Some(frame) = light.light.movement.key_frames.back() {
-                                text = format!("Fade out time: {}", frame.lerp_time);
-                            }
-                        } else if let Some(frame) = light.light.movement.key_frames.get(1) {
-                            text = format!("Fade in time: {}", frame.lerp_time);
-                        }
-                    }
-                }
-            }
-            font.draw(
-                game_buffer,
-                camera,
-                &text,
-                vec2::splat(geng::TextAlign(0.5)),
-                mat3::translate(
-                    geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
-                ) * mat3::scale_uniform(font_size)
-                    * mat3::translate(vec2(0.0, -0.5)),
-                text_color,
-            );
+            // let mut text = String::new();
+            // if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
+            //     if let Some(event) = hovered_event.and_then(|i| editor.level.events.get(i)) {
+            //         if let Event::Light(light) = &event.event {
+            //             if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
+            //                 if let Some(frame) = light.light.movement.key_frames.back() {
+            //                     text = format!("Fade out time: {}", frame.lerp_time);
+            //                 }
+            //             } else if let Some(frame) = light.light.movement.key_frames.get(1) {
+            //                 text = format!("Fade in time: {}", frame.lerp_time);
+            //             }
+            //         }
+            //     }
+            // }
+            // font.draw(
+            //     game_buffer,
+            //     camera,
+            //     &text,
+            //     vec2::splat(geng::TextAlign(0.5)),
+            //     mat3::translate(
+            //         geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
+            //     ) * mat3::scale_uniform(font_size)
+            //         * mat3::translate(vec2(0.0, -0.5)),
+            //     text_color,
+            // );
 
             if editor.model.level != editor.level {
                 // Save indicator
@@ -480,7 +491,8 @@ impl EditorRender {
                     light.light.movement.key_frames.len() - 2,
                     redo_stack.len()
                 ),
-                State::Place => "Level stack not implemented KEKW".to_string(),
+                State::Place { .. } => "idk what should we do here".to_string(),
+                State::Idle => "Level stack not implemented KEKW".to_string(),
             };
             font.draw(
                 game_buffer,
@@ -515,7 +527,8 @@ impl EditorRender {
                 "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
             } else {
                 match &editor.state {
-                State::Place => "Click to create a new light\n1/2 to select different types",
+                State::Idle => "Click on a light to configure\n1/2 to spawn a new one",
+                State::Place { .. } => "Click to set the spawn position for the new light",
                 State::Movement { .. } => {
                     "Left click to create a new waypoint\nRight click to finish\nEscape to cancel"
                 }

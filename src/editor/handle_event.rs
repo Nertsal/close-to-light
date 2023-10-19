@@ -50,8 +50,14 @@ impl EditorState {
                 }
                 geng::Key::Escape => {
                     // Cancel creation
-                    if let State::Movement { .. } = self.editor.state {
-                        self.editor.state = State::Place;
+                    match self.editor.state {
+                        State::Movement { .. } | State::Place { .. } => {
+                            self.editor.state = State::Idle;
+                        }
+                        State::Idle => {
+                            self.editor.selected_light = None;
+                        }
+                        _ => (),
                     }
                 }
                 geng::Key::Space => {
@@ -139,7 +145,7 @@ impl EditorState {
                             .level
                             .events
                             .push(commit_light(*start_beat, light.clone()));
-                        self.editor.state = State::Place;
+                        self.editor.state = State::Idle;
                     }
                 }
             },
@@ -151,14 +157,29 @@ impl EditorState {
     }
 
     fn handle_digit(&mut self, digit: u8) {
-        self.editor.selected_shape = (digit as usize)
-            .min(self.editor.model.config.shapes.len())
-            .saturating_sub(1);
+        if let State::Idle | State::Place { .. } = self.editor.state {
+            if let Some(&shape) = self
+                .editor
+                .model
+                .config
+                .shapes
+                .get((digit as usize).saturating_sub(1))
+            {
+                self.editor.state = State::Place { shape };
+            }
+        }
     }
 
     fn cursor_down(&mut self) {
         match &mut self.editor.state {
-            State::Place => {
+            State::Idle => {
+                // Select a light
+                if let Some(hovered) = self.editor.level_state.hovered_light {
+                    self.editor.selected_light = Some(hovered);
+                }
+            }
+            State::Place { shape } => {
+                let shape = *shape;
                 // Fade in
                 let movement = Movement {
                     key_frames: vec![
@@ -177,30 +198,22 @@ impl EditorState {
                     .into(),
                 };
                 let telegraph = Telegraph::default();
-                if let Some(&shape) = self
-                    .editor
-                    .model
-                    .config
-                    .shapes
-                    .get(self.editor.selected_shape)
-                {
-                    self.editor.state = State::Movement {
-                        start_beat: self.editor.current_beat
-                            - movement.duration()
-                            - telegraph.precede_time, // extra time for the fade and telegraph
-                        light: LightEvent {
-                            light: LightSerde {
-                                position: self.editor.cursor_world_pos,
-                                rotation: self.editor.place_rotation.as_degrees(),
-                                shape,
-                                movement,
-                                danger: false, // TODO
-                            },
-                            telegraph,
+                self.editor.state = State::Movement {
+                    start_beat: self.editor.current_beat
+                        - movement.duration()
+                        - telegraph.precede_time, // extra time for the fade and telegraph
+                    light: LightEvent {
+                        light: LightSerde {
+                            position: self.editor.cursor_world_pos,
+                            rotation: self.editor.place_rotation.as_degrees(),
+                            shape,
+                            movement,
+                            danger: false, // TODO
                         },
-                        redo_stack: Vec::new(),
-                    };
-                }
+                        telegraph,
+                    },
+                    redo_stack: Vec::new(),
+                };
             }
             State::Movement {
                 start_beat,

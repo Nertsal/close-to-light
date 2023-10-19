@@ -9,6 +9,7 @@ pub struct EditorUI {
     pub selected: Aabb2<f32>,
     /// The size for the light texture to render pixel-perfectly.
     pub light_size: vec2<usize>,
+    pub current_beat: Aabb2<f32>,
 }
 
 impl EditorUI {
@@ -21,6 +22,7 @@ impl EditorUI {
             general: default_aabb,
             selected: default_aabb,
             light_size: vec2(1, 1),
+            current_beat: default_aabb,
         }
     }
 
@@ -47,35 +49,41 @@ impl EditorUI {
             max: self.screen.max,
         }
         .extend_uniform(-margin);
-        let _bottom_bar = Aabb2 {
+        let bottom_bar = Aabb2 {
             min: self.screen.min,
             max: vec2(self.game.max.x, self.game.min.y),
         }
         .extend_uniform(-margin);
 
         {
-            let info_size = side_bar.size() * vec2(1.0, 0.2);
-            self.level_info = geng_utils::layout::align_aabb(info_size, side_bar, vec2(0.5, 0.0));
+            let size = side_bar.size() * vec2(1.0, 0.2);
+            self.level_info = geng_utils::layout::align_aabb(size, side_bar, vec2(0.5, 0.0));
         }
 
         {
-            let general_size = side_bar.size() * vec2(1.0, 0.3);
+            let size = side_bar.size() * vec2(1.0, 0.3);
             self.general = geng_utils::layout::align_aabb(
-                general_size,
+                size,
                 side_bar.extend_down(-self.level_info.height()),
                 vec2(0.5, 0.0),
             );
         }
 
         {
-            let select_size = side_bar.size() * vec2(1.0, 0.45);
-            self.selected = geng_utils::layout::align_aabb(select_size, side_bar, vec2(0.5, 1.0));
+            let size = side_bar.size() * vec2(1.0, 0.45);
+            self.selected = geng_utils::layout::align_aabb(size, side_bar, vec2(0.5, 1.0));
         }
 
         {
             let size = self.selected.width() * 0.5;
             let size = vec2::splat(size);
             self.light_size = size.map(|x| x.round() as usize);
+        }
+
+        {
+            let size = bottom_bar.height() * 0.2;
+            let size = vec2::splat(size);
+            self.current_beat = geng_utils::layout::align_aabb(size, bottom_bar, vec2(0.5, 1.0));
         }
     }
 }

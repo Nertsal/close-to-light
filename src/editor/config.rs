@@ -8,6 +8,7 @@ pub struct EditorConfig {
     pub playback_duration: Time,
     pub scroll_slow: Time,
     pub scroll_fast: Time,
+    pub theme: EditorTheme,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,4 +18,10 @@ pub struct GridConfig {
     /// Every n'th line of the grid is thick.
     /// If 0, then no lines are thick.
     pub thick_every: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EditorTheme {
+    pub hover: Color,
+    pub select: Color,
 }

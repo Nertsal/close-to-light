@@ -11,8 +11,11 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub enum State {
+    Idle,
     /// Place a new light.
-    Place,
+    Place {
+        shape: Shape,
+    },
     /// Specify a movement path for the light.
     Movement {
         start_beat: Time,
@@ -45,12 +48,13 @@ impl EditorLevelState {
 
     /// Returns the index of the hovered event (if any).
     pub fn hovered_event(&self) -> Option<usize> {
-        self.hovered_light
-            .and_then(|i| {
-                self.static_level
-                    .as_ref()
-                    .and_then(|level| level.lights.get(i))
-            })
+        self.hovered_light.and_then(|i| self.light_event(i))
+    }
+
+    pub fn light_event(&self, light: usize) -> Option<usize> {
+        self.static_level
+            .as_ref()
+            .and_then(|level| level.lights.get(light))
             .and_then(|light| light.event_id)
     }
 }
@@ -78,7 +82,7 @@ pub struct Editor {
     pub grid_size: Coord,
     pub current_beat: Time,
     pub real_time: Time,
-    pub selected_shape: usize,
+    pub selected_light: Option<usize>,
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
     pub state: State,
@@ -121,9 +125,9 @@ impl EditorState {
                 level_state: EditorLevelState::default(),
                 current_beat: Time::ZERO,
                 real_time: Time::ZERO,
-                selected_shape: 0,
+                selected_light: None,
                 place_rotation: Angle::ZERO,
-                state: State::Place,
+                state: State::Idle,
                 music: assets.music.effect(),
                 music_timer: Time::ZERO,
                 was_scrolling: false,
@@ -177,7 +181,10 @@ impl EditorState {
                     redo_stack.push(frame);
                 }
             }
-            State::Place => {
+            State::Place { .. } => {
+                // TODO: idk
+            }
+            State::Idle => {
                 // TODO: remove last added sequence or restore last removed
             }
         }
@@ -193,7 +200,10 @@ impl EditorState {
                     light.light.movement.key_frames.push_back(frame);
                 }
             }
-            State::Place => {
+            State::Place { .. } => {
+                // TODO
+            }
+            State::Idle => {
                 // TODO
             }
         }
@@ -292,10 +302,6 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
-    pub fn get_selected_shape(&self) -> Option<Shape> {
-        self.model.config.shapes.get(self.selected_shape).copied()
-    }
-
     pub fn render_lights(&mut self, visualize_beat: bool) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
