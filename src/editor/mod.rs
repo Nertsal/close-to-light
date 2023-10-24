@@ -293,7 +293,8 @@ impl geng::State for EditorState {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        self.ui.layout(
+        self.ui = EditorUI::layout(
+            &self.editor,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
         );

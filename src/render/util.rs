@@ -247,7 +247,7 @@ impl UtilRender {
 
     pub fn draw_checkbox(
         &self,
-        pos: vec2<f32>,
+        pos: Aabb2<f32>,
         text: &str,
         checked: bool,
         options: TextRenderOptions,
@@ -256,7 +256,7 @@ impl UtilRender {
         let camera = &geng::PixelPerfectCamera;
         let options = options.align(vec2(0.0, 0.5)); // TODO
 
-        let checkbox = Aabb2::point(pos).extend_uniform(options.size / 3.0);
+        let checkbox = pos;
         if checked {
             let checkbox = checkbox.extend_uniform(-options.size * 0.05);
             for (a, b) in [
@@ -279,7 +279,7 @@ impl UtilRender {
         );
         self.draw_text(
             text,
-            pos + vec2(options.size, 0.0),
+            pos.center() + vec2(options.size, 0.0),
             options,
             camera,
             framebuffer,

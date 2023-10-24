@@ -110,15 +110,13 @@ impl EditorRender {
 
         {
             // General
-            let mut pos = vec2(ui.general.min.x + font_size, ui.general.max.y - font_size);
-            for (name, checked) in [
-                ("Show movement", editor.visualize_beat),
-                ("Show grid", render_options.show_grid),
-                ("Snap to grid", editor.snap_to_grid),
+            for (name, checked, target) in [
+                ("Show movement", editor.visualize_beat, ui.visualize_beat),
+                ("Show grid", render_options.show_grid, ui.show_grid),
+                ("Snap to grid", editor.snap_to_grid, ui.snap_grid),
             ] {
                 self.util
-                    .draw_checkbox(pos, name, checked, options, screen_buffer);
-                pos -= vec2(0.0, font_size);
+                    .draw_checkbox(target, name, checked, options, screen_buffer);
             }
         }
 
@@ -187,12 +185,12 @@ impl EditorRender {
                 Color::WHITE,
             );
 
-            let mut pos = vec2(ui.selected.min.x, aabb.min.y) + vec2(1.0, -1.0) * font_size;
             {
-                let (name, checked) = ("Danger", light.danger);
-                self.util
-                    .draw_checkbox(pos, name, checked, options, screen_buffer);
-                pos -= vec2(0.0, font_size);
+                let (name, checked, target) = ("Danger", light.danger, ui.danger);
+                if let Some(target) = target {
+                    self.util
+                        .draw_checkbox(target, name, checked, options, screen_buffer);
+                }
             }
         }
 

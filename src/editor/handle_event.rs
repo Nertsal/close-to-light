@@ -198,74 +198,111 @@ impl EditorState {
     }
 
     fn cursor_down(&mut self) {
-        match &mut self.editor.state {
-            State::Idle => {
-                // Select a light
-                if let Some(hovered) = self.editor.level_state.hovered_light {
-                    self.editor.selected_light = Some(hovered);
+        if self.ui.game.contains(self.cursor_pos.as_f32()) {
+            match &mut self.editor.state {
+                State::Idle => {
+                    // Select a light
+                    if let Some(hovered) = self.editor.level_state.hovered_light {
+                        self.editor.selected_light = Some(hovered);
+                    }
+                }
+                State::Place { shape, danger } => {
+                    let shape = *shape;
+                    let danger = *danger;
+
+                    // Fade in
+                    let movement = Movement {
+                        key_frames: vec![
+                            MoveFrame {
+                                lerp_time: Time::ZERO, // in beats
+                                transform: Transform {
+                                    scale: Coord::ZERO,
+                                    ..default()
+                                },
+                            },
+                            MoveFrame {
+                                lerp_time: Time::ONE, // in beats
+                                transform: Transform::identity(),
+                            },
+                        ]
+                        .into(),
+                    };
+                    let telegraph = Telegraph::default();
+                    self.editor.state = State::Movement {
+                        start_beat: self.editor.current_beat
+                            - movement.duration()
+                            - telegraph.precede_time, // extra time for the fade and telegraph
+                        light: LightEvent {
+                            light: LightSerde {
+                                position: self.editor.cursor_world_pos,
+                                rotation: self.editor.place_rotation.as_degrees(),
+                                shape,
+                                movement,
+                                danger,
+                            },
+                            telegraph,
+                        },
+                        redo_stack: Vec::new(),
+                    };
+                }
+                State::Movement {
+                    start_beat,
+                    light,
+                    redo_stack,
+                } => {
+                    // TODO: check negative time
+                    let last_beat = *start_beat
+                        + light.light.movement.duration()
+                        + light.telegraph.precede_time;
+                    let mut last_pos = light.light.movement.get_finish();
+                    last_pos.translation += light.light.position;
+                    last_pos.rotation += Angle::from_degrees(light.light.rotation);
+                    light.light.movement.key_frames.push_back(MoveFrame {
+                        lerp_time: self.editor.current_beat - last_beat, // in beats
+                        transform: Transform {
+                            translation: self.editor.cursor_world_pos - last_pos.translation,
+                            rotation: last_pos.rotation.angle_to(self.editor.place_rotation),
+                            ..default()
+                        },
+                    });
+                    redo_stack.clear();
+                }
+                State::Playing { .. } => {}
+            }
+        }
+
+        // Buttons
+        if let Some(danger) = self.ui.danger {
+            if danger.contains(self.cursor_pos.as_f32()) {
+                let danger = if let State::Place { danger, .. } = &mut self.editor.state {
+                    Some(danger)
+                } else if let Some(selected_event) = self
+                    .editor
+                    .selected_light
+                    .and_then(|i| self.editor.level_state.light_event(i))
+                    .and_then(|i| self.editor.level.events.get_mut(i))
+                {
+                    if let Event::Light(event) = &mut selected_event.event {
+                        Some(&mut event.light.danger)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                if let Some(danger) = danger {
+                    *danger = !*danger;
                 }
             }
-            State::Place { shape, danger } => {
-                let shape = *shape;
-                let danger = *danger;
-
-                // Fade in
-                let movement = Movement {
-                    key_frames: vec![
-                        MoveFrame {
-                            lerp_time: Time::ZERO, // in beats
-                            transform: Transform {
-                                scale: Coord::ZERO,
-                                ..default()
-                            },
-                        },
-                        MoveFrame {
-                            lerp_time: Time::ONE, // in beats
-                            transform: Transform::identity(),
-                        },
-                    ]
-                    .into(),
-                };
-                let telegraph = Telegraph::default();
-                self.editor.state = State::Movement {
-                    start_beat: self.editor.current_beat
-                        - movement.duration()
-                        - telegraph.precede_time, // extra time for the fade and telegraph
-                    light: LightEvent {
-                        light: LightSerde {
-                            position: self.editor.cursor_world_pos,
-                            rotation: self.editor.place_rotation.as_degrees(),
-                            shape,
-                            movement,
-                            danger,
-                        },
-                        telegraph,
-                    },
-                    redo_stack: Vec::new(),
-                };
-            }
-            State::Movement {
-                start_beat,
-                light,
-                redo_stack,
-            } => {
-                // TODO: check negative time
-                let last_beat =
-                    *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
-                let mut last_pos = light.light.movement.get_finish();
-                last_pos.translation += light.light.position;
-                last_pos.rotation += Angle::from_degrees(light.light.rotation);
-                light.light.movement.key_frames.push_back(MoveFrame {
-                    lerp_time: self.editor.current_beat - last_beat, // in beats
-                    transform: Transform {
-                        translation: self.editor.cursor_world_pos - last_pos.translation,
-                        rotation: last_pos.rotation.angle_to(self.editor.place_rotation),
-                        ..default()
-                    },
-                });
-                redo_stack.clear();
-            }
-            State::Playing { .. } => {}
+        }
+        if self.ui.visualize_beat.contains(self.cursor_pos.as_f32()) {
+            self.editor.visualize_beat = !self.editor.visualize_beat;
+        }
+        if self.ui.show_grid.contains(self.cursor_pos.as_f32()) {
+            self.render_options.show_grid = !self.render_options.show_grid;
+        }
+        if self.ui.snap_grid.contains(self.cursor_pos.as_f32()) {
+            self.editor.snap_to_grid = !self.editor.snap_to_grid;
         }
     }
 
