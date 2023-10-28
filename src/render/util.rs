@@ -1,3 +1,5 @@
+use crate::editor::{CheckboxWidget, TextWidget};
+
 use super::*;
 
 pub struct UtilRender {
@@ -247,17 +249,15 @@ impl UtilRender {
 
     pub fn draw_checkbox(
         &self,
-        pos: Aabb2<f32>,
-        text: &str,
-        checked: bool,
+        widget: &CheckboxWidget,
         options: TextRenderOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let camera = &geng::PixelPerfectCamera;
         let options = options.align(vec2(0.0, 0.5)); // TODO
 
-        let checkbox = pos;
-        if checked {
+        let checkbox = widget.check.position;
+        if widget.checked {
             let checkbox = checkbox.extend_uniform(-options.size * 0.05);
             for (a, b) in [
                 (checkbox.bottom_left(), checkbox.top_right()),
@@ -277,11 +277,20 @@ impl UtilRender {
             camera,
             framebuffer,
         );
+        self.draw_text_widget(&widget.text, options, framebuffer);
+    }
+
+    pub fn draw_text_widget(
+        &self,
+        widget: &TextWidget,
+        options: TextRenderOptions,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         self.draw_text(
-            text,
-            pos.center() + vec2(options.size, 0.0),
+            &widget.text,
+            widget.widget.position.center(),
             options,
-            camera,
+            &geng::PixelPerfectCamera,
             framebuffer,
         );
     }

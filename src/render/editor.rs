@@ -111,17 +111,12 @@ impl EditorRender {
                 .draw_text(name, pos, options, camera, screen_buffer);
         }
 
-        // {
-        //     // General
-        //     for (name, checked, target) in [
-        //         ("Show movement", editor.visualize_beat, ui.visualize_beat),
-        //         ("Show grid", render_options.show_grid, ui.show_grid),
-        //         ("Snap to grid", editor.snap_to_grid, ui.snap_grid),
-        //     ] {
-        //         self.util
-        //             .draw_checkbox(target, name, checked, options, screen_buffer);
-        //     }
-        // }
+        {
+            // General
+            for widget in [&ui.visualize_beat, &ui.show_grid, &ui.snap_grid] {
+                self.util.draw_checkbox(widget, options, screen_buffer);
+            }
+        }
 
         // let selected = if let State::Place { shape, danger } = editor.state {
         //     // Place new

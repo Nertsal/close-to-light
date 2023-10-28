@@ -5,17 +5,18 @@ pub struct Widget {
     pub position: Aabb2<f32>,
     pub hovered: bool,
     /// Whether user has clicked on the widget since last frame.
-    pub just_clicked: bool,
-    /// Whether user is holding the mouse button downon the widget.
     pub clicked: bool,
+    /// Whether user is holding the mouse button down on the widget.
+    pub pressed: bool,
 }
 
 impl Widget {
     pub fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool) {
         self.position = position;
         self.hovered = self.position.contains(cursor_position);
-        self.clicked = cursor_down && self.hovered;
-        self.just_clicked = !self.just_clicked && self.clicked;
+        let was_pressed = self.pressed;
+        self.pressed = cursor_down && self.hovered;
+        self.clicked = !was_pressed && self.pressed;
     }
 }
 
@@ -24,8 +25,8 @@ impl Default for Widget {
         Self {
             position: Aabb2::ZERO.extend_uniform(1.0),
             hovered: false,
-            just_clicked: false,
             clicked: false,
+            pressed: false,
         }
     }
 }
@@ -46,7 +47,7 @@ impl TextWidget {
 pub struct CheckboxWidget {
     pub text: TextWidget,
     pub check: Widget,
-    pub value: bool,
+    pub checked: bool,
 }
 
 impl CheckboxWidget {
@@ -163,19 +164,32 @@ impl EditorUI {
                 self.general.position.min.x + font_size,
                 self.general.position.max.y - font_size,
             );
-            for (target, value) in [
-                (&mut self.visualize_beat, &mut editor.visualize_beat),
-                (&mut self.show_grid, &mut render_options.show_grid),
-                (&mut self.snap_grid, &mut editor.snap_to_grid),
+            for (text, target, value) in [
+                (
+                    "Show movement",
+                    &mut self.visualize_beat,
+                    &mut editor.visualize_beat,
+                ),
+                (
+                    "Show grid",
+                    &mut self.show_grid,
+                    &mut render_options.show_grid,
+                ),
+                (
+                    "Snap to grid",
+                    &mut self.snap_grid,
+                    &mut editor.snap_to_grid,
+                ),
             ] {
+                target.text.text = text.to_owned();
                 update!(
                     target,
                     Aabb2::point(pos).extend_uniform(checkbox_size / 2.0)
                 );
-                if target.check.just_clicked {
+                if target.check.clicked {
                     *value = !*value;
                 }
-                target.value = *value;
+                target.checked = *value;
                 pos -= vec2(0.0, font_size);
             }
         }
@@ -212,7 +226,7 @@ impl EditorUI {
         //     let danger = Aabb2::point(pos).extend_uniform(checkbox_size / 2.0);
         //     self.danger = Some(danger);
 
-        //     if self.danger.clicked {
+        //     if self.danger.just_clicked {
         //         let danger = if let State::Place { danger, .. } = &mut self.editor.state {
         //             Some(danger)
         //         } else if let Some(selected_event) = self
