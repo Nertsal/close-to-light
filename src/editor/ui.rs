@@ -351,6 +351,7 @@ impl EditorUI {
                 self.current_beat,
                 geng_utils::layout::align_aabb(size, bottom_bar, vec2(0.5, 1.0))
             );
+            self.current_beat.text = format!("Beat: {:.2}", editor.current_beat);
         }
     }
 }

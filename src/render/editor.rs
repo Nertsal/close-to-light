@@ -74,7 +74,7 @@ impl EditorRender {
         );
     }
 
-    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI, render_options: &RenderOptions) {
+    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI, _render_options: &RenderOptions) {
         let screen_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
@@ -169,17 +169,9 @@ impl EditorRender {
 
         self.util.draw_checkbox(&ui.danger, options, screen_buffer);
 
-        // {
-        //     // Beat
-        //     let text = format!("Beat: {:.2}", editor.current_beat);
-        //     self.util.draw_text(
-        //         text,
-        //         ui.current_beat.center(),
-        //         options,
-        //         camera,
-        //         screen_buffer,
-        //     );
-        // }
+        // Beat
+        self.util
+            .draw_text_widget(&ui.current_beat, options, screen_buffer);
 
         // Leave the game area transparent
         ugli::draw(
