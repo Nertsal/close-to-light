@@ -198,7 +198,7 @@ impl EditorState {
     }
 
     fn cursor_down(&mut self) {
-        if self.ui.game.contains(self.cursor_pos.as_f32()) {
+        if self.ui.game.position.contains(self.cursor_pos.as_f32()) {
             match &mut self.editor.state {
                 State::Idle => {
                     // Select a light
@@ -269,40 +269,6 @@ impl EditorState {
                 }
                 State::Playing { .. } => {}
             }
-        }
-
-        // Buttons
-        if let Some(danger) = self.ui.danger {
-            if danger.contains(self.cursor_pos.as_f32()) {
-                let danger = if let State::Place { danger, .. } = &mut self.editor.state {
-                    Some(danger)
-                } else if let Some(selected_event) = self
-                    .editor
-                    .selected_light
-                    .and_then(|i| self.editor.level_state.light_event(i))
-                    .and_then(|i| self.editor.level.events.get_mut(i))
-                {
-                    if let Event::Light(event) = &mut selected_event.event {
-                        Some(&mut event.light.danger)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-                if let Some(danger) = danger {
-                    *danger = !*danger;
-                }
-            }
-        }
-        if self.ui.visualize_beat.contains(self.cursor_pos.as_f32()) {
-            self.editor.visualize_beat = !self.editor.visualize_beat;
-        }
-        if self.ui.show_grid.contains(self.cursor_pos.as_f32()) {
-            self.render_options.show_grid = !self.render_options.show_grid;
-        }
-        if self.ui.snap_grid.contains(self.cursor_pos.as_f32()) {
-            self.editor.snap_to_grid = !self.editor.snap_to_grid;
         }
     }
 
