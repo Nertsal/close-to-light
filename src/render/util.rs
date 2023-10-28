@@ -253,6 +253,10 @@ impl UtilRender {
         options: TextRenderOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !widget.check.visible {
+            return;
+        }
+
         let camera = &geng::PixelPerfectCamera;
         let options = options.align(vec2(0.0, 0.5)); // TODO
 
@@ -286,6 +290,10 @@ impl UtilRender {
         options: TextRenderOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !widget.widget.visible {
+            return;
+        }
+
         self.draw_text(
             &widget.text,
             widget.widget.position.center(),

@@ -118,79 +118,56 @@ impl EditorRender {
             }
         }
 
-        // let selected = if let State::Place { shape, danger } = editor.state {
-        //     // Place new
-        //     let light = LightSerde {
-        //         position: vec2::ZERO,
-        //         danger,
-        //         rotation: editor.place_rotation.as_degrees(),
-        //         shape,
-        //         movement: Movement::default(),
-        //     };
-        //     Some(("Left click to place a new light", light))
-        // } else if let Some(selected_event) = editor
-        //     .selected_light
-        //     .and_then(|i| editor.level_state.light_event(i))
-        //     .and_then(|i| editor.level.events.get(i))
-        // {
-        //     if let Event::Light(event) = &selected_event.event {
-        //         Some(("Selected light", event.light.clone()))
-        //     } else {
-        //         None
-        //     }
-        // } else {
-        //     None
-        // };
-        // if let Some((text, light)) = selected {
-        //     // Selected light
-        //     let pos = vec2(ui.selected.center().x, ui.selected.max.y);
-        //     self.util.draw_text(
-        //         text,
-        //         pos,
-        //         options.size(font_size * 0.7),
-        //         camera,
-        //         screen_buffer,
-        //     );
+        if ui.selected_text.widget.visible {
+            // Selected light
+            let pos =
+                geng_utils::layout::aabb_pos(ui.selected_text.widget.position, vec2(0.5, 1.0));
+            self.util.draw_text(
+                &ui.selected_text.text,
+                pos,
+                options.size(font_size * 0.7),
+                camera,
+                screen_buffer,
+            );
+        }
 
-        //     let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
-        //     let mut collider = Collider::new(vec2::ZERO, light.shape);
-        //     collider.rotation = Angle::from_degrees(light.rotation);
-        //     let color = if light.danger {
-        //         editor.level.config.theme.danger
-        //     } else {
-        //         editor.level.config.theme.light
-        //     };
-        //     self.util.draw_collider(
-        //         &collider,
-        //         color,
-        //         &Camera2d {
-        //             center: vec2::ZERO,
-        //             rotation: Angle::ZERO,
-        //             fov: 3.0,
-        //         },
-        //         &mut dither_buffer,
-        //     );
-        //     self.dither_small.finish(editor.real_time, R32::ZERO);
+        if ui.selected_light.widget.visible {
+            let light = &ui.selected_light.light;
+            let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
+            let mut collider = Collider::new(vec2::ZERO, light.shape);
+            collider.rotation = Angle::from_degrees(light.rotation);
+            let color = if light.danger {
+                editor.level.config.theme.danger
+            } else {
+                editor.level.config.theme.light
+            };
+            self.util.draw_collider(
+                &collider,
+                color,
+                &Camera2d {
+                    center: vec2::ZERO,
+                    rotation: Angle::ZERO,
+                    fov: 3.0,
+                },
+                &mut dither_buffer,
+            );
+            self.dither_small.finish(editor.real_time, R32::ZERO);
 
-        //     let size = ui.light_size.as_f32();
-        //     let pos = pos - vec2(0.0, font_size + size.y / 2.0);
-        //     let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
-        //     self.geng.draw2d().textured_quad(
-        //         screen_buffer,
-        //         camera,
-        //         aabb,
-        //         self.dither_small.get_buffer(),
-        //         Color::WHITE,
-        //     );
+            let size = ui.light_size.as_f32();
+            let pos =
+                geng_utils::layout::aabb_pos(ui.selected_light.widget.position, vec2(0.5, 1.0));
+            let pos = pos - vec2(0.0, font_size + size.y / 2.0);
+            let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
+            self.geng.draw2d().textured_quad(
+                screen_buffer,
+                camera,
+                aabb,
+                self.dither_small.get_buffer(),
+                Color::WHITE,
+            );
+        }
 
-        //     {
-        //         let (name, checked, target) = ("Danger", light.danger, ui.danger);
-        //         if let Some(target) = target {
-        //             self.util
-        //                 .draw_checkbox(target, name, checked, options, screen_buffer);
-        //         }
-        //     }
-        // }
+        self.util.draw_checkbox(&ui.danger, options, screen_buffer);
 
         // {
         //     // Beat
