@@ -2,6 +2,8 @@ mod config;
 mod handle_event;
 mod ui;
 
+use geng::MouseButton;
+
 pub use self::{config::*, ui::*};
 
 use crate::{
@@ -84,8 +86,12 @@ pub struct Editor {
     pub current_beat: Time,
     pub real_time: Time,
     pub selected_light: Option<usize>,
+
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
+    /// At what scale the objects should be placed.
+    pub place_scale: Coord,
+
     pub state: State,
     pub music: geng::SoundEffect,
     /// Stop the music after the timer runs out.
@@ -128,6 +134,7 @@ impl EditorState {
                 real_time: Time::ZERO,
                 selected_light: None,
                 place_rotation: Angle::ZERO,
+                place_scale: Coord::ONE,
                 state: State::Idle,
                 music: assets.music.effect(),
                 music_timer: Time::ZERO,
@@ -271,12 +278,12 @@ impl geng::State for EditorState {
         }
 
         let pos = self.cursor_pos.as_f32();
-        let pos = pos - self.ui.game.bottom_left();
+        let pos = pos - self.ui.game.position.bottom_left();
         let pos = self
             .editor
             .model
             .camera
-            .screen_to_world(self.ui.game.size(), pos)
+            .screen_to_world(self.ui.game.position.size(), pos)
             .as_r32();
         self.editor.cursor_world_pos = if self.editor.snap_to_grid {
             self.snap_pos_grid(pos)
@@ -293,10 +300,12 @@ impl geng::State for EditorState {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        self.ui = EditorUI::layout(
-            &self.editor,
+        self.ui.layout(
+            &mut self.editor,
+            &mut self.render_options,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
+            geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
         );
         self.render
             .draw_editor(&self.editor, &self.ui, &self.render_options, framebuffer);

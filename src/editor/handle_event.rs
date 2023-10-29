@@ -123,16 +123,20 @@ impl EditorState {
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
+                let scroll = r32(delta.signum() as f32);
                 if ctrl {
-                    if let Some(event) = self
+                    if let State::Place { .. } | State::Movement { .. } = self.editor.state {
+                        // Scale light
+                        let delta = scroll * r32(0.1);
+                        self.editor.place_scale =
+                            (self.editor.place_scale + delta).clamp(r32(0.2), r32(2.0));
+                    } else if let Some(event) = self
                         .editor
-                        .level_state
-                        .hovered_event()
+                        .selected_light
                         .and_then(|light| self.editor.level.events.get_mut(light))
                     {
                         // Control fade time
-                        let change =
-                            Time::new(delta.signum() as f32) * self.editor.config.scroll_slow;
+                        let change = scroll * self.editor.config.scroll_slow;
                         if let Event::Light(light) = &mut event.event {
                             if shift {
                                 // Fade out
@@ -151,7 +155,7 @@ impl EditorState {
                         }
                     }
                 } else {
-                    self.scroll_time(Time::new(delta.signum() as f32) * scroll_speed);
+                    self.scroll_time(scroll * scroll_speed);
                 }
             }
             geng::Event::CursorMove { position } => {
@@ -198,7 +202,7 @@ impl EditorState {
     }
 
     fn cursor_down(&mut self) {
-        if self.ui.game.contains(self.cursor_pos.as_f32()) {
+        if self.ui.game.position.contains(self.cursor_pos.as_f32()) {
             match &mut self.editor.state {
                 State::Idle => {
                     // Select a light
@@ -222,7 +226,10 @@ impl EditorState {
                             },
                             MoveFrame {
                                 lerp_time: Time::ONE, // in beats
-                                transform: Transform::identity(),
+                                transform: Transform {
+                                    scale: self.editor.place_scale,
+                                    ..default()
+                                },
                             },
                         ]
                         .into(),
@@ -262,47 +269,13 @@ impl EditorState {
                         transform: Transform {
                             translation: self.editor.cursor_world_pos - last_pos.translation,
                             rotation: last_pos.rotation.angle_to(self.editor.place_rotation),
-                            ..default()
+                            scale: self.editor.place_scale,
                         },
                     });
                     redo_stack.clear();
                 }
                 State::Playing { .. } => {}
             }
-        }
-
-        // Buttons
-        if let Some(danger) = self.ui.danger {
-            if danger.contains(self.cursor_pos.as_f32()) {
-                let danger = if let State::Place { danger, .. } = &mut self.editor.state {
-                    Some(danger)
-                } else if let Some(selected_event) = self
-                    .editor
-                    .selected_light
-                    .and_then(|i| self.editor.level_state.light_event(i))
-                    .and_then(|i| self.editor.level.events.get_mut(i))
-                {
-                    if let Event::Light(event) = &mut selected_event.event {
-                        Some(&mut event.light.danger)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-                if let Some(danger) = danger {
-                    *danger = !*danger;
-                }
-            }
-        }
-        if self.ui.visualize_beat.contains(self.cursor_pos.as_f32()) {
-            self.editor.visualize_beat = !self.editor.visualize_beat;
-        }
-        if self.ui.show_grid.contains(self.cursor_pos.as_f32()) {
-            self.render_options.show_grid = !self.render_options.show_grid;
-        }
-        if self.ui.snap_grid.contains(self.cursor_pos.as_f32()) {
-            self.editor.snap_to_grid = !self.editor.snap_to_grid;
         }
     }
 

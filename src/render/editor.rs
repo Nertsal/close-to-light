@@ -61,20 +61,20 @@ impl EditorRender {
         self.geng.draw2d().textured_quad(
             framebuffer,
             camera,
-            ui.game,
+            ui.game.position,
             &self.game_texture,
             Color::WHITE,
         );
         self.geng.draw2d().textured_quad(
             framebuffer,
             camera,
-            ui.screen,
+            ui.screen.position,
             &self.ui_texture,
             Color::WHITE,
         );
     }
 
-    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI, render_options: &RenderOptions) {
+    fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI, _render_options: &RenderOptions) {
         let screen_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
@@ -87,14 +87,17 @@ impl EditorRender {
             None,
         );
 
-        let font_size = ui.screen.height() * 0.04;
+        let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size)
             .color(editor.level.config.theme.light)
             .align(vec2(0.5, 1.0));
 
         {
             // Level info
-            let pos = vec2(ui.level_info.center().x, ui.level_info.max.y);
+            let pos = vec2(
+                ui.level_info.position.center().x,
+                ui.level_info.position.max.y,
+            );
             self.util
                 .draw_text("Level", pos, options, camera, screen_buffer);
 
@@ -110,50 +113,25 @@ impl EditorRender {
 
         {
             // General
-            for (name, checked, target) in [
-                ("Show movement", editor.visualize_beat, ui.visualize_beat),
-                ("Show grid", render_options.show_grid, ui.show_grid),
-                ("Snap to grid", editor.snap_to_grid, ui.snap_grid),
-            ] {
-                self.util
-                    .draw_checkbox(target, name, checked, options, screen_buffer);
+            for widget in [&ui.visualize_beat, &ui.show_grid, &ui.snap_grid] {
+                self.util.draw_checkbox(widget, options, screen_buffer);
             }
         }
 
-        let selected = if let State::Place { shape, danger } = editor.state {
-            // Place new
-            let light = LightSerde {
-                position: vec2::ZERO,
-                danger,
-                rotation: editor.place_rotation.as_degrees(),
-                shape,
-                movement: Movement::default(),
-            };
-            Some(("Left click to place a new light", light))
-        } else if let Some(selected_event) = editor
-            .selected_light
-            .and_then(|i| editor.level_state.light_event(i))
-            .and_then(|i| editor.level.events.get(i))
-        {
-            if let Event::Light(event) = &selected_event.event {
-                Some(("Selected light", event.light.clone()))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        if let Some((text, light)) = selected {
+        if ui.selected_text.state.visible {
             // Selected light
-            let pos = vec2(ui.selected.center().x, ui.selected.max.y);
+            let pos = geng_utils::layout::aabb_pos(ui.selected_text.state.position, vec2(0.5, 1.0));
             self.util.draw_text(
-                text,
+                &ui.selected_text.text,
                 pos,
                 options.size(font_size * 0.7),
                 camera,
                 screen_buffer,
             );
+        }
 
+        if ui.selected_light.state.visible {
+            let light = &ui.selected_light.light;
             let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
             let mut collider = Collider::new(vec2::ZERO, light.shape);
             collider.rotation = Angle::from_degrees(light.rotation);
@@ -175,6 +153,8 @@ impl EditorRender {
             self.dither_small.finish(editor.real_time, R32::ZERO);
 
             let size = ui.light_size.as_f32();
+            let pos =
+                geng_utils::layout::aabb_pos(ui.selected_light.state.position, vec2(0.5, 1.0));
             let pos = pos - vec2(0.0, font_size + size.y / 2.0);
             let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
             self.geng.draw2d().textured_quad(
@@ -184,27 +164,13 @@ impl EditorRender {
                 self.dither_small.get_buffer(),
                 Color::WHITE,
             );
-
-            {
-                let (name, checked, target) = ("Danger", light.danger, ui.danger);
-                if let Some(target) = target {
-                    self.util
-                        .draw_checkbox(target, name, checked, options, screen_buffer);
-                }
-            }
         }
 
-        {
-            // Beat
-            let text = format!("Beat: {:.2}", editor.current_beat);
-            self.util.draw_text(
-                text,
-                ui.current_beat.center(),
-                options,
-                camera,
-                screen_buffer,
-            );
-        }
+        self.util.draw_checkbox(&ui.danger, options, screen_buffer);
+
+        // Beat
+        self.util
+            .draw_text_widget(&ui.current_beat, options, screen_buffer);
 
         // Leave the game area transparent
         ugli::draw(
@@ -214,7 +180,7 @@ impl EditorRender {
             &self.unit_quad,
             (
                 ugli::uniforms! {
-                    u_model_matrix: mat3::translate(ui.game.center()) * mat3::scale(ui.game.size() / 2.0),
+                    u_model_matrix: mat3::translate(ui.game.position.center()) * mat3::scale(ui.game.position.size() / 2.0),
                     u_color: Color::TRANSPARENT_BLACK,
                 },
                 camera.uniforms(framebuffer_size),
@@ -232,7 +198,7 @@ impl EditorRender {
         // Game border
         let width = 5.0;
         self.util.draw_outline(
-            &Collider::aabb(ui.game.extend_uniform(width).map(r32)),
+            &Collider::aabb(ui.game.position.extend_uniform(width).map(r32)),
             width,
             Color::WHITE,
             camera,
@@ -368,7 +334,7 @@ impl EditorRender {
                 let collider = Collider {
                     position: editor.cursor_world_pos,
                     rotation: editor.place_rotation,
-                    shape,
+                    shape: shape.scaled(editor.place_scale),
                 };
                 let color = if danger {
                     editor.level.config.theme.danger

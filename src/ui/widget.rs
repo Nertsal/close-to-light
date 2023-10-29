@@ -1,0 +1,71 @@
+mod checkbox;
+mod light;
+mod text;
+
+pub use self::{checkbox::CheckboxWidget, light::LightWidget, text::TextWidget};
+
+use geng::prelude::*;
+
+pub trait Widget {
+    /// Update position and related properties.
+    fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool);
+    /// Apply a function to all states contained in the widget.
+    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
+    /// Make the widget visible.
+    fn show(&mut self) {
+        self.walk_states_mut(&WidgetState::show)
+    }
+    /// Hide the widget and disable interactions.
+    fn hide(&mut self) {
+        self.walk_states_mut(&WidgetState::hide)
+    }
+}
+
+#[derive(Debug)]
+pub struct WidgetState {
+    pub position: Aabb2<f32>,
+    /// Whether to show the widget.
+    pub visible: bool,
+    pub hovered: bool,
+    /// Whether user has clicked on the widget since last frame.
+    pub clicked: bool,
+    /// Whether user is holding the mouse button down on the widget.
+    pub pressed: bool,
+}
+
+impl WidgetState {
+    pub fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool) {
+        self.position = position;
+        self.hovered = self.position.contains(cursor_position);
+        let was_pressed = self.pressed;
+        self.pressed = cursor_down && self.hovered;
+        self.clicked = !was_pressed && self.pressed;
+    }
+
+    /// For compatibility with [Widget::walk_states_mut].
+    pub fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
+        f(self)
+    }
+
+    pub fn show(&mut self) {
+        self.visible = true;
+    }
+
+    pub fn hide(&mut self) {
+        self.visible = false;
+        self.pressed = false;
+        self.clicked = false;
+    }
+}
+
+impl Default for WidgetState {
+    fn default() -> Self {
+        Self {
+            position: Aabb2::ZERO.extend_uniform(1.0),
+            visible: true,
+            hovered: false,
+            clicked: false,
+            pressed: false,
+        }
+    }
+}
