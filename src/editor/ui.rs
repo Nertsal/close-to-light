@@ -134,7 +134,7 @@ impl EditorUI {
                     position: vec2::ZERO,
                     danger: *danger,
                     rotation: editor.place_rotation.as_degrees(),
-                    shape: *shape,
+                    shape: shape.scaled(editor.place_scale),
                     movement: Movement::default(),
                 };
                 Some(("Left click to place a new light", danger, light))
@@ -163,12 +163,31 @@ impl EditorUI {
                     self.selected_text.show();
                     self.selected_text.text = text.to_owned();
                     self.selected_light.show();
-                    self.selected_light.light.light = light;
 
                     if self.selected_light.danger.check.clicked {
                         *danger = !*danger;
                     }
                     self.selected_light.danger.checked = *danger;
+
+                    let scale = match light.shape {
+                        Shape::Circle { radius } => format!("{:.1}", radius),
+                        Shape::Line { width } => format!("{:.1}", width),
+                        Shape::Rectangle { width, height } => format!("{:.1}x{:.1}", width, height),
+                    };
+                    self.selected_light.scale.text = format!("{} Scale", scale);
+                    let fade_out = if let Some(frame) = light.movement.key_frames.back() {
+                        frame.lerp_time
+                    } else {
+                        Time::ZERO
+                    };
+                    let fade_in = if let Some(frame) = light.movement.key_frames.get(1) {
+                        frame.lerp_time
+                    } else {
+                        Time::ZERO
+                    };
+                    self.selected_light.fade_in.text = format!("{:.1} Fade in time", fade_in);
+                    self.selected_light.fade_out.text = format!("{:.1} Fade out time", fade_out);
+                    self.selected_light.light.light = light;
                 }
             }
         }
