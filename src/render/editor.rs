@@ -118,10 +118,9 @@ impl EditorRender {
             }
         }
 
-        if ui.selected_text.widget.visible {
+        if ui.selected_text.state.visible {
             // Selected light
-            let pos =
-                geng_utils::layout::aabb_pos(ui.selected_text.widget.position, vec2(0.5, 1.0));
+            let pos = geng_utils::layout::aabb_pos(ui.selected_text.state.position, vec2(0.5, 1.0));
             self.util.draw_text(
                 &ui.selected_text.text,
                 pos,
@@ -131,7 +130,7 @@ impl EditorRender {
             );
         }
 
-        if ui.selected_light.widget.visible {
+        if ui.selected_light.state.visible {
             let light = &ui.selected_light.light;
             let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
             let mut collider = Collider::new(vec2::ZERO, light.shape);
@@ -155,7 +154,7 @@ impl EditorRender {
 
             let size = ui.light_size.as_f32();
             let pos =
-                geng_utils::layout::aabb_pos(ui.selected_light.widget.position, vec2(0.5, 1.0));
+                geng_utils::layout::aabb_pos(ui.selected_light.state.position, vec2(0.5, 1.0));
             let pos = pos - vec2(0.0, font_size + size.y / 2.0);
             let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
             self.geng.draw2d().textured_quad(

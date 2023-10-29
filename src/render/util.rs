@@ -1,4 +1,4 @@
-use crate::editor::{CheckboxWidget, TextWidget};
+use crate::ui::widget::*;
 
 use super::*;
 
@@ -290,13 +290,13 @@ impl UtilRender {
         options: TextRenderOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        if !widget.widget.visible {
+        if !widget.state.visible {
             return;
         }
 
         self.draw_text(
             &widget.text,
-            widget.widget.position.center(),
+            widget.state.position.center(),
             options,
             &geng::PixelPerfectCamera,
             framebuffer,
