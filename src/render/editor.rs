@@ -334,7 +334,7 @@ impl EditorRender {
                 let collider = Collider {
                     position: editor.cursor_world_pos,
                     rotation: editor.place_rotation,
-                    shape,
+                    shape: shape.scaled(editor.place_scale),
                 };
                 let color = if danger {
                     editor.level.config.theme.danger

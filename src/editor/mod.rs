@@ -86,8 +86,12 @@ pub struct Editor {
     pub current_beat: Time,
     pub real_time: Time,
     pub selected_light: Option<usize>,
+
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
+    /// At what scale the objects should be placed.
+    pub place_scale: Coord,
+
     pub state: State,
     pub music: geng::SoundEffect,
     /// Stop the music after the timer runs out.
@@ -130,6 +134,7 @@ impl EditorState {
                 real_time: Time::ZERO,
                 selected_light: None,
                 place_rotation: Angle::ZERO,
+                place_scale: Coord::ONE,
                 state: State::Idle,
                 music: assets.music.effect(),
                 music_timer: Time::ZERO,

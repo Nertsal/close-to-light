@@ -123,16 +123,20 @@ impl EditorState {
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
+                let scroll = r32(delta.signum() as f32);
                 if ctrl {
-                    if let Some(event) = self
+                    if let State::Place { .. } | State::Movement { .. } = self.editor.state {
+                        // Scale light
+                        let delta = scroll * r32(0.1);
+                        self.editor.place_scale =
+                            (self.editor.place_scale + delta).clamp(r32(0.2), r32(2.0));
+                    } else if let Some(event) = self
                         .editor
-                        .level_state
-                        .hovered_event()
+                        .selected_light
                         .and_then(|light| self.editor.level.events.get_mut(light))
                     {
                         // Control fade time
-                        let change =
-                            Time::new(delta.signum() as f32) * self.editor.config.scroll_slow;
+                        let change = scroll * self.editor.config.scroll_slow;
                         if let Event::Light(light) = &mut event.event {
                             if shift {
                                 // Fade out
@@ -151,7 +155,7 @@ impl EditorState {
                         }
                     }
                 } else {
-                    self.scroll_time(Time::new(delta.signum() as f32) * scroll_speed);
+                    self.scroll_time(scroll * scroll_speed);
                 }
             }
             geng::Event::CursorMove { position } => {
@@ -222,7 +226,10 @@ impl EditorState {
                             },
                             MoveFrame {
                                 lerp_time: Time::ONE, // in beats
-                                transform: Transform::identity(),
+                                transform: Transform {
+                                    scale: self.editor.place_scale,
+                                    ..default()
+                                },
                             },
                         ]
                         .into(),
@@ -262,7 +269,7 @@ impl EditorState {
                         transform: Transform {
                             translation: self.editor.cursor_world_pos - last_pos.translation,
                             rotation: last_pos.rotation.angle_to(self.editor.place_rotation),
-                            ..default()
+                            scale: self.editor.place_scale,
                         },
                     });
                     redo_stack.clear();
