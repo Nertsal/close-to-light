@@ -2,7 +2,7 @@ mod checkbox;
 mod light;
 mod text;
 
-pub use self::{checkbox::CheckboxWidget, light::LightWidget, text::TextWidget};
+pub use self::{checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidget};
 
 use geng::prelude::*;
 

@@ -26,11 +26,9 @@ pub struct RenderOptions {
 
 impl EditorRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        let mut game_texture =
-            geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
+        let mut game_texture = geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1));
         game_texture.set_filter(ugli::Filter::Nearest);
-        let mut ui_texture =
-            geng_utils::texture::new_texture(geng.ugli(), vec2(1080 * 16 / 9, 1080));
+        let mut ui_texture = geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1));
         ui_texture.set_filter(ugli::Filter::Nearest);
 
         Self {
@@ -53,10 +51,20 @@ impl EditorRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.dither_small.update_render_size(ui.light_size);
+        geng_utils::texture::update_texture_size(
+            &mut self.game_texture,
+            ui.game.position.size().map(|x| x.round() as usize),
+            self.geng.ugli(),
+        );
+        geng_utils::texture::update_texture_size(
+            &mut self.ui_texture,
+            framebuffer.size(),
+            self.geng.ugli(),
+        );
+
         self.draw_game(editor, options);
         self.draw_ui(editor, ui, options);
 
-        // let framebuffer_size = framebuffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;
         self.geng.draw2d().textured_quad(
             framebuffer,
@@ -68,7 +76,7 @@ impl EditorRender {
         self.geng.draw2d().textured_quad(
             framebuffer,
             camera,
-            ui.screen.position,
+            Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             &self.ui_texture,
             Color::WHITE,
         );
@@ -130,8 +138,8 @@ impl EditorRender {
             );
         }
 
-        if ui.selected_light.state.visible {
-            let light = &ui.selected_light.light;
+        if ui.selected_light.light.state.visible {
+            let light = &ui.selected_light.light.light;
             let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
             let mut collider = Collider::new(vec2::ZERO, light.shape);
             collider.rotation = Angle::from_degrees(light.rotation);
@@ -153,8 +161,10 @@ impl EditorRender {
             self.dither_small.finish(editor.real_time, R32::ZERO);
 
             let size = ui.light_size.as_f32();
-            let pos =
-                geng_utils::layout::aabb_pos(ui.selected_light.state.position, vec2(0.5, 1.0));
+            let pos = geng_utils::layout::aabb_pos(
+                ui.selected_light.light.state.position,
+                vec2(0.5, 1.0),
+            );
             let pos = pos - vec2(0.0, font_size + size.y / 2.0);
             let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
             self.geng.draw2d().textured_quad(
@@ -164,9 +174,17 @@ impl EditorRender {
                 self.dither_small.get_buffer(),
                 Color::WHITE,
             );
-        }
 
-        self.util.draw_checkbox(&ui.danger, options, screen_buffer);
+            let options = options.align(vec2(0.0, 0.5));
+            self.util
+                .draw_checkbox(&ui.selected_light.danger, options, screen_buffer);
+            self.util
+                .draw_text_widget(&ui.selected_light.fade_in, options, screen_buffer);
+            self.util
+                .draw_text_widget(&ui.selected_light.fade_out, options, screen_buffer);
+            self.util
+                .draw_text_widget(&ui.selected_light.scale, options, screen_buffer);
+        }
 
         // Beat
         self.util

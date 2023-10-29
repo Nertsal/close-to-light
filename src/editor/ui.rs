@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::ui::widget::*;
+use crate::ui::{layout, widget::*};
 
 /// Layout and state of the UI.
 pub struct EditorUI {
@@ -8,16 +8,16 @@ pub struct EditorUI {
     pub game: WidgetState,
     pub level_info: WidgetState,
     pub general: WidgetState,
-    pub selected: WidgetState,
+
     pub selected_text: TextWidget,
-    pub selected_light: LightWidget,
+    pub selected_light: LightStateWidget,
+
     /// The size for the light texture to render pixel-perfectly.
     pub light_size: vec2<usize>,
     pub current_beat: TextWidget,
     pub visualize_beat: CheckboxWidget,
     pub show_grid: CheckboxWidget,
     pub snap_grid: CheckboxWidget,
-    pub danger: CheckboxWidget,
 }
 
 impl EditorUI {
@@ -27,15 +27,13 @@ impl EditorUI {
             game: default(),
             level_info: default(),
             general: default(),
-            selected: default(),
             selected_text: default(),
-            selected_light: LightWidget::new(),
+            selected_light: LightStateWidget::new(),
             light_size: vec2(1, 1),
             current_beat: default(),
             visualize_beat: CheckboxWidget::new("Show movement"),
             show_grid: CheckboxWidget::new("Show grid"),
             snap_grid: CheckboxWidget::new("Snap to grid"),
-            danger: CheckboxWidget::new("Danger"),
         }
     }
 
@@ -68,7 +66,10 @@ impl EditorUI {
             let game_height = max_height;
             let game_size = vec2(game_height * ratio, game_height);
 
-            self.game.position = geng_utils::layout::align_aabb(game_size, screen, vec2(0.0, 1.0));
+            update!(
+                self.game,
+                geng_utils::layout::align_aabb(game_size, screen, vec2(0.0, 1.0))
+            );
         }
 
         let margin = screen.width().min(screen.height()) * 0.02;
@@ -84,24 +85,13 @@ impl EditorUI {
         }
         .extend_uniform(-margin);
 
-        {
-            let size = side_bar.size() * vec2(1.0, 0.2);
-            update!(
-                self.level_info,
-                geng_utils::layout::align_aabb(size, side_bar, vec2(0.5, 0.0))
-            );
-        }
+        let (side_bar, level_info) = layout::split_top_down(side_bar, 0.8);
+        update!(self.level_info, level_info);
+
+        let (side_bar, general) = layout::split_top_down(side_bar, 0.6);
 
         {
-            let size = side_bar.size() * vec2(1.0, 0.3);
-            update!(
-                self.general,
-                geng_utils::layout::align_aabb(
-                    size,
-                    side_bar.extend_down(-self.level_info.position.height()),
-                    vec2(0.5, 0.0),
-                )
-            );
+            update!(self.general, general);
 
             let mut pos = vec2(
                 self.general.position.min.x + font_size,
@@ -125,28 +115,16 @@ impl EditorUI {
         }
 
         {
-            let size = side_bar.size() * vec2(1.0, 0.45);
-            update!(
-                self.selected,
-                geng_utils::layout::align_aabb(size, side_bar, vec2(0.5, 1.0))
-            );
+            update!(self.selected_light, side_bar);
 
-            update!(self.selected_light, self.selected.position);
+            let light_size = self.selected_light.light.state.position.size();
+            self.light_size = light_size.map(|x| x.round() as usize);
 
-            let target = self.selected.position;
+            let target = side_bar;
             update!(
                 self.selected_text,
                 geng_utils::layout::fit_aabb_width(vec2(target.width(), font_size), target, 1.0)
             );
-        }
-
-        {
-            let pos = vec2(
-                self.selected.position.min.x,
-                self.selected.position.max.y - self.light_size.y as f32,
-            ) + vec2(1.0, -1.0) * font_size;
-            let danger = Aabb2::point(pos).extend_uniform(checkbox_size / 2.0);
-            update!(self.danger, danger);
         }
 
         {
@@ -177,32 +155,22 @@ impl EditorUI {
 
             match selected {
                 None => {
-                    self.selected.hide();
                     self.selected_text.hide();
                     self.selected_light.hide();
-                    self.danger.hide();
                 }
                 Some((text, danger, light)) => {
                     // Selected light
-                    self.selected.show();
                     self.selected_text.show();
                     self.selected_text.text = text.to_owned();
                     self.selected_light.show();
-                    self.selected_light.light = light;
-                    self.danger.show();
+                    self.selected_light.light.light = light;
 
-                    if self.danger.check.clicked {
+                    if self.selected_light.danger.check.clicked {
                         *danger = !*danger;
                     }
-                    self.danger.checked = *danger;
+                    self.selected_light.danger.checked = *danger;
                 }
             }
-        }
-
-        {
-            let size = self.selected.position.width() * 0.5;
-            let size = vec2::splat(size);
-            self.light_size = size.map(|x| x.round() as usize);
         }
 
         {

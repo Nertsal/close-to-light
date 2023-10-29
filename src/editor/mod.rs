@@ -300,6 +300,8 @@ impl geng::State for EditorState {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
+        ugli::clear(framebuffer, Some(Color::BLACK), None, None);
+
         self.ui.layout(
             &mut self.editor,
             &mut self.render_options,
