@@ -264,30 +264,40 @@ impl EditorRender {
         let select_color = crate::util::with_alpha(editor.config.theme.select, base_alpha);
         let selected_event = editor.selected_light.map(|i| i.event);
 
-        let get_color = |event_id: Option<usize>| -> Color {
-            if let Some(event_id) = event_id {
-                let check = |a: Option<usize>| -> bool { a == Some(event_id) };
-                if check(selected_event) {
-                    select_color
-                } else if check(hovered_event) {
-                    hover_color
-                } else if editor
-                    .level
-                    .events
-                    .get(event_id)
-                    .map_or(false, |e| match &e.event {
+        let get_color =
+            |event_id: Option<usize>| -> Color {
+                if let Some(event_id) = event_id {
+                    let check = |a: Option<usize>| -> bool { a == Some(event_id) };
+                    let base_color = if check(selected_event) {
+                        select_color
+                    } else if check(hovered_event) {
+                        hover_color
+                    } else {
+                        light_color
+                    };
+                    let mod_color = if editor.level.events.get(event_id).map_or(false, |e| match &e
+                        .event
+                    {
                         Event::Light(event) => event.light.danger,
                         _ => false,
+                    }) {
+                        danger_color
+                    } else {
+                        base_color
+                    };
+
+                    let a = Hsva::<f32>::from(base_color);
+                    let b = Hsva::<f32>::from(mod_color);
+                    Color::from(Hsva {
+                        h: (a.h + b.h) / 2.0,
+                        s: (a.s + b.s) / 2.0,
+                        v: (a.v + b.v) / 2.0,
+                        a: (a.a + b.a) / 2.0,
                     })
-                {
-                    danger_color
                 } else {
-                    light_color
+                    active_color
                 }
-            } else {
-                active_color
-            }
-        };
+            };
 
         if let Some(level) = &editor.level_state.dynamic_level {
             let alpha = if editor.level_state.static_level.is_some() {
