@@ -334,21 +334,25 @@ impl Editor {
             (Some(time), dynamic)
         };
 
-        let mut static_level = static_time.map(|time| LevelState::render(&self.level, time, None));
-        let mut dynamic_level =
-            dynamic_time.map(|time| LevelState::render(&self.level, time, None));
+        let static_level = static_time.map(|time| LevelState::render(&self.level, time, None));
+        let dynamic_level = dynamic_time.map(|time| LevelState::render(&self.level, time, None));
 
-        if let State::Movement {
-            start_beat, light, ..
-        } = &self.state
-        {
-            for level in [&mut static_level, &mut dynamic_level]
-                .into_iter()
-                .flatten()
-            {
-                level.render_event(&commit_light(*start_beat, light.clone()), None);
-            }
-        }
+        // if let State::Movement {
+        //     start_beat, light, ..
+        // } = &self.state
+        // {
+        //     let event = commit_light(light.clone());
+        //     let event = TimedEvent {
+        //         beat: *start_beat,
+        //         event: Event::Light(event),
+        //     };
+        //     for level in [&mut static_level, &mut dynamic_level]
+        //         .into_iter()
+        //         .flatten()
+        //     {
+        //         level.render_event(&event, None);
+        //     }
+        // }
 
         let mut hovered_light = None;
         if let State::Idle = self.state {
@@ -368,7 +372,7 @@ impl Editor {
     }
 }
 
-fn commit_light(start_beat: Time, mut light: LightEvent) -> TimedEvent {
+pub fn commit_light(mut light: LightEvent) -> LightEvent {
     // Add fade out
     light.light.movement.key_frames.push_back(MoveFrame {
         lerp_time: Time::ONE, // in beats
@@ -377,10 +381,5 @@ fn commit_light(start_beat: Time, mut light: LightEvent) -> TimedEvent {
             ..default()
         },
     });
-
-    // Commit event
-    TimedEvent {
-        beat: start_beat,
-        event: Event::Light(light),
-    }
+    light
 }

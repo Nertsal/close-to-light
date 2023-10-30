@@ -171,10 +171,12 @@ impl EditorState {
                         start_beat, light, ..
                     } = &self.editor.state
                     {
-                        self.editor
-                            .level
-                            .events
-                            .push(commit_light(*start_beat, light.clone()));
+                        let event = commit_light(light.clone());
+                        let event = TimedEvent {
+                            beat: *start_beat,
+                            event: Event::Light(event),
+                        };
+                        self.editor.level.events.push(event);
                         self.editor.state = State::Idle;
                     }
                 }

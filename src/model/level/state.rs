@@ -60,27 +60,39 @@ impl LevelState {
         match &event.event {
             Event::Theme(new_theme) => self.config.theme = new_theme.clone(),
             Event::Light(event) => {
-                let light = event.light.clone().instantiate(event_id);
-                let mut tele = light.clone().into_telegraph(event.telegraph.clone());
-                let duration = event.light.movement.duration();
-
-                // Telegraph
-                if time < duration {
-                    let transform = event.light.movement.get(time);
-                    tele.light.collider = light.collider.transformed(transform);
-                    self.telegraphs.push(tele.clone());
-                }
-
-                // Light
-                let time = time - event.telegraph.precede_time;
-                if time > Time::ZERO && time < duration {
-                    let transform = event.light.movement.get(time);
-                    tele.light.collider = light.collider.transformed(transform);
-                    self.lights.push(tele.light.clone());
-                }
+                let (telegraph, light) = render_light(event, time, event_id);
+                self.telegraphs.extend(telegraph);
+                self.lights.extend(light);
             }
         }
 
         self.is_finished = self.is_finished && self.lights.is_empty() && self.telegraphs.is_empty();
     }
+}
+
+pub fn render_light(
+    event: &LightEvent,
+    relative_time: Time,
+    event_id: Option<usize>,
+) -> (Option<LightTelegraph>, Option<Light>) {
+    let light = event.light.clone().instantiate(event_id);
+    let mut tele = light.clone().into_telegraph(event.telegraph.clone());
+    let duration = event.light.movement.duration();
+
+    // Telegraph
+    let telegraph = (relative_time < duration).then(|| {
+        let transform = event.light.movement.get(relative_time);
+        tele.light.collider = light.collider.transformed(transform);
+        tele.clone()
+    });
+
+    // Light
+    let time = relative_time - event.telegraph.precede_time;
+    let light = (time > Time::ZERO && time < duration).then(|| {
+        let transform = event.light.movement.get(time);
+        tele.light.collider = light.collider.transformed(transform);
+        tele.light
+    });
+
+    (telegraph, light)
 }

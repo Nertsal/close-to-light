@@ -235,19 +235,29 @@ impl EditorRender {
         );
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
 
+        macro_rules! draw_game {
+            ($alpha:expr) => {{
+                self.dither.finish(editor.real_time, R32::ZERO);
+                self.geng.draw2d().textured_quad(
+                    game_buffer,
+                    &geng::PixelPerfectCamera,
+                    screen_aabb,
+                    self.dither.get_buffer(),
+                    crate::util::with_alpha(Color::WHITE, $alpha),
+                );
+                self.dither.start(Color::TRANSPARENT_BLACK)
+            }};
+        }
+
         // Level
-        let mut pixel_buffer = self
-            .dither
-            .start(editor.level_state.relevant().config.theme.dark);
-
-        let (active_danger, base_alpha) = if let State::Movement { light, .. } = &editor.state {
-            (light.light.danger, 0.5)
-        } else {
-            (false, 1.0)
-        };
-
         let light_color = editor.level.config.theme.light;
         let danger_color = editor.level.config.theme.danger;
+
+        let active_danger = if let State::Movement { light, .. } = &editor.state {
+            light.light.danger
+        } else {
+            false
+        };
 
         let active_color = if active_danger {
             danger_color
@@ -255,13 +265,10 @@ impl EditorRender {
             light_color
         };
 
-        let light_color = crate::util::with_alpha(light_color, base_alpha);
-        let danger_color = crate::util::with_alpha(danger_color, base_alpha);
-
-        let hover_color = crate::util::with_alpha(editor.config.theme.hover, base_alpha);
+        let hover_color = editor.config.theme.hover;
         let hovered_event = editor.level_state.hovered_event();
 
-        let select_color = crate::util::with_alpha(editor.config.theme.select, base_alpha);
+        let select_color = editor.config.theme.select;
         let selected_event = editor.selected_light.map(|i| i.event);
 
         let get_color =
@@ -299,57 +306,94 @@ impl EditorRender {
                 }
             };
 
-        if let Some(level) = &editor.level_state.dynamic_level {
-            let alpha = if editor.level_state.static_level.is_some() {
-                0.5
-            } else {
-                1.0
-            };
+        let static_alpha = if let State::Place { .. } | State::Movement { .. } = editor.state {
+            0.5
+        } else {
+            1.0
+        };
+        let dynamic_alpha = if editor.level_state.static_level.is_some() {
+            0.5
+        } else {
+            1.0
+        } * static_alpha;
 
+        let draw_telegraph = |tele: &LightTelegraph, framebuffer: &mut ugli::Framebuffer| {
+            let color = get_color(tele.light.event_id);
+            self.util.draw_outline(
+                &tele.light.collider,
+                0.02,
+                color,
+                &editor.model.camera,
+                framebuffer,
+            );
+        };
+        let draw_light = |light: &Light, framebuffer: &mut ugli::Framebuffer| {
+            let color = get_color(light.event_id);
+            self.util
+                .draw_collider(&light.collider, color, &editor.model.camera, framebuffer);
+        };
+
+        // Dynamic
+        let mut pixel_buffer = self
+            .dither
+            .start(editor.level_state.relevant().config.theme.dark);
+
+        if let Some(level) = &editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
-                let color = crate::util::with_alpha(get_color(tele.light.event_id), alpha);
-                self.util.draw_outline(
-                    &tele.light.collider,
-                    0.02,
-                    color,
-                    &editor.model.camera,
-                    &mut pixel_buffer,
-                );
+                draw_telegraph(tele, &mut pixel_buffer);
             }
             for light in &level.lights {
-                let color = crate::util::with_alpha(get_color(light.event_id), alpha);
-                self.util.draw_collider(
-                    &light.collider,
-                    color,
-                    &editor.model.camera,
-                    &mut pixel_buffer,
-                );
+                draw_light(light, &mut pixel_buffer);
             }
         }
+
+        let mut pixel_buffer = draw_game!(dynamic_alpha);
 
         if let Some(level) = &editor.level_state.static_level {
             for tele in &level.telegraphs {
-                let color = get_color(tele.light.event_id);
-                self.util.draw_outline(
-                    &tele.light.collider,
-                    0.02,
-                    color,
-                    &editor.model.camera,
-                    &mut pixel_buffer,
-                );
+                draw_telegraph(tele, &mut pixel_buffer);
             }
             for light in &level.lights {
-                let color = get_color(light.event_id);
-                self.util.draw_collider(
-                    &light.collider,
-                    color,
-                    &editor.model.camera,
-                    &mut pixel_buffer,
-                );
+                draw_light(light, &mut pixel_buffer);
             }
         }
+        let mut pixel_buffer = draw_game!(static_alpha);
 
         if !options.hide_ui {
+            let mut pixel_buffer = if let State::Movement {
+                start_beat,
+                ref light,
+                ..
+            } = editor.state
+            {
+                let time = editor.current_beat - start_beat;
+                let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
+                    let event = commit_light(light.clone());
+                    let (tele, light) = render_light(&event, time, None);
+                    if let Some(tele) = tele {
+                        draw_telegraph(&tele, pixel_buffer);
+                    }
+                    if let Some(light) = light {
+                        draw_light(&light, pixel_buffer);
+                    }
+                };
+
+                let mut pixel_buffer = if editor.visualize_beat {
+                    // Active movement
+                    let time = time + (editor.real_time / editor.level.beat_time()).fract();
+                    draw_active(time, &mut pixel_buffer);
+                    draw_game!(0.75)
+                } else {
+                    pixel_buffer
+                };
+
+                // Active static
+                draw_active(time, &mut pixel_buffer);
+                draw_game!(1.0)
+            } else {
+                pixel_buffer
+            };
+
             // Current action
             let shape = match editor.state {
                 State::Place { shape, danger } => Some((shape, danger)),
@@ -376,17 +420,7 @@ impl EditorRender {
                 );
             }
         }
-
-        self.dither.finish(editor.real_time, R32::ZERO);
-
-        geng_utils::texture::draw_texture_fit(
-            self.dither.get_buffer(),
-            screen_aabb,
-            vec2(0.5, 0.5),
-            &geng::PixelPerfectCamera,
-            &self.geng,
-            game_buffer,
-        );
+        draw_game!(1.0);
 
         if !options.hide_ui {
             // World UI
