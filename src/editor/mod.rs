@@ -52,17 +52,12 @@ impl EditorLevelState {
     /// Returns the index of the hovered event (if any).
     pub fn hovered_event(&self) -> Option<usize> {
         self.hovered_light
-            .and_then(|event| self.get_light(LightId { event }))
+            .and_then(|i| {
+                self.static_level
+                    .as_ref()
+                    .and_then(|level| level.lights.get(i))
+            })
             .and_then(|l| l.event_id)
-    }
-
-    pub fn get_light(&self, id: LightId) -> Option<&Light> {
-        self.static_level.as_ref().and_then(|level| {
-            level
-                .lights
-                .iter()
-                .find(|light| light.event_id == Some(id.event))
-        })
     }
 }
 
@@ -356,11 +351,12 @@ impl Editor {
         }
 
         let mut hovered_light = None;
-        if let Some(level) = &static_level {
-            for (i, light) in level.lights.iter().enumerate() {
-                if light.collider.contains(self.cursor_world_pos) {
-                    hovered_light = Some(i);
-                }
+        if let State::Idle = self.state {
+            if let Some(level) = &static_level {
+                hovered_light = level
+                    .lights
+                    .iter()
+                    .position(|light| light.collider.contains(self.cursor_world_pos));
             }
         }
 
