@@ -2,14 +2,14 @@ mod config;
 mod handle_event;
 mod ui;
 
-use geng::MouseButton;
-
 pub use self::{config::*, ui::*};
 
 use crate::{
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
 };
+
+use geng::MouseButton;
 
 #[derive(Debug, Clone)]
 pub enum State {

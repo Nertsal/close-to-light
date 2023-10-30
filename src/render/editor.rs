@@ -547,7 +547,7 @@ impl EditorRender {
             );
 
             // Status
-            let text = if editor.level_state.hovered_light.is_some() {
+            let text = if editor.selected_light.is_some() {
                 "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
             } else {
                 match &editor.state {

@@ -24,7 +24,11 @@ impl EditorState {
                 }
                 geng::Key::F => self.editor.visualize_beat = !self.editor.visualize_beat,
                 geng::Key::X => {
-                    if let Some(index) = self.editor.level_state.hovered_event() {
+                    if let Some(index) = self
+                        .editor
+                        .selected_light
+                        .and_then(|i| self.editor.level_state.light_event(i))
+                    {
                         self.editor.level.events.swap_remove(index);
                     }
                 }
