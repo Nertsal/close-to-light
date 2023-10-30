@@ -262,9 +262,7 @@ impl EditorRender {
         let hovered_event = editor.level_state.hovered_event();
 
         let select_color = crate::util::with_alpha(editor.config.theme.select, base_alpha);
-        let selected_event = editor
-            .selected_light
-            .and_then(|i| editor.level_state.light_event(i));
+        let selected_event = editor.selected_light.map(|i| i.event);
 
         let get_color = |event_id: Option<usize>| -> Color {
             if let Some(event_id) = event_id {

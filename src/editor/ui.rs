@@ -140,8 +140,7 @@ impl EditorUI {
                 Some(("Left click to place a new light", danger, light))
             } else if let Some(selected_event) = editor
                 .selected_light
-                .and_then(|i| editor.level_state.light_event(i))
-                .and_then(|i| editor.level.events.get_mut(i))
+                .and_then(|i| editor.level.events.get_mut(i.event))
             {
                 if let Event::Light(event) = &mut selected_event.event {
                     let light = event.light.clone();

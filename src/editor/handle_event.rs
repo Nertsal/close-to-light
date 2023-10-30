@@ -24,12 +24,8 @@ impl EditorState {
                 }
                 geng::Key::F => self.editor.visualize_beat = !self.editor.visualize_beat,
                 geng::Key::X => {
-                    if let Some(index) = self
-                        .editor
-                        .selected_light
-                        .and_then(|i| self.editor.level_state.light_event(i))
-                    {
-                        self.editor.level.events.swap_remove(index);
+                    if let Some(index) = self.editor.selected_light {
+                        self.editor.level.events.swap_remove(index.event);
                     }
                 }
                 geng::Key::S if ctrl => {
@@ -52,8 +48,7 @@ impl EditorState {
                             if let Some(event) = self
                                 .editor
                                 .selected_light
-                                .and_then(|i| self.editor.level_state.light_event(i))
-                                .and_then(|i| self.editor.level.events.get_mut(i))
+                                .and_then(|i| self.editor.level.events.get_mut(i.event))
                             {
                                 if let Event::Light(event) = &mut event.event {
                                     event.light.danger = !event.light.danger;
@@ -137,7 +132,7 @@ impl EditorState {
                     } else if let Some(event) = self
                         .editor
                         .selected_light
-                        .and_then(|light| self.editor.level.events.get_mut(light))
+                        .and_then(|light| self.editor.level.events.get_mut(light.event))
                     {
                         // Control fade time
                         let change = scroll * self.editor.config.scroll_slow;
@@ -146,14 +141,17 @@ impl EditorState {
                                 // Fade out
                                 if let Some(frame) = light.light.movement.key_frames.back_mut() {
                                     let change = change.max(-frame.lerp_time + r32(0.25));
-                                    frame.lerp_time += change;
+                                    frame.lerp_time =
+                                        (frame.lerp_time + change).clamp(r32(0.0), r32(10.0));
                                 }
                             } else {
                                 // Fade in
                                 if let Some(frame) = light.light.movement.key_frames.get_mut(1) {
                                     let change = change.max(-frame.lerp_time + r32(0.25));
-                                    event.beat -= change;
-                                    frame.lerp_time += change;
+                                    let target =
+                                        (frame.lerp_time + change).clamp(r32(0.0), r32(10.0));
+                                    event.beat -= target - frame.lerp_time;
+                                    frame.lerp_time = target;
                                 }
                             }
                         }
@@ -210,8 +208,8 @@ impl EditorState {
             match &mut self.editor.state {
                 State::Idle => {
                     // Select a light
-                    if let Some(hovered) = self.editor.level_state.hovered_light {
-                        self.editor.selected_light = Some(hovered);
+                    if let Some(event) = self.editor.level_state.hovered_event() {
+                        self.editor.selected_light = Some(LightId { event });
                     }
                 }
                 State::Place { shape, danger } => {

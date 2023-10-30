@@ -51,15 +51,25 @@ impl EditorLevelState {
 
     /// Returns the index of the hovered event (if any).
     pub fn hovered_event(&self) -> Option<usize> {
-        self.hovered_light.and_then(|i| self.light_event(i))
+        self.hovered_light
+            .and_then(|event| self.get_light(LightId { event }))
+            .and_then(|l| l.event_id)
     }
 
-    pub fn light_event(&self, light: usize) -> Option<usize> {
-        self.static_level
-            .as_ref()
-            .and_then(|level| level.lights.get(light))
-            .and_then(|light| light.event_id)
+    pub fn get_light(&self, id: LightId) -> Option<&Light> {
+        self.static_level.as_ref().and_then(|level| {
+            level
+                .lights
+                .iter()
+                .find(|light| light.event_id == Some(id.event))
+        })
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct LightId {
+    // pub rendered: usize,
+    pub event: usize,
 }
 
 pub struct EditorState {
@@ -85,7 +95,7 @@ pub struct Editor {
     pub grid_size: Coord,
     pub current_beat: Time,
     pub real_time: Time,
-    pub selected_light: Option<usize>,
+    pub selected_light: Option<LightId>,
 
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
