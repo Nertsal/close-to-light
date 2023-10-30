@@ -33,11 +33,11 @@ impl LightWidget {
 }
 
 impl Widget for LightWidget {
-    fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool) {
+    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         let size = position.width().min(position.height());
         let position = Aabb2::point(position.center()).extend_uniform(size / 2.0);
 
-        self.state.update(position, cursor_position, cursor_down);
+        self.state.update(position, context);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -58,10 +58,9 @@ impl LightStateWidget {
 }
 
 impl Widget for LightStateWidget {
-    fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool) {
+    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         let (light_position, position) = layout::split_top_down(position, 0.5);
-        self.light
-            .update(light_position, cursor_position, cursor_down);
+        self.light.update(light_position, context);
 
         let props: [&mut dyn Widget; 4] = [
             &mut self.danger,
@@ -73,7 +72,7 @@ impl Widget for LightStateWidget {
             .into_iter()
             .zip(props)
         {
-            prop.update(pos, cursor_position, cursor_down);
+            prop.update(pos, context);
         }
     }
 

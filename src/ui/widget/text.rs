@@ -4,6 +4,7 @@ use super::*;
 pub struct TextWidget {
     pub state: WidgetState,
     pub text: String,
+    pub font_size: f32,
 }
 
 impl TextWidget {
@@ -16,8 +17,9 @@ impl TextWidget {
 }
 
 impl Widget for TextWidget {
-    fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool) {
-        self.state.update(position, cursor_position, cursor_down);
+    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        self.state.update(position, context);
+        self.font_size = context.font_size;
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {

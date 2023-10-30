@@ -42,20 +42,25 @@ impl EditorUI {
         editor: &mut Editor,
         render_options: &mut RenderOptions,
         screen: Aabb2<f32>,
-        cursor_pos: vec2<f32>,
+        cursor_position: vec2<f32>,
         cursor_down: bool,
     ) {
+        let screen = geng_utils::layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+
+        let font_size = screen.height() * 0.04;
+
+        let context = UiContext {
+            font_size,
+            cursor_position,
+            cursor_down,
+        };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, cursor_pos, cursor_down);
+                $widget.update($position, &context);
             }};
         }
 
-        let screen = geng_utils::layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
         update!(self.screen, screen);
-
-        let font_size = screen.height() * 0.04;
-        let checkbox_size = font_size * 0.6;
 
         {
             let max_size = screen.size() * 0.8;
@@ -89,28 +94,28 @@ impl EditorUI {
         update!(self.level_info, level_info);
 
         let (side_bar, general) = layout::split_top_down(side_bar, 0.6);
+        let (_, general) = layout::cut_top_down(general, font_size);
 
         {
             update!(self.general, general);
 
-            let mut pos = vec2(
-                self.general.position.min.x + font_size,
-                self.general.position.max.y - font_size,
-            );
-            for (target, value) in [
+            let pos = layout::cut_top_down(general, font_size)
+                .0
+                .extend_symmetric(vec2(-font_size, 0.0));
+            let targets = [
                 (&mut self.visualize_beat, &mut editor.visualize_beat),
                 (&mut self.show_grid, &mut render_options.show_grid),
                 (&mut self.snap_grid, &mut editor.snap_to_grid),
-            ] {
-                update!(
-                    target,
-                    Aabb2::point(pos).extend_uniform(checkbox_size / 2.0)
-                );
+            ];
+            for (pos, (target, value)) in layout::stack(pos, vec2(0.0, -font_size), targets.len())
+                .into_iter()
+                .zip(targets)
+            {
+                update!(target, pos);
                 if target.check.clicked {
                     *value = !*value;
                 }
                 target.checked = *value;
-                pos -= vec2(0.0, font_size);
             }
         }
 

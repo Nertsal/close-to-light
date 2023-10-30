@@ -6,9 +6,16 @@ pub use self::{checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidg
 
 use geng::prelude::*;
 
+#[derive(Debug, Clone)]
+pub struct UiContext {
+    pub font_size: f32,
+    pub cursor_position: vec2<f32>,
+    pub cursor_down: bool,
+}
+
 pub trait Widget {
     /// Update position and related properties.
-    fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool);
+    fn update(&mut self, position: Aabb2<f32>, context: &UiContext);
     /// Apply a function to all states contained in the widget.
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
     /// Make the widget visible.
@@ -34,11 +41,11 @@ pub struct WidgetState {
 }
 
 impl WidgetState {
-    pub fn update(&mut self, position: Aabb2<f32>, cursor_position: vec2<f32>, cursor_down: bool) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
-        self.hovered = self.position.contains(cursor_position);
+        self.hovered = self.position.contains(context.cursor_position);
         let was_pressed = self.pressed;
-        self.pressed = cursor_down && self.hovered;
+        self.pressed = context.cursor_down && self.hovered;
         self.clicked = !was_pressed && self.pressed;
     }
 

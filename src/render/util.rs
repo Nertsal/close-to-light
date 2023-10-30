@@ -297,7 +297,7 @@ impl UtilRender {
         self.draw_text(
             &widget.text,
             geng_utils::layout::aabb_pos(widget.state.position, options.align),
-            options,
+            options.size(widget.font_size),
             &geng::PixelPerfectCamera,
             framebuffer,
         );
