@@ -93,36 +93,34 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 void main() {
-	vec3 rgb = (v_color * texture2D(u_texture, v_vt)).rgb;
+	vec4 in_color = v_color * texture2D(u_texture, v_vt);
 	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
-	
-	vec3 hsv = rgb2hsv(rgb);
+
+	vec3 hsv = rgb2hsv(in_color.rgb);
 	float amp = hsv.z;
 
 	// Noise
 	amp += 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
 	// float mul = max(0.0, (length(v_vt - 0.5) - 0.3) / 0.3 * 2.0);
-	float range = u_bg_noise * 2.0 - 1.0;
-	float mul = length(v_vt - vec2(0.5)) * 2.0;
-	amp += pow(0.02 * mul, mix(1.5 - u_bg_noise, 1.0, 0.4));
+	// float range = u_bg_noise * 2.0 - 1.0;
+	// float mul = length(v_vt - vec2(0.5)) * 2.0;
+	// amp += pow(0.02 * mul, mix(1.5 - u_bg_noise, 1.0, 0.4));
 
-#if 1
-	vec3 color;
+	vec4 color;
 	// Dither
 	if (amp < 0.125) {
-		color = vec3(0.0);
+		color = vec4(0.0);
 	} else if (amp < 0.125 + 0.25) {
-		color = texture2D(u_dither1, pixel_pos).rgb;
+		color = texture2D(u_dither1, pixel_pos);
 	} else if (amp < 0.125 + 0.5) {
-		color = texture2D(u_dither2, pixel_pos).rgb;
+		color = texture2D(u_dither2, pixel_pos);
 	} else if (amp < 0.125 + 0.75) {
-		color = texture2D(u_dither3, pixel_pos).rgb;
+		color = texture2D(u_dither3, pixel_pos);
 	} else {
-		color = vec3(1.0);
+		color = vec4(1.0);
 	}
-	hsv.z = rgb2hsv(color).z;
-#endif
-	
-    gl_FragColor = vec4(hsv2rgb(hsv), 1.0);
+	hsv.z = rgb2hsv(color.rgb).z;
+
+    gl_FragColor = vec4(hsv2rgb(hsv), color.a);
 }
 #endif
