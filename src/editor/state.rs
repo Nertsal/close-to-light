@@ -24,7 +24,7 @@ pub enum State {
     },
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct EditorLevelState {
     /// Interactable level state representing current time.
     pub static_level: Option<LevelState>,
@@ -32,6 +32,22 @@ pub struct EditorLevelState {
     pub dynamic_level: Option<LevelState>,
     /// Index of the hovered static light.
     pub hovered_light: Option<usize>,
+    pub waypoints: Option<Waypoints>,
+}
+
+#[derive(Debug)]
+pub struct Waypoints {
+    /// Index of the light event.
+    pub event: usize,
+    pub shape: Shape,
+    pub points: Vec<Waypoint>,
+}
+
+#[derive(Debug)]
+pub struct Waypoint {
+    /// Index of the original keyframe.
+    pub original: usize,
+    pub transform: Transform,
 }
 
 impl EditorLevelState {

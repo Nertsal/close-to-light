@@ -204,7 +204,6 @@ impl EditorRender {
 
         if let State::Waypoints { event } = editor.state {
             if let Some(event) = editor.level.events.get(event) {
-                let event_time = event.beat;
                 if let Event::Light(event) = &event.event {
                     let color = if event.light.danger {
                         danger_color
@@ -242,40 +241,30 @@ impl EditorRender {
                         &mut pixel_buffer,
                     );
 
-                    // Draw waypoints themselves
-                    // If some waypoints overlap, draw the temporaly closest one
-                    let mut positions: Vec<_> = waypoints.iter().enumerate().collect();
-                    positions.sort_by_key(|(_, (trans, time))| {
-                        (
-                            trans.translation.x,
-                            trans.translation.y,
-                            (event_time + *time - editor.current_beat).abs(),
-                        )
-                    });
-                    positions.dedup_by_key(|(_, (trans, _))| trans.translation);
-                    positions.sort_by_key(|(i, _)| *i);
-
-                    for (i, &(transform, _)) in positions {
-                        let collider = event
-                            .light
-                            .clone()
-                            .instantiate(None)
-                            .collider
-                            .transformed(transform);
-                        self.util.draw_outline(
-                            &collider,
-                            0.05,
-                            color,
-                            &editor.model.camera,
-                            &mut pixel_buffer,
-                        );
-                        self.util.draw_text(
-                            format!("{}", i + 1),
-                            collider.position,
-                            TextRenderOptions::new(1.5),
-                            &editor.model.camera,
-                            &mut pixel_buffer,
-                        )
+                    if let Some(waypoints) = &editor.level_state.waypoints {
+                        // Draw waypoints themselves
+                        for point in &waypoints.points {
+                            let collider = event
+                                .light
+                                .clone()
+                                .instantiate(None)
+                                .collider
+                                .transformed(point.transform);
+                            self.util.draw_outline(
+                                &collider,
+                                0.05,
+                                color,
+                                &editor.model.camera,
+                                &mut pixel_buffer,
+                            );
+                            self.util.draw_text(
+                                format!("{}", point.original + 1),
+                                collider.position,
+                                TextRenderOptions::new(1.5),
+                                &editor.model.camera,
+                                &mut pixel_buffer,
+                            )
+                        }
                     }
                 }
             }

@@ -345,10 +345,46 @@ impl Editor {
             }
         }
 
+        let mut waypoints = None;
+        if let State::Waypoints { event: event_id } = self.state {
+            if let Some(event) = self.level.events.get(event_id) {
+                let event_time = event.beat;
+                if let Event::Light(event) = &event.event {
+                    // If some waypoints overlap, render the temporaly closest one
+                    let mut points: Vec<_> =
+                        event.light.movement.timed_positions().enumerate().collect();
+                    points.sort_by_key(|(_, (trans, time))| {
+                        (
+                            trans.translation.x,
+                            trans.translation.y,
+                            (event_time + *time - self.current_beat).abs(),
+                        )
+                    });
+                    points.dedup_by_key(|(_, (trans, _))| trans.translation);
+                    points.sort_by_key(|(i, _)| *i);
+
+                    let points = points
+                        .into_iter()
+                        .map(|(original, (transform, _))| Waypoint {
+                            original,
+                            transform,
+                        })
+                        .collect();
+
+                    waypoints = Some(Waypoints {
+                        event: event_id,
+                        shape: event.light.shape,
+                        points,
+                    });
+                }
+            }
+        }
+
         self.level_state = EditorLevelState {
             static_level,
             dynamic_level,
             hovered_light,
+            waypoints,
         };
     }
 }
