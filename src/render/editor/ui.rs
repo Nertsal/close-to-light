@@ -136,13 +136,16 @@ impl EditorRender {
                     Color::GRAY,
                 );
 
-                quad(ui.timeline.left.position, Color::CYAN);
+                quad(ui.timeline.left.position, Color::GRAY);
             }
             if ui.timeline.right.visible {
-                quad(ui.timeline.right.position, Color::MAGENTA);
+                quad(ui.timeline.right.position, Color::GRAY);
             }
             if ui.timeline.replay.visible {
-                quad(ui.timeline.replay.position, Color::BLUE);
+                quad(
+                    ui.timeline.replay.position,
+                    Color::try_from("#aaa").unwrap(),
+                );
             }
             quad(ui.timeline.current_beat.position, Color::WHITE);
         }
