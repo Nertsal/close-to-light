@@ -272,7 +272,11 @@ impl Editor {
         let margin = r32(10.0);
         let min = Time::ZERO;
         let max = margin + self.level.last_beat();
-        self.current_beat = (self.current_beat + delta).clamp(min, max);
+        let target = (self.current_beat + delta).clamp(min, max);
+
+        // Align with quarter beats
+        self.current_beat = ((target.as_f32() * 4.0).round() / 4.0).as_r32();
+
         self.scrolling = true;
     }
 
