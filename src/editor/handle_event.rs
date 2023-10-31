@@ -38,8 +38,8 @@ impl EditorState {
                 geng::Key::S if ctrl => {
                     self.save();
                 }
-                geng::Key::Q => self.editor.place_rotation += Angle::from_degrees(r32(15.0)),
-                geng::Key::E => self.editor.place_rotation += Angle::from_degrees(r32(-15.0)),
+                geng::Key::Q => self.rotate(Angle::from_degrees(r32(15.0))),
+                geng::Key::E => self.rotate(Angle::from_degrees(r32(-15.0))),
                 geng::Key::Z if ctrl => {
                     if shift {
                         self.redo();
@@ -332,6 +332,33 @@ impl EditorState {
                     }
                 }
             }
+        }
+    }
+
+    fn rotate(&mut self, delta: Angle<Coord>) {
+        self.editor.place_rotation += delta;
+        if let Some(frame) = self
+            .editor
+            .level_state
+            .waypoints
+            .as_ref()
+            .and_then(|waypoints| {
+                waypoints.selected.and_then(|selected| {
+                    self.editor
+                        .level
+                        .events
+                        .get_mut(waypoints.event)
+                        .and_then(|event| {
+                            if let Event::Light(event) = &mut event.event {
+                                event.light.movement.get_frame_mut(selected)
+                            } else {
+                                None
+                            }
+                        })
+                })
+            })
+        {
+            frame.rotation += delta;
         }
     }
 }
