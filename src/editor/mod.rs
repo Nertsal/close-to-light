@@ -225,6 +225,8 @@ impl geng::State for EditorState {
         let delta_time = Time::new(delta_time as f32);
         self.editor.real_time += delta_time;
 
+        self.update_drag();
+
         if self.editor.music_timer > Time::ZERO {
             self.editor.music_timer -= delta_time;
             if self.editor.music_timer <= Time::ZERO {

@@ -142,13 +142,6 @@ impl Movement {
         }
     }
 
-    /// Get the transform at the end of the movement.
-    pub fn get_finish(&self) -> Transform {
-        self.frames_iter()
-            .last()
-            .map_or(self.initial, |frame| frame.transform)
-    }
-
     /// Returns the total duration of the movement.
     pub fn duration(&self) -> Time {
         self.fade_in
