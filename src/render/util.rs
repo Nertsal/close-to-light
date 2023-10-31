@@ -14,6 +14,14 @@ pub struct TextRenderOptions {
     pub color: Color,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct DashRenderOptions {
+    pub width: f32,
+    pub color: Color,
+    pub dash_length: f32,
+    pub space_length: f32,
+}
+
 impl TextRenderOptions {
     pub fn new(size: f32) -> Self {
         Self { size, ..default() }
@@ -298,5 +306,106 @@ impl UtilRender {
             &geng::PixelPerfectCamera,
             framebuffer,
         );
+    }
+
+    pub fn draw_dashed_chain(
+        &self,
+        chain: &Chain<f32>,
+        options: &DashRenderOptions,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let mut dash_full_left = 0.0;
+        for segment in chain.segments() {
+            dash_full_left =
+                self.draw_dashed_segment(segment, options, dash_full_left, camera, framebuffer);
+        }
+    }
+
+    /// Draws a dashed segment.
+    /// Returns the unrendered length of the last dash.
+    pub fn draw_dashed_segment(
+        &self,
+        mut segment: Segment<f32>,
+        options: &DashRenderOptions,
+        dash_full_left: f32,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) -> f32 {
+        let delta = segment.1 - segment.0;
+        let delta_len = delta.len();
+        let direction_norm = if delta.len().approx_eq(&0.0) {
+            return dash_full_left;
+        } else {
+            delta / delta_len
+        };
+
+        if dash_full_left > 0.0 {
+            // Finish drawing the previous dash and offset current segment
+            let dash_full_length = dash_full_left.min(delta_len);
+            let dash_length = dash_full_left - options.space_length;
+            if dash_length > 0.0 {
+                // Finish dash
+                let dash_length = dash_length.min(dash_full_length);
+                let dash_end = segment.0 + direction_norm * dash_length;
+                self.geng.draw2d().draw2d(
+                    framebuffer,
+                    camera,
+                    &draw2d::Chain::new(
+                        Chain::new(vec![segment.0, dash_end]),
+                        options.width,
+                        options.color,
+                        1,
+                    ),
+                );
+            }
+
+            // Finish space
+            let dash_left = dash_full_left - dash_full_length;
+            if dash_left > 0.0 {
+                return dash_left;
+            }
+
+            // Offset
+            segment.0 += dash_full_length * direction_norm
+        }
+
+        let full_length = options.dash_length + options.space_length;
+
+        // Recalculate delta
+        let delta_len = (segment.1 - segment.0).len();
+        let dashes = (delta_len / full_length).floor() as usize;
+        for i in 0..dashes {
+            let dash_start = segment.0 + direction_norm * i as f32 * full_length;
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Chain::new(
+                    Chain::new(vec![
+                        dash_start,
+                        dash_start + direction_norm * options.dash_length,
+                    ]),
+                    options.width,
+                    options.color,
+                    1,
+                ),
+            );
+        }
+
+        let last_start = segment.0 + direction_norm * dashes as f32 * full_length;
+        let last_len = (segment.1 - last_start).len();
+        let dash_len = last_len.min(options.dash_length);
+        let last_end = last_start + direction_norm * dash_len;
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            camera,
+            &draw2d::Chain::new(
+                Chain::new(vec![last_start, last_end]),
+                options.width,
+                options.color,
+                1,
+            ),
+        );
+        full_length - last_len
     }
 }

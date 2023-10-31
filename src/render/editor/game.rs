@@ -215,18 +215,31 @@ impl EditorRender {
                     let waypoints: Vec<(Transform, Time)> =
                         event.light.movement.timed_positions().collect();
 
-                    // A line moving through the waypoints to show general direction
+                    // A dashed line moving through the waypoints to show general direction
                     let mut positions: Vec<vec2<f32>> = waypoints
                         .iter()
                         .map(|(transform, _)| transform.translation.as_f32())
                         .collect();
                     positions.dedup();
-                    // TODO: moving animation
+                    let options = util::DashRenderOptions {
+                        width: 0.15,
+                        color,
+                        dash_length: 0.1,
+                        space_length: 0.2,
+                    };
+                    if let Some(&to) = positions.get(1) {
+                        let pos = positions.first_mut().unwrap();
+                        let period = options.dash_length + options.space_length;
+                        let speed = 1.0;
+                        let t = ((editor.real_time.as_f32() * speed) / period).fract() * period;
+                        *pos += (to - *pos).normalize_or_zero() * t;
+                    }
                     let chain = Chain::new(positions);
-                    self.geng.draw2d().draw2d(
-                        &mut pixel_buffer,
+                    self.util.draw_dashed_chain(
+                        &chain,
+                        &options,
                         &editor.model.camera,
-                        &draw2d::Chain::new(chain, 0.05, color, 2),
+                        &mut pixel_buffer,
                     );
 
                     // Draw waypoints themselves
