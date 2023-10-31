@@ -212,15 +212,27 @@ impl EditorUI {
             if self.timeline.state.pressed {
                 let time = self.timeline.get_cursor_time();
                 editor.scroll_time(time - editor.current_beat);
-                self.timeline.update_time(editor.current_beat);
             }
+            let replay = editor
+                .dynamic_segment
+                .as_ref()
+                .map(|replay| replay.current_beat);
+            self.timeline.update_time(editor.current_beat, replay);
 
             let select = geng_utils::key::is_key_pressed(geng.window(), [Key::ControlLeft]);
             if select {
                 if !was_pressed && self.timeline.state.pressed {
                     self.timeline.start_selection();
                 } else if was_pressed && !self.timeline.state.pressed {
-                    self.timeline.end_selection();
+                    let (start_beat, end_beat) = self.timeline.end_selection();
+                    if start_beat != end_beat {
+                        editor.dynamic_segment = Some(Replay {
+                            start_beat,
+                            end_beat,
+                            current_beat: start_beat,
+                            speed: Time::ONE,
+                        });
+                    }
                 }
             }
 

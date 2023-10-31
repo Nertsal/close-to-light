@@ -11,6 +11,8 @@ pub struct TimelineWidget {
     pub left: WidgetState,
     /// End of the selection.
     pub right: WidgetState,
+    /// Replay current position.
+    pub replay: WidgetState,
     /// Render scale in pixels per beat.
     scale: f32,
     /// The scrolloff in beats.
@@ -18,6 +20,7 @@ pub struct TimelineWidget {
     raw_current_beat: Time,
     raw_left: Option<Time>,
     raw_right: Option<Time>,
+    raw_replay: Option<Time>,
 }
 
 impl TimelineWidget {
@@ -32,11 +35,13 @@ impl TimelineWidget {
             current_beat: default(),
             left: default(),
             right: default(),
+            replay: default(),
             scale: 1.0,
             scroll: Time::ZERO,
             raw_current_beat: Time::ZERO,
             raw_left: None,
             raw_right: None,
+            raw_replay: None,
         }
     }
 
@@ -64,8 +69,9 @@ impl TimelineWidget {
         self.reload();
     }
 
-    pub fn update_time(&mut self, current_beat: Time) {
+    pub fn update_time(&mut self, current_beat: Time, replay: Option<Time>) {
         self.raw_current_beat = current_beat;
+        self.raw_replay = replay;
         self.reload();
 
         // Auto scroll if current beat goes off screen
@@ -80,6 +86,7 @@ impl TimelineWidget {
         } else if current > max {
             self.scroll(r32((max - current) / self.scale));
         }
+        self.reload();
     }
 
     pub fn start_selection(&mut self) {
@@ -87,9 +94,18 @@ impl TimelineWidget {
         self.reload();
     }
 
-    pub fn end_selection(&mut self) {
-        self.raw_right = Some(self.raw_current_beat);
+    /// Finishes the selection and returns the left and right boundaries in ascending order.
+    pub fn end_selection(&mut self) -> (Time, Time) {
+        let right = self.raw_current_beat;
+        self.raw_right = Some(right);
         self.reload();
+
+        let left = self.raw_left.unwrap_or(right);
+        if left < right {
+            (left, right)
+        } else {
+            (right, left)
+        }
     }
 
     pub fn clear_selection(&mut self) {
@@ -119,6 +135,7 @@ impl TimelineWidget {
         };
         render_option(&mut self.left, self.raw_left);
         render_option(&mut self.right, self.raw_right);
+        render_option(&mut self.replay, self.raw_replay);
     }
 
     pub fn get_cursor_time(&self) -> Time {
@@ -138,5 +155,6 @@ impl Widget for TimelineWidget {
         self.current_beat.walk_states_mut(f);
         self.left.walk_states_mut(f);
         self.right.walk_states_mut(f);
+        self.replay.walk_states_mut(f);
     }
 }

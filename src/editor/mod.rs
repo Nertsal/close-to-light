@@ -58,6 +58,16 @@ pub struct Editor {
     pub snap_to_grid: bool,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
+    /// If `Some`, specifies the segment of the level to replay dynamically.
+    pub dynamic_segment: Option<Replay>,
+}
+
+#[derive(Debug)]
+pub struct Replay {
+    pub start_beat: Time,
+    pub end_beat: Time,
+    pub current_beat: Time,
+    pub speed: Time,
 }
 
 impl EditorState {
@@ -95,6 +105,7 @@ impl EditorState {
                 was_scrolling: false,
                 scrolling: false,
                 visualize_beat: true,
+                dynamic_segment: None,
                 snap_to_grid: true,
                 config,
                 model,
@@ -228,6 +239,11 @@ impl geng::State for EditorState {
 
         if let State::Playing { .. } = self.editor.state {
             self.editor.current_beat = self.editor.real_time / self.editor.level.beat_time();
+        } else if let Some(replay) = &mut self.editor.dynamic_segment {
+            replay.current_beat += replay.speed * delta_time / self.editor.level.beat_time();
+            if replay.current_beat > replay.end_beat {
+                replay.current_beat = replay.start_beat;
+            }
         }
 
         let pos = self.cursor_pos.as_f32();
@@ -288,7 +304,11 @@ impl Editor {
         } else {
             let time = self.current_beat;
             let dynamic = if visualize_beat {
-                Some(time + (self.real_time / self.level.beat_time()).fract())
+                if let Some(replay) = &self.dynamic_segment {
+                    Some(replay.current_beat)
+                } else {
+                    Some(time + (self.real_time / self.level.beat_time()).fract())
+                }
             } else {
                 None
             };

@@ -141,6 +141,9 @@ impl EditorRender {
             if ui.timeline.right.visible {
                 quad(ui.timeline.right.position, Color::MAGENTA);
             }
+            if ui.timeline.replay.visible {
+                quad(ui.timeline.replay.position, Color::BLUE);
+            }
             quad(ui.timeline.current_beat.position, Color::WHITE);
         }
 

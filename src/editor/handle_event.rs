@@ -22,7 +22,14 @@ impl EditorState {
                 geng::Key::ArrowRight => {
                     self.editor.scroll_time(scroll_speed);
                 }
-                geng::Key::F => self.editor.visualize_beat = !self.editor.visualize_beat,
+                geng::Key::F => {
+                    if ctrl {
+                        self.editor.dynamic_segment = None;
+                        self.ui.timeline.clear_selection();
+                    } else {
+                        self.editor.visualize_beat = !self.editor.visualize_beat
+                    }
+                }
                 geng::Key::X => {
                     if let Some(index) = self.editor.selected_light {
                         self.editor.level.events.swap_remove(index.event);
