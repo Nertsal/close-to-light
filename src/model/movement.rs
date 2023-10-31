@@ -17,6 +17,12 @@ pub struct MoveFrame {
     pub transform: Transform,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum WaypointId {
+    Initial,
+    Frame(usize),
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Transform {
@@ -78,16 +84,24 @@ impl Movement {
 
     /// Iterate over all key transformations (including initial)
     /// together with their start times.
-    pub fn timed_positions(&self) -> impl Iterator<Item = (Transform, Time)> + '_ {
-        std::iter::once((self.initial, self.fade_in))
+    pub fn timed_positions(&self) -> impl Iterator<Item = (WaypointId, Transform, Time)> + '_ {
+        std::iter::once((WaypointId::Initial, self.initial, self.fade_in))
             .chain(
                 self.frames_iter()
-                    .map(|frame| (frame.transform, frame.lerp_time)),
+                    .enumerate()
+                    .map(|(i, frame)| (WaypointId::Frame(i), frame.transform, frame.lerp_time)),
             )
-            .scan(Time::ZERO, |time, (trans, duration)| {
+            .scan(Time::ZERO, |time, (i, trans, duration)| {
                 *time += duration;
-                Some((trans, *time))
+                Some((i, trans, *time))
             })
+    }
+
+    pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut Transform> {
+        match id {
+            WaypointId::Initial => Some(&mut self.initial),
+            WaypointId::Frame(i) => self.key_frames.get_mut(i).map(|frame| &mut frame.transform),
+        }
     }
 
     /// Get the transform at the given time.

@@ -39,15 +39,18 @@ pub struct EditorLevelState {
 pub struct Waypoints {
     /// Index of the light event.
     pub event: usize,
-    pub shape: Shape,
     pub points: Vec<Waypoint>,
+    /// Index of the hovered *rendered* waypoint.
+    pub hovered: Option<usize>,
+    /// Index of the selected *original* keyframe.
+    pub selected: Option<WaypointId>,
 }
 
 #[derive(Debug)]
 pub struct Waypoint {
     /// Index of the original keyframe.
-    pub original: usize,
-    pub transform: Transform,
+    pub original: WaypointId,
+    pub collider: Collider,
 }
 
 impl EditorLevelState {

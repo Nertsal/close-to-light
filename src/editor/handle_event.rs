@@ -238,7 +238,28 @@ impl EditorState {
         }
     }
 
-    fn cursor_up(&mut self) {}
+    fn cursor_up(&mut self) {
+        if let Some(drag) = self.drag.take() {
+            match drag.target {
+                DragTarget::Waypoint { .. } => {}
+            }
+        }
+    }
+
+    pub(super) fn update_drag(&mut self) {
+        let Some(drag) = &mut self.drag else { return };
+        match drag.target {
+            DragTarget::Waypoint { event, waypoint } => {
+                if let Some(event) = self.editor.level.events.get_mut(event) {
+                    if let Event::Light(event) = &mut event.event {
+                        if let Some(frame) = event.light.movement.get_frame_mut(waypoint) {
+                            frame.translation = self.editor.cursor_world_pos;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     fn game_cursor_down(&mut self) {
         match &mut self.editor.state {
@@ -298,7 +319,19 @@ impl EditorState {
             }
             State::Playing { .. } => {}
             State::Waypoints { .. } => {
-                // TODO
+                if let Some(waypoints) = &mut self.editor.level_state.waypoints {
+                    if let Some(hovered) = waypoints.hovered.and_then(|i| waypoints.points.get(i)) {
+                        waypoints.selected = Some(hovered.original);
+                        self.drag = Some(Drag {
+                            from_screen: self.cursor_pos,
+                            from_world: self.editor.cursor_world_pos,
+                            target: DragTarget::Waypoint {
+                                event: waypoints.event,
+                                waypoint: hovered.original,
+                            },
+                        });
+                    }
+                }
             }
         }
     }

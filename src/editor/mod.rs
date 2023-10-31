@@ -26,6 +26,19 @@ pub struct EditorState {
     cursor_pos: vec2<f64>,
     render_options: RenderOptions,
     ui: EditorUI,
+    drag: Option<Drag>,
+}
+
+#[derive(Debug)]
+pub struct Drag {
+    pub from_screen: vec2<f64>,
+    pub from_world: vec2<Coord>,
+    pub target: DragTarget,
+}
+
+#[derive(Debug)]
+pub enum DragTarget {
+    Waypoint { event: usize, waypoint: WaypointId },
 }
 
 pub struct Editor {
@@ -90,6 +103,7 @@ impl EditorState {
                 hide_ui: false,
             },
             ui: EditorUI::new(),
+            drag: None,
             editor: Editor {
                 grid_size: Coord::new(model.camera.fov) / config.grid.height,
                 cursor_world_pos: vec2::ZERO,
@@ -351,30 +365,39 @@ impl Editor {
                 let event_time = event.beat;
                 if let Event::Light(event) = &event.event {
                     // If some waypoints overlap, render the temporaly closest one
-                    let mut points: Vec<_> =
-                        event.light.movement.timed_positions().enumerate().collect();
-                    points.sort_by_key(|(_, (trans, time))| {
+                    let mut points: Vec<_> = event.light.movement.timed_positions().collect();
+                    points.sort_by_key(|(_, trans, time)| {
                         (
                             trans.translation.x,
                             trans.translation.y,
                             (event_time + *time - self.current_beat).abs(),
                         )
                     });
-                    points.dedup_by_key(|(_, (trans, _))| trans.translation);
-                    points.sort_by_key(|(i, _)| *i);
+                    points.dedup_by_key(|(_, trans, _)| trans.translation);
+                    points.sort_by_key(|(i, _, _)| *i);
 
-                    let points = points
+                    let points: Vec<_> = points
                         .into_iter()
-                        .map(|(original, (transform, _))| Waypoint {
+                        .map(|(original, transform, _)| Waypoint {
                             original,
-                            transform,
+                            collider: Collider::new(vec2::ZERO, event.light.shape)
+                                .transformed(transform),
                         })
                         .collect();
 
+                    let hovered = points
+                        .iter()
+                        .position(|point| point.collider.contains(self.cursor_world_pos));
+
                     waypoints = Some(Waypoints {
                         event: event_id,
-                        shape: event.light.shape,
                         points,
+                        hovered,
+                        selected: self
+                            .level_state
+                            .waypoints
+                            .as_ref()
+                            .and_then(|waypoints| waypoints.selected),
                     });
                 }
             }

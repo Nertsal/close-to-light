@@ -211,13 +211,13 @@ impl EditorRender {
                         light_color
                     };
 
-                    let waypoints: Vec<(Transform, Time)> =
+                    let waypoints: Vec<(WaypointId, Transform, Time)> =
                         event.light.movement.timed_positions().collect();
 
                     // A dashed line moving through the waypoints to show general direction
                     let mut positions: Vec<vec2<f32>> = waypoints
                         .iter()
-                        .map(|(transform, _)| transform.translation.as_f32())
+                        .map(|(_, transform, _)| transform.translation.as_f32())
                         .collect();
                     positions.dedup();
                     let options = util::DashRenderOptions {
@@ -243,23 +243,28 @@ impl EditorRender {
 
                     if let Some(waypoints) = &editor.level_state.waypoints {
                         // Draw waypoints themselves
-                        for point in &waypoints.points {
-                            let collider = event
-                                .light
-                                .clone()
-                                .instantiate(None)
-                                .collider
-                                .transformed(point.transform);
+                        for (i, point) in waypoints.points.iter().enumerate() {
+                            let color = if Some(point.original) == waypoints.selected {
+                                select_color
+                            } else if Some(i) == waypoints.hovered {
+                                hover_color
+                            } else {
+                                color
+                            };
                             self.util.draw_outline(
-                                &collider,
+                                &point.collider,
                                 0.05,
                                 color,
                                 &editor.model.camera,
                                 &mut pixel_buffer,
                             );
+                            let i = match point.original {
+                                WaypointId::Initial => 1,
+                                WaypointId::Frame(i) => i + 2,
+                            };
                             self.util.draw_text(
-                                format!("{}", point.original + 1),
-                                collider.position,
+                                format!("{}", i),
+                                point.collider.position,
                                 TextRenderOptions::new(1.5),
                                 &editor.model.camera,
                                 &mut pixel_buffer,
