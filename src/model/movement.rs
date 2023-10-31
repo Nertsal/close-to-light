@@ -76,6 +76,11 @@ impl Movement {
         })
     }
 
+    /// Iterate over all key transformations (including initial).
+    pub fn positions(&self) -> impl Iterator<Item = Transform> + '_ {
+        std::iter::once(self.initial).chain(self.frames_iter().map(|frame| frame.transform))
+    }
+
     /// Get the transform at the given time.
     pub fn get(&self, mut time: Time) -> Transform {
         let mut from = self.initial;

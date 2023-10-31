@@ -214,8 +214,8 @@ impl EditorRender {
                     let positions: Vec<vec2<f32>> = event
                         .light
                         .movement
-                        .frames_iter()
-                        .map(|frame| frame.transform.translation.as_f32())
+                        .positions()
+                        .map(|transform| transform.translation.as_f32())
                         .collect();
                     let chain = Chain::new(positions);
                     self.geng.draw2d().draw2d(
@@ -224,13 +224,13 @@ impl EditorRender {
                         &draw2d::Chain::new(chain, 0.05, color, 2),
                     );
 
-                    for (i, frame) in event.light.movement.frames_iter().enumerate() {
+                    for (i, transform) in event.light.movement.positions().enumerate() {
                         let collider = event
                             .light
                             .clone()
                             .instantiate(None)
                             .collider
-                            .transformed(frame.transform);
+                            .transformed(transform);
                         self.util.draw_outline(
                             &collider,
                             0.05,

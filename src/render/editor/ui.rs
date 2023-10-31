@@ -123,6 +123,7 @@ impl EditorRender {
             quad(line, Color::WHITE);
 
             if ui.timeline.left.visible {
+                // Selected area
                 let from = ui.timeline.left.position;
                 let to = if ui.timeline.right.visible {
                     ui.timeline.right.position
@@ -135,12 +136,37 @@ impl EditorRender {
                         .extend_symmetric(vec2(0.0, from.height() * 0.8) / 2.0),
                     Color::GRAY,
                 );
+            }
 
+            // Light timespan
+            let event = if let State::Waypoints { event } = editor.state {
+                Some(event)
+            } else {
+                editor.selected_light.map(|id| id.event)
+            };
+            if let Some(event) = event.and_then(|i| editor.level.events.get(i)) {
+                let from = event.beat;
+                if let Event::Light(event) = &event.event {
+                    let from = from + event.telegraph.precede_time;
+                    let to = from + event.light.movement.duration();
+
+                    let from = ui.timeline.time_to_screen(from);
+                    let to = ui.timeline.time_to_screen(to);
+                    let timespan = Aabb2::point(from)
+                        .extend_right(to.x - from.x)
+                        .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
+                    quad(timespan, Color::CYAN);
+                }
+            }
+
+            // Selected bounds
+            if ui.timeline.left.visible {
                 quad(ui.timeline.left.position, Color::GRAY);
             }
             if ui.timeline.right.visible {
                 quad(ui.timeline.right.position, Color::GRAY);
             }
+
             if ui.timeline.replay.visible {
                 quad(
                     ui.timeline.replay.position,

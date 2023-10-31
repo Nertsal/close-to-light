@@ -141,6 +141,14 @@ impl TimelineWidget {
     pub fn get_cursor_time(&self) -> Time {
         r32((self.context.cursor_position.x - self.state.position.min.x) / self.scale) - self.scroll
     }
+
+    pub fn time_to_screen(&self, t: Time) -> vec2<f32> {
+        let pos = (t + self.scroll).as_f32() * self.scale;
+        vec2(
+            self.state.position.min.x + pos,
+            self.state.position.center().y,
+        )
+    }
 }
 
 impl Widget for TimelineWidget {
