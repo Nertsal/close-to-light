@@ -78,15 +78,19 @@ impl EditorState {
                         _ => {}
                     }
                 }
-                geng::Key::W => {
-                    if let State::Idle = self.editor.state {
+                geng::Key::W => match self.editor.state {
+                    State::Idle => {
                         if let Some(selected) = self.editor.selected_light {
                             self.editor.state = State::Waypoints {
                                 event: selected.event,
                             };
                         }
                     }
-                }
+                    State::Waypoints { .. } => {
+                        self.editor.state = State::Idle;
+                    }
+                    _ => (),
+                },
                 geng::Key::Backquote => {
                     if ctrl {
                         self.render_options.show_grid = !self.render_options.show_grid;
