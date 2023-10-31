@@ -22,9 +22,7 @@ impl LightWidget {
         Self {
             state: WidgetState::default(),
             light: LightSerde {
-                position: vec2::ZERO,
                 danger: false,
-                rotation: Coord::ZERO,
                 shape: Shape::Circle { radius: r32(1.0) },
                 movement: Movement::default(),
             },

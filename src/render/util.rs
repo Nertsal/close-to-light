@@ -217,13 +217,10 @@ impl UtilRender {
             }
         };
         let movement = Movement {
-            key_frames: vec![
-                frame(0.0, 2.25),
-                frame(0.5, 5.0),
-                frame(0.25, 75.0),
-                frame(0.2, 0.0),
-            ]
-            .into(),
+            initial: frame(0.0, 2.25).transform,
+            key_frames: vec![frame(0.5, 5.0), frame(0.25, 75.0)].into(),
+            fade_in: Time::ZERO,
+            fade_out: r32(0.2),
         };
 
         let t = button.hover_time.get_ratio();

@@ -66,7 +66,7 @@ impl EditorRender {
             let light = &ui.selected_light.light.light;
             let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
             let mut collider = Collider::new(vec2::ZERO, light.shape);
-            collider.rotation = Angle::from_degrees(light.rotation);
+            collider.rotation = light.movement.initial.rotation;
             let color = if light.danger {
                 editor.level.config.theme.danger
             } else {

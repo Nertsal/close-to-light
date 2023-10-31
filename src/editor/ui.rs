@@ -140,11 +140,15 @@ impl EditorUI {
             let selected = if let State::Place { shape, danger } = &mut editor.state {
                 // Place new
                 let light = LightSerde {
-                    position: vec2::ZERO,
                     danger: *danger,
-                    rotation: editor.place_rotation.as_degrees(),
                     shape: shape.scaled(editor.place_scale),
-                    movement: Movement::default(),
+                    movement: Movement {
+                        initial: Transform {
+                            rotation: editor.place_rotation,
+                            ..default()
+                        },
+                        ..default()
+                    },
                 };
                 Some(("Left click to place a new light", danger, light))
             } else if let Some(selected_event) = editor

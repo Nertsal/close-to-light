@@ -215,7 +215,7 @@ impl EditorRender {
                         .light
                         .movement
                         .frames_iter()
-                        .map(|frame| (event.light.position + frame.transform.translation).as_f32())
+                        .map(|frame| frame.transform.translation.as_f32())
                         .collect();
                     let chain = Chain::new(positions);
                     self.geng.draw2d().draw2d(

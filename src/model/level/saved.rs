@@ -89,13 +89,9 @@ pub enum Event {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LightSerde {
-    pub position: vec2<Coord>,
     /// Whether the light is dangerous.
     #[serde(default)]
     pub danger: bool,
-    /// Rotation (in degrees).
-    #[serde(default = "LightSerde::default_rotation")]
-    pub rotation: Coord,
     pub shape: Shape,
     /// Movement with timings in beats.
     #[serde(default)]
@@ -150,11 +146,7 @@ impl LightSerde {
     }
 
     pub fn instantiate(self, event_id: Option<usize>) -> Light {
-        let collider = Collider {
-            position: self.position,
-            rotation: Angle::from_degrees(self.rotation),
-            shape: self.shape,
-        };
+        let collider = Collider::new(vec2::ZERO, self.shape);
         Light {
             base_collider: collider.clone(),
             collider,

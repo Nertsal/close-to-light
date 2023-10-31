@@ -250,33 +250,20 @@ impl EditorState {
 
                 // Fade in
                 let movement = Movement {
-                    key_frames: vec![
-                        MoveFrame {
-                            lerp_time: Time::ZERO, // in beats
-                            transform: Transform {
-                                scale: Coord::ZERO,
-                                ..default()
-                            },
-                        },
-                        MoveFrame {
-                            lerp_time: Time::ONE, // in beats
-                            transform: Transform {
-                                scale: self.editor.place_scale,
-                                ..default()
-                            },
-                        },
-                    ]
-                    .into(),
+                    initial: Transform {
+                        translation: self.editor.cursor_world_pos,
+                        rotation: self.editor.place_rotation,
+                        scale: self.editor.place_scale,
+                    },
+                    ..default()
                 };
                 let telegraph = Telegraph::default();
                 self.editor.state = State::Movement {
                     start_beat: self.editor.current_beat
-                        - movement.duration()
-                        - telegraph.precede_time, // extra time for the fade and telegraph
+                        - movement.fade_in
+                        - telegraph.precede_time, // extra time for the fade in and telegraph
                     light: LightEvent {
                         light: LightSerde {
-                            position: self.editor.cursor_world_pos,
-                            rotation: self.editor.place_rotation.as_degrees(),
                             shape,
                             movement,
                             danger,
@@ -294,9 +281,7 @@ impl EditorState {
                 // TODO: check negative time
                 let last_beat =
                     *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
-                let mut last_pos = light.light.movement.get_finish();
-                last_pos.translation += light.light.position;
-                last_pos.rotation += Angle::from_degrees(light.light.rotation);
+                let last_pos = light.light.movement.get_finish();
                 light.light.movement.key_frames.push_back(MoveFrame {
                     lerp_time: self.editor.current_beat - last_beat, // in beats
                     transform: Transform {
