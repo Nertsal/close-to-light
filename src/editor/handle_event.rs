@@ -306,12 +306,11 @@ impl EditorState {
                 // TODO: check negative time
                 let last_beat =
                     *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
-                let last_pos = light.light.movement.get_finish();
                 light.light.movement.key_frames.push_back(MoveFrame {
                     lerp_time: self.editor.current_beat - last_beat, // in beats
                     transform: Transform {
-                        translation: self.editor.cursor_world_pos - last_pos.translation,
-                        rotation: last_pos.rotation.angle_to(self.editor.place_rotation),
+                        translation: self.editor.cursor_world_pos,
+                        rotation: self.editor.place_rotation,
                         scale: self.editor.place_scale,
                     },
                 });

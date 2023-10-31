@@ -68,18 +68,8 @@ impl Default for Movement {
 
 impl Movement {
     /// Iterate over frames with corrected (accumulated) transforms.
-    pub fn frames_iter(&self) -> impl Iterator<Item = MoveFrame> + '_ {
-        self.key_frames.iter().scan(self.initial, |trans, frame| {
-            *trans = Transform {
-                translation: trans.translation + frame.transform.translation,
-                rotation: trans.rotation + frame.transform.rotation,
-                scale: frame.transform.scale,
-            };
-            Some(MoveFrame {
-                transform: *trans,
-                ..*frame
-            })
-        })
+    pub fn frames_iter(&self) -> impl Iterator<Item = &MoveFrame> {
+        self.key_frames.iter()
     }
 
     /// Iterate over all key transformations (including initial)
