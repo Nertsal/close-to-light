@@ -45,6 +45,23 @@ impl Default for Transform {
 }
 
 impl Movement {
+    /// Iterate over frames with corrected (accumulated) transforms.
+    pub fn frames_iter(&self) -> impl Iterator<Item = MoveFrame> + '_ {
+        self.key_frames
+            .iter()
+            .scan(Transform::identity(), |trans, frame| {
+                *trans = Transform {
+                    translation: trans.translation + frame.transform.translation,
+                    rotation: trans.rotation + frame.transform.rotation,
+                    scale: frame.transform.scale,
+                };
+                Some(MoveFrame {
+                    transform: *trans,
+                    ..*frame
+                })
+            })
+    }
+
     /// Get the transform at the given time.
     pub fn get(&self, mut time: Time) -> Transform {
         let mut from = Transform::identity();

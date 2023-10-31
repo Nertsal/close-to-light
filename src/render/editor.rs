@@ -306,7 +306,10 @@ impl EditorRender {
                 }
             };
 
-        let static_alpha = if let State::Place { .. } | State::Movement { .. } = editor.state {
+        let static_alpha = if let State::Place { .. }
+        | State::Movement { .. }
+        | State::Waypoints { .. } = editor.state
+        {
             0.5
         } else {
             1.0
@@ -418,6 +421,55 @@ impl EditorRender {
                     &editor.model.camera,
                     &mut pixel_buffer,
                 );
+            }
+        }
+        let mut pixel_buffer = draw_game!(1.0);
+
+        if let State::Waypoints { event } = editor.state {
+            if let Some(event) = editor.level.events.get(event) {
+                if let Event::Light(event) = &event.event {
+                    let color = if event.light.danger {
+                        danger_color
+                    } else {
+                        light_color
+                    };
+
+                    let positions: Vec<vec2<f32>> = event
+                        .light
+                        .movement
+                        .frames_iter()
+                        .map(|frame| (event.light.position + frame.transform.translation).as_f32())
+                        .collect();
+                    let chain = Chain::new(positions);
+                    self.geng.draw2d().draw2d(
+                        &mut pixel_buffer,
+                        &editor.model.camera,
+                        &draw2d::Chain::new(chain, 0.05, color, 2),
+                    );
+
+                    for (i, frame) in event.light.movement.frames_iter().enumerate() {
+                        let collider = event
+                            .light
+                            .clone()
+                            .instantiate(None)
+                            .collider
+                            .transformed(frame.transform);
+                        self.util.draw_outline(
+                            &collider,
+                            0.05,
+                            color,
+                            &editor.model.camera,
+                            &mut pixel_buffer,
+                        );
+                        self.util.draw_text(
+                            format!("{}", i + 1),
+                            collider.position,
+                            TextRenderOptions::new(1.5),
+                            &editor.model.camera,
+                            &mut pixel_buffer,
+                        )
+                    }
+                }
             }
         }
         draw_game!(1.0);
@@ -559,6 +611,7 @@ impl EditorRender {
                 ),
                 State::Place { .. } => "idk what should we do here".to_string(),
                 State::Idle => "Level stack not implemented KEKW".to_string(),
+                State::Waypoints { .. } => "Waypoing stack TODO".to_string(),
             };
             font.draw(
                 game_buffer,
@@ -593,13 +646,14 @@ impl EditorRender {
                 "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
             } else {
                 match &editor.state {
-                State::Idle => "Click on a light to configure\n1/2 to spawn a new one",
-                State::Place { .. } => "Click to set the spawn position for the new light",
-                State::Movement { .. } => {
-                    "Left click to create a new waypoint\nRight click to finish\nEscape to cancel"
+                    State::Idle => "Click on a light to configure\n1/2 to spawn a new one",
+                    State::Place { .. } => "Click to set the spawn position for the new light",
+                    State::Movement { .. } => {
+                        "Left click to create a new waypoint\nRight click to finish\nEscape to cancel"
+                    }
+                    State::Playing { .. } => "Playing the music...\nSpace to stop",
+                    State::Waypoints { ..} => "Drag, rotate, and scale waypoints",
                 }
-                State::Playing { .. } => "Playing the music...\nSpace to stop",
-            }
             };
             font.draw(
                 game_buffer,

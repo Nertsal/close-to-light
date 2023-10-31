@@ -55,6 +55,13 @@ impl EditorState {
                                 }
                             }
                         }
+                        State::Waypoints { event } => {
+                            if let Some(event) = self.editor.level.events.get_mut(*event) {
+                                if let Event::Light(event) = &mut event.event {
+                                    event.light.danger = !event.light.danger;
+                                }
+                            }
+                        }
                         State::Place { danger, .. } => {
                             *danger = !*danger;
                         }
@@ -62,6 +69,15 @@ impl EditorState {
                             light.light.danger = !light.light.danger;
                         }
                         _ => {}
+                    }
+                }
+                geng::Key::W => {
+                    if let State::Idle = self.editor.state {
+                        if let Some(selected) = self.editor.selected_light {
+                            self.editor.state = State::Waypoints {
+                                event: selected.event,
+                            };
+                        }
                     }
                 }
                 geng::Key::Backquote => {
@@ -74,11 +90,11 @@ impl EditorState {
                 geng::Key::Escape => {
                     // Cancel creation
                     match self.editor.state {
-                        State::Movement { .. } | State::Place { .. } => {
-                            self.editor.state = State::Idle;
-                        }
                         State::Idle => {
                             self.editor.selected_light = None;
+                        }
+                        State::Movement { .. } | State::Place { .. } | State::Waypoints { .. } => {
+                            self.editor.state = State::Idle;
                         }
                         _ => (),
                     }
@@ -279,6 +295,9 @@ impl EditorState {
                     redo_stack.clear();
                 }
                 State::Playing { .. } => {}
+                State::Waypoints { .. } => {
+                    // TODO
+                }
             }
         }
     }
