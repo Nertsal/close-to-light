@@ -76,9 +76,18 @@ impl Movement {
         })
     }
 
-    /// Iterate over all key transformations (including initial).
-    pub fn positions(&self) -> impl Iterator<Item = Transform> + '_ {
-        std::iter::once(self.initial).chain(self.frames_iter().map(|frame| frame.transform))
+    /// Iterate over all key transformations (including initial)
+    /// together with their start times.
+    pub fn timed_positions(&self) -> impl Iterator<Item = (Transform, Time)> + '_ {
+        std::iter::once((self.initial, self.fade_in))
+            .chain(
+                self.frames_iter()
+                    .map(|frame| (frame.transform, frame.lerp_time)),
+            )
+            .scan(Time::ZERO, |time, (trans, duration)| {
+                *time += duration;
+                Some((trans, *time))
+            })
     }
 
     /// Get the transform at the given time.

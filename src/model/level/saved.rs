@@ -141,10 +141,6 @@ impl TimedEvent {
 }
 
 impl LightSerde {
-    fn default_rotation() -> Coord {
-        Coord::ZERO
-    }
-
     pub fn instantiate(self, event_id: Option<usize>) -> Light {
         let collider = Collider::new(vec2::ZERO, self.shape);
         Light {

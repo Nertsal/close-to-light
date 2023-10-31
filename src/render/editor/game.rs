@@ -204,6 +204,7 @@ impl EditorRender {
 
         if let State::Waypoints { event } = editor.state {
             if let Some(event) = editor.level.events.get(event) {
+                let event_time = event.beat;
                 if let Event::Light(event) = &event.event {
                     let color = if event.light.danger {
                         danger_color
@@ -211,12 +212,16 @@ impl EditorRender {
                         light_color
                     };
 
-                    let positions: Vec<vec2<f32>> = event
-                        .light
-                        .movement
-                        .positions()
-                        .map(|transform| transform.translation.as_f32())
+                    let waypoints: Vec<(Transform, Time)> =
+                        event.light.movement.timed_positions().collect();
+
+                    // A line moving through the waypoints to show general direction
+                    let mut positions: Vec<vec2<f32>> = waypoints
+                        .iter()
+                        .map(|(transform, _)| transform.translation.as_f32())
                         .collect();
+                    positions.dedup();
+                    // TODO: moving animation
                     let chain = Chain::new(positions);
                     self.geng.draw2d().draw2d(
                         &mut pixel_buffer,
@@ -224,7 +229,20 @@ impl EditorRender {
                         &draw2d::Chain::new(chain, 0.05, color, 2),
                     );
 
-                    for (i, transform) in event.light.movement.positions().enumerate() {
+                    // Draw waypoints themselves
+                    // If some waypoints overlap, draw the temporaly closest one
+                    let mut positions: Vec<_> = waypoints.iter().enumerate().collect();
+                    positions.sort_by_key(|(_, (trans, time))| {
+                        (
+                            trans.translation.x,
+                            trans.translation.y,
+                            (event_time + *time - editor.current_beat).abs(),
+                        )
+                    });
+                    positions.dedup_by_key(|(_, (trans, _))| trans.translation);
+                    positions.sort_by_key(|(i, _)| *i);
+
+                    for (i, &(transform, _)) in positions {
                         let collider = event
                             .light
                             .clone()
