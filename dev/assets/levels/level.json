@@ -45,7 +45,7 @@
                       0.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": 3.1415923,
                     "scale": 1.0
                   }
                 }
@@ -118,10 +118,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      -5.0,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -162,10 +162,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      -2.5,
+                      2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -206,10 +206,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      -2.5,
+                      -2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -253,7 +253,7 @@
                       -0.0,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -294,10 +294,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      5.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -338,10 +338,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      2.5,
+                      2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -382,10 +382,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      2.5,
+                      -2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -525,7 +525,7 @@
                       0.0,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -567,9 +567,20 @@
                   "transform": {
                     "translation": [
                       2.5,
+                      0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 },
@@ -578,9 +589,9 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      2.5
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 },
@@ -588,21 +599,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      0.0,
                       -2.5
                     ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -675,10 +675,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      5.0,
+                      0.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -754,7 +754,7 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 },
@@ -762,10 +762,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      0.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 },
@@ -776,7 +776,7 @@
                       -2.5,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 },
@@ -784,10 +784,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      0.0,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -895,7 +895,7 @@
                       -0.0,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": 3.1415923,
                     "scale": 1.0
                   }
                 }
@@ -936,10 +936,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      0.0,
                       -2.5
                     ],
-                    "rotation": -1.5707984,
+                    "rotation": -9.424779,
                     "scale": 1.0
                   }
                 },
@@ -948,20 +948,9 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      2.5
+                      0.0
                     ],
-                    "rotation": -1.5707986,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": -1.5707994,
+                    "rotation": -10.995578,
                     "scale": 1.0
                   }
                 },
@@ -970,9 +959,20 @@
                   "transform": {
                     "translation": [
                       0.0,
-                      -5.0
+                      2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566378,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": -12.566378,
                     "scale": 1.0
                   }
                 }
@@ -1109,10 +1109,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
+                      0.0,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -1389,32 +1389,32 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      1.25,
-                      3.75
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      3.75,
-                      -1.25
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
                       -1.25,
-                      -3.75
+                      2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      1.25
+                    ],
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      -2.5
+                    ],
+                    "rotation": 3.1415923,
                     "scale": 1.0
                   }
                 }
@@ -1456,64 +1456,64 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      2.5
-                    ],
-                    "rotation": -1.570796,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      0.0
-                    ],
-                    "rotation": -1.5707984,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
                       -2.5
                     ],
-                    "rotation": -1.5707986,
+                    "rotation": -6.2831845,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -10.995578,
                     "scale": 1.0
                   }
                 }
@@ -1685,7 +1685,7 @@
                       -0.0,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -3.1415923,
                     "scale": 1.0
                   }
                 }
@@ -1793,7 +1793,7 @@
                       -2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -3.1415923,
                     "scale": 1.0
                   }
                 }
@@ -1994,10 +1994,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      -2.5,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -6.2831845,
                     "scale": 1.0
                   }
                 }
@@ -2038,10 +2038,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      -2.5
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -6.2831845,
                     "scale": 1.0
                   }
                 }
@@ -2082,7 +2082,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      2.5,
                       2.5
                     ],
                     "rotation": 0.0,
@@ -2158,10 +2158,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      0.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -2525,7 +2525,7 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -2790,10 +2790,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
-                      0.0
+                      0.0,
+                      -2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -2837,7 +2837,7 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -2878,10 +2878,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      -2.5,
+                      5.0
                     ],
-                    "rotation": 0.78539854,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -2925,7 +2925,7 @@
                       -2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -3001,7 +3001,7 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -3173,7 +3173,18 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 },
@@ -3184,7 +3195,7 @@
                       -2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 },
@@ -3192,21 +3203,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      0.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -3282,7 +3282,7 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -3.1415923,
                     "scale": 1.0
                   }
                 }
@@ -3387,10 +3387,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      0.0,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -3562,7 +3562,7 @@
                       2.5,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -3670,7 +3670,7 @@
                       2.5,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -4.7123885,
                     "scale": 1.0
                   }
                 }
@@ -3904,9 +3904,9 @@
                   "transform": {
                     "translation": [
                       -1.25,
-                      1.25
+                      -1.25
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 },
@@ -3914,10 +3914,10 @@
                   "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      1.25,
-                      1.25
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -3958,10 +3958,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      0.0,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 }
@@ -4002,10 +4002,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      -2.5,
                       -2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -4046,10 +4046,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      -2.5,
+                      5.0
                     ],
-                    "rotation": 1.5707984,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 },
@@ -4057,10 +4057,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
-                      0.0
+                      0.0,
+                      5.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 }
@@ -4102,9 +4102,9 @@
                   "transform": {
                     "translation": [
                       1.25,
-                      1.25
+                      -1.25
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 },
@@ -4112,10 +4112,10 @@
                   "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      -1.25,
-                      1.25
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -4156,10 +4156,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      -2.5,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -4297,9 +4297,9 @@
                   "transform": {
                     "translation": [
                       1.25,
-                      -1.25
+                      1.25
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 },
@@ -4307,10 +4307,10 @@
                   "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      -1.25,
-                      -1.25
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -4512,9 +4512,9 @@
                   "transform": {
                     "translation": [
                       -0.0,
-                      -2.5
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -4780,9 +4780,9 @@
                   "transform": {
                     "translation": [
                       1.25,
-                      -1.25
+                      1.25
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 },
@@ -4790,10 +4790,10 @@
                   "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      -1.25,
-                      -1.25
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -5026,10 +5026,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      2.5,
+                      5.0
                     ],
-                    "rotation": -1.570796,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 }
@@ -5073,7 +5073,7 @@
                       -2.5,
                       -2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 },
@@ -5081,10 +5081,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
-                      2.5
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 }
@@ -5224,7 +5224,7 @@
                       -2.5,
                       2.5
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 },
@@ -5232,10 +5232,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
-                      -2.5
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 }
@@ -5279,7 +5279,7 @@
                       2.5,
                       -0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -7.8539805,
                     "scale": 1.0
                   }
                 }
@@ -5481,9 +5481,9 @@
                   "transform": {
                     "translation": [
                       0.0,
-                      -2.5
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -9.424779,
                     "scale": 1.0
                   }
                 }
@@ -5589,6 +5589,17 @@
                   "transform": {
                     "translation": [
                       2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
                       2.5
                     ],
                     "rotation": 0.0,
@@ -5600,7 +5611,7 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      2.5
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -5610,18 +5621,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
+                      0.0,
                       -2.5
                     ],
                     "rotation": 0.0,
@@ -5698,9 +5698,9 @@
                   "transform": {
                     "translation": [
                       -1.25,
-                      -1.25
+                      1.25
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 },
@@ -5708,10 +5708,10 @@
                   "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      1.25,
-                      -1.25
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -5817,9 +5817,9 @@
                   "transform": {
                     "translation": [
                       1.25,
-                      1.25
+                      -1.25
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 },
@@ -5827,10 +5827,10 @@
                   "lerp_time": 0.5,
                   "transform": {
                     "translation": [
-                      -1.25,
-                      1.25
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -12.566377,
                     "scale": 1.0
                   }
                 }
@@ -5904,9 +5904,9 @@
                   "transform": {
                     "translation": [
                       0.0,
-                      2.5
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -9.424779,
                     "scale": 1.0
                   }
                 }
@@ -6043,10 +6043,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      0.0,
                       0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -1.5707963,
                     "scale": 1.0
                   }
                 }
@@ -6152,9 +6152,20 @@
                   "transform": {
                     "translation": [
                       2.5,
+                      0.0
+                    ],
+                    "rotation": -10.995578,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
                       -2.5
                     ],
-                    "rotation": -1.5707986,
+                    "rotation": -12.566378,
                     "scale": 1.0
                   }
                 },
@@ -6163,20 +6174,9 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      -2.5
+                      0.0
                     ],
-                    "rotation": -1.5707994,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": -1.5707974,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 },
@@ -6184,10 +6184,10 @@
                   "lerp_time": 2.0,
                   "transform": {
                     "translation": [
-                      5.0,
-                      -0.0
+                      2.5,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -6420,10 +6420,10 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      2.5
+                      0.0,
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
@@ -6657,9 +6657,9 @@
                   "transform": {
                     "translation": [
                       -0.0,
-                      2.5
+                      0.0
                     ],
-                    "rotation": 0.0,
+                    "rotation": -14.137175,
                     "scale": 1.0
                   }
                 }
