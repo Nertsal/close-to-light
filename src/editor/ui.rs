@@ -206,14 +206,14 @@ impl EditorUI {
 
             let (timeline, _bottom_bar) = layout::cut_top_down(bottom_bar, font_size * 1.0);
             update!(self.timeline, timeline);
+
+            if self.timeline.state.pressed {
+                let time = self.timeline.get_cursor_time();
+                editor.scroll_time(time - editor.current_beat);
+            }
             self.timeline.update_time(editor.current_beat);
-            self.timeline.auto_scale(
-                editor
-                    .level
-                    .events
-                    .last()
-                    .map_or(Time::ZERO, |event| event.beat),
-            );
+
+            self.timeline.auto_scale(editor.level.last_beat());
         }
     }
 }

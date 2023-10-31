@@ -48,7 +48,8 @@ impl WidgetState {
         self.position = position;
         self.hovered = self.position.contains(context.cursor_position);
         let was_pressed = self.pressed;
-        self.pressed = context.cursor_down && self.hovered;
+        // TODO: check for mouse being pressed and then dragged onto the widget
+        self.pressed = context.cursor_down && (was_pressed || self.hovered);
         self.clicked = !was_pressed && self.pressed;
     }
 

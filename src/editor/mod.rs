@@ -106,11 +106,6 @@ impl EditorState {
         }
     }
 
-    fn scroll_time(&mut self, delta: Time) {
-        self.editor.current_beat = (self.editor.current_beat + delta).max(Time::ZERO);
-        self.editor.scrolling = true;
-    }
-
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
         (pos / self.editor.grid_size).map(Coord::round) * self.editor.grid_size
     }
@@ -273,6 +268,14 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
+    fn scroll_time(&mut self, delta: Time) {
+        let margin = r32(10.0);
+        let min = Time::ZERO;
+        let max = margin + self.level.last_beat();
+        self.current_beat = (self.current_beat + delta).clamp(min, max);
+        self.scrolling = true;
+    }
+
     pub fn render_lights(&mut self, visualize_beat: bool) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()

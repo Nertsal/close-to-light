@@ -123,6 +123,25 @@ impl Level {
     pub fn beat_time(&self) -> Time {
         r32(60.0) / self.config.bpm
     }
+
+    /// Calculate the last beat when anything happens.
+    pub fn last_beat(&self) -> Time {
+        self.events
+            .iter()
+            .map(|event| event.beat + event.duration())
+            .max()
+            .unwrap_or(Time::ZERO)
+    }
+}
+
+impl TimedEvent {
+    /// Returns the duration (in beats) of the event.
+    pub fn duration(&self) -> Time {
+        match &self.event {
+            Event::Light(event) => event.light.movement.duration(),
+            Event::Theme(_) => Time::ZERO,
+        }
+    }
 }
 
 impl LightSerde {

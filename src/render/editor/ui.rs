@@ -122,12 +122,7 @@ impl EditorRender {
                 .extend_symmetric(vec2(timeline.width(), font_size * 0.1) / 2.0);
             quad(line, Color::WHITE);
 
-            let current = vec2(
-                timeline.min.x + ui.timeline.current_beat,
-                timeline.center().y,
-            );
-            let current = Aabb2::point(current).extend_symmetric(vec2(0.1, 0.5) * font_size / 2.0);
-            quad(current, Color::WHITE);
+            quad(ui.timeline.current_beat.position, Color::WHITE);
         }
 
         // Leave the game area transparent
