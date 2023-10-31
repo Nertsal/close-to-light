@@ -14,10 +14,12 @@ pub struct EditorUI {
 
     /// The size for the light texture to render pixel-perfectly.
     pub light_size: vec2<usize>,
-    pub current_beat: TextWidget,
     pub visualize_beat: CheckboxWidget,
     pub show_grid: CheckboxWidget,
     pub snap_grid: CheckboxWidget,
+
+    pub current_beat: TextWidget,
+    pub timeline: TimelineWidget,
 }
 
 impl EditorUI {
@@ -30,10 +32,11 @@ impl EditorUI {
             selected_text: default(),
             selected_light: LightStateWidget::new(),
             light_size: vec2(1, 1),
-            current_beat: default(),
             visualize_beat: CheckboxWidget::new("Show movement"),
             show_grid: CheckboxWidget::new("Show grid"),
             snap_grid: CheckboxWidget::new("Snap to grid"),
+            current_beat: default(),
+            timeline: TimelineWidget::new(),
         }
     }
 
@@ -45,7 +48,7 @@ impl EditorUI {
         cursor_position: vec2<f32>,
         cursor_down: bool,
     ) {
-        let screen = geng_utils::layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let font_size = screen.height() * 0.04;
 
@@ -73,7 +76,7 @@ impl EditorUI {
 
             update!(
                 self.game,
-                geng_utils::layout::align_aabb(game_size, screen, vec2(0.0, 1.0))
+                layout::align_aabb(game_size, screen, vec2(0.0, 1.0))
             );
         }
 
@@ -128,7 +131,7 @@ impl EditorUI {
             let target = side_bar;
             update!(
                 self.selected_text,
-                geng_utils::layout::fit_aabb_width(vec2(target.width(), font_size), target, 1.0)
+                layout::fit_aabb_width(vec2(target.width(), font_size), target, 1.0)
             );
         }
 
@@ -197,13 +200,20 @@ impl EditorUI {
         }
 
         {
-            let size = bottom_bar.height() * 0.2;
-            let size = vec2::splat(size);
-            update!(
-                self.current_beat,
-                geng_utils::layout::align_aabb(size, bottom_bar, vec2(0.5, 1.0))
-            );
+            let (current_beat, bottom_bar) = layout::cut_top_down(bottom_bar, font_size * 1.5);
+            update!(self.current_beat, current_beat);
             self.current_beat.text = format!("Beat: {:.2}", editor.current_beat);
+
+            let (timeline, _bottom_bar) = layout::cut_top_down(bottom_bar, font_size * 1.0);
+            update!(self.timeline, timeline);
+            self.timeline.update_time(editor.current_beat);
+            self.timeline.auto_scale(
+                editor
+                    .level
+                    .events
+                    .last()
+                    .map_or(Time::ZERO, |event| event.beat),
+            );
         }
     }
 }

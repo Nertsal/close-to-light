@@ -1,8 +1,11 @@
 mod checkbox;
 mod light;
 mod text;
+mod timeline;
 
-pub use self::{checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidget};
+pub use self::{
+    checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidget, timeline::TimelineWidget,
+};
 
 use geng::prelude::*;
 

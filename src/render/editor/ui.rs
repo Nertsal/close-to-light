@@ -110,9 +110,25 @@ impl EditorRender {
                 .draw_text_widget(&ui.selected_light.scale, options, screen_buffer);
         }
 
-        // Beat
-        self.util
-            .draw_text_widget(&ui.current_beat, options, screen_buffer);
+        {
+            // Timeline
+            self.util
+                .draw_text_widget(&ui.current_beat, options, screen_buffer);
+
+            let mut quad =
+                |aabb, color| self.geng.draw2d().quad(screen_buffer, camera, aabb, color);
+            let timeline = ui.timeline.state.position;
+            let line = Aabb2::point(timeline.center())
+                .extend_symmetric(vec2(timeline.width(), font_size * 0.1) / 2.0);
+            quad(line, Color::WHITE);
+
+            let current = vec2(
+                timeline.min.x + ui.timeline.current_beat,
+                timeline.center().y,
+            );
+            let current = Aabb2::point(current).extend_symmetric(vec2(0.1, 0.5) * font_size / 2.0);
+            quad(current, Color::WHITE);
+        }
 
         // Leave the game area transparent
         ugli::draw(

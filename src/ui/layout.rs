@@ -2,6 +2,8 @@
 
 use geng::prelude::*;
 
+pub use geng_utils::layout::*;
+
 type Area = Aabb2<f32>;
 
 pub fn split_left_right(aabb: Area, left_ratio: f32) -> (Area, Area) {
