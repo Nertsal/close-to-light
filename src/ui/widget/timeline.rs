@@ -7,13 +7,17 @@ pub struct TimelineWidget {
     context: UiContext,
     pub state: WidgetState,
     pub current_beat: WidgetState,
-    pub selection: Option<RangeInclusive<f32>>,
+    /// Start of the selection.
+    pub left: WidgetState,
+    /// End of the selection.
+    pub right: WidgetState,
     /// Render scale in pixels per beat.
     scale: f32,
     /// The scrolloff in beats.
     scroll: Time,
     raw_current_beat: Time,
-    raw_selection: Option<RangeInclusive<Time>>,
+    raw_left: Option<Time>,
+    raw_right: Option<Time>,
 }
 
 impl TimelineWidget {
@@ -26,11 +30,13 @@ impl TimelineWidget {
             },
             state: default(),
             current_beat: default(),
-            selection: None,
+            left: default(),
+            right: default(),
             scale: 1.0,
             scroll: Time::ZERO,
             raw_current_beat: Time::ZERO,
-            raw_selection: None,
+            raw_left: None,
+            raw_right: None,
         }
     }
 
@@ -76,25 +82,43 @@ impl TimelineWidget {
         }
     }
 
-    pub fn update_selection(&mut self, selection: Option<RangeInclusive<Time>>) {
-        self.raw_selection = selection;
+    pub fn start_selection(&mut self) {
+        self.raw_left = Some(self.raw_current_beat);
+        self.reload();
+    }
+
+    pub fn end_selection(&mut self) {
+        self.raw_right = Some(self.raw_current_beat);
+        self.reload();
+    }
+
+    pub fn clear_selection(&mut self) {
+        self.raw_left = None;
+        self.raw_right = None;
         self.reload();
     }
 
     fn reload(&mut self) {
-        let current = (self.raw_current_beat + self.scroll).as_f32() * self.scale;
-        let current = vec2(
-            self.state.position.min.x + current,
-            self.state.position.center().y,
-        );
-        self.current_beat.position =
-            Aabb2::point(current).extend_symmetric(vec2(0.1, 0.5) * self.context.font_size / 2.0);
+        let render_time = |time: Time| {
+            let pos = (time + self.scroll).as_f32() * self.scale;
+            let pos = vec2(
+                self.state.position.min.x + pos,
+                self.state.position.center().y,
+            );
+            Aabb2::point(pos).extend_symmetric(vec2(0.1, 0.5) * self.context.font_size / 2.0)
+        };
+        self.current_beat
+            .update(render_time(self.raw_current_beat), &self.context);
 
-        self.selection = self.raw_selection.clone().map(|selection| {
-            let from = (*selection.start() + self.scroll).as_f32() * self.scale;
-            let to = (*selection.end() + self.scroll).as_f32() * self.scale;
-            from..=to
-        });
+        let render_option = |widget: &mut WidgetState, time: Option<Time>| match time {
+            Some(time) => {
+                widget.show();
+                widget.update(render_time(time), &self.context);
+            }
+            None => widget.hide(),
+        };
+        render_option(&mut self.left, self.raw_left);
+        render_option(&mut self.right, self.raw_right);
     }
 
     pub fn get_cursor_time(&self) -> Time {
@@ -111,5 +135,8 @@ impl Widget for TimelineWidget {
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
         self.state.walk_states_mut(f);
+        self.current_beat.walk_states_mut(f);
+        self.left.walk_states_mut(f);
+        self.right.walk_states_mut(f);
     }
 }

@@ -14,7 +14,7 @@ use crate::{
     render::editor::{EditorRender, RenderOptions},
 };
 
-use geng::MouseButton;
+use geng::{Key, MouseButton};
 
 pub struct EditorState {
     geng: Geng,
@@ -261,6 +261,7 @@ impl geng::State for EditorState {
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
             geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
+            &self.geng,
         );
         self.render
             .draw_editor(&self.editor, &self.ui, &self.render_options, framebuffer);

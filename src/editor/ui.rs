@@ -47,6 +47,7 @@ impl EditorUI {
         screen: Aabb2<f32>,
         cursor_position: vec2<f32>,
         cursor_down: bool,
+        geng: &Geng,
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
@@ -205,13 +206,23 @@ impl EditorUI {
             self.current_beat.text = format!("Beat: {:.2}", editor.current_beat);
 
             let (timeline, _bottom_bar) = layout::cut_top_down(bottom_bar, font_size * 1.0);
+            let was_pressed = self.timeline.state.pressed;
             update!(self.timeline, timeline);
 
             if self.timeline.state.pressed {
                 let time = self.timeline.get_cursor_time();
                 editor.scroll_time(time - editor.current_beat);
+                self.timeline.update_time(editor.current_beat);
             }
-            self.timeline.update_time(editor.current_beat);
+
+            let select = geng_utils::key::is_key_pressed(geng.window(), [Key::ControlLeft]);
+            if select {
+                if !was_pressed && self.timeline.state.pressed {
+                    self.timeline.start_selection();
+                } else if was_pressed && !self.timeline.state.pressed {
+                    self.timeline.end_selection();
+                }
+            }
 
             self.timeline.auto_scale(editor.level.last_beat());
         }

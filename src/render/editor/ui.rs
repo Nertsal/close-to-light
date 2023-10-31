@@ -122,6 +122,25 @@ impl EditorRender {
                 .extend_symmetric(vec2(timeline.width(), font_size * 0.1) / 2.0);
             quad(line, Color::WHITE);
 
+            if ui.timeline.left.visible {
+                let from = ui.timeline.left.position;
+                let to = if ui.timeline.right.visible {
+                    ui.timeline.right.position
+                } else {
+                    ui.timeline.current_beat.position
+                };
+                quad(
+                    Aabb2::point(from.center())
+                        .extend_right(to.center().x - from.center().x)
+                        .extend_symmetric(vec2(0.0, from.height() * 0.8) / 2.0),
+                    Color::GRAY,
+                );
+
+                quad(ui.timeline.left.position, Color::CYAN);
+            }
+            if ui.timeline.right.visible {
+                quad(ui.timeline.right.position, Color::MAGENTA);
+            }
             quad(ui.timeline.current_beat.position, Color::WHITE);
         }
 
