@@ -245,6 +245,9 @@ impl EditorRender {
                     if let Some(waypoints) = &editor.level_state.waypoints {
                         // Draw waypoints themselves
                         for (i, point) in waypoints.points.iter().enumerate() {
+                            if !point.visible {
+                                continue;
+                            }
                             let color = if point.original == waypoints.selected {
                                 select_color
                             } else if Some(i) == waypoints.hovered {
