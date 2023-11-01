@@ -192,11 +192,31 @@ impl EditorState {
             geng::Event::Wheel { delta } => {
                 let scroll = r32(delta.signum() as f32);
                 if ctrl {
-                    if let State::Place { .. } | State::Movement { .. } = self.editor.state {
+                    if let State::Place { .. }
+                    | State::Movement { .. }
+                    | State::Waypoints {
+                        state: WaypointsState::New,
+                        ..
+                    } = self.editor.state
+                    {
                         // Scale light
                         let delta = scroll * r32(0.1);
                         self.editor.place_scale =
                             (self.editor.place_scale + delta).clamp(r32(0.2), r32(2.0));
+                    } else if let Some(waypoints) = &self.editor.level_state.waypoints {
+                        if let Some(selected) = waypoints.selected {
+                            if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                                if let Event::Light(light) = &mut event.event {
+                                    if let Some(frame) =
+                                        light.light.movement.get_frame_mut(selected)
+                                    {
+                                        let delta = scroll * r32(0.1);
+                                        frame.scale =
+                                            (frame.scale + delta).clamp(r32(0.2), r32(2.0));
+                                    }
+                                }
+                            }
+                        }
                     } else if let Some(event) = self
                         .editor
                         .selected_light
