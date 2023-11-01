@@ -38,7 +38,11 @@ pub struct Drag {
 
 #[derive(Debug)]
 pub enum DragTarget {
-    Waypoint { event: usize, waypoint: WaypointId },
+    Waypoint {
+        event: usize,
+        waypoint: WaypointId,
+        initial_translation: vec2<Coord>,
+    },
 }
 
 pub struct Editor {

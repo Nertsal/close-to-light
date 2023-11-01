@@ -297,11 +297,16 @@ impl EditorState {
     pub(super) fn update_drag(&mut self) {
         let Some(drag) = &mut self.drag else { return };
         match drag.target {
-            DragTarget::Waypoint { event, waypoint } => {
+            DragTarget::Waypoint {
+                event,
+                waypoint,
+                initial_translation,
+            } => {
                 if let Some(event) = self.editor.level.events.get_mut(event) {
                     if let Event::Light(event) = &mut event.event {
                         if let Some(frame) = event.light.movement.get_frame_mut(waypoint) {
-                            frame.translation = self.editor.cursor_world_pos;
+                            frame.translation = initial_translation + self.editor.cursor_world_pos
+                                - drag.from_world;
                         }
                     }
                 }
@@ -372,15 +377,26 @@ impl EditorState {
                             waypoints.hovered.and_then(|i| waypoints.points.get(i))
                         {
                             if let Some(waypoint) = hovered.original {
-                                waypoints.selected = Some(waypoint);
-                                self.drag = Some(Drag {
-                                    from_screen: self.cursor_pos,
-                                    from_world: self.editor.cursor_world_pos,
-                                    target: DragTarget::Waypoint {
-                                        event: waypoints.event,
-                                        waypoint,
-                                    },
-                                });
+                                if let Some(event) =
+                                    self.editor.level.events.get_mut(waypoints.event)
+                                {
+                                    if let Event::Light(event) = &mut event.event {
+                                        if let Some(frame) =
+                                            event.light.movement.get_frame_mut(waypoint)
+                                        {
+                                            waypoints.selected = Some(waypoint);
+                                            self.drag = Some(Drag {
+                                                from_screen: self.cursor_pos,
+                                                from_world: self.editor.cursor_world_pos,
+                                                target: DragTarget::Waypoint {
+                                                    event: waypoints.event,
+                                                    waypoint,
+                                                    initial_translation: frame.translation,
+                                                },
+                                            });
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
