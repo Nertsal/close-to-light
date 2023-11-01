@@ -141,13 +141,17 @@ impl EditorState {
                 }
                 geng::Key::Escape => {
                     // Cancel creation
-                    match self.editor.state {
+                    match &mut self.editor.state {
                         State::Idle => {
                             self.editor.selected_light = None;
                         }
-                        State::Movement { .. } | State::Place { .. } | State::Waypoints { .. } => {
+                        State::Movement { .. } | State::Place { .. } => {
                             self.editor.state = State::Idle;
                         }
+                        State::Waypoints { state, .. } => match state {
+                            WaypointsState::Idle => self.editor.state = State::Idle,
+                            WaypointsState::New => *state = WaypointsState::Idle,
+                        },
                         _ => (),
                     }
                 }
