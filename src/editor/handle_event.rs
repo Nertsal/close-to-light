@@ -345,7 +345,67 @@ impl EditorState {
                         }
                     }
                 }
-                WaypointsState::New => todo!(),
+                WaypointsState::New => {
+                    if let Some(waypoints) = &self.editor.level_state.waypoints {
+                        if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                            if let Event::Light(light) = &mut event.event {
+                                if let Some(i) = waypoints
+                                    .points
+                                    .iter()
+                                    .position(|point| point.original.is_none())
+                                {
+                                    let mut transform = Transform {
+                                        translation: self.editor.cursor_world_pos,
+                                        rotation: self.editor.place_rotation,
+                                        scale: self.editor.place_scale,
+                                    };
+                                    match i.checked_sub(1) {
+                                        None => {
+                                            // Replace initial
+                                            std::mem::swap(
+                                                &mut light.light.movement.initial,
+                                                &mut transform,
+                                            );
+
+                                            let time = self.editor.current_beat
+                                                - light.light.movement.fade_in
+                                                - light.telegraph.precede_time; // extra time for the fade in and telegraph
+                                            light.light.movement.key_frames.push_front(MoveFrame {
+                                                lerp_time: event.beat - time,
+                                                transform,
+                                            });
+                                            event.beat = time;
+                                        }
+                                        Some(i) => {
+                                            // Insert keyframe
+                                            let last =
+                                                light.light.movement.timed_positions().nth(i);
+                                            if let Some((_, _, last_time)) = last {
+                                                let last_time = event.beat + last_time;
+                                                let lerp_time =
+                                                    self.editor.current_beat - last_time;
+
+                                                light.light.movement.key_frames.insert(
+                                                    i,
+                                                    MoveFrame {
+                                                        lerp_time,
+                                                        transform,
+                                                    },
+                                                );
+
+                                                if let Some(next) =
+                                                    light.light.movement.key_frames.get_mut(i + 1)
+                                                {
+                                                    next.lerp_time -= lerp_time;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             },
         }
     }
