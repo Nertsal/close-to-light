@@ -139,7 +139,7 @@ impl EditorRender {
             }
 
             // Light timespan
-            let event = if let State::Waypoints { event } = editor.state {
+            let event = if let State::Waypoints { event, .. } = editor.state {
                 Some(event)
             } else {
                 editor.selected_light.map(|id| id.event)

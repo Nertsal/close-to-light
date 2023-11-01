@@ -362,34 +362,79 @@ impl Editor {
         }
 
         let mut waypoints = None;
-        if let State::Waypoints { event: event_id } = self.state {
+        if let State::Waypoints { event, state } = &self.state {
+            let event_id = *event;
             if let Some(event) = self.level.events.get(event_id) {
                 let event_time = event.beat;
                 if let Event::Light(event) = &event.event {
                     // If some waypoints overlap, render the temporaly closest one
-                    let mut points: Vec<_> = event.light.movement.timed_positions().collect();
-                    points.sort_by_key(|(_, trans, time)| {
+                    let base_collider = Collider::new(vec2::ZERO, event.light.shape);
+                    let mut points: Vec<_> = event
+                        .light
+                        .movement
+                        .timed_positions()
+                        .map(|(i, trans, time)| {
+                            (
+                                Waypoint {
+                                    visible: true,
+                                    original: Some(i),
+                                    collider: base_collider.transformed(trans),
+                                },
+                                time,
+                            )
+                        })
+                        .collect();
+                    points.sort_by_key(|(point, time)| {
                         (
-                            trans.translation.x,
-                            trans.translation.y,
+                            point.collider.position.x,
+                            point.collider.position.y,
                             (event_time + *time - self.current_beat).abs(),
                         )
                     });
-                    points.dedup_by_key(|(_, trans, _)| trans.translation);
-                    points.sort_by_key(|(i, _, _)| *i);
+                    {
+                        let mut points = points.iter_mut();
+                        if let Some(last) = points.next() {
+                            let mut last = last.0.collider.position;
+                            for (point, _) in points {
+                                let pos = point.collider.position;
+                                if last == pos {
+                                    point.visible = false;
+                                }
+                                last = pos;
+                            }
+                        }
+                    }
+                    points.sort_by_key(|(point, _)| point.original); // Restore proper order
 
-                    let points: Vec<_> = points
-                        .into_iter()
-                        .map(|(original, transform, _)| Waypoint {
-                            original,
-                            collider: Collider::new(vec2::ZERO, event.light.shape)
-                                .transformed(transform),
-                        })
-                        .collect();
+                    if let WaypointsState::New = state {
+                        // NOTE: assuming that positions don't go backwards in time
+                        // Insert a new waypoint at current time
+                        let new_time = self.current_beat - event_time;
+                        let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
+                            Ok(i) | Err(i) => i,
+                        };
+                        points.insert(
+                            i,
+                            (
+                                Waypoint {
+                                    visible: true,
+                                    original: None,
+                                    collider: base_collider.transformed(Transform {
+                                        translation: self.cursor_world_pos,
+                                        rotation: self.place_rotation,
+                                        scale: self.place_scale,
+                                    }),
+                                },
+                                new_time,
+                            ),
+                        );
+                    }
 
-                    let hovered = points
-                        .iter()
-                        .position(|point| point.collider.contains(self.cursor_world_pos));
+                    let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
+
+                    let hovered = points.iter().position(|point| {
+                        point.visible && point.collider.contains(self.cursor_world_pos)
+                    });
 
                     waypoints = Some(Waypoints {
                         event: event_id,

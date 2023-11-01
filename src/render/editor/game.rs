@@ -202,7 +202,8 @@ impl EditorRender {
         }
         let mut pixel_buffer = draw_game!(1.0);
 
-        if let State::Waypoints { event } = editor.state {
+        if let State::Waypoints { event, .. } = &editor.state {
+            let event = *event;
             if let Some(event) = editor.level.events.get(event) {
                 if let Event::Light(event) = &event.event {
                     let color = if event.light.danger {
@@ -211,13 +212,13 @@ impl EditorRender {
                         light_color
                     };
 
-                    let waypoints: Vec<(WaypointId, Transform, Time)> =
-                        event.light.movement.timed_positions().collect();
-
                     // A dashed line moving through the waypoints to show general direction
-                    let mut positions: Vec<vec2<f32>> = waypoints
+                    let mut positions: Vec<vec2<f32>> = editor
+                        .level_state
+                        .waypoints
                         .iter()
-                        .map(|(_, transform, _)| transform.translation.as_f32())
+                        .flat_map(|waypoints| &waypoints.points)
+                        .map(|point| point.collider.position.as_f32())
                         .collect();
                     positions.dedup();
                     let options = util::DashRenderOptions {
@@ -244,7 +245,7 @@ impl EditorRender {
                     if let Some(waypoints) = &editor.level_state.waypoints {
                         // Draw waypoints themselves
                         for (i, point) in waypoints.points.iter().enumerate() {
-                            let color = if Some(point.original) == waypoints.selected {
+                            let color = if point.original == waypoints.selected {
                                 select_color
                             } else if Some(i) == waypoints.hovered {
                                 hover_color
@@ -258,12 +259,8 @@ impl EditorRender {
                                 &editor.model.camera,
                                 &mut pixel_buffer,
                             );
-                            let i = match point.original {
-                                WaypointId::Initial => 1,
-                                WaypointId::Frame(i) => i + 2,
-                            };
                             self.util.draw_text(
-                                format!("{}", i),
+                                format!("{}", i + 1),
                                 point.collider.position,
                                 TextRenderOptions::new(1.5),
                                 &editor.model.camera,

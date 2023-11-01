@@ -21,7 +21,14 @@ pub enum State {
     /// Control waypoints of an existing event.
     Waypoints {
         event: usize,
+        state: WaypointsState,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum WaypointsState {
+    Idle,
+    New,
 }
 
 #[derive(Debug, Default)]
@@ -48,8 +55,11 @@ pub struct Waypoints {
 
 #[derive(Debug)]
 pub struct Waypoint {
+    /// Whether the waypoint is rendered. Used when several waypoints overlap.
+    pub visible: bool,
     /// Index of the original keyframe.
-    pub original: WaypointId,
+    /// `None` when placing a new waypoint.
+    pub original: Option<WaypointId>,
     pub collider: Collider,
 }
 

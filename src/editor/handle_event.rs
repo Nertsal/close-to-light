@@ -62,7 +62,7 @@ impl EditorState {
                                 }
                             }
                         }
-                        State::Waypoints { event } => {
+                        State::Waypoints { event, .. } => {
                             if let Some(event) = self.editor.level.events.get_mut(*event) {
                                 if let Event::Light(event) = &mut event.event {
                                     event.light.danger = !event.light.danger;
@@ -83,6 +83,7 @@ impl EditorState {
                         if let Some(selected) = self.editor.selected_light {
                             self.editor.state = State::Waypoints {
                                 event: selected.event,
+                                state: WaypointsState::Idle,
                             };
                         }
                     }
@@ -216,19 +217,26 @@ impl EditorState {
     }
 
     fn handle_digit(&mut self, digit: u8) {
-        if let State::Idle | State::Place { .. } = self.editor.state {
-            if let Some(&shape) = self
-                .editor
-                .model
-                .config
-                .shapes
-                .get((digit as usize).saturating_sub(1))
-            {
-                self.editor.state = State::Place {
-                    shape,
-                    danger: false,
-                };
+        match &mut self.editor.state {
+            State::Idle | State::Place { .. } => {
+                if let Some(&shape) = self
+                    .editor
+                    .model
+                    .config
+                    .shapes
+                    .get((digit as usize).saturating_sub(1))
+                {
+                    self.editor.state = State::Place {
+                        shape,
+                        danger: false,
+                    };
+                }
             }
+            State::Waypoints { state, .. } => {
+                // TODO: better key
+                *state = WaypointsState::New;
+            }
+            _ => (),
         }
     }
 
@@ -317,21 +325,28 @@ impl EditorState {
                 redo_stack.clear();
             }
             State::Playing { .. } => {}
-            State::Waypoints { .. } => {
-                if let Some(waypoints) = &mut self.editor.level_state.waypoints {
-                    if let Some(hovered) = waypoints.hovered.and_then(|i| waypoints.points.get(i)) {
-                        waypoints.selected = Some(hovered.original);
-                        self.drag = Some(Drag {
-                            from_screen: self.cursor_pos,
-                            from_world: self.editor.cursor_world_pos,
-                            target: DragTarget::Waypoint {
-                                event: waypoints.event,
-                                waypoint: hovered.original,
-                            },
-                        });
+            State::Waypoints { state, .. } => match state {
+                WaypointsState::Idle => {
+                    if let Some(waypoints) = &mut self.editor.level_state.waypoints {
+                        if let Some(hovered) =
+                            waypoints.hovered.and_then(|i| waypoints.points.get(i))
+                        {
+                            if let Some(waypoint) = hovered.original {
+                                waypoints.selected = Some(waypoint);
+                                self.drag = Some(Drag {
+                                    from_screen: self.cursor_pos,
+                                    from_world: self.editor.cursor_world_pos,
+                                    target: DragTarget::Waypoint {
+                                        event: waypoints.event,
+                                        waypoint,
+                                    },
+                                });
+                            }
+                        }
                     }
                 }
-            }
+                WaypointsState::New => todo!(),
+            },
         }
     }
 
