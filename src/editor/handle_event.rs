@@ -31,7 +31,47 @@ impl EditorState {
                     }
                 }
                 geng::Key::X => {
-                    if let Some(index) = self.editor.selected_light {
+                    if let Some(waypoints) = &self.editor.level_state.waypoints {
+                        // Delete a waypoint
+                        if let Some(index) = waypoints.selected {
+                            if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                                if let Event::Light(light) = &mut event.event {
+                                    match index {
+                                        WaypointId::Initial => {
+                                            match light.light.movement.key_frames.pop_front() {
+                                                None => {
+                                                    // No waypoints -> delete the whole event
+                                                    self.editor
+                                                        .level
+                                                        .events
+                                                        .swap_remove(waypoints.event);
+                                                    self.editor.level_state.waypoints = None;
+                                                    self.editor.state = State::Idle;
+                                                }
+                                                Some(frame) => {
+                                                    // Make the first frame the initial position
+                                                    light.light.movement.initial = frame.transform;
+                                                    event.beat += frame.lerp_time;
+                                                }
+                                            }
+                                        }
+                                        WaypointId::Frame(i) => {
+                                            if let Some(frame) =
+                                                light.light.movement.key_frames.remove(i)
+                                            {
+                                                // Offset the next one
+                                                if let Some(next) =
+                                                    light.light.movement.key_frames.get_mut(i)
+                                                {
+                                                    next.lerp_time += frame.lerp_time;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if let Some(index) = self.editor.selected_light {
                         self.editor.level.events.swap_remove(index.event);
                     }
                 }
