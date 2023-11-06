@@ -50,6 +50,11 @@ impl EditorRender {
             }
         }
 
+        self.util
+            .draw_button_widget(&ui.new_palette, options, screen_buffer);
+        self.util
+            .draw_button_widget(&ui.new_light, options, screen_buffer);
+
         if ui.selected_text.state.visible {
             // Selected light
             let pos = geng_utils::layout::aabb_pos(ui.selected_text.state.position, vec2(0.5, 1.0));

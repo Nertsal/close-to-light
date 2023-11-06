@@ -1,10 +1,12 @@
+mod button;
 mod checkbox;
 mod light;
 mod text;
 mod timeline;
 
 pub use self::{
-    checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidget, timeline::TimelineWidget,
+    button::ButtonWidget, checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidget,
+    timeline::TimelineWidget,
 };
 
 use geng::prelude::*;

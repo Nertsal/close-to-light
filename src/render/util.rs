@@ -12,6 +12,8 @@ pub struct TextRenderOptions {
     pub size: f32,
     pub align: vec2<f32>,
     pub color: Color,
+    pub hover_color: Color,
+    pub press_color: Color,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -46,6 +48,18 @@ impl Default for TextRenderOptions {
             size: 1.0,
             align: vec2::splat(0.5),
             color: Color::WHITE,
+            hover_color: Color {
+                r: 0.7,
+                g: 0.7,
+                b: 0.7,
+                a: 1.0,
+            },
+            press_color: Color {
+                r: 0.5,
+                g: 0.5,
+                b: 0.5,
+                a: 1.0,
+            },
         }
     }
 }
@@ -306,6 +320,27 @@ impl UtilRender {
             &geng::PixelPerfectCamera,
             framebuffer,
         );
+    }
+
+    pub fn draw_button_widget(
+        &self,
+        widget: &ButtonWidget,
+        options: TextRenderOptions,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let state = &widget.text.state;
+        if !state.visible {
+            return;
+        }
+
+        let color = if state.pressed {
+            options.press_color
+        } else if state.hovered {
+            options.hover_color
+        } else {
+            options.color
+        };
+        self.draw_text_widget(&widget.text, options.color(color), framebuffer);
     }
 
     pub fn draw_dashed_chain(

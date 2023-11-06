@@ -9,6 +9,9 @@ pub struct EditorUI {
     pub level_info: WidgetState,
     pub general: WidgetState,
 
+    pub new_palette: ButtonWidget,
+    pub new_light: ButtonWidget,
+
     pub selected_text: TextWidget,
     pub selected_light: LightStateWidget,
 
@@ -29,6 +32,8 @@ impl EditorUI {
             game: default(),
             level_info: default(),
             general: default(),
+            new_palette: ButtonWidget::new("Palette Swap"),
+            new_light: ButtonWidget::new("New Light"),
             selected_text: default(),
             selected_light: LightStateWidget::new(),
             light_size: vec2(1, 1),
@@ -51,7 +56,7 @@ impl EditorUI {
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
-        let font_size = screen.height() * 0.04;
+        let font_size = screen.height() * 0.03;
 
         let context = UiContext {
             font_size,
@@ -121,6 +126,40 @@ impl EditorUI {
                 }
                 target.checked = *value;
             }
+        }
+
+        let (buttons_new, side_bar) = layout::cut_top_down(side_bar, font_size * 1.5);
+        {
+            let targets = [&mut self.new_palette, &mut self.new_light];
+            for (pos, target) in layout::split_columns(buttons_new, 2)
+                .into_iter()
+                .zip(targets)
+            {
+                update!(target, pos);
+            }
+
+            if let State::Idle
+            | State::Waypoints {
+                state: WaypointsState::Idle,
+                ..
+            } = &editor.state
+            {
+                self.new_light.show();
+            } else {
+                self.new_light.hide();
+            }
+
+            if let State::Idle = &editor.state {
+                self.new_palette.show();
+            } else {
+                self.new_palette.hide();
+            }
+
+            // if self.new_light.state.clicked {
+            //     editor.state =
+            // } else if self.new_palette.state.clicked {
+
+            // }
         }
 
         {
