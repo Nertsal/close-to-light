@@ -58,7 +58,9 @@ impl LevelState {
         let time = self.beat_time - event.beat;
 
         match &event.event {
-            Event::Theme(new_theme) => self.config.theme = new_theme.clone(),
+            Event::PaletteSwap => {
+                std::mem::swap(&mut self.config.theme.light, &mut self.config.theme.dark)
+            }
             Event::Light(event) => {
                 let (telegraph, light) = render_light(event, time, event_id);
                 self.telegraphs.extend(telegraph);

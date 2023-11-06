@@ -19,11 +19,15 @@ pub struct LightStateWidget {
 
 impl LightWidget {
     pub fn new() -> Self {
+        Self::new_shape(Shape::Circle { radius: r32(1.0) })
+    }
+
+    pub fn new_shape(shape: Shape) -> Self {
         Self {
             state: WidgetState::default(),
             light: LightSerde {
                 danger: false,
-                shape: Shape::Circle { radius: r32(1.0) },
+                shape,
                 movement: Movement::default(),
             },
         }

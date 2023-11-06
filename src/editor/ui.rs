@@ -11,6 +11,10 @@ pub struct EditorUI {
 
     pub new_palette: ButtonWidget,
     pub new_light: ButtonWidget,
+    pub new_selector: WidgetState,
+    // TODO: dynamic
+    pub new_circle: LightWidget,
+    pub new_line: LightWidget,
 
     pub selected_text: TextWidget,
     pub selected_light: LightStateWidget,
@@ -34,6 +38,13 @@ impl EditorUI {
             general: default(),
             new_palette: ButtonWidget::new("Palette Swap"),
             new_light: ButtonWidget::new("New Light"),
+            new_selector: {
+                let mut state = WidgetState::default();
+                state.hide();
+                state
+            },
+            new_circle: LightWidget::new_shape(Shape::Circle { radius: r32(1.3) }),
+            new_line: LightWidget::new_shape(Shape::Line { width: r32(1.7) }),
             selected_text: default(),
             selected_light: LightStateWidget::new(),
             light_size: vec2(1, 1),
@@ -155,11 +166,48 @@ impl EditorUI {
                 self.new_palette.hide();
             }
 
-            // if self.new_light.state.clicked {
-            //     editor.state =
-            // } else if self.new_palette.state.clicked {
+            if self.new_light.text.state.clicked {
+                match &mut editor.state {
+                    State::Idle => {
+                        if self.new_selector.visible {
+                            self.new_selector.hide();
+                            self.new_circle.hide();
+                            self.new_line.hide();
+                        } else {
+                            self.new_selector.show();
+                            self.new_circle.show();
+                            self.new_line.show();
+                        }
+                    }
+                    State::Waypoints {
+                        state: state @ WaypointsState::Idle,
+                        ..
+                    } => {
+                        *state = WaypointsState::New;
+                    }
+                    _ => {}
+                }
+            } else if self.new_palette.text.state.clicked {
+                editor.level.events.push(TimedEvent {
+                    beat: editor.current_beat,
+                    event: Event::PaletteSwap,
+                });
+            }
+        }
 
-            // }
+        {
+            // Selector
+            let (selector, _) = layout::cut_top_down(side_bar, side_bar.width());
+            let targets = [&mut self.new_circle, &mut self.new_line];
+            for (pos, target) in layout::split_rows(selector, 2).into_iter().zip(targets) {
+                update!(target, pos);
+                if target.state.clicked {
+                    editor.state = State::Place {
+                        shape: target.light.shape,
+                        danger: false,
+                    };
+                }
+            }
         }
 
         {

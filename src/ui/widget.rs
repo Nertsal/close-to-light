@@ -5,7 +5,10 @@ mod text;
 mod timeline;
 
 pub use self::{
-    button::ButtonWidget, checkbox::CheckboxWidget, light::LightStateWidget, text::TextWidget,
+    button::ButtonWidget,
+    checkbox::CheckboxWidget,
+    light::{LightStateWidget, LightWidget},
+    text::TextWidget,
     timeline::TimelineWidget,
 };
 

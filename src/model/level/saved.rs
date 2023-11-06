@@ -84,7 +84,8 @@ pub struct TimedEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Event {
     Light(LightEvent),
-    Theme(LevelTheme),
+    /// Swap light and dark colors.
+    PaletteSwap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -135,7 +136,7 @@ impl TimedEvent {
     pub fn duration(&self) -> Time {
         match &self.event {
             Event::Light(event) => event.light.movement.duration(),
-            Event::Theme(_) => Time::ZERO,
+            Event::PaletteSwap => Time::ZERO,
         }
     }
 }

@@ -55,6 +55,42 @@ impl EditorRender {
         self.util
             .draw_button_widget(&ui.new_light, options, screen_buffer);
 
+        if ui.new_selector.visible {
+            // Selector
+            for widget in [&ui.new_circle, &ui.new_line] {
+                let light = &widget.light;
+                let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
+                let collider = Collider::new(vec2::ZERO, light.shape);
+                let color = if widget.state.hovered {
+                    editor.config.theme.hover
+                } else {
+                    editor.level.config.theme.light
+                };
+                self.util.draw_collider(
+                    &collider,
+                    color,
+                    &Camera2d {
+                        center: vec2::ZERO,
+                        rotation: Angle::ZERO,
+                        fov: 3.0,
+                    },
+                    &mut dither_buffer,
+                );
+                self.dither_small.finish(editor.real_time, R32::ZERO);
+
+                let size = ui.light_size.as_f32();
+                let pos = geng_utils::layout::aabb_pos(widget.state.position, vec2(0.5, 0.5));
+                let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
+                self.geng.draw2d().textured_quad(
+                    screen_buffer,
+                    camera,
+                    aabb,
+                    self.dither_small.get_buffer(),
+                    Color::WHITE,
+                );
+            }
+        }
+
         if ui.selected_text.state.visible {
             // Selected light
             let pos = geng_utils::layout::aabb_pos(ui.selected_text.state.position, vec2(0.5, 1.0));

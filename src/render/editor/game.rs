@@ -408,7 +408,7 @@ impl EditorRender {
                     light, redo_stack, ..
                 } => format!(
                     "New light stack\nUndo: {}\nRedo: {}\n",
-                    light.light.movement.key_frames.len() - 2,
+                    light.light.movement.key_frames.len(),
                     redo_stack.len()
                 ),
                 State::Place { .. } => "idk what should we do here".to_string(),
