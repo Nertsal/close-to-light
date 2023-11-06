@@ -189,7 +189,7 @@ impl EditorRender {
                 let from = event.beat;
                 if let Event::Light(event) = &event.event {
                     let from = from + event.telegraph.precede_time;
-                    let to = from + event.light.movement.duration();
+                    let to = from + event.light.movement.total_duration();
 
                     let from = ui.timeline.time_to_screen(from);
                     let to = ui.timeline.time_to_screen(to);

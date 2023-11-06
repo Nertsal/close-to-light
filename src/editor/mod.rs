@@ -463,14 +463,6 @@ impl Editor {
     }
 }
 
-pub fn commit_light(mut light: LightEvent) -> LightEvent {
-    // Add fade out
-    light.light.movement.key_frames.push_back(MoveFrame {
-        lerp_time: Time::ONE, // in beats
-        transform: Transform {
-            scale: Coord::ZERO,
-            ..default()
-        },
-    });
+pub fn commit_light(light: LightEvent) -> LightEvent {
     light
 }

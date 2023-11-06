@@ -142,14 +142,16 @@ impl Movement {
         }
     }
 
-    /// Returns the total duration of the movement.
-    pub fn duration(&self) -> Time {
-        self.fade_in
-            + self
-                .key_frames
-                .iter()
-                .map(|frame| frame.lerp_time)
-                .fold(Time::ZERO, Time::add)
-            + self.fade_out
+    /// Returns the total duration of the movement including fade in/out.
+    pub fn total_duration(&self) -> Time {
+        self.fade_in + self.movement_duration() + self.fade_out
+    }
+
+    /// Returns the duration of the movement excluding fade in/out.
+    pub fn movement_duration(&self) -> Time {
+        self.key_frames
+            .iter()
+            .map(|frame| frame.lerp_time)
+            .fold(Time::ZERO, Time::add)
     }
 }

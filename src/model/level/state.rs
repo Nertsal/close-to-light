@@ -79,7 +79,7 @@ pub fn render_light(
 ) -> (Option<LightTelegraph>, Option<Light>) {
     let light = event.light.clone().instantiate(event_id);
     let mut tele = light.clone().into_telegraph(event.telegraph.clone());
-    let duration = event.light.movement.duration();
+    let duration = event.light.movement.total_duration();
 
     // Telegraph
     let telegraph = (relative_time < duration).then(|| {

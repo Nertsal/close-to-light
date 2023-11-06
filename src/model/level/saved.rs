@@ -135,7 +135,7 @@ impl TimedEvent {
     /// Returns the duration (in beats) of the event.
     pub fn duration(&self) -> Time {
         match &self.event {
-            Event::Light(event) => event.light.movement.duration(),
+            Event::Light(event) => event.light.movement.total_duration(),
             Event::PaletteSwap => Time::ZERO,
         }
     }

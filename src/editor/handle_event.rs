@@ -263,9 +263,13 @@ impl EditorState {
                         start_beat, light, ..
                     } = &self.editor.state
                     {
+                        // extra time for the fade in and telegraph
+                        let beat = *start_beat
+                            - light.light.movement.fade_in
+                            - light.telegraph.precede_time;
                         let event = commit_light(light.clone());
                         let event = TimedEvent {
-                            beat: *start_beat,
+                            beat,
                             event: Event::Light(event),
                         };
                         self.editor.level.events.push(event);
@@ -361,9 +365,7 @@ impl EditorState {
                 };
                 let telegraph = Telegraph::default();
                 self.editor.state = State::Movement {
-                    start_beat: self.editor.current_beat
-                        - movement.fade_in
-                        - telegraph.precede_time, // extra time for the fade in and telegraph
+                    start_beat: self.editor.current_beat,
                     light: LightEvent {
                         light: LightSerde {
                             shape,
@@ -381,8 +383,7 @@ impl EditorState {
                 redo_stack,
             } => {
                 // TODO: check negative time
-                let last_beat =
-                    *start_beat + light.light.movement.duration() + light.telegraph.precede_time;
+                let last_beat = *start_beat + light.light.movement.movement_duration();
                 light.light.movement.key_frames.push_back(MoveFrame {
                     lerp_time: self.editor.current_beat - last_beat, // in beats
                     transform: Transform {
@@ -447,9 +448,7 @@ impl EditorState {
                                                 &mut transform,
                                             );
 
-                                            let time = self.editor.current_beat
-                                                - light.light.movement.fade_in
-                                                - light.telegraph.precede_time; // extra time for the fade in and telegraph
+                                            let time = self.editor.current_beat;
                                             light.light.movement.key_frames.push_front(MoveFrame {
                                                 lerp_time: event.beat - time,
                                                 transform,
@@ -461,7 +460,9 @@ impl EditorState {
                                             let last =
                                                 light.light.movement.timed_positions().nth(i);
                                             if let Some((_, _, last_time)) = last {
-                                                let last_time = event.beat + last_time;
+                                                let last_time = event.beat
+                                                    + light.telegraph.precede_time
+                                                    + last_time;
                                                 let lerp_time =
                                                     self.editor.current_beat - last_time;
 

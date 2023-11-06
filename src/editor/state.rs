@@ -10,6 +10,7 @@ pub enum State {
     },
     /// Specify a movement path for the light.
     Movement {
+        /// Time when the movement starts (after fade in and telegraph).
         start_beat: Time,
         light: LightEvent,
         redo_stack: Vec<MoveFrame>,

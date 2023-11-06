@@ -146,7 +146,9 @@ impl EditorRender {
                 ..
             } = editor.state
             {
-                let time = editor.current_beat - start_beat;
+                let time = editor.current_beat - start_beat
+                    + light.light.movement.fade_in
+                    + light.telegraph.precede_time;
                 let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
                     let event = commit_light(light.clone());
                     let (tele, light) = render_light(&event, time, None);
