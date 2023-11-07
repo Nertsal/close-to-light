@@ -6,4 +6,9 @@ Config(
         Circle( radius: 1.3 ),
         Line( width: 1.7 ),
     ],
+    theme: Theme(
+      dark: "#000",
+      light: "#fff",
+      danger: "#f00",
+    ),
 )
