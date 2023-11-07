@@ -93,7 +93,7 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec4 dither(float amp, vec3 light_color) {
+float dither(float amp) {
 	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
 	vec3 color;
 	if (amp < 0.125) {
@@ -107,12 +107,18 @@ vec4 dither(float amp, vec3 light_color) {
 	} else {
 		color = vec3(1.0);
 	}
-	float t = color.r; // Assume gray-scale
-	// color = vec4(color.rgb * light_color, color.a);
+	return color.r; // Assume gray-scale
+}
+
+vec4 dither(float amp, vec3 light_color) {
+	float r = dither(amp * light_color.r);
+	float g = dither(amp * light_color.g);
+	float b = dither(amp * light_color.b);
+	float t = max(max(r, g), b);
+
 	vec4 dark = u_bg_color;
-	vec4 light = vec4(light_color, 1.0);
-	// vec3 res = dark + (light_color - dark) * t;
-	// return vec4(res, 1.0);
+	// vec4 light = vec4(light_color, 1.0);
+	vec4 light = vec4(r, g, b, 1.0);
 	return dark + (light - dark) * t;
 }
 
