@@ -6864,14 +6864,6 @@
           }
         }
       }
-    },
-    {
-      "beat": 16.0,
-      "event": "PaletteSwap"
-    },
-    {
-      "beat": 32.0,
-      "event": "PaletteSwap"
     }
   ]
 }
