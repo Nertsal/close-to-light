@@ -94,6 +94,14 @@ impl Movement {
         }
     }
 
+    pub fn get_time(&self, id: WaypointId) -> Option<Time> {
+        let i = match id {
+            WaypointId::Initial => 0,
+            WaypointId::Frame(i) => i + 1,
+        };
+        self.timed_positions().nth(i).map(|(_, _, time)| time)
+    }
+
     /// Get the transform at the given time.
     pub fn get(&self, mut time: Time) -> Transform {
         let mut from = self.initial;

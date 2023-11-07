@@ -269,7 +269,23 @@ impl EditorRender {
                                 TextRenderOptions::new(1.5).color(theme.light),
                                 &editor.model.camera,
                                 &mut pixel_buffer,
-                            )
+                            );
+                            if let Some(i) = point.original {
+                                if let Some(event) = editor.level.events.get(waypoints.event) {
+                                    if let Event::Light(light) = &event.event {
+                                        if let Some(beat) = light.light.movement.get_time(i) {
+                                            let beat = event.beat + beat;
+                                            self.util.draw_text(
+                                                format!("at {}", beat),
+                                                point.collider.position - vec2(0.0, 0.6).as_r32(),
+                                                TextRenderOptions::new(0.6).color(theme.light),
+                                                &editor.model.camera,
+                                                &mut pixel_buffer,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
