@@ -25,7 +25,7 @@ uniform sampler2D u_texture;
 void main() {
     vec4 color = texture2D(u_texture, v_vt);
     color *= u_color * v_color;
-    color = vec4(color.rgb * color.a, 1.0); // Premultiply alpha
+    // color = vec4(color.rgb * color.a, 1.0); // Premultiply alpha
     gl_FragColor = color;
 }
 #endif

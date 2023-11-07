@@ -17,13 +17,13 @@ void main() {
 
 uniform float u_time;
 uniform float u_bg_noise;
+uniform vec4 u_bg_color;
 uniform vec2 u_framebuffer_size;
 uniform vec2 u_pattern_size;
 uniform sampler2D u_texture;
 uniform sampler2D u_dither1;
 uniform sampler2D u_dither2;
 uniform sampler2D u_dither3;
-uniform vec4 u_bg_color;
 
 //	<https://www.shadertoy.com/view/4dS3Wd>
 //	By Morgan McGuire @morgan3d, http://graphicscodex.com
@@ -93,29 +93,29 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec4 dither(float amp) {
+vec4 dither(float amp, vec3 light_color) {
 	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
-	vec4 color;
+	vec3 color;
 	if (amp < 0.125) {
-		color = vec4(0.0);
+		color = vec3(0.0);
 	} else if (amp < 0.125 + 0.25) {
-		color = texture2D(u_dither1, pixel_pos);
+		color = texture2D(u_dither1, pixel_pos).rgb;
 	} else if (amp < 0.125 + 0.5) {
-		color = texture2D(u_dither2, pixel_pos);
+		color = texture2D(u_dither2, pixel_pos).rgb;
 	} else if (amp < 0.125 + 0.75) {
-		color = texture2D(u_dither3, pixel_pos);
+		color = texture2D(u_dither3, pixel_pos).rgb;
 	} else {
-		color = vec4(1.0);
+		color = vec3(1.0);
 	}
-	return color;
+	float t = color.r; // Assume gray-scale
+	// color = vec4(color.rgb * light_color, color.a);
+	vec3 dark = u_bg_color.rgb;
+	vec3 res = dark + (light_color - dark) * t;
+	return vec4(res, 1.0);
 }
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-    // gl_FragColor = vec4(in_color.rgb, 1.0);
-    // gl_FragColor = in_color;
-	// return;
-
 	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
 
 	// vec3 hsv = rgb2hsv(in_rgb);
@@ -129,16 +129,24 @@ void main() {
 	// float mul = length(v_vt - vec2(0.5)) * 2.0;
 	// amp += pow(0.02 * mul, mix(1.5 - u_bg_noise, 1.0, 0.4));
 
-	vec2 r = dither(in_color.r + amp).ra;
-	vec2 g = dither(in_color.g + amp).ga;
-	vec2 b = dither(in_color.b + amp).ba;
-	float a = max(max(r.y, g.y), b.y);
+	// vec2 r = dither(in_color.r + amp).ra;
+	// vec2 g = dither(in_color.g + amp).ga;
+	// vec2 b = dither(in_color.b + amp).ba;
+	// float a = max(max(r.y, g.y), b.y);
+
+	// Lerp from dark to light
+	// vec3 light = vec3(r.x, g.x, b.x);
+	// vec3 dark = u_bg_color.rgb;
+	// float t = in_color.a; //max(max(light.x, light.y), light.z);
+	// vec3 color = dark + (light - dark) * t;
+
+	vec4 color = dither(in_color.a + amp, in_color.rgb);
 
 	// Change saturation
 	// hsv.y = rgb2hsv(color.rgb).y;
 
     // gl_FragColor = vec4(hsv2rgb(hsv), color.a);
     // gl_FragColor = vec4(in_color.rgb, 1.0) * color;
-	gl_FragColor = vec4(r.x, g.x, b.x, a);
+	gl_FragColor = color;
 }
 #endif

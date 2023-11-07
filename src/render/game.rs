@@ -195,7 +195,8 @@ impl GameRender {
         } else {
             R32::ZERO
         };
-        self.dither.finish(model.real_time, t);
+        self.dither
+            .finish(model.real_time, t, model.level_state.config.theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(
