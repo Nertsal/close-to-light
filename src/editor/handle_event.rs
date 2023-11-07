@@ -230,22 +230,18 @@ impl EditorState {
                         // Control fade time
                         let change = scroll * self.editor.config.scroll_slow;
                         if let Event::Light(light) = &mut event.event {
+                            let movement = &mut light.light.movement;
                             if shift {
                                 // Fade out
-                                if let Some(frame) = light.light.movement.key_frames.back_mut() {
-                                    let change = change.max(-frame.lerp_time + r32(0.25));
-                                    frame.lerp_time =
-                                        (frame.lerp_time + change).clamp(r32(0.0), r32(10.0));
-                                }
+                                let change = change.max(-movement.fade_out + r32(0.25));
+                                movement.fade_out =
+                                    (movement.fade_out + change).clamp(r32(0.0), r32(10.0));
                             } else {
                                 // Fade in
-                                if let Some(frame) = light.light.movement.key_frames.get_mut(1) {
-                                    let change = change.max(-frame.lerp_time + r32(0.25));
-                                    let target =
-                                        (frame.lerp_time + change).clamp(r32(0.0), r32(10.0));
-                                    event.beat -= target - frame.lerp_time;
-                                    frame.lerp_time = target;
-                                }
+                                let change = change.max(-movement.fade_in + r32(0.25));
+                                let target = (movement.fade_in + change).clamp(r32(0.0), r32(10.0));
+                                event.beat -= target - movement.fade_in;
+                                movement.fade_in = target;
                             }
                         }
                     }

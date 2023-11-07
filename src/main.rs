@@ -15,7 +15,7 @@ use geng::prelude::*;
 struct Opts {
     /// Open a level in the editor.
     #[clap(long)]
-    edit: bool,
+    edit: Option<std::path::PathBuf>,
     #[clap(flatten)]
     geng: geng::CliArgs,
 }
@@ -53,9 +53,9 @@ fn main() {
                 .await
                 .expect("failed to load config");
 
-        if opts.edit {
+        if let Some(level_path) = opts.edit {
             // Editor
-            let level_path = assets_path.join("levels").join("level.json");
+            // let level_path = assets_path.join("levels").join("level.json");
             let level: model::Level = geng::asset::Load::load(manager, &level_path, &())
                 .await
                 .expect("failed to load level");

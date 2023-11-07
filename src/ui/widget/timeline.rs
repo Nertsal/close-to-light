@@ -55,7 +55,7 @@ impl TimelineWidget {
     }
 
     pub fn auto_scale(&mut self, max_beat: Time) {
-        let scale = self.state.position.width() / max_beat.as_f32();
+        let scale = self.state.position.width() / max_beat.as_f32().max(1.0);
         self.scale = scale;
         self.reload();
     }

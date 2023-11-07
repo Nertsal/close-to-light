@@ -271,16 +271,8 @@ impl EditorUI {
                         Shape::Rectangle { width, height } => format!("{:.1}x{:.1}", width, height),
                     };
                     self.selected_light.scale.text = format!("{} Scale", scale);
-                    let fade_out = if let Some(frame) = light.movement.key_frames.back() {
-                        frame.lerp_time
-                    } else {
-                        Time::ZERO
-                    };
-                    let fade_in = if let Some(frame) = light.movement.key_frames.get(1) {
-                        frame.lerp_time
-                    } else {
-                        Time::ZERO
-                    };
+                    let fade_out = light.movement.fade_out;
+                    let fade_in = light.movement.fade_in;
                     self.selected_light.fade_in.text = format!("{:.1} Fade in time", fade_in);
                     self.selected_light.fade_out.text = format!("{:.1} Fade out time", fade_out);
                     self.selected_light.light.light = light;

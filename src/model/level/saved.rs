@@ -7,6 +7,7 @@ pub struct Level {
     // /// Whether to start rng after the predefined level is finished.
     // #[serde(default)]
     // pub rng_end: bool,
+    #[serde(default)]
     pub events: Vec<TimedEvent>,
 }
 
