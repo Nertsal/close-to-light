@@ -5,6 +5,7 @@ use super::*;
 pub struct UtilRender {
     geng: Geng,
     assets: Rc<Assets>,
+    pub unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -69,6 +70,7 @@ impl UtilRender {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
         }
     }
 
@@ -98,53 +100,53 @@ impl UtilRender {
         );
     }
 
-    pub fn draw_collider(
+    pub fn draw_light(
         &self,
         collider: &Collider,
         color: Rgba<f32>,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        match collider.shape {
-            Shape::Circle { radius } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::TexturedQuad::colored(
-                        Aabb2::ZERO.extend_symmetric(vec2(radius.as_f32(), radius.as_f32())),
-                        &self.assets.sprites.radial_gradient,
-                        color,
-                    )
-                    .translate(collider.position.as_f32()),
-                );
-            }
+        let (texture, transform) = match collider.shape {
+            Shape::Circle { radius } => (
+                &self.assets.sprites.radial_gradient,
+                mat3::scale_uniform(radius.as_f32()),
+            ),
             Shape::Line { width } => {
                 let inf = 999.0;
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::TexturedQuad::colored(
-                        Aabb2::ZERO.extend_symmetric(vec2(inf, width.as_f32()) / 2.0),
-                        &self.assets.sprites.linear_gradient,
-                        color,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
+                (
+                    &self.assets.sprites.linear_gradient,
+                    mat3::scale(vec2(inf, width.as_f32()) / 2.0),
+                )
             }
-            Shape::Rectangle { width, height } => {
-                self.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Quad::new(
-                        Aabb2::ZERO.extend_symmetric(vec2(width.as_f32(), height.as_f32()) / 2.0),
-                        color,
-                    )
-                    .rotate(collider.rotation.map(Coord::as_f32))
-                    .translate(collider.position.as_f32()),
-                );
-            }
-        }
+            Shape::Rectangle { width, height } => (
+                &self.assets.sprites.linear_gradient,
+                mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
+            ),
+        };
+        let transform = mat3::translate(collider.position.as_f32())
+            * mat3::rotate(collider.rotation.map(Coord::as_f32))
+            * transform;
+
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.assets.shaders.light,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: transform,
+                    u_color: color,
+                    u_texture: texture,
+                },
+                camera.uniforms(framebuffer_size.as_f32()),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(additive()),
+                ..default()
+            },
+        );
     }
 
     pub fn draw_outline(
@@ -250,7 +252,7 @@ impl UtilRender {
         let collider = button
             .collider
             .transformed(Transform { scale, ..default() });
-        self.draw_collider(&collider, theme.light, camera, framebuffer);
+        self.draw_light(&collider, theme.light, camera, framebuffer);
 
         if t.as_f32() < 0.5 {
             self.geng.default_font().draw(
@@ -443,4 +445,12 @@ impl UtilRender {
         );
         full_length - last_len
     }
+}
+
+pub fn additive() -> ugli::BlendMode {
+    ugli::BlendMode::combined(ugli::ChannelBlendMode {
+        src_factor: ugli::BlendFactor::One,
+        dst_factor: ugli::BlendFactor::One,
+        equation: ugli::BlendEquation::Add,
+    })
 }

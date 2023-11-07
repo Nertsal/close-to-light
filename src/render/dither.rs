@@ -41,14 +41,14 @@ impl DitherRender {
         }
     }
 
-    pub fn start(&mut self, clear_color: Rgba<f32>) -> ugli::Framebuffer {
+    pub fn start(&mut self) -> ugli::Framebuffer {
         let mut framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
-        ugli::clear(&mut framebuffer, Some(clear_color), None, None);
+        ugli::clear(&mut framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         let mut framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli());
-        ugli::clear(&mut framebuffer, Some(clear_color), None, None);
+        ugli::clear(&mut framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
         framebuffer
     }
 
@@ -76,7 +76,7 @@ impl DitherRender {
                 u_dither3: &self.assets.dither.dither3,
             ),
             ugli::DrawParameters {
-                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                blend_mode: Some(util::additive()),
                 ..Default::default()
             },
         );

@@ -23,6 +23,7 @@ uniform sampler2D u_texture;
 uniform sampler2D u_dither1;
 uniform sampler2D u_dither2;
 uniform sampler2D u_dither3;
+uniform vec4 u_bg_color;
 
 //	<https://www.shadertoy.com/view/4dS3Wd>
 //	By Morgan McGuire @morgan3d, http://graphicscodex.com
@@ -92,22 +93,9 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-void main() {
-	vec4 in_color = v_color * texture2D(u_texture, v_vt);
+vec4 dither(float amp) {
 	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
-
-	vec3 hsv = rgb2hsv(in_color.rgb);
-	float amp = hsv.z;
-
-	// Noise
-	amp += 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
-	// float mul = max(0.0, (length(v_vt - 0.5) - 0.3) / 0.3 * 2.0);
-	// float range = u_bg_noise * 2.0 - 1.0;
-	// float mul = length(v_vt - vec2(0.5)) * 2.0;
-	// amp += pow(0.02 * mul, mix(1.5 - u_bg_noise, 1.0, 0.4));
-
 	vec4 color;
-	// Dither
 	if (amp < 0.125) {
 		color = vec4(0.0);
 	} else if (amp < 0.125 + 0.25) {
@@ -119,8 +107,38 @@ void main() {
 	} else {
 		color = vec4(1.0);
 	}
-	hsv.z = rgb2hsv(color.rgb).z;
+	return color;
+}
 
-    gl_FragColor = vec4(hsv2rgb(hsv), color.a);
+void main() {
+	vec4 in_color = texture2D(u_texture, v_vt);
+    // gl_FragColor = vec4(in_color.rgb, 1.0);
+    // gl_FragColor = in_color;
+	// return;
+
+	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
+
+	// vec3 hsv = rgb2hsv(in_rgb);
+	// Pattern based on alpha
+	// float amp = hsv.z;
+
+	// Noise
+	float amp = 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
+	// float mul = max(0.0, (length(v_vt - 0.5) - 0.3) / 0.3 * 2.0);
+	// float range = u_bg_noise * 2.0 - 1.0;
+	// float mul = length(v_vt - vec2(0.5)) * 2.0;
+	// amp += pow(0.02 * mul, mix(1.5 - u_bg_noise, 1.0, 0.4));
+
+	vec2 r = dither(in_color.r + amp).ra;
+	vec2 g = dither(in_color.g + amp).ga;
+	vec2 b = dither(in_color.b + amp).ba;
+	float a = max(max(r.y, g.y), b.y);
+
+	// Change saturation
+	// hsv.y = rgb2hsv(color.rgb).y;
+
+    // gl_FragColor = vec4(hsv2rgb(hsv), color.a);
+    // gl_FragColor = vec4(in_color.rgb, 1.0) * color;
+	gl_FragColor = vec4(r.x, g.x, b.x, a);
 }
 #endif

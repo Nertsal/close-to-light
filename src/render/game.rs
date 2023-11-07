@@ -26,7 +26,7 @@ impl GameRender {
     }
 
     pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
-        let mut framebuffer = self.dither.start(model.level_state.config.theme.dark);
+        let mut framebuffer = self.dither.start();
 
         let camera = &model.camera;
 
@@ -49,7 +49,7 @@ impl GameRender {
                 model.level_state.config.theme.light
             };
             self.util
-                .draw_collider(&light.collider, color, camera, &mut framebuffer);
+                .draw_light(&light.collider, color, camera, &mut framebuffer);
         }
 
         // Player

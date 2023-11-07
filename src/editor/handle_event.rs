@@ -189,6 +189,7 @@ impl EditorState {
                 geng::Key::Digit8 => self.handle_digit(8),
                 geng::Key::Digit9 => self.handle_digit(9),
                 geng::Key::Digit0 => self.handle_digit(0),
+                geng::Key::F1 => self.render_options.hide_ui = !self.render_options.hide_ui,
                 geng::Key::F5 => self.play_game(),
                 geng::Key::F11 => self.geng.window().toggle_fullscreen(),
                 _ => {}

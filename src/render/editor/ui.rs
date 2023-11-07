@@ -59,14 +59,14 @@ impl EditorRender {
             // Selector
             for widget in [&ui.new_circle, &ui.new_line] {
                 let light = &widget.light;
-                let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
+                let mut dither_buffer = self.dither_small.start();
                 let collider = Collider::new(vec2::ZERO, light.shape);
                 let color = if widget.state.hovered {
                     editor.config.theme.hover
                 } else {
                     editor.level.config.theme.light
                 };
-                self.util.draw_collider(
+                self.util.draw_light(
                     &collider,
                     color,
                     &Camera2d {
@@ -105,7 +105,7 @@ impl EditorRender {
 
         if ui.selected_light.light.state.visible {
             let light = &ui.selected_light.light.light;
-            let mut dither_buffer = self.dither_small.start(Color::TRANSPARENT_BLACK);
+            let mut dither_buffer = self.dither_small.start();
             let mut collider = Collider::new(vec2::ZERO, light.shape);
             collider.rotation = light.movement.initial.rotation;
             let color = if light.danger {
@@ -113,7 +113,7 @@ impl EditorRender {
             } else {
                 editor.level.config.theme.light
             };
-            self.util.draw_collider(
+            self.util.draw_light(
                 &collider,
                 color,
                 &Camera2d {

@@ -13,13 +13,16 @@ pub struct Assets {
 pub struct Sprites {
     #[load(postprocess = "pixel")]
     pub title: ugli::Texture,
+    #[load(postprocess = "pixel")]
     pub linear_gradient: ugli::Texture,
+    #[load(postprocess = "pixel")]
     pub radial_gradient: ugli::Texture,
 }
 
 #[derive(geng::asset::Load)]
 pub struct Shaders {
     pub solid: ugli::Program,
+    pub light: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]
