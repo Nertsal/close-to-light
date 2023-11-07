@@ -445,7 +445,9 @@ impl EditorState {
                                                 &mut transform,
                                             );
 
-                                            let time = self.editor.current_beat;
+                                            let time = self.editor.current_beat
+                                                - light.light.movement.fade_in
+                                                - light.telegraph.precede_time; // Extra time for fade in and telegraph
                                             light.light.movement.key_frames.push_front(MoveFrame {
                                                 lerp_time: event.beat - time,
                                                 transform,

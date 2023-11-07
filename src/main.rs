@@ -16,6 +16,9 @@ struct Opts {
     /// Open a level in the editor.
     #[clap(long)]
     edit: Option<std::path::PathBuf>,
+    /// Play a specific level.
+    #[clap(long)]
+    level: Option<std::path::PathBuf>,
     #[clap(flatten)]
     geng: geng::CliArgs,
 }
@@ -71,6 +74,21 @@ fn main() {
                 config,
                 level,
                 level_path,
+            );
+            geng.run_state(state).await;
+        } else if let Some(level_path) = opts.level {
+            // Game
+            let level: model::Level = geng::asset::Load::load(manager, &level_path, &())
+                .await
+                .expect("failed to load level");
+            let state = game::Game::new(
+                &geng,
+                &assets,
+                config,
+                level,
+                None,
+                "".to_string(),
+                prelude::Time::ZERO,
             );
             geng.run_state(state).await;
         } else {
