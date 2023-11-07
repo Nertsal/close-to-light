@@ -4,12 +4,8 @@ impl EditorRender {
     pub(super) fn draw_game(&mut self, editor: &Editor, options: &RenderOptions) {
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
-        ugli::clear(
-            game_buffer,
-            Some(editor.level_state.relevant().config.theme.dark),
-            None,
-            None,
-        );
+        let theme = &editor.level_state.relevant().config.theme;
+        ugli::clear(game_buffer, Some(theme.dark), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
 
         macro_rules! draw_game {
@@ -28,8 +24,8 @@ impl EditorRender {
         }
 
         // Level
-        let light_color = editor.level.config.theme.light;
-        let danger_color = editor.level.config.theme.danger;
+        let light_color = theme.light;
+        let danger_color = theme.danger;
 
         let active_danger = if let State::Movement { light, .. } = &editor.state {
             light.light.danger
@@ -190,11 +186,7 @@ impl EditorRender {
                     rotation: editor.place_rotation,
                     shape: shape.scaled(editor.place_scale),
                 };
-                let color = if danger {
-                    editor.level.config.theme.danger
-                } else {
-                    editor.level.config.theme.light
-                };
+                let color = if danger { theme.danger } else { theme.light };
                 self.util.draw_outline(
                     &collider,
                     0.05,
@@ -269,7 +261,7 @@ impl EditorRender {
                             self.util.draw_text(
                                 format!("{}", i + 1),
                                 point.collider.position,
-                                TextRenderOptions::new(1.5),
+                                TextRenderOptions::new(1.5).color(theme.light),
                                 &editor.model.camera,
                                 &mut pixel_buffer,
                             )
@@ -358,7 +350,7 @@ impl EditorRender {
             let screen = Aabb2::ZERO.extend_positive(framebuffer_size);
             let font_size = framebuffer_size.y * 0.05;
             let font = self.geng.default_font();
-            let text_color = editor.level.config.theme.light;
+            let text_color = theme.light;
             // let outline_color = crate::render::COLOR_DARK;
             // let outline_size = 0.05;
 
