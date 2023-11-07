@@ -14,11 +14,8 @@ impl EditorRender {
 
         macro_rules! draw_game {
             ($alpha:expr) => {{
-                self.dither.finish(
-                    editor.real_time,
-                    R32::ZERO,
-                    editor.level_state.relevant().config.theme.dark,
-                );
+                self.dither
+                    .finish(editor.real_time, R32::ZERO, Color::TRANSPARENT_BLACK);
                 self.geng.draw2d().textured_quad(
                     game_buffer,
                     &geng::PixelPerfectCamera,

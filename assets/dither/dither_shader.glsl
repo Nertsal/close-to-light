@@ -109,9 +109,11 @@ vec4 dither(float amp, vec3 light_color) {
 	}
 	float t = color.r; // Assume gray-scale
 	// color = vec4(color.rgb * light_color, color.a);
-	vec3 dark = u_bg_color.rgb;
-	vec3 res = dark + (light_color - dark) * t;
-	return vec4(res, 1.0);
+	vec4 dark = u_bg_color;
+	vec4 light = vec4(light_color, 1.0);
+	// vec3 res = dark + (light_color - dark) * t;
+	// return vec4(res, 1.0);
+	return dark + (light - dark) * t;
 }
 
 void main() {
