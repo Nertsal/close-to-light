@@ -188,10 +188,7 @@ impl EditorUI {
                     _ => {}
                 }
             } else if self.new_palette.text.state.clicked {
-                editor.level.events.push(TimedEvent {
-                    beat: editor.current_beat,
-                    event: Event::PaletteSwap,
-                });
+                editor.palette_swap();
             }
         }
 
