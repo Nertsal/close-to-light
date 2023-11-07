@@ -118,6 +118,9 @@ vec4 dither(float amp, vec3 light_color) {
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
+	// float v = max(max(in_color.r, in_color.g), in_color.b);
+	// in_color = vec4(in_color.rgb + 1.0 - v, in_color.a); // Undo overflow protection
+
 	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
 
 	// vec3 hsv = rgb2hsv(in_rgb);
@@ -142,6 +145,10 @@ void main() {
 	// float t = in_color.a; //max(max(light.x, light.y), light.z);
 	// vec3 color = dark + (light - dark) * t;
 
+	// vec3 light_color = rgb2hsv(in_color.rgb);
+	// light_color.z = 1.0; // Value always 1
+	// light_color = hsv2rgb(light_color);
+	// vec4 color = dither(in_color.a + amp, light_color);
 	vec4 color = dither(in_color.a + amp, in_color.rgb);
 
 	// Change saturation
