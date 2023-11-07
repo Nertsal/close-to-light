@@ -65,12 +65,12 @@ pub struct Waypoint {
 }
 
 impl EditorLevelState {
-    pub fn relevant(&self) -> &LevelState {
-        self.static_level
-            .as_ref()
-            .or(self.dynamic_level.as_ref())
-            .expect("level editor has no displayable state")
-    }
+    // pub fn relevant(&self) -> &LevelState {
+    //     self.static_level
+    //         .as_ref()
+    //         .or(self.dynamic_level.as_ref())
+    //         .expect("level editor has no displayable state")
+    // }
 
     /// Returns the index of the hovered event (if any).
     pub fn hovered_event(&self) -> Option<usize> {

@@ -4,7 +4,7 @@ impl EditorRender {
     pub(super) fn draw_game(&mut self, editor: &Editor, options: &RenderOptions) {
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
-        let theme = &editor.level_state.relevant().config.theme;
+        let theme = &editor.model.config.theme;
         ugli::clear(game_buffer, Some(theme.dark), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
 

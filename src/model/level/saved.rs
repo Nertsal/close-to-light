@@ -16,17 +16,6 @@ pub struct LevelConfig {
     pub bpm: R32,
     #[serde(default)]
     pub health: HealthConfig,
-    #[serde(default)]
-    pub theme: LevelTheme,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
-pub struct LevelTheme {
-    pub player: Color,
-    pub dark: Color,
-    pub light: Color,
-    pub danger: Color,
 }
 
 impl Default for LevelConfig {
@@ -34,7 +23,6 @@ impl Default for LevelConfig {
         Self {
             bpm: r32(150.0),
             health: default(),
-            theme: default(),
         }
     }
 }
@@ -46,17 +34,6 @@ impl Default for HealthConfig {
             dark_decrease_rate: r32(1.0),
             danger_decrease_rate: r32(2.0),
             restore_rate: r32(0.5),
-        }
-    }
-}
-
-impl Default for LevelTheme {
-    fn default() -> Self {
-        Self {
-            player: Color::WHITE,
-            dark: Color::BLACK,
-            light: Color::WHITE,
-            danger: Color::RED,
         }
     }
 }

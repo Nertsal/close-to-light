@@ -33,9 +33,9 @@ impl GameRender {
         // Telegraphs
         for tele in &model.level_state.telegraphs {
             let color = if tele.light.danger {
-                model.level_state.config.theme.danger
+                model.config.theme.danger
             } else {
-                model.level_state.config.theme.light
+                model.config.theme.light
             };
             self.util
                 .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
@@ -44,9 +44,9 @@ impl GameRender {
         // Lights
         for light in &model.level_state.lights {
             let color = if light.danger {
-                model.level_state.config.theme.danger
+                model.config.theme.danger
             } else {
-                model.level_state.config.theme.light
+                model.config.theme.light
             };
             self.util
                 .draw_light(&light.collider, color, camera, &mut framebuffer);
@@ -57,7 +57,7 @@ impl GameRender {
         self.util.draw_outline(
             &player,
             0.05,
-            model.level_state.config.theme.player,
+            model.config.theme.light,
             camera,
             &mut framebuffer,
         );
@@ -69,7 +69,7 @@ impl GameRender {
             self.util.draw_button(
                 &button,
                 "RESTART",
-                &model.level_state.config.theme,
+                &model.config.theme,
                 camera,
                 &mut framebuffer,
             );
@@ -77,7 +77,7 @@ impl GameRender {
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(model.level_state.config.theme.dark),
+                TextRenderOptions::new(0.7).color(model.config.theme.dark),
                 camera,
                 &mut framebuffer,
             );
@@ -88,7 +88,7 @@ impl GameRender {
                     position.as_r32(),
                     TextRenderOptions::new(size)
                         .align(align)
-                        .color(model.level_state.config.theme.light),
+                        .color(model.config.theme.light),
                     camera,
                     &mut framebuffer,
                 );
@@ -155,7 +155,7 @@ impl GameRender {
             self.util.draw_text(
                 format!("SCORE: {:.0}", model.score),
                 vec2(0.0, 4.5).as_r32(),
-                TextRenderOptions::new(0.7).color(model.level_state.config.theme.light),
+                TextRenderOptions::new(0.7).color(model.config.theme.light),
                 camera,
                 &mut framebuffer,
             );
@@ -168,7 +168,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(model.level_state.config.theme.light),
+                        TextRenderOptions::new(1.0).color(model.config.theme.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -177,7 +177,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(model.level_state.config.theme.light),
+                        TextRenderOptions::new(1.0).color(model.config.theme.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -196,7 +196,7 @@ impl GameRender {
             R32::ZERO
         };
         self.dither
-            .finish(model.real_time, t, model.level_state.config.theme.dark);
+            .finish(model.real_time, t, model.config.theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(
@@ -227,13 +227,13 @@ impl GameRender {
                 camera,
                 &draw2d::Quad::new(
                     health.extend_uniform(font_size * 0.1),
-                    model.level_state.config.theme.light,
+                    model.config.theme.light,
                 ),
             );
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw2d::Quad::new(health, model.level_state.config.theme.dark),
+                &draw2d::Quad::new(health, model.config.theme.dark),
             );
             self.geng.draw2d().draw2d(
                 framebuffer,
@@ -245,7 +245,7 @@ impl GameRender {
                             0.0,
                         ) / 2.0,
                     ),
-                    model.level_state.config.theme.light,
+                    model.config.theme.light,
                 ),
             );
         }

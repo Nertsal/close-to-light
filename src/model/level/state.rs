@@ -8,6 +8,8 @@ pub struct LevelState {
     /// The time after which events are not rendered.
     ignore_after: Option<Time>,
     pub config: LevelConfig,
+    /// Whether the palette should be swapped.
+    pub swap_palette: bool,
     pub lights: Vec<Light>,
     pub telegraphs: Vec<LightTelegraph>,
     pub is_finished: bool,
@@ -19,6 +21,7 @@ impl Default for LevelState {
             beat_time: Time::ZERO,
             ignore_after: None,
             config: LevelConfig::default(),
+            swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
             is_finished: false,
@@ -31,6 +34,7 @@ impl LevelState {
         let mut state = Self {
             beat_time,
             ignore_after,
+            swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
             is_finished: true,
@@ -58,9 +62,7 @@ impl LevelState {
         let time = self.beat_time - event.beat;
 
         match &event.event {
-            Event::PaletteSwap => {
-                std::mem::swap(&mut self.config.theme.light, &mut self.config.theme.dark)
-            }
+            Event::PaletteSwap => self.swap_palette = !self.swap_palette,
             Event::Light(event) => {
                 let (telegraph, light) = render_light(event, time, event_id);
                 self.telegraphs.extend(telegraph);

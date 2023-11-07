@@ -9,19 +9,15 @@ impl EditorRender {
     ) {
         let screen_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        let theme = &editor.model.config.theme;
 
         let framebuffer_size = screen_buffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;
-        ugli::clear(
-            screen_buffer,
-            Some(editor.level.config.theme.dark),
-            None,
-            None,
-        );
+        ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size)
-            .color(editor.level.config.theme.light)
+            .color(theme.light)
             .align(vec2(0.5, 1.0));
 
         {
@@ -64,7 +60,7 @@ impl EditorRender {
                 let color = if widget.state.hovered {
                     editor.config.theme.hover
                 } else {
-                    editor.level.config.theme.light
+                    theme.light
                 };
                 self.util.draw_light(
                     &collider,
@@ -110,9 +106,9 @@ impl EditorRender {
             let mut collider = Collider::new(vec2::ZERO, light.shape);
             collider.rotation = light.movement.initial.rotation;
             let color = if light.danger {
-                editor.level.config.theme.danger
+                theme.danger
             } else {
-                editor.level.config.theme.light
+                theme.light
             };
             self.util.draw_light(
                 &collider,

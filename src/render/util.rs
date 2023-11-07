@@ -227,7 +227,7 @@ impl UtilRender {
         &self,
         button: &HoverButton,
         text: impl AsRef<str>,
-        theme: &LevelTheme,
+        theme: &Theme,
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {

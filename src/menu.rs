@@ -10,7 +10,7 @@ pub struct MainMenu {
     geng: Geng,
     assets: Rc<Assets>,
     config: Config,
-    theme: LevelTheme,
+    theme: Theme,
     transition: Option<geng::state::Transition>,
     dither: DitherRender,
     util_render: UtilRender,
@@ -33,7 +33,7 @@ impl MainMenu {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            theme: LevelTheme::default(),
+            theme: Theme::default(),
             transition: None,
             dither: DitherRender::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
@@ -225,7 +225,7 @@ impl geng::State for MainMenu {
             self.util_render.draw_outline(
                 &self.player,
                 0.05,
-                self.theme.player,
+                self.theme.light,
                 &self.camera,
                 &mut framebuffer,
             );

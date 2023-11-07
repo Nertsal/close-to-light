@@ -6,12 +6,6 @@
       "dark_decrease_rate": 1.0,
       "danger_decrease_rate": 2.0,
       "restore_rate": 0.5
-    },
-    "theme": {
-      "player": "#ffffff",
-      "dark": "#000000",
-      "light": "#ffffff",
-      "danger": "#ff0000"
     }
   },
   "events": [
