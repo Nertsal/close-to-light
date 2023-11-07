@@ -145,11 +145,13 @@ void main() {
 	// float t = in_color.a; //max(max(light.x, light.y), light.z);
 	// vec3 color = dark + (light - dark) * t;
 
-	// vec3 light_color = rgb2hsv(in_color.rgb);
-	// light_color.z = 1.0; // Value always 1
-	// light_color = hsv2rgb(light_color);
-	// vec4 color = dither(in_color.a + amp, light_color);
-	vec4 color = dither(in_color.a + amp, in_color.rgb);
+	vec3 light_color = rgb2hsv(in_color.rgb);
+	if (light_color.z > 0.0) {
+		light_color.z = 1.0; // Value always 1 unless it is 0 (black)
+	}
+	light_color = hsv2rgb(light_color);
+	vec4 color = dither(in_color.a + amp, light_color);
+	// vec4 color = dither(in_color.a + amp, in_color.rgb);
 
 	// Change saturation
 	// hsv.y = rgb2hsv(color.rgb).y;
