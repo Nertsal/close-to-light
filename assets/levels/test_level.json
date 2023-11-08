@@ -726,7 +726,7 @@
             },
             "movement": {
               "fade_in": 2.0,
-              "fade_out": 1.0,
+              "fade_out": 0.5,
               "initial": {
                 "translation": [
                   0.0,
@@ -935,7 +935,7 @@
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       0.0,
@@ -1562,7 +1562,7 @@
                   }
                 },
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       5.0,
@@ -1628,7 +1628,7 @@
                   }
                 },
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       -5.0,
@@ -5080,7 +5080,7 @@
       }
     },
     {
-      "beat": 162.0,
+      "beat": 162.5,
       "event": {
         "Light": {
           "light": {
@@ -5091,7 +5091,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 0.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
