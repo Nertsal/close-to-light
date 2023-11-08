@@ -205,6 +205,8 @@ impl EditorState {
                 if let Some(mut level) = self.editor.undo_stack.pop() {
                     std::mem::swap(&mut level, &mut self.editor.level);
                     self.editor.redo_stack.push(level);
+                    self.editor.buffer_state = self.editor.level.clone();
+                    self.editor.buffer_label = HistoryLabel::default();
                 }
             }
         }
@@ -225,6 +227,8 @@ impl EditorState {
                 if let Some(mut level) = self.editor.redo_stack.pop() {
                     std::mem::swap(&mut level, &mut self.editor.level);
                     self.editor.undo_stack.push(level);
+                    self.editor.buffer_state = self.editor.level.clone();
+                    self.editor.buffer_label = HistoryLabel::default();
                 }
             }
         }
