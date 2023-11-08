@@ -41,9 +41,11 @@ pub struct Drag {
 
 #[derive(Debug)]
 pub enum DragTarget {
-    Event {
+    /// Move the whole light event through time and space.
+    Light {
         event: usize,
         initial_time: Time,
+        initial_translation: vec2<Coord>,
     },
     Waypoint {
         event: usize,

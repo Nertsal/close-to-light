@@ -328,7 +328,7 @@ impl EditorState {
         if let Some(drag) = self.drag.take() {
             match drag.target {
                 DragTarget::Waypoint { .. } => {}
-                DragTarget::Event { .. } => {}
+                DragTarget::Light { .. } => {}
             }
         }
     }
@@ -402,13 +402,26 @@ impl EditorState {
     pub(super) fn update_drag(&mut self) {
         let Some(drag) = &mut self.drag else { return };
         match drag.target {
-            DragTarget::Event {
+            DragTarget::Light {
                 event,
                 initial_time,
+                initial_translation,
             } => {
                 if let Some(event) = self.editor.level.events.get_mut(event) {
-                    // Move temporaly
-                    event.beat = self.editor.current_beat - drag.from_time + initial_time;
+                    if let Event::Light(light) = &mut event.event {
+                        // Move temporaly
+                        event.beat = self.editor.current_beat - drag.from_time + initial_time;
+
+                        // Move spatially
+                        let movement = &mut light.light.movement;
+                        let target =
+                            initial_translation + self.editor.cursor_world_pos - drag.from_world;
+                        let delta = target - movement.initial.translation;
+                        movement.initial.translation += delta;
+                        for frame in &mut movement.key_frames {
+                            frame.transform.translation += delta;
+                        }
+                    }
                 }
             }
             DragTarget::Waypoint {
@@ -436,10 +449,13 @@ impl EditorState {
                 if let Some(event) = self.editor.level_state.hovered_event() {
                     self.editor.selected_light = Some(LightId { event });
                     if let Some(e) = self.editor.level.events.get(event) {
-                        self.start_drag(DragTarget::Event {
-                            event,
-                            initial_time: e.beat,
-                        });
+                        if let Event::Light(light) = &e.event {
+                            self.start_drag(DragTarget::Light {
+                                event,
+                                initial_time: e.beat,
+                                initial_translation: light.light.movement.initial.translation,
+                            });
+                        }
                     }
                 } else {
                     // Deselect
