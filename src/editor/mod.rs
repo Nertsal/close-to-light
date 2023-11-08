@@ -31,6 +31,8 @@ pub struct EditorState {
 
 #[derive(Debug)]
 pub struct Drag {
+    /// Whether we just clicked or actually starting moving.
+    pub moved: bool,
     pub from_screen: vec2<f64>,
     pub from_world: vec2<Coord>,
     pub target: DragTarget,
@@ -235,6 +237,20 @@ impl geng::State for EditorState {
             self.editor.music_timer -= delta_time;
             if self.editor.music_timer <= Time::ZERO {
                 self.editor.music.stop();
+            }
+        }
+
+        if let Some(waypoints) = &self.editor.level_state.waypoints {
+            if let Some(waypoint) = waypoints.selected {
+                if let Some(event) = self.editor.level.events.get(waypoints.event) {
+                    if let Event::Light(light) = &event.event {
+                        // Set current time to align with the selected waypoint
+                        if let Some(time) = light.light.movement.get_time(waypoint) {
+                            self.editor.current_beat =
+                                event.beat + light.telegraph.precede_time + time;
+                        }
+                    }
+                }
             }
         }
 

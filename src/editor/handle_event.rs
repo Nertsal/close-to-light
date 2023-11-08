@@ -140,18 +140,28 @@ impl EditorState {
                     }
                 }
                 geng::Key::Escape => {
-                    // Cancel creation
                     match &mut self.editor.state {
                         State::Idle => {
+                            // Cancel selection
                             self.editor.selected_light = None;
                         }
                         State::Movement { .. } | State::Place { .. } => {
+                            // Cancel creation
                             self.editor.state = State::Idle;
                         }
-                        State::Waypoints { state, .. } => match state {
-                            WaypointsState::Idle => self.editor.state = State::Idle,
-                            WaypointsState::New => *state = WaypointsState::Idle,
-                        },
+                        State::Waypoints { state, .. } => {
+                            if let Some(waypoints) = &mut self.editor.level_state.waypoints {
+                                if waypoints.selected.take().is_some() {
+                                    // Cancel selection
+                                    return;
+                                }
+                            }
+                            // Cancel selection
+                            match state {
+                                WaypointsState::Idle => self.editor.state = State::Idle,
+                                WaypointsState::New => *state = WaypointsState::Idle,
+                            }
+                        }
                         _ => (),
                     }
                 }
@@ -246,11 +256,14 @@ impl EditorState {
                         }
                     }
                 } else {
-                    self.editor.scroll_time(scroll * scroll_speed);
+                    self.scroll_time(scroll * scroll_speed);
                 }
             }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
+                if let Some(drag) = &mut self.drag {
+                    drag.moved = true;
+                }
             }
             geng::Event::MousePress { button } => match button {
                 geng::MouseButton::Left => self.cursor_down(),
@@ -319,6 +332,63 @@ impl EditorState {
         }
     }
 
+    fn scroll_time(&mut self, mut delta: Time) {
+        // if let Some(drag) = &self.drag {
+        //     let DragTarget::Waypoint {
+        //         event, waypoint, ..
+        //     } = drag.target;
+        //     {
+        if let Some(waypoints) = &self.editor.level_state.waypoints {
+            if let Some(waypoint) = waypoints.selected {
+                // Move waypoint in time
+                if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                    if let Event::Light(light) = &mut event.event {
+                        // Move temporaly
+                        if let Some(beat) = light.light.movement.get_time(waypoint) {
+                            // let current = self.editor.current_beat
+                            //     - (event.beat + light.telegraph.precede_time);
+                            // let delta = current - beat;
+
+                            let next = match waypoint {
+                                WaypointId::Initial => WaypointId::Frame(0),
+                                WaypointId::Frame(i) => WaypointId::Frame(i + 1),
+                            };
+                            let next_time = light.light.movement.get_time(next);
+
+                            let min_lerp = r32(0.25);
+                            let max_delta =
+                                next_time.map_or(r32(100.0), |time| time - min_lerp - beat);
+
+                            delta = delta.min(max_delta);
+
+                            match waypoint {
+                                WaypointId::Initial => event.beat += delta,
+                                WaypointId::Frame(i) => {
+                                    if let Some(frame) = light.light.movement.key_frames.get_mut(i)
+                                    {
+                                        let target = (frame.lerp_time + delta).max(min_lerp);
+                                        delta = target - frame.lerp_time;
+                                        frame.lerp_time = target;
+
+                                        if let Some(next) =
+                                            light.light.movement.key_frames.get_mut(i + 1)
+                                        {
+                                            next.lerp_time -= delta;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+        }
+
+        // Scroll current time
+        self.editor.scroll_time(delta);
+    }
+
     pub(super) fn update_drag(&mut self) {
         let Some(drag) = &mut self.drag else { return };
         match drag.target {
@@ -328,8 +398,9 @@ impl EditorState {
                 initial_translation,
             } => {
                 if let Some(event) = self.editor.level.events.get_mut(event) {
-                    if let Event::Light(event) = &mut event.event {
-                        if let Some(frame) = event.light.movement.get_frame_mut(waypoint) {
+                    if let Event::Light(light) = &mut event.event {
+                        // Move spatially
+                        if let Some(frame) = light.light.movement.get_frame_mut(waypoint) {
                             frame.translation = initial_translation + self.editor.cursor_world_pos
                                 - drag.from_world;
                         }
@@ -408,6 +479,7 @@ impl EditorState {
                                         {
                                             waypoints.selected = Some(waypoint);
                                             self.drag = Some(Drag {
+                                                moved: false,
                                                 from_screen: self.cursor_pos,
                                                 from_world: self.editor.cursor_world_pos,
                                                 target: DragTarget::Waypoint {

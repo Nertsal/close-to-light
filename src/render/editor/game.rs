@@ -274,7 +274,8 @@ impl EditorRender {
                                 if let Some(event) = editor.level.events.get(waypoints.event) {
                                     if let Event::Light(light) = &event.event {
                                         if let Some(beat) = light.light.movement.get_time(i) {
-                                            let beat = event.beat + beat;
+                                            let beat =
+                                                event.beat + light.telegraph.precede_time + beat;
                                             self.util.draw_text(
                                                 format!("at {}", beat),
                                                 point.collider.position - vec2(0.0, 0.6).as_r32(),
