@@ -95,9 +95,7 @@ pub struct Editor {
     pub place_scale: Coord,
 
     pub state: State,
-    pub music: geng::SoundEffect,
-    /// Stop the music after the timer runs out.
-    pub music_timer: Time,
+    pub music: SoundEffect,
     /// Whether the last frame was scrolled through time.
     pub was_scrolling_time: bool,
     /// Whether currently scrolling through time.
@@ -117,6 +115,35 @@ pub struct Replay {
     pub end_beat: Time,
     pub current_beat: Time,
     pub speed: Time,
+}
+
+pub struct SoundEffect {
+    effect: Option<geng::SoundEffect>,
+    /// Stop the music after the timer runs out.
+    pub timer: Time,
+}
+
+impl SoundEffect {
+    pub fn new() -> Self {
+        Self {
+            effect: None,
+            timer: Time::ZERO,
+        }
+    }
+
+    pub fn stop(&mut self) {
+        if let Some(mut effect) = self.effect.take() {
+            effect.stop();
+        }
+        self.timer = Time::ZERO;
+    }
+
+    pub fn play_from(&mut self, sound: &geng::Sound, time: time::Duration) {
+        self.stop();
+        let mut effect = sound.effect();
+        effect.play_from(time);
+        self.effect = Some(effect);
+    }
 }
 
 impl EditorState {
@@ -150,8 +177,7 @@ impl EditorState {
                 place_rotation: Angle::ZERO,
                 place_scale: Coord::ONE,
                 state: State::Idle,
-                music: assets.music.effect(),
-                music_timer: Time::ZERO,
+                music: SoundEffect::new(),
                 was_scrolling_time: false,
                 scrolling_time: false,
                 visualize_beat: true,
@@ -291,9 +317,9 @@ impl geng::State for EditorState {
 
         self.update_drag();
 
-        if self.editor.music_timer > Time::ZERO {
-            self.editor.music_timer -= delta_time;
-            if self.editor.music_timer <= Time::ZERO {
+        if self.editor.music.timer > Time::ZERO {
+            self.editor.music.timer -= delta_time;
+            if self.editor.music.timer <= Time::ZERO {
                 self.editor.music.stop();
             }
         }
@@ -318,12 +344,13 @@ impl geng::State for EditorState {
             if self.editor.was_scrolling_time {
                 // Stopped scrolling
                 // Play some music
-                self.editor.music.stop();
-                self.editor.music = self.assets.music.effect();
-                self.editor.music.play_from(time::Duration::from_secs_f64(
-                    (self.editor.current_beat * self.editor.level.beat_time()).as_f32() as f64,
-                ));
-                self.editor.music_timer =
+                self.editor.music.play_from(
+                    &self.assets.music,
+                    time::Duration::from_secs_f64(
+                        (self.editor.current_beat * self.editor.level.beat_time()).as_f32() as f64,
+                    ),
+                );
+                self.editor.music.timer =
                     self.editor.level.beat_time() * self.editor.config.playback_duration;
             }
             self.editor.was_scrolling_time = false;
