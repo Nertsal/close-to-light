@@ -328,6 +328,7 @@ impl EditorState {
         if let Some(drag) = self.drag.take() {
             match drag.target {
                 DragTarget::Waypoint { .. } => {}
+                DragTarget::Event { .. } => {}
             }
         }
     }
@@ -388,9 +389,28 @@ impl EditorState {
         self.editor.scroll_time(delta);
     }
 
+    fn start_drag(&mut self, target: DragTarget) {
+        self.drag = Some(Drag {
+            moved: false,
+            from_screen: self.cursor_pos,
+            from_world: self.editor.cursor_world_pos,
+            from_time: self.editor.current_beat,
+            target,
+        });
+    }
+
     pub(super) fn update_drag(&mut self) {
         let Some(drag) = &mut self.drag else { return };
         match drag.target {
+            DragTarget::Event {
+                event,
+                initial_time,
+            } => {
+                if let Some(event) = self.editor.level.events.get_mut(event) {
+                    // Move temporaly
+                    event.beat = self.editor.current_beat - drag.from_time + initial_time;
+                }
+            }
             DragTarget::Waypoint {
                 event,
                 waypoint,
@@ -415,6 +435,15 @@ impl EditorState {
                 // Select a light
                 if let Some(event) = self.editor.level_state.hovered_event() {
                     self.editor.selected_light = Some(LightId { event });
+                    if let Some(e) = self.editor.level.events.get(event) {
+                        self.start_drag(DragTarget::Event {
+                            event,
+                            initial_time: e.beat,
+                        });
+                    }
+                } else {
+                    // Deselect
+                    self.editor.selected_light = None;
                 }
             }
             State::Place { shape, danger } => {
@@ -477,15 +506,12 @@ impl EditorState {
                                             event.light.movement.get_frame_mut(waypoint)
                                         {
                                             waypoints.selected = Some(waypoint);
-                                            self.drag = Some(Drag {
-                                                moved: false,
-                                                from_screen: self.cursor_pos,
-                                                from_world: self.editor.cursor_world_pos,
-                                                target: DragTarget::Waypoint {
-                                                    event: waypoints.event,
-                                                    waypoint,
-                                                    initial_translation: frame.translation,
-                                                },
+                                            let event = waypoints.event;
+                                            let initial_translation = frame.translation;
+                                            self.start_drag(DragTarget::Waypoint {
+                                                event,
+                                                waypoint,
+                                                initial_translation,
                                             });
                                         }
                                     }

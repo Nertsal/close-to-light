@@ -35,11 +35,16 @@ pub struct Drag {
     pub moved: bool,
     pub from_screen: vec2<f64>,
     pub from_world: vec2<Coord>,
+    pub from_time: Time,
     pub target: DragTarget,
 }
 
 #[derive(Debug)]
 pub enum DragTarget {
+    Event {
+        event: usize,
+        initial_time: Time,
+    },
     Waypoint {
         event: usize,
         waypoint: WaypointId,
