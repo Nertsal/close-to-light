@@ -255,15 +255,12 @@ impl UtilRender {
         self.draw_light(&collider, theme.light, camera, framebuffer);
 
         if t.as_f32() < 0.5 {
-            self.geng.default_font().draw(
-                framebuffer,
+            self.draw_text(
+                text,
+                collider.position,
+                TextRenderOptions::new(1.0).color(theme.dark),
                 camera,
-                text.as_ref(),
-                vec2::splat(geng::TextAlign::CENTER),
-                mat3::translate(collider.position.as_f32())
-                    * mat3::scale_uniform(1.0)
-                    * mat3::translate(vec2(0.0, -0.25)),
-                theme.dark,
+                framebuffer,
             );
         }
     }
