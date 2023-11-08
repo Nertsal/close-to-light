@@ -8684,7 +8684,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 0.5,
               "initial": {
                 "translation": [
                   1.25,
