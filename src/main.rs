@@ -13,12 +13,12 @@ use geng::prelude::*;
 
 #[derive(clap::Parser)]
 struct Opts {
-    /// Open a level in the editor.
-    #[clap(long)]
-    edit: Option<std::path::PathBuf>,
     /// Play a specific level.
     #[clap(long)]
     level: Option<std::path::PathBuf>,
+    /// Open a level in the editor.
+    #[clap(long)]
+    edit: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
 }
@@ -56,41 +56,39 @@ fn main() {
                 .await
                 .expect("failed to load config");
 
-        if let Some(level_path) = opts.edit {
-            // Editor
-            // let level_path = assets_path.join("levels").join("level.json");
+        if let Some(level_path) = opts.level {
             let level: model::Level = geng::asset::Load::load(manager, &level_path, &())
                 .await
                 .expect("failed to load level");
 
-            let editor_config: editor::EditorConfig =
-                geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-                    .await
-                    .expect("failed to load editor config");
-            let state = editor::EditorState::new(
-                geng.clone(),
-                assets,
-                editor_config,
-                config,
-                level,
-                level_path,
-            );
-            geng.run_state(state).await;
-        } else if let Some(level_path) = opts.level {
-            // Game
-            let level: model::Level = geng::asset::Load::load(manager, &level_path, &())
-                .await
-                .expect("failed to load level");
-            let state = game::Game::new(
-                &geng,
-                &assets,
-                config,
-                level,
-                None,
-                "".to_string(),
-                prelude::Time::ZERO,
-            );
-            geng.run_state(state).await;
+            if opts.edit {
+                // Editor
+                let editor_config: editor::EditorConfig =
+                    geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+                        .await
+                        .expect("failed to load editor config");
+                let state = editor::EditorState::new(
+                    geng.clone(),
+                    assets,
+                    editor_config,
+                    config,
+                    level,
+                    level_path,
+                );
+                geng.run_state(state).await;
+            } else {
+                // Game
+                let state = game::Game::new(
+                    &geng,
+                    &assets,
+                    config,
+                    level,
+                    None,
+                    "".to_string(),
+                    prelude::Time::ZERO,
+                );
+                geng.run_state(state).await;
+            }
         } else {
             // Main menu
             let state = menu::MainMenu::new(&geng, &assets, config);
