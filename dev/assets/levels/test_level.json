@@ -9795,7 +9795,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 0.25,
               "initial": {
                 "translation": [
                   5.0,
@@ -9957,6 +9957,50 @@
                     ],
                     "rotation": 0.0,
                     "scale": 1.0000001
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      1.25
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -1.25,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 0.79999995
                   }
                 }
               ]
