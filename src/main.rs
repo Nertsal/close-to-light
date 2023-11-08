@@ -39,7 +39,7 @@ fn main() {
     logger::init();
     geng::setup_panic_handler();
 
-    let opts: Opts = clap::Parser::parse();
+    let opts: Opts = batbox::cli::parse();
 
     let mut options = geng::ContextOptions::default();
     options.window.title = "Geng Game".to_string();
