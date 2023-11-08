@@ -430,8 +430,11 @@ impl EditorRender {
                     redo_stack.len()
                 ),
                 State::Place { .. } => "idk what should we do here".to_string(),
-                State::Idle => "Level stack not implemented KEKW".to_string(),
-                State::Waypoints { .. } => "Waypoing stack TODO".to_string(),
+                State::Idle | State::Waypoints { .. } => format!(
+                    "Level stack\nUndo: {}\nRedo: {}\n",
+                    editor.undo_stack.len(),
+                    editor.redo_stack.len()
+                ),
             };
             font.draw(
                 game_buffer,

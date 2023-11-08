@@ -54,6 +54,23 @@ pub enum DragTarget {
     },
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryLabel {
+    #[default]
+    Unknown,
+    Scroll,
+    // Drag,
+}
+
+impl HistoryLabel {
+    pub fn should_merge(&self, other: &Self) -> bool {
+        match self {
+            Self::Unknown => false,
+            _ => self == other,
+        }
+    }
+}
+
 pub struct Editor {
     pub config: EditorConfig,
     pub cursor_world_pos: vec2<Coord>,
@@ -67,6 +84,11 @@ pub struct Editor {
     pub real_time: Time,
     pub selected_light: Option<LightId>,
 
+    pub buffer_state: Level,
+    pub buffer_label: HistoryLabel,
+    pub undo_stack: Vec<Level>,
+    pub redo_stack: Vec<Level>,
+
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
     /// At what scale the objects should be placed.
@@ -77,10 +99,11 @@ pub struct Editor {
     /// Stop the music after the timer runs out.
     pub music_timer: Time,
     /// Whether the last frame was scrolled through time.
-    pub was_scrolling: bool,
+    pub was_scrolling_time: bool,
     /// Whether currently scrolling through time.
     /// Used as a hack to not replay the music every frame.
-    pub scrolling: bool,
+    pub scrolling_time: bool,
+
     pub snap_to_grid: bool,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
@@ -129,11 +152,15 @@ impl EditorState {
                 state: State::Idle,
                 music: assets.music.effect(),
                 music_timer: Time::ZERO,
-                was_scrolling: false,
-                scrolling: false,
+                was_scrolling_time: false,
+                scrolling_time: false,
                 visualize_beat: true,
                 dynamic_segment: None,
                 snap_to_grid: true,
+                buffer_state: level.clone(),
+                buffer_label: HistoryLabel::default(),
+                undo_stack: Vec::new(),
+                redo_stack: Vec::new(),
                 config,
                 model,
                 level_path,
@@ -169,21 +196,16 @@ impl EditorState {
             State::Movement {
                 light, redo_stack, ..
             } => {
-                let frames = &mut light.light.movement.key_frames;
-                // Skip the fade in frames
-                if frames.len() > 2 {
-                    let frame = frames.pop_back().unwrap();
+                if let Some(frame) = light.light.movement.key_frames.pop_back() {
                     redo_stack.push(frame);
                 }
             }
-            State::Place { .. } => {
-                // TODO: idk
-            }
-            State::Idle => {
-                // TODO: remove last added sequence or restore last removed
-            }
-            State::Waypoints { .. } => {
-                // TODO
+            State::Place { .. } => {}
+            State::Idle | State::Waypoints { .. } => {
+                if let Some(mut level) = self.editor.undo_stack.pop() {
+                    std::mem::swap(&mut level, &mut self.editor.level);
+                    self.editor.redo_stack.push(level);
+                }
             }
         }
     }
@@ -198,14 +220,39 @@ impl EditorState {
                     light.light.movement.key_frames.push_back(frame);
                 }
             }
-            State::Place { .. } => {
-                // TODO
+            State::Place { .. } => {}
+            State::Idle | State::Waypoints { .. } => {
+                if let Some(mut level) = self.editor.redo_stack.pop() {
+                    std::mem::swap(&mut level, &mut self.editor.level);
+                    self.editor.undo_stack.push(level);
+                }
             }
-            State::Idle => {
-                // TODO
-            }
-            State::Waypoints { .. } => {}
         }
+    }
+
+    fn save_state(&mut self, label: HistoryLabel) {
+        if self.editor.buffer_label.should_merge(&label)
+            || self.editor.level == self.editor.buffer_state
+        {
+            // State did not change or changes should be merged
+            return;
+        }
+
+        // if let Some(level) = self.editor.undo_stack.last() {
+        //     if level == &self.editor.level {
+        //         // State did not change - ignore
+        //         return;
+        //     }
+        // }
+
+        // Push the change
+        self.editor.buffer_label = label;
+        let mut state = self.editor.level.clone();
+        std::mem::swap(&mut state, &mut self.editor.buffer_state);
+
+        self.editor.undo_stack.push(state);
+        // TODO: limit capacity
+        self.editor.redo_stack.clear();
     }
 
     fn save(&mut self) {
@@ -261,10 +308,10 @@ impl geng::State for EditorState {
             }
         }
 
-        if self.editor.scrolling {
-            self.editor.was_scrolling = true;
+        if self.editor.scrolling_time {
+            self.editor.was_scrolling_time = true;
         } else {
-            if self.editor.was_scrolling {
+            if self.editor.was_scrolling_time {
                 // Stopped scrolling
                 // Play some music
                 self.editor.music.stop();
@@ -275,10 +322,10 @@ impl geng::State for EditorState {
                 self.editor.music_timer =
                     self.editor.level.beat_time() * self.editor.config.playback_duration;
             }
-            self.editor.was_scrolling = false;
+            self.editor.was_scrolling_time = false;
         }
 
-        self.editor.scrolling = false;
+        self.editor.scrolling_time = false;
 
         if let State::Playing { .. } = self.editor.state {
             self.editor.current_beat = self.editor.real_time / self.editor.level.beat_time();
@@ -365,7 +412,7 @@ impl Editor {
         // Align with quarter beats
         self.current_beat = ((target.as_f32() * 4.0).round() / 4.0).as_r32();
 
-        self.scrolling = true;
+        self.scrolling_time = true;
     }
 
     pub fn render_lights(&mut self, visualize_beat: bool) {

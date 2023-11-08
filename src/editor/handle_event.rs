@@ -74,6 +74,7 @@ impl EditorState {
                     } else if let Some(index) = self.editor.selected_light {
                         self.editor.level.events.swap_remove(index.event);
                     }
+                    self.save_state(default());
                 }
                 geng::Key::S if ctrl => {
                     self.save();
@@ -117,6 +118,7 @@ impl EditorState {
                         }
                         _ => {}
                     }
+                    self.save_state(default());
                 }
                 geng::Key::W => match self.editor.state {
                     State::Idle => {
@@ -179,6 +181,7 @@ impl EditorState {
                             start_beat: self.editor.current_beat,
                             old_state: Box::new(self.editor.state.clone()),
                         };
+                        self.editor.music_timer = Time::ZERO;
                         self.editor.music.stop();
                         self.editor.music = self.assets.music.effect();
                         // TODO: future proof in case level beat time is not constant
@@ -255,6 +258,7 @@ impl EditorState {
                             }
                         }
                     }
+                    self.save_state(HistoryLabel::Scroll);
                 } else {
                     self.scroll_time(scroll * scroll_speed);
                 }
@@ -284,6 +288,7 @@ impl EditorState {
                         };
                         self.editor.level.events.push(event);
                         self.editor.state = State::Idle;
+                        self.save_state(default());
                     }
                 }
             },
@@ -325,12 +330,7 @@ impl EditorState {
     }
 
     fn cursor_up(&mut self) {
-        if let Some(drag) = self.drag.take() {
-            match drag.target {
-                DragTarget::Waypoint { .. } => {}
-                DragTarget::Light { .. } => {}
-            }
-        }
+        self.end_drag();
     }
 
     fn scroll_time(&mut self, mut delta: Time) {
@@ -381,6 +381,7 @@ impl EditorState {
                         }
                     }
                 }
+                self.save_state(HistoryLabel::Scroll);
                 return;
             }
         }
@@ -390,6 +391,7 @@ impl EditorState {
     }
 
     fn start_drag(&mut self, target: DragTarget) {
+        self.end_drag();
         self.drag = Some(Drag {
             moved: false,
             from_screen: self.cursor_pos,
@@ -397,6 +399,12 @@ impl EditorState {
             from_time: self.editor.current_beat,
             target,
         });
+    }
+
+    fn end_drag(&mut self) {
+        if let Some(_drag) = self.drag.take() {
+            self.save_state(default());
+        }
     }
 
     pub(super) fn update_drag(&mut self) {
@@ -601,6 +609,7 @@ impl EditorState {
                 }
             },
         }
+        self.save_state(default());
     }
 
     fn rotate(&mut self, delta: Angle<Coord>) {
