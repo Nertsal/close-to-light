@@ -154,7 +154,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 0.25,
+              "fade_out": 0.5,
               "initial": {
                 "translation": [
                   -8.75,
@@ -198,7 +198,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 0.25,
+              "fade_out": 0.5,
               "initial": {
                 "translation": [
                   8.75,
@@ -9300,7 +9300,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 0.5,
               "initial": {
                 "translation": [
                   -0.0,

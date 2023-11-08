@@ -349,10 +349,11 @@ impl EditorState {
                             //     - (event.beat + light.telegraph.precede_time);
                             // let delta = current - beat;
 
-                            let next = match waypoint {
-                                WaypointId::Initial => WaypointId::Frame(0),
-                                WaypointId::Frame(i) => WaypointId::Frame(i + 1),
+                            let next_i = match waypoint {
+                                WaypointId::Initial => 0,
+                                WaypointId::Frame(i) => i + 1,
                             };
+                            let next = WaypointId::Frame(next_i);
                             let next_time = light.light.movement.get_time(next);
 
                             let min_lerp = r32(0.25);
@@ -369,14 +370,12 @@ impl EditorState {
                                         let target = (frame.lerp_time + delta).max(min_lerp);
                                         delta = target - frame.lerp_time;
                                         frame.lerp_time = target;
-
-                                        if let Some(next) =
-                                            light.light.movement.key_frames.get_mut(i + 1)
-                                        {
-                                            next.lerp_time -= delta;
-                                        }
                                     }
                                 }
+                            }
+
+                            if let Some(next) = light.light.movement.key_frames.get_mut(next_i) {
+                                next.lerp_time -= delta;
                             }
                         }
                     }
