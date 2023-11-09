@@ -116,35 +116,16 @@ vec4 dither(float amp, vec3 light_color) {
 	float t = max(max(r, g), b);
 
 	vec4 dark = u_bg_color;
-	// vec4 light = vec4(light_color, 1.0);
 	vec4 light = vec4(r, g, b, 1.0);
 	return dark + (light - dark) * t;
 }
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-	// float v = max(max(in_color.r, in_color.g), in_color.b);
-	// in_color = vec4(in_color.rgb + 1.0 - v, in_color.a); // Undo overflow protection
-
-	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
-
-	// vec3 hsv = rgb2hsv(in_rgb);
-	// Pattern based on alpha
-	// float amp = hsv.z;
 
 	// Noise
+	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
 	float amp = 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
-
-	// vec2 r = dither(in_color.r + amp).ra;
-	// vec2 g = dither(in_color.g + amp).ga;
-	// vec2 b = dither(in_color.b + amp).ba;
-	// float a = max(max(r.y, g.y), b.y);
-
-	// Lerp from dark to light
-	// vec3 light = vec3(r.x, g.x, b.x);
-	// vec3 dark = u_bg_color.rgb;
-	// float t = in_color.a; //max(max(light.x, light.y), light.z);
-	// vec3 color = dark + (light - dark) * t;
 
 	vec3 light_color = rgb2hsv(in_color.rgb);
 	if (light_color.z > 0.0) {
@@ -152,13 +133,8 @@ void main() {
 	}
 	light_color = hsv2rgb(light_color);
 	vec4 color = dither(in_color.a + amp, light_color);
-	// vec4 color = dither(in_color.a + amp, in_color.rgb);
 
-	// Change saturation
-	// hsv.y = rgb2hsv(color.rgb).y;
-
-    // gl_FragColor = vec4(hsv2rgb(hsv), color.a);
-    // gl_FragColor = vec4(in_color.rgb, 1.0) * color;
 	gl_FragColor = color;
+	// gl_FragColor = vec4(light_color, 1.0);
 }
 #endif
