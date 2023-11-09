@@ -253,7 +253,7 @@ impl geng::State for MainMenu {
             );
         }
 
-        self.dither.finish(self.time, R32::ZERO, self.theme.dark);
+        self.dither.finish(self.time, self.theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(

@@ -171,17 +171,7 @@ impl GameRender {
             }
         }
 
-        // let t = R32::ONE - (model.player.health.get_ratio() / r32(0.5)).min(R32::ONE);
-        let t = if let State::Playing = model.state {
-            model
-                .player
-                .light_distance
-                .map(|d| (r32(1.0) - d + r32(0.5)).min(r32(1.0)))
-                .unwrap_or(R32::ZERO)
-        } else {
-            R32::ZERO
-        };
-        self.dither.finish(model.real_time, t, theme.dark);
+        self.dither.finish(model.real_time, theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(

@@ -52,7 +52,7 @@ impl DitherRender {
         framebuffer
     }
 
-    pub fn finish(&mut self, time: Time, bg_noise: R32, bg_color: Color) -> ugli::Framebuffer {
+    pub fn finish(&mut self, time: Time, bg_color: Color) -> ugli::Framebuffer {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 
@@ -67,7 +67,6 @@ impl DitherRender {
             &self.unit_quad,
             ugli::uniforms!(
                 u_time: t,
-                u_bg_noise: bg_noise.as_f32(),
                 u_bg_color: bg_color,
                 u_framebuffer_size: self.double_buffer.0.size().as_f32(),
                 u_pattern_size: self.assets.dither.dither1.size().as_f32(),
