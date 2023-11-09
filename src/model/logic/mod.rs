@@ -61,7 +61,7 @@ impl Model {
             } => {
                 let music_start_time = *music_start_time;
                 *start_timer -= delta_time;
-                if *start_timer <= Time::ZERO && self.player.light_distance_normalized.is_some() {
+                if *start_timer <= Time::ZERO && self.player.light_distance.is_some() {
                     self.start(music_start_time);
                 }
             }
@@ -74,14 +74,15 @@ impl Model {
                     // } else
                     self.finish();
                 } else {
-                    if let Some(distance) = self.player.danger_distance_normalized {
+                    if let Some(distance) = self.player.danger_distance {
                         let multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                         self.player.health.change(
                             -self.level_state.config.health.danger_decrease_rate
                                 * multiplier
                                 * delta_time,
                         );
-                    } else if let Some(distance) = self.player.light_distance_normalized {
+                    } else if let Some(distance) = self.player.light_distance {
+                        let distance = distance.clamp(r32(0.0), r32(1.3)) / r32(1.3);
                         let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                         self.player
                             .health

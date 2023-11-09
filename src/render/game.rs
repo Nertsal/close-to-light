@@ -176,7 +176,7 @@ impl GameRender {
         let t = if let State::Playing = model.state {
             model
                 .player
-                .light_distance_normalized
+                .light_distance
                 .map(|d| (r32(1.0) - d + r32(0.5)).min(r32(1.0)))
                 .unwrap_or(R32::ZERO)
         } else {

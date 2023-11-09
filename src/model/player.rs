@@ -6,11 +6,10 @@ pub struct Player {
     pub shake: vec2<Coord>,
     pub collider: Collider,
     pub health: Bounded<Time>,
-    // pub is_in_light: bool,
-    /// Normalized distance to the closest friendly light.
-    pub light_distance_normalized: Option<R32>,
-    /// Normalized distance to the closest dangerous light.
-    pub danger_distance_normalized: Option<R32>,
+    /// Distance to the closest friendly light.
+    pub light_distance: Option<R32>,
+    /// Distance to the closest dangerous light.
+    pub danger_distance: Option<R32>,
     pub tail: Vec<PlayerTail>,
 }
 
@@ -35,9 +34,19 @@ impl Player {
             shake: vec2::ZERO,
             collider,
             health: Bounded::new_max(health),
-            light_distance_normalized: None,
-            danger_distance_normalized: None,
+            light_distance: None,
+            danger_distance: None,
             tail: Vec::new(),
+        }
+    }
+
+    pub fn get_lit_state(&self) -> LitState {
+        if self.danger_distance.is_some() {
+            LitState::Danger
+        } else if self.light_distance.is_some() {
+            LitState::Light
+        } else {
+            LitState::Dark
         }
     }
 
@@ -49,13 +58,7 @@ impl Player {
         let new_tail = PlayerTail {
             pos: self.collider.position,
             lifetime: Lifetime::new_max(r32(0.5)),
-            state: if self.danger_distance_normalized.is_some() {
-                LitState::Danger
-            } else if self.light_distance_normalized.is_some() {
-                LitState::Light
-            } else {
-                LitState::Dark
-            },
+            state: self.get_lit_state(),
         };
         if let Some(last) = self.tail.last() {
             self.tail.push(PlayerTail {
@@ -67,13 +70,13 @@ impl Player {
     }
 
     pub fn reset_distance(&mut self) {
-        self.light_distance_normalized = None;
-        self.danger_distance_normalized = None;
+        self.light_distance = None;
+        self.danger_distance = None;
     }
 
     pub fn update_distance(&mut self, light: &Collider, danger: bool) {
         let delta_pos = self.collider.position - light.position;
-        let (raw_distance, scale) = match light.shape {
+        let (raw_distance, max_distance) = match light.shape {
             Shape::Circle { radius } => (delta_pos.len(), radius),
             Shape::Line { width } => {
                 let dir = light.rotation.unit_vec();
@@ -84,21 +87,17 @@ impl Player {
             Shape::Rectangle { .. } => todo!(),
         };
 
-        let distance = if scale.approx_eq(&Coord::ZERO) {
-            Coord::ONE
-        } else {
-            raw_distance / scale
-        };
+        if raw_distance > max_distance {
+            return;
+        }
 
-        if distance < Coord::ONE {
-            let update = |value: &mut Option<Coord>| {
-                *value = Some(value.map_or(distance, |value| value.min(distance)));
-            };
-            if danger {
-                update(&mut self.danger_distance_normalized);
-            } else {
-                update(&mut self.light_distance_normalized);
-            }
+        let update = |value: &mut Option<Coord>| {
+            *value = Some(value.map_or(raw_distance, |value| value.min(raw_distance)));
+        };
+        if danger {
+            update(&mut self.danger_distance);
+        } else {
+            update(&mut self.light_distance);
         }
     }
 }
