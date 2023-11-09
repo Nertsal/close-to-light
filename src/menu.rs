@@ -22,7 +22,7 @@ pub struct MainMenu {
     camera: Camera2d,
     time: Time,
     play_button: HoverButton,
-    player: Collider,
+    player: Player,
     name: String,
 }
 
@@ -55,11 +55,14 @@ impl MainMenu {
                 },
                 hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(1.5)),
             },
-            player: Collider::new(
-                vec2::ZERO,
-                Shape::Circle {
-                    radius: r32(config.player.radius),
-                },
+            player: Player::new(
+                Collider::new(
+                    vec2::ZERO,
+                    Shape::Circle {
+                        radius: r32(config.player.radius),
+                    },
+                ),
+                r32(100.0),
             ),
             config,
             name,
@@ -146,19 +149,24 @@ impl geng::State for MainMenu {
         let pos = pos - game_pos.bottom_left();
         self.cursor_world_pos = self.camera.screen_to_world(game_pos.size(), pos).as_r32();
 
-        self.player.position = self.cursor_world_pos;
+        self.player.collider.position = self.cursor_world_pos;
 
-        self.play_button
-            .hover_time
-            .change(if self.player.check(&self.play_button.collider) {
+        self.play_button.hover_time.change(
+            if self.player.collider.check(&self.play_button.collider) {
                 delta_time
             } else {
                 -delta_time
-            });
+            },
+        );
         if self.play_button.hover_time.is_max() {
             self.play_button.hover_time.set_ratio(Time::ZERO);
             self.play();
         }
+    }
+
+    fn fixed_update(&mut self, delta_time: f64) {
+        let delta_time = Time::new(delta_time as _);
+        self.player.update_tail(delta_time);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -222,8 +230,29 @@ impl geng::State for MainMenu {
             //     &mut framebuffer,
             // );
 
+            // Player tail
+            for tail in &self.player.tail {
+                let scale = r32(0.1) * tail.lifetime.get_ratio();
+                let collider = Collider::new(tail.pos, Shape::Circle { radius: scale });
+                let (in_color, out_color) = match tail.state {
+                    LitState::Dark => (self.theme.dark, self.theme.light),
+                    LitState::Light => (self.theme.light, self.theme.dark),
+                    LitState::Danger => (self.theme.light, self.theme.danger),
+                };
+                self.util_render
+                    .draw_light(&collider, in_color, &self.camera, &mut framebuffer);
+                self.util_render.draw_outline(
+                    &collider,
+                    0.05,
+                    out_color,
+                    &self.camera,
+                    &mut framebuffer,
+                );
+            }
+
+            // Player
             self.util_render.draw_outline(
-                &self.player,
+                &self.player.collider,
                 0.05,
                 self.theme.light,
                 &self.camera,

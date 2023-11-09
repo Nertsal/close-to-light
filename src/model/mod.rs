@@ -4,8 +4,9 @@ mod level;
 mod light;
 mod logic;
 mod movement;
+mod player;
 
-pub use self::{collider::*, config::*, level::*, light::*, movement::*};
+pub use self::{collider::*, config::*, level::*, light::*, movement::*, player::*};
 
 use crate::{leaderboard::Leaderboard, prelude::*, LeaderboardSecrets};
 
@@ -18,35 +19,6 @@ pub type Score = R32;
 pub struct HoverButton {
     pub collider: Collider,
     pub hover_time: Lifetime,
-}
-
-#[derive(Debug, Clone)]
-pub struct Player {
-    pub name: String,
-    pub target_position: vec2<Coord>,
-    pub shake: vec2<Coord>,
-    pub collider: Collider,
-    pub health: Bounded<Time>,
-    // pub is_in_light: bool,
-    /// Normalized distance to the closest friendly light.
-    pub light_distance_normalized: Option<R32>,
-    /// Normalized distance to the closest dangerous light.
-    pub danger_distance_normalized: Option<R32>,
-    pub tail: Vec<PlayerTail>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PlayerTail {
-    pub pos: vec2<Coord>,
-    pub lifetime: Lifetime,
-    pub state: LitState,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LitState {
-    Dark,
-    Light,
-    Danger,
 }
 
 #[derive(Debug, Clone)]
@@ -146,21 +118,15 @@ impl Model {
             },
             real_time: Time::ZERO,
             switch_time: Time::ZERO,
-            player: Player {
-                name: "anonymous".to_string(),
-                target_position: vec2::ZERO,
-                shake: vec2::ZERO,
-                collider: Collider::new(
+            player: Player::new(
+                Collider::new(
                     vec2::ZERO,
                     Shape::Circle {
                         radius: r32(config.player.radius),
                     },
                 ),
-                health: Bounded::new_max(level.config.health.max),
-                light_distance_normalized: None,
-                danger_distance_normalized: None,
-                tail: Vec::new(),
-            },
+                level.config.health.max,
+            ),
             restart_button: HoverButton {
                 collider: Collider::new(
                     vec2(-3.0, 0.0).as_r32(),

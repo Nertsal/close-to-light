@@ -13,9 +13,8 @@ impl Model {
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
-        self.player.target_position = player_target;
         // Move
-        self.player.collider.position = self.player.target_position;
+        self.player.collider.position = player_target;
 
         if let State::Starting { .. } = self.state {
         } else {
@@ -26,21 +25,7 @@ impl Model {
         self.switch_time += delta_time;
 
         // Player tail
-        for tail in &mut self.player.tail {
-            tail.lifetime.change(-delta_time);
-        }
-        self.player.tail.retain(|tail| tail.lifetime.is_above_min());
-        self.player.tail.push(PlayerTail {
-            pos: self.player.collider.position,
-            lifetime: Lifetime::new_max(r32(0.5)),
-            state: if self.player.danger_distance_normalized.is_some() {
-                LitState::Danger
-            } else if self.player.light_distance_normalized.is_some() {
-                LitState::Light
-            } else {
-                LitState::Dark
-            },
-        });
+        self.player.update_tail(delta_time);
 
         if let State::Lost { .. } = self.state {
             if let Some(music) = &mut self.music {
