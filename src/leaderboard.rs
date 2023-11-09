@@ -37,7 +37,7 @@ impl Leaderboard {
         };
 
         // let meta = serde_json::to_string(&diff).unwrap();
-        let meta = "v0".to_string();
+        let meta = "v1".to_string();
         if let Some(score) = score {
             leaderboard
                 .send_score_with_meta(score, &meta)

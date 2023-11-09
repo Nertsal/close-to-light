@@ -24,9 +24,6 @@ impl Model {
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
-        // Player tail
-        self.player.update_tail(delta_time);
-
         if let State::Lost { .. } = self.state {
             if let Some(music) = &mut self.music {
                 let speed = (1.0 - self.switch_time.as_f32() / 0.5).max(0.0) + 0.5;
@@ -49,36 +46,13 @@ impl Model {
         self.level_state = LevelState::render(&self.level, self.beat_time, ignore_time);
 
         // Check if the player is in light
-        let mut distance_normalized: Option<R32> = None;
-        let mut distance_danger_normalized: Option<R32> = None;
+        self.player.reset_distance();
         for light in self.level_state.lights.iter() {
-            let delta_pos = self.player.collider.position - light.collider.position;
-            let distance = match light.base_collider.shape {
-                Shape::Circle { radius } => delta_pos.len() / radius,
-                Shape::Line { width } => {
-                    let dir = light.collider.rotation.unit_vec();
-                    let dir = vec2(-dir.y, dir.x); // perpendicular
-                    let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
-                    dot.abs() / (width / r32(2.0))
-                }
-                Shape::Rectangle { .. } => todo!(),
-            };
-
-            if light.danger {
-                distance_danger_normalized =
-                    Some(distance.min(distance_danger_normalized.unwrap_or(distance)));
-            } else {
-                distance_normalized = Some(distance.min(distance_normalized.unwrap_or(distance)));
-            }
+            self.player.update_distance(&light.collider, light.danger);
         }
-        self.player.light_distance_normalized = match distance_normalized {
-            Some(distance) if distance <= r32(1.0) => Some(distance),
-            _ => None,
-        };
-        self.player.danger_distance_normalized = match distance_danger_normalized {
-            Some(distance) if distance <= r32(1.0) => Some(distance),
-            _ => None,
-        };
+
+        // Player tail
+        self.player.update_tail(delta_time);
 
         match &mut self.state {
             State::Starting {
@@ -133,6 +107,8 @@ impl Model {
                         -delta_time
                     },
                 );
+                self.player
+                    .update_distance(&self.restart_button.collider, false);
                 if self.restart_button.hover_time.is_max() {
                     self.restart();
                 }

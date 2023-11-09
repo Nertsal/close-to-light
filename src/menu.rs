@@ -158,6 +158,8 @@ impl geng::State for MainMenu {
                 -delta_time
             },
         );
+        self.player
+            .update_distance(&self.play_button.collider, false);
         if self.play_button.hover_time.is_max() {
             self.play_button.hover_time.set_ratio(Time::ZERO);
             self.play();

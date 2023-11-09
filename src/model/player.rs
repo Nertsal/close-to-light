@@ -65,4 +65,40 @@ impl Player {
         }
         self.tail.push(new_tail);
     }
+
+    pub fn reset_distance(&mut self) {
+        self.light_distance_normalized = None;
+        self.danger_distance_normalized = None;
+    }
+
+    pub fn update_distance(&mut self, light: &Collider, danger: bool) {
+        let delta_pos = self.collider.position - light.position;
+        let (raw_distance, scale) = match light.shape {
+            Shape::Circle { radius } => (delta_pos.len(), radius),
+            Shape::Line { width } => {
+                let dir = light.rotation.unit_vec();
+                let dir = vec2(-dir.y, dir.x); // perpendicular
+                let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
+                (dot.abs(), width / r32(2.0))
+            }
+            Shape::Rectangle { .. } => todo!(),
+        };
+
+        let distance = if scale.approx_eq(&Coord::ZERO) {
+            Coord::ONE
+        } else {
+            raw_distance / scale
+        };
+
+        if distance < Coord::ONE {
+            let update = |value: &mut Option<Coord>| {
+                *value = Some(value.map_or(distance, |value| value.min(distance)));
+            };
+            if danger {
+                update(&mut self.danger_distance_normalized);
+            } else {
+                update(&mut self.light_distance_normalized);
+            }
+        }
+    }
 }
