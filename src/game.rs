@@ -112,6 +112,18 @@ impl geng::State for Game {
             }
         }
 
+        if let Some(transition) = self.model.transition.take() {
+            match transition {
+                Transition::LoadLeaderboard { submit_score } => {
+                    self.load_leaderboard(submit_score);
+                }
+            }
+        }
+    }
+
+    fn fixed_update(&mut self, delta_time: f64) {
+        let delta_time = Time::new(delta_time as _);
+
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
             self.render.get_render_size().as_f32(),
@@ -125,13 +137,5 @@ impl geng::State for Game {
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
         self.model.update(target_pos, delta_time);
-
-        if let Some(transition) = self.model.transition.take() {
-            match transition {
-                Transition::LoadLeaderboard { submit_score } => {
-                    self.load_leaderboard(submit_score);
-                }
-            }
-        }
     }
 }

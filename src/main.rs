@@ -11,6 +11,8 @@ mod util;
 
 use geng::prelude::*;
 
+const FIXED_FPS: f64 = 60.0;
+
 #[derive(clap::Parser)]
 struct Opts {
     /// Play a specific level.
@@ -43,6 +45,7 @@ fn main() {
 
     let mut options = geng::ContextOptions::default();
     options.window.title = "Geng Game".to_string();
+    options.fixed_delta_time = 1.0 / FIXED_FPS;
     options.with_cli(&opts.geng);
 
     Geng::run_with(&options, move |geng| async move {
