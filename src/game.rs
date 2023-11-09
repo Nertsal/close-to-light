@@ -98,7 +98,7 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let _delta_time = Time::new(delta_time as _);
 
         if let Some(future) = &mut self.leaderboard_future {
             // Poll leaderboard

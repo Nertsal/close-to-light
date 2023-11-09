@@ -25,6 +25,23 @@ impl Model {
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
+        // Player tail
+        for tail in &mut self.player.tail {
+            tail.lifetime.change(-delta_time);
+        }
+        self.player.tail.retain(|tail| tail.lifetime.is_above_min());
+        self.player.tail.push(PlayerTail {
+            pos: self.player.collider.position,
+            lifetime: Lifetime::new_max(r32(0.5)),
+            state: if self.player.danger_distance_normalized.is_some() {
+                LitState::Danger
+            } else if self.player.light_distance_normalized.is_some() {
+                LitState::Light
+            } else {
+                LitState::Dark
+            },
+        });
+
         if let State::Lost { .. } = self.state {
             if let Some(music) = &mut self.music {
                 let speed = (1.0 - self.switch_time.as_f32() / 0.5).max(0.0) + 0.5;

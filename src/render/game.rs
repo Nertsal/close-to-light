@@ -29,13 +29,14 @@ impl GameRender {
         let mut framebuffer = self.dither.start();
 
         let camera = &model.camera;
+        let theme = &model.config.theme;
 
         // Telegraphs
         for tele in &model.level_state.telegraphs {
             let color = if tele.light.danger {
-                model.config.theme.danger
+                theme.danger
             } else {
-                model.config.theme.light
+                theme.light
             };
             self.util
                 .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
@@ -44,40 +45,45 @@ impl GameRender {
         // Lights
         for light in &model.level_state.lights {
             let color = if light.danger {
-                model.config.theme.danger
+                theme.danger
             } else {
-                model.config.theme.light
+                theme.light
             };
             self.util
                 .draw_light(&light.collider, color, camera, &mut framebuffer);
         }
 
+        // Player tail
+        for tail in &model.player.tail {
+            let scale = r32(0.1) * tail.lifetime.get_ratio();
+            let collider = Collider::new(tail.pos, Shape::Circle { radius: scale });
+            let (in_color, out_color) = match tail.state {
+                LitState::Dark => (theme.dark, theme.light),
+                LitState::Light => (theme.light, theme.dark),
+                LitState::Danger => (theme.light, theme.danger),
+            };
+            self.util
+                .draw_light(&collider, in_color, camera, &mut framebuffer);
+            self.util
+                .draw_outline(&collider, 0.05, out_color, camera, &mut framebuffer);
+        }
+
         // Player
         let player = model.player.collider.clone();
-        self.util.draw_outline(
-            &player,
-            0.05,
-            model.config.theme.light,
-            camera,
-            &mut framebuffer,
-        );
+        self.util
+            .draw_outline(&player, 0.05, theme.light, camera, &mut framebuffer);
 
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
 
         if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
-            self.util.draw_button(
-                &button,
-                "RESTART",
-                &model.config.theme,
-                camera,
-                &mut framebuffer,
-            );
+            self.util
+                .draw_button(&button, "RESTART", theme, camera, &mut framebuffer);
 
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(model.config.theme.dark),
+                TextRenderOptions::new(0.7).color(theme.dark),
                 camera,
                 &mut framebuffer,
             );
@@ -86,9 +92,7 @@ impl GameRender {
                 self.util.draw_text(
                     text,
                     position.as_r32(),
-                    TextRenderOptions::new(size)
-                        .align(align)
-                        .color(model.config.theme.light),
+                    TextRenderOptions::new(size).align(align).color(theme.light),
                     camera,
                     &mut framebuffer,
                 );
@@ -155,7 +159,7 @@ impl GameRender {
             self.util.draw_text(
                 format!("SCORE: {:.0}", model.score),
                 vec2(0.0, 4.5).as_r32(),
-                TextRenderOptions::new(0.7).color(model.config.theme.light),
+                TextRenderOptions::new(0.7).color(theme.light),
                 camera,
                 &mut framebuffer,
             );
@@ -168,7 +172,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(model.config.theme.light),
+                        TextRenderOptions::new(1.0).color(theme.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -177,7 +181,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(model.config.theme.light),
+                        TextRenderOptions::new(1.0).color(theme.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -195,8 +199,7 @@ impl GameRender {
         } else {
             R32::ZERO
         };
-        self.dither
-            .finish(model.real_time, t, model.config.theme.dark);
+        self.dither.finish(model.real_time, t, theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(

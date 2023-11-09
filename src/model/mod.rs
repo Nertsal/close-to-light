@@ -32,6 +32,21 @@ pub struct Player {
     pub light_distance_normalized: Option<R32>,
     /// Normalized distance to the closest dangerous light.
     pub danger_distance_normalized: Option<R32>,
+    pub tail: Vec<PlayerTail>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlayerTail {
+    pub pos: vec2<Coord>,
+    pub lifetime: Lifetime,
+    pub state: LitState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LitState {
+    Dark,
+    Light,
+    Danger,
 }
 
 #[derive(Debug, Clone)]
@@ -144,6 +159,7 @@ impl Model {
                 health: Bounded::new_max(level.config.health.max),
                 light_distance_normalized: None,
                 danger_distance_normalized: None,
+                tail: Vec::new(),
             },
             restart_button: HoverButton {
                 collider: Collider::new(
