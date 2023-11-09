@@ -25,11 +25,15 @@ uniform sampler2D u_texture;
 uniform vec4 u_color;
 uniform vec4 u_outline_color;
 uniform float u_outline_distance;
+uniform float u_smooth;
 
 float antialias(float x) {
-    // float w = length(vec2(dFdx(x), dFdy(x)));
-    // return 1.0 - smoothstep(-w, w, x);
-    return x;
+    if (x > -u_smooth) {
+        float w = length(vec2(dFdx(x), dFdy(x)));
+        return 1.0 - smoothstep(-w, w, x);
+    } else {
+        return 1.0;
+    }
 }
 
 float read_sdf(sampler2D text, vec2 uv) {
@@ -38,20 +42,13 @@ float read_sdf(sampler2D text, vec2 uv) {
 
 void main() {
     float dist = read_sdf(u_texture, v_vt);
-
-    if (dist > 0.0) {
-        discard;
-    }
-    gl_FragColor = u_color;
-
-    // TODO: fix
-    // float inside = antialias(dist);
-    // float inside_border = antialias(dist - u_outline_distance);
-    // vec4 outside_color = vec4(u_outline_color.xyz, 0.0);
-    // gl_FragColor = u_color * inside +
-    //     (1.0 - inside) * (
-    //         u_outline_color * inside_border +
-    //         outside_color * (1.0 - inside_border)
-    //     );
+    float inside = antialias(dist);
+    float inside_border = antialias(dist - u_outline_distance);
+    vec4 outside_color = vec4(u_outline_color.xyz, 0.0);
+    gl_FragColor = u_color * inside +
+        (1.0 - inside) * (
+            u_outline_color * inside_border +
+            outside_color * (1.0 - inside_border)
+        );
 }
 #endif
