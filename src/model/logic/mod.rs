@@ -26,10 +26,11 @@ impl Model {
 
         if let State::Lost { .. } = self.state {
             if let Some(music) = &mut self.music {
-                let speed = (1.0 - self.switch_time.as_f32() / 0.5).max(0.0) + 0.5;
+                let t = 1.0 - self.switch_time.as_f32() / 2.0;
+                let speed = (t - 0.1).max(0.5);
                 music.set_speed(speed as f64);
 
-                let volume = 1.0 - self.switch_time.as_f32() / 5.0;
+                let volume = t;
                 if volume < 0.0 {
                     self.stop_music();
                 } else {
