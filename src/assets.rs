@@ -21,6 +21,7 @@ pub struct Sprites {
 
 #[derive(geng::asset::Load)]
 pub struct Shaders {
+    pub sdf: ugli::Program,
     pub solid: ugli::Program,
     pub light: ugli::Program,
 }

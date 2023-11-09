@@ -84,19 +84,47 @@ impl UtilRender {
     ) {
         let text = text.as_ref();
         let font = self.geng.default_font();
+
         let size = font
             .measure(text, options.align.map(geng::TextAlign))
             .map_or(vec2::splat(1.0), |aabb| aabb.size());
         let align = size * (options.align - vec2::splat(0.5)); // Centered by default
-        font.draw(
-            framebuffer,
-            camera,
+        let position = position.map(Float::as_f32);
+        let transform = mat3::translate(position.map(Float::as_f32))
+            * mat3::scale_uniform(options.size)
+            * mat3::translate(vec2(0.0, -0.25) - align);
+
+        let framebuffer_size = framebuffer.size();
+
+        font.draw_with(
             text,
             vec2::splat(geng::TextAlign::CENTER),
-            mat3::translate(position.map(Float::as_f32))
-                * mat3::scale_uniform(options.size)
-                * mat3::translate(vec2(0.0, -0.25) - align),
-            options.color,
+            |glyphs, texture| {
+                ugli::draw(
+                    framebuffer,
+                    &self.assets.shaders.sdf,
+                    ugli::DrawMode::TriangleFan,
+                    ugli::instanced(
+                        &self.unit_quad,
+                        &ugli::VertexBuffer::new_dynamic(self.geng.ugli(), glyphs.to_vec()),
+                    ),
+                    (
+                        ugli::uniforms! {
+                            u_texture: texture,
+                            u_model_matrix: transform,
+                            u_color: options.color,
+                            u_outline_dist: 0.0 / font.max_distance(),
+                            u_outline_color: Color::TRANSPARENT_BLACK,
+                        },
+                        camera.uniforms(framebuffer_size.map(|x| x as f32)),
+                    ),
+                    ugli::DrawParameters {
+                        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                        depth_func: None,
+                        ..Default::default()
+                    },
+                );
+            },
         );
     }
 
