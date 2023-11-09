@@ -46,7 +46,7 @@ impl Player {
             tail.lifetime.change(-delta_time);
         }
         self.tail.retain(|tail| tail.lifetime.is_above_min());
-        self.tail.push(PlayerTail {
+        let new_tail = PlayerTail {
             pos: self.collider.position,
             lifetime: Lifetime::new_max(r32(0.5)),
             state: if self.danger_distance_normalized.is_some() {
@@ -56,6 +56,13 @@ impl Player {
             } else {
                 LitState::Dark
             },
-        });
+        };
+        if let Some(last) = self.tail.last() {
+            self.tail.push(PlayerTail {
+                pos: (last.pos + new_tail.pos) / r32(2.0),
+                ..new_tail
+            });
+        }
+        self.tail.push(new_tail);
     }
 }
