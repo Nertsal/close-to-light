@@ -150,6 +150,7 @@ impl geng::State for MainMenu {
         self.cursor_world_pos = self.camera.screen_to_world(game_pos.size(), pos).as_r32();
 
         self.player.collider.position = self.cursor_world_pos;
+        self.player.reset_distance();
 
         self.play_button.hover_time.change(
             if self.player.collider.check(&self.play_button.collider) {

@@ -53,11 +53,7 @@ impl GameRender {
                 .draw_light(&light.collider, color, camera, &mut framebuffer);
         }
 
-        self.util
-            .draw_player(&model.player, theme, camera, &mut framebuffer);
-
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
-
         if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
             self.util
@@ -147,6 +143,9 @@ impl GameRender {
                 &mut framebuffer,
             );
         }
+
+        self.util
+            .draw_player(&model.player, theme, camera, &mut framebuffer);
 
         if !fading {
             match model.state {

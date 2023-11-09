@@ -55,6 +55,7 @@ impl Player {
             tail.lifetime.change(-delta_time);
         }
         self.tail.retain(|tail| tail.lifetime.is_above_min());
+
         let new_tail = PlayerTail {
             pos: self.collider.position,
             lifetime: Lifetime::new_max(r32(0.5)),

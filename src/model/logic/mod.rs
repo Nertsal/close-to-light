@@ -51,9 +51,6 @@ impl Model {
             self.player.update_distance(&light.collider, light.danger);
         }
 
-        // Player tail
-        self.player.update_tail(delta_time);
-
         match &mut self.state {
             State::Starting {
                 start_timer,
@@ -116,6 +113,9 @@ impl Model {
             }
             _ => (),
         }
+
+        // Player tail
+        self.player.update_tail(delta_time);
     }
 
     pub fn save_highscore(&self) {
