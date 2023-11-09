@@ -113,6 +113,7 @@ impl UtilRender {
                             u_texture: texture,
                             u_model_matrix: transform,
                             u_color: options.color,
+                            u_smooth: 0.05,
                             u_outline_dist: 0.0 / font.max_distance(),
                             u_outline_color: Color::TRANSPARENT_BLACK,
                         },
