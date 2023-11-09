@@ -16,7 +16,6 @@ void main() {
 #ifdef FRAGMENT_SHADER
 
 uniform float u_time;
-uniform float u_bg_noise;
 uniform vec4 u_bg_color;
 uniform vec2 u_framebuffer_size;
 uniform vec2 u_pattern_size;
@@ -135,10 +134,6 @@ void main() {
 
 	// Noise
 	float amp = 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
-	// float mul = max(0.0, (length(v_vt - 0.5) - 0.3) / 0.3 * 2.0);
-	// float range = u_bg_noise * 2.0 - 1.0;
-	// float mul = length(v_vt - vec2(0.5)) * 2.0;
-	// amp += pow(0.02 * mul, mix(1.5 - u_bg_noise, 1.0, 0.4));
 
 	// vec2 r = dither(in_color.r + amp).ra;
 	// vec2 g = dither(in_color.g + amp).ga;
