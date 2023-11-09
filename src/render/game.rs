@@ -53,25 +53,8 @@ impl GameRender {
                 .draw_light(&light.collider, color, camera, &mut framebuffer);
         }
 
-        // Player tail
-        for tail in &model.player.tail {
-            let scale = r32(0.1) * tail.lifetime.get_ratio();
-            let collider = Collider::new(tail.pos, Shape::Circle { radius: scale });
-            let (in_color, out_color) = match tail.state {
-                LitState::Dark => (theme.dark, theme.light),
-                LitState::Light => (theme.light, theme.dark),
-                LitState::Danger => (theme.light, theme.danger),
-            };
-            self.util
-                .draw_light(&collider, in_color, camera, &mut framebuffer);
-            self.util
-                .draw_outline(&collider, 0.05, out_color, camera, &mut framebuffer);
-        }
-
-        // Player
-        let player = model.player.collider.clone();
         self.util
-            .draw_outline(&player, 0.05, theme.light, camera, &mut framebuffer);
+            .draw_player(&model.player, theme, camera, &mut framebuffer);
 
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
 

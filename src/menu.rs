@@ -230,34 +230,8 @@ impl geng::State for MainMenu {
             //     &mut framebuffer,
             // );
 
-            // Player tail
-            for tail in &self.player.tail {
-                let scale = r32(0.1) * tail.lifetime.get_ratio();
-                let collider = Collider::new(tail.pos, Shape::Circle { radius: scale });
-                let (in_color, out_color) = match tail.state {
-                    LitState::Dark => (self.theme.dark, self.theme.light),
-                    LitState::Light => (self.theme.light, self.theme.dark),
-                    LitState::Danger => (self.theme.light, self.theme.danger),
-                };
-                self.util_render
-                    .draw_light(&collider, in_color, &self.camera, &mut framebuffer);
-                self.util_render.draw_outline(
-                    &collider,
-                    0.05,
-                    out_color,
-                    &self.camera,
-                    &mut framebuffer,
-                );
-            }
-
-            // Player
-            self.util_render.draw_outline(
-                &self.player.collider,
-                0.05,
-                self.theme.light,
-                &self.camera,
-                &mut framebuffer,
-            );
+            self.util_render
+                .draw_player(&self.player, &self.theme, &self.camera, &mut framebuffer);
 
             // Name
             self.util_render.draw_text(

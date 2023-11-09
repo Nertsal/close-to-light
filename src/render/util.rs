@@ -442,6 +442,34 @@ impl UtilRender {
         );
         full_length - last_len
     }
+
+    pub fn draw_player(
+        &self,
+        player: &Player,
+        theme: &Theme,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        // Player tail
+        for tail in &player.tail {
+            let radius = r32(0.1) * tail.lifetime.get_ratio();
+            let collider = Collider::new(tail.pos, Shape::Circle { radius });
+            let (in_color, out_color) = match tail.state {
+                LitState::Dark => (theme.dark, theme.light),
+                LitState::Light => (theme.light, theme.dark),
+                LitState::Danger => (theme.light, theme.danger),
+            };
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Ellipse::circle(tail.pos.as_f32(), radius.as_f32(), in_color),
+            );
+            self.draw_outline(&collider, 0.05, out_color, camera, framebuffer);
+        }
+
+        // Player
+        self.draw_outline(&player.collider, 0.05, theme.light, camera, framebuffer);
+    }
 }
 
 pub fn additive() -> ugli::BlendMode {
