@@ -171,6 +171,15 @@ impl GameRender {
             }
         }
 
+        if let State::Playing = model.state {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                &model.config.theme,
+                &mut framebuffer,
+            );
+        }
+
         self.dither.finish(model.real_time, theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
@@ -184,45 +193,14 @@ impl GameRender {
         );
     }
 
-    pub fn draw_ui(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
-        let camera = &geng::PixelPerfectCamera;
-        let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
+    pub fn draw_ui(&mut self, _model: &Model, _framebuffer: &mut ugli::Framebuffer) {
+        // let camera = &geng::PixelPerfectCamera;
+        // let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
 
-        let font_size = screen.height() * 0.05;
+        // let font_size = screen.height() * 0.05;
 
-        if let State::Playing = model.state {
-            // Health
-            let health = Aabb2::point(
-                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
-            )
-            .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
-            .extend_up(font_size);
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                camera,
-                &draw2d::Quad::new(
-                    health.extend_uniform(font_size * 0.1),
-                    model.config.theme.light,
-                ),
-            );
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                camera,
-                &draw2d::Quad::new(health, model.config.theme.dark),
-            );
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                camera,
-                &draw2d::Quad::new(
-                    health.extend_symmetric(
-                        vec2(
-                            (model.player.health.get_ratio().as_f32() - 1.0) * health.width(),
-                            0.0,
-                        ) / 2.0,
-                    ),
-                    model.config.theme.light,
-                ),
-            );
-        }
+        // if let State::Playing = model.state {
+        //     self.util.draw_health(&model.player.health, &model.config.theme, framebuffer);
+        // }
     }
 }

@@ -499,6 +499,81 @@ impl UtilRender {
         // Player
         self.draw_outline(&player.collider, 0.05, theme.light, camera, framebuffer);
     }
+
+    pub fn draw_health(
+        &self,
+        health: &Lifetime,
+        state: LitState,
+        theme: &Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let camera = &geng::PixelPerfectCamera;
+        let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
+        let font_size = screen.height() * 0.05;
+
+        let aabb = Aabb2::point(
+            geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
+        )
+        .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
+        .extend_up(font_size);
+
+        // Outline
+        // self.draw_outline(
+        //     &Collider::aabb(aabb.map(r32)),
+        //     font_size * 0.2,
+        //     theme.light,
+        //     camera,
+        //     framebuffer,
+        // );
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            camera,
+            &draw2d::Quad::new(aabb.extend_uniform(font_size * 0.1), theme.light),
+        );
+
+        // Dark fill
+        self.geng
+            .draw2d()
+            .draw2d(framebuffer, camera, &draw2d::Quad::new(aabb, theme.dark));
+
+        // Health fill
+        let color = match state {
+            LitState::Light => crate::util::with_alpha(theme.light, 1.0),
+            LitState::Dark => crate::util::with_alpha(theme.light, 0.7),
+            LitState::Danger => crate::util::with_alpha(theme.danger, 0.7),
+        };
+        // self.geng.draw2d().draw2d(
+        //     framebuffer,
+        //     camera,
+        //     &draw2d::Quad::new(
+        //         aabb.extend_symmetric(
+        //             vec2((health.get_ratio().as_f32() - 1.0) * aabb.width(), 0.0) / 2.0,
+        //         ),
+        //         color,
+        //     ),
+        // );
+        let framebuffer_size = framebuffer.size();
+        let aabb = aabb
+            .extend_symmetric(vec2((health.get_ratio().as_f32() - 1.0) * aabb.width(), 0.0) / 2.0);
+        let transform = mat3::translate(aabb.center()) * mat3::scale(aabb.size() / 2.0);
+        ugli::draw(
+            framebuffer,
+            &self.assets.shaders.solid,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: transform,
+                    u_color: color,
+                },
+                camera.uniforms(framebuffer_size.as_f32()),
+            ),
+            ugli::DrawParameters {
+                blend_mode: None,
+                ..default()
+            },
+        );
+    }
 }
 
 pub fn additive() -> ugli::BlendMode {
