@@ -497,7 +497,11 @@ impl UtilRender {
         }
 
         // Player
-        self.draw_outline(&player.collider, 0.05, theme.light, camera, framebuffer);
+        let scale = crate::util::smoothstep(player.health.get_ratio());
+        let player = player
+            .collider
+            .transformed(Transform { scale, ..default() });
+        self.draw_outline(&player, 0.05, theme.light, camera, framebuffer);
     }
 
     pub fn draw_health(
