@@ -5,7 +5,7 @@ pub use self::{saved::*, state::*};
 
 use super::*;
 
-type Name = Box<str>;
+type Name = Rc<str>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupMeta {
