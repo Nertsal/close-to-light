@@ -8,7 +8,7 @@ mod timeline;
 pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
-    group::GroupWidget,
+    group::{GroupWidget, PlayLevelWidget},
     light::{LightStateWidget, LightWidget},
     text::TextWidget,
     timeline::TimelineWidget,
@@ -16,11 +16,20 @@ pub use self::{
 
 use geng::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct UiContext {
     pub font_size: f32,
     pub cursor_position: vec2<f32>,
     pub cursor_down: bool,
+}
+
+impl UiContext {
+    pub fn scale_font(self, scale: f32) -> Self {
+        Self {
+            font_size: self.font_size * scale,
+            ..self
+        }
+    }
 }
 
 pub trait Widget {

@@ -6,6 +6,7 @@ pub struct MenuUI {
     pub ctl_logo: WidgetState,
     pub groups_state: WidgetState,
     pub groups: Vec<GroupWidget>,
+    pub level: PlayLevelWidget,
 }
 
 impl MenuUI {
@@ -14,12 +15,13 @@ impl MenuUI {
             ctl_logo: default(),
             groups_state: default(),
             groups: Vec::new(),
+            level: PlayLevelWidget::new(),
         }
     }
 
     pub fn layout(
         &mut self,
-        group_entries: &Vec<GroupEntry>,
+        state: &MenuState,
         screen: Aabb2<f32>,
         cursor_position: vec2<f32>,
         cursor_down: bool,
@@ -27,10 +29,10 @@ impl MenuUI {
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
-        let font_size = screen.height() * 0.03;
+        let layout_size = screen.height() * 0.03;
 
         let context = UiContext {
-            font_size,
+            font_size: screen.height() * 0.04,
             cursor_position,
             cursor_down,
         };
@@ -40,15 +42,15 @@ impl MenuUI {
             }};
         }
 
-        let screen = screen.extend_uniform(-font_size * 2.0);
+        let screen = screen.extend_uniform(-layout_size * 2.0);
 
-        let (ctl_logo, main) = layout::cut_top_down(screen, font_size * 4.0);
+        let (ctl_logo, main) = layout::cut_top_down(screen, layout_size * 4.0);
         update!(self.ctl_logo, ctl_logo);
-        let main = main.extend_up(-font_size * 3.0);
+        let main = main.extend_up(-layout_size * 3.0);
 
-        let main = main.extend_left(-font_size * 2.0);
+        let main = main.extend_left(-layout_size * 2.0);
 
-        let (groups, _side) = layout::cut_left_right(main, font_size * 11.0);
+        let (groups, side) = layout::cut_left_right(main, layout_size * 11.0);
         update!(self.groups_state, groups);
 
         {
@@ -56,15 +58,15 @@ impl MenuUI {
             let scroll = 0.0; // TODO
             let group = Aabb2::point(layout::aabb_pos(groups, vec2(0.0, 1.0)) + vec2(0.0, scroll))
                 .extend_right(groups.width())
-                .extend_down(3.0 * font_size);
+                .extend_down(3.0 * layout_size);
 
-            for _ in 0..group_entries.len() - self.groups.len() {
+            for _ in 0..state.groups.len() - self.groups.len() {
                 self.groups.push(GroupWidget::default());
             }
             for (pos, (i, entry)) in
-                layout::stack(group, vec2(0.0, 1.0) * group.size(), group_entries.len())
+                layout::stack(group, vec2(0.0, 1.0) * group.size(), state.groups.len())
                     .into_iter()
-                    .zip(group_entries.iter().enumerate())
+                    .zip(state.groups.iter().enumerate())
             {
                 let Some(group) = self.groups.get_mut(i) else {
                     // should not happen
@@ -73,6 +75,19 @@ impl MenuUI {
                 update!(group, pos);
                 group.name.text = entry.meta.name.to_string();
                 // group.author = entry.meta..to_string();
+            }
+        }
+
+        let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
+        {
+            update!(self.level, level);
+            if let Some(group) = state.show_group {
+                if let Some(group) = state.groups.get(group) {
+                    self.level.set_group(group);
+                    self.level.show();
+                }
+            } else {
+                self.level.hide();
             }
         }
     }

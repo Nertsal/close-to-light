@@ -14,11 +14,16 @@ pub struct LevelMenu {
     transition: Option<geng::state::Transition>,
     render: MenuRender,
 
-    theme: Theme,
-    groups: Vec<GroupEntry>,
-
     ui: MenuUI,
     cursor_pos: vec2<f64>,
+    state: MenuState,
+}
+
+#[derive(Debug)]
+pub struct MenuState {
+    pub theme: Theme,
+    pub groups: Vec<GroupEntry>,
+    pub show_group: Option<usize>,
 }
 
 pub struct GroupEntry {
@@ -46,12 +51,19 @@ impl LevelMenu {
             transition: None,
             render: MenuRender::new(geng, assets),
 
-            theme: Theme::default(),
-            groups,
-
             ui: MenuUI::new(),
             cursor_pos: vec2::ZERO,
+
+            state: MenuState {
+                theme: Theme::default(),
+                groups,
+                show_group: None,
+            },
         }
+    }
+
+    fn show_group(&mut self, group: usize) {
+        self.state.show_group = Some(group);
     }
 
     fn play_level(&mut self, level: LevelId) {
@@ -116,17 +128,16 @@ impl geng::State for LevelMenu {
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        ugli::clear(framebuffer, Some(self.theme.dark), None, None);
+        ugli::clear(framebuffer, Some(self.state.theme.dark), None, None);
 
         self.ui.layout(
-            &self.groups,
+            &self.state,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
             geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
             &self.geng,
         );
-        self.render
-            .draw_ui(&self.ui, &self.theme, &self.groups, framebuffer);
+        self.render.draw_ui(&self.ui, &self.state, framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -139,7 +150,7 @@ impl geng::State for LevelMenu {
         let _delta_time = Time::new(delta_time as _);
 
         if let Some(i) = self.ui.groups.iter().position(|group| group.state.clicked) {
-            if let Some(group) = self.groups.get(i) {
+            if let Some(group) = self.state.groups.get(i) {
                 // TODO: select level and options and stuff
                 let level = LevelId {
                     group: group.path.clone(),
@@ -147,6 +158,8 @@ impl geng::State for LevelMenu {
                 };
                 self.play_level(level);
             }
+        } else if let Some(i) = self.ui.groups.iter().position(|group| group.state.hovered) {
+            self.show_group(i);
         }
     }
 }
