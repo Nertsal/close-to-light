@@ -24,6 +24,7 @@ impl Game {
         assets: &Rc<Assets>,
         rules: Config,
         level: Level,
+        level_music: Rc<geng::Sound>,
         leaderboard: Option<LeaderboardSecrets>,
         player_name: String,
         start_time: Time,
@@ -31,7 +32,15 @@ impl Game {
         Self::preloaded(
             geng,
             assets,
-            Model::new(assets, rules, level, leaderboard, player_name, start_time),
+            Model::new(
+                assets,
+                rules,
+                level,
+                level_music,
+                leaderboard,
+                player_name,
+                start_time,
+            ),
         )
     }
 

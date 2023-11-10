@@ -131,6 +131,7 @@ impl Model {
             &self.assets,
             self.config.clone(),
             self.level.clone(),
+            self.level_music.clone(),
             self.secrets.clone(),
             self.player.name.clone(),
             Time::ZERO,
@@ -140,7 +141,7 @@ impl Model {
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
         self.stop_music();
-        let mut music = self.assets.music.effect();
+        let mut music = self.level_music.effect();
         music.play_from(time::Duration::from_secs_f64(
             music_start_time.as_f32() as f64
         ));

@@ -118,14 +118,16 @@ pub struct Replay {
 }
 
 pub struct SoundEffect {
+    sound: Rc<geng::Sound>,
     effect: Option<geng::SoundEffect>,
     /// Stop the music after the timer runs out.
     pub timer: Time,
 }
 
 impl SoundEffect {
-    pub fn new() -> Self {
+    pub fn new(sound: Rc<geng::Sound>) -> Self {
         Self {
+            sound,
             effect: None,
             timer: Time::ZERO,
         }
@@ -138,9 +140,9 @@ impl SoundEffect {
         self.timer = Time::ZERO;
     }
 
-    pub fn play_from(&mut self, sound: &geng::Sound, time: time::Duration) {
+    pub fn play_from(&mut self, time: time::Duration) {
         self.stop();
-        let mut effect = sound.effect();
+        let mut effect = self.sound.effect();
         effect.play_from(time);
         self.effect = Some(effect);
     }
@@ -153,9 +155,10 @@ impl EditorState {
         config: EditorConfig,
         game_config: Config,
         level: Level,
+        level_music: Rc<geng::Sound>,
         level_path: std::path::PathBuf,
     ) -> Self {
-        let model = Model::empty(&assets, game_config, level.clone());
+        let model = Model::empty(&assets, game_config, level.clone(), level_music.clone());
         Self {
             transition: None,
             render: EditorRender::new(&geng, &assets),
@@ -177,7 +180,7 @@ impl EditorState {
                 place_rotation: Angle::ZERO,
                 place_scale: Coord::ONE,
                 state: State::Idle,
-                music: SoundEffect::new(),
+                music: SoundEffect::new(level_music),
                 was_scrolling_time: false,
                 scrolling_time: false,
                 visualize_beat: true,
@@ -209,6 +212,7 @@ impl EditorState {
                 &self.assets,
                 self.editor.model.config.clone(),
                 self.editor.level.clone(),
+                self.editor.music.sound.clone(),
                 None,
                 String::new(),
                 self.editor.current_beat * self.editor.level.beat_time(),
@@ -344,12 +348,9 @@ impl geng::State for EditorState {
             if self.editor.was_scrolling_time {
                 // Stopped scrolling
                 // Play some music
-                self.editor.music.play_from(
-                    &self.assets.music,
-                    time::Duration::from_secs_f64(
-                        (self.editor.current_beat * self.editor.level.beat_time()).as_f32() as f64,
-                    ),
-                );
+                self.editor.music.play_from(time::Duration::from_secs_f64(
+                    (self.editor.current_beat * self.editor.level.beat_time()).as_f32() as f64,
+                ));
                 self.editor.music.timer =
                     self.editor.level.beat_time() * self.editor.config.playback_duration;
             }

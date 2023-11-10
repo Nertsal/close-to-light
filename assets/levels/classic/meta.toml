@@ -1,0 +1,11 @@
+name = "Classic"
+bpm = 170
+
+[music]
+author = "IcyLava"
+
+[normal]
+author = "IcyLava"
+
+[hard]
+author = "Nertsal"

@@ -14,6 +14,7 @@ pub struct Level {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelConfig {
     /// Beats per minute.
+    // TODO: move to meta.
     pub bpm: R32,
     #[serde(default)]
     pub health: HealthConfig,

@@ -184,10 +184,9 @@ impl EditorState {
                         // TODO: future proof in case level beat time is not constant
                         self.editor.real_time =
                             self.editor.current_beat * self.editor.level.beat_time();
-                        self.editor.music.play_from(
-                            &self.assets.music,
-                            time::Duration::from_secs_f64(self.editor.real_time.as_f32() as f64),
-                        );
+                        self.editor.music.play_from(time::Duration::from_secs_f64(
+                            self.editor.real_time.as_f32() as f64,
+                        ));
                     }
                 }
                 geng::Key::Digit1 => self.handle_digit(1),

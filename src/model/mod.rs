@@ -60,6 +60,7 @@ pub struct Model {
     pub camera: Camera2d,
     pub player: Player,
 
+    pub level_music: Rc<geng::Sound>,
     /// The level being played. Not changed.
     pub level: Level,
     /// Current state of the level.
@@ -88,11 +89,12 @@ impl Model {
         assets: &Rc<Assets>,
         config: Config,
         level: Level,
+        level_music: Rc<geng::Sound>,
         leaderboard: Option<LeaderboardSecrets>,
         player_name: String,
         start_time: Time,
     ) -> Self {
-        let mut model = Self::empty(assets, config, level);
+        let mut model = Self::empty(assets, config, level, level_music);
         model.secrets = leaderboard;
         model.player.name = player_name;
 
@@ -100,7 +102,12 @@ impl Model {
         model
     }
 
-    pub fn empty(assets: &Rc<Assets>, config: Config, level: Level) -> Self {
+    pub fn empty(
+        assets: &Rc<Assets>,
+        config: Config,
+        level: Level,
+        level_music: Rc<geng::Sound>,
+    ) -> Self {
         Self {
             transition: None,
             assets: assets.clone(),
@@ -138,6 +145,7 @@ impl Model {
             secrets: None,
             leaderboard: LeaderboardState::None,
             level_state: LevelState::default(),
+            level_music,
             level,
             music: None,
         }
