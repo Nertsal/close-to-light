@@ -281,13 +281,18 @@ impl UtilRender {
         let collider = button
             .collider
             .transformed(Transform { scale, ..default() });
-        self.draw_light(&collider, theme.light, camera, framebuffer);
+        self.draw_light(
+            &collider,
+            Rgba::new(0.0, 1.0, 0.0, 1.0),
+            camera,
+            framebuffer,
+        );
 
         if t.as_f32() < 0.5 {
             self.draw_text(
                 text,
                 collider.position,
-                TextRenderOptions::new(1.0).color(theme.dark),
+                TextRenderOptions::new(1.0).color(Rgba::new(0.0, 0.0, 0.0, 1.0)),
                 camera,
                 framebuffer,
             );
@@ -484,9 +489,9 @@ impl UtilRender {
             let radius = r32(0.1) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
-                LitState::Dark => continue, // (theme.light, theme.dark),
-                LitState::Light => (theme.dark, theme.light),
-                LitState::Danger => (theme.dark, theme.danger),
+                LitState::Dark => continue, // (Rgba::new(0.0, 1.0, 0.0, 1.0), Rgba::new(0.0, 0.0, 0.0, 1.0)),
+                LitState::Light => (Rgba::new(0.0, 0.0, 0.0, 1.0), Rgba::new(0.0, 1.0, 0.0, 1.0)),
+                LitState::Danger => (Rgba::new(0.0, 0.0, 0.0, 1.0), Rgba::new(1.0, 0.0, 0.0, 1.0)),
             };
             self.geng.draw2d().draw2d(
                 framebuffer,
@@ -501,7 +506,13 @@ impl UtilRender {
         let player = player
             .collider
             .transformed(Transform { scale, ..default() });
-        self.draw_outline(&player, 0.05, theme.light, camera, framebuffer);
+        self.draw_outline(
+            &player,
+            0.05,
+            Rgba::new(0.0, 1.0, 0.0, 1.0),
+            camera,
+            framebuffer,
+        );
     }
 
     pub fn draw_health(
@@ -525,26 +536,31 @@ impl UtilRender {
         // self.draw_outline(
         //     &Collider::aabb(aabb.map(r32)),
         //     font_size * 0.2,
-        //     theme.light,
+        //     Rgba::new(0.0, 1.0, 0.0, 1.0),
         //     camera,
         //     framebuffer,
         // );
         self.geng.draw2d().draw2d(
             framebuffer,
             camera,
-            &draw2d::Quad::new(aabb.extend_uniform(font_size * 0.1), theme.light),
+            &draw2d::Quad::new(
+                aabb.extend_uniform(font_size * 0.1),
+                Rgba::new(0.0, 1.0, 0.0, 1.0),
+            ),
         );
 
         // Dark fill
-        self.geng
-            .draw2d()
-            .draw2d(framebuffer, camera, &draw2d::Quad::new(aabb, theme.dark));
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            camera,
+            &draw2d::Quad::new(aabb, Rgba::new(0.0, 0.0, 0.0, 1.0)),
+        );
 
         // Health fill
         let color = match state {
-            LitState::Light => crate::util::with_alpha(theme.light, 1.0),
-            LitState::Dark => crate::util::with_alpha(theme.light, 0.7),
-            LitState::Danger => crate::util::with_alpha(theme.danger, 0.7),
+            LitState::Light => crate::util::with_alpha(Rgba::new(0.0, 1.0, 0.0, 1.0), 1.0),
+            LitState::Dark => crate::util::with_alpha(Rgba::new(0.0, 1.0, 0.0, 1.0), 0.7),
+            LitState::Danger => crate::util::with_alpha(Rgba::new(1.0, 0.0, 0.0, 1.0), 0.7),
         };
         // self.geng.draw2d().draw2d(
         //     framebuffer,

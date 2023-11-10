@@ -7,10 +7,13 @@ impl EditorRender {
 
         let mut theme = editor.model.config.theme.clone();
         if editor.level_state.relevant().swap_palette {
-            std::mem::swap(&mut theme.light, &mut theme.dark);
+            std::mem::swap(
+                &mut Rgba::new(0.0, 1.0, 0.0, 1.0),
+                &mut Rgba::new(0.0, 0.0, 0.0, 1.0),
+            );
         }
 
-        ugli::clear(game_buffer, Some(theme.dark), None, None);
+        ugli::clear(game_buffer, Some(Rgba::new(0.0, 0.0, 0.0, 1.0)), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
 
         macro_rules! draw_game {
@@ -29,8 +32,8 @@ impl EditorRender {
         }
 
         // Level
-        let light_color = theme.light;
-        let danger_color = theme.danger;
+        let light_color = Rgba::new(0.0, 1.0, 0.0, 1.0);
+        let danger_color = Rgba::new(1.0, 0.0, 0.0, 1.0);
 
         let active_danger = if let State::Movement { light, .. } = &editor.state {
             light.light.danger
@@ -191,7 +194,11 @@ impl EditorRender {
                     rotation: editor.place_rotation,
                     shape: shape.scaled(editor.place_scale),
                 };
-                let color = if danger { theme.danger } else { theme.light };
+                let color = if danger {
+                    Rgba::new(1.0, 0.0, 0.0, 1.0)
+                } else {
+                    Rgba::new(0.0, 1.0, 0.0, 1.0)
+                };
                 self.util.draw_outline(
                     &collider,
                     0.05,
@@ -266,7 +273,7 @@ impl EditorRender {
                             self.util.draw_text(
                                 format!("{}", i + 1),
                                 point.collider.position,
-                                TextRenderOptions::new(1.5).color(theme.light),
+                                TextRenderOptions::new(1.5).color(Rgba::new(0.0, 1.0, 0.0, 1.0)),
                                 &editor.model.camera,
                                 &mut pixel_buffer,
                             );
@@ -279,7 +286,8 @@ impl EditorRender {
                                             self.util.draw_text(
                                                 format!("at {}", beat),
                                                 point.collider.position - vec2(0.0, 0.6).as_r32(),
-                                                TextRenderOptions::new(0.6).color(theme.light),
+                                                TextRenderOptions::new(0.6)
+                                                    .color(Rgba::new(0.0, 1.0, 0.0, 1.0)),
                                                 &editor.model.camera,
                                                 &mut pixel_buffer,
                                             );
@@ -372,7 +380,7 @@ impl EditorRender {
             let screen = Aabb2::ZERO.extend_positive(framebuffer_size);
             let font_size = framebuffer_size.y * 0.05;
             let font = self.geng.default_font();
-            let text_color = theme.light;
+            let text_color = Rgba::new(0.0, 1.0, 0.0, 1.0);
             // let outline_color = crate::render::COLOR_DARK;
             // let outline_size = 0.05;
 

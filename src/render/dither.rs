@@ -67,9 +67,11 @@ impl DitherRender {
             &self.unit_quad,
             ugli::uniforms!(
                 u_time: t,
-                u_bg_color: bg_color,
                 u_framebuffer_size: self.double_buffer.0.size().as_f32(),
                 u_pattern_size: self.assets.dither.dither1.size().as_f32(),
+                u_color_dark: Rgba::new(0.0, 0.0, 0.0, 1.0),
+                u_color_light: Rgba::new(1.0, 1.0, 1.0, 1.0),
+                u_color_accent: Rgba::new(1.0, 0.0, 0.0, 1.0),
                 u_texture: &self.double_buffer.0,
                 u_dither1: &self.assets.dither.dither1,
                 u_dither2: &self.assets.dither.dither2,

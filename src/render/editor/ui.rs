@@ -13,11 +13,16 @@ impl EditorRender {
 
         let framebuffer_size = screen_buffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;
-        ugli::clear(screen_buffer, Some(theme.dark), None, None);
+        ugli::clear(
+            screen_buffer,
+            Some(Rgba::new(0.0, 0.0, 0.0, 1.0)),
+            None,
+            None,
+        );
 
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size)
-            .color(theme.light)
+            .color(Rgba::new(0.0, 1.0, 0.0, 1.0))
             .align(vec2(0.5, 1.0));
 
         {
@@ -60,7 +65,7 @@ impl EditorRender {
                 let color = if widget.state.hovered {
                     editor.config.theme.hover
                 } else {
-                    theme.light
+                    Rgba::new(0.0, 1.0, 0.0, 1.0)
                 };
                 self.util.draw_light(
                     &collider,
@@ -106,9 +111,9 @@ impl EditorRender {
             let mut collider = Collider::new(vec2::ZERO, light.shape);
             collider.rotation = light.movement.initial.rotation;
             let color = if light.danger {
-                theme.danger
+                Rgba::new(1.0, 0.0, 0.0, 1.0)
             } else {
-                theme.light
+                Rgba::new(0.0, 1.0, 0.0, 1.0)
             };
             self.util.draw_light(
                 &collider,

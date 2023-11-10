@@ -199,7 +199,12 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        ugli::clear(screen_buffer, Some(self.theme.dark), None, None);
+        ugli::clear(
+            screen_buffer,
+            Some(Rgba::new(0.0, 0.0, 0.0, 1.0)),
+            None,
+            None,
+        );
 
         let mut framebuffer = self.dither.start();
 
@@ -240,20 +245,20 @@ impl geng::State for MainMenu {
             self.util_render.draw_text(
                 &self.name,
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.8).color(self.theme.light),
+                TextRenderOptions::new(0.8).color(Rgba::new(0.0, 1.0, 0.0, 1.0)),
                 &self.camera,
                 &mut framebuffer,
             );
             self.util_render.draw_text(
                 "TYPE YOUR NAME",
                 vec2(0.0, -3.8).as_r32(),
-                TextRenderOptions::new(0.7).color(self.theme.light),
+                TextRenderOptions::new(0.7).color(Rgba::new(0.0, 1.0, 0.0, 1.0)),
                 &self.camera,
                 &mut framebuffer,
             );
         }
 
-        self.dither.finish(self.time, self.theme.dark);
+        self.dither.finish(self.time, Rgba::new(0.0, 0.0, 0.0, 1.0));
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::draw_texture_fit(
