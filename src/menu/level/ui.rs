@@ -23,7 +23,7 @@ impl MenuUI {
         screen: Aabb2<f32>,
         cursor_position: vec2<f32>,
         cursor_down: bool,
-        geng: &Geng,
+        _geng: &Geng,
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
@@ -48,7 +48,7 @@ impl MenuUI {
 
         let main = main.extend_left(-font_size * 2.0);
 
-        let (groups, side) = layout::cut_left_right(main, font_size * 11.0);
+        let (groups, _side) = layout::cut_left_right(main, font_size * 11.0);
         update!(self.groups_state, groups);
 
         {

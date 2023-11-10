@@ -53,6 +53,61 @@ impl LevelMenu {
             cursor_pos: vec2::ZERO,
         }
     }
+
+    fn play_level(&mut self, level: LevelId) {
+        let future = {
+            let geng = self.geng.clone();
+            let assets = self.assets.clone();
+            let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
+
+            async move {
+                let manager = geng.asset_manager();
+                let assets_path = run_dir().join("assets");
+                let level_path = level.get_path();
+
+                let config: Config =
+                    geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
+                        .await
+                        .expect("failed to load config");
+
+                let (level_music, level) = load_level(manager, &level_path)
+                    .await
+                    .expect("failed to load level");
+                let level_music = Rc::new(level_music);
+
+                let secrets: Option<crate::Secrets> =
+                    geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+                        .await
+                        .ok();
+                let secrets = secrets.or_else(|| {
+                    Some(crate::Secrets {
+                        leaderboard: crate::LeaderboardSecrets {
+                            id: option_env!("LEADERBOARD_ID")?.to_string(),
+                            key: option_env!("LEADERBOARD_KEY")?.to_string(),
+                        },
+                    })
+                });
+
+                crate::game::Game::new(
+                    &geng,
+                    &assets,
+                    config,
+                    level,
+                    level_music,
+                    secrets.map(|s| s.leaderboard),
+                    player_name,
+                    Time::ZERO,
+                )
+            }
+        };
+        self.transition = Some(geng::state::Transition::Push(Box::new(
+            geng::LoadingScreen::new(
+                &self.geng,
+                geng::EmptyLoadingScreen::new(&self.geng),
+                future,
+            ),
+        )));
+    }
 }
 
 impl geng::State for LevelMenu {
@@ -77,6 +132,21 @@ impl geng::State for LevelMenu {
     fn handle_event(&mut self, event: geng::Event) {
         if let geng::Event::CursorMove { position } = event {
             self.cursor_pos = position;
+        }
+    }
+
+    fn update(&mut self, delta_time: f64) {
+        let _delta_time = Time::new(delta_time as _);
+
+        if let Some(i) = self.ui.groups.iter().position(|group| group.state.clicked) {
+            if let Some(group) = self.groups.get(i) {
+                // TODO: select level and options and stuff
+                let level = LevelId {
+                    group: group.path.clone(),
+                    level: LevelVariation::Normal,
+                };
+                self.play_level(level);
+            }
         }
     }
 }

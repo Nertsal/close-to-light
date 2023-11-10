@@ -21,7 +21,8 @@ pub struct MainMenu {
 
 impl MainMenu {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        let name: String = preferences::load("name").unwrap_or_default();
+        let name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
+        let name = fix_name(&name);
         geng.window().start_text_edit(&name);
         Self {
             geng: geng.clone(),
@@ -57,60 +58,23 @@ impl MainMenu {
     }
 
     fn play(&mut self) {
-        self.name = self.name.trim().to_string();
-
         self.geng.window().stop_text_edit();
-        preferences::save("name", &self.name);
+        self.name = fix_name(&self.name);
+        preferences::save(PLAYER_NAME_STORAGE, &self.name);
 
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
-            let player_name = self.name.clone();
 
             async move {
                 let manager = geng.asset_manager();
                 let assets_path = run_dir().join("assets");
                 let levels_path = assets_path.join("levels");
 
-                let config: Config =
-                    geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
-                        .await
-                        .expect("failed to load config");
-
-                let level: Level =
-                    geng::asset::Load::load(manager, &levels_path.join("level_normal.json"), &())
-                        .await
-                        .expect("failed to load level");
-
-                let level_music: crate::assets::MusicAssets =
-                    geng::asset::Load::load(manager, &levels_path, &())
-                        .await
-                        .expect("failed to load music");
-                let level_music = Rc::new(level_music.music);
-
-                let secrets: Option<crate::Secrets> =
-                    geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
-                        .await
-                        .ok();
-                let secrets = secrets.or_else(|| {
-                    Some(crate::Secrets {
-                        leaderboard: crate::LeaderboardSecrets {
-                            id: option_env!("LEADERBOARD_ID")?.to_string(),
-                            key: option_env!("LEADERBOARD_KEY")?.to_string(),
-                        },
-                    })
-                });
-
-                crate::game::Game::new(
-                    &geng,
-                    &assets,
-                    config,
-                    level,
-                    level_music,
-                    secrets.map(|s| s.leaderboard),
-                    player_name,
-                    Time::ZERO,
-                )
+                let groups = load_groups(manager, &levels_path)
+                    .await
+                    .expect("failed to load groups");
+                LevelMenu::new(&geng, &assets, groups)
             }
             .boxed_local()
         };
@@ -263,4 +227,8 @@ impl geng::State for MainMenu {
             screen_buffer,
         );
     }
+}
+
+fn fix_name(name: &str) -> String {
+    name.trim().to_lowercase()
 }

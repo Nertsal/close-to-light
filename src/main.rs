@@ -62,50 +62,44 @@ fn main() {
                     .await
                     .expect("failed to load config");
 
-            let level: model::Level = geng::asset::Load::load(manager, &level_path, &())
+            let (level_music, level) = menu::load_level(manager, &level_path)
                 .await
                 .expect("failed to load level");
+            let level_music = Rc::new(level_music);
 
-            // if opts.edit {
-            //     // Editor
-            //     let editor_config: editor::EditorConfig =
-            //         geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-            //             .await
-            //             .expect("failed to load editor config");
-            //     let state = editor::EditorState::new(
-            //         geng.clone(),
-            //         assets,
-            //         editor_config,
-            //         config,
-            //         level,
-            //         level_path,
-            //     );
-            //     geng.run_state(state).await;
-            // } else {
-            //     // Game
-            //     let state = game::Game::new(
-            //         &geng,
-            //         &assets,
-            //         config,
-            //         level,
-            //         music,
-            //         None,
-            //         "".to_string(),
-            //         prelude::Time::ZERO,
-            //     );
-            //     geng.run_state(state).await;
-            // }
-            todo!()
+            if opts.edit {
+                // Editor
+                let editor_config: editor::EditorConfig =
+                    geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+                        .await
+                        .expect("failed to load editor config");
+                let state = editor::EditorState::new(
+                    geng.clone(),
+                    assets,
+                    editor_config,
+                    config,
+                    level,
+                    level_music,
+                    level_path,
+                );
+                geng.run_state(state).await;
+            } else {
+                // Game
+                let state = game::Game::new(
+                    &geng,
+                    &assets,
+                    config,
+                    level,
+                    level_music,
+                    None,
+                    "".to_string(),
+                    prelude::Time::ZERO,
+                );
+                geng.run_state(state).await;
+            }
         } else {
             // Main menu
-            // let state = menu::MainMenu::new(&geng, &assets);
-
-            let levels_path = assets_path.join("levels");
-            let groups = menu::load_groups(manager, levels_path)
-                .await
-                .expect("failed to load groups");
-            let state = menu::LevelMenu::new(&geng, &assets, groups);
-
+            let state = menu::MainMenu::new(&geng, &assets);
             geng.run_state(state).await;
         }
     });

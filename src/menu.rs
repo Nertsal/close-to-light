@@ -11,6 +11,34 @@ use crate::{
     },
 };
 
+const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LevelId {
+    pub group: std::path::PathBuf,
+    pub level: LevelVariation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LevelVariation {
+    Normal,
+    Hard,
+}
+
+impl LevelId {
+    pub fn get_path(&self) -> std::path::PathBuf {
+        // let levels_path = run_dir().join("assets").join("levels");
+        // let group_path = levels_path.join(&self.group);
+        let group_path = &self.group;
+
+        let level_path = match self.level {
+            LevelVariation::Normal => "normal",
+            LevelVariation::Hard => "hard",
+        };
+        group_path.join(format!("level_{}.json", level_path))
+    }
+}
+
 pub async fn load_groups(
     manager: &geng::asset::Manager,
     levels_path: impl AsRef<std::path::Path>,
@@ -44,4 +72,22 @@ pub async fn load_groups(
     }
 
     Ok(groups)
+}
+
+pub async fn load_level(
+    manager: &geng::asset::Manager,
+    level_path: impl AsRef<std::path::Path>,
+) -> anyhow::Result<(geng::Sound, Level)> {
+    let level_path = level_path.as_ref();
+    let group_path = level_path.parent().expect("level has to be in a folder");
+
+    let level: Level = geng::asset::Load::load(manager, level_path, &())
+        .await
+        .context(format!("when loading level at {:?}", level_path))?;
+
+    let level_music: crate::assets::MusicAssets = geng::asset::Load::load(manager, group_path, &())
+        .await
+        .context(format!("when loading music for level at {:?}", group_path))?;
+
+    Ok((level_music.music, level))
 }
