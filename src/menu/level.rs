@@ -24,6 +24,7 @@ pub struct MenuState {
     pub theme: Theme,
     pub groups: Vec<GroupEntry>,
     pub show_group: Option<usize>,
+    play_level: Option<LevelId>,
 }
 
 pub struct GroupEntry {
@@ -43,6 +44,16 @@ impl Debug for GroupEntry {
     }
 }
 
+impl MenuState {
+    fn show_group(&mut self, group: usize) {
+        self.show_group = Some(group);
+    }
+
+    fn play_level(&mut self, level: LevelId) {
+        self.play_level = Some(level);
+    }
+}
+
 impl LevelMenu {
     pub fn new(geng: &Geng, assets: &Rc<Assets>, groups: Vec<GroupEntry>) -> Self {
         Self {
@@ -58,12 +69,9 @@ impl LevelMenu {
                 theme: Theme::default(),
                 groups,
                 show_group: None,
+                play_level: None,
             },
         }
-    }
-
-    fn show_group(&mut self, group: usize) {
-        self.state.show_group = Some(group);
     }
 
     fn play_level(&mut self, level: LevelId) {
@@ -131,13 +139,17 @@ impl geng::State for LevelMenu {
         ugli::clear(framebuffer, Some(self.state.theme.dark), None, None);
 
         self.ui.layout(
-            &self.state,
+            &mut self.state,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
             geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
             &self.geng,
         );
         self.render.draw_ui(&self.ui, &self.state, framebuffer);
+
+        if let Some(level) = self.state.play_level.take() {
+            self.play_level(level);
+        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -148,18 +160,5 @@ impl geng::State for LevelMenu {
 
     fn update(&mut self, delta_time: f64) {
         let _delta_time = Time::new(delta_time as _);
-
-        if let Some(i) = self.ui.groups.iter().position(|group| group.state.clicked) {
-            if let Some(group) = self.state.groups.get(i) {
-                // TODO: select level and options and stuff
-                let level = LevelId {
-                    group: group.path.clone(),
-                    level: LevelVariation::Normal,
-                };
-                self.play_level(level);
-            }
-        } else if let Some(i) = self.ui.groups.iter().position(|group| group.state.hovered) {
-            self.show_group(i);
-        }
     }
 }

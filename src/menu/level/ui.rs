@@ -21,7 +21,7 @@ impl MenuUI {
 
     pub fn layout(
         &mut self,
-        state: &MenuState,
+        state: &mut MenuState,
         screen: Aabb2<f32>,
         cursor_position: vec2<f32>,
         cursor_down: bool,
@@ -63,6 +63,8 @@ impl MenuUI {
             for _ in 0..state.groups.len() - self.groups.len() {
                 self.groups.push(GroupWidget::default());
             }
+
+            let mut hovered = None;
             for (pos, (i, entry)) in
                 layout::stack(group, vec2(0.0, 1.0) * group.size(), state.groups.len())
                     .into_iter()
@@ -75,6 +77,14 @@ impl MenuUI {
                 update!(group, pos);
                 group.name.text = entry.meta.name.to_string();
                 // group.author = entry.meta..to_string();
+
+                if group.state.hovered {
+                    hovered = Some(i);
+                }
+            }
+
+            if let Some(group) = hovered {
+                state.show_group(group);
             }
         }
 
@@ -85,6 +95,21 @@ impl MenuUI {
                 if let Some(group) = state.groups.get(group) {
                     self.level.set_group(group);
                     self.level.show();
+
+                    if self.level.level_normal.text.state.clicked {
+                        // TODO: select level and options and stuff
+                        let level = LevelId {
+                            group: group.path.clone(),
+                            level: LevelVariation::Normal,
+                        };
+                        state.play_level(level);
+                    } else if self.level.level_hard.text.state.clicked {
+                        let level = LevelId {
+                            group: group.path.clone(),
+                            level: LevelVariation::Hard,
+                        };
+                        state.play_level(level);
+                    }
                 }
             } else {
                 self.level.hide();
