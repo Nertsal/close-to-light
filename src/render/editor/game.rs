@@ -155,7 +155,7 @@ impl EditorRender {
                 let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
                     let event = commit_light(light.clone());
                     let (tele, light) = render_light(&event, time, None);
-                    if let Some(tele) = tele {
+                    for tele in tele {
                         draw_telegraph(&tele, pixel_buffer);
                     }
                     if let Some(light) = light {

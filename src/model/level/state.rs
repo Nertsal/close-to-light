@@ -78,25 +78,63 @@ pub fn render_light(
     event: &LightEvent,
     relative_time: Time,
     event_id: Option<usize>,
-) -> (Option<LightTelegraph>, Option<Light>) {
-    let light = event.light.clone().instantiate(event_id);
-    let mut tele = light.clone().into_telegraph(event.telegraph.clone());
+) -> (Vec<LightTelegraph>, Option<Light>) {
+    let movement = &event.light.movement;
+    let base_light = event.light.clone().instantiate(event_id);
+    let base_tele = base_light.clone().into_telegraph(event.telegraph.clone());
     let duration = event.light.movement.total_duration();
 
     // Telegraph
-    let telegraph = (relative_time < duration).then(|| {
+    let telegraphs = if relative_time > duration {
+        vec![]
+    } else {
         let transform = event.light.movement.get(relative_time);
-        tele.light.collider = light.collider.transformed(transform);
-        tele.clone()
-    });
+        let mut main_tele = base_tele.clone();
+        main_tele.light.collider = base_light.collider.transformed(transform);
+
+        // TODO: config
+        let sustain_time = r32(1.0);
+        let fade_time = r32(0.5);
+        let sustain_scale = r32(0.5);
+
+        let mut last_pos = movement.initial.translation;
+        let waypoints = movement
+            .timed_positions()
+            .take(movement.key_frames.len()) // Ignore the last position
+            .skip(1) // Ignore the initial position
+            .filter_map(|(_, mut transform, time)| {
+                let relative_time = relative_time - time;
+                let waypoint = (last_pos != transform.translation
+                    && (Time::ZERO..sustain_time + fade_time).contains(&relative_time))
+                .then(|| {
+                    let scale = if relative_time < sustain_time {
+                        let t = relative_time / sustain_time;
+                        sustain_scale
+                            + crate::util::smoothstep(Time::ONE - t) * (Coord::ONE - sustain_scale)
+                    } else {
+                        let t = (relative_time - sustain_time) / fade_time;
+                        sustain_scale * crate::util::smoothstep(Time::ONE - t)
+                    };
+                    transform.scale *= scale;
+                    let mut tele = base_tele.clone();
+                    tele.light.collider = base_light.collider.transformed(transform);
+                    tele
+                });
+                last_pos = transform.translation;
+                waypoint
+            });
+
+        std::iter::once(main_tele).chain(waypoints).collect()
+    };
 
     // Light
-    let time = relative_time - event.telegraph.precede_time;
-    let light = (time > Time::ZERO && time < duration).then(|| {
-        let transform = event.light.movement.get(time);
-        tele.light.collider = light.collider.transformed(transform);
-        tele.light
+    let relative_time = relative_time - event.telegraph.precede_time;
+    let light = (relative_time > Time::ZERO && relative_time < duration).then(|| {
+        let transform = event.light.movement.get(relative_time);
+        let mut main_light = base_tele.light;
+        main_light.collider = base_light.collider.transformed(transform);
+        main_light
     });
 
-    (telegraph, light)
+    (telegraphs, light)
 }
