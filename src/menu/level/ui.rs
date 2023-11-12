@@ -66,10 +66,13 @@ impl MenuUI {
             }
 
             let mut hovered = None;
-            for (pos, (i, entry)) in
-                layout::stack(group, vec2(0.0, 1.0) * group.size(), state.groups.len())
-                    .into_iter()
-                    .zip(state.groups.iter().enumerate())
+            for (pos, (i, entry)) in layout::stack(
+                group,
+                vec2(0.0, -group.height() - layout_size * 0.5),
+                state.groups.len(),
+            )
+            .into_iter()
+            .zip(state.groups.iter().enumerate())
             {
                 let Some(group) = self.groups.get_mut(i) else {
                     // should not happen
