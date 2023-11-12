@@ -57,15 +57,10 @@ fn main() {
         let assets = Rc::new(assets);
 
         if let Some(level_path) = opts.level {
-            let config: model::Config =
-                geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
-                    .await
-                    .expect("failed to load config");
-
-            let (level_music, level) = menu::load_level(manager, &level_path)
+            let config = model::LevelConfig::preset_normal();
+            let (_, music, level) = menu::load_level(manager, &level_path)
                 .await
                 .expect("failed to load level");
-            let level_music = Rc::new(level_music);
 
             if opts.edit {
                 // Editor
@@ -73,13 +68,14 @@ fn main() {
                     geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
                         .await
                         .expect("failed to load editor config");
+
                 let state = editor::EditorState::new(
                     geng.clone(),
                     assets,
                     editor_config,
                     config,
                     level,
-                    level_music,
+                    music,
                     level_path,
                 );
                 geng.run_state(state).await;
@@ -90,7 +86,7 @@ fn main() {
                     &assets,
                     config,
                     level,
-                    level_music,
+                    music,
                     None,
                     "".to_string(),
                     prelude::Time::ZERO,

@@ -2,7 +2,7 @@ use super::*;
 
 use crate::render::util::TextRenderOptions;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TextWidget {
     pub state: WidgetState,
     pub text: String,

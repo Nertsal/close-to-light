@@ -165,7 +165,7 @@ impl EditorRender {
 
                 let mut pixel_buffer = if editor.visualize_beat {
                     // Active movement
-                    let time = time + (editor.real_time / editor.level.beat_time()).fract();
+                    let time = time + (editor.real_time / editor.music.beat_time()).fract();
                     draw_active(time, &mut pixel_buffer);
                     draw_game!(0.75)
                 } else {

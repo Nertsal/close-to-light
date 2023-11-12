@@ -1,8 +1,8 @@
 name = "Far from Dark"
-bpm = 170
 
 [music]
 author = "IcyLava"
+bpm = 170
 
 [normal]
 author = "IcyLava"

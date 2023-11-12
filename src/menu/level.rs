@@ -96,18 +96,12 @@ impl LevelMenu {
 
             async move {
                 let manager = geng.asset_manager();
-                let assets_path = run_dir().join("assets");
+                // let assets_path = run_dir().join("assets");
                 let level_path = level.get_path();
 
-                let config: Config =
-                    geng::asset::Load::load(manager, &assets_path.join("config.ron"), &())
-                        .await
-                        .expect("failed to load config");
-
-                let (level_music, level) = load_level(manager, &level_path)
+                let (_, level_music, level) = load_level(manager, &level_path)
                     .await
                     .expect("failed to load level");
-                let level_music = Rc::new(level_music);
 
                 let secrets: Option<crate::Secrets> =
                     geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
@@ -125,7 +119,7 @@ impl LevelMenu {
                 crate::game::Game::new(
                     &geng,
                     &assets,
-                    config,
+                    LevelConfig::preset_normal(), // TODO
                     level,
                     level_music,
                     secrets.map(|s| s.leaderboard),

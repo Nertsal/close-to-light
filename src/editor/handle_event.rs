@@ -183,7 +183,7 @@ impl EditorState {
                         };
                         // TODO: future proof in case level beat time is not constant
                         self.editor.real_time =
-                            self.editor.current_beat * self.editor.level.beat_time();
+                            self.editor.current_beat * self.editor.music.beat_time();
                         self.editor.music.play_from(time::Duration::from_secs_f64(
                             self.editor.real_time.as_f32() as f64,
                         ));
@@ -301,7 +301,6 @@ impl EditorState {
             State::Idle | State::Place { .. } => {
                 if let Some(&shape) = self
                     .editor
-                    .model
                     .config
                     .shapes
                     .get((digit as usize).saturating_sub(1))

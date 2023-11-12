@@ -69,9 +69,6 @@ impl MenuRender {
                 framebuffer,
             );
 
-            // self.util
-            //     .draw_text_widget(&ui.level.name, options.align(vec2(0.5, 0.5)), framebuffer);
-
             self.util
                 .draw_button_widget(&ui.level.level_normal, framebuffer);
             self.util
@@ -82,11 +79,13 @@ impl MenuRender {
             self.util
                 .draw_text_widget(&ui.level.credits_hard, framebuffer);
 
-            // self.util.draw_text_widget(
-            //     &ui.level.music_credits,
-            //     options.align(vec2(1.0, 0.5)),
-            //     framebuffer,
-            // );
+            self.util
+                .draw_text_widget(&ui.level.config_title, framebuffer);
+            for preset in &ui.level.presets {
+                let mut button = preset.button.clone();
+                button.text.state.pressed = preset.selected;
+                self.util.draw_button_widget(&button, framebuffer);
+            }
         }
     }
 }

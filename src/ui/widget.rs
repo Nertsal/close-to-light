@@ -49,7 +49,7 @@ pub trait Widget {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WidgetState {
     pub position: Aabb2<f32>,
     /// Whether to show the widget.

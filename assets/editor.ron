@@ -10,4 +10,8 @@ EditorConfig(
         hover: "#9ff",
         select: "#0ff",
     ),
+    shapes: [
+        Circle( radius: 1.3 ),
+        Line( width: 1.7 ),
+    ],
 )

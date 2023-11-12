@@ -1,12 +1,11 @@
 mod collider;
-mod config;
 mod level;
 mod light;
 mod logic;
 mod movement;
 mod player;
 
-pub use self::{collider::*, config::*, level::*, light::*, movement::*, player::*};
+pub use self::{collider::*, level::*, light::*, movement::*, player::*};
 
 use crate::{leaderboard::Leaderboard, prelude::*, LeaderboardSecrets};
 
@@ -14,6 +13,49 @@ pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
 pub type Score = R32;
+
+pub struct Music {
+    pub meta: MusicMeta,
+    sound: Rc<geng::Sound>,
+    effect: Option<geng::SoundEffect>,
+    /// Stop the music after the timer runs out.
+    pub timer: Time,
+}
+
+impl Clone for Music {
+    fn clone(&self) -> Self {
+        Self::new(self.sound.clone(), self.meta.clone())
+    }
+}
+
+impl Music {
+    pub fn new(sound: Rc<geng::Sound>, meta: MusicMeta) -> Self {
+        Self {
+            meta,
+            sound,
+            effect: None,
+            timer: Time::ZERO,
+        }
+    }
+
+    pub fn stop(&mut self) {
+        if let Some(mut effect) = self.effect.take() {
+            effect.stop();
+        }
+        self.timer = Time::ZERO;
+    }
+
+    pub fn play_from(&mut self, time: time::Duration) {
+        self.stop();
+        let mut effect = self.sound.effect();
+        effect.play_from(time);
+        self.effect = Some(effect);
+    }
+
+    pub fn beat_time(&self) -> Time {
+        self.meta.beat_time()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct HoverButton {
@@ -51,16 +93,15 @@ pub enum LeaderboardState {
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
-    pub config: Config,
     pub secrets: Option<LeaderboardSecrets>,
     pub leaderboard: LeaderboardState,
-    pub music: Option<geng::SoundEffect>,
 
     pub high_score: Score,
     pub camera: Camera2d,
     pub player: Player,
 
-    pub level_music: Rc<geng::Sound>,
+    pub config: LevelConfig,
+    pub music: Music,
     /// The level being played. Not changed.
     pub level: Level,
     /// Current state of the level.
@@ -80,16 +121,16 @@ pub struct Model {
 
 impl Drop for Model {
     fn drop(&mut self) {
-        self.stop_music();
+        self.music.stop();
     }
 }
 
 impl Model {
     pub fn new(
         assets: &Rc<Assets>,
-        config: Config,
+        config: LevelConfig,
         level: Level,
-        level_music: Rc<geng::Sound>,
+        level_music: Music,
         leaderboard: Option<LeaderboardSecrets>,
         player_name: String,
         start_time: Time,
@@ -102,12 +143,7 @@ impl Model {
         model
     }
 
-    pub fn empty(
-        assets: &Rc<Assets>,
-        config: Config,
-        level: Level,
-        level_music: Rc<geng::Sound>,
-    ) -> Self {
+    pub fn empty(assets: &Rc<Assets>, config: LevelConfig, level: Level, music: Music) -> Self {
         Self {
             transition: None,
             assets: assets.clone(),
@@ -129,10 +165,10 @@ impl Model {
                 Collider::new(
                     vec2::ZERO,
                     Shape::Circle {
-                        radius: r32(config.player.radius),
+                        radius: config.player.radius,
                     },
                 ),
-                level.config.health.max,
+                config.health.max,
             ),
             restart_button: HoverButton {
                 collider: Collider::new(
@@ -145,15 +181,8 @@ impl Model {
             secrets: None,
             leaderboard: LeaderboardState::None,
             level_state: LevelState::default(),
-            level_music,
+            music,
             level,
-            music: None,
-        }
-    }
-
-    fn stop_music(&mut self) {
-        if let Some(mut music) = self.music.take() {
-            music.stop();
         }
     }
 }
