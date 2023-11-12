@@ -1,6 +1,7 @@
 mod button;
 mod checkbox;
 mod group;
+mod level;
 mod light;
 mod text;
 mod timeline;
@@ -8,7 +9,8 @@ mod timeline;
 pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
-    group::{GroupWidget, PlayLevelWidget},
+    group::GroupWidget,
+    level::PlayLevelWidget,
     light::{LightStateWidget, LightWidget},
     text::TextWidget,
     timeline::TimelineWidget,
