@@ -116,19 +116,19 @@ impl MenuUI {
                     self.level.set_group(group);
                     self.level.show();
 
+                    // Play level
                     if self.level.level_normal.text.state.clicked {
-                        // TODO: select level and options and stuff
                         let level = LevelId {
                             group: group.path.clone(),
                             level: LevelVariation::Normal,
                         };
-                        state.play_level(level);
+                        state.play_level(level, self.level.level_config.clone());
                     } else if self.level.level_hard.text.state.clicked {
                         let level = LevelId {
                             group: group.path.clone(),
                             level: LevelVariation::Hard,
                         };
-                        state.play_level(level);
+                        state.play_level(level, self.level.level_config.clone());
                     }
                 }
             } else {

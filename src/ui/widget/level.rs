@@ -40,6 +40,7 @@ pub struct PlayLevelWidget {
     /// What we are currently configuring.
     pub config_title: TextWidget,
     pub presets: Vec<PresetWidget>,
+    pub level_config: LevelConfig,
 }
 
 impl PlayLevelWidget {
@@ -60,6 +61,7 @@ impl PlayLevelWidget {
             .into_iter()
             .map(|(name, preset)| PresetWidget::new(name, preset))
             .collect(),
+            level_config: LevelConfig::default(),
         }
     }
 
@@ -106,6 +108,7 @@ impl Widget for PlayLevelWidget {
             target.update(pos, context);
             if target.button.text.state.clicked {
                 selected = Some(i);
+                self.level_config = target.preset.clone();
             }
         }
         if let Some(selected) = selected {

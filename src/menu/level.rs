@@ -29,7 +29,7 @@ pub struct MenuState {
     pub show_group: Option<ShowGroup>,
     /// Switch to the group after current one finishes its animation.
     pub switch_group: Option<usize>,
-    play_level: Option<LevelId>,
+    play_level: Option<(LevelId, LevelConfig)>,
 }
 
 #[derive(Debug, Clone)]
@@ -60,8 +60,8 @@ impl MenuState {
         self.switch_group = Some(group);
     }
 
-    fn play_level(&mut self, level: LevelId) {
-        self.play_level = Some(level);
+    fn play_level(&mut self, level: LevelId, config: LevelConfig) {
+        self.play_level = Some((level, config));
     }
 }
 
@@ -88,7 +88,7 @@ impl LevelMenu {
         }
     }
 
-    fn play_level(&mut self, level: LevelId) {
+    fn play_level(&mut self, level: LevelId, config: LevelConfig) {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
@@ -119,7 +119,7 @@ impl LevelMenu {
                 crate::game::Game::new(
                     &geng,
                     &assets,
-                    LevelConfig::preset_normal(), // TODO
+                    config,
                     level,
                     level_music,
                     secrets.map(|s| s.leaderboard),
@@ -156,8 +156,8 @@ impl geng::State for LevelMenu {
         );
         self.render.draw_ui(&self.ui, &self.state, framebuffer);
 
-        if let Some(level) = self.state.play_level.take() {
-            self.play_level(level);
+        if let Some((level, config)) = self.state.play_level.take() {
+            self.play_level(level, config);
         }
     }
 
