@@ -3,53 +3,8 @@ use super::*;
 #[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[load(serde = "json")]
 pub struct Level {
-    pub config: LevelConfig,
-    // /// Whether to start rng after the predefined level is finished.
-    // #[serde(default)]
-    // pub rng_end: bool,
     #[serde(default)]
     pub events: Vec<TimedEvent>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LevelConfig {
-    /// Beats per minute.
-    pub bpm: R32,
-    #[serde(default)]
-    pub health: HealthConfig,
-}
-
-impl Default for LevelConfig {
-    fn default() -> Self {
-        Self {
-            bpm: r32(150.0),
-            health: default(),
-        }
-    }
-}
-
-impl Default for HealthConfig {
-    fn default() -> Self {
-        Self {
-            max: r32(1.5),
-            dark_decrease_rate: r32(1.0),
-            danger_decrease_rate: r32(2.0),
-            restore_rate: r32(0.5),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default)]
-pub struct HealthConfig {
-    /// Max health value.
-    pub max: Time,
-    /// How fast health decreases per second in darkness.
-    pub dark_decrease_rate: Time,
-    /// How fast health decreases per second in danger.
-    pub danger_decrease_rate: Time,
-    /// How much health restores per second while in light.
-    pub restore_rate: Time,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -94,11 +49,6 @@ pub struct Telegraph {
 }
 
 impl Level {
-    /// Returns the duration (in seconds) of a single beat.
-    pub fn beat_time(&self) -> Time {
-        r32(60.0) / self.config.bpm
-    }
-
     /// Calculate the last beat when anything happens.
     pub fn last_beat(&self) -> Time {
         self.events

@@ -1,5 +1,7 @@
 mod button;
 mod checkbox;
+mod group;
+mod level;
 mod light;
 mod text;
 mod timeline;
@@ -7,6 +9,8 @@ mod timeline;
 pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
+    group::GroupWidget,
+    level::PlayLevelWidget,
     light::{LightStateWidget, LightWidget},
     text::TextWidget,
     timeline::TimelineWidget,
@@ -14,11 +18,20 @@ pub use self::{
 
 use geng::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct UiContext {
     pub font_size: f32,
     pub cursor_position: vec2<f32>,
     pub cursor_down: bool,
+}
+
+impl UiContext {
+    pub fn scale_font(self, scale: f32) -> Self {
+        Self {
+            font_size: self.font_size * scale,
+            ..self
+        }
+    }
 }
 
 pub trait Widget {
@@ -36,7 +49,7 @@ pub trait Widget {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WidgetState {
     pub position: Aabb2<f32>,
     /// Whether to show the widget.
@@ -49,6 +62,10 @@ pub struct WidgetState {
 }
 
 impl WidgetState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
         self.hovered = self.position.contains(context.cursor_position);

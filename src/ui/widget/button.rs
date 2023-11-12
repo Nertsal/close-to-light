@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ButtonWidget {
     pub text: TextWidget,
 }

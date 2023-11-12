@@ -74,8 +74,11 @@ impl HistoryLabel {
 pub struct Editor {
     pub config: EditorConfig,
     pub cursor_world_pos: vec2<Coord>,
+
     pub level_path: std::path::PathBuf,
     pub level: Level,
+    pub music: Music,
+
     /// Simulation model.
     pub model: Model,
     pub level_state: EditorLevelState,
@@ -95,7 +98,6 @@ pub struct Editor {
     pub place_scale: Coord,
 
     pub state: State,
-    pub music: SoundEffect,
     /// Whether the last frame was scrolled through time.
     pub was_scrolling_time: bool,
     /// Whether currently scrolling through time.
@@ -117,45 +119,17 @@ pub struct Replay {
     pub speed: Time,
 }
 
-pub struct SoundEffect {
-    effect: Option<geng::SoundEffect>,
-    /// Stop the music after the timer runs out.
-    pub timer: Time,
-}
-
-impl SoundEffect {
-    pub fn new() -> Self {
-        Self {
-            effect: None,
-            timer: Time::ZERO,
-        }
-    }
-
-    pub fn stop(&mut self) {
-        if let Some(mut effect) = self.effect.take() {
-            effect.stop();
-        }
-        self.timer = Time::ZERO;
-    }
-
-    pub fn play_from(&mut self, sound: &geng::Sound, time: time::Duration) {
-        self.stop();
-        let mut effect = sound.effect();
-        effect.play_from(time);
-        self.effect = Some(effect);
-    }
-}
-
 impl EditorState {
     pub fn new(
         geng: Geng,
         assets: Rc<Assets>,
         config: EditorConfig,
-        game_config: Config,
+        game_config: LevelConfig,
         level: Level,
+        music: Music,
         level_path: std::path::PathBuf,
     ) -> Self {
-        let model = Model::empty(&assets, game_config, level.clone());
+        let model = Model::empty(&assets, game_config, level.clone(), music.clone());
         Self {
             transition: None,
             render: EditorRender::new(&geng, &assets),
@@ -177,7 +151,7 @@ impl EditorState {
                 place_rotation: Angle::ZERO,
                 place_scale: Coord::ONE,
                 state: State::Idle,
-                music: SoundEffect::new(),
+                music,
                 was_scrolling_time: false,
                 scrolling_time: false,
                 visualize_beat: true,
@@ -209,9 +183,10 @@ impl EditorState {
                 &self.assets,
                 self.editor.model.config.clone(),
                 self.editor.level.clone(),
+                self.editor.music.clone(),
                 None,
                 String::new(),
-                self.editor.current_beat * self.editor.level.beat_time(),
+                self.editor.current_beat * self.editor.music.beat_time(),
             ),
         )));
     }
@@ -344,14 +319,11 @@ impl geng::State for EditorState {
             if self.editor.was_scrolling_time {
                 // Stopped scrolling
                 // Play some music
-                self.editor.music.play_from(
-                    &self.assets.music,
-                    time::Duration::from_secs_f64(
-                        (self.editor.current_beat * self.editor.level.beat_time()).as_f32() as f64,
-                    ),
-                );
+                self.editor.music.play_from(time::Duration::from_secs_f64(
+                    (self.editor.current_beat * self.editor.music.beat_time()).as_f32() as f64,
+                ));
                 self.editor.music.timer =
-                    self.editor.level.beat_time() * self.editor.config.playback_duration;
+                    self.editor.music.beat_time() * self.editor.config.playback_duration;
             }
             self.editor.was_scrolling_time = false;
         }
@@ -359,9 +331,9 @@ impl geng::State for EditorState {
         self.editor.scrolling_time = false;
 
         if let State::Playing { .. } = self.editor.state {
-            self.editor.current_beat = self.editor.real_time / self.editor.level.beat_time();
+            self.editor.current_beat = self.editor.real_time / self.editor.music.beat_time();
         } else if let Some(replay) = &mut self.editor.dynamic_segment {
-            replay.current_beat += replay.speed * delta_time / self.editor.level.beat_time();
+            replay.current_beat += replay.speed * delta_time / self.editor.music.beat_time();
             if replay.current_beat > replay.end_beat {
                 replay.current_beat = replay.start_beat;
             }
@@ -456,7 +428,7 @@ impl Editor {
                 if let Some(replay) = &self.dynamic_segment {
                     Some(replay.current_beat)
                 } else {
-                    Some(time + (self.real_time / self.level.beat_time()).fract())
+                    Some(time + (self.real_time / self.music.beat_time()).fract())
                 }
             } else {
                 None

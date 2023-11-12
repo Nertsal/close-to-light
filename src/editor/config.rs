@@ -9,6 +9,7 @@ pub struct EditorConfig {
     pub scroll_slow: Time,
     pub scroll_fast: Time,
     pub theme: EditorTheme,
+    pub shapes: Vec<Shape>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

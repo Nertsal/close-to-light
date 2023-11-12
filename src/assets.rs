@@ -1,9 +1,14 @@
 use geng::prelude::*;
 
+/// Workaround until <https://github.com/geng-engine/geng/issues/78> is fixed.
 #[derive(geng::asset::Load)]
-pub struct Assets {
+pub struct MusicAssets {
     #[load(postprocess = "looping", ext = "mp3")]
     pub music: geng::Sound,
+}
+
+#[derive(geng::asset::Load)]
+pub struct Assets {
     pub sprites: Sprites,
     pub dither: DitherAssets,
     pub shaders: Shaders,

@@ -7,7 +7,6 @@ pub struct LevelState {
     beat_time: Time,
     /// The time after which events are not rendered.
     ignore_after: Option<Time>,
-    pub config: LevelConfig,
     /// Whether the palette should be swapped.
     pub swap_palette: bool,
     pub lights: Vec<Light>,
@@ -20,7 +19,6 @@ impl Default for LevelState {
         Self {
             beat_time: Time::ZERO,
             ignore_after: None,
-            config: LevelConfig::default(),
             swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
@@ -38,7 +36,6 @@ impl LevelState {
             lights: Vec::new(),
             telegraphs: Vec::new(),
             is_finished: true,
-            config: level.config.clone(),
         };
 
         for (i, e) in level.events.iter().enumerate() {

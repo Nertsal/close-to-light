@@ -19,11 +19,13 @@ pub struct Game {
 }
 
 impl Game {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        rules: Config,
+        config: LevelConfig,
         level: Level,
+        level_music: Music,
         leaderboard: Option<LeaderboardSecrets>,
         player_name: String,
         start_time: Time,
@@ -31,7 +33,15 @@ impl Game {
         Self::preloaded(
             geng,
             assets,
-            Model::new(assets, rules, level, leaderboard, player_name, start_time),
+            Model::new(
+                assets,
+                config,
+                level,
+                level_music,
+                leaderboard,
+                player_name,
+                start_time,
+            ),
         )
     }
 
