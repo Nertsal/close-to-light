@@ -25,6 +25,7 @@ impl MenuUI {
         screen: Aabb2<f32>,
         cursor_position: vec2<f32>,
         cursor_down: bool,
+        delta_time: f32,
         _geng: &Geng,
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
@@ -61,7 +62,7 @@ impl MenuUI {
                 .extend_down(3.0 * layout_size);
 
             for _ in 0..state.groups.len() - self.groups.len() {
-                self.groups.push(GroupWidget::default());
+                self.groups.push(GroupWidget::new());
             }
 
             let mut hovered = None;
@@ -74,11 +75,22 @@ impl MenuUI {
                     // should not happen
                     continue;
                 };
+
+                let t = group.selected_time.get_ratio();
+                let t = crate::util::smoothstep(t);
+                let offset = layout_size * 2.0;
+                let pos = pos.translate(vec2(t * offset, 0.0));
+
                 update!(group, pos);
                 group.set_group(entry);
 
                 if group.state.hovered {
                     hovered = Some(i);
+                }
+                if group.state.hovered || state.show_group == Some(i) {
+                    group.selected_time.change(delta_time);
+                } else {
+                    group.selected_time.change(-delta_time);
                 }
             }
 

@@ -60,6 +60,10 @@ pub struct WidgetState {
 }
 
 impl WidgetState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
         self.hovered = self.position.contains(context.cursor_position);

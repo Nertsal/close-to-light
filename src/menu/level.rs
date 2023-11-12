@@ -14,6 +14,8 @@ pub struct LevelMenu {
     transition: Option<geng::state::Transition>,
     render: MenuRender,
 
+    last_delta_time: Time,
+
     ui: MenuUI,
     cursor_pos: vec2<f64>,
     state: MenuState,
@@ -61,6 +63,8 @@ impl LevelMenu {
             assets: assets.clone(),
             transition: None,
             render: MenuRender::new(geng, assets),
+
+            last_delta_time: Time::ONE,
 
             ui: MenuUI::new(),
             cursor_pos: vec2::ZERO,
@@ -143,6 +147,7 @@ impl geng::State for LevelMenu {
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
             geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
+            self.last_delta_time.as_f32(),
             &self.geng,
         );
         self.render.draw_ui(&self.ui, &self.state, framebuffer);
@@ -153,12 +158,19 @@ impl geng::State for LevelMenu {
     }
 
     fn handle_event(&mut self, event: geng::Event) {
-        if let geng::Event::CursorMove { position } = event {
-            self.cursor_pos = position;
+        match event {
+            geng::Event::KeyPress {
+                key: geng::Key::Escape,
+            } => if let Some(_) = self.state.show_group.take() {},
+            geng::Event::CursorMove { position } => {
+                self.cursor_pos = position;
+            }
+            _ => (),
         }
     }
 
     fn update(&mut self, delta_time: f64) {
-        let _delta_time = Time::new(delta_time as _);
+        let delta_time = Time::new(delta_time as f32);
+        self.last_delta_time = delta_time;
     }
 }

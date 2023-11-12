@@ -2,15 +2,27 @@ use super::*;
 
 use crate::{menu::GroupEntry, ui::layout};
 
-#[derive(Default)]
+use geng_utils::bounded::Bounded;
+
 pub struct GroupWidget {
     pub state: WidgetState,
     pub logo: WidgetState,
     pub name: TextWidget,
     pub author: TextWidget,
+    pub selected_time: Bounded<f32>,
 }
 
 impl GroupWidget {
+    pub fn new() -> Self {
+        Self {
+            state: WidgetState::new(),
+            logo: WidgetState::new(),
+            name: TextWidget::new("<level name>"),
+            author: TextWidget::new("by <author>"),
+            selected_time: Bounded::new_zero(0.2),
+        }
+    }
+
     pub fn set_group(&mut self, group: &GroupEntry) {
         self.name.text = group.meta.name.to_string();
         self.author.text = format!("by {}", group.meta.music.author);
