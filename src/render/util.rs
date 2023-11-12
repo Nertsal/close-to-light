@@ -328,39 +328,30 @@ impl UtilRender {
             camera,
             framebuffer,
         );
-        self.draw_text_widget(&widget.text, options, framebuffer);
+        self.draw_text_widget(&widget.text, framebuffer);
     }
 
-    pub fn draw_text_widget(
-        &self,
-        widget: &TextWidget,
-        options: TextRenderOptions,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
+    pub fn draw_text_widget(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
         if !widget.state.visible {
             return;
         }
 
         self.draw_text(
             &widget.text,
-            geng_utils::layout::aabb_pos(widget.state.position, options.align),
-            options.size(widget.font_size),
+            geng_utils::layout::aabb_pos(widget.state.position, widget.options.align),
+            widget.options,
             &geng::PixelPerfectCamera,
             framebuffer,
         );
     }
 
-    pub fn draw_button_widget(
-        &self,
-        widget: &ButtonWidget,
-        options: TextRenderOptions,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
+    pub fn draw_button_widget(&self, widget: &ButtonWidget, framebuffer: &mut ugli::Framebuffer) {
         let state = &widget.text.state;
         if !state.visible {
             return;
         }
 
+        let options = &widget.text.options;
         let color = if state.pressed {
             options.press_color
         } else if state.hovered {
@@ -375,11 +366,7 @@ impl UtilRender {
             &geng::PixelPerfectCamera,
             framebuffer,
         );
-        self.draw_text_widget(
-            &widget.text,
-            options.color(color).align(vec2(0.5, 0.5)),
-            framebuffer,
-        );
+        self.draw_text_widget(&widget.text, framebuffer);
     }
 
     pub fn draw_dashed_chain(

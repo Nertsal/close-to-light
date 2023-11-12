@@ -1,7 +1,4 @@
-use super::{
-    util::{TextRenderOptions, UtilRender},
-    *,
-};
+use super::{util::UtilRender, *};
 
 use crate::menu::{MenuState, MenuUI};
 
@@ -22,10 +19,6 @@ impl MenuRender {
 
     pub fn draw_ui(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         let font_size = framebuffer.size().y as f32 * 0.04;
-        let options = TextRenderOptions::new(font_size)
-            .color(state.theme.light)
-            .align(vec2(0.5, 1.0));
-
         let camera = &geng::PixelPerfectCamera;
 
         geng_utils::texture::draw_texture_fit_height(
@@ -47,10 +40,8 @@ impl MenuRender {
                     Color::WHITE,
                 );
             }
-            self.util
-                .draw_text_widget(&group.name, options.align(vec2(0.0, 0.0)), framebuffer);
-            self.util
-                .draw_text_widget(&group.author, options.align(vec2(0.0, 1.0)), framebuffer);
+            self.util.draw_text_widget(&group.name, framebuffer);
+            self.util.draw_text_widget(&group.author, framebuffer);
 
             let group = &group.state;
             let color = if group.pressed {
@@ -82,20 +73,14 @@ impl MenuRender {
             //     .draw_text_widget(&ui.level.name, options.align(vec2(0.5, 0.5)), framebuffer);
 
             self.util
-                .draw_button_widget(&ui.level.level_normal, options, framebuffer);
-            self.util.draw_text_widget(
-                &ui.level.credits_normal,
-                options.align(vec2(0.5, 0.5)),
-                framebuffer,
-            );
+                .draw_button_widget(&ui.level.level_normal, framebuffer);
+            self.util
+                .draw_text_widget(&ui.level.credits_normal, framebuffer);
 
             self.util
-                .draw_button_widget(&ui.level.level_hard, options, framebuffer);
-            self.util.draw_text_widget(
-                &ui.level.credits_hard,
-                options.align(vec2(0.5, 0.5)),
-                framebuffer,
-            );
+                .draw_button_widget(&ui.level.level_hard, framebuffer);
+            self.util
+                .draw_text_widget(&ui.level.credits_hard, framebuffer);
 
             // self.util.draw_text_widget(
             //     &ui.level.music_credits,

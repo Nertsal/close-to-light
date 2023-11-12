@@ -30,8 +30,12 @@ impl Widget for GroupWidget {
         let margin = context.font_size * 0.1;
         let name = name.extend_down(-margin);
         let author = author.extend_up(-margin);
+
         self.name.update(name, context);
+        self.name.align(vec2(0.0, 0.0));
+
         self.author.update(author, &context.scale_font(0.75));
+        self.author.align(vec2(0.0, 1.0));
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
