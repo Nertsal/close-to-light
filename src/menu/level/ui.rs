@@ -87,7 +87,7 @@ impl MenuUI {
                 if group.state.hovered {
                     hovered = Some(i);
                 }
-                if group.state.hovered || state.show_group == Some(i) {
+                if group.state.hovered || state.switch_group == Some(i) {
                     group.selected_time.change(delta_time);
                 } else {
                     group.selected_time.change(-delta_time);
@@ -101,9 +101,15 @@ impl MenuUI {
 
         let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
         {
-            update!(self.level, level);
-            if let Some(group) = state.show_group {
-                if let Some(group) = state.groups.get(group) {
+            if let Some(group) = &state.show_group {
+                let t = group.time.get_ratio().as_f32();
+                let t = crate::util::smoothstep(t);
+                let offscreen = screen.max.x - level.min.x;
+                let target = offscreen * (1.0 - t);
+                let level = level.translate(vec2(target, 0.0));
+                update!(self.level, level);
+
+                if let Some(group) = state.groups.get(group.group) {
                     self.level.set_group(group);
                     self.level.show();
 

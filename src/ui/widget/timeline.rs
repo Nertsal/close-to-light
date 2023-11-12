@@ -154,7 +154,7 @@ impl TimelineWidget {
 impl Widget for TimelineWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
-        self.context = context.clone();
+        self.context = *context;
         self.reload();
     }
 
