@@ -48,7 +48,9 @@ impl MenuRender {
                 );
             }
             self.util
-                .draw_text_widget(&group.name, options.align(vec2(0.0, 0.5)), framebuffer);
+                .draw_text_widget(&group.name, options.align(vec2(0.0, 0.0)), framebuffer);
+            self.util
+                .draw_text_widget(&group.author, options.align(vec2(0.0, 1.0)), framebuffer);
 
             let group = &group.state;
             let color = if group.pressed {
@@ -76,8 +78,8 @@ impl MenuRender {
                 framebuffer,
             );
 
-            self.util
-                .draw_text_widget(&ui.level.name, options.align(vec2(0.5, 0.5)), framebuffer);
+            // self.util
+            //     .draw_text_widget(&ui.level.name, options.align(vec2(0.5, 0.5)), framebuffer);
 
             self.util
                 .draw_button_widget(&ui.level.level_normal, options, framebuffer);
@@ -95,11 +97,11 @@ impl MenuRender {
                 framebuffer,
             );
 
-            self.util.draw_text_widget(
-                &ui.level.music_credits,
-                options.align(vec2(1.0, 0.5)),
-                framebuffer,
-            );
+            // self.util.draw_text_widget(
+            //     &ui.level.music_credits,
+            //     options.align(vec2(1.0, 0.5)),
+            //     framebuffer,
+            // );
         }
     }
 }

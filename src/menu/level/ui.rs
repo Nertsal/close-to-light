@@ -75,8 +75,7 @@ impl MenuUI {
                     continue;
                 };
                 update!(group, pos);
-                group.name.text = entry.meta.name.to_string();
-                // group.author = entry.meta..to_string();
+                group.set_group(entry);
 
                 if group.state.hovered {
                     hovered = Some(i);
