@@ -42,7 +42,10 @@ pub struct PlayLevelWidget {
     pub credits_hard: TextWidget,
 
     /// What we are currently configuring.
-    pub config_title: TextWidget,
+    /// Float for animating.
+    pub config_current: f32,
+    pub config_target: f32,
+    pub config_titles: Vec<TextWidget>,
     pub prev_config: ButtonWidget,
     pub next_config: ButtonWidget,
 
@@ -59,7 +62,12 @@ impl PlayLevelWidget {
             level_hard: ButtonWidget::new("Hard"),
             credits_hard: TextWidget::new("<hard credits>"),
 
-            config_title: TextWidget::new("Presets"),
+            config_current: 0.0,
+            config_target: 0.0,
+            config_titles: ["Palette", "Presets"]
+                .into_iter()
+                .map(TextWidget::new)
+                .collect(),
             prev_config: ButtonWidget::new_textured("", &assets.sprites.button_prev),
             next_config: ButtonWidget::new_textured("", &assets.sprites.button_next),
 
@@ -78,6 +86,12 @@ impl PlayLevelWidget {
     pub fn set_group(&mut self, group: &GroupEntry) {
         self.credits_normal.text = format!("by {}", group.meta.normal.author);
         self.credits_hard.text = format!("by {}", group.meta.hard.author);
+    }
+
+    // TODO: move to Widget
+    pub fn update_time(&mut self, delta_time: f32) {
+        let lerp_time = 0.2;
+        self.config_current += (self.config_target - self.config_current) / lerp_time * delta_time;
     }
 }
 
@@ -108,7 +122,18 @@ impl Widget for PlayLevelWidget {
         {
             let title = Aabb2::point(title.center())
                 .extend_symmetric(vec2(context.font_size * 5.0, title.height()) / 2.0);
-            self.config_title.update(title, context);
+            for (i, config) in self.config_titles.iter_mut().enumerate() {
+                let offset = i as f32 - self.config_current;
+                if offset > 1.0 {
+                    config.hide();
+                    continue;
+                }
+
+                config.show();
+                let offset = offset * title.width();
+                let title = title.translate(vec2(offset, 0.0));
+                config.update(title, context);
+            }
 
             let title = title.extend_symmetric(-vec2(0.0, context.font_size * 0.4) / 2.0);
             let prev = Aabb2::point(title.bottom_left())
@@ -118,6 +143,24 @@ impl Widget for PlayLevelWidget {
                 Aabb2::point(title.bottom_right()).extend_positive(vec2::splat(title.height()));
             self.prev_config.update(prev, context);
             self.next_config.update(next, context);
+
+            if self.prev_config.text.state.clicked {
+                self.config_target -= 1.0;
+            } else if self.next_config.text.state.clicked {
+                self.config_target += 1.0;
+            }
+
+            // Wrap
+            let max = self.config_titles.len() as f32 - 1.0;
+            let wrap = |value: &mut f32| {
+                if *value < -0.5 {
+                    *value += max + 1.0;
+                } else if *value > max + 0.5 {
+                    *value -= max + 1.0;
+                }
+            };
+            wrap(&mut self.config_target);
+            wrap(&mut self.config_current);
         }
 
         // Presets

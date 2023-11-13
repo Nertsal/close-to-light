@@ -79,8 +79,9 @@ impl MenuRender {
             self.util
                 .draw_text_widget(&ui.level.credits_hard, framebuffer);
 
-            self.util
-                .draw_text_widget(&ui.level.config_title, framebuffer);
+            for title in &ui.level.config_titles {
+                self.util.draw_text_widget(title, framebuffer);
+            }
             self.util
                 .draw_button_widget(&ui.level.prev_config, framebuffer);
             self.util

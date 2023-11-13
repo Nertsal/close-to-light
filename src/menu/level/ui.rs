@@ -111,6 +111,7 @@ impl MenuUI {
                 let target = offscreen * (1.0 - t);
                 let level = level.translate(vec2(target, 0.0));
                 update!(self.level, level);
+                self.level.update_time(delta_time);
 
                 if let Some(group) = state.groups.get(group.group) {
                     self.level.set_group(group);
