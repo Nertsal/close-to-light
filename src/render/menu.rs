@@ -81,6 +81,11 @@ impl MenuRender {
 
             self.util
                 .draw_text_widget(&ui.level.config_title, framebuffer);
+            self.util
+                .draw_button_widget(&ui.level.prev_config, framebuffer);
+            self.util
+                .draw_button_widget(&ui.level.next_config, framebuffer);
+
             for preset in &ui.level.presets {
                 let mut button = preset.button.clone();
                 button.text.state.pressed = preset.selected;

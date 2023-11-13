@@ -1,6 +1,10 @@
 use super::*;
 
-use crate::{menu::GroupEntry, prelude::LevelConfig, ui::layout};
+use crate::{
+    menu::GroupEntry,
+    prelude::{Assets, LevelConfig},
+    ui::layout,
+};
 
 // use geng_utils::bounded::Bounded;
 
@@ -39,12 +43,15 @@ pub struct PlayLevelWidget {
 
     /// What we are currently configuring.
     pub config_title: TextWidget,
+    pub prev_config: ButtonWidget,
+    pub next_config: ButtonWidget,
+
     pub presets: Vec<PresetWidget>,
     pub level_config: LevelConfig,
 }
 
 impl PlayLevelWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
             level_normal: ButtonWidget::new("Normal"),
@@ -53,6 +60,9 @@ impl PlayLevelWidget {
             credits_hard: TextWidget::new("<hard credits>"),
 
             config_title: TextWidget::new("Presets"),
+            prev_config: ButtonWidget::new_textured("", &assets.sprites.button_prev),
+            next_config: ButtonWidget::new_textured("", &assets.sprites.button_next),
+
             presets: [
                 ("Easy", LevelConfig::preset_easy()),
                 ("Normal", LevelConfig::preset_normal()),
@@ -95,7 +105,20 @@ impl Widget for PlayLevelWidget {
 
         let main = main.extend_up(-context.font_size * 1.0);
         let (title, main) = layout::cut_top_down(main, context.font_size * 1.5);
-        self.config_title.update(title, context);
+        {
+            let title = Aabb2::point(title.center())
+                .extend_symmetric(vec2(context.font_size * 5.0, title.height()) / 2.0);
+            self.config_title.update(title, context);
+
+            let title = title.extend_symmetric(-vec2(0.0, context.font_size * 0.4) / 2.0);
+            let prev = Aabb2::point(title.bottom_left())
+                .extend_left(title.height())
+                .extend_up(title.height());
+            let next =
+                Aabb2::point(title.bottom_right()).extend_positive(vec2::splat(title.height()));
+            self.prev_config.update(prev, context);
+            self.next_config.update(next, context);
+        }
 
         // Presets
         let mut selected = None;
@@ -124,5 +147,7 @@ impl Widget for PlayLevelWidget {
         self.credits_normal.walk_states_mut(f);
         self.level_hard.walk_states_mut(f);
         self.credits_hard.walk_states_mut(f);
+        self.prev_config.walk_states_mut(f);
+        self.next_config.walk_states_mut(f);
     }
 }

@@ -359,13 +359,28 @@ impl UtilRender {
         } else {
             options.color
         };
-        self.draw_outline(
-            &Collider::aabb(widget.text.state.position.map(r32)),
-            options.size * 0.2,
-            color,
-            &geng::PixelPerfectCamera,
-            framebuffer,
-        );
+        if let Some(texture) = &widget.texture {
+            let target = geng_utils::layout::fit_aabb(
+                texture.size().as_f32(),
+                widget.text.state.position,
+                vec2(0.5, 0.5),
+            );
+            self.geng.draw2d().textured_quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                target,
+                texture,
+                color,
+            );
+        } else {
+            self.draw_outline(
+                &Collider::aabb(widget.text.state.position.map(r32)),
+                options.size * 0.2,
+                color,
+                &geng::PixelPerfectCamera,
+                framebuffer,
+            );
+        }
         self.draw_text_widget(&widget.text, framebuffer);
     }
 

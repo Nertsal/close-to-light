@@ -22,6 +22,10 @@ pub struct Sprites {
     pub linear_gradient: ugli::Texture,
     #[load(postprocess = "pixel")]
     pub radial_gradient: ugli::Texture,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub button_next: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub button_prev: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]

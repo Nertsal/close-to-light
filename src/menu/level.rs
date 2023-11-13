@@ -75,7 +75,7 @@ impl LevelMenu {
 
             last_delta_time: Time::ONE,
 
-            ui: MenuUI::new(),
+            ui: MenuUI::new(assets),
             cursor_pos: vec2::ZERO,
 
             state: MenuState {

@@ -10,12 +10,12 @@ pub struct MenuUI {
 }
 
 impl MenuUI {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             ctl_logo: default(),
             groups_state: default(),
             groups: Vec::new(),
-            level: PlayLevelWidget::new(),
+            level: PlayLevelWidget::new(assets),
         }
     }
 
