@@ -41,6 +41,8 @@ pub struct LevelMenu {
 
 pub struct MenuState {
     icons: Icons,
+    /// Current base font size in pixels.
+    font_size: f32,
     pub theme: Theme,
     pub groups: Vec<GroupEntry>,
     /// Currently showing group.
@@ -97,6 +99,7 @@ impl LevelMenu {
             state: MenuState {
                 icons: Icons::load(geng.ugli(), assets, ui.get_context())
                     .expect("when loading icons"),
+                font_size: 10.0,
                 theme: Theme::default(),
                 groups,
                 show_group: None,
@@ -166,6 +169,9 @@ impl geng::State for LevelMenu {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         ugli::clear(framebuffer, Some(self.state.theme.dark), None, None);
+
+        let framebuffer_size = framebuffer.size().as_f32();
+        self.state.font_size = framebuffer_size.y * 0.025;
 
         self.ui.draw(framebuffer);
 

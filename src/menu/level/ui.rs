@@ -21,19 +21,30 @@ pub struct IconButton<'a> {
 
 impl<'a> IconButton<'a> {
     pub fn new(icon: &'a Icon) -> Self {
-        Self::new_sized(icon, icon.size.as_f32())
-    }
-
-    pub fn new_scaled(icon: &'a Icon, scale: vec2<f32>) -> Self {
-        Self::new_sized(icon, icon.size.as_f32() * scale)
-    }
-
-    pub fn new_sized(icon: &'a Icon, size: vec2<f32>) -> Self {
         Self {
             icon,
-            size,
+            size: icon.size.as_f32(),
             with_frame: false,
         }
+    }
+
+    pub fn with_height(self, height: f32) -> Self {
+        let width = self.icon.size.as_f32().aspect() * height;
+        Self {
+            size: vec2(width, height),
+            ..self
+        }
+    }
+
+    pub fn scaled(self, scale: vec2<f32>) -> Self {
+        Self {
+            size: self.size * scale,
+            ..self
+        }
+    }
+
+    pub fn sized(self, size: vec2<f32>) -> Self {
+        Self { size, ..self }
     }
 }
 
@@ -93,9 +104,9 @@ impl AppComponent for GroupsComponent {
     fn add(ctx: &mut Self::Context, ui: &mut Ui) {
         ui.with_layout(Layout::top_down(Align::Min), |ui| {
             for group in &ctx.groups {
-                let icon = IconButton::new_scaled(&ctx.icons.level_frame, vec2::splat(5.5));
+                let icon = IconButton::new(&ctx.icons.level_frame).with_height(ctx.font_size * 3.5);
                 let _response = ui.add(GroupWidget::new(group, icon));
-                ui.add_space(30.0);
+                ui.add_space(ctx.font_size * 2.5);
             }
         });
     }
@@ -103,27 +114,33 @@ impl AppComponent for GroupsComponent {
 
 impl LevelMenu {
     pub fn ui(&mut self, _delta_time: Time) {
-        let ctx = self.ui.get_context();
+        let ui_ctx = self.ui.get_context();
+        let ctx = &mut self.state;
 
-        // ctx.style_mut(|style| {
-        //     for font_id in &mut style.text_styles.values_mut() {
-        //         font_id.size = 12.0;
-        //     }
-        // });
-
-        egui::TopBottomPanel::top("title").show(ctx, |ui| {
+        egui::TopBottomPanel::top("title").show(ui_ctx, |ui| {
             ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.add_space(50.0);
-                ui.add(IconButton::new_scaled(
-                    &self.state.icons.title,
-                    vec2::splat(2.0),
-                ));
-                ui.add_space(100.0);
+                ui.add_space(ctx.font_size * 2.0);
+                ui.add(IconButton::new(&ctx.icons.title).with_height(ctx.font_size * 5.0));
+                ui.add_space(ctx.font_size * 3.0);
             });
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            GroupsComponent::add(&mut self.state, ui);
+        egui::SidePanel::left("left-panel")
+            .show_separator_line(false)
+            .resizable(false)
+            .show(ui_ctx, |ui| {
+                ui.add_space(ctx.font_size * 1.0);
+            });
+
+        egui::SidePanel::right("right-panel")
+            .show_separator_line(false)
+            .resizable(false)
+            .show(ui_ctx, |ui| {
+                ui.add_space(ctx.font_size * 1.0);
+            });
+
+        egui::CentralPanel::default().show(ui_ctx, |ui| {
+            GroupsComponent::add(ctx, ui);
         });
     }
 }
