@@ -1,140 +1,129 @@
 use super::*;
 
-use crate::ui::{layout, widget::*};
+use egui::Widget;
+use geng_egui::{
+    egui::{Align, Frame, Label, Layout, RichText, Ui},
+    *,
+};
 
-pub struct MenuUI {
-    pub ctl_logo: WidgetState,
-    pub groups_state: WidgetState,
-    pub groups: Vec<GroupWidget>,
-    pub level: PlayLevelWidget,
+pub trait AppComponent {
+    type Context;
+
+    #[allow(unused)]
+    fn add(ctx: &mut Self::Context, ui: &mut Ui) {}
 }
 
-impl MenuUI {
-    pub fn new(assets: &Rc<Assets>) -> Self {
-        Self {
-            ctl_logo: default(),
-            groups_state: default(),
-            groups: Vec::new(),
-            level: PlayLevelWidget::new(assets),
-        }
+pub struct IconButton<'a> {
+    icon: &'a Icon,
+    size: vec2<f32>,
+    with_frame: bool,
+}
+
+impl<'a> IconButton<'a> {
+    pub fn new(icon: &'a Icon) -> Self {
+        Self::new_sized(icon, icon.size.as_f32())
     }
 
-    pub fn layout(
-        &mut self,
-        state: &mut MenuState,
-        screen: Aabb2<f32>,
-        cursor_position: vec2<f32>,
-        cursor_down: bool,
-        delta_time: f32,
-        _geng: &Geng,
-    ) {
-        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+    pub fn new_scaled(icon: &'a Icon, scale: vec2<f32>) -> Self {
+        Self::new_sized(icon, icon.size.as_f32() * scale)
+    }
 
-        let layout_size = screen.height() * 0.03;
+    pub fn new_sized(icon: &'a Icon, size: vec2<f32>) -> Self {
+        Self {
+            icon,
+            size,
+            with_frame: false,
+        }
+    }
+}
 
-        let context = UiContext {
-            font_size: screen.height() * 0.04,
-            cursor_position,
-            cursor_down,
+impl<'a> Widget for IconButton<'a> {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let size = egui::Vec2 {
+            x: self.size.x,
+            y: self.size.y,
         };
-        macro_rules! update {
-            ($widget:expr, $position:expr) => {{
-                $widget.update($position, &context);
-            }};
-        }
 
-        let screen = screen.extend_uniform(-layout_size * 2.0);
+        let image = egui::ImageSource::Texture(egui::load::SizedTexture {
+            id: self.icon.id(),
+            size,
+        });
+        let button = egui::ImageButton::new(image).frame(self.with_frame);
+        let response = ui.add(button);
+        response.on_hover_cursor(egui::CursorIcon::PointingHand)
+    }
+}
 
-        let (ctl_logo, main) = layout::cut_top_down(screen, layout_size * 4.0);
-        update!(self.ctl_logo, ctl_logo);
-        let main = main.extend_up(-layout_size * 3.0);
+pub struct GroupWidget<'a> {
+    group: &'a GroupEntry,
+    icon: IconButton<'a>,
+}
 
-        let main = main.extend_left(-layout_size * 2.0);
+impl<'a> GroupWidget<'a> {
+    pub fn new(group: &'a GroupEntry, icon: IconButton<'a>) -> Self {
+        Self { group, icon }
+    }
+}
 
-        let (groups, side) = layout::cut_left_right(main, layout_size * 11.0);
-        update!(self.groups_state, groups);
+impl<'a> Widget for GroupWidget<'a> {
+    fn ui(self, ui: &mut Ui) -> egui::Response {
+        let icon = ui.add(self.icon);
 
-        {
-            // Level groups
-            let scroll = 0.0; // TODO
-            let group = Aabb2::point(layout::aabb_pos(groups, vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                .extend_right(groups.width())
-                .extend_down(3.0 * layout_size);
+        let rect = icon.rect.shrink(15.0);
+        ui.allocate_ui_at_rect(rect, |ui| {
+            ui.with_layout(
+                Layout::top_down(Align::Min).with_main_align(Align::Center),
+                |ui| {
+                    ui.label(RichText::new(self.group.meta.name.to_string()).size(30.0));
+                    let author = format!("by {}", self.group.meta.music.author);
+                    ui.label(RichText::new(author).size(20.0));
+                },
+            );
+        });
 
-            for _ in 0..state.groups.len() - self.groups.len() {
-                self.groups.push(GroupWidget::new());
+        icon
+    }
+}
+
+pub struct GroupsComponent;
+
+impl AppComponent for GroupsComponent {
+    type Context = MenuState;
+
+    fn add(ctx: &mut Self::Context, ui: &mut Ui) {
+        ui.with_layout(Layout::top_down(Align::Min), |ui| {
+            for group in &ctx.groups {
+                let icon = IconButton::new_scaled(&ctx.icons.level_frame, vec2::splat(5.5));
+                let _response = ui.add(GroupWidget::new(group, icon));
+                ui.add_space(30.0);
             }
+        });
+    }
+}
 
-            let mut hovered = None;
-            for (pos, (i, entry)) in layout::stack(
-                group,
-                vec2(0.0, -group.height() - layout_size * 0.5),
-                state.groups.len(),
-            )
-            .into_iter()
-            .zip(state.groups.iter().enumerate())
-            {
-                let Some(group) = self.groups.get_mut(i) else {
-                    // should not happen
-                    continue;
-                };
+impl LevelMenu {
+    pub fn ui(&mut self, _delta_time: Time) {
+        let ctx = self.ui.get_context();
 
-                let t = group.selected_time.get_ratio();
-                let t = crate::util::smoothstep(t);
-                let offset = layout_size * 2.0;
-                let pos = pos.translate(vec2(t * offset, 0.0));
+        // ctx.style_mut(|style| {
+        //     for font_id in &mut style.text_styles.values_mut() {
+        //         font_id.size = 12.0;
+        //     }
+        // });
 
-                update!(group, pos);
-                group.set_group(entry);
+        egui::TopBottomPanel::top("title").show(ctx, |ui| {
+            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                ui.add_space(50.0);
+                ui.add(IconButton::new_scaled(
+                    &self.state.icons.title,
+                    vec2::splat(2.0),
+                ));
+                ui.add_space(100.0);
+            });
+        });
 
-                if group.state.hovered {
-                    hovered = Some(i);
-                }
-                if group.state.hovered || state.switch_group == Some(i) {
-                    group.selected_time.change(delta_time);
-                } else {
-                    group.selected_time.change(-delta_time);
-                }
-            }
-
-            if let Some(group) = hovered {
-                state.show_group(group);
-            }
-        }
-
-        let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
-        {
-            if let Some(group) = &state.show_group {
-                let t = group.time.get_ratio().as_f32();
-                let t = crate::util::smoothstep(t);
-                let offscreen = screen.max.x - level.min.x;
-                let target = offscreen * (1.0 - t);
-                let level = level.translate(vec2(target, 0.0));
-                update!(self.level, level);
-                self.level.update_time(delta_time);
-
-                if let Some(group) = state.groups.get(group.group) {
-                    self.level.set_group(group);
-                    self.level.show();
-
-                    // Play level
-                    if self.level.level_normal.text.state.clicked {
-                        let level = LevelId {
-                            group: group.path.clone(),
-                            level: LevelVariation::Normal,
-                        };
-                        state.play_level(level, self.level.level_config.clone());
-                    } else if self.level.level_hard.text.state.clicked {
-                        let level = LevelId {
-                            group: group.path.clone(),
-                            level: LevelVariation::Hard,
-                        };
-                        state.play_level(level, self.level.level_config.clone());
-                    }
-                }
-            } else {
-                self.level.hide();
-            }
-        }
+        egui::CentralPanel::default().show(ctx, |ui| {
+            GroupsComponent::add(&mut self.state, ui);
+        });
     }
 }
