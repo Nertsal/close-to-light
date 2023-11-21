@@ -13,3 +13,4 @@ geng-utils = "0.1.0"
 parry2d = "0.13.5"
 serde = { version = "1.0.183", features = ["derive"] }
 jornet = { git = "https://github.com/kuviman/jornet" }
+enum-iterator = "1.4.1"

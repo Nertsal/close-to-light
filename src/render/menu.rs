@@ -110,6 +110,13 @@ impl MenuRender {
                             self.util.draw_button_widget(&button, framebuffer);
                         }
                     }
+                    Configuring::Modifiers { presets } => {
+                        for preset in presets {
+                            let mut button = preset.button.clone();
+                            button.text.state.pressed = preset.selected;
+                            self.util.draw_button_widget(&button, framebuffer);
+                        }
+                    }
                 }
             }
         }

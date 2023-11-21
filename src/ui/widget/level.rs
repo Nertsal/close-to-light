@@ -2,7 +2,7 @@ use super::*;
 
 use crate::{
     menu::GroupEntry,
-    prelude::{Assets, HealthConfig, LevelConfig, Theme},
+    prelude::{Assets, HealthConfig, LevelConfig, Modifier, Theme},
     ui::layout,
 };
 
@@ -46,6 +46,9 @@ pub enum Configuring {
     Health {
         presets: Vec<PresetWidget<HealthConfig>>,
     },
+    Modifiers {
+        presets: Vec<PresetWidget<Modifier>>,
+    },
 }
 
 impl ConfigWidget {
@@ -53,7 +56,6 @@ impl ConfigWidget {
         self.state.update(position, context);
         match &mut self.configuring {
             Configuring::Palette { presets } => {
-                // let mut selected = None;
                 for (pos, (_i, target)) in layout::split_columns(position, presets.len())
                     .into_iter()
                     .zip(presets.iter_mut().enumerate())
@@ -62,19 +64,12 @@ impl ConfigWidget {
                     let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
                     target.update(pos, context);
                     if target.button.text.state.clicked {
-                        // selected = Some(i);
                         config.theme = target.preset.clone();
                     }
+                    target.selected = target.preset == config.theme;
                 }
-                // if let Some(selected) = selected {
-                for (_i, preset) in presets.iter_mut().enumerate() {
-                    // preset.selected = i == selected;
-                    preset.selected = preset.preset == config.theme;
-                }
-                // }
             }
             Configuring::Health { presets } => {
-                // let mut selected = None;
                 for (pos, (_i, target)) in layout::split_columns(position, presets.len())
                     .into_iter()
                     .zip(presets.iter_mut().enumerate())
@@ -83,16 +78,30 @@ impl ConfigWidget {
                     let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
                     target.update(pos, context);
                     if target.button.text.state.clicked {
-                        // selected = Some(i);
                         config.health = target.preset.clone();
                     }
+                    target.selected = target.preset == config.health;
                 }
-                // if let Some(selected) = selected {
-                for (_i, preset) in presets.iter_mut().enumerate() {
-                    // preset.selected = i == selected;
-                    preset.selected = preset.preset == config.health;
+            }
+            Configuring::Modifiers { presets } => {
+                for (pos, (_i, target)) in layout::split_columns(position, presets.len())
+                    .into_iter()
+                    .zip(presets.iter_mut().enumerate())
+                {
+                    let pos = pos.extend_uniform(-context.font_size * 0.2);
+                    let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
+                    target.update(pos, context);
+                    let mods = &mut config.modifiers;
+                    let value = match target.preset {
+                        Modifier::NoFail => &mut mods.nofail,
+                        Modifier::Sudden => &mut mods.sudden,
+                        Modifier::Hidden => &mut mods.hidden,
+                    };
+                    if target.button.text.state.clicked {
+                        *value = !*value;
+                    }
+                    target.selected = *value;
                 }
-                // }
             }
         }
     }
@@ -128,7 +137,7 @@ impl PlayLevelWidget {
 
             config_current: 0.0,
             config_target: 0.0,
-            config_titles: ["Palette", "Difficulty"]
+            config_titles: ["Palette", "Difficulty", "Modifiers"]
                 .into_iter()
                 .map(TextWidget::new)
                 .collect(),
@@ -151,6 +160,11 @@ impl PlayLevelWidget {
                     .into_iter()
                     .map(|(name, preset)| PresetWidget::new(name, preset))
                     .collect(),
+                },
+                Configuring::Modifiers {
+                    presets: enum_iterator::all::<Modifier>()
+                        .map(|preset| PresetWidget::new(format!("{}", preset), preset))
+                        .collect(),
                 },
             ]
             .into_iter()
@@ -211,7 +225,7 @@ impl Widget for PlayLevelWidget {
                 .enumerate()
             {
                 let offset = i as f32 - self.config_current;
-                if offset.abs() > 1.0 {
+                if offset.abs() > 1.1 {
                     config_title.hide();
                 } else {
                     config_title.show();

@@ -6,6 +6,7 @@ pub struct LevelConfig {
     pub theme: Theme,
     pub player: PlayerConfig,
     pub health: HealthConfig,
+    pub modifiers: LevelModifiers,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -32,6 +33,63 @@ pub struct HealthConfig {
     pub danger_decrease_rate: Time,
     /// How much health restores per second while in light.
     pub restore_rate: Time,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct LevelModifiers {
+    /// You cannot fail the level.
+    pub nofail: bool,
+    /// No telegraphs.
+    pub sudden: bool,
+    /// Don't render lights.
+    pub hidden: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, enum_iterator::Sequence)]
+pub enum Modifier {
+    NoFail,
+    Sudden,
+    Hidden,
+}
+
+impl Display for Modifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Modifier::NoFail => write!(f, "Nofail"),
+            Modifier::Sudden => write!(f, "Sudden"),
+            Modifier::Hidden => write!(f, "Hidden"),
+        }
+    }
+}
+
+impl LevelModifiers {
+    pub fn from_enum(mods: &[Modifier]) -> Self {
+        let mut res = Self::default();
+        for &modifier in mods {
+            res.apply(modifier);
+        }
+        res
+    }
+
+    pub fn apply(&mut self, modifier: Modifier) {
+        match modifier {
+            Modifier::NoFail => self.nofail = true,
+            Modifier::Sudden => self.sudden = true,
+            Modifier::Hidden => self.hidden = true,
+        }
+    }
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for LevelModifiers {
+    fn default() -> Self {
+        Self {
+            nofail: false,
+            sudden: false,
+            hidden: false,
+        }
+    }
 }
 
 impl Default for PlayerConfig {
