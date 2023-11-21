@@ -53,8 +53,8 @@ impl ConfigWidget {
         self.state.update(position, context);
         match &mut self.configuring {
             Configuring::Palette { presets } => {
-                let mut selected = None;
-                for (pos, (i, target)) in layout::split_columns(position, presets.len())
+                // let mut selected = None;
+                for (pos, (_i, target)) in layout::split_columns(position, presets.len())
                     .into_iter()
                     .zip(presets.iter_mut().enumerate())
                 {
@@ -62,19 +62,20 @@ impl ConfigWidget {
                     let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
                     target.update(pos, context);
                     if target.button.text.state.clicked {
-                        selected = Some(i);
+                        // selected = Some(i);
                         config.theme = target.preset.clone();
                     }
                 }
-                if let Some(selected) = selected {
-                    for (i, preset) in presets.iter_mut().enumerate() {
-                        preset.selected = i == selected;
-                    }
+                // if let Some(selected) = selected {
+                for (_i, preset) in presets.iter_mut().enumerate() {
+                    // preset.selected = i == selected;
+                    preset.selected = preset.preset == config.theme;
                 }
+                // }
             }
             Configuring::Health { presets } => {
-                let mut selected = None;
-                for (pos, (i, target)) in layout::split_columns(position, presets.len())
+                // let mut selected = None;
+                for (pos, (_i, target)) in layout::split_columns(position, presets.len())
                     .into_iter()
                     .zip(presets.iter_mut().enumerate())
                 {
@@ -82,15 +83,16 @@ impl ConfigWidget {
                     let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
                     target.update(pos, context);
                     if target.button.text.state.clicked {
-                        selected = Some(i);
+                        // selected = Some(i);
                         config.health = target.preset.clone();
                     }
                 }
-                if let Some(selected) = selected {
-                    for (i, preset) in presets.iter_mut().enumerate() {
-                        preset.selected = i == selected;
-                    }
+                // if let Some(selected) = selected {
+                for (_i, preset) in presets.iter_mut().enumerate() {
+                    // preset.selected = i == selected;
+                    preset.selected = preset.preset == config.health;
                 }
+                // }
             }
         }
     }
