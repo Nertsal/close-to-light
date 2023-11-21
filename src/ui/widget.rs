@@ -10,7 +10,7 @@ pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
     group::GroupWidget,
-    level::PlayLevelWidget,
+    level::*,
     light::{LightStateWidget, LightWidget},
     text::TextWidget,
     timeline::TimelineWidget,

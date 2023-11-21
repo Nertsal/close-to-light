@@ -34,39 +34,6 @@ pub struct HealthConfig {
     pub restore_rate: Time,
 }
 
-impl LevelConfig {
-    pub fn preset_easy() -> Self {
-        Self {
-            health: HealthConfig {
-                max: r32(1.0),
-                dark_decrease_rate: r32(0.3),
-                danger_decrease_rate: r32(0.5),
-                restore_rate: r32(0.5),
-            },
-            ..default()
-        }
-    }
-
-    pub fn preset_normal() -> Self {
-        Self {
-            health: HealthConfig::preset_normal(),
-            ..default()
-        }
-    }
-
-    pub fn preset_hard() -> Self {
-        Self {
-            health: HealthConfig {
-                max: r32(1.0),
-                dark_decrease_rate: r32(1.0),
-                danger_decrease_rate: r32(2.0),
-                restore_rate: r32(0.25),
-            },
-            ..default()
-        }
-    }
-}
-
 impl Default for PlayerConfig {
     fn default() -> Self {
         Self { radius: r32(0.5) }
@@ -84,12 +51,30 @@ impl Default for Theme {
 }
 
 impl HealthConfig {
+    pub fn preset_easy() -> Self {
+        Self {
+            max: r32(1.0),
+            dark_decrease_rate: r32(0.3),
+            danger_decrease_rate: r32(0.5),
+            restore_rate: r32(0.5),
+        }
+    }
+
     pub fn preset_normal() -> Self {
         Self {
             max: r32(1.0),
             dark_decrease_rate: r32(0.6),
             danger_decrease_rate: r32(0.75),
             restore_rate: r32(0.35),
+        }
+    }
+
+    pub fn preset_hard() -> Self {
+        Self {
+            max: r32(1.0),
+            dark_decrease_rate: r32(1.0),
+            danger_decrease_rate: r32(2.0),
+            restore_rate: r32(0.25),
         }
     }
 }

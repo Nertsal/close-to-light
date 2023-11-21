@@ -2,20 +2,20 @@ use super::*;
 
 use crate::{
     menu::GroupEntry,
-    prelude::{Assets, LevelConfig},
+    prelude::{Assets, HealthConfig, LevelConfig, Theme},
     ui::layout,
 };
 
 // use geng_utils::bounded::Bounded;
 
-pub struct PresetWidget {
+pub struct PresetWidget<T> {
     pub button: ButtonWidget,
-    pub preset: LevelConfig,
+    pub preset: T,
     pub selected: bool,
 }
 
-impl PresetWidget {
-    pub fn new(name: impl Into<String>, preset: LevelConfig) -> Self {
+impl<T> PresetWidget<T> {
+    pub fn new(name: impl Into<String>, preset: T) -> Self {
         Self {
             button: ButtonWidget::new(name),
             preset,
@@ -24,13 +24,75 @@ impl PresetWidget {
     }
 }
 
-impl Widget for PresetWidget {
+impl<T> Widget for PresetWidget<T> {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.button.update(position, context);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
         self.button.walk_states_mut(f);
+    }
+}
+
+pub struct ConfigWidget {
+    pub state: WidgetState,
+    pub configuring: Configuring,
+}
+
+pub enum Configuring {
+    Palette {
+        presets: Vec<PresetWidget<Theme>>,
+    },
+    Health {
+        presets: Vec<PresetWidget<HealthConfig>>,
+    },
+}
+
+impl ConfigWidget {
+    fn update(&mut self, position: Aabb2<f32>, context: &UiContext, config: &mut LevelConfig) {
+        self.state.update(position, context);
+        match &mut self.configuring {
+            Configuring::Palette { presets } => {
+                let mut selected = None;
+                for (pos, (i, target)) in layout::split_columns(position, presets.len())
+                    .into_iter()
+                    .zip(presets.iter_mut().enumerate())
+                {
+                    let pos = pos.extend_uniform(-context.font_size * 0.2);
+                    let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
+                    target.update(pos, context);
+                    if target.button.text.state.clicked {
+                        selected = Some(i);
+                        config.theme = target.preset.clone();
+                    }
+                }
+                if let Some(selected) = selected {
+                    for (i, preset) in presets.iter_mut().enumerate() {
+                        preset.selected = i == selected;
+                    }
+                }
+            }
+            Configuring::Health { presets } => {
+                let mut selected = None;
+                for (pos, (i, target)) in layout::split_columns(position, presets.len())
+                    .into_iter()
+                    .zip(presets.iter_mut().enumerate())
+                {
+                    let pos = pos.extend_uniform(-context.font_size * 0.2);
+                    let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
+                    target.update(pos, context);
+                    if target.button.text.state.clicked {
+                        selected = Some(i);
+                        config.health = target.preset.clone();
+                    }
+                }
+                if let Some(selected) = selected {
+                    for (i, preset) in presets.iter_mut().enumerate() {
+                        preset.selected = i == selected;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -46,10 +108,10 @@ pub struct PlayLevelWidget {
     pub config_current: f32,
     pub config_target: f32,
     pub config_titles: Vec<TextWidget>,
+    pub configs_area: Aabb2<f32>,
+    pub configs: Vec<ConfigWidget>,
     pub prev_config: ButtonWidget,
     pub next_config: ButtonWidget,
-
-    pub presets: Vec<PresetWidget>,
     pub level_config: LevelConfig,
 }
 
@@ -64,20 +126,36 @@ impl PlayLevelWidget {
 
             config_current: 0.0,
             config_target: 0.0,
-            config_titles: ["Palette", "Presets"]
+            config_titles: ["Palette", "Difficulty"]
                 .into_iter()
                 .map(TextWidget::new)
                 .collect(),
             prev_config: ButtonWidget::new_textured("", &assets.sprites.button_prev),
             next_config: ButtonWidget::new_textured("", &assets.sprites.button_next),
-
-            presets: [
-                ("Easy", LevelConfig::preset_easy()),
-                ("Normal", LevelConfig::preset_normal()),
-                ("Hard", LevelConfig::preset_hard()),
+            configs_area: Aabb2::ZERO,
+            configs: [
+                Configuring::Palette {
+                    presets: [("Classic", Theme::default())]
+                        .into_iter()
+                        .map(|(name, preset)| PresetWidget::new(name, preset))
+                        .collect(),
+                },
+                Configuring::Health {
+                    presets: [
+                        ("Easy", HealthConfig::preset_easy()),
+                        ("Normal", HealthConfig::preset_normal()),
+                        ("Hard", HealthConfig::preset_hard()),
+                    ]
+                    .into_iter()
+                    .map(|(name, preset)| PresetWidget::new(name, preset))
+                    .collect(),
+                },
             ]
             .into_iter()
-            .map(|(name, preset)| PresetWidget::new(name, preset))
+            .map(|configuring| ConfigWidget {
+                state: WidgetState::new(),
+                configuring,
+            })
             .collect(),
             level_config: LevelConfig::default(),
         }
@@ -117,22 +195,37 @@ impl Widget for PlayLevelWidget {
             credits.update(credits_pos, &context.scale_font(0.75));
         }
 
+        // Config
         let main = main.extend_up(-context.font_size * 1.0);
         let (title, main) = layout::cut_top_down(main, context.font_size * 1.5);
         {
+            self.configs_area = main;
             let title = Aabb2::point(title.center())
                 .extend_symmetric(vec2(context.font_size * 5.0, title.height()) / 2.0);
-            for (i, config) in self.config_titles.iter_mut().enumerate() {
+            for (i, (config_title, config)) in self
+                .config_titles
+                .iter_mut()
+                .zip(&mut self.configs)
+                .enumerate()
+            {
                 let offset = i as f32 - self.config_current;
-                if offset > 1.0 {
-                    config.hide();
-                    continue;
+                if offset.abs() > 1.0 {
+                    config_title.hide();
+                } else {
+                    config_title.show();
+                    let offset = offset * title.width();
+                    let title = title.translate(vec2(offset, 0.0));
+                    config_title.update(title, context);
                 }
 
-                config.show();
-                let offset = offset * title.width();
-                let title = title.translate(vec2(offset, 0.0));
-                config.update(title, context);
+                if offset.abs() > 0.5 {
+                    config.state.hide();
+                } else {
+                    config.state.show();
+                    let offset = offset * main.width();
+                    let main = main.translate(vec2(offset, 0.0));
+                    config.update(main, context, &mut self.level_config);
+                }
             }
 
             let title = title.extend_symmetric(-vec2(0.0, context.font_size * 0.4) / 2.0);
@@ -161,26 +254,6 @@ impl Widget for PlayLevelWidget {
             };
             wrap(&mut self.config_target);
             wrap(&mut self.config_current);
-        }
-
-        // Presets
-        let mut selected = None;
-        for (pos, (i, target)) in layout::split_columns(main, self.presets.len())
-            .into_iter()
-            .zip(self.presets.iter_mut().enumerate())
-        {
-            let pos = pos.extend_uniform(-context.font_size * 0.2);
-            let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
-            target.update(pos, context);
-            if target.button.text.state.clicked {
-                selected = Some(i);
-                self.level_config = target.preset.clone();
-            }
-        }
-        if let Some(selected) = selected {
-            for (i, preset) in self.presets.iter_mut().enumerate() {
-                preset.selected = i == selected;
-            }
         }
     }
 

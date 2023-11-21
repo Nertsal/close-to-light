@@ -1,6 +1,9 @@
 use super::{util::UtilRender, *};
 
-use crate::menu::{MenuState, MenuUI};
+use crate::{
+    menu::{MenuState, MenuUI},
+    ui::widget::Configuring,
+};
 
 pub struct MenuRender {
     geng: Geng,
@@ -87,10 +90,27 @@ impl MenuRender {
             self.util
                 .draw_button_widget(&ui.level.next_config, framebuffer);
 
-            for preset in &ui.level.presets {
-                let mut button = preset.button.clone();
-                button.text.state.pressed = preset.selected;
-                self.util.draw_button_widget(&button, framebuffer);
+            // TODO: clip
+            for config in &ui.level.configs {
+                if !config.state.visible {
+                    continue;
+                }
+                match &config.configuring {
+                    Configuring::Palette { presets } => {
+                        for preset in presets {
+                            let mut button = preset.button.clone();
+                            button.text.state.pressed = preset.selected;
+                            self.util.draw_button_widget(&button, framebuffer);
+                        }
+                    }
+                    Configuring::Health { presets } => {
+                        for preset in presets {
+                            let mut button = preset.button.clone();
+                            button.text.state.pressed = preset.selected;
+                            self.util.draw_button_widget(&button, framebuffer);
+                        }
+                    }
+                }
             }
         }
     }

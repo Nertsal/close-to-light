@@ -57,7 +57,7 @@ fn main() {
         let assets = Rc::new(assets);
 
         if let Some(level_path) = opts.level {
-            let config = model::LevelConfig::preset_normal();
+            let config = model::LevelConfig::default();
             let (_, music, level) = menu::load_level(manager, &level_path)
                 .await
                 .expect("failed to load level");
