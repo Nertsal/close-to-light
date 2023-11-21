@@ -137,7 +137,7 @@ impl PlayLevelWidget {
             configs_area: Aabb2::ZERO,
             configs: [
                 Configuring::Palette {
-                    presets: [("Classic", Theme::default())]
+                    presets: [("Classic", Theme::default()), ("Test", Theme::test())]
                         .into_iter()
                         .map(|(name, preset)| PresetWidget::new(name, preset))
                         .collect(),
