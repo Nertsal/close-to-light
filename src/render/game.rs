@@ -31,26 +31,30 @@ impl GameRender {
         let camera = &model.camera;
         let theme = &model.config.theme;
 
-        // Telegraphs
-        for tele in &model.level_state.telegraphs {
-            let color = if tele.light.danger {
-                theme.danger
-            } else {
-                theme.light
-            };
-            self.util
-                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+        if !model.config.modifiers.sudden {
+            // Telegraphs
+            for tele in &model.level_state.telegraphs {
+                let color = if tele.light.danger {
+                    theme.danger
+                } else {
+                    theme.light
+                };
+                self.util
+                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+            }
         }
 
-        // Lights
-        for light in &model.level_state.lights {
-            let color = if light.danger {
-                theme.danger
-            } else {
-                theme.light
-            };
-            self.util
-                .draw_light(&light.collider, color, camera, &mut framebuffer);
+        if !model.config.modifiers.hidden {
+            // Lights
+            for light in &model.level_state.lights {
+                let color = if light.danger {
+                    theme.danger
+                } else {
+                    theme.light
+                };
+                self.util
+                    .draw_light(&light.collider, color, camera, &mut framebuffer);
+            }
         }
 
         let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;

@@ -90,7 +90,7 @@ impl Model {
                             .change(-self.config.health.dark_decrease_rate * delta_time);
                     }
 
-                    if self.player.health.is_min() {
+                    if !self.config.modifiers.nofail && self.player.health.is_min() {
                         self.lose();
                     }
                 }
