@@ -29,7 +29,7 @@ pub struct MenuState {
     pub show_group: Option<ShowGroup>,
     /// Switch to the group after current one finishes its animation.
     pub switch_group: Option<usize>,
-    play_level: Option<(LevelId, LevelConfig)>,
+    play_level: Option<(std::path::PathBuf, LevelConfig)>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,9 +40,8 @@ pub struct ShowGroup {
 
 pub struct GroupEntry {
     pub meta: GroupMeta,
+    pub levels: Vec<(std::path::PathBuf, LevelMeta)>,
     pub logo: Option<ugli::Texture>,
-    /// Path to the group directory.
-    pub path: std::path::PathBuf,
 }
 
 impl Debug for GroupEntry {
@@ -50,7 +49,7 @@ impl Debug for GroupEntry {
         f.debug_struct("GroupEntry")
             .field("meta", &self.meta)
             .field("logo", &self.logo.as_ref().map(|_| "<logo>"))
-            .field("path", &self.path)
+            .field("levels", &self.levels)
             .finish()
     }
 }
@@ -60,7 +59,7 @@ impl MenuState {
         self.switch_group = Some(group);
     }
 
-    fn play_level(&mut self, level: LevelId, config: LevelConfig) {
+    fn play_level(&mut self, level: std::path::PathBuf, config: LevelConfig) {
         self.play_level = Some((level, config));
     }
 }
@@ -88,7 +87,7 @@ impl LevelMenu {
         }
     }
 
-    fn play_level(&mut self, level: LevelId, config: LevelConfig) {
+    fn play_level(&mut self, level_path: std::path::PathBuf, config: LevelConfig) {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
@@ -96,8 +95,6 @@ impl LevelMenu {
 
             async move {
                 let manager = geng.asset_manager();
-                // let assets_path = run_dir().join("assets");
-                let level_path = level.get_path();
 
                 let (_, level_music, level) = load_level(manager, &level_path)
                     .await

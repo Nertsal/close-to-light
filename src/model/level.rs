@@ -13,10 +13,6 @@ pub struct GroupMeta {
     pub name: Name,
     /// Music info
     pub music: MusicMeta,
-    /// Normal level info.
-    pub normal: LevelMeta,
-    /// Hard level info.
-    pub hard: LevelMeta,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -28,6 +24,7 @@ pub struct MusicMeta {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelMeta {
+    pub name: Name,
     pub author: Name,
 }
 

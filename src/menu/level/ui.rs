@@ -6,7 +6,7 @@ pub struct MenuUI {
     pub ctl_logo: WidgetState,
     pub groups_state: WidgetState,
     pub groups: Vec<GroupWidget>,
-    pub level: PlayLevelWidget,
+    pub play_group: LevelGroupWidget,
 }
 
 impl MenuUI {
@@ -15,7 +15,7 @@ impl MenuUI {
             ctl_logo: default(),
             groups_state: default(),
             groups: Vec::new(),
-            level: PlayLevelWidget::new(assets),
+            play_group: LevelGroupWidget::new(assets),
         }
     }
 
@@ -120,30 +120,26 @@ impl MenuUI {
             let offscreen = screen.max.x - level.min.x;
             let target = offscreen * (1.0 - t);
             let level = level.translate(vec2(target, 0.0));
-            update!(self.level, level);
-            self.level.update_time(delta_time);
+            update!(self.play_group, level);
+            self.play_group.update_time(delta_time);
 
             if let Some(group) = state.groups.get(group.group) {
-                self.level.set_group(group);
-                self.level.show();
+                self.play_group.set_group(group);
+                self.play_group.show();
 
                 // Play level
-                if self.level.level_normal.text.state.clicked {
-                    let level = LevelId {
-                        group: group.path.clone(),
-                        level: LevelVariation::Normal,
-                    };
-                    state.play_level(level, self.level.level_config.clone());
-                } else if self.level.level_hard.text.state.clicked {
-                    let level = LevelId {
-                        group: group.path.clone(),
-                        level: LevelVariation::Hard,
-                    };
-                    state.play_level(level, self.level.level_config.clone());
+                let mut play = None;
+                for ((level_path, _), level) in group.levels.iter().zip(&self.play_group.levels) {
+                    if level.play.text.state.clicked {
+                        play = Some(level_path.clone());
+                    }
+                }
+                if let Some(level_path) = play {
+                    state.play_level(level_path, self.play_group.level_config.clone());
                 }
             }
         } else {
-            self.level.hide();
+            self.play_group.hide();
         }
     }
 }

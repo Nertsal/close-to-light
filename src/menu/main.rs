@@ -69,9 +69,9 @@ impl MainMenu {
             async move {
                 let manager = geng.asset_manager();
                 let assets_path = run_dir().join("assets");
-                let levels_path = assets_path.join("levels");
+                let groups_path = assets_path.join("groups");
 
-                let groups = load_groups(manager, &levels_path)
+                let groups = load_groups(manager, &groups_path)
                     .await
                     .expect("failed to load groups");
                 LevelMenu::new(&geng, &assets, groups)

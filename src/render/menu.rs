@@ -63,35 +63,30 @@ impl MenuRender {
             );
         }
 
-        if ui.level.state.visible {
+        if ui.play_group.state.visible {
             self.util.draw_outline(
-                &Collider::aabb(ui.level.state.position.map(r32)),
+                &Collider::aabb(ui.play_group.state.position.map(r32)),
                 font_size * 0.2,
                 state.theme.light,
                 camera,
                 framebuffer,
             );
 
-            self.util
-                .draw_button_widget(&ui.level.level_normal, framebuffer);
-            self.util
-                .draw_text_widget(&ui.level.credits_normal, framebuffer);
+            for level in &ui.play_group.levels {
+                self.util.draw_button_widget(&level.play, framebuffer);
+                self.util.draw_text_widget(&level.credits, framebuffer);
+            }
 
-            self.util
-                .draw_button_widget(&ui.level.level_hard, framebuffer);
-            self.util
-                .draw_text_widget(&ui.level.credits_hard, framebuffer);
-
-            for title in &ui.level.config_titles {
+            for title in &ui.play_group.config_titles {
                 self.util.draw_text_widget(title, framebuffer);
             }
             self.util
-                .draw_button_widget(&ui.level.prev_config, framebuffer);
+                .draw_button_widget(&ui.play_group.prev_config, framebuffer);
             self.util
-                .draw_button_widget(&ui.level.next_config, framebuffer);
+                .draw_button_widget(&ui.play_group.next_config, framebuffer);
 
             // TODO: clip
-            for config in &ui.level.configs {
+            for config in &ui.play_group.configs {
                 if !config.state.visible {
                     continue;
                 }

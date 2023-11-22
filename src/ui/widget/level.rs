@@ -107,12 +107,14 @@ impl ConfigWidget {
     }
 }
 
-pub struct PlayLevelWidget {
+pub struct LevelWidget {
+    pub play: ButtonWidget,
+    pub credits: TextWidget,
+}
+
+pub struct LevelGroupWidget {
     pub state: WidgetState,
-    pub level_normal: ButtonWidget,
-    pub credits_normal: TextWidget,
-    pub level_hard: ButtonWidget,
-    pub credits_hard: TextWidget,
+    pub levels: Vec<LevelWidget>,
 
     /// What we are currently configuring.
     /// Float for animating.
@@ -126,14 +128,34 @@ pub struct PlayLevelWidget {
     pub level_config: LevelConfig,
 }
 
-impl PlayLevelWidget {
+impl LevelWidget {
+    pub fn new() -> Self {
+        Self {
+            play: ButtonWidget::new("<level name>"),
+            credits: TextWidget::new("by <author>"),
+        }
+    }
+}
+
+impl Widget for LevelWidget {
+    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        let pos = layout::fit_aabb_height(vec2(4.0, 2.0), position, 0.5);
+        let (button_pos, credits_pos) = layout::cut_top_down(pos, context.font_size * 1.2);
+        self.play.update(button_pos, context);
+        self.credits.update(credits_pos, &context.scale_font(0.75));
+    }
+
+    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
+        self.play.walk_states_mut(f);
+        self.credits.walk_states_mut(f);
+    }
+}
+
+impl LevelGroupWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
-            level_normal: ButtonWidget::new("Normal"),
-            credits_normal: TextWidget::new("<normal credits>"),
-            level_hard: ButtonWidget::new("Hard"),
-            credits_hard: TextWidget::new("<hard credits>"),
+            levels: vec![],
 
             config_current: 0.0,
             config_target: 0.0,
@@ -178,8 +200,15 @@ impl PlayLevelWidget {
     }
 
     pub fn set_group(&mut self, group: &GroupEntry) {
-        self.credits_normal.text = format!("by {}", group.meta.normal.author);
-        self.credits_hard.text = format!("by {}", group.meta.hard.author);
+        self.levels.truncate(group.levels.len());
+        for _ in 0..group.levels.len() - self.levels.len() {
+            self.levels.push(LevelWidget::new());
+        }
+
+        for (level, (_, meta)) in self.levels.iter_mut().zip(&group.levels) {
+            level.play.text.text = meta.name.to_string();
+            level.credits.text = format!("by {}", meta.author);
+        }
     }
 
     // TODO: move to Widget
@@ -189,7 +218,7 @@ impl PlayLevelWidget {
     }
 }
 
-impl Widget for PlayLevelWidget {
+impl Widget for LevelGroupWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
 
@@ -197,18 +226,12 @@ impl Widget for PlayLevelWidget {
 
         // Levels
         let (levels_pos, main) = layout::cut_top_down(main, context.font_size * 2.5);
-        let levels = [
-            (&mut self.level_normal, &mut self.credits_normal),
-            (&mut self.level_hard, &mut self.credits_hard),
-        ];
-        for (pos, (button, credits)) in layout::split_columns(levels_pos, levels.len())
+        let levels = &mut self.levels;
+        for (pos, level) in layout::split_columns(levels_pos, levels.len())
             .into_iter()
             .zip(levels)
         {
-            let pos = layout::fit_aabb_height(vec2(4.0, 3.0), pos, 0.5);
-            let (button_pos, credits_pos) = layout::cut_top_down(pos, context.font_size * 1.2);
-            button.update(button_pos, context);
-            credits.update(credits_pos, &context.scale_font(0.75));
+            level.update(pos, context);
         }
 
         // Config
@@ -275,10 +298,9 @@ impl Widget for PlayLevelWidget {
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
         self.state.walk_states_mut(f);
-        self.level_normal.walk_states_mut(f);
-        self.credits_normal.walk_states_mut(f);
-        self.level_hard.walk_states_mut(f);
-        self.credits_hard.walk_states_mut(f);
+        for level in &mut self.levels {
+            level.walk_states_mut(f);
+        }
         self.prev_config.walk_states_mut(f);
         self.next_config.walk_states_mut(f);
     }

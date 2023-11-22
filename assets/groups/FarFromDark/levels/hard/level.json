@@ -1,6 +1,5 @@
 {
   "config": {
-    "bpm": 170.0,
     "health": {
       "max": 1.5,
       "dark_decrease_rate": 1.0,
