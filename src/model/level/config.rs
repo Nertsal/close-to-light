@@ -63,24 +63,6 @@ impl Display for Modifier {
     }
 }
 
-impl LevelModifiers {
-    pub fn from_enum(mods: &[Modifier]) -> Self {
-        let mut res = Self::default();
-        for &modifier in mods {
-            res.apply(modifier);
-        }
-        res
-    }
-
-    pub fn apply(&mut self, modifier: Modifier) {
-        match modifier {
-            Modifier::NoFail => self.nofail = true,
-            Modifier::Sudden => self.sudden = true,
-            Modifier::Hidden => self.hidden = true,
-        }
-    }
-}
-
 #[allow(clippy::derivable_impls)]
 impl Default for LevelModifiers {
     fn default() -> Self {
