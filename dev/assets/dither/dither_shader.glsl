@@ -16,9 +16,13 @@ void main() {
 #ifdef FRAGMENT_SHADER
 
 uniform float u_time;
-uniform vec4 u_bg_color;
 uniform vec2 u_framebuffer_size;
 uniform vec2 u_pattern_size;
+
+uniform vec4 u_color_dark;
+uniform vec4 u_color_light;
+uniform vec4 u_color_danger;
+
 uniform sampler2D u_texture;
 uniform sampler2D u_dither1;
 uniform sampler2D u_dither2;
@@ -76,65 +80,58 @@ float noise(vec3 x) {
                    mix( hash(n + dot(step, vec3(0, 1, 1))), hash(n + dot(step, vec3(1, 1, 1))), u.x), u.y), u.z);
 }
 
-vec3 rgb2hsv(vec3 c) {
-    vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-    vec4 p = mix(vec4(c.bg, k.wz), vec4(c.gb, k.xy), step(c.b, c.g));
-    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
-    float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10;
-    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
-
-vec3 hsv2rgb(vec3 c) {
-    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+vec2 get_pixel_pos() {
+	return v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
 }
 
 float dither(float amp) {
-	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
-	vec3 color;
+	vec2 pixel_pos = get_pixel_pos();
 	if (amp < 0.125) {
-		color = vec3(0.0);
+		return 0.0;
 	} else if (amp < 0.125 + 0.25) {
-		color = texture2D(u_dither1, pixel_pos).rgb;
+		return texture2D(u_dither1, pixel_pos).r;
 	} else if (amp < 0.125 + 0.5) {
-		color = texture2D(u_dither2, pixel_pos).rgb;
+		return texture2D(u_dither2, pixel_pos).r;
 	} else if (amp < 0.125 + 0.75) {
-		color = texture2D(u_dither3, pixel_pos).rgb;
-	} else {
-		color = vec3(1.0);
+		return texture2D(u_dither3, pixel_pos).r;
 	}
-	return color.r; // Assume gray-scale
+	return 1.0;
 }
 
-vec4 dither(float amp, vec3 light_color) {
-	float r = dither(amp * light_color.r);
-	float g = dither(amp * light_color.g);
-	float b = dither(amp * light_color.b);
-	float t = max(max(r, g), b);
+float dither_inverted(float amp) {
+	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
+	if (amp < 0.125) {
+		return 0.0;
+	} else if (amp < 0.125 + 0.25) {
+		return 1.0 - texture2D(u_dither3, pixel_pos).r;
+	} else if (amp < 0.125 + 0.5) {
+		return 1.0 - texture2D(u_dither2, pixel_pos).r;
+	} else if (amp < 0.125 + 0.75) {
+		return 1.0 - texture2D(u_dither1, pixel_pos).r;
+	}
+	return 1.0;
+}
 
-	vec4 dark = u_bg_color;
-	vec4 light = vec4(r, g, b, 1.0);
-	return dark + (light - dark) * t;
+vec4 dither_final(vec2 amps) {
+	float noise_light = 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
+	float noise_danger = 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
+	
+	float amp_light = amps.g + noise_light;
+	float amp_danger = amps.r + noise_danger;
+	float total = amp_light + amp_danger;
+	if (total > 1.0) {
+		amp_light /= total;
+		amp_danger /= total;
+	}
+	
+	if (dither_inverted(amp_danger) > 0.0) return u_color_danger;
+	if (dither(amp_light) > 0.0) return u_color_light;
+	
+	return u_color_dark;
 }
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-
-	// Noise
-	vec2 pixel_pos = v_vt * u_framebuffer_size / u_pattern_size + vec2(0.5) / u_framebuffer_size;
-	float amp = 0.1 * (noise(vec3(u_time * 16.0, pixel_pos * 2.0)) * 2.0 - 1.0);
-
-	vec3 light_color = rgb2hsv(in_color.rgb);
-	if (light_color.z > 0.0) {
-		light_color.z = 1.0; // Value always 1 unless it is 0 (black)
-	}
-	light_color = hsv2rgb(light_color);
-	vec4 color = dither(in_color.a + amp, light_color);
-
-	gl_FragColor = color;
-	// gl_FragColor = vec4(light_color, 1.0);
+	gl_FragColor = dither_final(in_color.rg);
 }
 #endif
