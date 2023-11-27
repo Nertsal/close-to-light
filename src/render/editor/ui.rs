@@ -16,9 +16,7 @@ impl EditorRender {
         ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
         let font_size = ui.screen.position.height() * 0.04;
-        let options = TextRenderOptions::new(font_size)
-            .color(theme.light)
-            .align(vec2(0.5, 1.0));
+        let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
 
         {
             // Level info
@@ -58,7 +56,7 @@ impl EditorRender {
                 let color = if widget.state.hovered {
                     editor.config.theme.hover
                 } else {
-                    theme.light
+                    THEME.light
                 };
                 self.util.draw_light(
                     &collider,
@@ -104,9 +102,9 @@ impl EditorRender {
             let mut collider = Collider::new(vec2::ZERO, light.shape);
             collider.rotation = light.movement.initial.rotation;
             let color = if light.danger {
-                theme.danger
+                THEME.danger
             } else {
-                theme.light
+                THEME.light
             };
             self.util.draw_light(
                 &collider,

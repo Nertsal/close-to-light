@@ -61,7 +61,7 @@ impl GameRender {
         if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
             self.util
-                .draw_button(&button, "RESTART", theme, camera, &mut framebuffer);
+                .draw_button(&button, "RESTART", &THEME, camera, &mut framebuffer);
 
             self.util.draw_text(
                 "made in rust btw",

@@ -129,6 +129,7 @@ impl EditorState {
         music: Music,
         level_path: std::path::PathBuf,
     ) -> Self {
+        let level_path = level_path.join("level.json"); // TODO: check and convenience
         let model = Model::empty(&assets, game_config, level.clone(), music.clone());
         Self {
             transition: None,
