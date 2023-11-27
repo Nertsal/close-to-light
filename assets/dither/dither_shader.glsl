@@ -114,7 +114,7 @@ float dither_inverted(float amp) {
 
 vec4 dither_final(vec2 amps) {
 	float noise_light = 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
-	float noise_danger = 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(1000.0)) * 2.0)) * 2.0 - 1.0);
+	float noise_danger = 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
 	
 	float amp_light = amps.g + noise_light;
 	float amp_danger = amps.r + noise_danger;
@@ -132,6 +132,6 @@ vec4 dither_final(vec2 amps) {
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-	gl_FragColor = vec4(dither_final(in_color.rg).rgb, 1.0);
+	gl_FragColor = dither_final(in_color.rg);
 }
 #endif
