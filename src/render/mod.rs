@@ -6,6 +6,12 @@ pub mod util;
 
 use crate::prelude::*;
 
+pub const THEME: Theme = Theme {
+    dark: Color::BLACK,
+    light: Color::GREEN,
+    danger: Color::RED,
+};
+
 pub fn smooth_button(button: &HoverButton, time: Time) -> HoverButton {
     // Appear at 1.0
     // Fade in until 2.0

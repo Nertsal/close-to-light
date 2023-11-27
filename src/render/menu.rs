@@ -24,14 +24,9 @@ impl MenuRender {
         let font_size = framebuffer.size().y as f32 * 0.04;
         let camera = &geng::PixelPerfectCamera;
 
-        geng_utils::texture::draw_texture_fit_height(
-            &self.assets.sprites.title,
-            ui.ctl_logo.position,
-            0.5,
-            camera,
-            &self.geng,
-            framebuffer,
-        );
+        geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
+            .fit_height(ui.ctl_logo.position, 0.5)
+            .draw(camera, &self.geng, framebuffer);
 
         for (group, entry) in ui.groups.iter().zip(&state.groups) {
             if let Some(logo) = &entry.logo {

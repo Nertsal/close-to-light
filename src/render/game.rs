@@ -35,9 +35,9 @@ impl GameRender {
             // Telegraphs
             for tele in &model.level_state.telegraphs {
                 let color = if tele.light.danger {
-                    theme.danger
+                    THEME.danger
                 } else {
-                    theme.light
+                    THEME.light
                 };
                 self.util
                     .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
@@ -48,9 +48,9 @@ impl GameRender {
             // Lights
             for light in &model.level_state.lights {
                 let color = if light.danger {
-                    theme.danger
+                    THEME.danger
                 } else {
-                    theme.light
+                    THEME.light
                 };
                 self.util
                     .draw_light(&light.collider, color, camera, &mut framebuffer);
@@ -66,7 +66,7 @@ impl GameRender {
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(theme.dark),
+                TextRenderOptions::new(0.7).color(THEME.dark),
                 camera,
                 &mut framebuffer,
             );
@@ -75,7 +75,7 @@ impl GameRender {
                 self.util.draw_text(
                     text,
                     position.as_r32(),
-                    TextRenderOptions::new(size).align(align).color(theme.light),
+                    TextRenderOptions::new(size).align(align).color(THEME.light),
                     camera,
                     &mut framebuffer,
                 );
@@ -142,14 +142,14 @@ impl GameRender {
             self.util.draw_text(
                 format!("SCORE: {:.0}", model.score),
                 vec2(0.0, 4.5).as_r32(),
-                TextRenderOptions::new(0.7).color(theme.light),
+                TextRenderOptions::new(0.7).color(THEME.light),
                 camera,
                 &mut framebuffer,
             );
         }
 
         self.util
-            .draw_player(&model.player, theme, camera, &mut framebuffer);
+            .draw_player(&model.player, camera, &mut framebuffer);
 
         if !fading {
             match model.state {
@@ -158,7 +158,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(theme.light),
+                        TextRenderOptions::new(1.0).color(THEME.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -167,7 +167,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(theme.light),
+                        TextRenderOptions::new(1.0).color(THEME.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -179,22 +179,17 @@ impl GameRender {
             self.util.draw_health(
                 &model.player.health,
                 model.player.get_lit_state(),
-                &model.config.theme,
+                // &model.config.theme,
                 &mut framebuffer,
             );
         }
 
-        self.dither.finish(model.real_time, theme.dark);
+        self.dither.finish(model.real_time, theme);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
-        geng_utils::texture::draw_texture_fit(
-            self.dither.get_buffer(),
-            aabb,
-            vec2(0.5, 0.5),
-            &geng::PixelPerfectCamera,
-            &self.geng,
-            old_framebuffer,
-        );
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit(aabb, vec2(0.5, 0.5))
+            .draw(&geng::PixelPerfectCamera, &self.geng, old_framebuffer);
     }
 
     pub fn draw_ui(&mut self, _model: &Model, _framebuffer: &mut ugli::Framebuffer) {

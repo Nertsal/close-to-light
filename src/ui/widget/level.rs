@@ -64,7 +64,7 @@ impl ConfigWidget {
                     let pos = layout::fit_aabb(vec2(4.0, 2.0), pos, vec2(0.5, 1.0));
                     target.update(pos, context);
                     if target.button.text.state.clicked {
-                        config.theme = target.preset.clone();
+                        config.theme = target.preset;
                     }
                     target.selected = target.preset == config.theme;
                 }

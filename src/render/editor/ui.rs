@@ -71,7 +71,7 @@ impl EditorRender {
                     &mut dither_buffer,
                 );
                 self.dither_small
-                    .finish(editor.real_time, Color::TRANSPARENT_BLACK);
+                    .finish(editor.real_time, &theme.transparent());
 
                 let size = ui.light_size.as_f32();
                 let pos = geng_utils::layout::aabb_pos(widget.state.position, vec2(0.5, 0.5));
@@ -119,7 +119,7 @@ impl EditorRender {
                 &mut dither_buffer,
             );
             self.dither_small
-                .finish(editor.real_time, Color::TRANSPARENT_BLACK);
+                .finish(editor.real_time, &theme.transparent());
 
             let size = ui.light_size.as_f32();
             let pos = geng_utils::layout::aabb_pos(

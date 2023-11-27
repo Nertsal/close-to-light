@@ -488,7 +488,7 @@ impl UtilRender {
     pub fn draw_player(
         &self,
         player: &Player,
-        theme: &Theme,
+        // theme: &Theme,
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -498,8 +498,8 @@ impl UtilRender {
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
                 LitState::Dark => continue, // (theme.light, theme.dark),
-                LitState::Light => (theme.dark, theme.light),
-                LitState::Danger => (theme.dark, theme.danger),
+                LitState::Light => (THEME.dark, THEME.light), // (theme.dark, theme.light),
+                LitState::Danger => (THEME.dark, THEME.danger), // (theme.dark, theme.danger),
             };
             self.geng.draw2d().draw2d(
                 framebuffer,
@@ -514,16 +514,19 @@ impl UtilRender {
         let player = player
             .collider
             .transformed(Transform { scale, ..default() });
-        self.draw_outline(&player, 0.05, theme.light, camera, framebuffer);
+        // self.draw_outline(&player, 0.05, theme.light, camera, framebuffer);
+        self.draw_outline(&player, 0.05, THEME.light, camera, framebuffer);
     }
 
     pub fn draw_health(
         &self,
         health: &Lifetime,
         state: LitState,
-        theme: &Theme,
+        // theme: &Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let theme = THEME;
+
         let camera = &geng::PixelPerfectCamera;
         let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
         let font_size = screen.height() * 0.05;

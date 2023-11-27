@@ -5,7 +5,7 @@ impl EditorRender {
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
 
-        let mut theme = editor.model.config.theme.clone();
+        let mut theme = editor.model.config.theme;
         if editor.level_state.relevant().swap_palette {
             std::mem::swap(&mut theme.light, &mut theme.dark);
         }
@@ -15,8 +15,7 @@ impl EditorRender {
 
         macro_rules! draw_game {
             ($alpha:expr) => {{
-                self.dither
-                    .finish(editor.real_time, Color::TRANSPARENT_BLACK);
+                self.dither.finish(editor.real_time, &theme.transparent());
                 self.geng.draw2d().textured_quad(
                     game_buffer,
                     &geng::PixelPerfectCamera,
@@ -29,8 +28,8 @@ impl EditorRender {
         }
 
         // Level
-        let light_color = theme.light;
-        let danger_color = theme.danger;
+        let light_color = THEME.light;
+        let danger_color = THEME.danger;
 
         let active_danger = if let State::Movement { light, .. } = &editor.state {
             light.light.danger
@@ -191,7 +190,7 @@ impl EditorRender {
                     rotation: editor.place_rotation,
                     shape: shape.scaled(editor.place_scale),
                 };
-                let color = if danger { theme.danger } else { theme.light };
+                let color = if danger { THEME.danger } else { THEME.light };
                 self.util.draw_outline(
                     &collider,
                     0.05,
@@ -266,7 +265,7 @@ impl EditorRender {
                             self.util.draw_text(
                                 format!("{}", i + 1),
                                 point.collider.position,
-                                TextRenderOptions::new(1.5).color(theme.light),
+                                TextRenderOptions::new(1.5).color(THEME.light),
                                 &editor.model.camera,
                                 &mut pixel_buffer,
                             );
@@ -279,7 +278,7 @@ impl EditorRender {
                                             self.util.draw_text(
                                                 format!("at {}", beat),
                                                 point.collider.position - vec2(0.0, 0.6).as_r32(),
-                                                TextRenderOptions::new(0.6).color(theme.light),
+                                                TextRenderOptions::new(0.6).color(THEME.light),
                                                 &editor.model.camera,
                                                 &mut pixel_buffer,
                                             );
@@ -355,14 +354,9 @@ impl EditorRender {
                 }
             }
 
-            geng_utils::texture::draw_texture_fit(
-                &self.ui_texture,
-                screen_aabb,
-                vec2(0.5, 0.5),
-                &geng::PixelPerfectCamera,
-                &self.geng,
-                game_buffer,
-            );
+            geng_utils::texture::DrawTexture::new(&self.ui_texture)
+                .fit(screen_aabb, vec2(0.5, 0.5))
+                .draw(&geng::PixelPerfectCamera, &self.geng, game_buffer);
         }
 
         if !options.hide_ui {
@@ -373,7 +367,7 @@ impl EditorRender {
             let font_size = framebuffer_size.y * 0.05;
             let font = self.geng.default_font();
             let text_color = theme.light;
-            // let outline_color = crate::render::COLOR_DARK;
+            // let outline_color = crate::render::THEME.dark;
             // let outline_size = 0.05;
 
             // Current beat / Fade in/out
