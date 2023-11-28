@@ -153,7 +153,7 @@ impl EditorRender {
                     + light.telegraph.precede_time;
                 let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
                     let event = commit_light(light.clone());
-                    let (tele, light) = render_light(&event, time, None);
+                    let (tele, light) = render_light(&event, time, None, &editor.model.config);
                     for tele in tele {
                         draw_telegraph(&tele, pixel_buffer);
                     }

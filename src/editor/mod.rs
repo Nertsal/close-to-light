@@ -437,8 +437,10 @@ impl Editor {
             (Some(time), dynamic)
         };
 
-        let static_level = static_time.map(|time| LevelState::render(&self.level, time, None));
-        let dynamic_level = dynamic_time.map(|time| LevelState::render(&self.level, time, None));
+        let static_level =
+            static_time.map(|time| LevelState::render(&self.level, &self.model.config, time, None));
+        let dynamic_level = dynamic_time
+            .map(|time| LevelState::render(&self.level, &self.model.config, time, None));
 
         // if let State::Movement {
         //     start_beat, light, ..

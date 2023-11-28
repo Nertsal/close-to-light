@@ -44,7 +44,8 @@ impl Model {
             State::Lost { death_beat_time } => Some(death_beat_time),
             _ => None,
         };
-        self.level_state = LevelState::render(&self.level, self.beat_time, ignore_time);
+        self.level_state =
+            LevelState::render(&self.level, &self.config, self.beat_time, ignore_time);
 
         // Check if the player is in light
         self.player.reset_distance();
