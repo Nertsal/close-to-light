@@ -116,6 +116,9 @@ pub struct LevelGroupWidget {
     pub state: WidgetState,
     pub levels: Vec<LevelWidget>,
 
+    pub title: Aabb2<f32>,
+    pub main: Aabb2<f32>,
+
     /// What we are currently configuring.
     /// Float for animating.
     pub config_current: f32,
@@ -156,6 +159,9 @@ impl LevelGroupWidget {
         Self {
             state: WidgetState::new(),
             levels: vec![],
+
+            title: Aabb2::ZERO,
+            main: Aabb2::ZERO,
 
             config_current: 0.0,
             config_target: 0.0,
@@ -241,6 +247,10 @@ impl Widget for LevelGroupWidget {
             self.configs_area = main;
             let title = Aabb2::point(title.center())
                 .extend_symmetric(vec2(context.font_size * 5.0, title.height()) / 2.0);
+
+            self.title = title;
+            self.main = main;
+
             for (i, (config_title, config)) in self
                 .config_titles
                 .iter_mut()
@@ -248,23 +258,22 @@ impl Widget for LevelGroupWidget {
                 .enumerate()
             {
                 let offset = i as f32 - self.config_current;
-                if offset.abs() > 1.1 {
-                    config_title.hide();
-                } else {
-                    config_title.show();
-                    let offset = offset * title.width();
-                    let title = title.translate(vec2(offset, 0.0));
-                    config_title.update(title, context);
-                }
+                // if offset.abs() > 1.1 {
+                //     config_title.hide();
+                // } else {
+                //     config_title.show();
+                let title = title.translate(vec2(offset * title.width(), 0.0));
+                config_title.update(title, context);
+                // }
 
-                if offset.abs() > 0.5 {
-                    config.state.hide();
-                } else {
-                    config.state.show();
-                    let offset = offset * main.width();
-                    let main = main.translate(vec2(offset, 0.0));
-                    config.update(main, context, &mut self.level_config);
-                }
+                // if offset.abs() > 0.5 {
+                //     config.state.hide();
+                // } else {
+                //     config.state.show();
+                let main =
+                    main.translate(vec2(offset * (main.width() + context.font_size * 2.0), 0.0));
+                config.update(main, context, &mut self.level_config);
+                // }
             }
 
             let title = title.extend_symmetric(-vec2(0.0, context.font_size * 0.4) / 2.0);

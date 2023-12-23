@@ -1,6 +1,7 @@
 pub mod dither;
 pub mod editor;
 pub mod game;
+pub mod mask;
 pub mod menu;
 pub mod util;
 

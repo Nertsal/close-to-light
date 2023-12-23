@@ -1,4 +1,4 @@
-use super::{util::UtilRender, *};
+use super::{mask::MaskedRender, util::UtilRender, *};
 
 use crate::{
     menu::{MenuState, MenuUI},
@@ -9,6 +9,7 @@ pub struct MenuRender {
     geng: Geng,
     assets: Rc<Assets>,
     util: UtilRender,
+    masked: MaskedRender,
 }
 
 impl MenuRender {
@@ -17,10 +18,13 @@ impl MenuRender {
             geng: geng.clone(),
             assets: assets.clone(),
             util: UtilRender::new(geng, assets),
+            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
         }
     }
 
     pub fn draw_ui(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
+        self.masked.update_size(framebuffer.size());
+
         let font_size = framebuffer.size().y as f32 * 0.04;
         let camera = &geng::PixelPerfectCamera;
 
@@ -72,15 +76,29 @@ impl MenuRender {
                 self.util.draw_text_widget(&level.credits, framebuffer);
             }
 
+            // Title clip
+            let mut buffer = self.masked.start();
+            buffer.mask_quad(ui.play_group.title);
             for title in &ui.play_group.config_titles {
-                self.util.draw_text_widget(title, framebuffer);
+                self.util.draw_text_widget(title, &mut buffer.color);
             }
+            self.masked.draw(
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+                framebuffer,
+            );
+
             self.util
                 .draw_button_widget(&ui.play_group.prev_config, framebuffer);
             self.util
                 .draw_button_widget(&ui.play_group.next_config, framebuffer);
 
-            // TODO: clip
+            // Main clip
+            let mut buffer = self.masked.start();
+            buffer.mask_quad(ui.play_group.main);
+
             for config in &ui.play_group.configs {
                 if !config.state.visible {
                     continue;
@@ -90,25 +108,37 @@ impl MenuRender {
                         for preset in presets {
                             let mut button = preset.button.clone();
                             button.text.state.pressed = preset.selected;
-                            self.util.draw_button_widget(&button, framebuffer);
+                            self.util.draw_button_widget(&button, &mut buffer.color);
                         }
                     }
                     Configuring::Health { presets } => {
                         for preset in presets {
                             let mut button = preset.button.clone();
                             button.text.state.pressed = preset.selected;
-                            self.util.draw_button_widget(&button, framebuffer);
+                            self.util.draw_button_widget(&button, &mut buffer.color);
                         }
                     }
                     Configuring::Modifiers { presets } => {
                         for preset in presets {
                             let mut button = preset.button.clone();
                             button.text.state.pressed = preset.selected;
-                            self.util.draw_button_widget(&button, framebuffer);
+                            self.util.draw_button_widget(&button, &mut buffer.color);
                         }
                     }
                 }
             }
+
+            self.masked.draw(
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+                framebuffer,
+            );
+
+            // geng_utils::texture::DrawTexture::new(self.masked.color_texture())
+            //     .fit_screen(vec2(0.5, 0.5), framebuffer)
+            //     .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer)
         }
     }
 }
