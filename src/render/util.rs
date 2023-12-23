@@ -92,7 +92,7 @@ impl UtilRender {
         let position = position.map(Float::as_f32);
         let transform = mat3::translate(position.map(Float::as_f32))
             * mat3::scale_uniform(options.size)
-            * mat3::translate(vec2(0.0, -0.25) - align);
+            * mat3::translate(vec2(0.0, 0.25) - align);
 
         let framebuffer_size = framebuffer.size();
 
