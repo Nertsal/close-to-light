@@ -13,3 +13,6 @@ parry2d = "0.13.5"
 serde = { version = "1.0.183", features = ["derive"] }
 jornet = { git = "https://github.com/kuviman/jornet" }
 enum-iterator = "1.4.1"
+
+[patch.crates-io]
+async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
