@@ -627,17 +627,6 @@
                     "rotation": 0.0,
                     "scale": 1.0
                   }
-                },
-                {
-                  "lerp_time": 2.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
                 }
               ]
             }
@@ -650,7 +639,7 @@
       }
     },
     {
-      "beat": 48.0,
+      "beat": 154.0,
       "event": {
         "Light": {
           "light": {
@@ -665,18 +654,40 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  2.5,
-                  -2.5
+                  5.0,
+                  2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
                       2.5
                     ],
                     "rotation": 0.0,
@@ -694,7 +705,7 @@
       }
     },
     {
-      "beat": 50.0,
+      "beat": 142.0,
       "event": {
         "Light": {
           "light": {
@@ -710,18 +721,40 @@
               "initial": {
                 "translation": [
                   -2.5,
-                  2.5
+                  -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       -2.5,
-                      -2.5
+                      2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -738,7 +771,7 @@
       }
     },
     {
-      "beat": 52.0,
+      "beat": 138.0,
       "event": {
         "Light": {
           "light": {
@@ -761,7 +794,18 @@
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       -0.0,
@@ -770,45 +814,12 @@
                     "rotation": 0.0,
                     "scale": 1.0
                   }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 54.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  -2.5,
-                  0.0
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
+                },
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      -2.5,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -826,7 +837,7 @@
       }
     },
     {
-      "beat": 56.0,
+      "beat": 134.0,
       "event": {
         "Light": {
           "light": {
@@ -841,7 +852,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  2.5,
+                  5.0,
                   -2.5
                 ],
                 "rotation": 0.0,
@@ -849,10 +860,98 @@
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
+                      5.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 130.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
                       -2.5
                     ],
                     "rotation": 0.0,
@@ -870,7 +969,7 @@
       }
     },
     {
-      "beat": 58.0,
+      "beat": 234.0,
       "event": {
         "Light": {
           "light": {
@@ -885,19 +984,41 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -2.5,
-                  0.0
+                  -5.0,
+                  2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       -0.0,
-                      2.5
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -914,7 +1035,7 @@
       }
     },
     {
-      "beat": 60.0,
+      "beat": 46.0,
       "event": {
         "Light": {
           "light": {
@@ -929,7 +1050,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -0.0,
+                  -2.5,
                   -0.0
                 ],
                 "rotation": 0.0,
@@ -937,7 +1058,29 @@
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       -0.0,
@@ -1012,17 +1155,6 @@
                     "rotation": 0.0,
                     "scale": 1.0
                   }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
                 }
               ]
             }
@@ -1073,17 +1205,6 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -1161,18 +1282,7 @@
                   "transform": {
                     "translation": [
                       0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -0.0
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1204,7 +1314,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -0.0,
+                  0.0,
                   -2.5
                 ],
                 "rotation": 0.0,
@@ -1227,7 +1337,7 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      -0.0
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1237,19 +1347,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      -0.0
+                      0.0,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1278,7 +1377,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 5.0,
               "initial": {
                 "translation": [
                   0.0,
@@ -1314,19 +1413,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      5.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      5.0,
-                      -0.0
+                      0.0,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1343,7 +1431,7 @@
       }
     },
     {
-      "beat": 82.0,
+      "beat": 222.0,
       "event": {
         "Light": {
           "light": {
@@ -1358,8 +1446,8 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  5.0,
-                  2.5
+                  0.0,
+                  -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -1370,46 +1458,67 @@
                   "transform": {
                     "translation": [
                       2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
                       2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
                 }
               ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 84.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 4.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -1432,10 +1541,10 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 4.0,
               "initial": {
                 "translation": [
-                  -0.0,
+                  -2.5,
                   2.5
                 ],
                 "rotation": 0.0,
@@ -1447,7 +1556,7 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      2.5
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1458,7 +1567,7 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      0.0
+                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1468,8 +1577,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      0.0
+                      0.0,
+                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1479,8 +1588,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      0.0
+                      0.0,
+                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1497,7 +1606,7 @@
       }
     },
     {
-      "beat": 90.0,
+      "beat": 92.0,
       "event": {
         "Light": {
           "light": {
@@ -1509,61 +1618,16 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 4.0,
               "initial": {
                 "translation": [
                   0.0,
-                  -2.5
+                  0.0
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -1589,13 +1653,24 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  0.0,
-                  -2.5
+                  -2.5,
+                  2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
               "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
                 {
                   "lerp_time": 1.0,
                   "transform": {
@@ -1611,29 +1686,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -5.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
+                      0.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -1666,7 +1719,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -5.0,
+                  2.5,
                   2.5
                 ],
                 "rotation": 0.0,
@@ -1677,79 +1730,13 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
+                      5.0,
                       0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
                 },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 102.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  -0.0,
-                  -2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
                 {
                   "lerp_time": 1.0,
                   "transform": {
@@ -1765,30 +1752,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      5.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      5.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      5.0,
-                      -0.0
+                      -0.0,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1820,181 +1785,6 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  5.0,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 110.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 5.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  -2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 116.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 4.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": []
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 118.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 4.0,
-              "initial": {
-                "translation": [
                   2.5,
                   2.5
                 ],
@@ -2006,7 +1796,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      5.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -2029,18 +1819,7 @@
                   "transform": {
                     "translation": [
                       0.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -2.5
+                      -0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -2057,39 +1836,7 @@
       }
     },
     {
-      "beat": 124.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 4.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  0.0
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": []
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 126.0,
+      "beat": 102.0,
       "event": {
         "Light": {
           "light": {
@@ -2116,7 +1863,7 @@
                   "transform": {
                     "translation": [
                       -5.0,
-                      -0.0
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -2127,237 +1874,6 @@
                   "transform": {
                     "translation": [
                       -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 130.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  2.5,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      5.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 134.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  -2.5,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -0.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 138.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  2.5,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      5.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
                       -2.5
                     ],
                     "rotation": 0.0,
@@ -2369,99 +1885,11 @@
                   "transform": {
                     "translation": [
                       0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 142.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
                       0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
                 }
               ]
             }
@@ -2474,161 +1902,7 @@
       }
     },
     {
-      "beat": 146.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  -2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      5.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 150.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  2.5
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 154.0,
+      "beat": 114.0,
       "event": {
         "Light": {
           "light": {
@@ -2666,6 +1940,138 @@
                   "transform": {
                     "translation": [
                       2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 110.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 122.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -2682,12 +2088,595 @@
                     "rotation": 0.0,
                     "scale": 1.0
                   }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 118.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 126.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 58.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
                 },
                 {
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 226.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 54.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 230.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 50.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 150.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 146.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
                       2.5
                     ],
                     "rotation": 0.0,
@@ -2720,7 +2709,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  0.0,
+                  2.5,
                   2.5
                 ],
                 "rotation": 0.0,
@@ -2731,47 +2720,57 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
                       -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -5.0,
-                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
                 }
               ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 161.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -2797,8 +2796,8 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -5.0,
-                  2.5
+                  -2.5,
+                  -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -2808,47 +2807,57 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      -5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
                       2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
                 }
               ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 165.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -2874,8 +2883,8 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  5.0,
-                  -2.5
+                  2.5,
+                  2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -2886,28 +2895,6 @@
                   "transform": {
                     "translation": [
                       5.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -2918,14 +2905,46 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      2.5,
+                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
                 }
               ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 169.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -2951,7 +2970,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -0.0,
+                  -2.5,
                   -2.5
                 ],
                 "rotation": 0.0,
@@ -2962,7 +2981,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      -5.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -2973,30 +2992,52 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
+                      -2.5,
                       2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
                   }
-                },
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 173.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
                 {
-                  "lerp_time": 1.0,
+                  "lerp_time": 0.0,
                   "transform": {
                     "translation": [
-                      -2.5,
-                      0.0
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      0.0
+                      0.0,
+                      2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3028,58 +3069,77 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -2.5,
+                  0.0,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 175.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 4.0,
+              "initial": {
+                "translation": [
+                  0.0,
                   -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 177.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -3105,8 +3165,8 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -5.0,
-                  2.5
+                  2.5,
+                  -0.0
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -3116,19 +3176,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -5.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -2.5
+                      2.5,
+                      2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3150,7 +3199,7 @@
                   "transform": {
                     "translation": [
                       -0.0,
-                      2.5
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3182,8 +3231,8 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -2.5,
-                  2.5
+                  0.0,
+                  -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -3204,8 +3253,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
-                      -2.5
+                      -2.5,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3215,19 +3264,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      2.5
+                      -0.0,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3259,8 +3297,8 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  5.0,
-                  2.5
+                  2.5,
+                  0.0
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -3270,29 +3308,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      5.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
+                      2.5,
                       2.5
                     ],
                     "rotation": 0.0,
@@ -3305,6 +3321,17 @@
                     "translation": [
                       0.0,
                       2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3336,58 +3363,109 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  2.5,
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 191.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 192.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 193.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
                   2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
-              "key_frames": [
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      -2.5,
-                      2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                }
-              ]
+              "key_frames": []
             }
           },
           "telegraph": {
@@ -3413,7 +3491,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  0.0,
+                  -0.0,
                   2.5
                 ],
                 "rotation": 0.0,
@@ -3421,7 +3499,7 @@
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       2.5,
@@ -3430,46 +3508,24 @@
                     "rotation": 0.0,
                     "scale": 1.0
                   }
-                }
-              ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 196.0,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  2.5,
-                  0.0
-                ],
-                "rotation": 0.0,
-                "scale": 1.0
-              },
-              "key_frames": [
+                },
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3501,13 +3557,24 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -2.5,
-                  -0.0
+                  -0.0,
+                  -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
               "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
                 {
                   "lerp_time": 1.0,
                   "transform": {
@@ -3523,18 +3590,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      -2.5
-                    ],
-                    "rotation": 0.0,
-                    "scale": 1.0
-                  }
-                },
-                {
-                  "lerp_time": 1.0,
-                  "transform": {
-                    "translation": [
-                      0.0,
+                      -5.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -3545,8 +3601,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
-                      0.0
+                      -2.5,
+                      2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3578,7 +3634,7 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -0.0,
+                  0.0,
                   2.5
                 ],
                 "rotation": 0.0,
@@ -3586,10 +3642,43 @@
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
                       -2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
                       2.5
                     ],
                     "rotation": 0.0,
@@ -3607,7 +3696,127 @@
       }
     },
     {
-      "beat": 204.0,
+      "beat": 207.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 208.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 210.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 212.0,
       "event": {
         "Light": {
           "light": {
@@ -3623,17 +3832,61 @@
               "initial": {
                 "translation": [
                   -2.5,
-                  0.0
+                  2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
               },
               "key_frames": [
                 {
-                  "lerp_time": 2.0,
+                  "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 214.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -3651,7 +3904,7 @@
       }
     },
     {
-      "beat": 206.0,
+      "beat": 216.0,
       "event": {
         "Light": {
           "light": {
@@ -3663,11 +3916,821 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 10.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 218.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 220.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 238.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 242.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 246.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 250.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 254.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 254.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
               "initial": {
                 "translation": [
                   2.5,
-                  0.0
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 258.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 259.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 260.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 261.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 260.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 261.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 263.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 263.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  -2.5
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -3688,8 +4751,202 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      0.0,
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 266.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 266.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 267.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 268.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 269.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 10.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
                       -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -3701,6 +4958,72 @@
                     "translation": [
                       0.0,
                       0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 269.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 10.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
