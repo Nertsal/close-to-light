@@ -33,21 +33,21 @@ impl Widget for GroupWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
 
-        let logo_size = position.height();
-        let (logo, position) = layout::cut_left_right(position, logo_size);
-        self.logo.update(logo, context);
+        // let logo_size = position.height();
+        // let (logo, position) = layout::cut_left_right(position, logo_size);
+        // self.logo.update(logo, context);
 
         // let (name, author) = layout::cut_top_down(position, context.font_size);
         let (name, author) = layout::split_top_down(position, 0.5);
-        let margin = context.font_size * 0.1;
-        let name = name.extend_down(-margin);
+        let margin = context.font_size * 0.2;
+        // let name = name.extend_down(-margin);
         let author = author.extend_up(-margin);
 
         self.name.update(name, context);
-        self.name.align(vec2(0.0, 0.0));
+        self.name.align(vec2(0.5, 0.0));
 
-        self.author.update(author, &context.scale_font(0.75));
-        self.author.align(vec2(0.0, 1.0));
+        self.author.update(author, &context.scale_font(0.5));
+        self.author.align(vec2(0.5, 1.0));
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
