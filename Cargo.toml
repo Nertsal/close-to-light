@@ -12,7 +12,7 @@ geng = "0.17.0"
 geng-utils = "0.3.0"
 parry2d = "0.13.5"
 serde = { version = "1.0.183", features = ["derive"] }
-nertboard-client = { path = "../nertboard/crates/nertboard-client" } # { git = "https://github.com/Nertsal/nertboard" }
+nertboard-client = { git = "https://github.com/Nertsal/nertboard", rev = "430f048e4d50cb34246ce2bd466e1d1689647d99" }
 enum-iterator = "1.4.1"
 
 [patch.crates-io]
