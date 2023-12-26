@@ -14,46 +14,63 @@ pub struct Game {
     transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
+    group_name: String,
+    level_name: String,
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
     cursor_pos: vec2<f64>,
     active_touch: Option<u64>,
 }
 
+pub struct PlayLevel {
+    pub group_name: String,
+    pub level_name: String,
+    pub config: LevelConfig,
+    pub level: Level,
+    pub music: Music,
+    pub start_time: Time,
+}
+
 impl Game {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        config: LevelConfig,
-        level: Level,
-        level_music: Music,
+        level: PlayLevel,
         leaderboard: Option<LeaderboardSecrets>,
         player_name: String,
-        start_time: Time,
     ) -> Self {
         Self::preloaded(
             geng,
             assets,
             Model::new(
                 assets,
-                config,
-                level,
-                level_music,
+                level.config,
+                level.level,
+                level.music,
                 leaderboard,
                 player_name,
-                start_time,
+                level.start_time,
             ),
+            level.group_name,
+            level.level_name,
         )
     }
 
-    fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
+    fn preloaded(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        model: Model,
+        group_name: String,
+        level_name: String,
+    ) -> Self {
         Self {
             geng: geng.clone(),
             leaderboard_handle: None,
             transition: None,
             render: GameRender::new(geng, assets),
             model,
+            group_name,
+            level_name,
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
@@ -65,14 +82,22 @@ impl Game {
             self.model.leaderboard = LeaderboardState::Pending;
             let player_name = self.model.player.name.clone();
             let submit_score = submit_score && !player_name.trim().is_empty();
-            let score = submit_score.then_some(self.model.score.as_f32() as i32);
+            let score = submit_score.then_some(self.model.score.as_f32().ceil() as i32);
             let secrets = secrets.clone();
 
+            let meta = crate::leaderboard::ScoreMeta {
+                version: 0,
+                group: self.group_name.clone(),
+                level: self.level_name.clone(),
+                mods: self.model.config.modifiers.clone(),
+                health: self.model.config.health.clone(),
+            };
             let handle = std::thread::spawn(move || {
                 let runtime = tokio::runtime::Runtime::new()?;
                 let leaderboard = runtime.block_on(crate::leaderboard::Leaderboard::submit(
                     player_name,
                     score,
+                    &meta,
                     secrets,
                 ));
                 Ok(leaderboard)

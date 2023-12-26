@@ -113,15 +113,21 @@ impl LevelMenu {
                     })
                 });
 
+                let (group_name, level_name) = crate::group_level_from_path(level_path);
+                let level = crate::game::PlayLevel {
+                    group_name,
+                    level_name,
+                    config,
+                    level,
+                    music: level_music,
+                    start_time: Time::ZERO,
+                };
                 crate::game::Game::new(
                     &geng,
                     &assets,
-                    config,
                     level,
-                    level_music,
                     secrets.map(|s| s.leaderboard),
                     player_name,
-                    Time::ZERO,
                 )
             }
         };

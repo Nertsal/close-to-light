@@ -20,6 +20,8 @@ pub struct EditorState {
     geng: Geng,
     assets: Rc<Assets>,
     transition: Option<geng::state::Transition>,
+    group_name: String,
+    level_name: String,
     render: EditorRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
@@ -129,9 +131,12 @@ impl EditorState {
         music: Music,
         level_path: std::path::PathBuf,
     ) -> Self {
+        let (group_name, level_name) = crate::group_level_from_path(&level_path);
         let level_path = level_path.join("level.json"); // TODO: check and convenience
         let model = Model::empty(&assets, game_config, level.clone(), music.clone());
         Self {
+            group_name,
+            level_name,
             transition: None,
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
@@ -178,17 +183,16 @@ impl EditorState {
 
     /// Start playing the game from the current time.
     fn play_game(&mut self) {
+        let level = crate::game::PlayLevel {
+            group_name: self.group_name.clone(),
+            level_name: self.level_name.clone(),
+            config: self.editor.model.config.clone(),
+            level: self.editor.level.clone(),
+            music: self.editor.music.clone(),
+            start_time: self.editor.current_beat * self.editor.music.beat_time(),
+        };
         self.transition = Some(geng::state::Transition::Push(Box::new(
-            crate::game::Game::new(
-                &self.geng,
-                &self.assets,
-                self.editor.model.config.clone(),
-                self.editor.level.clone(),
-                self.editor.music.clone(),
-                None,
-                String::new(),
-                self.editor.current_beat * self.editor.music.beat_time(),
-            ),
+            crate::game::Game::new(&self.geng, &self.assets, level, None, String::new()),
         )));
     }
 

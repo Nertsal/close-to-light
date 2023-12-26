@@ -88,12 +88,13 @@ impl GameRender {
                     0.7,
                     vec2(0.5, 1.0),
                 );
-                draw_text(
-                    &format!("HIGHSCORE: {:.0}", model.high_score),
-                    vec2(-3.0, -4.0),
-                    0.7,
-                    vec2(0.5, 1.0),
-                );
+                // TODO
+                // draw_text(
+                //     &format!("HIGHSCORE: {:.0}", model.high_score),
+                //     vec2(-3.0, -4.0),
+                //     0.7,
+                //     vec2(0.5, 1.0),
+                // );
 
                 // Leaderboard
                 match &model.leaderboard {
@@ -130,6 +131,12 @@ impl GameRender {
                             draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
                             pos.y -= 0.7;
                         }
+
+                        if leaderboard.top10.is_empty() {
+                            pos.y -= 1.0;
+                            draw_text("EMPTY :(", pos, 0.6, vec2(0.5, 1.0));
+                        }
+
                         for score in &leaderboard.top10 {
                             let font_size = 0.6;
                             draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));

@@ -81,16 +81,16 @@ fn main() {
                 geng.run_state(state).await;
             } else {
                 // Game
-                let state = game::Game::new(
-                    &geng,
-                    &assets,
+                let (group_name, level_name) = group_level_from_path(level_path);
+                let level = game::PlayLevel {
+                    group_name,
+                    level_name,
                     config,
                     level,
                     music,
-                    None,
-                    "".to_string(),
-                    prelude::Time::ZERO,
-                );
+                    start_time: prelude::Time::ZERO,
+                };
+                let state = game::Game::new(&geng, &assets, level, None, "".to_string());
                 geng.run_state(state).await;
             }
         } else {
@@ -99,4 +99,20 @@ fn main() {
             geng.run_state(state).await;
         }
     });
+}
+
+fn group_level_from_path(path: impl AsRef<std::path::Path>) -> (String, String) {
+    let path = path.as_ref();
+    let group_name = path
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_owned();
+    let level_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+    (group_name, level_name)
 }
