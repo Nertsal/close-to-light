@@ -1,7 +1,7 @@
 use crate::LeaderboardSecrets;
 
 use geng::prelude::*;
-use nertboard_client::ScoreEntry;
+use nertboard_client::{Player, ScoreEntry};
 
 pub struct Leaderboard {
     pub my_position: Option<usize>,
@@ -13,23 +13,22 @@ impl Leaderboard {
         let name = name.as_str();
         log::info!("Querying the leaderboard");
 
-        let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key));
+        let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap();
 
-        let player = if let Some(player) = preferences::load::<String>("player") {
+        let player = if let Some(mut player) = preferences::load::<Player>("player") {
             log::info!("Leaderboard: returning player");
-            if player == name {
+            if player.name == name {
                 // leaderboard.as_player(player.clone());
                 player
             } else {
                 log::info!("Leaderboard: name has changed");
-                // let player = leaderboard.create_player(Some(name)).await.unwrap();
+                player.name = name.to_owned();
                 preferences::save("player", &player);
                 player.clone()
             }
         } else {
             log::info!("Leaderboard: new player");
-            // let player = leaderboard.create_player(Some(name)).await.unwrap();
-            let player = name.to_owned();
+            let player = leaderboard.create_player(name).await.unwrap();
             preferences::save("player", &player);
             player.clone()
         };
@@ -38,11 +37,14 @@ impl Leaderboard {
         let meta = "v1".to_string();
         if let Some(score) = score {
             leaderboard
-                .submit_score(&ScoreEntry {
-                    player,
-                    score,
-                    extra_info: Some(meta.clone()),
-                })
+                .submit_score(
+                    &player,
+                    &ScoreEntry {
+                        player: player.name.clone(),
+                        score,
+                        extra_info: Some(meta.clone()),
+                    },
+                )
                 .await
                 .unwrap();
         }
