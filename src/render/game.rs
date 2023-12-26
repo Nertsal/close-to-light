@@ -107,6 +107,12 @@ impl GameRender {
                         pos.y -= 0.8;
                         draw_text("LOADING...", pos, 0.7, vec2(0.5, 1.0));
                     }
+                    LeaderboardState::Failed => {
+                        let mut pos = vec2(4.0, 2.5);
+                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
+                        pos.y -= 0.8;
+                        draw_text("FAILED TO LOAD", pos, 0.7, vec2(0.5, 1.0));
+                    }
                     LeaderboardState::Ready(leaderboard) => {
                         let mut pos = vec2(4.0, 2.5);
                         draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));

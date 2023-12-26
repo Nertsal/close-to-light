@@ -87,6 +87,7 @@ pub enum Transition {
 pub enum LeaderboardState {
     None,
     Pending,
+    Failed,
     Ready(Leaderboard),
 }
 

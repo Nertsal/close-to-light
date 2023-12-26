@@ -1,37 +1,35 @@
 use crate::LeaderboardSecrets;
 
 use geng::prelude::*;
+use nertboard_client::ScoreEntry;
 
 pub struct Leaderboard {
     pub my_position: Option<usize>,
-    pub top10: Vec<jornet::Score>,
+    pub top10: Vec<ScoreEntry>,
 }
 
 impl Leaderboard {
-    pub async fn submit(name: String, score: Option<f32>, secrets: LeaderboardSecrets) -> Self {
+    pub async fn submit(name: String, score: Option<i32>, secrets: LeaderboardSecrets) -> Self {
         let name = name.as_str();
         log::info!("Querying the leaderboard");
 
-        let mut leaderboard = jornet::Leaderboard::with_host_and_leaderboard(
-            None,
-            secrets.id.parse().unwrap(),
-            secrets.key.parse().unwrap(),
-        );
+        let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key));
 
-        let _player = if let Some(player) = preferences::load::<jornet::Player>("player") {
-            log::info!("Returning player");
-            if player.name == name {
-                leaderboard.as_player(player.clone());
+        let player = if let Some(player) = preferences::load::<String>("player") {
+            log::info!("Leaderboard: returning player");
+            if player == name {
+                // leaderboard.as_player(player.clone());
                 player
             } else {
-                log::info!("Name has changed");
-                let player = leaderboard.create_player(Some(name)).await.unwrap();
-                preferences::save("player", player);
+                log::info!("Leaderboard: name has changed");
+                // let player = leaderboard.create_player(Some(name)).await.unwrap();
+                preferences::save("player", &player);
                 player.clone()
             }
         } else {
-            log::info!("New player");
-            let player = leaderboard.create_player(Some(name)).await.unwrap();
+            log::info!("Leaderboard: new player");
+            // let player = leaderboard.create_player(Some(name)).await.unwrap();
+            let player = name.to_owned();
             preferences::save("player", &player);
             player.clone()
         };
@@ -40,16 +38,20 @@ impl Leaderboard {
         let meta = "v1".to_string();
         if let Some(score) = score {
             leaderboard
-                .send_score_with_meta(score, &meta)
+                .submit_score(&ScoreEntry {
+                    player,
+                    score,
+                    extra_info: Some(meta.clone()),
+                })
                 .await
                 .unwrap();
         }
 
-        let mut scores = leaderboard.get_leaderboard().await.unwrap();
-        scores.retain(|score| {
-            !score.player.is_empty() && score.meta.as_deref() == Some(meta.as_str())
+        let mut scores = leaderboard.fetch_scores().await.unwrap();
+        scores.retain(|entry| {
+            !entry.player.is_empty() && entry.extra_info.as_deref() == Some(meta.as_str())
         });
-        scores.sort_by_key(|score| -r32(score.score));
+        scores.sort_by_key(|entry| -entry.score);
 
         {
             // Only leave unique names

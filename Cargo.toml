@@ -7,11 +7,12 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.2", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
 geng = "0.17.0"
 geng-utils = "0.3.0"
 parry2d = "0.13.5"
 serde = { version = "1.0.183", features = ["derive"] }
-jornet = { git = "https://github.com/kuviman/jornet" }
+nertboard-client = { path = "../nertboard/crates/nertboard-client" } # { git = "https://github.com/Nertsal/nertboard" }
 enum-iterator = "1.4.1"
 
 [patch.crates-io]

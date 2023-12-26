@@ -33,7 +33,7 @@ struct Secrets {
 
 #[derive(Deserialize, Clone)]
 pub struct LeaderboardSecrets {
-    id: String,
+    url: String,
     key: String,
 }
 

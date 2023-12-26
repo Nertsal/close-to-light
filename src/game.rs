@@ -3,12 +3,14 @@ use crate::{
     LeaderboardSecrets,
 };
 
+use std::thread::JoinHandle;
+
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
 pub struct Game {
     geng: Geng,
-    leaderboard_future: Option<Pin<Box<dyn Future<Output = Leaderboard>>>>,
+    leaderboard_handle: Option<JoinHandle<std::io::Result<Leaderboard>>>,
     transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
@@ -48,7 +50,7 @@ impl Game {
     fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
         Self {
             geng: geng.clone(),
-            leaderboard_future: None,
+            leaderboard_handle: None,
             transition: None,
             render: GameRender::new(geng, assets),
             model,
@@ -63,11 +65,19 @@ impl Game {
             self.model.leaderboard = LeaderboardState::Pending;
             let player_name = self.model.player.name.clone();
             let submit_score = submit_score && !player_name.trim().is_empty();
-            let score = submit_score.then_some(self.model.score.as_f32());
+            let score = submit_score.then_some(self.model.score.as_f32() as i32);
             let secrets = secrets.clone();
-            self.leaderboard_future = Some(
-                crate::leaderboard::Leaderboard::submit(player_name, score, secrets).boxed_local(),
-            );
+
+            let handle = std::thread::spawn(move || {
+                let runtime = tokio::runtime::Runtime::new()?;
+                let leaderboard = runtime.block_on(crate::leaderboard::Leaderboard::submit(
+                    player_name,
+                    score,
+                    secrets,
+                ));
+                Ok(leaderboard)
+            });
+            self.leaderboard_handle = Some(handle);
         }
     }
 }
@@ -110,15 +120,25 @@ impl geng::State for Game {
     fn update(&mut self, delta_time: f64) {
         let _delta_time = Time::new(delta_time as _);
 
-        if let Some(future) = &mut self.leaderboard_future {
+        if let Some(handle) = self.leaderboard_handle.take() {
             // Poll leaderboard
-            // FIXME: completes after a single poll (and takes a long time)
-            if let std::task::Poll::Ready(leaderboard) = future.as_mut().poll(
-                &mut std::task::Context::from_waker(futures::task::noop_waker_ref()),
-            ) {
-                self.leaderboard_future = None;
-                log::info!("Loaded leaderboard");
-                self.model.leaderboard = LeaderboardState::Ready(leaderboard);
+            if handle.is_finished() {
+                match handle.join() {
+                    Ok(Ok(leaderboard)) => {
+                        log::info!("Loaded leaderboard");
+                        self.model.leaderboard = LeaderboardState::Ready(leaderboard);
+                    }
+                    Ok(Err(err)) => {
+                        log::error!("Failed to load leaderboard: {}", err);
+                        self.model.leaderboard = LeaderboardState::Failed;
+                    }
+                    Err(_) => {
+                        log::error!("Failed to join leaderboard handle");
+                        self.model.leaderboard = LeaderboardState::Failed;
+                    }
+                }
+            } else {
+                self.leaderboard_handle = Some(handle);
             }
         }
 

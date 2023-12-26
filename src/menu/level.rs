@@ -107,7 +107,7 @@ impl LevelMenu {
                 let secrets = secrets.or_else(|| {
                     Some(crate::Secrets {
                         leaderboard: crate::LeaderboardSecrets {
-                            id: option_env!("LEADERBOARD_ID")?.to_string(),
+                            url: option_env!("LEADERBOARD_URL")?.to_string(),
                             key: option_env!("LEADERBOARD_KEY")?.to_string(),
                         },
                     })
