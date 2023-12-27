@@ -1,16 +1,16 @@
 use crate::{
-    assets::Assets, leaderboard::Leaderboard, model::*, render::game::GameRender,
+    assets::Assets, leaderboard::Leaderboard, model::*, render::game::GameRender, task::Task,
     LeaderboardSecrets,
 };
 
-use std::thread::JoinHandle;
+// use std::thread::JoinHandle;
 
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
 pub struct Game {
     geng: Geng,
-    leaderboard_handle: Option<JoinHandle<std::io::Result<Leaderboard>>>,
+    leaderboard_task: Option<Task<Leaderboard>>,
     transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
@@ -65,7 +65,7 @@ impl Game {
     ) -> Self {
         Self {
             geng: geng.clone(),
-            leaderboard_handle: None,
+            leaderboard_task: None,
             transition: None,
             render: GameRender::new(geng, assets),
             model,
@@ -92,17 +92,11 @@ impl Game {
                 mods: self.model.config.modifiers.clone(),
                 health: self.model.config.health.clone(),
             };
-            let handle = std::thread::spawn(move || {
-                let runtime = tokio::runtime::Runtime::new()?;
-                let leaderboard = runtime.block_on(crate::leaderboard::Leaderboard::submit(
-                    player_name,
-                    score,
-                    &meta,
-                    secrets,
-                ));
-                Ok(leaderboard)
-            });
-            self.leaderboard_handle = Some(handle);
+
+            let future = async move {
+                crate::leaderboard::Leaderboard::submit(player_name, score, &meta, secrets).await
+            };
+            self.leaderboard_task = Some(Task::new(future));
         }
     }
 }
@@ -145,25 +139,18 @@ impl geng::State for Game {
     fn update(&mut self, delta_time: f64) {
         let _delta_time = Time::new(delta_time as _);
 
-        if let Some(handle) = self.leaderboard_handle.take() {
-            // Poll leaderboard
-            if handle.is_finished() {
-                match handle.join() {
-                    Ok(Ok(leaderboard)) => {
+        if let Some(task) = &mut self.leaderboard_task {
+            if let Some(result) = task.poll() {
+                match result {
+                    Ok(leaderboard) => {
                         log::info!("Loaded leaderboard");
                         self.model.leaderboard = LeaderboardState::Ready(leaderboard);
                     }
-                    Ok(Err(err)) => {
+                    Err(err) => {
                         log::error!("Failed to load leaderboard: {}", err);
                         self.model.leaderboard = LeaderboardState::Failed;
                     }
-                    Err(_) => {
-                        log::error!("Failed to join leaderboard handle");
-                        self.model.leaderboard = LeaderboardState::Failed;
-                    }
                 }
-            } else {
-                self.leaderboard_handle = Some(handle);
             }
         }
 
