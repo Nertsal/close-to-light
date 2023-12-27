@@ -167,49 +167,57 @@ impl geng::State for MainMenu {
 
         let mut framebuffer = self.dither.start();
 
-        let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
-        self.util_render
-            .draw_button(&button, "START", &THEME, &self.camera, &mut framebuffer);
+        // let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
+        // self.util_render
+        //     .draw_button(&button, "START", &THEME, &self.camera, &mut framebuffer);
 
-        let fading = self.play_button.hover_time.get_ratio().as_f32() > 0.5;
+        // let fading = self.play_button.hover_time.get_ratio().as_f32() > 0.5;
 
-        if !fading {
-            geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
-                .fit_height(
-                    Aabb2::point(vec2(0.0, 3.5)).extend_symmetric(vec2(0.0, 1.2) / 2.0),
-                    0.5,
-                )
-                .colored(THEME.light)
-                .draw(&self.camera, &self.geng, &mut framebuffer);
-            // self.util_render.draw_text(
-            //     "CLOSE TO LIGHT",
-            //     vec2(0.0, 3.5).as_r32(),
-            //     1.2,
-            //     vec2::splat(0.5),
-            //     crate::render::COLOR_LIGHT,
-            //     &self.camera,
-            //     &mut framebuffer,
-            // );
+        // if !fading {
+        //     geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
+        //         .fit_height(
+        //             Aabb2::point(vec2(0.0, 3.5)).extend_symmetric(vec2(0.0, 1.2) / 2.0),
+        //             0.5,
+        //         )
+        //         .colored(THEME.light)
+        //         .draw(&self.camera, &self.geng, &mut framebuffer);
+        //     // self.util_render.draw_text(
+        //     //     "CLOSE TO LIGHT",
+        //     //     vec2(0.0, 3.5).as_r32(),
+        //     //     1.2,
+        //     //     vec2::splat(0.5),
+        //     //     crate::render::COLOR_LIGHT,
+        //     //     &self.camera,
+        //     //     &mut framebuffer,
+        //     // );
 
-            self.util_render
-                .draw_player(&self.player, &self.camera, &mut framebuffer);
+        //     self.util_render
+        //         .draw_player(&self.player, &self.camera, &mut framebuffer);
 
-            // Name
-            self.util_render.draw_text(
-                &self.name,
-                vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.8).color(THEME.light),
-                &self.camera,
-                &mut framebuffer,
-            );
-            self.util_render.draw_text(
-                "TYPE YOUR NAME",
-                vec2(0.0, -3.8).as_r32(),
-                TextRenderOptions::new(0.7).color(THEME.light),
-                &self.camera,
-                &mut framebuffer,
-            );
-        }
+        //     // Name
+        //     self.util_render.draw_text(
+        //         &self.name,
+        //         vec2(0.0, -3.0).as_r32(),
+        //         TextRenderOptions::new(0.8).color(THEME.light),
+        //         &self.camera,
+        //         &mut framebuffer,
+        //     );
+        //     self.util_render.draw_text(
+        //         "TYPE YOUR NAME",
+        //         vec2(0.0, -3.8).as_r32(),
+        //         TextRenderOptions::new(0.7).color(THEME.light),
+        //         &self.camera,
+        //         &mut framebuffer,
+        //     );
+        // }
+
+        self.util_render.draw_text(
+            "STARTING SOON...",
+            vec2(0.0, 0.0).as_r32(),
+            TextRenderOptions::new(1.0).color(THEME.light),
+            &self.camera,
+            &mut framebuffer,
+        );
 
         self.dither.finish(self.time, &self.theme);
 

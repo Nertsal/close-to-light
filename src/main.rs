@@ -2,6 +2,7 @@ mod assets;
 mod editor;
 mod game;
 mod leaderboard;
+mod media;
 mod menu;
 mod model;
 mod prelude;
@@ -15,6 +16,9 @@ const FIXED_FPS: f64 = 60.0;
 
 #[derive(clap::Parser)]
 struct Opts {
+    /// Just display some dithered text on screen.
+    #[clap(long)]
+    text: Option<String>,
     /// Play a specific level.
     #[clap(long)]
     level: Option<std::path::PathBuf>,
@@ -56,7 +60,10 @@ fn main() {
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
 
-        if let Some(level_path) = opts.level {
+        if let Some(text) = opts.text {
+            let state = media::MediaState::new(&geng, &assets).with_text(text);
+            geng.run_state(state).await;
+        } else if let Some(level_path) = opts.level {
             let config = model::LevelConfig::default();
             let (_, music, level) = menu::load_level(manager, &level_path)
                 .await
