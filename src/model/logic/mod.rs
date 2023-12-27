@@ -72,7 +72,8 @@ impl Model {
                     //     self.telegraphs.push(telegraph);
                     // } else
                     self.finish();
-                } else {
+                } else if !self.config.modifiers.clean_auto {
+                    // Player health
                     if let Some(distance) = self.player.danger_distance {
                         let multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
                         self.player.health.change(
@@ -114,8 +115,10 @@ impl Model {
             _ => (),
         }
 
-        // Player tail
-        self.player.update_tail(delta_time);
+        if !self.config.modifiers.clean_auto {
+            // Player tail
+            self.player.update_tail(delta_time);
+        }
     }
 
     pub fn save_highscore(&self) {

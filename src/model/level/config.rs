@@ -48,6 +48,8 @@ pub struct WaypointsConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct LevelModifiers {
+    /// Play through the level without player input.
+    pub clean_auto: bool,
     /// You cannot fail the level.
     pub nofail: bool,
     /// No telegraphs.
@@ -77,6 +79,7 @@ impl Display for Modifier {
 impl Default for LevelModifiers {
     fn default() -> Self {
         Self {
+            clean_auto: false,
             nofail: false,
             sudden: false,
             hidden: false,

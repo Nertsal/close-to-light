@@ -22,6 +22,9 @@ struct Opts {
     /// Play a specific level.
     #[clap(long)]
     level: Option<std::path::PathBuf>,
+    /// Move through the level without player input.
+    #[clap(long)]
+    clean_auto: bool,
     /// Open a level in the editor.
     #[clap(long)]
     edit: bool,
@@ -64,7 +67,7 @@ fn main() {
             let state = media::MediaState::new(&geng, &assets).with_text(text);
             geng.run_state(state).await;
         } else if let Some(level_path) = opts.level {
-            let config = model::LevelConfig::default();
+            let mut config = model::LevelConfig::default();
             let (_, music, level) = menu::load_level(manager, &level_path)
                 .await
                 .expect("failed to load level");
@@ -89,6 +92,7 @@ fn main() {
             } else {
                 // Game
                 let (group_name, level_name) = group_level_from_path(level_path);
+                config.modifiers.clean_auto = opts.clean_auto;
                 let level = game::PlayLevel {
                     group_name,
                     level_name,

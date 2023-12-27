@@ -151,7 +151,7 @@ impl GameRender {
                     }
                 }
             }
-        } else {
+        } else if !model.config.modifiers.clean_auto {
             self.util.draw_text(
                 format!("SCORE: {:.0}", model.score),
                 vec2(0.0, 4.5).as_r32(),
@@ -161,8 +161,10 @@ impl GameRender {
             );
         }
 
-        self.util
-            .draw_player(&model.player, camera, &mut framebuffer);
+        if !model.config.modifiers.clean_auto {
+            self.util
+                .draw_player(&model.player, camera, &mut framebuffer);
+        }
 
         if !fading {
             match model.state {
@@ -189,12 +191,14 @@ impl GameRender {
         }
 
         if let State::Playing = model.state {
-            self.util.draw_health(
-                &model.player.health,
-                model.player.get_lit_state(),
-                // &model.config.theme,
-                &mut framebuffer,
-            );
+            if !model.config.modifiers.clean_auto {
+                self.util.draw_health(
+                    &model.player.health,
+                    model.player.get_lit_state(),
+                    // &model.config.theme,
+                    &mut framebuffer,
+                );
+            }
         }
 
         self.dither.finish(model.real_time, theme);
