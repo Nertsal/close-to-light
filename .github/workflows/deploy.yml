@@ -15,7 +15,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo geng build --release --platform web
         env:
-          LEADERBOARD_ID: ${{ secrets.LEADERBOARD_ID }}
+          LEADERBOARD_URL: ${{ secrets.LEADERBOARD_URL }}
           LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v2
@@ -54,6 +54,9 @@ jobs:
         with:
           command: geng
           args: build --release
+        env:
+          LEADERBOARD_URL: ${{ secrets.LEADERBOARD_URL }}
+          LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
