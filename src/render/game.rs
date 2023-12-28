@@ -57,7 +57,7 @@ impl GameRender {
             }
         }
 
-        let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
+        let fading = model.restart_button.is_fading();
         if let State::Lost { .. } | State::Finished = model.state {
             let button = smooth_button(&model.restart_button, model.switch_time);
             self.util

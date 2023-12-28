@@ -99,15 +99,13 @@ impl Model {
             }
             _ if self.switch_time > Time::ONE => {
                 // 1 second before the UI is active
-                self.restart_button.hover_time.change(
-                    if self.restart_button.collider.check(&self.player.collider) {
-                        delta_time
-                    } else {
-                        -delta_time
-                    },
-                );
+                let hovering = self
+                    .restart_button
+                    .base_collider
+                    .check(&self.player.collider);
+                self.restart_button.update(hovering, delta_time);
                 self.player
-                    .update_distance(&self.restart_button.collider, false);
+                    .update_distance(&self.restart_button.base_collider, false);
                 if self.restart_button.hover_time.is_max() {
                     self.restart();
                 }

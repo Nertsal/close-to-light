@@ -59,8 +59,38 @@ impl Music {
 
 #[derive(Debug, Clone)]
 pub struct HoverButton {
-    pub collider: Collider,
+    pub base_collider: Collider,
     pub hover_time: Lifetime,
+    pub animation: Movement,
+}
+
+impl HoverButton {
+    pub fn new(collider: Collider, hover_time: impl Float) -> Self {
+        Self {
+            base_collider: collider,
+            hover_time: Lifetime::new_zero(hover_time.as_r32()),
+            animation: Movement {
+                fade_in: r32(0.0),
+                initial: Transform::scale(2.25),
+                key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
+                fade_out: r32(0.2),
+            },
+        }
+    }
+
+    /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
+    pub fn is_fading(&self) -> bool {
+        // TODO: more custom
+        self.hover_time.get_ratio().as_f32() > 0.5
+    }
+
+    pub fn update(&mut self, hovering: bool, delta_time: Time) {
+        self.hover_time.change(if self.is_fading() || hovering {
+            delta_time
+        } else {
+            -delta_time
+        });
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -171,13 +201,10 @@ impl Model {
                 ),
                 config.health.max,
             ),
-            restart_button: HoverButton {
-                collider: Collider::new(
-                    vec2(-3.0, 0.0).as_r32(),
-                    Shape::Circle { radius: r32(1.0) },
-                ),
-                hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(3.0)),
-            },
+            restart_button: HoverButton::new(
+                Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),
+                3.0,
+            ),
             config,
             secrets: None,
             leaderboard: LeaderboardState::None,

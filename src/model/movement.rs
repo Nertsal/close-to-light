@@ -31,12 +31,28 @@ pub struct Transform {
     pub scale: Coord,
 }
 
+impl MoveFrame {
+    pub fn scale(lerp_time: impl Float, scale: impl Float) -> Self {
+        Self {
+            lerp_time: lerp_time.as_r32(),
+            transform: Transform::scale(scale),
+        }
+    }
+}
+
 impl Transform {
     pub fn identity() -> Self {
         Self {
             translation: vec2::ZERO,
             rotation: Angle::ZERO,
             scale: Coord::ONE,
+        }
+    }
+
+    pub fn scale(scale: impl Float) -> Self {
+        Self {
+            scale: scale.as_r32(),
+            ..Self::identity()
         }
     }
 

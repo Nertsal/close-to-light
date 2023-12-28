@@ -43,14 +43,14 @@ impl MainMenu {
                 fov: 10.0,
             },
             time: Time::ZERO,
-            play_button: HoverButton {
-                collider: Collider {
+            play_button: HoverButton::new(
+                Collider {
                     position: vec2(0.0, 0.0).as_r32(),
                     rotation: Angle::ZERO,
                     shape: Shape::Circle { radius: r32(1.0) },
                 },
-                hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(1.5)),
-            },
+                1.5,
+            ),
             player: Player::new(
                 Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
                 r32(0.0),
@@ -116,15 +116,10 @@ impl geng::State for MainMenu {
         self.player.collider.position = self.cursor_world_pos;
         self.player.reset_distance();
 
-        self.play_button.hover_time.change(
-            if self.player.collider.check(&self.play_button.collider) {
-                delta_time
-            } else {
-                -delta_time
-            },
-        );
+        let hovering = self.player.collider.check(&self.play_button.base_collider);
+        self.play_button.update(hovering, delta_time);
         self.player
-            .update_distance(&self.play_button.collider, false);
+            .update_distance(&self.play_button.base_collider, false);
         if self.play_button.hover_time.is_max() {
             self.play_button.hover_time.set_ratio(Time::ZERO);
             self.play();
@@ -171,9 +166,7 @@ impl geng::State for MainMenu {
         self.util_render
             .draw_button(&button, "START", &THEME, &self.camera, &mut framebuffer);
 
-        let fading = self.play_button.hover_time.get_ratio().as_f32() > 0.5;
-
-        if !fading {
+        if !self.play_button.is_fading() {
             geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
                 .fit_height(
                     Aabb2::point(vec2(0.0, 3.5)).extend_symmetric(vec2(0.0, 1.2) / 2.0),

@@ -168,7 +168,13 @@ impl geng::State for LevelMenu {
         match event {
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
-            } => if self.state.switch_group.take().is_some() {},
+            } => {
+                if self.state.switch_group.take().is_some() {
+                } else {
+                    // Go to main menu
+                    self.transition = Some(geng::state::Transition::Pop);
+                }
+            }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }

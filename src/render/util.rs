@@ -260,26 +260,10 @@ impl UtilRender {
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let frame = |time: f32, scale: f32| -> MoveFrame {
-            MoveFrame {
-                lerp_time: Time::new(time),
-                transform: Transform {
-                    scale: Coord::new(scale),
-                    ..default()
-                },
-            }
-        };
-        let movement = Movement {
-            initial: frame(0.0, 2.25).transform,
-            key_frames: vec![frame(0.5, 5.0), frame(0.25, 75.0)].into(),
-            fade_in: Time::ZERO,
-            fade_out: r32(0.2),
-        };
-
         let t = button.hover_time.get_ratio();
-        let scale = movement.get(t).scale;
+        let scale = button.animation.get(t).scale;
         let collider = button
-            .collider
+            .base_collider
             .transformed(Transform { scale, ..default() });
         self.draw_light(&collider, theme.light, camera, framebuffer);
 
