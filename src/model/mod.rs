@@ -112,6 +112,7 @@ pub enum State {
 
 pub enum Transition {
     LoadLeaderboard { submit_score: bool },
+    Exit,
 }
 
 pub enum LeaderboardState {
@@ -148,6 +149,7 @@ pub struct Model {
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
+    pub exit_button: HoverButton,
 }
 
 impl Drop for Model {
@@ -203,6 +205,10 @@ impl Model {
             ),
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),
+                2.0,
+            ),
+            exit_button: HoverButton::new(
+                Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
                 3.0,
             ),
             config,

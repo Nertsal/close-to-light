@@ -159,6 +159,7 @@ impl geng::State for Game {
                 Transition::LoadLeaderboard { submit_score } => {
                     self.load_leaderboard(submit_score);
                 }
+                Transition::Exit => self.transition = Some(geng::state::Transition::Pop),
             }
         }
     }

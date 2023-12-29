@@ -57,11 +57,19 @@ impl GameRender {
             }
         }
 
-        let fading = model.restart_button.is_fading();
+        let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
         if let State::Lost { .. } | State::Finished = model.state {
-            let button = smooth_button(&model.restart_button, model.switch_time);
-            self.util
-                .draw_button(&button, "RESTART", &THEME, camera, &mut framebuffer);
+            for (button, text) in [
+                (&model.restart_button, "RESTART"),
+                (&model.exit_button, "EXIT"),
+            ] {
+                if fading && !button.is_fading() {
+                    continue;
+                }
+                let button = smooth_button(button, model.switch_time);
+                self.util
+                    .draw_button(&button, text, &THEME, camera, &mut framebuffer);
+            }
 
             self.util.draw_text(
                 "made in rust btw",

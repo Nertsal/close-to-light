@@ -13,12 +13,19 @@ pub struct LevelMenu {
     assets: Rc<Assets>,
     transition: Option<geng::state::Transition>,
     render: MenuRender,
+    util: UtilRender,
+    dither: DitherRender,
 
+    framebuffer_size: vec2<usize>,
     last_delta_time: Time,
+    time: Time,
 
     ui: MenuUI,
     cursor_pos: vec2<f64>,
+
+    camera: Camera2d,
     state: MenuState,
+    exit_button: HoverButton,
 }
 
 #[derive(Debug)]
@@ -71,12 +78,21 @@ impl LevelMenu {
             assets: assets.clone(),
             transition: None,
             render: MenuRender::new(geng, assets),
+            util: UtilRender::new(geng, assets),
+            dither: DitherRender::new(geng, assets),
 
+            framebuffer_size: vec2(1, 1),
             last_delta_time: Time::ONE,
+            time: Time::ZERO,
 
             ui: MenuUI::new(assets),
             cursor_pos: vec2::ZERO,
 
+            camera: Camera2d {
+                center: vec2::ZERO,
+                rotation: Angle::ZERO,
+                fov: 10.0,
+            },
             state: MenuState {
                 theme: Theme::default(),
                 groups,
@@ -84,6 +100,10 @@ impl LevelMenu {
                 switch_group: None,
                 play_level: None,
             },
+            exit_button: HoverButton::new(
+                Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
+                3.0,
+            ),
         }
     }
 
@@ -147,7 +167,27 @@ impl geng::State for LevelMenu {
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(self.state.theme.dark), None, None);
+
+        let mut dither_buffer = self.dither.start();
+        let button = crate::render::smooth_button(&self.exit_button, self.time);
+        self.util.draw_button(
+            &button,
+            "EXIT",
+            &crate::render::THEME,
+            &self.camera,
+            &mut dither_buffer,
+        );
+        self.dither.finish(self.time, &Theme::default());
+
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit_screen(vec2(0.5, 0.5), framebuffer)
+            .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
+
+        if self.exit_button.is_fading() {
+            return;
+        }
 
         self.ui.layout(
             &mut self.state,
@@ -184,6 +224,19 @@ impl geng::State for LevelMenu {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
+        self.time += delta_time;
+
+        let cursor_world = self
+            .camera
+            .screen_to_world(self.framebuffer_size.as_f32(), self.cursor_pos.as_f32());
+        let hovering = self
+            .exit_button
+            .base_collider
+            .contains(cursor_world.as_r32());
+        self.exit_button.update(hovering, delta_time);
+        if self.exit_button.hover_time.is_max() {
+            self.transition = Some(geng::state::Transition::Pop);
+        }
 
         if let Some(current_group) = &mut self.state.show_group {
             if let Some(switch_group) = self.state.switch_group {

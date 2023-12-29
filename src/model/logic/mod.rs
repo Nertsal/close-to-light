@@ -109,6 +109,15 @@ impl Model {
                 if self.restart_button.hover_time.is_max() {
                     self.restart();
                 }
+
+                // 1 second before the UI is active
+                let hovering = self.exit_button.base_collider.check(&self.player.collider);
+                self.exit_button.update(hovering, delta_time);
+                self.player
+                    .update_distance(&self.exit_button.base_collider, false);
+                if self.exit_button.hover_time.is_max() {
+                    self.transition = Some(Transition::Exit);
+                }
             }
             _ => (),
         }
