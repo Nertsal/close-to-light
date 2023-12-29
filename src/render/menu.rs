@@ -109,6 +109,36 @@ impl MenuRender {
                             let mut button = preset.button.clone();
                             button.text.state.pressed = preset.selected;
                             self.util.draw_button_widget(&button, &mut buffer.color);
+
+                            // Palette
+                            let (_, theme_preview) =
+                                crate::ui::layout::split_top_down(button.text.state.position, 0.5);
+                            let theme_preview = theme_preview
+                                .extend_symmetric(vec2(0.0, -theme_preview.height() / 4.0));
+                            let theme_preview = crate::ui::layout::fit_aabb_height(
+                                vec2(5.0, 2.0),
+                                theme_preview,
+                                0.5,
+                            );
+
+                            let theme = &preset.preset;
+                            let theme = [theme.dark, theme.light, theme.danger];
+                            let layout = crate::ui::layout::split_columns(theme_preview, 3);
+                            for (color, pos) in theme.into_iter().zip(layout) {
+                                self.geng.draw2d().draw2d(
+                                    &mut buffer.color,
+                                    &geng::PixelPerfectCamera,
+                                    &draw2d::Quad::new(pos, color),
+                                );
+                            }
+
+                            self.util.draw_outline(
+                                &Collider::aabb(theme_preview.map(r32)),
+                                5.0,
+                                Color::WHITE,
+                                &geng::PixelPerfectCamera,
+                                &mut buffer.color,
+                            );
                         }
                     }
                     Configuring::Health { presets } => {
