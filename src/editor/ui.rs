@@ -61,8 +61,7 @@ impl EditorUI {
         editor: &mut Editor,
         render_options: &mut RenderOptions,
         screen: Aabb2<f32>,
-        cursor_position: vec2<f32>,
-        cursor_down: bool,
+        cursor: CursorContext,
         geng: &Geng,
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
@@ -72,8 +71,7 @@ impl EditorUI {
         let context = UiContext {
             font_size,
             can_focus: true,
-            cursor_position,
-            cursor_down,
+            cursor,
         };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{

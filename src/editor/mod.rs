@@ -12,6 +12,7 @@ pub use self::{
 use crate::{
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
+    ui::widget::CursorContext,
 };
 
 use geng::{Key, MouseButton};
@@ -25,7 +26,7 @@ pub struct EditorState {
     render: EditorRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
-    cursor_pos: vec2<f64>,
+    cursor: CursorContext,
     render_options: RenderOptions,
     ui: EditorUI,
     drag: Option<Drag>,
@@ -35,7 +36,7 @@ pub struct EditorState {
 pub struct Drag {
     /// Whether we just clicked or actually starting moving.
     pub moved: bool,
-    pub from_screen: vec2<f64>,
+    pub from_screen: vec2<f32>,
     pub from_world: vec2<Coord>,
     pub from_time: Time,
     pub target: DragTarget,
@@ -140,7 +141,7 @@ impl EditorState {
             transition: None,
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
-            cursor_pos: vec2::ZERO,
+            cursor: CursorContext::new(),
             render_options: RenderOptions {
                 show_grid: true,
                 hide_ui: false,
@@ -295,6 +296,11 @@ impl geng::State for EditorState {
         let delta_time = Time::new(delta_time as f32);
         self.editor.real_time += delta_time;
 
+        self.cursor.update(geng_utils::key::is_key_pressed(
+            self.geng.window(),
+            [MouseButton::Left],
+        ));
+
         self.update_drag();
 
         if self.editor.music.timer > Time::ZERO {
@@ -344,7 +350,7 @@ impl geng::State for EditorState {
             }
         }
 
-        let pos = self.cursor_pos.as_f32();
+        let pos = self.cursor.position;
         let pos = pos - self.ui.game.position.bottom_left();
         let pos = self
             .editor
@@ -373,8 +379,7 @@ impl geng::State for EditorState {
             &mut self.editor,
             &mut self.render_options,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-            self.cursor_pos.as_f32(),
-            geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
+            self.cursor,
             &self.geng,
         );
         self.render

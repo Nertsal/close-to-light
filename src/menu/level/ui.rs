@@ -32,8 +32,7 @@ impl MenuUI {
         &mut self,
         state: &mut MenuState,
         screen: Aabb2<f32>,
-        cursor_position: vec2<f32>,
-        cursor_down: bool,
+        cursor: CursorContext,
         delta_time: f32,
         _geng: &Geng,
     ) -> bool {
@@ -45,8 +44,7 @@ impl MenuUI {
         let mut context = UiContext {
             font_size: screen.height() * 0.04,
             can_focus: true,
-            cursor_position,
-            cursor_down,
+            cursor,
         };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
@@ -66,13 +64,15 @@ impl MenuUI {
             // Leaderboard
             let width = layout_size * 20.0;
             let height = screen.height();
+            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
+                .extend_left(width)
+                .extend_down(height);
+
             let t = state.show_leaderboard.time.get_ratio().as_f32();
             let t = crate::util::smoothstep(t);
             let offset = main.height() * t;
-            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
-                .extend_left(width)
-                .extend_down(height)
-                .translate(vec2(0.0, offset));
+
+            let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
             self.leaderboard.update_state(&state.show_leaderboard.data);
             update!(self.leaderboard, leaderboard);

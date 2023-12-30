@@ -23,12 +23,34 @@ pub use self::{
 use geng::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
+pub struct CursorContext {
+    pub position: vec2<f32>,
+    pub down: bool,
+    /// Was the cursor down last frame.
+    pub was_down: bool,
+}
+
+impl CursorContext {
+    pub fn new() -> Self {
+        Self {
+            position: vec2::ZERO,
+            down: false,
+            was_down: false,
+        }
+    }
+
+    pub fn update(&mut self, is_down: bool) {
+        self.was_down = self.down;
+        self.down = is_down;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct UiContext {
     pub font_size: f32,
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: bool,
-    pub cursor_position: vec2<f32>,
-    pub cursor_down: bool,
+    pub cursor: CursorContext,
 }
 
 impl UiContext {
@@ -80,10 +102,11 @@ impl WidgetState {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
         if self.visible && context.can_focus {
-            self.hovered = self.position.contains(context.cursor_position);
+            self.hovered = self.position.contains(context.cursor.position);
             let was_pressed = self.pressed;
             // TODO: check for mouse being pressed and then dragged onto the widget
-            self.pressed = context.cursor_down && (was_pressed || self.hovered);
+            self.pressed =
+                context.cursor.down && (was_pressed || self.hovered && !context.cursor.was_down);
             self.clicked = !was_pressed && self.pressed;
         } else {
             self.hovered = false;

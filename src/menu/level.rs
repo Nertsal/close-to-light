@@ -4,7 +4,10 @@ pub use self::ui::*;
 
 use super::*;
 
-use crate::{leaderboard::Leaderboard, render::menu::MenuRender, task::Task, Secrets};
+use crate::{
+    leaderboard::Leaderboard, render::menu::MenuRender, task::Task, ui::widget::CursorContext,
+    Secrets,
+};
 
 use geng::MouseButton;
 
@@ -25,7 +28,7 @@ pub struct LevelMenu {
 
     ui: MenuUI,
     ui_focused: bool,
-    cursor_pos: vec2<f64>,
+    cursor: CursorContext,
 
     camera: Camera2d,
     state: MenuState,
@@ -117,7 +120,7 @@ impl LevelMenu {
 
             ui: MenuUI::new(assets),
             ui_focused: false,
-            cursor_pos: vec2::ZERO,
+            cursor: CursorContext::new(),
 
             camera: Camera2d {
                 center: vec2::ZERO,
@@ -182,7 +185,7 @@ impl LevelMenu {
             return;
         };
 
-        self.cursor_pos = vec2::ZERO;
+        self.cursor.position = vec2::ZERO;
         self.play_button.hover_time.set(Time::ZERO);
 
         let future = {
@@ -442,8 +445,7 @@ impl geng::State for LevelMenu {
         self.ui_focused = self.ui.layout(
             &mut self.state,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-            self.cursor_pos.as_f32(),
-            geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
+            self.cursor,
             self.last_delta_time.as_f32(),
             &self.geng,
         );
@@ -468,7 +470,7 @@ impl geng::State for LevelMenu {
                 }
             }
             geng::Event::CursorMove { position } => {
-                self.cursor_pos = position;
+                self.cursor.position = position.as_f32();
             }
             _ => (),
         }
@@ -483,9 +485,14 @@ impl geng::State for LevelMenu {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
 
+        self.cursor.update(geng_utils::key::is_key_pressed(
+            self.geng.window(),
+            [MouseButton::Left],
+        ));
+
         let cursor_world = self
             .camera
-            .screen_to_world(self.framebuffer_size.as_f32(), self.cursor_pos.as_f32());
+            .screen_to_world(self.framebuffer_size.as_f32(), self.cursor.position);
 
         self.player.collider.position = cursor_world.as_r32();
         self.player.reset_distance();
