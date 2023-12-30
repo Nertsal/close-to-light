@@ -115,6 +115,7 @@ pub enum Transition {
     Exit,
 }
 
+#[derive(Debug)]
 pub enum LeaderboardState {
     None,
     Pending,

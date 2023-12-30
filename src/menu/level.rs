@@ -4,14 +4,17 @@ pub use self::ui::*;
 
 use super::*;
 
-use crate::render::menu::MenuRender;
+use crate::{leaderboard::Leaderboard, render::menu::MenuRender, task::Task, Secrets};
 
 use geng::MouseButton;
 
 pub struct LevelMenu {
     geng: Geng,
     assets: Rc<Assets>,
+    secrets: Option<Secrets>,
     transition: Option<geng::state::Transition>,
+    leaderboard_task: Option<Task<Leaderboard>>,
+
     render: MenuRender,
     util: UtilRender,
     dither: DitherRender,
@@ -30,7 +33,7 @@ pub struct LevelMenu {
 
 #[derive(Debug)]
 pub struct MenuState {
-    pub theme: Theme,
+    pub config: LevelConfig,
     pub groups: Vec<GroupEntry>,
     /// Currently showing group.
     pub show_group: Option<ShowTime<usize>>,
@@ -41,7 +44,8 @@ pub struct MenuState {
     /// Switch to the level of the active group after current one finishes its animation.
     pub switch_level: Option<usize>,
     pub show_level_config: ShowTime<()>,
-    pub show_leaderboard: ShowTime<()>,
+    pub show_leaderboard: ShowTime<LeaderboardState>,
+    pub fetch_leaderboard: bool,
     play_level: Option<(std::path::PathBuf, LevelConfig)>,
 }
 
@@ -80,6 +84,7 @@ impl MenuState {
 
     fn show_leaderboard(&mut self) {
         self.show_leaderboard.going_up = true;
+        self.fetch_leaderboard = true;
     }
 
     fn play_level(&mut self, level: std::path::PathBuf, config: LevelConfig) {
@@ -88,11 +93,19 @@ impl MenuState {
 }
 
 impl LevelMenu {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, groups: Vec<GroupEntry>) -> Self {
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        groups: Vec<GroupEntry>,
+        secrets: Option<Secrets>,
+    ) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            secrets,
+            leaderboard_task: None,
             transition: None,
+
             render: MenuRender::new(geng, assets),
             util: UtilRender::new(geng, assets),
             dither: DitherRender::new(geng, assets),
@@ -110,7 +123,7 @@ impl LevelMenu {
                 fov: 10.0,
             },
             state: MenuState {
-                theme: Theme::default(),
+                config: LevelConfig::default(),
                 groups,
                 show_group: None,
                 switch_group: None,
@@ -122,10 +135,11 @@ impl LevelMenu {
                     going_up: false,
                 },
                 show_leaderboard: ShowTime {
-                    data: (),
+                    data: LeaderboardState::None,
                     time: Bounded::new_zero(r32(0.3)),
                     going_up: false,
                 },
+                fetch_leaderboard: false,
                 play_level: None,
             },
             exit_button: HoverButton::new(
@@ -139,6 +153,7 @@ impl LevelMenu {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
+            let secrets = self.secrets.clone();
             let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
 
             async move {
@@ -147,19 +162,6 @@ impl LevelMenu {
                 let (_, level_music, level) = load_level(manager, &level_path)
                     .await
                     .expect("failed to load level");
-
-                let secrets: Option<crate::Secrets> =
-                    geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
-                        .await
-                        .ok();
-                let secrets = secrets.or_else(|| {
-                    Some(crate::Secrets {
-                        leaderboard: crate::LeaderboardSecrets {
-                            url: option_env!("LEADERBOARD_URL")?.to_string(),
-                            key: option_env!("LEADERBOARD_KEY")?.to_string(),
-                        },
-                    })
-                });
 
                 let (group_name, level_name) = crate::group_level_from_path(level_path);
                 let level = crate::game::PlayLevel {
@@ -261,12 +263,42 @@ impl LevelMenu {
         }
     }
 
+    fn fetch_leaderboard(&mut self) {
+        if self.leaderboard_task.is_some() {
+            return;
+        }
+        if let Some(secrets) = &self.secrets {
+            if let Some(group) = &self.state.show_group {
+                if let Some(group) = self.state.groups.get(group.data) {
+                    if let Some(level) = &self.state.show_level {
+                        if let Some((path, _)) = group.levels.get(level.data) {
+                            let (group, level) = crate::group_level_from_path(path);
+
+                            let mods = self.state.config.modifiers.clone();
+                            let health = self.state.config.health.clone();
+
+                            let meta =
+                                crate::leaderboard::ScoreMeta::new(group, level, mods, health);
+                            let secrets = secrets.leaderboard.clone();
+                            let future = async move { Leaderboard::fetch(&meta, secrets).await };
+                            self.state.show_leaderboard.data = LeaderboardState::Pending;
+                            self.leaderboard_task = Some(Task::new(future));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn update_leaderboard(&mut self, delta_time: Time) {
+        if std::mem::take(&mut self.state.fetch_leaderboard) {
+            self.fetch_leaderboard();
+        }
+
         let board = &mut self.state.show_leaderboard;
         if self.state.show_level.is_none() {
             board.going_up = false;
         }
-        // TODO start fetching somewhere
         let sign = r32(if board.going_up { 1.0 } else { -1.0 });
         board.time.change(sign * delta_time);
     }
@@ -279,7 +311,7 @@ impl geng::State for LevelMenu {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(self.state.theme.dark), None, None);
+        ugli::clear(framebuffer, Some(self.state.config.theme.dark), None, None);
 
         let mut dither_buffer = self.dither.start();
         let button = crate::render::smooth_button(&self.exit_button, self.time);
@@ -347,6 +379,23 @@ impl geng::State for LevelMenu {
         self.exit_button.update(hovering, delta_time);
         if self.exit_button.hover_time.is_max() {
             self.transition = Some(geng::state::Transition::Pop);
+        }
+
+        // Poll leaderboard
+        if let Some(task) = &mut self.leaderboard_task {
+            if let Some(result) = task.poll() {
+                match result {
+                    Ok(leaderboard) => {
+                        log::info!("Leaderboard fetched successfully");
+                        self.state.show_leaderboard.data = LeaderboardState::Ready(leaderboard);
+                        self.leaderboard_task = None;
+                    }
+                    Err(err) => {
+                        log::error!("Fetching leaderboard failed: {:?}", err);
+                        self.state.show_leaderboard.data = LeaderboardState::Failed;
+                    }
+                }
+            }
         }
 
         self.update_active_group(delta_time);

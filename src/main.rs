@@ -33,7 +33,7 @@ struct Opts {
     geng: geng::CliArgs,
 }
 
-#[derive(geng::asset::Load, Deserialize)]
+#[derive(geng::asset::Load, Deserialize, Clone)]
 #[load(serde = "toml")]
 struct Secrets {
     leaderboard: LeaderboardSecrets,
@@ -107,7 +107,20 @@ fn main() {
             }
         } else {
             // Main menu
-            let state = menu::MainMenu::new(&geng, &assets);
+            let secrets: Option<Secrets> =
+                geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+                    .await
+                    .ok();
+            let secrets = secrets.or_else(|| {
+                Some(Secrets {
+                    leaderboard: LeaderboardSecrets {
+                        url: option_env!("LEADERBOARD_URL")?.to_string(),
+                        key: option_env!("LEADERBOARD_KEY")?.to_string(),
+                    },
+                })
+            });
+
+            let state = menu::MainMenu::new(&geng, &assets, secrets);
             geng.run_state(state).await;
         }
     });

@@ -4,8 +4,9 @@ use crate::{
 };
 
 use geng::prelude::*;
-use nertboard_client::{Player, ScoreEntry};
+use nertboard_client::{Nertboard, Player, ScoreEntry};
 
+#[derive(Debug)]
 pub struct Leaderboard {
     pub my_position: Option<usize>,
     pub top10: Vec<ScoreEntry>,
@@ -21,6 +22,18 @@ pub struct ScoreMeta {
     pub health: HealthConfig,
 }
 
+impl ScoreMeta {
+    pub fn new(group: String, level: String, mods: LevelModifiers, health: HealthConfig) -> Self {
+        Self {
+            version: 0,
+            group,
+            level,
+            mods,
+            health,
+        }
+    }
+}
+
 impl Leaderboard {
     pub async fn submit(
         name: String,
@@ -28,10 +41,8 @@ impl Leaderboard {
         meta: &ScoreMeta,
         secrets: LeaderboardSecrets,
     ) -> Self {
+        log::debug!("Submitting a score...");
         let name = name.as_str();
-        log::debug!("Querying the leaderboard");
-        log::debug!("Meta info:\n{:#?}", meta);
-
         let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap();
 
         let player = if let Some(mut player) = preferences::load::<Player>("player") {
@@ -52,7 +63,7 @@ impl Leaderboard {
             player.clone()
         };
 
-        let meta_str = serde_json::to_string(meta).unwrap(); // TODO: more compact?
+        let meta_str = meta_str(meta);
         if let Some(score) = score {
             leaderboard
                 .submit_score(
@@ -66,6 +77,22 @@ impl Leaderboard {
                 .await
                 .unwrap();
         }
+
+        Self::fetch_impl(score, meta, &leaderboard).await
+    }
+
+    pub async fn fetch(meta: &ScoreMeta, secrets: LeaderboardSecrets) -> Self {
+        log::debug!("Fetching scores...");
+        let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap();
+        Self::fetch_impl(None, meta, &leaderboard).await
+    }
+
+    async fn fetch_impl(
+        score: Option<i32>,
+        meta: &ScoreMeta,
+        leaderboard: &Nertboard,
+    ) -> Leaderboard {
+        log::debug!("Fetching scores with meta:\n{:#?}", meta);
 
         let mut scores = leaderboard.fetch_scores().await.unwrap();
         scores.retain(|entry| {
@@ -115,4 +142,8 @@ impl Leaderboard {
             top10: scores,
         }
     }
+}
+
+fn meta_str(meta: &ScoreMeta) -> String {
+    serde_json::to_string(meta).unwrap() // TODO: more compact?
 }

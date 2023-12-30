@@ -58,11 +58,11 @@ impl MenuRender {
 
             let group = &group.state;
             let color = if group.pressed {
-                state.theme.light.map_rgb(|x| x * 0.5)
+                state.config.theme.light.map_rgb(|x| x * 0.5)
             } else if group.hovered {
-                state.theme.light.map_rgb(|x| x * 0.7)
+                state.config.theme.light.map_rgb(|x| x * 0.7)
             } else {
-                state.theme.light
+                state.config.theme.light
             };
             self.util.draw_outline(
                 &Collider::aabb(group.position.map(r32)),
@@ -79,11 +79,11 @@ impl MenuRender {
 
             let level = &level.state;
             let color = if level.pressed {
-                state.theme.light.map_rgb(|x| x * 0.5)
+                state.config.theme.light.map_rgb(|x| x * 0.5)
             } else if level.hovered {
-                state.theme.light.map_rgb(|x| x * 0.7)
+                state.config.theme.light.map_rgb(|x| x * 0.7)
             } else {
-                state.theme.light
+                state.config.theme.light
             };
             self.util.draw_outline(
                 &Collider::aabb(level.position.map(r32)),
@@ -102,20 +102,34 @@ impl MenuRender {
             framebuffer,
         );
 
-        // Leaderboard
-        self.util.draw_outline(
-            &Collider::aabb(ui.leaderboard.state.position.map(r32)),
-            font_size * 0.2,
-            state.theme.light,
-            camera,
-            framebuffer,
-        );
+        {
+            // Leaderboard
+            self.util
+                .draw_text_widget(&ui.leaderboard.title, framebuffer);
+            self.util
+                .draw_text_widget(&ui.leaderboard.subtitle, framebuffer);
+            self.util
+                .draw_text_widget(&ui.leaderboard.status, framebuffer);
+            for row in &ui.leaderboard.rows {
+                self.util.draw_text_widget(&row.rank, framebuffer);
+                self.util.draw_text_widget(&row.player, framebuffer);
+                self.util.draw_text_widget(&row.score, framebuffer);
+            }
+
+            self.util.draw_outline(
+                &Collider::aabb(ui.leaderboard.state.position.map(r32)),
+                font_size * 0.2,
+                state.config.theme.light,
+                camera,
+                framebuffer,
+            );
+        }
 
         // if ui.play_group.state.visible {
         //     self.util.draw_outline(
         //         &Collider::aabb(ui.play_group.state.position.map(r32)),
         //         font_size * 0.2,
-        //         state.theme.light,
+        //         state.config.theme.light,
         //         camera,
         //         framebuffer,
         //     );

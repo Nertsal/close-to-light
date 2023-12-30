@@ -1,10 +1,11 @@
 use super::*;
 
-use crate::render::THEME;
+use crate::{render::THEME, Secrets};
 
 pub struct MainMenu {
     geng: Geng,
     assets: Rc<Assets>,
+    secrets: Option<Secrets>,
     theme: Theme,
     transition: Option<geng::state::Transition>,
     dither: DitherRender,
@@ -22,13 +23,14 @@ pub struct MainMenu {
 }
 
 impl MainMenu {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, secrets: Option<Secrets>) -> Self {
         let name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
         let name = fix_name(&name);
         geng.window().start_text_edit(&name);
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            secrets,
             theme: Theme::default(),
             transition: None,
             dither: DitherRender::new(geng, assets),
@@ -67,6 +69,7 @@ impl MainMenu {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
+            let secrets = self.secrets.clone();
 
             async move {
                 let manager = geng.asset_manager();
@@ -76,7 +79,7 @@ impl MainMenu {
                 let groups = load_groups(manager, &groups_path)
                     .await
                     .expect("failed to load groups");
-                LevelMenu::new(&geng, &assets, groups)
+                LevelMenu::new(&geng, &assets, groups, secrets)
             }
             .boxed_local()
         };

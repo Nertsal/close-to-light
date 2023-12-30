@@ -85,13 +85,12 @@ impl Game {
             let score = submit_score.then_some(self.model.score.as_f32().ceil() as i32);
             let secrets = secrets.clone();
 
-            let meta = crate::leaderboard::ScoreMeta {
-                version: 0,
-                group: self.group_name.clone(),
-                level: self.level_name.clone(),
-                mods: self.model.config.modifiers.clone(),
-                health: self.model.config.health.clone(),
-            };
+            let meta = crate::leaderboard::ScoreMeta::new(
+                self.group_name.clone(),
+                self.level_name.clone(),
+                self.model.config.modifiers.clone(),
+                self.model.config.health.clone(),
+            );
 
             let future = async move {
                 crate::leaderboard::Leaderboard::submit(player_name, score, &meta, secrets).await

@@ -194,6 +194,8 @@ impl MenuUI {
                 .extend_left(width)
                 .extend_down(height)
                 .translate(vec2(0.0, offset));
+
+            self.leaderboard.update_state(&state.show_leaderboard.data);
             update!(self.leaderboard, leaderboard);
 
             if self.leaderboard.state.hovered {
