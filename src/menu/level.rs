@@ -24,6 +24,7 @@ pub struct LevelMenu {
     time: Time,
 
     ui: MenuUI,
+    ui_focused: bool,
     cursor_pos: vec2<f64>,
 
     camera: Camera2d,
@@ -46,8 +47,9 @@ pub struct MenuState {
     /// Switch to the level of the active group after current one finishes its animation.
     pub switch_level: Option<usize>,
     pub show_level_config: ShowTime<()>,
+    pub config_request: Option<WidgetRequest>,
     pub show_leaderboard: ShowTime<LeaderboardState>,
-    pub leaderboard_request: Option<LeaderboardRequest>,
+    pub leaderboard_request: Option<WidgetRequest>,
 }
 
 #[derive(Debug, Clone)]
@@ -59,8 +61,8 @@ pub struct ShowTime<T> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum LeaderboardRequest {
-    Fetch,
+pub enum WidgetRequest {
+    Open,
     Close,
     Reload,
 }
@@ -114,6 +116,7 @@ impl LevelMenu {
             time: Time::ZERO,
 
             ui: MenuUI::new(assets),
+            ui_focused: false,
             cursor_pos: vec2::ZERO,
 
             camera: Camera2d {
@@ -133,6 +136,7 @@ impl LevelMenu {
                     time: Bounded::new_zero(r32(0.3)),
                     going_up: false,
                 },
+                config_request: None,
                 show_leaderboard: ShowTime {
                     data: LeaderboardState::None,
                     time: Bounded::new_zero(r32(0.3)),
@@ -326,18 +330,18 @@ impl LevelMenu {
         if let Some(req) = self.state.leaderboard_request {
             let board = &mut self.state.show_leaderboard;
             match req {
-                LeaderboardRequest::Fetch => {
+                WidgetRequest::Open => {
                     if board.time.is_min() {
                         board.going_up = true;
                         self.state.leaderboard_request = None;
                         self.fetch_leaderboard();
                     }
                 }
-                LeaderboardRequest::Close => board.going_up = false,
-                LeaderboardRequest::Reload => {
+                WidgetRequest::Close => board.going_up = false,
+                WidgetRequest::Reload => {
                     board.going_up = false;
                     if board.time.is_min() {
-                        self.state.leaderboard_request = Some(LeaderboardRequest::Fetch);
+                        self.state.leaderboard_request = Some(WidgetRequest::Open);
                     }
                 }
             }
@@ -349,6 +353,34 @@ impl LevelMenu {
         }
         let sign = r32(if board.going_up { 1.0 } else { -1.0 });
         board.time.change(sign * delta_time);
+    }
+
+    fn update_config(&mut self, delta_time: Time) {
+        if let Some(req) = self.state.config_request {
+            let config = &mut self.state.show_level_config;
+            match req {
+                WidgetRequest::Open => {
+                    if config.time.is_min() {
+                        config.going_up = true;
+                        self.state.config_request = None;
+                    }
+                }
+                WidgetRequest::Close => config.going_up = false,
+                WidgetRequest::Reload => {
+                    config.going_up = false;
+                    if config.time.is_min() {
+                        self.state.leaderboard_request = Some(WidgetRequest::Open);
+                    }
+                }
+            }
+        }
+
+        let config = &mut self.state.show_level_config;
+        if self.state.show_level.is_none() {
+            config.going_up = false;
+        }
+        let sign = r32(if config.going_up { 1.0 } else { -1.0 });
+        config.time.change(sign * delta_time);
     }
 }
 
@@ -407,7 +439,7 @@ impl geng::State for LevelMenu {
             return;
         }
 
-        self.ui.layout(
+        self.ui_focused = self.ui.layout(
             &mut self.state,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor_pos.as_f32(),
@@ -424,7 +456,9 @@ impl geng::State for LevelMenu {
                 key: geng::Key::Escape,
             } => {
                 if self.state.show_leaderboard.time.is_max() {
-                    self.state.leaderboard_request = Some(LeaderboardRequest::Close);
+                    self.state.leaderboard_request = Some(WidgetRequest::Close);
+                } else if self.state.show_level_config.time.is_max() {
+                    self.state.config_request = Some(WidgetRequest::Close);
                 } else if self.state.switch_level.take().is_some()
                     || self.state.switch_group.take().is_some()
                 {
@@ -460,20 +494,24 @@ impl geng::State for LevelMenu {
         self.player
             .update_distance(&self.play_button.base_collider, false);
 
-        let hovering = self
-            .exit_button
-            .base_collider
-            .contains(cursor_world.as_r32());
-        self.exit_button.update(hovering, delta_time);
+        if !self.ui_focused {
+            let hovering = self
+                .exit_button
+                .base_collider
+                .contains(cursor_world.as_r32());
+            self.exit_button.update(hovering, delta_time);
+        }
         if self.exit_button.hover_time.is_max() {
             self.transition = Some(geng::state::Transition::Pop);
         }
 
-        let hovering = self
-            .play_button
-            .base_collider
-            .contains(cursor_world.as_r32());
-        self.play_button.update(hovering, delta_time);
+        if !self.ui_focused {
+            let hovering = self
+                .play_button
+                .base_collider
+                .contains(cursor_world.as_r32());
+            self.play_button.update(hovering, delta_time);
+        }
         if self.play_button.hover_time.is_max() {
             self.play_level();
         }
@@ -498,6 +536,7 @@ impl geng::State for LevelMenu {
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);
         self.update_leaderboard(delta_time);
+        self.update_config(delta_time);
 
         self.last_delta_time = delta_time;
     }

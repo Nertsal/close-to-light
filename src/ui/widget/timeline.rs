@@ -28,6 +28,7 @@ impl TimelineWidget {
         Self {
             context: UiContext {
                 font_size: 1.0,
+                can_focus: true,
                 cursor_position: vec2::ZERO,
                 cursor_down: false,
             },

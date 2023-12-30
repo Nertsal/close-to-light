@@ -10,6 +10,7 @@ pub struct MenuUI {
     pub levels: Vec<LevelWidget>,
     // pub play_group: LevelGroupWidget,
     pub leaderboard: LeaderboardWidget,
+    pub level_config: LevelConfigWidget,
 }
 
 impl MenuUI {
@@ -22,9 +23,11 @@ impl MenuUI {
             levels: Vec::new(),
             // play_group: LevelGroupWidget::new(assets),
             leaderboard: LeaderboardWidget::new(),
+            level_config: LevelConfigWidget::new(),
         }
     }
 
+    /// Layout all the ui elements and return whether any of them is focused.
     pub fn layout(
         &mut self,
         state: &mut MenuState,
@@ -33,14 +36,15 @@ impl MenuUI {
         cursor_down: bool,
         delta_time: f32,
         _geng: &Geng,
-    ) {
+    ) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
 
-        let context = UiContext {
+        let mut context = UiContext {
             font_size: screen.height() * 0.04,
+            can_focus: true,
             cursor_position,
             cursor_down,
         };
@@ -57,6 +61,47 @@ impl MenuUI {
         let (ctl_logo, main) = layout::cut_top_down(screen, layout_size * 4.0);
         update!(self.ctl_logo, ctl_logo);
         let main = main.extend_up(-layout_size * 3.0);
+
+        {
+            // Leaderboard
+            let width = layout_size * 20.0;
+            let height = screen.height();
+            let t = state.show_leaderboard.time.get_ratio().as_f32();
+            let t = crate::util::smoothstep(t);
+            let offset = main.height() * t;
+            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
+                .extend_left(width)
+                .extend_down(height)
+                .translate(vec2(0.0, offset));
+
+            self.leaderboard.update_state(&state.show_leaderboard.data);
+            update!(self.leaderboard, leaderboard);
+            context.update_focus(self.leaderboard.state.hovered);
+
+            if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
+                state.leaderboard_request = Some(WidgetRequest::Open);
+            }
+        }
+
+        {
+            // Mods
+            let width = layout_size * 30.0;
+            let height = layout_size * 20.0;
+            let t = state.show_level_config.time.get_ratio().as_f32();
+            let t = crate::util::smoothstep(t);
+            let offset = height * t;
+            let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * layout_size)
+                .extend_right(width)
+                .extend_down(height)
+                .translate(vec2(0.0, offset));
+
+            update!(self.level_config, config);
+            context.update_focus(self.level_config.state.hovered);
+
+            if self.level_config.state.hovered && state.show_level_config.time.is_min() {
+                state.config_request = Some(WidgetRequest::Open);
+            }
+        }
 
         // Margin
         let main = main.extend_left(-layout_size * 2.0);
@@ -183,26 +228,6 @@ impl MenuUI {
             }
         }
 
-        {
-            // Leaderboard
-            let width = layout_size * 20.0;
-            let height = screen.height();
-            let t = state.show_leaderboard.time.get_ratio().as_f32();
-            let t = crate::util::smoothstep(t);
-            let offset = main.height() * t;
-            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
-                .extend_left(width)
-                .extend_down(height)
-                .translate(vec2(0.0, offset));
-
-            self.leaderboard.update_state(&state.show_leaderboard.data);
-            update!(self.leaderboard, leaderboard);
-
-            if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
-                state.leaderboard_request = Some(LeaderboardRequest::Fetch);
-            }
-        }
-
         // // Play level on the right
         // let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
         // if let Some(group) = &state.show_group {
@@ -233,5 +258,7 @@ impl MenuUI {
         // } else {
         //     self.play_group.hide();
         // }
+
+        !context.can_focus
     }
 }

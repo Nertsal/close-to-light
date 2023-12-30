@@ -71,6 +71,7 @@ impl EditorUI {
 
         let context = UiContext {
             font_size,
+            can_focus: true,
             cursor_position,
             cursor_down,
         };

@@ -130,6 +130,33 @@ impl MenuRender {
             );
         }
 
+        {
+            // Level Config
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Quad::new(ui.level_config.state.position, state.config.theme.dark),
+            );
+            self.util
+                .draw_text_widget(&ui.level_config.tab_difficulty, framebuffer);
+            self.util
+                .draw_text_widget(&ui.level_config.tab_mods, framebuffer);
+            if ui.level_config.difficulty.state.visible {
+                // TODO
+            }
+            if ui.level_config.mods.state.visible {
+                // TODO
+            }
+
+            self.util.draw_outline(
+                &Collider::aabb(ui.level_config.state.position.map(r32)),
+                font_size * 0.2,
+                state.config.theme.light,
+                camera,
+                framebuffer,
+            );
+        }
+
         // if ui.play_group.state.visible {
         //     self.util.draw_outline(
         //         &Collider::aabb(ui.play_group.state.position.map(r32)),
