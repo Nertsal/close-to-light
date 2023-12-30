@@ -47,6 +47,8 @@ pub struct MenuState {
 pub struct ShowGroup {
     pub group: usize,
     pub time: Bounded<Time>,
+    /// Whether the time is going up or down.
+    pub going_up: bool,
 }
 
 pub struct GroupEntry {
@@ -176,20 +178,25 @@ impl LevelMenu {
                 if current_group.group != switch_group {
                     // Change level first
                     self.state.switch_level = None;
-                    if self.state.show_level.is_some() {
-                        return;
-                    }
+                    // if self.state.show_level.is_some() {
+                    //     return;
+                    // }
 
                     current_group.time.change(-delta_time);
+                    current_group.going_up = false;
+
                     if current_group.time.is_min() {
                         // Switch
                         current_group.group = switch_group;
                     }
                 } else {
                     current_group.time.change(delta_time);
+                    current_group.going_up = true;
                 }
             } else {
                 current_group.time.change(-delta_time);
+                current_group.going_up = false;
+
                 if current_group.time.is_min() {
                     // Remove
                     self.state.show_group = None;
@@ -199,6 +206,7 @@ impl LevelMenu {
             self.state.show_group = Some(ShowGroup {
                 group,
                 time: Bounded::new_zero(r32(0.25)),
+                going_up: false,
             });
         }
     }
@@ -208,15 +216,20 @@ impl LevelMenu {
             if let Some(switch_level) = self.state.switch_level {
                 if current_level.group != switch_level {
                     current_level.time.change(-delta_time);
+                    current_level.going_up = false;
+
                     if current_level.time.is_min() {
                         // Switch
                         current_level.group = switch_level;
                     }
                 } else {
                     current_level.time.change(delta_time);
+                    current_level.going_up = true;
                 }
             } else {
                 current_level.time.change(-delta_time);
+                current_level.going_up = false;
+
                 if current_level.time.is_min() {
                     // Remove
                     self.state.show_level = None;
@@ -226,6 +239,7 @@ impl LevelMenu {
             self.state.show_level = Some(ShowGroup {
                 group: level,
                 time: Bounded::new_zero(r32(0.25)),
+                going_up: false,
             });
         }
     }

@@ -60,17 +60,19 @@ impl MenuUI {
         let main = main.extend_left(-layout_size * 2.0);
 
         // Groups and levels on the left
-        let (groups, side) = layout::cut_left_right(main, layout_size * 11.0);
-        let (_connections, side) = layout::cut_left_right(side, layout_size * 5.0);
-        let (levels, side) = layout::cut_left_right(side, layout_size * 7.0);
+        let (groups, side) = layout::cut_left_right(main, layout_size * 13.0);
+        let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
+        let (levels, side) = layout::cut_left_right(side, layout_size * 9.0);
         update!(self.groups_state, groups);
         update!(self.levels_state, levels);
 
         {
             // Level groups
+            let slide = layout_size * 2.0;
+
             let scroll = 0.0; // TODO
             let group = Aabb2::point(layout::aabb_pos(groups, vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                .extend_right(groups.width())
+                .extend_right(groups.width() - slide)
                 .extend_down(3.0 * layout_size);
 
             // Initialize missing groups
@@ -96,8 +98,7 @@ impl MenuUI {
                 // Animate on hover
                 let t = group.selected_time.get_ratio();
                 let t = crate::util::smoothstep(t);
-                let offset = layout_size * 2.0;
-                let pos = pos.translate(vec2(t * offset, 0.0));
+                let pos = pos.translate(vec2(t * slide, 0.0));
 
                 update!(group, pos);
                 group.set_group(entry);
@@ -118,13 +119,21 @@ impl MenuUI {
             }
         }
 
-        if let Some(group) = &state.show_group {
-            if let Some(group) = state.groups.get(group.group) {
+        if let Some(show_group) = &state.show_group {
+            if let Some(group) = state.groups.get(show_group.group) {
                 // Levels
+                let slide = layout_size * 2.0;
+
                 let scroll = 0.0; // TODO
+
+                // Animate slide-in/out
+                let sign = if show_group.going_up { 1.0 } else { -1.0 };
+                let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio().as_f32());
+                let scroll = scroll + sign * t * layout_size * 25.0;
+
                 let level =
                     Aabb2::point(layout::aabb_pos(levels, vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                        .extend_right(levels.width())
+                        .extend_right(levels.width() - slide)
                         .extend_down(3.0 * layout_size);
 
                 // Initialize missing levels
@@ -150,8 +159,7 @@ impl MenuUI {
                     // Animate on hover
                     let t = level.selected_time.get_ratio();
                     let t = crate::util::smoothstep(t);
-                    let offset = layout_size * 2.0;
-                    let pos = pos.translate(vec2(t * offset, 0.0));
+                    let pos = pos.translate(vec2(t * slide, 0.0));
 
                     update!(level, pos);
                     level.set_level(level_meta);

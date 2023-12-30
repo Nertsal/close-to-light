@@ -29,6 +29,20 @@ impl MenuRender {
             .fit_height(ui.ctl_logo.position, 0.5)
             .draw(camera, &self.geng, framebuffer);
 
+        // Clip groups and levels
+        let mut mask = self.masked.start();
+
+        self.geng.draw2d().draw2d(
+            &mut mask.mask,
+            &geng::PixelPerfectCamera,
+            &draw2d::Quad::new(ui.groups_state.position, Color::WHITE),
+        );
+        self.geng.draw2d().draw2d(
+            &mut mask.mask,
+            &geng::PixelPerfectCamera,
+            &draw2d::Quad::new(ui.levels_state.position, Color::WHITE),
+        );
+
         for (group, entry) in ui.groups.iter().zip(&state.groups) {
             if let Some(logo) = &entry.logo {
                 self.geng.draw2d().textured_quad(
@@ -39,8 +53,8 @@ impl MenuRender {
                     Color::WHITE,
                 );
             }
-            self.util.draw_text_widget(&group.name, framebuffer);
-            self.util.draw_text_widget(&group.author, framebuffer);
+            self.util.draw_text_widget(&group.name, &mut mask.color);
+            self.util.draw_text_widget(&group.author, &mut mask.color);
 
             let group = &group.state;
             let color = if group.pressed {
@@ -55,13 +69,13 @@ impl MenuRender {
                 font_size * 0.2,
                 color,
                 camera,
-                framebuffer,
+                &mut mask.color,
             );
         }
 
         for level in &ui.levels {
-            self.util.draw_text_widget(&level.name, framebuffer);
-            self.util.draw_text_widget(&level.author, framebuffer);
+            self.util.draw_text_widget(&level.name, &mut mask.color);
+            self.util.draw_text_widget(&level.author, &mut mask.color);
 
             let level = &level.state;
             let color = if level.pressed {
@@ -76,9 +90,17 @@ impl MenuRender {
                 font_size * 0.2,
                 color,
                 camera,
-                framebuffer,
+                &mut mask.color,
             );
         }
+
+        self.masked.draw(
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                ..default()
+            },
+            framebuffer,
+        );
 
         // if ui.play_group.state.visible {
         //     self.util.draw_outline(
