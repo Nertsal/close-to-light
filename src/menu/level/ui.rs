@@ -114,7 +114,7 @@ impl MenuUI {
             context.update_focus(self.level_config.state.hovered);
             let old_config = state.config.clone();
             self.level_config.update_config(&mut state.config);
-            if old_config != state.config {
+            if old_config != state.config && state.show_leaderboard.time.is_max() {
                 state.leaderboard_request = Some(WidgetRequest::Reload);
             }
 
