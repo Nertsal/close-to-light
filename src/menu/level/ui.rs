@@ -98,7 +98,11 @@ impl MenuUI {
             self.level_config.set_config(&state.config);
             update!(self.level_config, config);
             context.update_focus(self.level_config.state.hovered);
+            let old_config = state.config.clone();
             self.level_config.update_config(&mut state.config);
+            if old_config != state.config {
+                state.leaderboard_request = Some(WidgetRequest::Reload);
+            }
 
             if self.level_config.state.hovered && state.show_level_config.time.is_min() {
                 state.config_request = Some(WidgetRequest::Open);
