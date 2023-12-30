@@ -234,37 +234,6 @@ impl MenuUI {
             }
         }
 
-        // // Play level on the right
-        // let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
-        // if let Some(group) = &state.show_group {
-        //     // Animate the slide-in
-        //     let t = group.time.get_ratio().as_f32();
-        //     let t = crate::util::smoothstep(t);
-        //     let offscreen = screen.max.x - level.min.x;
-        //     let target = offscreen * (1.0 - t);
-        //     let level = level.translate(vec2(target, 0.0));
-        //     update!(self.play_group, level);
-        //     self.play_group.update_time(delta_time);
-
-        //     if let Some(group) = state.groups.get(group.group) {
-        //         self.play_group.set_group(group);
-        //         self.play_group.show();
-
-        //         // Play level
-        //         let mut play = None;
-        //         for ((level_path, _), level) in group.levels.iter().zip(&self.play_group.levels) {
-        //             if level.play.text.state.clicked {
-        //                 play = Some(level_path.clone());
-        //             }
-        //         }
-        //         if let Some(level_path) = play {
-        //             state.play_level(level_path, self.play_group.level_config.clone());
-        //         }
-        //     }
-        // } else {
-        //     self.play_group.hide();
-        // }
-
         !context.can_focus
     }
 }
