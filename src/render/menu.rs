@@ -1,9 +1,6 @@
 use super::{mask::MaskedRender, util::UtilRender, *};
 
-use crate::{
-    menu::{MenuState, MenuUI},
-    ui::widget::Configuring,
-};
+use crate::menu::{MenuState, MenuUI};
 
 pub struct MenuRender {
     geng: Geng,
@@ -62,113 +59,134 @@ impl MenuRender {
             );
         }
 
-        if ui.play_group.state.visible {
+        for level in &ui.levels {
+            self.util.draw_text_widget(&level.name, framebuffer);
+            self.util.draw_text_widget(&level.author, framebuffer);
+
+            let level = &level.state;
+            let color = if level.pressed {
+                state.theme.light.map_rgb(|x| x * 0.5)
+            } else if level.hovered {
+                state.theme.light.map_rgb(|x| x * 0.7)
+            } else {
+                state.theme.light
+            };
             self.util.draw_outline(
-                &Collider::aabb(ui.play_group.state.position.map(r32)),
+                &Collider::aabb(level.position.map(r32)),
                 font_size * 0.2,
-                state.theme.light,
+                color,
                 camera,
                 framebuffer,
             );
-
-            for level in &ui.play_group.levels {
-                self.util.draw_button_widget(&level.play, framebuffer);
-                self.util.draw_text_widget(&level.credits, framebuffer);
-            }
-
-            // Title clip
-            let mut buffer = self.masked.start();
-            buffer.mask_quad(ui.play_group.title);
-            for title in &ui.play_group.config_titles {
-                self.util.draw_text_widget(title, &mut buffer.color);
-            }
-            self.masked.draw(
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    ..default()
-                },
-                framebuffer,
-            );
-
-            self.util
-                .draw_button_widget(&ui.play_group.prev_config, framebuffer);
-            self.util
-                .draw_button_widget(&ui.play_group.next_config, framebuffer);
-
-            // Main clip
-            let mut buffer = self.masked.start();
-            buffer.mask_quad(ui.play_group.main);
-
-            for config in &ui.play_group.configs {
-                if !config.state.visible {
-                    continue;
-                }
-                match &config.configuring {
-                    Configuring::Palette { presets } => {
-                        for preset in presets {
-                            let mut button = preset.button.clone();
-                            button.text.state.pressed = preset.selected;
-                            self.util.draw_button_widget(&button, &mut buffer.color);
-
-                            // Palette
-                            let (_, theme_preview) =
-                                crate::ui::layout::split_top_down(button.text.state.position, 0.5);
-                            let theme_preview = theme_preview
-                                .extend_symmetric(vec2(0.0, -theme_preview.height() / 4.0));
-                            let theme_preview = crate::ui::layout::fit_aabb_height(
-                                vec2(5.0, 2.0),
-                                theme_preview,
-                                0.5,
-                            );
-
-                            let theme = &preset.preset;
-                            let theme = [theme.dark, theme.light, theme.danger];
-                            let layout = crate::ui::layout::split_columns(theme_preview, 3);
-                            for (color, pos) in theme.into_iter().zip(layout) {
-                                self.geng.draw2d().draw2d(
-                                    &mut buffer.color,
-                                    &geng::PixelPerfectCamera,
-                                    &draw2d::Quad::new(pos, color),
-                                );
-                            }
-
-                            self.util.draw_outline(
-                                &Collider::aabb(theme_preview.map(r32)),
-                                5.0,
-                                Color::WHITE,
-                                &geng::PixelPerfectCamera,
-                                &mut buffer.color,
-                            );
-                        }
-                    }
-                    Configuring::Health { presets } => {
-                        for preset in presets {
-                            let mut button = preset.button.clone();
-                            button.text.state.pressed = preset.selected;
-                            self.util.draw_button_widget(&button, &mut buffer.color);
-                        }
-                    }
-                    Configuring::Modifiers { presets } => {
-                        for preset in presets {
-                            let mut button = preset.button.clone();
-                            button.text.state.pressed = preset.selected;
-                            self.util.draw_button_widget(&button, &mut buffer.color);
-                        }
-                    }
-                }
-            }
-
-            self.masked.draw(
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    ..default()
-                },
-                framebuffer,
-            );
-
-            // geng_utils::texture::DrawTexture::new(self.masked.color_texture())
-            //     .fit_screen(vec2(0.5, 0.5), framebuffer)
-            //     .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer)
         }
+
+        // if ui.play_group.state.visible {
+        //     self.util.draw_outline(
+        //         &Collider::aabb(ui.play_group.state.position.map(r32)),
+        //         font_size * 0.2,
+        //         state.theme.light,
+        //         camera,
+        //         framebuffer,
+        //     );
+
+        //     for level in &ui.play_group.levels {
+        //         self.util.draw_button_widget(&level.play, framebuffer);
+        //         self.util.draw_text_widget(&level.credits, framebuffer);
+        //     }
+
+        //     // Title clip
+        //     let mut buffer = self.masked.start();
+        //     buffer.mask_quad(ui.play_group.title);
+        //     for title in &ui.play_group.config_titles {
+        //         self.util.draw_text_widget(title, &mut buffer.color);
+        //     }
+        //     self.masked.draw(
+        //         ugli::DrawParameters {
+        //             blend_mode: Some(ugli::BlendMode::straight_alpha()),
+        //             ..default()
+        //         },
+        //         framebuffer,
+        //     );
+
+        //     self.util
+        //         .draw_button_widget(&ui.play_group.prev_config, framebuffer);
+        //     self.util
+        //         .draw_button_widget(&ui.play_group.next_config, framebuffer);
+
+        //     // Main clip
+        //     let mut buffer = self.masked.start();
+        //     buffer.mask_quad(ui.play_group.main);
+
+        //     for config in &ui.play_group.configs {
+        //         if !config.state.visible {
+        //             continue;
+        //         }
+        //         match &config.configuring {
+        //             Configuring::Palette { presets } => {
+        //                 for preset in presets {
+        //                     let mut button = preset.button.clone();
+        //                     button.text.state.pressed = preset.selected;
+        //                     self.util.draw_button_widget(&button, &mut buffer.color);
+
+        //                     // Palette
+        //                     let (_, theme_preview) =
+        //                         crate::ui::layout::split_top_down(button.text.state.position, 0.5);
+        //                     let theme_preview = theme_preview
+        //                         .extend_symmetric(vec2(0.0, -theme_preview.height() / 4.0));
+        //                     let theme_preview = crate::ui::layout::fit_aabb_height(
+        //                         vec2(5.0, 2.0),
+        //                         theme_preview,
+        //                         0.5,
+        //                     );
+
+        //                     let theme = &preset.preset;
+        //                     let theme = [theme.dark, theme.light, theme.danger];
+        //                     let layout = crate::ui::layout::split_columns(theme_preview, 3);
+        //                     for (color, pos) in theme.into_iter().zip(layout) {
+        //                         self.geng.draw2d().draw2d(
+        //                             &mut buffer.color,
+        //                             &geng::PixelPerfectCamera,
+        //                             &draw2d::Quad::new(pos, color),
+        //                         );
+        //                     }
+
+        //                     self.util.draw_outline(
+        //                         &Collider::aabb(theme_preview.map(r32)),
+        //                         5.0,
+        //                         Color::WHITE,
+        //                         &geng::PixelPerfectCamera,
+        //                         &mut buffer.color,
+        //                     );
+        //                 }
+        //             }
+        //             Configuring::Health { presets } => {
+        //                 for preset in presets {
+        //                     let mut button = preset.button.clone();
+        //                     button.text.state.pressed = preset.selected;
+        //                     self.util.draw_button_widget(&button, &mut buffer.color);
+        //                 }
+        //             }
+        //             Configuring::Modifiers { presets } => {
+        //                 for preset in presets {
+        //                     let mut button = preset.button.clone();
+        //                     button.text.state.pressed = preset.selected;
+        //                     self.util.draw_button_widget(&button, &mut buffer.color);
+        //                 }
+        //             }
+        //         }
+        //     }
+
+        //     self.masked.draw(
+        //         ugli::DrawParameters {
+        //             blend_mode: Some(ugli::BlendMode::straight_alpha()),
+        //             ..default()
+        //         },
+        //         framebuffer,
+        //     );
+
+        //     // geng_utils::texture::DrawTexture::new(self.masked.color_texture())
+        //     //     .fit_screen(vec2(0.5, 0.5), framebuffer)
+        //     //     .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer)
+        // }
     }
 }

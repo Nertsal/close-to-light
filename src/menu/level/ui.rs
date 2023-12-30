@@ -6,7 +6,9 @@ pub struct MenuUI {
     pub ctl_logo: WidgetState,
     pub groups_state: WidgetState,
     pub groups: Vec<GroupWidget>,
-    pub play_group: LevelGroupWidget,
+    pub levels_state: WidgetState,
+    pub levels: Vec<LevelWidget>,
+    // pub play_group: LevelGroupWidget,
 }
 
 impl MenuUI {
@@ -15,7 +17,9 @@ impl MenuUI {
             ctl_logo: default(),
             groups_state: default(),
             groups: Vec::new(),
-            play_group: LevelGroupWidget::new(assets),
+            levels_state: default(),
+            levels: Vec::new(),
+            // play_group: LevelGroupWidget::new(assets),
         }
     }
 
@@ -55,9 +59,12 @@ impl MenuUI {
         // Margin
         let main = main.extend_left(-layout_size * 2.0);
 
-        // Level groups on the left
+        // Groups and levels on the left
         let (groups, side) = layout::cut_left_right(main, layout_size * 11.0);
+        let (_connections, side) = layout::cut_left_right(side, layout_size * 5.0);
+        let (levels, side) = layout::cut_left_right(side, layout_size * 7.0);
         update!(self.groups_state, groups);
+        update!(self.levels_state, levels);
 
         {
             // Level groups
@@ -105,41 +112,96 @@ impl MenuUI {
                 }
             }
 
-            // Show the pre-play menu for the hovered level group
+            // Show levels for the group
             if let Some(group) = hovered {
                 state.show_group(group);
             }
         }
 
-        // Play level on the right
-        let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
         if let Some(group) = &state.show_group {
-            // Animate the slide-in
-            let t = group.time.get_ratio().as_f32();
-            let t = crate::util::smoothstep(t);
-            let offscreen = screen.max.x - level.min.x;
-            let target = offscreen * (1.0 - t);
-            let level = level.translate(vec2(target, 0.0));
-            update!(self.play_group, level);
-            self.play_group.update_time(delta_time);
-
             if let Some(group) = state.groups.get(group.group) {
-                self.play_group.set_group(group);
-                self.play_group.show();
+                // Levels
+                let scroll = 0.0; // TODO
+                let level =
+                    Aabb2::point(layout::aabb_pos(levels, vec2(0.0, 1.0)) + vec2(0.0, scroll))
+                        .extend_right(levels.width())
+                        .extend_down(3.0 * layout_size);
 
-                // Play level
-                let mut play = None;
-                for ((level_path, _), level) in group.levels.iter().zip(&self.play_group.levels) {
-                    if level.play.text.state.clicked {
-                        play = Some(level_path.clone());
+                // Initialize missing levels
+                for _ in 0..group.levels.len() - self.levels.len() {
+                    self.levels.push(LevelWidget::new());
+                }
+
+                // Layout each level
+                let mut hovered = None;
+                for (pos, (i, (_, level_meta))) in layout::stack(
+                    level,
+                    vec2(0.0, -level.height() - layout_size * 0.5),
+                    group.levels.len(),
+                )
+                .into_iter()
+                .zip(group.levels.iter().enumerate())
+                {
+                    let Some(level) = self.levels.get_mut(i) else {
+                        // should not happen
+                        continue;
+                    };
+
+                    // Animate on hover
+                    let t = level.selected_time.get_ratio();
+                    let t = crate::util::smoothstep(t);
+                    let offset = layout_size * 2.0;
+                    let pos = pos.translate(vec2(t * offset, 0.0));
+
+                    update!(level, pos);
+                    level.set_level(level_meta);
+
+                    if level.state.hovered {
+                        hovered = Some(i);
+                    }
+                    if level.state.hovered || state.switch_level == Some(i) {
+                        level.selected_time.change(delta_time);
+                    } else {
+                        level.selected_time.change(-delta_time);
                     }
                 }
-                if let Some(level_path) = play {
-                    state.play_level(level_path, self.play_group.level_config.clone());
+
+                // Show level
+                if let Some(level) = hovered {
+                    state.show_level(Some(level));
                 }
             }
-        } else {
-            self.play_group.hide();
         }
+
+        // // Play level on the right
+        // let (_middle, level) = layout::cut_left_right(side, side.width() - layout_size * 30.0);
+        // if let Some(group) = &state.show_group {
+        //     // Animate the slide-in
+        //     let t = group.time.get_ratio().as_f32();
+        //     let t = crate::util::smoothstep(t);
+        //     let offscreen = screen.max.x - level.min.x;
+        //     let target = offscreen * (1.0 - t);
+        //     let level = level.translate(vec2(target, 0.0));
+        //     update!(self.play_group, level);
+        //     self.play_group.update_time(delta_time);
+
+        //     if let Some(group) = state.groups.get(group.group) {
+        //         self.play_group.set_group(group);
+        //         self.play_group.show();
+
+        //         // Play level
+        //         let mut play = None;
+        //         for ((level_path, _), level) in group.levels.iter().zip(&self.play_group.levels) {
+        //             if level.play.text.state.clicked {
+        //                 play = Some(level_path.clone());
+        //             }
+        //         }
+        //         if let Some(level_path) = play {
+        //             state.play_level(level_path, self.play_group.level_config.clone());
+        //         }
+        //     }
+        // } else {
+        //     self.play_group.hide();
+        // }
     }
 }

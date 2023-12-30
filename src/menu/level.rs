@@ -36,6 +36,10 @@ pub struct MenuState {
     pub show_group: Option<ShowGroup>,
     /// Switch to the group after current one finishes its animation.
     pub switch_group: Option<usize>,
+    /// Currently showing level of the active group.
+    pub show_level: Option<ShowGroup>,
+    /// Switch to the level of the active group after current one finishes its animation.
+    pub switch_level: Option<usize>,
     play_level: Option<(std::path::PathBuf, LevelConfig)>,
 }
 
@@ -64,6 +68,10 @@ impl Debug for GroupEntry {
 impl MenuState {
     fn show_group(&mut self, group: usize) {
         self.switch_group = Some(group);
+    }
+
+    fn show_level(&mut self, level: Option<usize>) {
+        self.switch_level = level;
     }
 
     fn play_level(&mut self, level: std::path::PathBuf, config: LevelConfig) {
@@ -98,6 +106,8 @@ impl LevelMenu {
                 groups,
                 show_group: None,
                 switch_group: None,
+                show_level: None,
+                switch_level: None,
                 play_level: None,
             },
             exit_button: HoverButton::new(
@@ -158,6 +168,66 @@ impl LevelMenu {
                 future,
             ),
         )));
+    }
+
+    fn update_active_group(&mut self, delta_time: Time) {
+        if let Some(current_group) = &mut self.state.show_group {
+            if let Some(switch_group) = self.state.switch_group {
+                if current_group.group != switch_group {
+                    // Change level first
+                    self.state.switch_level = None;
+                    if self.state.show_level.is_some() {
+                        return;
+                    }
+
+                    current_group.time.change(-delta_time);
+                    if current_group.time.is_min() {
+                        // Switch
+                        current_group.group = switch_group;
+                    }
+                } else {
+                    current_group.time.change(delta_time);
+                }
+            } else {
+                current_group.time.change(-delta_time);
+                if current_group.time.is_min() {
+                    // Remove
+                    self.state.show_group = None;
+                }
+            }
+        } else if let Some(group) = self.state.switch_group.take() {
+            self.state.show_group = Some(ShowGroup {
+                group,
+                time: Bounded::new_zero(r32(0.25)),
+            });
+        }
+    }
+
+    fn update_active_level(&mut self, delta_time: Time) {
+        if let Some(current_level) = &mut self.state.show_level {
+            if let Some(switch_level) = self.state.switch_level {
+                if current_level.group != switch_level {
+                    current_level.time.change(-delta_time);
+                    if current_level.time.is_min() {
+                        // Switch
+                        current_level.group = switch_level;
+                    }
+                } else {
+                    current_level.time.change(delta_time);
+                }
+            } else {
+                current_level.time.change(-delta_time);
+                if current_level.time.is_min() {
+                    // Remove
+                    self.state.show_level = None;
+                }
+            }
+        } else if let Some(level) = self.state.switch_level.take() {
+            self.state.show_level = Some(ShowGroup {
+                group: level,
+                time: Bounded::new_zero(r32(0.25)),
+            });
+        }
     }
 }
 
@@ -238,30 +308,8 @@ impl geng::State for LevelMenu {
             self.transition = Some(geng::state::Transition::Pop);
         }
 
-        if let Some(current_group) = &mut self.state.show_group {
-            if let Some(switch_group) = self.state.switch_group {
-                if current_group.group != switch_group {
-                    current_group.time.change(-delta_time);
-                    if current_group.time.is_min() {
-                        // Switch
-                        current_group.group = switch_group;
-                    }
-                } else {
-                    current_group.time.change(delta_time);
-                }
-            } else {
-                current_group.time.change(-delta_time);
-                if current_group.time.is_min() {
-                    // Remove
-                    self.state.show_group = None;
-                }
-            }
-        } else if let Some(group) = self.state.switch_group.take() {
-            self.state.show_group = Some(ShowGroup {
-                group,
-                time: Bounded::new_zero(r32(0.25)),
-            });
-        }
+        self.update_active_group(delta_time);
+        self.update_active_level(delta_time);
 
         self.last_delta_time = delta_time;
     }
