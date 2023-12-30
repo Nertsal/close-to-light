@@ -1,6 +1,7 @@
 mod button;
 mod checkbox;
 mod group;
+mod leaderboard;
 mod level;
 mod light;
 mod text;
@@ -10,6 +11,7 @@ pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
     group::GroupWidget,
+    leaderboard::{LeaderboardEntryWidget, LeaderboardWidget},
     level::*,
     light::{LightStateWidget, LightWidget},
     text::TextWidget,

@@ -9,6 +9,7 @@ pub struct MenuUI {
     pub levels_state: WidgetState,
     pub levels: Vec<LevelWidget>,
     // pub play_group: LevelGroupWidget,
+    pub leaderboard: LeaderboardWidget,
 }
 
 impl MenuUI {
@@ -20,6 +21,7 @@ impl MenuUI {
             levels_state: default(),
             levels: Vec::new(),
             // play_group: LevelGroupWidget::new(assets),
+            leaderboard: LeaderboardWidget::new(),
         }
     }
 
@@ -62,7 +64,7 @@ impl MenuUI {
         // Groups and levels on the left
         let (groups, side) = layout::cut_left_right(main, layout_size * 13.0);
         let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
-        let (levels, side) = layout::cut_left_right(side, layout_size * 9.0);
+        let (levels, _side) = layout::cut_left_right(side, layout_size * 9.0);
         update!(self.groups_state, groups);
         update!(self.levels_state, levels);
 
@@ -120,7 +122,7 @@ impl MenuUI {
         }
 
         if let Some(show_group) = &state.show_group {
-            if let Some(group) = state.groups.get(show_group.group) {
+            if let Some(group) = state.groups.get(show_group.data) {
                 // Levels
                 let slide = layout_size * 2.0;
 
@@ -178,6 +180,24 @@ impl MenuUI {
                 if let Some(level) = hovered {
                     state.show_level(Some(level));
                 }
+            }
+        }
+
+        {
+            // Leaderboard
+            let width = layout_size * 20.0;
+            let height = screen.height();
+            let t = state.show_leaderboard.time.get_ratio().as_f32();
+            let t = crate::util::smoothstep(t);
+            let offset = main.height() * t;
+            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
+                .extend_left(width)
+                .extend_down(height)
+                .translate(vec2(0.0, offset));
+            update!(self.leaderboard, leaderboard);
+
+            if self.leaderboard.state.hovered {
+                state.show_leaderboard();
             }
         }
 

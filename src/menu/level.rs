@@ -33,19 +33,21 @@ pub struct MenuState {
     pub theme: Theme,
     pub groups: Vec<GroupEntry>,
     /// Currently showing group.
-    pub show_group: Option<ShowGroup>,
+    pub show_group: Option<ShowTime<usize>>,
     /// Switch to the group after current one finishes its animation.
     pub switch_group: Option<usize>,
     /// Currently showing level of the active group.
-    pub show_level: Option<ShowGroup>,
+    pub show_level: Option<ShowTime<usize>>,
     /// Switch to the level of the active group after current one finishes its animation.
     pub switch_level: Option<usize>,
+    pub show_level_config: ShowTime<()>,
+    pub show_leaderboard: ShowTime<()>,
     play_level: Option<(std::path::PathBuf, LevelConfig)>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ShowGroup {
-    pub group: usize,
+pub struct ShowTime<T> {
+    pub data: T,
     pub time: Bounded<Time>,
     /// Whether the time is going up or down.
     pub going_up: bool,
@@ -74,6 +76,10 @@ impl MenuState {
 
     fn show_level(&mut self, level: Option<usize>) {
         self.switch_level = level;
+    }
+
+    fn show_leaderboard(&mut self) {
+        self.show_leaderboard.going_up = true;
     }
 
     fn play_level(&mut self, level: std::path::PathBuf, config: LevelConfig) {
@@ -110,6 +116,16 @@ impl LevelMenu {
                 switch_group: None,
                 show_level: None,
                 switch_level: None,
+                show_level_config: ShowTime {
+                    data: (),
+                    time: Bounded::new_zero(r32(0.3)),
+                    going_up: false,
+                },
+                show_leaderboard: ShowTime {
+                    data: (),
+                    time: Bounded::new_zero(r32(0.3)),
+                    going_up: false,
+                },
                 play_level: None,
             },
             exit_button: HoverButton::new(
@@ -175,7 +191,7 @@ impl LevelMenu {
     fn update_active_group(&mut self, delta_time: Time) {
         if let Some(current_group) = &mut self.state.show_group {
             if let Some(switch_group) = self.state.switch_group {
-                if current_group.group != switch_group {
+                if current_group.data != switch_group {
                     // Change level first
                     self.state.switch_level = None;
                     // if self.state.show_level.is_some() {
@@ -187,7 +203,7 @@ impl LevelMenu {
 
                     if current_group.time.is_min() {
                         // Switch
-                        current_group.group = switch_group;
+                        current_group.data = switch_group;
                     }
                 } else {
                     current_group.time.change(delta_time);
@@ -203,8 +219,8 @@ impl LevelMenu {
                 }
             }
         } else if let Some(group) = self.state.switch_group.take() {
-            self.state.show_group = Some(ShowGroup {
-                group,
+            self.state.show_group = Some(ShowTime {
+                data: group,
                 time: Bounded::new_zero(r32(0.25)),
                 going_up: false,
             });
@@ -214,13 +230,14 @@ impl LevelMenu {
     fn update_active_level(&mut self, delta_time: Time) {
         if let Some(current_level) = &mut self.state.show_level {
             if let Some(switch_level) = self.state.switch_level {
-                if current_level.group != switch_level {
+                if current_level.data != switch_level {
+                    self.state.show_leaderboard.going_up = false; // Hide leaderboard
                     current_level.time.change(-delta_time);
                     current_level.going_up = false;
 
                     if current_level.time.is_min() {
                         // Switch
-                        current_level.group = switch_level;
+                        current_level.data = switch_level;
                     }
                 } else {
                     current_level.time.change(delta_time);
@@ -236,12 +253,22 @@ impl LevelMenu {
                 }
             }
         } else if let Some(level) = self.state.switch_level.take() {
-            self.state.show_level = Some(ShowGroup {
-                group: level,
+            self.state.show_level = Some(ShowTime {
+                data: level,
                 time: Bounded::new_zero(r32(0.25)),
                 going_up: false,
             });
         }
+    }
+
+    fn update_leaderboard(&mut self, delta_time: Time) {
+        let board = &mut self.state.show_leaderboard;
+        if self.state.show_level.is_none() {
+            board.going_up = false;
+        }
+        // TODO start fetching somewhere
+        let sign = r32(if board.going_up { 1.0 } else { -1.0 });
+        board.time.change(sign * delta_time);
     }
 }
 
@@ -324,6 +351,7 @@ impl geng::State for LevelMenu {
 
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);
+        self.update_leaderboard(delta_time);
 
         self.last_delta_time = delta_time;
     }

@@ -34,12 +34,12 @@ impl MenuRender {
 
         self.geng.draw2d().draw2d(
             &mut mask.mask,
-            &geng::PixelPerfectCamera,
+            camera,
             &draw2d::Quad::new(ui.groups_state.position, Color::WHITE),
         );
         self.geng.draw2d().draw2d(
             &mut mask.mask,
-            &geng::PixelPerfectCamera,
+            camera,
             &draw2d::Quad::new(ui.levels_state.position, Color::WHITE),
         );
 
@@ -99,6 +99,15 @@ impl MenuRender {
                 blend_mode: Some(ugli::BlendMode::straight_alpha()),
                 ..default()
             },
+            framebuffer,
+        );
+
+        // Leaderboard
+        self.util.draw_outline(
+            &Collider::aabb(ui.leaderboard.state.position.map(r32)),
+            font_size * 0.2,
+            state.theme.light,
+            camera,
             framebuffer,
         );
 
