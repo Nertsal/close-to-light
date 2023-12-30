@@ -59,13 +59,25 @@ impl MenuUI {
         update!(self.ctl_logo, ctl_logo);
         let main = main.extend_up(-layout_size * 3.0);
 
+        let base_t = if state.level_up {
+            1.0
+        } else {
+            state
+                .show_level
+                .as_ref()
+                .map_or(0.0, |show| show.time.get_ratio().as_f32())
+        };
+        let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
+
         {
             // Leaderboard
             let width = layout_size * 20.0;
             let height = screen.height();
-            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
-                .extend_left(width)
-                .extend_down(height);
+
+            let leaderboard =
+                Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * base_t * layout_size)
+                    .extend_left(width)
+                    .extend_down(height);
 
             let t = state.show_leaderboard.time.get_ratio().as_f32();
             let t = crate::util::smoothstep(t);
@@ -88,10 +100,11 @@ impl MenuUI {
             // Mods
             let width = layout_size * 30.0;
             let height = layout_size * 20.0;
+
             let t = state.show_level_config.time.get_ratio().as_f32();
             let t = crate::util::smoothstep(t);
             let offset = height * t;
-            let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * layout_size)
+            let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * base_t * layout_size)
                 .extend_right(width)
                 .extend_down(height)
                 .translate(vec2(0.0, offset));

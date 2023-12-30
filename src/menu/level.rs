@@ -49,6 +49,8 @@ pub struct MenuState {
     pub show_level: Option<ShowTime<usize>>,
     /// Switch to the level of the active group after current one finishes its animation.
     pub switch_level: Option<usize>,
+    /// Whether the level configuration and leaderboard screen should be up right now.
+    pub level_up: bool,
     pub show_level_config: ShowTime<()>,
     pub config_request: Option<WidgetRequest>,
     pub show_leaderboard: ShowTime<LeaderboardState>,
@@ -134,6 +136,7 @@ impl LevelMenu {
                 switch_group: None,
                 show_level: None,
                 switch_level: None,
+                level_up: false,
                 show_level_config: ShowTime {
                     data: (),
                     time: Bounded::new_zero(r32(0.3)),
@@ -283,8 +286,13 @@ impl LevelMenu {
                 } else {
                     current_level.time.change(delta_time);
                     current_level.going_up = true;
+
+                    if current_level.time.is_max() {
+                        self.state.level_up = true;
+                    }
                 }
             } else {
+                self.state.level_up = false;
                 current_level.time.change(-delta_time);
                 current_level.going_up = false;
 
