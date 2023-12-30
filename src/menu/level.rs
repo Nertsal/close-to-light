@@ -28,7 +28,9 @@ pub struct LevelMenu {
 
     camera: Camera2d,
     state: MenuState,
+    player: Player,
     exit_button: HoverButton,
+    play_button: HoverButton,
 }
 
 #[derive(Debug)]
@@ -46,7 +48,6 @@ pub struct MenuState {
     pub show_level_config: ShowTime<()>,
     pub show_leaderboard: ShowTime<LeaderboardState>,
     pub fetch_leaderboard: bool,
-    play_level: Option<(std::path::PathBuf, LevelConfig)>,
 }
 
 #[derive(Debug, Clone)]
@@ -85,10 +86,6 @@ impl MenuState {
     fn show_leaderboard(&mut self) {
         self.show_leaderboard.going_up = true;
         self.fetch_leaderboard = true;
-    }
-
-    fn play_level(&mut self, level: std::path::PathBuf, config: LevelConfig) {
-        self.play_level = Some((level, config));
     }
 }
 
@@ -140,20 +137,53 @@ impl LevelMenu {
                     going_up: false,
                 },
                 fetch_leaderboard: false,
-                play_level: None,
             },
+            player: Player::new(
+                Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
+                r32(0.0),
+            ),
             exit_button: HoverButton::new(
                 Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
                 3.0,
             ),
+            play_button: HoverButton::new(
+                Collider {
+                    position: vec2(6.0, 0.0).as_r32(),
+                    rotation: Angle::ZERO,
+                    shape: Shape::Circle { radius: r32(0.8) },
+                },
+                1.5,
+            ),
         }
     }
 
-    fn play_level(&mut self, level_path: std::path::PathBuf, config: LevelConfig) {
+    fn get_active_level(&self) -> Option<std::path::PathBuf> {
+        if let Some(group) = &self.state.show_group {
+            if let Some(group) = self.state.groups.get(group.data) {
+                if let Some(level) = &self.state.show_level {
+                    if let Some((path, _)) = group.levels.get(level.data) {
+                        return Some(path.clone());
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn play_level(&mut self) {
+        let Some(level_path) = self.get_active_level() else {
+            log::error!("Trying to play a level, but there is no active level");
+            return;
+        };
+
+        self.cursor_pos = vec2::ZERO;
+        self.play_button.hover_time.set(Time::ZERO);
+
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
             let secrets = self.secrets.clone();
+            let config = self.state.config.clone();
             let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
 
             async move {
@@ -220,7 +250,7 @@ impl LevelMenu {
                     self.state.show_group = None;
                 }
             }
-        } else if let Some(group) = self.state.switch_group.take() {
+        } else if let Some(group) = self.state.switch_group {
             self.state.show_group = Some(ShowTime {
                 data: group,
                 time: Bounded::new_zero(r32(0.25)),
@@ -254,10 +284,10 @@ impl LevelMenu {
                     self.state.show_level = None;
                 }
             }
-        } else if let Some(level) = self.state.switch_level.take() {
+        } else if let Some(level) = self.state.switch_level {
             self.state.show_level = Some(ShowTime {
                 data: level,
-                time: Bounded::new_zero(r32(0.25)),
+                time: Bounded::new_zero(r32(0.5)),
                 going_up: false,
             });
         }
@@ -291,7 +321,9 @@ impl LevelMenu {
     }
 
     fn update_leaderboard(&mut self, delta_time: Time) {
-        if std::mem::take(&mut self.state.fetch_leaderboard) {
+        if std::mem::take(&mut self.state.fetch_leaderboard)
+            && self.state.show_leaderboard.time.is_min()
+        {
             self.fetch_leaderboard();
         }
 
@@ -314,21 +346,48 @@ impl geng::State for LevelMenu {
         ugli::clear(framebuffer, Some(self.state.config.theme.dark), None, None);
 
         let mut dither_buffer = self.dither.start();
-        let button = crate::render::smooth_button(&self.exit_button, self.time);
-        self.util.draw_button(
-            &button,
-            "EXIT",
-            &crate::render::THEME,
-            &self.camera,
-            &mut dither_buffer,
-        );
+
+        let fading = self.exit_button.is_fading() || self.play_button.is_fading();
+
+        if !fading || self.exit_button.is_fading() {
+            let button = crate::render::smooth_button(&self.exit_button, self.time);
+            self.util.draw_button(
+                &button,
+                "EXIT",
+                &crate::render::THEME,
+                &self.camera,
+                &mut dither_buffer,
+            );
+        }
+
+        if !fading || self.play_button.is_fading() {
+            let play_time = self
+                .state
+                .show_level
+                .as_ref()
+                .map_or(Time::ZERO, |show| show.time.get_ratio());
+            let scale = crate::util::smoothstep(play_time);
+            let mut button = self.play_button.clone();
+            button.base_collider = button.base_collider.transformed(Transform::scale(scale));
+            self.util.draw_button(
+                &button,
+                "PLAY",
+                &crate::render::THEME,
+                &self.camera,
+                &mut dither_buffer,
+            );
+        }
+
+        self.util
+            .draw_player(&self.player, &self.camera, &mut dither_buffer);
+
         self.dither.finish(self.time, &Theme::default());
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), framebuffer)
             .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
 
-        if self.exit_button.is_fading() {
+        if fading {
             return;
         }
 
@@ -341,10 +400,6 @@ impl geng::State for LevelMenu {
             &self.geng,
         );
         self.render.draw_ui(&self.ui, &self.state, framebuffer);
-
-        if let Some((level, config)) = self.state.play_level.take() {
-            self.play_level(level, config);
-        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -352,6 +407,7 @@ impl geng::State for LevelMenu {
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {
+                self.state.switch_level.take();
                 if self.state.switch_group.take().is_some() {
                 } else {
                     // Go to main menu
@@ -365,6 +421,11 @@ impl geng::State for LevelMenu {
         }
     }
 
+    fn fixed_update(&mut self, delta_time: f64) {
+        let delta_time = Time::new(delta_time as _);
+        self.player.update_tail(delta_time);
+    }
+
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
@@ -372,6 +433,14 @@ impl geng::State for LevelMenu {
         let cursor_world = self
             .camera
             .screen_to_world(self.framebuffer_size.as_f32(), self.cursor_pos.as_f32());
+
+        self.player.collider.position = cursor_world.as_r32();
+        self.player.reset_distance();
+        self.player
+            .update_distance(&self.exit_button.base_collider, false);
+        self.player
+            .update_distance(&self.play_button.base_collider, false);
+
         let hovering = self
             .exit_button
             .base_collider
@@ -379,6 +448,15 @@ impl geng::State for LevelMenu {
         self.exit_button.update(hovering, delta_time);
         if self.exit_button.hover_time.is_max() {
             self.transition = Some(geng::state::Transition::Pop);
+        }
+
+        let hovering = self
+            .play_button
+            .base_collider
+            .contains(cursor_world.as_r32());
+        self.play_button.update(hovering, delta_time);
+        if self.play_button.hover_time.is_max() {
+            self.play_level();
         }
 
         // Poll leaderboard

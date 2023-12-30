@@ -104,6 +104,11 @@ impl MenuRender {
 
         {
             // Leaderboard
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Quad::new(ui.leaderboard.state.position, state.config.theme.dark),
+            );
             self.util
                 .draw_text_widget(&ui.leaderboard.title, framebuffer);
             self.util
