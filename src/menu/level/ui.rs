@@ -21,9 +21,8 @@ impl MenuUI {
             groups: Vec::new(),
             levels_state: default(),
             levels: Vec::new(),
-            // play_group: LevelGroupWidget::new(assets),
-            leaderboard: LeaderboardWidget::new(),
-            level_config: LevelConfigWidget::new(),
+            leaderboard: LeaderboardWidget::new(assets),
+            level_config: LevelConfigWidget::new(assets),
         }
     }
 
@@ -80,6 +79,8 @@ impl MenuUI {
 
             if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
                 state.leaderboard_request = Some(WidgetRequest::Open);
+            } else if self.leaderboard.close.text.state.clicked {
+                state.leaderboard_request = Some(WidgetRequest::Close);
             }
         }
 
@@ -106,6 +107,8 @@ impl MenuUI {
 
             if self.level_config.state.hovered && state.show_level_config.time.is_min() {
                 state.config_request = Some(WidgetRequest::Open);
+            } else if self.level_config.close.text.state.clicked {
+                state.config_request = Some(WidgetRequest::Close);
             }
         }
 

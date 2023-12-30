@@ -110,6 +110,8 @@ impl MenuRender {
                 &draw2d::Quad::new(ui.leaderboard.state.position, state.config.theme.dark),
             );
             self.util
+                .draw_button_widget(&ui.leaderboard.close, framebuffer);
+            self.util
                 .draw_text_widget(&ui.leaderboard.title, framebuffer);
             self.util
                 .draw_text_widget(&ui.leaderboard.subtitle, framebuffer);
@@ -144,6 +146,9 @@ impl MenuRender {
                 camera,
                 &draw2d::Quad::new(ui.level_config.state.position, Color::WHITE),
             );
+
+            self.util
+                .draw_button_widget(&ui.level_config.close, &mut buffer.color);
 
             for (tab, active) in [
                 (

@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{HealthConfig, LevelConfig, LevelModifiers, Modifier},
+    prelude::{Assets, HealthConfig, LevelConfig, LevelModifiers, Modifier},
     ui::layout,
 };
 
@@ -7,6 +7,7 @@ use super::*;
 
 pub struct LevelConfigWidget {
     pub state: WidgetState,
+    pub close: ButtonWidget,
     pub tab_difficulty: TextWidget,
     pub tab_mods: TextWidget,
     pub difficulty: LevelDifficultyWidget,
@@ -14,9 +15,10 @@ pub struct LevelConfigWidget {
 }
 
 impl LevelConfigWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         let mut w = Self {
             state: WidgetState::new(),
+            close: ButtonWidget::new_textured("", &assets.sprites.button_close),
             tab_difficulty: TextWidget::new("Difficulty"),
             tab_mods: TextWidget::new("Modifiers"),
             difficulty: LevelDifficultyWidget::new(),
@@ -44,6 +46,11 @@ impl Widget for LevelConfigWidget {
         let main = position;
 
         let (bar, main) = layout::cut_top_down(main, context.font_size * 1.2);
+
+        let (bar, close) = layout::cut_left_right(bar, bar.width() - context.font_size * 1.2);
+        self.close
+            .update(close.extend_uniform(-context.font_size * 0.2), context);
+
         let tab =
             Aabb2::point(bar.bottom_left()).extend_positive(vec2(5.0, 1.0) * context.font_size);
         let tabs = layout::stack(tab, vec2(tab.width(), 0.0), 2);

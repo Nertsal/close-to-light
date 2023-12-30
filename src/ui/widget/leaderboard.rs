@@ -1,11 +1,15 @@
 use super::*;
 
-use crate::{prelude::LeaderboardState, ui::layout};
+use crate::{
+    prelude::{Assets, LeaderboardState},
+    ui::layout,
+};
 
 use nertboard_client::ScoreEntry;
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
+    pub close: ButtonWidget,
     pub title: TextWidget,
     pub subtitle: TextWidget,
     pub status: TextWidget,
@@ -20,9 +24,10 @@ pub struct LeaderboardEntryWidget {
 }
 
 impl LeaderboardWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
+            close: ButtonWidget::new_textured("", &assets.sprites.button_close),
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
             status: TextWidget::new(""),
@@ -59,7 +64,16 @@ impl LeaderboardWidget {
 impl Widget for LeaderboardWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
-        let main = position.extend_symmetric(-vec2(1.0, 0.0) * context.font_size);
+        let main = position;
+
+        let close = layout::align_aabb(
+            vec2::splat(context.font_size * 0.75),
+            main.extend_uniform(-context.font_size * 0.2),
+            vec2(0.0, 1.0),
+        );
+        self.close.update(close, context);
+
+        let main = main.extend_symmetric(-vec2(1.0, 0.0) * context.font_size);
 
         let (title, main) = layout::cut_top_down(main, context.font_size * 2.0);
         self.title.update(title, context);
