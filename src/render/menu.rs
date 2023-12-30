@@ -138,6 +138,13 @@ impl MenuRender {
                 &draw2d::Quad::new(ui.level_config.state.position, state.config.theme.dark),
             );
 
+            let mut buffer = self.masked.start();
+            self.geng.draw2d().draw2d(
+                &mut buffer.mask,
+                camera,
+                &draw2d::Quad::new(ui.level_config.state.position, Color::WHITE),
+            );
+
             for (tab, active) in [
                 (
                     &ui.level_config.tab_difficulty,
@@ -161,7 +168,7 @@ impl MenuRender {
                     geng_utils::layout::aabb_pos(tab.state.position, tab.options.align),
                     tab.options.color(color),
                     &geng::PixelPerfectCamera,
-                    framebuffer,
+                    &mut buffer.color,
                 );
 
                 if active {
@@ -171,18 +178,36 @@ impl MenuRender {
                         .position
                         .extend_symmetric(-vec2(0.5, 0.1) * options.size);
                     line.max.y = line.min.y + 0.05 * options.size;
-                    self.geng
-                        .draw2d()
-                        .draw2d(framebuffer, camera, &draw2d::Quad::new(line, color));
+                    self.geng.draw2d().draw2d(
+                        &mut buffer.color,
+                        camera,
+                        &draw2d::Quad::new(line, color),
+                    );
                 }
             }
 
             if ui.level_config.difficulty.state.visible {
-                // TODO
+                for preset in &ui.level_config.difficulty.presets {
+                    let mut button = preset.button.clone();
+                    button.text.state.pressed = preset.selected;
+                    self.util.draw_button_widget(&button, &mut buffer.color);
+                }
             }
             if ui.level_config.mods.state.visible {
-                // TODO
+                for preset in &ui.level_config.mods.mods {
+                    let mut button = preset.button.clone();
+                    button.text.state.pressed = preset.selected;
+                    self.util.draw_button_widget(&button, &mut buffer.color);
+                }
             }
+
+            self.masked.draw(
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+                framebuffer,
+            );
 
             self.util.draw_outline(
                 &Collider::aabb(ui.level_config.state.position.map(r32)),
