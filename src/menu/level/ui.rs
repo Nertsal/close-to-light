@@ -198,8 +198,8 @@ impl MenuUI {
             self.leaderboard.update_state(&state.show_leaderboard.data);
             update!(self.leaderboard, leaderboard);
 
-            if self.leaderboard.state.hovered {
-                state.show_leaderboard();
+            if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
+                state.leaderboard_request = Some(LeaderboardRequest::Fetch);
             }
         }
 

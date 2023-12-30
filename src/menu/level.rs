@@ -47,7 +47,7 @@ pub struct MenuState {
     pub switch_level: Option<usize>,
     pub show_level_config: ShowTime<()>,
     pub show_leaderboard: ShowTime<LeaderboardState>,
-    pub fetch_leaderboard: bool,
+    pub leaderboard_request: Option<LeaderboardRequest>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +56,13 @@ pub struct ShowTime<T> {
     pub time: Bounded<Time>,
     /// Whether the time is going up or down.
     pub going_up: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum LeaderboardRequest {
+    Fetch,
+    Close,
+    Reload,
 }
 
 pub struct GroupEntry {
@@ -81,11 +88,6 @@ impl MenuState {
 
     fn show_level(&mut self, level: Option<usize>) {
         self.switch_level = level;
-    }
-
-    fn show_leaderboard(&mut self) {
-        self.show_leaderboard.going_up = true;
-        self.fetch_leaderboard = true;
     }
 }
 
@@ -136,7 +138,7 @@ impl LevelMenu {
                     time: Bounded::new_zero(r32(0.3)),
                     going_up: false,
                 },
-                fetch_leaderboard: false,
+                leaderboard_request: None,
             },
             player: Player::new(
                 Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
@@ -321,10 +323,24 @@ impl LevelMenu {
     }
 
     fn update_leaderboard(&mut self, delta_time: Time) {
-        if std::mem::take(&mut self.state.fetch_leaderboard)
-            && self.state.show_leaderboard.time.is_min()
-        {
-            self.fetch_leaderboard();
+        if let Some(req) = self.state.leaderboard_request {
+            let board = &mut self.state.show_leaderboard;
+            match req {
+                LeaderboardRequest::Fetch => {
+                    if board.time.is_min() {
+                        board.going_up = true;
+                        self.state.leaderboard_request = None;
+                        self.fetch_leaderboard();
+                    }
+                }
+                LeaderboardRequest::Close => board.going_up = false,
+                LeaderboardRequest::Reload => {
+                    board.going_up = false;
+                    if board.time.is_min() {
+                        self.state.leaderboard_request = Some(LeaderboardRequest::Fetch);
+                    }
+                }
+            }
         }
 
         let board = &mut self.state.show_leaderboard;
@@ -407,8 +423,11 @@ impl geng::State for LevelMenu {
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {
-                self.state.switch_level.take();
-                if self.state.switch_group.take().is_some() {
+                if self.state.show_leaderboard.time.is_max() {
+                    self.state.leaderboard_request = Some(LeaderboardRequest::Close);
+                } else if self.state.switch_level.take().is_some()
+                    || self.state.switch_group.take().is_some()
+                {
                 } else {
                     // Go to main menu
                     self.transition = Some(geng::state::Transition::Pop);
