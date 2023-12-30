@@ -137,10 +137,46 @@ impl MenuRender {
                 camera,
                 &draw2d::Quad::new(ui.level_config.state.position, state.config.theme.dark),
             );
-            self.util
-                .draw_text_widget(&ui.level_config.tab_difficulty, framebuffer);
-            self.util
-                .draw_text_widget(&ui.level_config.tab_mods, framebuffer);
+
+            for (tab, active) in [
+                (
+                    &ui.level_config.tab_difficulty,
+                    ui.level_config.difficulty.state.visible,
+                ),
+                (
+                    &ui.level_config.tab_mods,
+                    ui.level_config.mods.state.visible,
+                ),
+            ] {
+                let options = &tab.options;
+                let color = if tab.state.pressed {
+                    options.press_color
+                } else if tab.state.hovered {
+                    options.hover_color
+                } else {
+                    options.color
+                };
+                self.util.draw_text(
+                    &tab.text,
+                    geng_utils::layout::aabb_pos(tab.state.position, tab.options.align),
+                    tab.options.color(color),
+                    &geng::PixelPerfectCamera,
+                    framebuffer,
+                );
+
+                if active {
+                    // Underline
+                    let mut line = tab
+                        .state
+                        .position
+                        .extend_symmetric(-vec2(0.5, 0.1) * options.size);
+                    line.max.y = line.min.y + 0.05 * options.size;
+                    self.geng
+                        .draw2d()
+                        .draw2d(framebuffer, camera, &draw2d::Quad::new(line, color));
+                }
+            }
+
             if ui.level_config.difficulty.state.visible {
                 // TODO
             }

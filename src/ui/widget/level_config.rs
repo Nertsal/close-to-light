@@ -12,13 +12,16 @@ pub struct LevelConfigWidget {
 
 impl LevelConfigWidget {
     pub fn new() -> Self {
-        Self {
+        let mut w = Self {
             state: WidgetState::new(),
             tab_difficulty: TextWidget::new("Difficulty"),
             tab_mods: TextWidget::new("Modifiers"),
             difficulty: LevelDifficultyWidget::new(),
             mods: LevelModsWidget::new(),
-        }
+        };
+        w.difficulty.hide();
+        w.mods.hide();
+        w
     }
 }
 
@@ -36,6 +39,14 @@ impl Widget for LevelConfigWidget {
             .zip(tabs)
         {
             tab.update(pos, context);
+        }
+
+        if self.tab_difficulty.state.clicked {
+            self.difficulty.show();
+            self.mods.hide();
+        } else if self.tab_mods.state.clicked {
+            self.difficulty.hide();
+            self.mods.show();
         }
 
         self.difficulty.update(main, context);
