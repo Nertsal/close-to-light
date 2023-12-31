@@ -105,8 +105,12 @@ impl MenuUI {
 
             self.options.set_options(state.options.clone());
             update!(self.options, options);
+            let old_options = state.options.clone();
             context.update_focus(self.options.state.hovered);
             self.options.update_options(&mut state.options);
+            if state.options != old_options {
+                preferences::save("options", &state.options);
+            }
 
             if self.options_head.state.hovered && state.show_options.time.is_min() {
                 state.options_request = Some(WidgetRequest::Open);

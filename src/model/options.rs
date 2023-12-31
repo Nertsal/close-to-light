@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Options {
     pub volume: VolumeOptions,
     pub theme: Theme,
@@ -16,7 +16,13 @@ pub struct Theme {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VolumeOptions {
-    pub master: Bounded<f32>,
+    pub master: Bounded<f32>, // TODO: impl in crate
+}
+
+impl PartialEq for VolumeOptions {
+    fn eq(&self, other: &Self) -> bool {
+        self.master.value() == other.master.value()
+    }
 }
 
 impl VolumeOptions {

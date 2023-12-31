@@ -67,7 +67,7 @@ fn main() {
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
 
-        let options = Options::default(); // TODO load from file
+        let options: Options = preferences::load("options").unwrap_or_default();
 
         if let Some(text) = opts.text {
             let state = media::MediaState::new(&geng, &assets).with_text(text);
