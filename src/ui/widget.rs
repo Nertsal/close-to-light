@@ -5,6 +5,7 @@ mod leaderboard;
 mod level;
 mod level_config;
 mod light;
+mod options;
 mod text;
 mod timeline;
 
@@ -16,6 +17,7 @@ pub use self::{
     level::*,
     level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
     light::{LightStateWidget, LightWidget},
+    options::OptionsWidget,
     text::TextWidget,
     timeline::TimelineWidget,
 };

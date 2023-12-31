@@ -8,7 +8,8 @@ pub struct MenuUI {
     pub groups: Vec<GroupWidget>,
     pub levels_state: WidgetState,
     pub levels: Vec<LevelWidget>,
-    // pub play_group: LevelGroupWidget,
+    pub options_head: TextWidget,
+    pub options: OptionsWidget,
     pub leaderboard: LeaderboardWidget,
     pub level_config: LevelConfigWidget,
 }
@@ -21,6 +22,8 @@ impl MenuUI {
             groups: Vec::new(),
             levels_state: default(),
             levels: Vec::new(),
+            options_head: TextWidget::new("Options"),
+            options: OptionsWidget::new(assets),
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
         }
@@ -52,10 +55,10 @@ impl MenuUI {
         }
 
         // Margin
-        let screen = screen.extend_uniform(-layout_size * 2.0);
+        let main = screen.extend_uniform(-layout_size * 2.0);
 
         // Logo
-        let (ctl_logo, main) = layout::cut_top_down(screen, layout_size * 4.0);
+        let (ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
         update!(self.ctl_logo, ctl_logo);
         let main = main.extend_up(-layout_size * 3.0);
 
@@ -68,6 +71,39 @@ impl MenuUI {
                 .map_or(0.0, |show| show.time.get_ratio().as_f32())
         };
         let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
+
+        {
+            // Options
+            let width = layout_size * 50.0;
+            let height = layout_size * 20.0;
+
+            let options = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
+                .extend_symmetric(vec2(width, 0.0) / 2.0)
+                .extend_up(height);
+
+            let t = state.show_options.time.get_ratio().as_f32();
+            let t = crate::util::smoothstep(t);
+            let offset = -options.height() * t;
+
+            let options = options.translate(vec2(0.0, offset));
+
+            let head = Aabb2::point(screen.top_left() + vec2(10.0, 0.0) * layout_size)
+                .extend_right(layout_size * 7.0)
+                .extend_down(layout_size * 2.0)
+                .translate(vec2(0.0, offset));
+
+            update!(self.options_head, head);
+            context.update_focus(self.options_head.state.hovered);
+
+            update!(self.options, options);
+            context.update_focus(self.options.state.hovered);
+
+            if self.options_head.state.hovered && state.show_options.time.is_min() {
+                state.options_request = Some(WidgetRequest::Open);
+            } else if !self.options.state.hovered && !self.options_head.state.hovered {
+                state.options_request = Some(WidgetRequest::Close);
+            }
+        }
 
         {
             // Leaderboard

@@ -32,16 +32,8 @@ impl MenuRender {
         // Clip groups and levels
         let mut mask = self.masked.start();
 
-        self.geng.draw2d().draw2d(
-            &mut mask.mask,
-            camera,
-            &draw2d::Quad::new(ui.groups_state.position, Color::WHITE),
-        );
-        self.geng.draw2d().draw2d(
-            &mut mask.mask,
-            camera,
-            &draw2d::Quad::new(ui.levels_state.position, Color::WHITE),
-        );
+        mask.mask_quad(ui.groups_state.position);
+        mask.mask_quad(ui.levels_state.position);
 
         for (group, entry) in ui.groups.iter().zip(&state.groups) {
             if let Some(logo) = &entry.logo {
@@ -103,6 +95,64 @@ impl MenuRender {
         );
 
         {
+            // Options
+            let mut buffer = self.masked.start();
+
+            let head = ui.options_head.state.position;
+            let options = ui.options.state.position;
+
+            buffer.mask_quad(head);
+            buffer.mask_quad(options);
+
+            self.geng.draw2d().draw2d(
+                &mut buffer.color,
+                camera,
+                &draw2d::Quad::new(head, state.config.theme.dark),
+            );
+            self.geng.draw2d().draw2d(
+                &mut buffer.color,
+                camera,
+                &draw2d::Quad::new(options, state.config.theme.dark),
+            );
+
+            self.util
+                .draw_text_widget(&ui.options_head, &mut buffer.color);
+
+            self.masked.draw(
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+                framebuffer,
+            );
+
+            // Outline
+            let outline_width = font_size * 0.2;
+            let [bl, br, tr, tl] = options
+                .extend_uniform(-outline_width / 2.0)
+                .extend_up(outline_width)
+                .corners();
+            let head = head.extend_uniform(-outline_width / 2.0);
+            let head_tl = vec2(head.min.x, bl.y);
+            let head_tr = vec2(head.max.x, br.y);
+            let chain = Chain::new(vec![
+                tl,
+                bl,
+                head_tl,
+                head.bottom_left(),
+                head.bottom_right(),
+                head_tr,
+                br,
+                tr,
+            ]);
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                camera,
+                &draw2d::Chain::new(chain, outline_width, state.config.theme.light, 1),
+            );
+        }
+
+        {
             // Leaderboard
             self.geng.draw2d().draw2d(
                 framebuffer,
@@ -141,11 +191,7 @@ impl MenuRender {
             );
 
             let mut buffer = self.masked.start();
-            self.geng.draw2d().draw2d(
-                &mut buffer.mask,
-                camera,
-                &draw2d::Quad::new(ui.level_config.state.position, Color::WHITE),
-            );
+            buffer.mask_quad(ui.level_config.state.position);
 
             self.util
                 .draw_button_widget(&ui.level_config.close, &mut buffer.color);

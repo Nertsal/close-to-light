@@ -51,6 +51,8 @@ pub struct MenuState {
     pub switch_level: Option<usize>,
     /// Whether the level configuration and leaderboard screen should be up right now.
     pub level_up: bool,
+    pub show_options: ShowTime<()>,
+    pub options_request: Option<WidgetRequest>,
     pub show_level_config: ShowTime<()>,
     pub config_request: Option<WidgetRequest>,
     pub show_leaderboard: ShowTime<LeaderboardState>,
@@ -137,6 +139,12 @@ impl LevelMenu {
                 show_level: None,
                 switch_level: None,
                 level_up: false,
+                show_options: ShowTime {
+                    data: (),
+                    time: Bounded::new_zero(r32(0.3)),
+                    going_up: false,
+                },
+                options_request: None,
                 show_level_config: ShowTime {
                     data: (),
                     time: Bounded::new_zero(r32(0.3)),
@@ -380,7 +388,7 @@ impl LevelMenu {
                 WidgetRequest::Reload => {
                     config.going_up = false;
                     if config.time.is_min() {
-                        self.state.leaderboard_request = Some(WidgetRequest::Open);
+                        self.state.config_request = Some(WidgetRequest::Open);
                     }
                 }
             }
@@ -392,6 +400,36 @@ impl LevelMenu {
         }
         let sign = r32(if config.going_up { 1.0 } else { -1.0 });
         config.time.change(sign * delta_time);
+    }
+
+    fn update_options(&mut self, delta_time: Time) {
+        if let Some(req) = self.state.options_request {
+            let options = &mut self.state.show_options;
+            match req {
+                WidgetRequest::Open => {
+                    if options.time.is_min() {
+                        options.going_up = true;
+                        self.state.options_request = None;
+                    }
+                }
+                WidgetRequest::Close => options.going_up = false,
+                WidgetRequest::Reload => {
+                    options.going_up = false;
+                    if options.time.is_min() {
+                        self.state.options_request = Some(WidgetRequest::Open);
+                    }
+                }
+            }
+        }
+
+        let options = &mut self.state.show_options;
+        if self.state.show_level_config.time.is_above_min()
+            || self.state.show_leaderboard.time.is_above_min()
+        {
+            options.going_up = false;
+        }
+        let sign = r32(if options.going_up { 1.0 } else { -1.0 });
+        options.time.change(sign * delta_time);
     }
 }
 
@@ -550,6 +588,7 @@ impl geng::State for LevelMenu {
 
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);
+        self.update_options(delta_time);
         self.update_leaderboard(delta_time);
         self.update_config(delta_time);
 
