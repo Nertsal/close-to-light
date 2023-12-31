@@ -1,7 +1,8 @@
 mod level;
 mod main;
+mod splash;
 
-pub use self::{level::*, main::*};
+pub use self::{level::*, main::*, splash::*};
 
 use crate::{
     prelude::*,

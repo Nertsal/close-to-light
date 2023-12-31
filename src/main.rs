@@ -133,7 +133,7 @@ fn main() {
                 })
             });
 
-            let state = menu::MainMenu::new(&geng, &assets, secrets, options);
+            let state = menu::SplashScreen::new(&geng, &assets, secrets, options);
             geng.run_state(state).await;
         }
     });

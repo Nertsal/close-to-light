@@ -18,6 +18,7 @@ void main() {
 uniform float u_time;
 uniform vec2 u_framebuffer_size;
 uniform vec2 u_pattern_size;
+uniform float u_noise;
 
 uniform vec4 u_color_dark;
 uniform vec4 u_color_light;
@@ -113,8 +114,8 @@ float dither_inverted(float amp) {
 }
 
 vec4 dither_final(vec2 amps) {
-	float noise_light = 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
-	float noise_danger = 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
+	float noise_light = u_noise * 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
+	float noise_danger = u_noise * 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
 	
 	float amp_light = amps.g + noise_light;
 	float amp_danger = amps.r + noise_danger;
