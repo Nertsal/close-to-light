@@ -392,6 +392,8 @@ impl LevelMenu {
                     if options.time.is_min() {
                         options.going_up = true;
                         self.state.options_request = None;
+                        self.state.show_level_config.going_up = false;
+                        self.state.show_leaderboard.going_up = false;
                     }
                 }
                 WidgetRequest::Close => options.going_up = false,
@@ -405,11 +407,6 @@ impl LevelMenu {
         }
 
         let options = &mut self.state.show_options;
-        if self.state.show_level_config.time.is_above_min()
-            || self.state.show_leaderboard.time.is_above_min()
-        {
-            options.going_up = false;
-        }
         let sign = r32(if options.going_up { 1.0 } else { -1.0 });
         options.time.change(sign * delta_time);
     }
