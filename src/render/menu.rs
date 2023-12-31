@@ -115,13 +115,56 @@ impl MenuRender {
                 &draw2d::Quad::new(options, state.config.theme.dark),
             );
 
-            let volume = &ui.options.volume;
-            self.util.draw_text_widget(&volume.title, &mut buffer.color);
-            self.util
-                .draw_slider_widget(&volume.master, &mut buffer.color);
+            {
+                // Volume
+                let volume = &ui.options.volume;
+                self.util.draw_text_widget(&volume.title, &mut buffer.color);
+                self.util
+                    .draw_slider_widget(&volume.master, &mut buffer.color);
 
-            self.util
-                .draw_text_widget(&ui.options_head, &mut buffer.color);
+                self.util
+                    .draw_text_widget(&ui.options_head, &mut buffer.color);
+            }
+
+            {
+                // Palette
+                let palette = &ui.options.palette;
+                self.util
+                    .draw_text_widget(&palette.title, &mut buffer.color);
+                for palette in &palette.palettes {
+                    self.util.draw_text_widget(&palette.name, &mut buffer.color);
+
+                    let mut quad = |i: f32, color: Color| {
+                        let pos = palette.visual.position;
+                        let pos = Aabb2::point(pos.bottom_left())
+                            .extend_positive(vec2::splat(pos.height()));
+                        let pos = pos.translate(vec2(i * pos.width(), 0.0));
+                        self.geng.draw2d().draw2d(
+                            &mut buffer.color,
+                            camera,
+                            &draw2d::Quad::new(pos, color),
+                        );
+                    };
+                    quad(0.0, palette.palette.dark);
+                    quad(1.0, palette.palette.light);
+                    quad(2.0, palette.palette.danger);
+
+                    let outline_width = font_size * 0.1;
+                    self.util.draw_outline(
+                        &Collider::aabb(
+                            palette
+                                .visual
+                                .position
+                                .extend_uniform(outline_width)
+                                .map(r32),
+                        ),
+                        outline_width,
+                        state.options.theme.light,
+                        camera,
+                        &mut buffer.color,
+                    );
+                }
+            }
 
             self.masked.draw(
                 ugli::DrawParameters {

@@ -18,7 +18,7 @@ pub use self::{
     level::*,
     level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
     light::{LightStateWidget, LightWidget},
-    options::OptionsWidget,
+    options::{OptionsWidget, PaletteChooseWidget, PaletteWidget, VolumeWidget},
     slider::SliderWidget,
     text::TextWidget,
     timeline::TimelineWidget,

@@ -23,7 +23,14 @@ impl MenuUI {
             levels_state: default(),
             levels: Vec::new(),
             options_head: TextWidget::new("Options"),
-            options: OptionsWidget::new(Options::default()),
+            options: OptionsWidget::new(
+                Options::default(),
+                vec![
+                    // TODO: custom
+                    PaletteWidget::new("Classic", Theme::classic()),
+                    PaletteWidget::new("Test", Theme::test()),
+                ],
+            ),
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
         }
