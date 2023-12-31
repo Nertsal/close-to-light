@@ -144,7 +144,7 @@ impl Model {
             self.config.clone(),
             self.level.clone(),
             self.music.clone(),
-            self.secrets.clone(),
+            self.leaderboard.clone(),
             self.player.name.clone(),
             Time::ZERO,
         );

@@ -1,3 +1,5 @@
+use crate::leaderboard::LeaderboardStatus;
+
 use super::{
     dither::DitherRender,
     util::{TextRenderOptions, UtilRender},
@@ -105,47 +107,49 @@ impl GameRender {
                 // );
 
                 // Leaderboard
-                match &model.leaderboard {
-                    LeaderboardState::None => {
+                match &model.leaderboard.status {
+                    LeaderboardStatus::None => {
                         draw_text("LEADERBOARD", vec2(4.0, 0.5), 0.8, vec2(0.5, 0.5));
                         draw_text("NOT AVAILABLE", vec2(4.0, -0.5), 0.8, vec2(0.5, 0.5));
                     }
-                    LeaderboardState::Pending => {
+                    LeaderboardStatus::Pending => {
                         let mut pos = vec2(4.0, 2.5);
                         draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
                         pos.y -= 0.8;
                         draw_text("LOADING...", pos, 0.7, vec2(0.5, 1.0));
                     }
-                    LeaderboardState::Failed => {
+                    LeaderboardStatus::Failed => {
                         let mut pos = vec2(4.0, 2.5);
                         draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
                         pos.y -= 0.8;
                         draw_text("FAILED TO LOAD", pos, 0.7, vec2(0.5, 1.0));
                     }
-                    LeaderboardState::Ready(leaderboard) => {
+                    LeaderboardStatus::Done => {
+                        let board = &model.leaderboard.loaded;
+
                         let mut pos = vec2(4.0, 2.5);
                         draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
                         pos.y -= 0.8;
-                        {
-                            let text = if let Some(place) = leaderboard.my_position {
-                                format!("{} PLACE", place + 1)
-                            } else if let State::Lost { .. } = model.state {
-                                "FINISH TO COMPETE".to_string()
-                            } else if model.player.name.trim().is_empty() {
-                                "CANNOT SUBMIT WITHOUT A NAME".to_string()
-                            } else {
-                                "".to_string()
-                            };
-                            draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
-                            pos.y -= 0.7;
-                        }
+                        // {
+                        //     let text = if let Some(place) = leaderboard.my_position {
+                        //         format!("{} PLACE", place + 1)
+                        //     } else if let State::Lost { .. } = model.state {
+                        //         "FINISH TO COMPETE".to_string()
+                        //     } else if model.player.name.trim().is_empty() {
+                        //         "CANNOT SUBMIT WITHOUT A NAME".to_string()
+                        //     } else {
+                        //         "".to_string()
+                        //     };
+                        //     draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
+                        //     pos.y -= 0.7;
+                        // }
 
-                        if leaderboard.top10.is_empty() {
+                        if board.filtered.is_empty() {
                             pos.y -= 1.0;
                             draw_text("EMPTY :(", pos, 0.6, vec2(0.5, 1.0));
                         }
 
-                        for score in &leaderboard.top10 {
+                        for score in &board.filtered {
                             let font_size = 0.6;
                             draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));
                             draw_text(

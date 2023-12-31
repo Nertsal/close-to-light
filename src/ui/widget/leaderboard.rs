@@ -1,9 +1,6 @@
 use super::*;
 
-use crate::{
-    prelude::{Assets, LeaderboardState},
-    ui::layout,
-};
+use crate::{leaderboard::LeaderboardStatus, prelude::Assets, ui::layout};
 
 use nertboard_client::ScoreEntry;
 
@@ -35,20 +32,19 @@ impl LeaderboardWidget {
         }
     }
 
-    pub fn update_state(&mut self, state: &LeaderboardState) {
+    pub fn update_state(&mut self, state: &LeaderboardStatus, scores: &[ScoreEntry]) {
         self.rows.clear();
         self.status.text = "".to_string();
         match state {
-            LeaderboardState::None => self.status.text = "what should be here?".to_string(),
-            LeaderboardState::Pending => self.status.text = "LOADING...".to_string(),
-            LeaderboardState::Failed => self.status.text = "FETCH FAILED :(".to_string(),
-            LeaderboardState::Ready(board) => {
-                if board.top10.is_empty() {
-                    self.status.text = "EMPTY :(".to_string();
-                } else {
-                    self.load_scores(&board.top10);
-                }
-            }
+            LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".to_string(),
+            LeaderboardStatus::Pending => self.status.text = "LOADING...".to_string(),
+            LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".to_string(),
+            LeaderboardStatus::Done => {}
+        }
+        if scores.is_empty() {
+            self.status.text = "EMPTY :(".to_string();
+        } else {
+            self.load_scores(scores);
         }
     }
 

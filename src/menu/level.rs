@@ -5,8 +5,7 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    leaderboard::Leaderboard, render::menu::MenuRender, task::Task, ui::widget::CursorContext,
-    Secrets,
+    leaderboard::Leaderboard, render::menu::MenuRender, ui::widget::CursorContext, Secrets,
 };
 
 use geng::MouseButton;
@@ -14,9 +13,7 @@ use geng::MouseButton;
 pub struct LevelMenu {
     geng: Geng,
     assets: Rc<Assets>,
-    secrets: Option<Secrets>,
     transition: Option<geng::state::Transition>,
-    leaderboard_task: Option<Task<Leaderboard>>,
 
     render: MenuRender,
     util: UtilRender,
@@ -37,8 +34,8 @@ pub struct LevelMenu {
     play_button: HoverButton,
 }
 
-#[derive(Debug)]
 pub struct MenuState {
+    pub leaderboard: Leaderboard,
     pub options: Options,
     pub config: LevelConfig,
     pub groups: Vec<GroupEntry>,
@@ -56,7 +53,7 @@ pub struct MenuState {
     pub options_request: Option<WidgetRequest>,
     pub show_level_config: ShowTime<()>,
     pub config_request: Option<WidgetRequest>,
-    pub show_leaderboard: ShowTime<LeaderboardState>,
+    pub show_leaderboard: ShowTime<()>,
     pub leaderboard_request: Option<WidgetRequest>,
 }
 
@@ -112,8 +109,6 @@ impl LevelMenu {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            secrets,
-            leaderboard_task: None,
             transition: None,
 
             render: MenuRender::new(geng, assets),
@@ -134,6 +129,7 @@ impl LevelMenu {
                 fov: 10.0,
             },
             state: MenuState {
+                leaderboard: Leaderboard::new(secrets.map(|s| s.leaderboard)),
                 options,
                 config: LevelConfig::default(),
                 groups,
@@ -155,7 +151,7 @@ impl LevelMenu {
                 },
                 config_request: None,
                 show_leaderboard: ShowTime {
-                    data: LeaderboardState::None,
+                    data: (),
                     time: Bounded::new_zero(r32(0.3)),
                     going_up: false,
                 },
@@ -205,7 +201,7 @@ impl LevelMenu {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
-            let secrets = self.secrets.clone();
+            let leaderboard = self.state.leaderboard.clone();
             let options = self.state.options.clone();
             let config = self.state.config.clone();
             let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
@@ -226,14 +222,7 @@ impl LevelMenu {
                     music: level_music,
                     start_time: Time::ZERO,
                 };
-                crate::game::Game::new(
-                    &geng,
-                    &assets,
-                    options,
-                    level,
-                    secrets.map(|s| s.leaderboard),
-                    player_name,
-                )
+                crate::game::Game::new(&geng, &assets, options, level, leaderboard, player_name)
             }
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(
@@ -324,26 +313,17 @@ impl LevelMenu {
     }
 
     fn fetch_leaderboard(&mut self) {
-        if self.leaderboard_task.is_some() {
-            return;
-        }
-        if let Some(secrets) = &self.secrets {
-            if let Some(group) = &self.state.show_group {
-                if let Some(group) = self.state.groups.get(group.data) {
-                    if let Some(level) = &self.state.show_level {
-                        if let Some((path, _)) = group.levels.get(level.data) {
-                            let (group, level) = crate::group_level_from_path(path);
+        if let Some(group) = &self.state.show_group {
+            if let Some(group) = self.state.groups.get(group.data) {
+                if let Some(level) = &self.state.show_level {
+                    if let Some((path, _)) = group.levels.get(level.data) {
+                        let (group, level) = crate::group_level_from_path(path);
 
-                            let mods = self.state.config.modifiers.clone();
-                            let health = self.state.config.health.clone();
+                        let mods = self.state.config.modifiers.clone();
+                        let health = self.state.config.health.clone();
 
-                            let meta =
-                                crate::leaderboard::ScoreMeta::new(group, level, mods, health);
-                            let secrets = secrets.leaderboard.clone();
-                            let future = async move { Leaderboard::fetch(&meta, secrets).await };
-                            self.state.show_leaderboard.data = LeaderboardState::Pending;
-                            self.leaderboard_task = Some(Task::new(future));
-                        }
+                        let meta = crate::leaderboard::ScoreMeta::new(group, level, mods, health);
+                        self.state.leaderboard.change_meta(meta);
                     }
                 }
             }
@@ -351,7 +331,7 @@ impl LevelMenu {
     }
 
     fn update_leaderboard(&mut self, delta_time: Time) {
-        if let Some(req) = self.state.leaderboard_request {
+        if let Some(req) = self.state.leaderboard_request.take() {
             let board = &mut self.state.show_leaderboard;
             match req {
                 WidgetRequest::Open => {
@@ -363,10 +343,7 @@ impl LevelMenu {
                 }
                 WidgetRequest::Close => board.going_up = false,
                 WidgetRequest::Reload => {
-                    board.going_up = false;
-                    if board.time.is_min() {
-                        self.state.leaderboard_request = Some(WidgetRequest::Open);
-                    }
+                    self.fetch_leaderboard();
                 }
             }
         }
@@ -574,22 +551,7 @@ impl geng::State for LevelMenu {
             self.play_level();
         }
 
-        // Poll leaderboard
-        if let Some(task) = &mut self.leaderboard_task {
-            if let Some(result) = task.poll() {
-                match result {
-                    Ok(leaderboard) => {
-                        log::info!("Leaderboard fetched successfully");
-                        self.state.show_leaderboard.data = LeaderboardState::Ready(leaderboard);
-                        self.leaderboard_task = None;
-                    }
-                    Err(err) => {
-                        log::error!("Fetching leaderboard failed: {:?}", err);
-                        self.state.show_leaderboard.data = LeaderboardState::Failed;
-                    }
-                }
-            }
-        }
+        self.state.leaderboard.poll();
 
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);

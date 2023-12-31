@@ -131,7 +131,10 @@ impl MenuUI {
 
             let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
-            self.leaderboard.update_state(&state.show_leaderboard.data);
+            self.leaderboard.update_state(
+                &state.leaderboard.status,
+                &state.leaderboard.loaded.filtered,
+            );
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
 
@@ -160,7 +163,7 @@ impl MenuUI {
             context.update_focus(self.level_config.state.hovered);
             let old_config = state.config.clone();
             self.level_config.update_config(&mut state.config);
-            if old_config != state.config && state.show_leaderboard.time.is_max() {
+            if old_config != state.config && state.show_leaderboard.going_up {
                 state.leaderboard_request = Some(WidgetRequest::Reload);
             }
 

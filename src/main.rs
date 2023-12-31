@@ -11,8 +11,10 @@ mod task;
 mod ui;
 mod util;
 
-use geng::prelude::*;
+use leaderboard::Leaderboard;
 use prelude::Options;
+
+use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0;
 
@@ -106,7 +108,14 @@ fn main() {
                     music,
                     start_time: prelude::Time::ZERO,
                 };
-                let state = game::Game::new(&geng, &assets, options, level, None, "".to_string());
+                let state = game::Game::new(
+                    &geng,
+                    &assets,
+                    options,
+                    level,
+                    Leaderboard::new(None),
+                    "".to_string(),
+                );
                 geng.run_state(state).await;
             }
         } else {

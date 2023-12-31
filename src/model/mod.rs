@@ -8,7 +8,7 @@ mod player;
 
 pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
 
-use crate::{leaderboard::Leaderboard, prelude::*, LeaderboardSecrets};
+use crate::{leaderboard::Leaderboard, prelude::*};
 
 pub type Time = R32;
 pub type Coord = R32;
@@ -128,19 +128,10 @@ pub enum Transition {
     Exit,
 }
 
-#[derive(Debug)]
-pub enum LeaderboardState {
-    None,
-    Pending,
-    Failed,
-    Ready(Leaderboard),
-}
-
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
-    pub secrets: Option<LeaderboardSecrets>,
-    pub leaderboard: LeaderboardState,
+    pub leaderboard: Leaderboard,
 
     pub high_score: Score,
     pub camera: Camera2d,
@@ -180,13 +171,13 @@ impl Model {
         config: LevelConfig,
         level: Level,
         level_music: Music,
-        leaderboard: Option<LeaderboardSecrets>,
+        leaderboard: Leaderboard,
         player_name: String,
         start_time: Time,
     ) -> Self {
         let mut model = Self::empty(assets, options, config, level, level_music);
-        model.secrets = leaderboard;
         model.player.name = player_name;
+        model.leaderboard = leaderboard;
 
         model.init(start_time);
         model
@@ -200,6 +191,7 @@ impl Model {
         music: Music,
     ) -> Self {
         Self {
+            leaderboard: Leaderboard::new(None),
             transition: None,
             assets: assets.clone(),
             state: State::Starting {
@@ -235,8 +227,6 @@ impl Model {
             ),
             options,
             config,
-            secrets: None,
-            leaderboard: LeaderboardState::None,
             level_state: LevelState::default(),
             music,
             level,

@@ -10,6 +10,7 @@ pub use self::{
 };
 
 use crate::{
+    leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
     ui::widget::CursorContext,
@@ -199,7 +200,7 @@ impl EditorState {
                 &self.assets,
                 self.editor.model.options.clone(),
                 level,
-                None,
+                Leaderboard::new(None),
                 String::new(),
             ),
         )));

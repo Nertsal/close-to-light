@@ -1,5 +1,6 @@
 use crate::{
     prelude::{HealthConfig, LevelModifiers},
+    task::Task,
     LeaderboardSecrets,
 };
 
@@ -7,13 +8,41 @@ use geng::prelude::*;
 use nertboard_client::{Nertboard, Player, ScoreEntry};
 
 #[derive(Debug)]
+pub enum LeaderboardStatus {
+    None,
+    Pending,
+    Failed,
+    Done,
+}
+
 pub struct Leaderboard {
+    client: Option<Arc<Nertboard>>,
+    task: Option<Task<anyhow::Result<Vec<ScoreEntry>>>>,
+    pub status: LeaderboardStatus,
+    pub loaded: LoadedBoard,
+}
+
+impl Clone for Leaderboard {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.as_ref().map(Arc::clone),
+            task: None,
+            status: LeaderboardStatus::None,
+            loaded: LoadedBoard::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct LoadedBoard {
+    pub meta: ScoreMeta,
     pub my_position: Option<usize>,
-    pub top10: Vec<ScoreEntry>,
+    pub all_scores: Vec<ScoreEntry>,
+    pub filtered: Vec<ScoreEntry>,
 }
 
 /// Meta information saved together with the score.
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ScoreMeta {
     pub version: u32,
     pub group: String,
@@ -35,74 +64,154 @@ impl ScoreMeta {
 }
 
 impl Leaderboard {
-    pub async fn submit(
-        name: String,
-        score: Option<i32>,
-        meta: &ScoreMeta,
-        secrets: LeaderboardSecrets,
-    ) -> Self {
-        log::debug!("Submitting a score...");
-        let name = name.as_str();
-        let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap();
+    pub fn new(secrets: Option<LeaderboardSecrets>) -> Self {
+        let client = secrets.map(|secrets| {
+            Arc::new(nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap())
+        });
+        Self {
+            client,
+            task: None,
+            status: LeaderboardStatus::None,
+            loaded: LoadedBoard::new(),
+        }
+    }
 
-        let player = if let Some(mut player) = preferences::load::<Player>("player") {
-            log::debug!("Leaderboard: returning player");
-            if player.name == name {
-                // leaderboard.as_player(player.clone());
-                player
-            } else {
-                log::debug!("Leaderboard: name has changed");
-                player.name = name.to_owned();
-                preferences::save("player", &player);
-                player.clone()
+    // pub fn change_name(&mut self, name: String) {
+    //     self.player.name = name;
+    // }
+
+    /// The leaderboard needs to be polled to make progress.
+    pub fn poll(&mut self) {
+        if let Some(task) = &mut self.task {
+            if let Some(res) = task.poll() {
+                match res {
+                    Ok(Ok(scores)) => {
+                        log::debug!("Successfully loaded the leaderboard");
+                        self.status = LeaderboardStatus::Done;
+                        self.load_scores(scores);
+                    }
+                    Ok(Err(err)) | Err(err) => {
+                        log::error!("Loading leaderboard failed: {:?}", err);
+                        self.status = LeaderboardStatus::Failed;
+                    }
+                }
             }
-        } else {
-            log::debug!("Leaderboard: new player");
-            let player = leaderboard.create_player(name).await.unwrap();
-            preferences::save("player", &player);
-            player.clone()
-        };
+        }
+    }
 
-        let meta_str = meta_str(meta);
-        if let Some(score) = score {
-            leaderboard
-                .submit_score(
-                    &player,
-                    &ScoreEntry {
-                        player: player.name.clone(),
-                        score,
-                        extra_info: Some(meta_str),
-                    },
-                )
-                .await
-                .unwrap();
+    fn load_scores(&mut self, mut scores: Vec<ScoreEntry>) {
+        scores.sort_by_key(|entry| -entry.score);
+        self.loaded.all_scores = scores;
+        self.loaded.refresh();
+    }
+
+    /// Change meta filter using the cached scores if available.
+    pub fn change_meta(&mut self, meta: ScoreMeta) {
+        self.loaded.meta = meta;
+        match self.status {
+            LeaderboardStatus::None | LeaderboardStatus::Failed => {
+                self.refetch();
+            }
+            LeaderboardStatus::Pending => {}
+            LeaderboardStatus::Done => {
+                self.loaded.refresh();
+            }
+        }
+    }
+
+    /// Fetch scores from the server with the same meta.
+    pub fn refetch(&mut self) {
+        // Let the active task finish
+        if self.task.is_some() {
+            return;
         }
 
-        Self::fetch_impl(score, meta, &leaderboard).await
+        if let Some(client) = &self.client {
+            let board = Arc::clone(client);
+            let future = async move {
+                log::debug!("Fetching scores...");
+                board.fetch_scores().await.map_err(anyhow::Error::from)
+            };
+            self.task = Some(Task::new(future));
+            self.status = LeaderboardStatus::Pending;
+        }
     }
 
-    pub async fn fetch(meta: &ScoreMeta, secrets: LeaderboardSecrets) -> Self {
-        log::debug!("Fetching scores...");
-        let leaderboard = nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap();
-        Self::fetch_impl(None, meta, &leaderboard).await
+    pub fn submit(&mut self, name: String, score: Option<i32>, meta: ScoreMeta) {
+        self.loaded.meta = meta.clone();
+        if let Some(board) = &self.client {
+            let board = Arc::clone(board);
+            let future = async move {
+                log::debug!("Submitting a score...");
+                let name = name.as_str();
+                let player = if let Some(mut player) = preferences::load::<Player>("player") {
+                    log::debug!("Leaderboard: returning player");
+                    if player.name == name {
+                        // leaderboard.as_player(player.clone());
+                        player
+                    } else {
+                        log::debug!("Leaderboard: name has changed");
+                        player.name = name.to_owned();
+                        preferences::save("player", &player);
+                        player.clone()
+                    }
+                } else {
+                    log::debug!("Leaderboard: new player");
+                    let player = board.create_player(name).await.unwrap();
+                    preferences::save("player", &player);
+                    player.clone()
+                };
+
+                let meta_str = meta_str(&meta);
+                if let Some(score) = score {
+                    board
+                        .submit_score(
+                            &player,
+                            &ScoreEntry {
+                                player: player.name.clone(),
+                                score,
+                                extra_info: Some(meta_str),
+                            },
+                        )
+                        .await
+                        .unwrap();
+                }
+
+                board.fetch_scores().await.map_err(anyhow::Error::from)
+            };
+            self.task = Some(Task::new(future));
+            self.status = LeaderboardStatus::Pending;
+        }
+    }
+}
+
+impl LoadedBoard {
+    fn new() -> Self {
+        Self {
+            meta: ScoreMeta::new(
+                "none".to_string(),
+                "none".to_string(),
+                LevelModifiers::default(),
+                HealthConfig::default(),
+            ),
+            my_position: None,
+            all_scores: Vec::new(),
+            filtered: Vec::new(),
+        }
     }
 
-    async fn fetch_impl(
-        score: Option<i32>,
-        meta: &ScoreMeta,
-        leaderboard: &Nertboard,
-    ) -> Leaderboard {
-        log::debug!("Fetching scores with meta:\n{:#?}", meta);
+    /// Refresh the filter.
+    fn refresh(&mut self) {
+        let mut scores = self.all_scores.clone();
 
-        let mut scores = leaderboard.fetch_scores().await.unwrap();
+        // Filter for the same meta
         scores.retain(|entry| {
             !entry.player.is_empty()
                 && entry.extra_info.as_ref().map_or(false, |info| {
                     serde_json::from_str::<ScoreMeta>(info)
-                        .map_or(false, |entry_meta| entry_meta == *meta)
+                        .map_or(false, |entry_meta| entry_meta == self.meta)
                 })
         });
-        scores.sort_by_key(|entry| -entry.score);
 
         {
             // Only leave unique names
@@ -112,15 +221,15 @@ impl Leaderboard {
                 if !names_seen.contains(&scores[i].player) {
                     names_seen.insert(scores[i].player.clone());
                     i += 1;
-                } else if Some(scores[i].score) == score {
-                    i += 1;
+                // } else if Some(scores[i].score) == score {
+                //     i += 1;
                 } else {
                     scores.remove(i);
                 }
             }
         }
 
-        let my_pos = score.map(|score| scores.iter().position(|this| this.score == score).unwrap());
+        // let my_pos = score.map(|score| scores.iter().position(|this| this.score == score).unwrap());
 
         {
             // Only leave unique names
@@ -135,12 +244,8 @@ impl Leaderboard {
                 }
             }
         }
-        scores.truncate(10);
 
-        Self {
-            my_position: my_pos,
-            top10: scores,
-        }
+        self.filtered = scores;
     }
 }
 
