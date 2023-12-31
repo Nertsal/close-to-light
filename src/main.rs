@@ -18,6 +18,10 @@ use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0;
 
+const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
+const PLAYER_STORAGE: &str = "player";
+const OPTIONS_STORAGE: &str = "options";
+
 #[derive(clap::Parser)]
 struct Opts {
     /// Just display some dithered text on screen.
@@ -67,7 +71,7 @@ fn main() {
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
 
-        let options: Options = preferences::load("options").unwrap_or_default();
+        let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
         if let Some(text) = opts.text {
             let state = media::MediaState::new(&geng, &assets).with_text(text);

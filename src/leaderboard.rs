@@ -144,23 +144,24 @@ impl Leaderboard {
             let future = async move {
                 log::debug!("Submitting a score...");
                 let name = name.as_str();
-                let player = if let Some(mut player) = preferences::load::<Player>("player") {
-                    log::debug!("Leaderboard: returning player");
-                    if player.name == name {
-                        // leaderboard.as_player(player.clone());
-                        player
+                let player =
+                    if let Some(mut player) = preferences::load::<Player>(crate::PLAYER_STORAGE) {
+                        log::debug!("Leaderboard: returning player");
+                        if player.name == name {
+                            // leaderboard.as_player(player.clone());
+                            player
+                        } else {
+                            log::debug!("Leaderboard: name has changed");
+                            player.name = name.to_owned();
+                            preferences::save(crate::PLAYER_STORAGE, &player);
+                            player.clone()
+                        }
                     } else {
-                        log::debug!("Leaderboard: name has changed");
-                        player.name = name.to_owned();
-                        preferences::save("player", &player);
+                        log::debug!("Leaderboard: new player");
+                        let player = board.create_player(name).await.unwrap();
+                        preferences::save(crate::PLAYER_STORAGE, &player);
                         player.clone()
-                    }
-                } else {
-                    log::debug!("Leaderboard: new player");
-                    let player = board.create_player(name).await.unwrap();
-                    preferences::save("player", &player);
-                    player.clone()
-                };
+                    };
 
                 let meta_str = meta_str(&meta);
                 if let Some(score) = score {

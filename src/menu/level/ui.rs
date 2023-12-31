@@ -109,7 +109,7 @@ impl MenuUI {
             context.update_focus(self.options.state.hovered);
             self.options.update_options(&mut state.options);
             if state.options != old_options {
-                preferences::save("options", &state.options);
+                preferences::save(OPTIONS_STORAGE, &state.options);
             }
 
             if self.options_head.state.hovered && state.show_options.time.is_min() {
