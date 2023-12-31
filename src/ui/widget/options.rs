@@ -35,7 +35,7 @@ impl Widget for OptionsWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
 
-        let main = position.extend_symmetric(vec2(-5.0, -3.0) * context.font_size);
+        let main = position.extend_symmetric(vec2(-5.0, -1.0) * context.font_size);
         let column = Aabb2::point(main.top_left())
             .extend_right(context.font_size * 10.0)
             .extend_down(main.height());

@@ -83,7 +83,7 @@ impl MenuUI {
         {
             // Options
             let width = layout_size * 50.0;
-            let height = layout_size * 20.0;
+            let height = layout_size * 10.0;
 
             let options = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
                 .extend_symmetric(vec2(width, 0.0) / 2.0)
