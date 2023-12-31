@@ -69,6 +69,7 @@ impl EditorUI {
         let font_size = screen.height() * 0.03;
 
         let context = UiContext {
+            theme: editor.model.options.theme,
             font_size,
             can_focus: true,
             cursor,

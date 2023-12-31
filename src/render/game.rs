@@ -29,7 +29,7 @@ impl GameRender {
         let mut framebuffer = self.dither.start();
 
         let camera = &model.camera;
-        let theme = &model.config.theme;
+        let theme = &model.options.theme;
 
         if !model.config.modifiers.sudden {
             // Telegraphs

@@ -9,7 +9,7 @@ impl EditorRender {
     ) {
         let screen_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = &editor.model.config.theme;
+        let theme = &editor.model.options.theme;
 
         let framebuffer_size = screen_buffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;

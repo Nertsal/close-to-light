@@ -445,7 +445,7 @@ impl geng::State for LevelMenu {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(self.state.config.theme.dark), None, None);
+        ugli::clear(framebuffer, Some(self.state.options.theme.dark), None, None);
 
         let mut dither_buffer = self.dither.start();
 
@@ -483,7 +483,7 @@ impl geng::State for LevelMenu {
         self.util
             .draw_player(&self.player, &self.camera, &mut dither_buffer);
 
-        self.dither.finish(self.time, &Theme::default());
+        self.dither.finish(self.time, &self.state.options.theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), framebuffer)

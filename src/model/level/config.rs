@@ -3,19 +3,10 @@ use super::*;
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct LevelConfig {
-    pub theme: Theme,
     pub player: PlayerConfig,
     pub health: HealthConfig,
     pub waypoints: WaypointsConfig,
     pub modifiers: LevelModifiers,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
-pub struct Theme {
-    pub dark: Color,
-    pub light: Color,
-    pub danger: Color,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

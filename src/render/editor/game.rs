@@ -5,7 +5,7 @@ impl EditorRender {
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
 
-        let mut theme = editor.model.config.theme;
+        let mut theme = editor.model.options.theme;
         if editor.level_state.relevant().swap_palette {
             std::mem::swap(&mut theme.light, &mut theme.dark);
         }

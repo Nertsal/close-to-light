@@ -25,7 +25,7 @@ impl TextWidget {
 impl Widget for TextWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
-        self.options.size = context.font_size;
+        self.options.update(context);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {

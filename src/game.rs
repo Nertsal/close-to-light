@@ -109,7 +109,7 @@ impl geng::State for Game {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(self.model.config.theme.dark), None, None);
+        ugli::clear(framebuffer, Some(self.model.options.theme.dark), None, None);
         self.render.draw_world(&self.model, framebuffer);
         self.render.draw_ui(&self.model, framebuffer);
     }

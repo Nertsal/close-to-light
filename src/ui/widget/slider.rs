@@ -36,7 +36,7 @@ impl SliderWidget {
 
 impl Widget for SliderWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
-        self.options.size = context.font_size;
+        self.options.update(context);
         let mut main = position;
 
         if !self.text.text.is_empty() {

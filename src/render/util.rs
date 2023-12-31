@@ -41,6 +41,13 @@ impl TextRenderOptions {
     pub fn color(self, color: Color) -> Self {
         Self { color, ..self }
     }
+
+    pub fn update(&mut self, context: &UiContext) {
+        self.size = context.font_size;
+        self.color = context.theme.light;
+        self.hover_color = self.color.map_rgb(|x| x * 0.7);
+        self.press_color = self.color.map_rgb(|x| x * 0.5);
+    }
 }
 
 impl Default for TextRenderOptions {
@@ -338,7 +345,7 @@ impl UtilRender {
                 framebuffer,
                 &geng::PixelPerfectCamera,
                 slider.bar.position,
-                Color::WHITE,
+                slider.options.color,
             );
         }
 

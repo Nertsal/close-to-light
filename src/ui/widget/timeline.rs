@@ -27,6 +27,7 @@ impl TimelineWidget {
     pub fn new() -> Self {
         Self {
             context: UiContext {
+                theme: Theme::default(),
                 font_size: 1.0,
                 can_focus: true,
                 cursor: CursorContext::new(),

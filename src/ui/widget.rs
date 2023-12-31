@@ -24,6 +24,8 @@ pub use self::{
     timeline::TimelineWidget,
 };
 
+use crate::prelude::Theme;
+
 use geng::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -51,6 +53,7 @@ impl CursorContext {
 
 #[derive(Debug, Clone, Copy)]
 pub struct UiContext {
+    pub theme: Theme,
     pub font_size: f32,
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: bool,

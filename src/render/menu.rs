@@ -24,9 +24,11 @@ impl MenuRender {
 
         let font_size = framebuffer.size().y as f32 * 0.04;
         let camera = &geng::PixelPerfectCamera;
+        let theme = &state.options.theme;
 
         geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
             .fit_height(ui.ctl_logo.position, 0.5)
+            .colored(theme.light)
             .draw(camera, &self.geng, framebuffer);
 
         // Clip groups and levels
@@ -42,7 +44,7 @@ impl MenuRender {
                     camera,
                     group.logo.position,
                     logo,
-                    Color::WHITE,
+                    theme.light,
                 );
             }
             self.util.draw_text_widget(&group.name, &mut mask.color);
@@ -50,11 +52,11 @@ impl MenuRender {
 
             let group = &group.state;
             let color = if group.pressed {
-                state.config.theme.light.map_rgb(|x| x * 0.5)
+                theme.light.map_rgb(|x| x * 0.5)
             } else if group.hovered {
-                state.config.theme.light.map_rgb(|x| x * 0.7)
+                theme.light.map_rgb(|x| x * 0.7)
             } else {
-                state.config.theme.light
+                theme.light
             };
             self.util.draw_outline(
                 &Collider::aabb(group.position.map(r32)),
@@ -71,11 +73,11 @@ impl MenuRender {
 
             let level = &level.state;
             let color = if level.pressed {
-                state.config.theme.light.map_rgb(|x| x * 0.5)
+                theme.light.map_rgb(|x| x * 0.5)
             } else if level.hovered {
-                state.config.theme.light.map_rgb(|x| x * 0.7)
+                theme.light.map_rgb(|x| x * 0.7)
             } else {
-                state.config.theme.light
+                theme.light
             };
             self.util.draw_outline(
                 &Collider::aabb(level.position.map(r32)),
@@ -107,12 +109,12 @@ impl MenuRender {
             self.geng.draw2d().draw2d(
                 &mut buffer.color,
                 camera,
-                &draw2d::Quad::new(head, state.config.theme.dark),
+                &draw2d::Quad::new(head, theme.dark),
             );
             self.geng.draw2d().draw2d(
                 &mut buffer.color,
                 camera,
-                &draw2d::Quad::new(options, state.config.theme.dark),
+                &draw2d::Quad::new(options, theme.dark),
             );
 
             {
@@ -159,7 +161,7 @@ impl MenuRender {
                                 .map(r32),
                         ),
                         outline_width,
-                        state.options.theme.light,
+                        theme.light,
                         camera,
                         &mut buffer.color,
                     );
@@ -196,7 +198,7 @@ impl MenuRender {
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw2d::Chain::new(chain, outline_width, state.config.theme.light, 1),
+                &draw2d::Chain::new(chain, outline_width, theme.light, 1),
             );
         }
 
@@ -205,7 +207,7 @@ impl MenuRender {
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw2d::Quad::new(ui.leaderboard.state.position, state.config.theme.dark),
+                &draw2d::Quad::new(ui.leaderboard.state.position, theme.dark),
             );
             self.util
                 .draw_button_widget(&ui.leaderboard.close, framebuffer);
@@ -224,7 +226,7 @@ impl MenuRender {
             self.util.draw_outline(
                 &Collider::aabb(ui.leaderboard.state.position.map(r32)),
                 font_size * 0.2,
-                state.config.theme.light,
+                theme.light,
                 camera,
                 framebuffer,
             );
@@ -235,7 +237,7 @@ impl MenuRender {
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw2d::Quad::new(ui.level_config.state.position, state.config.theme.dark),
+                &draw2d::Quad::new(ui.level_config.state.position, theme.dark),
             );
 
             let mut buffer = self.masked.start();
@@ -311,119 +313,10 @@ impl MenuRender {
             self.util.draw_outline(
                 &Collider::aabb(ui.level_config.state.position.map(r32)),
                 font_size * 0.2,
-                state.config.theme.light,
+                theme.light,
                 camera,
                 framebuffer,
             );
         }
-
-        // if ui.play_group.state.visible {
-        //     self.util.draw_outline(
-        //         &Collider::aabb(ui.play_group.state.position.map(r32)),
-        //         font_size * 0.2,
-        //         state.config.theme.light,
-        //         camera,
-        //         framebuffer,
-        //     );
-
-        //     for level in &ui.play_group.levels {
-        //         self.util.draw_button_widget(&level.play, framebuffer);
-        //         self.util.draw_text_widget(&level.credits, framebuffer);
-        //     }
-
-        //     // Title clip
-        //     let mut buffer = self.masked.start();
-        //     buffer.mask_quad(ui.play_group.title);
-        //     for title in &ui.play_group.config_titles {
-        //         self.util.draw_text_widget(title, &mut buffer.color);
-        //     }
-        //     self.masked.draw(
-        //         ugli::DrawParameters {
-        //             blend_mode: Some(ugli::BlendMode::straight_alpha()),
-        //             ..default()
-        //         },
-        //         framebuffer,
-        //     );
-
-        //     self.util
-        //         .draw_button_widget(&ui.play_group.prev_config, framebuffer);
-        //     self.util
-        //         .draw_button_widget(&ui.play_group.next_config, framebuffer);
-
-        //     // Main clip
-        //     let mut buffer = self.masked.start();
-        //     buffer.mask_quad(ui.play_group.main);
-
-        //     for config in &ui.play_group.configs {
-        //         if !config.state.visible {
-        //             continue;
-        //         }
-        //         match &config.configuring {
-        //             Configuring::Palette { presets } => {
-        //                 for preset in presets {
-        //                     let mut button = preset.button.clone();
-        //                     button.text.state.pressed = preset.selected;
-        //                     self.util.draw_button_widget(&button, &mut buffer.color);
-
-        //                     // Palette
-        //                     let (_, theme_preview) =
-        //                         crate::ui::layout::split_top_down(button.text.state.position, 0.5);
-        //                     let theme_preview = theme_preview
-        //                         .extend_symmetric(vec2(0.0, -theme_preview.height() / 4.0));
-        //                     let theme_preview = crate::ui::layout::fit_aabb_height(
-        //                         vec2(5.0, 2.0),
-        //                         theme_preview,
-        //                         0.5,
-        //                     );
-
-        //                     let theme = &preset.preset;
-        //                     let theme = [theme.dark, theme.light, theme.danger];
-        //                     let layout = crate::ui::layout::split_columns(theme_preview, 3);
-        //                     for (color, pos) in theme.into_iter().zip(layout) {
-        //                         self.geng.draw2d().draw2d(
-        //                             &mut buffer.color,
-        //                             &geng::PixelPerfectCamera,
-        //                             &draw2d::Quad::new(pos, color),
-        //                         );
-        //                     }
-
-        //                     self.util.draw_outline(
-        //                         &Collider::aabb(theme_preview.map(r32)),
-        //                         5.0,
-        //                         Color::WHITE,
-        //                         &geng::PixelPerfectCamera,
-        //                         &mut buffer.color,
-        //                     );
-        //                 }
-        //             }
-        //             Configuring::Health { presets } => {
-        //                 for preset in presets {
-        //                     let mut button = preset.button.clone();
-        //                     button.text.state.pressed = preset.selected;
-        //                     self.util.draw_button_widget(&button, &mut buffer.color);
-        //                 }
-        //             }
-        //             Configuring::Modifiers { presets } => {
-        //                 for preset in presets {
-        //                     let mut button = preset.button.clone();
-        //                     button.text.state.pressed = preset.selected;
-        //                     self.util.draw_button_widget(&button, &mut buffer.color);
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     self.masked.draw(
-        //         ugli::DrawParameters {
-        //             blend_mode: Some(ugli::BlendMode::straight_alpha()),
-        //             ..default()
-        //         },
-        //         framebuffer,
-        //     );
-
-        //     // geng_utils::texture::DrawTexture::new(self.masked.color_texture())
-        //     //     .fit_screen(vec2(0.5, 0.5), framebuffer)
-        //     //     .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer)
-        // }
     }
 }

@@ -51,6 +51,7 @@ impl MenuUI {
         let layout_size = screen.height() * 0.03;
 
         let mut context = UiContext {
+            theme: state.options.theme,
             font_size: screen.height() * 0.04,
             can_focus: true,
             cursor,
