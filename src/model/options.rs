@@ -11,6 +11,16 @@ pub struct VolumeOptions {
     pub master: Bounded<f32>,
 }
 
+impl VolumeOptions {
+    pub fn master(&self) -> f32 {
+        self.master.value()
+    }
+
+    pub fn music(&self) -> f32 {
+        self.master()
+    }
+}
+
 impl Default for VolumeOptions {
     fn default() -> Self {
         Self {

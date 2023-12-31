@@ -35,6 +35,7 @@ impl Game {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
+        options: Options,
         level: PlayLevel,
         leaderboard: Option<LeaderboardSecrets>,
         player_name: String,
@@ -44,6 +45,7 @@ impl Game {
             assets,
             Model::new(
                 assets,
+                options,
                 level.config,
                 level.level,
                 level.music,

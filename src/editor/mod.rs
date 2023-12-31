@@ -127,6 +127,7 @@ impl EditorState {
         geng: Geng,
         assets: Rc<Assets>,
         config: EditorConfig,
+        options: Options,
         game_config: LevelConfig,
         level: Level,
         music: Music,
@@ -134,7 +135,7 @@ impl EditorState {
     ) -> Self {
         let (group_name, level_name) = crate::group_level_from_path(&level_path);
         let level_path = level_path.join("level.json"); // TODO: check and convenience
-        let model = Model::empty(&assets, game_config, level.clone(), music.clone());
+        let model = Model::empty(&assets, options, game_config, level.clone(), music.clone());
         Self {
             group_name,
             level_name,
@@ -193,7 +194,14 @@ impl EditorState {
             start_time: self.editor.current_beat * self.editor.music.beat_time(),
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(
-            crate::game::Game::new(&self.geng, &self.assets, level, None, String::new()),
+            crate::game::Game::new(
+                &self.geng,
+                &self.assets,
+                self.editor.model.options.clone(),
+                level,
+                None,
+                String::new(),
+            ),
         )));
     }
 
@@ -295,6 +303,10 @@ impl geng::State for EditorState {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.editor.real_time += delta_time;
+
+        self.editor
+            .music
+            .set_volume(self.editor.model.options.volume.music());
 
         self.cursor.update(geng_utils::key::is_key_pressed(
             self.geng.window(),

@@ -13,6 +13,8 @@ impl Model {
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
+        self.music.set_volume(self.options.volume.music());
+
         // Move
         self.player.collider.position = player_target;
 
@@ -138,6 +140,7 @@ impl Model {
         self.save_highscore();
         *self = Self::new(
             &self.assets,
+            self.options.clone(),
             self.config.clone(),
             self.level.clone(),
             self.music.clone(),

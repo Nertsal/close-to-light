@@ -12,6 +12,7 @@ mod ui;
 mod util;
 
 use geng::prelude::*;
+use prelude::Options;
 
 const FIXED_FPS: f64 = 60.0;
 
@@ -64,6 +65,8 @@ fn main() {
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
 
+        let options = Options::default(); // TODO load from file
+
         if let Some(text) = opts.text {
             let state = media::MediaState::new(&geng, &assets).with_text(text);
             geng.run_state(state).await;
@@ -84,6 +87,7 @@ fn main() {
                     geng.clone(),
                     assets,
                     editor_config,
+                    options,
                     config,
                     level,
                     music,
@@ -102,7 +106,7 @@ fn main() {
                     music,
                     start_time: prelude::Time::ZERO,
                 };
-                let state = game::Game::new(&geng, &assets, level, None, "".to_string());
+                let state = game::Game::new(&geng, &assets, options, level, None, "".to_string());
                 geng.run_state(state).await;
             }
         } else {
@@ -120,7 +124,7 @@ fn main() {
                 })
             });
 
-            let state = menu::MainMenu::new(&geng, &assets, secrets);
+            let state = menu::MainMenu::new(&geng, &assets, secrets, options);
             geng.run_state(state).await;
         }
     });

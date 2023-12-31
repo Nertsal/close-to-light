@@ -6,7 +6,7 @@ pub struct MainMenu {
     geng: Geng,
     assets: Rc<Assets>,
     secrets: Option<Secrets>,
-    theme: Theme,
+    options: Options,
     transition: Option<geng::state::Transition>,
     dither: DitherRender,
     util_render: UtilRender,
@@ -23,7 +23,12 @@ pub struct MainMenu {
 }
 
 impl MainMenu {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, secrets: Option<Secrets>) -> Self {
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        secrets: Option<Secrets>,
+        options: Options,
+    ) -> Self {
         let name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
         let name = fix_name(&name);
         geng.window().start_text_edit(&name);
@@ -31,7 +36,7 @@ impl MainMenu {
             geng: geng.clone(),
             assets: assets.clone(),
             secrets,
-            theme: Theme::default(),
+            options,
             transition: None,
             dither: DitherRender::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
@@ -70,6 +75,7 @@ impl MainMenu {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
             let secrets = self.secrets.clone();
+            let options = self.options.clone();
 
             async move {
                 let manager = geng.asset_manager();
@@ -79,7 +85,7 @@ impl MainMenu {
                 let groups = load_groups(manager, &groups_path)
                     .await
                     .expect("failed to load groups");
-                LevelMenu::new(&geng, &assets, groups, secrets)
+                LevelMenu::new(&geng, &assets, groups, secrets, options)
             }
             .boxed_local()
         };
@@ -161,7 +167,7 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        ugli::clear(screen_buffer, Some(self.theme.dark), None, None);
+        ugli::clear(screen_buffer, Some(self.options.theme.dark), None, None);
 
         let mut framebuffer = self.dither.start();
 
@@ -207,7 +213,7 @@ impl geng::State for MainMenu {
             );
         }
 
-        self.dither.finish(self.time, &self.theme);
+        self.dither.finish(self.time, &self.options.theme);
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())

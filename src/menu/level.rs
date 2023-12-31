@@ -107,6 +107,7 @@ impl LevelMenu {
         assets: &Rc<Assets>,
         groups: Vec<GroupEntry>,
         secrets: Option<Secrets>,
+        options: Options,
     ) -> Self {
         Self {
             geng: geng.clone(),
@@ -133,7 +134,7 @@ impl LevelMenu {
                 fov: 10.0,
             },
             state: MenuState {
-                options: Options::default(), // TODO: load from file
+                options,
                 config: LevelConfig::default(),
                 groups,
                 show_group: None,
@@ -205,6 +206,7 @@ impl LevelMenu {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
             let secrets = self.secrets.clone();
+            let options = self.state.options.clone();
             let config = self.state.config.clone();
             let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
 
@@ -227,6 +229,7 @@ impl LevelMenu {
                 crate::game::Game::new(
                     &geng,
                     &assets,
+                    options,
                     level,
                     secrets.map(|s| s.leaderboard),
                     player_name,
