@@ -329,6 +329,37 @@ impl UtilRender {
         );
     }
 
+    pub fn draw_slider_widget(&self, slider: &SliderWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_text_widget(&slider.text, framebuffer);
+        self.draw_text_widget(&slider.value, framebuffer);
+
+        if slider.bar.visible {
+            self.geng.draw2d().quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                slider.bar.position,
+                Color::WHITE,
+            );
+        }
+
+        if slider.head.visible {
+            let options = &slider.options;
+            let color = if slider.bar_box.pressed {
+                options.press_color
+            } else if slider.bar_box.hovered {
+                options.hover_color
+            } else {
+                options.color
+            };
+            self.geng.draw2d().quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                slider.head.position,
+                color,
+            );
+        }
+    }
+
     pub fn draw_button_widget(&self, widget: &ButtonWidget, framebuffer: &mut ugli::Framebuffer) {
         let state = &widget.text.state;
         if !state.visible {

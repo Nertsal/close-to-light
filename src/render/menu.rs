@@ -115,6 +115,11 @@ impl MenuRender {
                 &draw2d::Quad::new(options, state.config.theme.dark),
             );
 
+            let volume = &ui.options.volume;
+            self.util.draw_text_widget(&volume.title, &mut buffer.color);
+            self.util
+                .draw_slider_widget(&volume.master, &mut buffer.color);
+
             self.util
                 .draw_text_widget(&ui.options_head, &mut buffer.color);
 

@@ -23,7 +23,7 @@ impl MenuUI {
             levels_state: default(),
             levels: Vec::new(),
             options_head: TextWidget::new("Options"),
-            options: OptionsWidget::new(assets),
+            options: OptionsWidget::new(Options::default()),
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
         }
@@ -95,8 +95,10 @@ impl MenuUI {
             update!(self.options_head, head);
             context.update_focus(self.options_head.state.hovered);
 
+            self.options.set_options(state.options.clone());
             update!(self.options, options);
             context.update_focus(self.options.state.hovered);
+            self.options.update_options(&mut state.options);
 
             if self.options_head.state.hovered && state.show_options.time.is_min() {
                 state.options_request = Some(WidgetRequest::Open);

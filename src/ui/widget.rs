@@ -6,6 +6,7 @@ mod level;
 mod level_config;
 mod light;
 mod options;
+mod slider;
 mod text;
 mod timeline;
 
@@ -18,6 +19,7 @@ pub use self::{
     level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
     light::{LightStateWidget, LightWidget},
     options::OptionsWidget,
+    slider::SliderWidget,
     text::TextWidget,
     timeline::TimelineWidget,
 };

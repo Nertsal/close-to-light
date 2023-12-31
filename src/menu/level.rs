@@ -39,6 +39,7 @@ pub struct LevelMenu {
 
 #[derive(Debug)]
 pub struct MenuState {
+    pub options: Options,
     pub config: LevelConfig,
     pub groups: Vec<GroupEntry>,
     /// Currently showing group.
@@ -132,6 +133,7 @@ impl LevelMenu {
                 fov: 10.0,
             },
             state: MenuState {
+                options: Options::default(), // TODO: load from file
                 config: LevelConfig::default(),
                 groups,
                 show_group: None,

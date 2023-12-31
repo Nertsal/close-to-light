@@ -3,9 +3,10 @@ mod level;
 mod light;
 mod logic;
 mod movement;
+mod options;
 mod player;
 
-pub use self::{collider::*, level::*, light::*, movement::*, player::*};
+pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
 
 use crate::{leaderboard::Leaderboard, prelude::*, LeaderboardSecrets};
 
