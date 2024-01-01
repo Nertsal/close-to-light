@@ -1,8 +1,10 @@
 use super::*;
 
-use crate::{leaderboard::LeaderboardStatus, prelude::Assets, ui::layout};
-
-use nertboard_client::ScoreEntry;
+use crate::{
+    leaderboard::{LeaderboardStatus, LoadedBoard},
+    prelude::Assets,
+    ui::layout,
+};
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
@@ -10,7 +12,10 @@ pub struct LeaderboardWidget {
     pub title: TextWidget,
     pub subtitle: TextWidget,
     pub status: TextWidget,
+    pub rows_state: WidgetState,
     pub rows: Vec<LeaderboardEntryWidget>,
+    pub separator: WidgetState,
+    pub highscore: LeaderboardEntryWidget,
 }
 
 pub struct LeaderboardEntryWidget {
@@ -28,32 +33,49 @@ impl LeaderboardWidget {
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
             status: TextWidget::new(""),
+            rows_state: WidgetState::new(),
             rows: Vec::new(),
+            separator: WidgetState::new(),
+            highscore: LeaderboardEntryWidget::new("", "", 0),
         }
     }
 
-    pub fn update_state(&mut self, state: &LeaderboardStatus, scores: &[ScoreEntry]) {
+    pub fn update_state(&mut self, state: &LeaderboardStatus, board: &LoadedBoard) {
         self.rows.clear();
         self.status.text = "".to_string();
         match state {
             LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".to_string(),
             LeaderboardStatus::Pending => self.status.text = "LOADING...".to_string(),
             LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".to_string(),
-            LeaderboardStatus::Done => {}
+            LeaderboardStatus::Done => {
+                if board.filtered.is_empty() {
+                    self.status.text = "EMPTY :(".to_string();
+                }
+            }
         }
-        if scores.is_empty() {
-            self.status.text = "EMPTY :(".to_string();
-        } else {
-            self.load_scores(scores);
-        }
+        self.load_scores(board);
     }
 
-    pub fn load_scores(&mut self, scores: &[ScoreEntry]) {
-        self.rows = scores
+    pub fn load_scores(&mut self, board: &LoadedBoard) {
+        self.rows = board
+            .filtered
             .iter()
             .enumerate()
-            .map(|(rank, entry)| LeaderboardEntryWidget::new(rank + 1, &entry.player, entry.score))
+            .map(|(rank, entry)| {
+                LeaderboardEntryWidget::new((rank + 1).to_string(), &entry.player, entry.score)
+            })
             .collect();
+        match &board.local_high {
+            None => self.highscore.hide(),
+            Some(score) => {
+                self.highscore.show();
+                self.highscore.rank.text = board
+                    .my_position
+                    .map_or("".to_string(), |rank| format!("{}.", rank + 1));
+                self.highscore.player.text = score.player.clone();
+                self.highscore.score.text = format!("{}", score.score);
+            }
+        }
     }
 }
 
@@ -83,6 +105,13 @@ impl Widget for LeaderboardWidget {
         self.status.update(status, context);
         self.status.options.size = context.font_size * 1.0;
 
+        let (main, highscore) = layout::cut_top_down(main, main.height() - context.font_size * 1.5);
+        self.highscore.update(highscore, context);
+
+        let (main, separator) = layout::cut_top_down(main, main.height() - context.font_size * 0.1);
+        self.separator.update(separator, context);
+
+        self.rows_state.update(main, context);
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.0);
@@ -103,7 +132,8 @@ impl Widget for LeaderboardWidget {
 }
 
 impl LeaderboardEntryWidget {
-    pub fn new(rank: usize, player: impl Into<String>, score: i32) -> Self {
+    pub fn new(rank: impl Into<String>, player: impl Into<String>, score: i32) -> Self {
+        let rank = rank.into();
         let mut rank = TextWidget::new(format!("{}.", rank));
         rank.align(vec2(1.0, 0.5));
 

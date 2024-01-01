@@ -122,7 +122,7 @@ impl MenuUI {
         {
             // Leaderboard
             let width = layout_size * 20.0;
-            let height = screen.height();
+            let height = main.height() + layout_size * 2.0;
 
             let leaderboard =
                 Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * base_t * layout_size)
@@ -135,10 +135,8 @@ impl MenuUI {
 
             let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
-            self.leaderboard.update_state(
-                &state.leaderboard.status,
-                &state.leaderboard.loaded.filtered,
-            );
+            self.leaderboard
+                .update_state(&state.leaderboard.status, &state.leaderboard.loaded);
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
 

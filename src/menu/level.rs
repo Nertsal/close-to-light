@@ -5,7 +5,10 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    leaderboard::Leaderboard, render::menu::MenuRender, ui::widget::CursorContext, Secrets,
+    leaderboard::{Leaderboard, LeaderboardStatus},
+    render::menu::MenuRender,
+    ui::widget::CursorContext,
+    Secrets,
 };
 
 use geng::MouseButton;
@@ -232,6 +235,8 @@ impl LevelMenu {
                 future,
             ),
         )));
+        // Queue leaderboard fetch when coming back
+        self.state.leaderboard.status = LeaderboardStatus::None;
     }
 
     fn update_active_group(&mut self, delta_time: Time) {

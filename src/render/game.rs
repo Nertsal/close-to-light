@@ -93,7 +93,7 @@ impl GameRender {
 
             if !fading {
                 draw_text(
-                    &format!("SCORE: {:.0}", model.score),
+                    &format!("SCORE: {:.0}", model.score.ceil()),
                     vec2(-3.0, -3.0),
                     0.7,
                     vec2(0.5, 1.0),

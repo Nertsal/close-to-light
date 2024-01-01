@@ -21,6 +21,7 @@ const FIXED_FPS: f64 = 60.0;
 const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
 const PLAYER_STORAGE: &str = "player";
 const OPTIONS_STORAGE: &str = "options";
+const HIGHSCORES_STORAGE: &str = "highscores";
 
 #[derive(clap::Parser)]
 struct Opts {

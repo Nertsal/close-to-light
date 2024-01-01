@@ -33,12 +33,20 @@ impl Clone for Leaderboard {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedScore {
+    pub player: String,
+    pub score: i32,
+    pub meta: ScoreMeta,
+}
+
 #[derive(Debug)]
 pub struct LoadedBoard {
     pub meta: ScoreMeta,
     pub my_position: Option<usize>,
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
+    pub local_high: Option<SavedScore>,
 }
 
 /// Meta information saved together with the score.
@@ -76,14 +84,11 @@ impl Leaderboard {
         }
     }
 
-    // pub fn change_name(&mut self, name: String) {
-    //     self.player.name = name;
-    // }
-
     /// The leaderboard needs to be polled to make progress.
     pub fn poll(&mut self) {
         if let Some(task) = &mut self.task {
             if let Some(res) = task.poll() {
+                self.task = None;
                 match res {
                     Ok(Ok(scores)) => {
                         log::debug!("Successfully loaded the leaderboard");
@@ -108,6 +113,7 @@ impl Leaderboard {
     /// Change meta filter using the cached scores if available.
     pub fn change_meta(&mut self, meta: ScoreMeta) {
         self.loaded.meta = meta;
+        self.loaded.reload_local(None);
         match self.status {
             LeaderboardStatus::None | LeaderboardStatus::Failed => {
                 self.refetch();
@@ -138,7 +144,22 @@ impl Leaderboard {
     }
 
     pub fn submit(&mut self, name: String, score: Option<i32>, meta: ScoreMeta) {
+        let score = score.map(|score| SavedScore {
+            player: name.clone(),
+            score,
+            meta: meta.clone(),
+        });
+
         self.loaded.meta = meta.clone();
+        self.loaded.reload_local(score.as_ref());
+
+        let meta_str = meta_str(&meta);
+        let score = score.map(|score| ScoreEntry {
+            player: score.player,
+            score: score.score,
+            extra_info: Some(meta_str),
+        });
+
         if let Some(board) = &self.client {
             let board = Arc::clone(board);
             let future = async move {
@@ -163,19 +184,8 @@ impl Leaderboard {
                         player.clone()
                     };
 
-                let meta_str = meta_str(&meta);
-                if let Some(score) = score {
-                    board
-                        .submit_score(
-                            &player,
-                            &ScoreEntry {
-                                player: player.name.clone(),
-                                score,
-                                extra_info: Some(meta_str),
-                            },
-                        )
-                        .await
-                        .unwrap();
+                if let Some(score) = &score {
+                    board.submit_score(&player, score).await.unwrap();
                 }
 
                 board.fetch_scores().await.map_err(anyhow::Error::from)
@@ -198,6 +208,31 @@ impl LoadedBoard {
             my_position: None,
             all_scores: Vec::new(),
             filtered: Vec::new(),
+            local_high: None,
+        }
+    }
+
+    fn reload_local(&mut self, score: Option<&SavedScore>) {
+        let mut highscores: Vec<SavedScore> =
+            preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
+        let mut save = false;
+        if let Some(highscore) = highscores.iter_mut().find(|s| s.meta == self.meta) {
+            if let Some(score) = score {
+                if score.score > highscore.score && score.meta == highscore.meta {
+                    highscore.score = score.score;
+                    save = true;
+                }
+            }
+            self.local_high = Some(highscore.clone());
+        } else if let Some(score) = score {
+            highscores.push(score.clone());
+            save = true;
+            self.local_high = Some(score.clone());
+        } else {
+            self.local_high = None;
+        }
+        if save {
+            preferences::save(crate::HIGHSCORES_STORAGE, &highscores);
         }
     }
 
@@ -230,8 +265,6 @@ impl LoadedBoard {
             }
         }
 
-        // let my_pos = score.map(|score| scores.iter().position(|this| this.score == score).unwrap());
-
         {
             // Only leave unique names
             let mut i = 0;
@@ -247,6 +280,11 @@ impl LoadedBoard {
         }
 
         self.filtered = scores;
+        self.my_position = self.local_high.as_ref().and_then(|score| {
+            self.filtered
+                .iter()
+                .position(|this| this.score == score.score)
+        });
     }
 }
 

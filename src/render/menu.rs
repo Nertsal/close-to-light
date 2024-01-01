@@ -217,11 +217,22 @@ impl MenuRender {
                 .draw_text_widget(&ui.leaderboard.subtitle, framebuffer);
             self.util
                 .draw_text_widget(&ui.leaderboard.status, framebuffer);
+
+            self.util
+                .draw_quad(ui.leaderboard.separator.position, theme.light, framebuffer);
+
             for row in &ui.leaderboard.rows {
                 self.util.draw_text_widget(&row.rank, framebuffer);
                 self.util.draw_text_widget(&row.player, framebuffer);
                 self.util.draw_text_widget(&row.score, framebuffer);
             }
+
+            self.util
+                .draw_text_widget(&ui.leaderboard.highscore.rank, framebuffer);
+            self.util
+                .draw_text_widget(&ui.leaderboard.highscore.player, framebuffer);
+            self.util
+                .draw_text_widget(&ui.leaderboard.highscore.score, framebuffer);
 
             self.util.draw_outline(
                 &Collider::aabb(ui.leaderboard.state.position.map(r32)),

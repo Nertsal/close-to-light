@@ -285,6 +285,19 @@ impl UtilRender {
         }
     }
 
+    pub fn draw_quad(
+        &self,
+        quad: Aabb2<f32>,
+        color: Rgba<f32>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            &geng::PixelPerfectCamera,
+            &draw2d::Quad::new(quad, color),
+        );
+    }
+
     pub fn draw_checkbox(
         &self,
         widget: &CheckboxWidget,
