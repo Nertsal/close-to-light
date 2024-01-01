@@ -10,6 +10,7 @@ pub struct LevelConfigWidget {
     pub close: ButtonWidget,
     pub tab_difficulty: TextWidget,
     pub tab_mods: TextWidget,
+    pub separator: WidgetState,
     pub difficulty: LevelDifficultyWidget,
     pub mods: LevelModsWidget,
 }
@@ -21,6 +22,7 @@ impl LevelConfigWidget {
             close: ButtonWidget::new_textured("", &assets.sprites.button_close),
             tab_difficulty: TextWidget::new("Difficulty"),
             tab_mods: TextWidget::new("Modifiers"),
+            separator: WidgetState::new(),
             difficulty: LevelDifficultyWidget::new(),
             mods: LevelModsWidget::new(),
         };
@@ -45,21 +47,32 @@ impl Widget for LevelConfigWidget {
         self.state.update(position, context);
         let main = position;
 
-        let (bar, main) = layout::cut_top_down(main, context.font_size * 1.2);
-
-        let (bar, close) = layout::cut_left_right(bar, bar.width() - context.font_size * 1.2);
+        let close = layout::align_aabb(vec2::splat(1.2) * context.font_size, main, vec2(1.0, 1.0));
         self.close
             .update(close.extend_uniform(-context.font_size * 0.2), context);
 
-        let tab =
-            Aabb2::point(bar.bottom_left()).extend_positive(vec2(5.0, 1.0) * context.font_size);
-        let tabs = layout::stack(tab, vec2(tab.width(), 0.0), 2);
+        let main = main.extend_up(-context.layout_size * 1.0);
+        let (bar, main) = layout::cut_top_down(main, context.font_size * 1.2);
+
+        let bar = bar.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
+        let tab = Aabb2::point(bar.bottom_left())
+            .extend_positive(vec2(4.0 * context.font_size, bar.height()));
+        // let tabs = layout::stack(tab, vec2(tab.width() + 2.0 * context.layout_size, 0.0), 2);
+        let offset = bar.center().x - bar.min.x;
+        let pad = 1.0 * context.layout_size;
+        let tabs = vec![
+            tab.translate(vec2(offset - tab.width() - pad, 0.0)),
+            tab.translate(vec2(offset + pad, 0.0)),
+        ];
         for (tab, pos) in [&mut self.tab_difficulty, &mut self.tab_mods]
             .into_iter()
             .zip(tabs)
         {
             tab.update(pos, context);
         }
+
+        let separator = bar.extend_up(context.font_size * 0.2 - bar.height());
+        self.separator.update(separator, context);
 
         if self.tab_difficulty.state.clicked {
             self.difficulty.show();

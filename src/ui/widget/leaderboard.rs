@@ -90,15 +90,15 @@ impl Widget for LeaderboardWidget {
 
         let close = layout::align_aabb(
             vec2::splat(context.font_size * 0.75),
-            main.extend_uniform(-context.layout_size * 0.2),
+            main.extend_uniform(-context.font_size * 0.2),
             vec2(0.0, 1.0),
         );
         self.close.update(close, context);
 
         let main = main.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
 
-        let (title, main) = layout::cut_top_down(main, context.font_size * 1.5);
-        self.title.update(title, &context.scale_font(1.3));
+        let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
+        self.title.update(title, &context.scale_font(1.1));
 
         let (subtitle, main) = layout::cut_top_down(main, context.font_size * 1.0);
         self.subtitle.update(subtitle, context);

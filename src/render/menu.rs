@@ -206,8 +206,13 @@ impl MenuRender {
             buffer.mask_quad(ui.level_config.state.position);
 
             self.ui
-                .draw_button_widget(&ui.level_config.close, &mut buffer.color);
+                .draw_close_button(&ui.level_config.close, theme, &mut buffer.color);
 
+            self.ui.draw_quad(
+                ui.level_config.separator.position,
+                theme.light,
+                &mut buffer.color,
+            );
             for (tab, active) in [
                 (
                     &ui.level_config.tab_difficulty,
@@ -218,49 +223,30 @@ impl MenuRender {
                     ui.level_config.mods.state.visible,
                 ),
             ] {
-                let options = &tab.options;
-                let color = if tab.state.pressed {
-                    options.press_color
-                } else if tab.state.hovered {
-                    options.hover_color
-                } else {
-                    options.color
-                };
-                self.util.draw_text(
-                    &tab.text,
-                    geng_utils::layout::aabb_pos(tab.state.position, tab.options.align),
-                    tab.options.color(color),
-                    &geng::PixelPerfectCamera,
-                    &mut buffer.color,
-                );
-
-                if active {
-                    // Underline
-                    let mut line = tab
-                        .state
-                        .position
-                        .extend_symmetric(-vec2(0.5, 0.1) * options.size);
-                    line.max.y = line.min.y + 0.05 * options.size;
-                    self.geng.draw2d().draw2d(
-                        &mut buffer.color,
-                        camera,
-                        &draw2d::Quad::new(line, color),
-                    );
-                }
+                self.ui
+                    .draw_toggle_button(tab, active, false, theme, &mut buffer.color);
             }
 
             if ui.level_config.difficulty.state.visible {
                 for preset in &ui.level_config.difficulty.presets {
-                    let mut button = preset.button.clone();
-                    button.text.state.pressed = preset.selected;
-                    self.ui.draw_button_widget(&button, &mut buffer.color);
+                    self.ui.draw_toggle_button(
+                        &preset.button.text,
+                        preset.selected,
+                        false,
+                        theme,
+                        &mut buffer.color,
+                    );
                 }
             }
             if ui.level_config.mods.state.visible {
                 for preset in &ui.level_config.mods.mods {
-                    let mut button = preset.button.clone();
-                    button.text.state.pressed = preset.selected;
-                    self.ui.draw_button_widget(&button, &mut buffer.color);
+                    self.ui.draw_toggle_button(
+                        &preset.button.text,
+                        preset.selected,
+                        true,
+                        theme,
+                        &mut buffer.color,
+                    );
                 }
             }
 

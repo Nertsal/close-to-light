@@ -8,7 +8,7 @@ use crate::ui::widget::*;
 
 pub struct UiRender {
     geng: Geng,
-    assets: Rc<Assets>,
+    // assets: Rc<Assets>,
     util: UtilRender,
 }
 
@@ -16,9 +16,25 @@ impl UiRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
+            // assets: assets.clone(),
             util: UtilRender::new(geng, assets),
         }
+    }
+
+    pub fn draw_outline(
+        &self,
+        quad: Aabb2<f32>,
+        width: f32,
+        color: Color,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.util.draw_outline(
+            &Collider::aabb(quad.map(r32)),
+            width,
+            color,
+            &geng::PixelPerfectCamera,
+            framebuffer,
+        );
     }
 
     pub fn draw_quad(
@@ -31,6 +47,20 @@ impl UiRender {
             framebuffer,
             &geng::PixelPerfectCamera,
             &draw2d::Quad::new(quad, color),
+        );
+    }
+
+    pub fn draw_circle(
+        &self,
+        position: vec2<f32>,
+        radius: f32,
+        color: Rgba<f32>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            &geng::PixelPerfectCamera,
+            &draw2d::Ellipse::circle(position, radius, color),
         );
     }
 
@@ -170,7 +200,7 @@ impl UiRender {
             camera,
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
-        self.draw_button_widget(&leaderboard.close, framebuffer);
+        self.draw_close_button(&leaderboard.close, theme, framebuffer);
         self.draw_text_widget(&leaderboard.title, framebuffer);
         self.draw_text_widget(&leaderboard.subtitle, framebuffer);
         self.draw_text_widget(&leaderboard.status, framebuffer);
@@ -193,11 +223,89 @@ impl UiRender {
         self.draw_text_widget(&leaderboard.highscore.player, framebuffer);
         self.draw_text_widget(&leaderboard.highscore.score, framebuffer);
 
-        self.util.draw_outline(
-            &Collider::aabb(leaderboard.state.position.map(r32)),
+        self.draw_outline(
+            leaderboard.state.position,
             font_size * 0.2,
             theme.light,
-            camera,
+            framebuffer,
+        );
+    }
+
+    pub fn draw_close_button(
+        &self,
+        button: &ButtonWidget,
+        theme: &Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let state = &button.text.state;
+        if !state.visible {
+            return;
+        }
+
+        let (bg_color, fg_color) = (theme.light, theme.danger);
+
+        if state.hovered {
+            self.draw_circle(
+                button.text.state.position.center(),
+                button.text.state.position.width() / 2.0 * 1.5,
+                bg_color,
+                framebuffer,
+            );
+        }
+
+        if let Some(texture) = &button.texture {
+            let target = geng_utils::layout::fit_aabb(
+                texture.size().as_f32(),
+                button.text.state.position,
+                vec2(0.5, 0.5),
+            );
+            self.geng.draw2d().textured_quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                target,
+                texture,
+                fg_color,
+            );
+        }
+        self.draw_text_widget(&button.text, framebuffer);
+    }
+
+    pub fn draw_toggle_button(
+        &self,
+        text: &TextWidget,
+        selected: bool,
+        can_deselect: bool,
+        theme: &Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let state = &text.state;
+        if !state.visible {
+            return;
+        }
+
+        let options = text.options;
+        let (bg_color, fg_color) = if selected {
+            (theme.light, theme.dark)
+        } else {
+            (theme.dark, theme.light)
+        };
+
+        let width = options.size * 0.2;
+        let shrink = if can_deselect && state.hovered && selected {
+            width
+        } else {
+            0.0
+        };
+        let pos = state.position.extend_uniform(-shrink);
+        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
+        if state.hovered || selected {
+            self.draw_outline(pos, width, theme.light, framebuffer);
+        }
+        self.util.draw_text(
+            &text.text,
+            geng_utils::layout::aabb_pos(state.position, options.align),
+            options.color(fg_color),
+            &geng::PixelPerfectCamera,
             framebuffer,
         );
     }
