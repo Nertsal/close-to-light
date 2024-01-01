@@ -3,6 +3,7 @@ use super::*;
 use crate::ui::{layout, widget::*};
 
 pub struct MenuUI {
+    pub screen: WidgetState,
     pub ctl_logo: WidgetState,
     pub groups_state: WidgetState,
     pub groups: Vec<GroupWidget>,
@@ -17,6 +18,7 @@ pub struct MenuUI {
 impl MenuUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
+            screen: WidgetState::new(),
             ctl_logo: default(),
             groups_state: default(),
             groups: Vec::new(),
@@ -62,6 +64,8 @@ impl MenuUI {
                 $widget.update($position, &context);
             }};
         }
+
+        update!(self.screen, screen);
 
         // Margin
         let main = screen.extend_uniform(-layout_size * 2.0);

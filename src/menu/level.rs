@@ -6,7 +6,7 @@ use super::*;
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
-    render::menu::MenuRender,
+    render::{mask::MaskedRender, menu::MenuRender},
     ui::widget::CursorContext,
     Secrets,
 };
@@ -21,6 +21,7 @@ pub struct LevelMenu {
     render: MenuRender,
     util: UtilRender,
     dither: DitherRender,
+    masked: MaskedRender,
 
     framebuffer_size: vec2<usize>,
     last_delta_time: Time,
@@ -117,6 +118,7 @@ impl LevelMenu {
             render: MenuRender::new(geng, assets),
             util: UtilRender::new(geng, assets),
             dither: DitherRender::new(geng, assets),
+            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: Time::ONE,
@@ -425,6 +427,7 @@ impl geng::State for LevelMenu {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(self.state.options.theme.dark), None, None);
+        self.masked.update_size(framebuffer.size());
 
         let mut dither_buffer = self.dither.start();
 
@@ -468,19 +471,29 @@ impl geng::State for LevelMenu {
             .fit_screen(vec2(0.5, 0.5), framebuffer)
             .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
 
-        if fading {
-            return;
-        }
+        if !fading {
+            let mut masked = self.masked.start();
 
-        self.ui_focused = self.ui.layout(
-            &mut self.state,
-            Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-            self.cursor,
-            self.last_delta_time.as_f32(),
-            &self.geng,
-        );
+            self.ui_focused = self.ui.layout(
+                &mut self.state,
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                self.cursor,
+                self.last_delta_time.as_f32(),
+                &self.geng,
+            );
+            self.render
+                .draw_ui(&self.ui, &self.state, &mut masked.color);
+
+            masked.mask_quad(self.ui.screen.position);
+            self.masked.draw(
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+                framebuffer,
+            );
+        }
         self.cursor.scroll = 0.0;
-        self.render.draw_ui(&self.ui, &self.state, framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
