@@ -50,6 +50,7 @@ impl GameUI {
         if let State::Lost { .. } | State::Finished = model.state {
             // Leaderboard
             self.leaderboard.show();
+            self.leaderboard.close.hide();
 
             let width = layout_size * 20.0;
             let height = main.height() + layout_size * 2.0;

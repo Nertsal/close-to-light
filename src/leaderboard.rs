@@ -28,7 +28,11 @@ impl Clone for Leaderboard {
             client: self.client.as_ref().map(Arc::clone),
             task: None,
             status: LeaderboardStatus::None,
-            loaded: LoadedBoard::new(),
+            loaded: LoadedBoard {
+                meta: self.loaded.meta.clone(),
+                local_high: self.loaded.local_high.clone(),
+                ..LoadedBoard::new()
+            },
         }
     }
 }
@@ -213,6 +217,7 @@ impl LoadedBoard {
     }
 
     fn reload_local(&mut self, score: Option<&SavedScore>) {
+        log::debug!("Reloading local scores with a new score: {:?}", score);
         let mut highscores: Vec<SavedScore> =
             preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
         let mut save = false;
@@ -238,6 +243,8 @@ impl LoadedBoard {
 
     /// Refresh the filter.
     fn refresh(&mut self) {
+        log::debug!("Filtering scores with meta\n{:#?}", self.meta);
+
         let mut scores = self.all_scores.clone();
 
         // Filter for the same meta
