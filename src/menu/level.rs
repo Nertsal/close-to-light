@@ -524,16 +524,22 @@ impl geng::State for LevelMenu {
             [MouseButton::Left],
         ));
 
-        let cursor_world = self
-            .camera
-            .screen_to_world(self.framebuffer_size.as_f32(), self.cursor.position);
+        let game_pos = geng_utils::layout::fit_aabb(
+            self.dither.get_render_size().as_f32(),
+            Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
+            vec2(0.5, 0.5),
+        );
+        let pos = self.cursor.position - game_pos.bottom_left();
+        let cursor_world = self.camera.screen_to_world(game_pos.size(), pos);
 
         self.player.collider.position = cursor_world.as_r32();
         self.player.reset_distance();
         self.player
             .update_distance(&self.exit_button.base_collider, false);
-        self.player
-            .update_distance(&self.play_button.base_collider, false);
+        if self.state.show_level.is_some() {
+            self.player
+                .update_distance(&self.play_button.base_collider, false);
+        }
 
         if !self.ui_focused {
             let hovering = self
