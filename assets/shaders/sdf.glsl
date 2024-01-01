@@ -29,8 +29,9 @@ uniform float u_smooth;
 
 float antialias(float x) {
     if (x > -u_smooth) {
-        float w = length(vec2(dFdx(x), dFdy(x)));
-        return 1.0 - smoothstep(-w, w, x);
+        // float w = length(vec2(dFdx(x), dFdy(x)));
+        // return 1.0 - smoothstep(-w, w, x);
+        return 0.0;
     } else {
         return 1.0;
     }
