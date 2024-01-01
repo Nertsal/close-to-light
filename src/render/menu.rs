@@ -146,18 +146,11 @@ impl MenuRender {
                     quad(1.0, palette.palette.light);
                     quad(2.0, palette.palette.danger);
 
-                    let outline_width = font_size * 0.1;
-                    self.util.draw_outline(
-                        &Collider::aabb(
-                            palette
-                                .visual
-                                .position
-                                .extend_uniform(outline_width)
-                                .map(r32),
-                        ),
+                    let outline_width = font_size * 0.15;
+                    self.ui.draw_outline(
+                        palette.visual.position.extend_uniform(outline_width),
                         outline_width,
                         theme.light,
-                        camera,
                         &mut buffer.color,
                     );
                 }

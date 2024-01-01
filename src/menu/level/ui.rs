@@ -69,7 +69,9 @@ impl MenuUI {
         update!(self.screen, screen);
 
         // Margin
-        let main = screen.extend_uniform(-layout_size * 2.0);
+        let main = screen
+            .extend_uniform(-layout_size * 2.0)
+            .extend_up(-layout_size * 1.0);
 
         // Logo
         let (ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
@@ -102,8 +104,8 @@ impl MenuUI {
             let options = options.translate(vec2(0.0, offset));
 
             let head = Aabb2::point(screen.top_left() + vec2(10.0, 0.0) * layout_size)
-                .extend_right(context.font_size * 3.0)
-                .extend_down(context.font_size * 1.0)
+                .extend_right(context.font_size * 3.5)
+                .extend_down(context.font_size * 1.2)
                 .translate(vec2(0.0, offset));
 
             update!(self.options_head, head);
@@ -127,7 +129,7 @@ impl MenuUI {
 
         {
             // Leaderboard
-            let width = layout_size * 20.0;
+            let width = layout_size * 22.0;
             let height = main.height() + layout_size * 2.0;
 
             let leaderboard =

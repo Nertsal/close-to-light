@@ -190,7 +190,7 @@ impl Widget for PaletteWidget {
         let visual = visual.extend_symmetric(vec2(0.0, height - visual.height()) / 2.0);
         self.visual.update(visual, context);
 
-        let name = name.extend_left(-context.layout_size * 0.3);
+        let name = name.extend_left(-context.font_size * 0.2);
         self.name.align(vec2(0.0, 0.5));
         self.name.update(name, context);
     }

@@ -95,7 +95,9 @@ impl Widget for LeaderboardWidget {
         );
         self.close.update(close, context);
 
-        let main = main.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
+        let main = main
+            .extend_symmetric(-vec2(1.0, 0.0) * context.layout_size)
+            .extend_up(-context.layout_size);
 
         let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
         self.title.update(title, &context.scale_font(1.1));
@@ -181,7 +183,7 @@ impl Widget for LeaderboardEntryWidget {
 
         let (rank, main) = layout::cut_left_right(main, context.font_size * 1.0);
         self.rank.update(rank, context);
-        let main = main.extend_left(-context.font_size * 0.5);
+        let main = main.extend_left(-context.font_size * 0.2);
 
         let (main, score) = layout::cut_left_right(main, main.width() - context.font_size * 5.0);
         self.score.update(score, context);
