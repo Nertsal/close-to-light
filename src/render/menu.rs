@@ -1,4 +1,4 @@
-use super::{mask::MaskedRender, util::UtilRender, *};
+use super::{mask::MaskedRender, ui::UiRender, util::UtilRender, *};
 
 use crate::menu::{MenuState, MenuUI};
 
@@ -7,6 +7,7 @@ pub struct MenuRender {
     assets: Rc<Assets>,
     util: UtilRender,
     masked: MaskedRender,
+    ui: UiRender,
 }
 
 impl MenuRender {
@@ -16,6 +17,7 @@ impl MenuRender {
             assets: assets.clone(),
             util: UtilRender::new(geng, assets),
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
+            ui: UiRender::new(geng, assets),
         }
     }
 
@@ -47,8 +49,8 @@ impl MenuRender {
                     theme.light,
                 );
             }
-            self.util.draw_text_widget(&group.name, &mut mask.color);
-            self.util.draw_text_widget(&group.author, &mut mask.color);
+            self.ui.draw_text_widget(&group.name, &mut mask.color);
+            self.ui.draw_text_widget(&group.author, &mut mask.color);
 
             let group = &group.state;
             let color = if group.pressed {
@@ -68,8 +70,8 @@ impl MenuRender {
         }
 
         for level in &ui.levels {
-            self.util.draw_text_widget(&level.name, &mut mask.color);
-            self.util.draw_text_widget(&level.author, &mut mask.color);
+            self.ui.draw_text_widget(&level.name, &mut mask.color);
+            self.ui.draw_text_widget(&level.author, &mut mask.color);
 
             let level = &level.state;
             let color = if level.pressed {
@@ -114,21 +116,20 @@ impl MenuRender {
             {
                 // Volume
                 let volume = &ui.options.volume;
-                self.util.draw_text_widget(&volume.title, &mut buffer.color);
-                self.util
+                self.ui.draw_text_widget(&volume.title, &mut buffer.color);
+                self.ui
                     .draw_slider_widget(&volume.master, &mut buffer.color);
 
-                self.util
+                self.ui
                     .draw_text_widget(&ui.options_head, &mut buffer.color);
             }
 
             {
                 // Palette
                 let palette = &ui.options.palette;
-                self.util
-                    .draw_text_widget(&palette.title, &mut buffer.color);
+                self.ui.draw_text_widget(&palette.title, &mut buffer.color);
                 for palette in &palette.palettes {
-                    self.util.draw_text_widget(&palette.name, &mut buffer.color);
+                    self.ui.draw_text_widget(&palette.name, &mut buffer.color);
 
                     let mut quad = |i: f32, color: Color| {
                         let pos = palette.visual.position;
@@ -190,7 +191,7 @@ impl MenuRender {
             );
         }
 
-        self.util
+        self.ui
             .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
 
         {
@@ -204,7 +205,7 @@ impl MenuRender {
             let mut buffer = self.masked.start();
             buffer.mask_quad(ui.level_config.state.position);
 
-            self.util
+            self.ui
                 .draw_button_widget(&ui.level_config.close, &mut buffer.color);
 
             for (tab, active) in [
@@ -252,14 +253,14 @@ impl MenuRender {
                 for preset in &ui.level_config.difficulty.presets {
                     let mut button = preset.button.clone();
                     button.text.state.pressed = preset.selected;
-                    self.util.draw_button_widget(&button, &mut buffer.color);
+                    self.ui.draw_button_widget(&button, &mut buffer.color);
                 }
             }
             if ui.level_config.mods.state.visible {
                 for preset in &ui.level_config.mods.mods {
                     let mut button = preset.button.clone();
                     button.text.state.pressed = preset.selected;
-                    self.util.draw_button_widget(&button, &mut buffer.color);
+                    self.ui.draw_button_widget(&button, &mut buffer.color);
                 }
             }
 

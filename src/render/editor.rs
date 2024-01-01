@@ -3,6 +3,7 @@ mod ui;
 
 use super::{
     dither::DitherRender,
+    ui::UiRender,
     util::{TextRenderOptions, UtilRender},
     *,
 };
@@ -17,6 +18,7 @@ pub struct EditorRender {
     dither: DitherRender,
     dither_small: DitherRender,
     util: UtilRender,
+    ui: UiRender,
     unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
@@ -40,6 +42,7 @@ impl EditorRender {
             dither: DitherRender::new(geng, assets),
             dither_small: DitherRender::new_sized(geng, assets, vec2::splat(360)),
             util: UtilRender::new(geng, assets),
+            ui: UiRender::new(geng, assets),
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,

@@ -40,12 +40,12 @@ impl EditorRender {
         {
             // General
             for widget in [&ui.visualize_beat, &ui.show_grid, &ui.snap_grid] {
-                self.util.draw_checkbox(widget, options, screen_buffer);
+                self.ui.draw_checkbox(widget, options, screen_buffer);
             }
         }
 
-        self.util.draw_button_widget(&ui.new_palette, screen_buffer);
-        self.util.draw_button_widget(&ui.new_light, screen_buffer);
+        self.ui.draw_button_widget(&ui.new_palette, screen_buffer);
+        self.ui.draw_button_widget(&ui.new_light, screen_buffer);
 
         if ui.new_selector.visible {
             // Selector
@@ -135,19 +135,19 @@ impl EditorRender {
             );
 
             let options = options.align(vec2(0.0, 0.5));
-            self.util
+            self.ui
                 .draw_checkbox(&ui.selected_light.danger, options, screen_buffer);
-            self.util
+            self.ui
                 .draw_text_widget(&ui.selected_light.fade_in, screen_buffer);
-            self.util
+            self.ui
                 .draw_text_widget(&ui.selected_light.fade_out, screen_buffer);
-            self.util
+            self.ui
                 .draw_text_widget(&ui.selected_light.scale, screen_buffer);
         }
 
         {
             // Timeline
-            self.util.draw_text_widget(&ui.current_beat, screen_buffer);
+            self.ui.draw_text_widget(&ui.current_beat, screen_buffer);
 
             let mut quad =
                 |aabb, color| self.geng.draw2d().quad(screen_buffer, camera, aabb, color);

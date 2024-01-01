@@ -1,6 +1,7 @@
 use super::{
     dither::DitherRender,
     mask::MaskedRender,
+    ui::UiRender,
     util::{TextRenderOptions, UtilRender},
     *,
 };
@@ -13,6 +14,7 @@ pub struct GameRender {
     dither: DitherRender,
     masked: MaskedRender,
     util: UtilRender,
+    ui: UiRender,
 }
 
 impl GameRender {
@@ -23,6 +25,7 @@ impl GameRender {
             dither: DitherRender::new(geng, assets),
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             util: UtilRender::new(geng, assets),
+            ui: UiRender::new(geng, assets),
         }
     }
 
@@ -175,7 +178,7 @@ impl GameRender {
         // let font_size = screen.height() * 0.05;
 
         if ui.leaderboard.state.visible {
-            self.util
+            self.ui
                 .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
         }
     }
