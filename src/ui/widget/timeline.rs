@@ -28,6 +28,7 @@ impl TimelineWidget {
         Self {
             context: UiContext {
                 theme: Theme::default(),
+                layout_size: 1.0,
                 font_size: 1.0,
                 can_focus: true,
                 cursor: CursorContext::new(),

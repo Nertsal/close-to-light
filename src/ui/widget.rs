@@ -56,6 +56,7 @@ impl CursorContext {
 #[derive(Debug, Clone, Copy)]
 pub struct UiContext {
     pub theme: Theme,
+    pub layout_size: f32,
     pub font_size: f32,
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: bool,

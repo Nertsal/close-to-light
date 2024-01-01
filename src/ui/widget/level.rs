@@ -46,7 +46,7 @@ impl Widget for LevelWidget {
         self.name.update(name, context);
         self.name.align(vec2(0.5, 0.0));
 
-        self.author.update(author, &context.scale_font(0.5));
+        self.author.update(author, &context.scale_font(0.6));
         self.author.align(vec2(0.5, 1.0));
     }
 

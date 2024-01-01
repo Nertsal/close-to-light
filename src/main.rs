@@ -25,6 +25,9 @@ const HIGHSCORES_STORAGE: &str = "highscores";
 
 #[derive(clap::Parser)]
 struct Opts {
+    /// Skip intro screen.
+    #[clap(long)]
+    skip_intro: bool,
     /// Just display some dithered text on screen.
     #[clap(long)]
     text: Option<String>,
@@ -138,8 +141,20 @@ fn main() {
                 })
             });
 
-            let state = menu::SplashScreen::new(&geng, &assets, secrets, options);
-            geng.run_state(state).await;
+            if opts.skip_intro {
+                let assets_path = run_dir().join("assets");
+                let groups_path = assets_path.join("groups");
+
+                let groups = menu::load_groups(manager, &groups_path)
+                    .await
+                    .expect("failed to load groups");
+
+                let state = menu::LevelMenu::new(&geng, &assets, groups, secrets, options);
+                geng.run_state(state).await;
+            } else {
+                let state = menu::SplashScreen::new(&geng, &assets, secrets, options);
+                geng.run_state(state).await;
+            }
         }
     });
 }

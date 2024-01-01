@@ -429,6 +429,7 @@ impl geng::State for LevelMenu {
         ugli::clear(framebuffer, Some(self.state.options.theme.dark), None, None);
         self.masked.update_size(framebuffer.size());
 
+        self.dither.set_noise(1.0);
         let mut dither_buffer = self.dither.start();
 
         let fading = self.exit_button.is_fading() || self.play_button.is_fading();
@@ -485,13 +486,28 @@ impl geng::State for LevelMenu {
                 .draw_ui(&self.ui, &self.state, &mut masked.color);
 
             masked.mask_quad(self.ui.screen.position);
+
+            self.dither.set_noise(0.0);
+            let mut dither = self.dither.start();
             self.masked.draw(
                 ugli::DrawParameters {
                     blend_mode: Some(ugli::BlendMode::straight_alpha()),
                     ..default()
                 },
-                framebuffer,
+                &mut dither,
             );
+
+            // self.dither.finish(
+            //     self.time,
+            //     &Theme {
+            //         dark: Color::TRANSPARENT_BLACK,
+            //         ..self.state.options.theme
+            //     },
+            // );
+
+            geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+                .fit_screen(vec2(0.5, 0.5), framebuffer)
+                .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
         }
         self.cursor.scroll = 0.0;
     }
@@ -565,7 +581,7 @@ impl geng::State for LevelMenu {
             self.transition = Some(geng::state::Transition::Pop);
         }
 
-        if !self.ui_focused {
+        if !self.ui_focused && self.state.show_level.is_some() {
             let hovering = self
                 .play_button
                 .base_collider

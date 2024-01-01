@@ -28,6 +28,7 @@ impl GameUI {
 
         let mut context = UiContext {
             theme: model.options.theme,
+            layout_size,
             font_size: screen.height() * 0.04,
             can_focus: true,
             cursor,

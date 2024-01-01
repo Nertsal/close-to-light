@@ -90,24 +90,21 @@ impl Widget for LeaderboardWidget {
 
         let close = layout::align_aabb(
             vec2::splat(context.font_size * 0.75),
-            main.extend_uniform(-context.font_size * 0.2),
+            main.extend_uniform(-context.layout_size * 0.2),
             vec2(0.0, 1.0),
         );
         self.close.update(close, context);
 
-        let main = main.extend_symmetric(-vec2(1.0, 0.0) * context.font_size);
+        let main = main.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
 
-        let (title, main) = layout::cut_top_down(main, context.font_size * 2.0);
-        self.title.update(title, context);
-        self.title.options.size = context.font_size * 1.5;
+        let (title, main) = layout::cut_top_down(main, context.font_size * 1.5);
+        self.title.update(title, &context.scale_font(1.3));
 
         let (subtitle, main) = layout::cut_top_down(main, context.font_size * 1.0);
         self.subtitle.update(subtitle, context);
-        self.subtitle.options.size = context.font_size * 1.0;
 
         let (status, _) = layout::cut_top_down(main, context.font_size * 1.0);
         self.status.update(status, context);
-        self.status.options.size = context.font_size * 1.0;
 
         let main = main.extend_right(-0.5 * context.font_size);
 
@@ -182,11 +179,11 @@ impl Widget for LeaderboardEntryWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         let main = position;
 
-        let (rank, main) = layout::cut_left_right(main, context.font_size * 2.0);
+        let (rank, main) = layout::cut_left_right(main, context.font_size * 1.0);
         self.rank.update(rank, context);
         let main = main.extend_left(-context.font_size * 0.5);
 
-        let (main, score) = layout::cut_left_right(main, main.width() - context.font_size * 7.0);
+        let (main, score) = layout::cut_left_right(main, main.width() - context.font_size * 5.0);
         self.score.update(score, context);
 
         let player = main;

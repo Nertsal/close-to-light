@@ -54,14 +54,14 @@ impl Widget for SliderWidget {
 
         let bar = Aabb2::point(layout::aabb_pos(main, vec2(0.0, 0.5)))
             .extend_right(main.width())
-            .extend_symmetric(vec2(0.0, context.font_size * 0.2) / 2.0);
+            .extend_symmetric(vec2(0.0, context.layout_size * 0.2) / 2.0);
         self.bar.update(bar, context);
 
-        let bar_box = bar.extend_symmetric(vec2(0.0, context.font_size * 0.8) / 2.0);
+        let bar_box = bar.extend_symmetric(vec2(0.0, context.layout_size * 0.8) / 2.0);
         self.bar_box.update(bar_box, context);
 
         let head = Aabb2::point(layout::aabb_pos(main, vec2(self.bounds.get_ratio(), 0.5)))
-            .extend_symmetric(vec2(0.2, 0.8) * context.font_size / 2.0);
+            .extend_symmetric(vec2(0.2, 0.8) * context.layout_size / 2.0);
         self.head.update(head, context);
 
         if self.bar_box.pressed {

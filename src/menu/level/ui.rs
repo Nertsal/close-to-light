@@ -54,7 +54,8 @@ impl MenuUI {
 
         let mut context = UiContext {
             theme: state.options.theme,
-            font_size: screen.height() * 0.04,
+            layout_size,
+            font_size: screen.height() * 0.07,
             can_focus: true,
             cursor,
             delta_time,
@@ -88,7 +89,7 @@ impl MenuUI {
         {
             // Options
             let width = layout_size * 50.0;
-            let height = layout_size * 10.0;
+            let height = layout_size * 15.0;
 
             let options = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
                 .extend_symmetric(vec2(width, 0.0) / 2.0)
@@ -101,8 +102,8 @@ impl MenuUI {
             let options = options.translate(vec2(0.0, offset));
 
             let head = Aabb2::point(screen.top_left() + vec2(10.0, 0.0) * layout_size)
-                .extend_right(layout_size * 7.0)
-                .extend_down(layout_size * 2.0)
+                .extend_right(context.font_size * 3.0)
+                .extend_down(context.font_size * 1.0)
                 .translate(vec2(0.0, offset));
 
             update!(self.options_head, head);
@@ -182,12 +183,12 @@ impl MenuUI {
         }
 
         // Margin
-        let main = main.extend_left(-layout_size * 2.0);
+        let main = main.extend_left(-layout_size * 0.5);
 
         // Groups and levels on the left
-        let (groups, side) = layout::cut_left_right(main, layout_size * 13.0);
+        let (groups, side) = layout::cut_left_right(main, context.font_size * 6.0);
         let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
-        let (levels, _side) = layout::cut_left_right(side, layout_size * 9.0);
+        let (levels, _side) = layout::cut_left_right(side, context.font_size * 5.0);
         update!(self.groups_state, groups);
         update!(self.levels_state, levels);
 
@@ -198,7 +199,7 @@ impl MenuUI {
             let scroll = 0.0; // TODO
             let group = Aabb2::point(layout::aabb_pos(groups, vec2(0.0, 1.0)) + vec2(0.0, scroll))
                 .extend_right(groups.width() - slide)
-                .extend_down(3.0 * layout_size);
+                .extend_down(2.0 * context.font_size);
 
             // Initialize missing groups
             for _ in 0..state.groups.len() - self.groups.len() {
@@ -259,7 +260,7 @@ impl MenuUI {
                 let level =
                     Aabb2::point(layout::aabb_pos(levels, vec2(0.0, 1.0)) + vec2(0.0, scroll))
                         .extend_right(levels.width() - slide)
-                        .extend_down(3.0 * layout_size);
+                        .extend_down(2.0 * context.font_size);
 
                 // Initialize missing levels
                 for _ in 0..group.levels.len() - self.levels.len() {

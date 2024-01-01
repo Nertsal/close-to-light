@@ -35,13 +35,13 @@ impl Widget for OptionsWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
 
-        let main = position.extend_symmetric(vec2(-5.0, -1.0) * context.font_size);
+        let main = position.extend_symmetric(vec2(-5.0, -1.0) * context.layout_size);
         let column = Aabb2::point(main.top_left())
-            .extend_right(context.font_size * 10.0)
+            .extend_right(context.layout_size * 15.0)
             .extend_down(main.height());
         let columns = layout::stack(
             column,
-            vec2(column.width() + context.font_size * 5.0, 0.0),
+            vec2(column.width() + context.layout_size * 5.0, 0.0),
             2,
         );
 
@@ -144,7 +144,7 @@ impl Widget for PaletteChooseWidget {
             .extend_down(context.font_size * 1.0);
         let rows = layout::stack(
             row,
-            vec2(0.0, -row.height() - context.font_size * 0.5),
+            vec2(0.0, -row.height() - context.layout_size * 0.5),
             self.palettes.len(),
         );
         for (palette, pos) in self.palettes.iter_mut().zip(rows) {
@@ -190,7 +190,7 @@ impl Widget for PaletteWidget {
         let visual = visual.extend_symmetric(vec2(0.0, height - visual.height()) / 2.0);
         self.visual.update(visual, context);
 
-        let name = name.extend_left(-context.font_size * 0.2);
+        let name = name.extend_left(-context.layout_size * 0.3);
         self.name.align(vec2(0.0, 0.5));
         self.name.update(name, context);
     }
