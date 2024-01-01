@@ -25,6 +25,7 @@ pub struct LeaderboardEntryWidget {
     pub rank: TextWidget,
     pub player: TextWidget,
     pub score: TextWidget,
+    pub highlight: bool,
 }
 
 impl LeaderboardWidget {
@@ -40,11 +41,12 @@ impl LeaderboardWidget {
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator: WidgetState::new(),
-            highscore: LeaderboardEntryWidget::new("", "", 0),
+            highscore: LeaderboardEntryWidget::new("", "", 0, false),
         }
     }
 
     pub fn update_state(&mut self, state: &LeaderboardStatus, board: &LoadedBoard) {
+        let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
         self.rows.clear();
         self.status.text = "".to_string();
         match state {
@@ -57,16 +59,21 @@ impl LeaderboardWidget {
                 }
             }
         }
-        self.load_scores(board);
+        self.load_scores(board, player_name);
     }
 
-    pub fn load_scores(&mut self, board: &LoadedBoard) {
+    pub fn load_scores(&mut self, board: &LoadedBoard, player_name: &str) {
         self.rows = board
             .filtered
             .iter()
             .enumerate()
             .map(|(rank, entry)| {
-                LeaderboardEntryWidget::new((rank + 1).to_string(), &entry.player, entry.score)
+                LeaderboardEntryWidget::new(
+                    (rank + 1).to_string(),
+                    &entry.player,
+                    entry.score,
+                    &entry.player == player_name,
+                )
             })
             .collect();
         match &board.local_high {
@@ -157,7 +164,12 @@ impl Widget for LeaderboardWidget {
 }
 
 impl LeaderboardEntryWidget {
-    pub fn new(rank: impl Into<String>, player: impl Into<String>, score: i32) -> Self {
+    pub fn new(
+        rank: impl Into<String>,
+        player: impl Into<String>,
+        score: i32,
+        highlight: bool,
+    ) -> Self {
         let rank = rank.into();
         let mut rank = TextWidget::new(format!("{}.", rank));
         rank.align(vec2(1.0, 0.5));
@@ -173,6 +185,7 @@ impl LeaderboardEntryWidget {
             rank,
             player,
             score,
+            highlight,
         }
     }
 }
@@ -190,6 +203,11 @@ impl Widget for LeaderboardEntryWidget {
 
         let player = main;
         self.player.update(player, context);
+        self.player.options.color = if self.highlight {
+            context.theme.danger
+        } else {
+            context.theme.light
+        }
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
