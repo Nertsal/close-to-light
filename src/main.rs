@@ -43,7 +43,7 @@ struct Opts {
 
 #[derive(geng::asset::Load, Deserialize, Clone)]
 #[load(serde = "toml")]
-struct Secrets {
+pub struct Secrets {
     leaderboard: LeaderboardSecrets,
 }
 
