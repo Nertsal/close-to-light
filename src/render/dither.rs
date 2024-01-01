@@ -5,6 +5,7 @@ pub struct DitherRender {
     assets: Rc<Assets>,
     unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     double_buffer: (ugli::Texture, ugli::Texture),
+    noise: f32,
 }
 
 impl DitherRender {
@@ -20,6 +21,7 @@ impl DitherRender {
             assets: assets.clone(),
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             double_buffer: init_buffers(geng.ugli(), size),
+            noise: 1.0,
         }
     }
 
@@ -52,6 +54,10 @@ impl DitherRender {
         framebuffer
     }
 
+    pub fn set_noise(&mut self, noise: f32) {
+        self.noise = noise;
+    }
+
     pub fn finish(&mut self, time: Time, theme: &Theme) -> ugli::Framebuffer {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
@@ -69,6 +75,7 @@ impl DitherRender {
                 u_time: t,
                 u_framebuffer_size: self.double_buffer.0.size().as_f32(),
                 u_pattern_size: self.assets.dither.dither1.size().as_f32(),
+                u_noise: self.noise,
                 u_color_dark: theme.dark,
                 u_color_light: theme.light,
                 u_color_danger: theme.danger,

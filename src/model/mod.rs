@@ -3,11 +3,12 @@ mod level;
 mod light;
 mod logic;
 mod movement;
+mod options;
 mod player;
 
-pub use self::{collider::*, level::*, light::*, movement::*, player::*};
+pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
 
-use crate::{leaderboard::Leaderboard, prelude::*, LeaderboardSecrets};
+use crate::{leaderboard::Leaderboard, prelude::*};
 
 pub type Time = R32;
 pub type Coord = R32;
@@ -18,6 +19,7 @@ pub struct Music {
     pub meta: MusicMeta,
     sound: Rc<geng::Sound>,
     effect: Option<geng::SoundEffect>,
+    volume: f64,
     /// Stop the music after the timer runs out.
     pub timer: Time,
 }
@@ -33,8 +35,18 @@ impl Music {
         Self {
             meta,
             sound,
+            volume: 0.5,
             effect: None,
             timer: Time::ZERO,
+        }
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        let volume = f64::from(volume);
+        let volume = volume.clamp(0.0, 1.0);
+        self.volume = volume;
+        if let Some(effect) = &mut self.effect {
+            effect.set_volume(volume);
         }
     }
 
@@ -48,6 +60,7 @@ impl Music {
     pub fn play_from(&mut self, time: time::Duration) {
         self.stop();
         let mut effect = self.sound.effect();
+        effect.set_volume(self.volume);
         effect.play_from(time);
         self.effect = Some(effect);
     }
@@ -115,23 +128,16 @@ pub enum Transition {
     Exit,
 }
 
-pub enum LeaderboardState {
-    None,
-    Pending,
-    Failed,
-    Ready(Leaderboard),
-}
-
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
-    pub secrets: Option<LeaderboardSecrets>,
-    pub leaderboard: LeaderboardState,
+    pub leaderboard: Leaderboard,
 
     pub high_score: Score,
     pub camera: Camera2d,
     pub player: Player,
 
+    pub options: Options,
     pub config: LevelConfig,
     pub music: Music,
     /// The level being played. Not changed.
@@ -161,23 +167,31 @@ impl Drop for Model {
 impl Model {
     pub fn new(
         assets: &Rc<Assets>,
+        options: Options,
         config: LevelConfig,
         level: Level,
         level_music: Music,
-        leaderboard: Option<LeaderboardSecrets>,
+        leaderboard: Leaderboard,
         player_name: String,
         start_time: Time,
     ) -> Self {
-        let mut model = Self::empty(assets, config, level, level_music);
-        model.secrets = leaderboard;
+        let mut model = Self::empty(assets, options, config, level, level_music);
         model.player.name = player_name;
+        model.leaderboard = leaderboard;
 
         model.init(start_time);
         model
     }
 
-    pub fn empty(assets: &Rc<Assets>, config: LevelConfig, level: Level, music: Music) -> Self {
+    pub fn empty(
+        assets: &Rc<Assets>,
+        options: Options,
+        config: LevelConfig,
+        level: Level,
+        music: Music,
+    ) -> Self {
         Self {
+            leaderboard: Leaderboard::new(None),
             transition: None,
             assets: assets.clone(),
             state: State::Starting {
@@ -211,9 +225,8 @@ impl Model {
                 Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
                 3.0,
             ),
+            options,
             config,
-            secrets: None,
-            leaderboard: LeaderboardState::None,
             level_state: LevelState::default(),
             music,
             level,

@@ -1,8 +1,12 @@
 mod button;
 mod checkbox;
 mod group;
+mod leaderboard;
 mod level;
+mod level_config;
 mod light;
+mod options;
+mod slider;
 mod text;
 mod timeline;
 
@@ -10,19 +14,53 @@ pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
     group::GroupWidget,
+    leaderboard::{LeaderboardEntryWidget, LeaderboardWidget},
     level::*,
+    level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
     light::{LightStateWidget, LightWidget},
+    options::{OptionsWidget, PaletteChooseWidget, PaletteWidget, VolumeWidget},
+    slider::SliderWidget,
     text::TextWidget,
     timeline::TimelineWidget,
 };
 
+use crate::prelude::Theme;
+
 use geng::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
+pub struct CursorContext {
+    pub position: vec2<f32>,
+    pub down: bool,
+    /// Was the cursor down last frame.
+    pub was_down: bool,
+    pub scroll: f32,
+}
+
+impl CursorContext {
+    pub fn new() -> Self {
+        Self {
+            position: vec2::ZERO,
+            down: false,
+            was_down: false,
+            scroll: 0.0,
+        }
+    }
+
+    pub fn update(&mut self, is_down: bool) {
+        self.was_down = self.down;
+        self.down = is_down;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct UiContext {
+    pub theme: Theme,
     pub font_size: f32,
-    pub cursor_position: vec2<f32>,
-    pub cursor_down: bool,
+    /// Whether the widget can use the cursor position to get focus.
+    pub can_focus: bool,
+    pub cursor: CursorContext,
+    pub delta_time: f32,
 }
 
 impl UiContext {
@@ -31,6 +69,11 @@ impl UiContext {
             font_size: self.font_size * scale,
             ..self
         }
+    }
+
+    /// Update `can_focus` property given another widget's focus.
+    pub fn update_focus(&mut self, focus: bool) {
+        self.can_focus = self.can_focus && !focus;
     }
 }
 
@@ -68,11 +111,18 @@ impl WidgetState {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
-        self.hovered = self.position.contains(context.cursor_position);
-        let was_pressed = self.pressed;
-        // TODO: check for mouse being pressed and then dragged onto the widget
-        self.pressed = context.cursor_down && (was_pressed || self.hovered);
-        self.clicked = !was_pressed && self.pressed;
+        if self.visible && context.can_focus {
+            self.hovered = self.position.contains(context.cursor.position);
+            let was_pressed = self.pressed;
+            // TODO: check for mouse being pressed and then dragged onto the widget
+            self.pressed =
+                context.cursor.down && (was_pressed || self.hovered && !context.cursor.was_down);
+            self.clicked = !was_pressed && self.pressed;
+        } else {
+            self.hovered = false;
+            self.pressed = false;
+            self.clicked = false;
+        }
     }
 
     /// For compatibility with [Widget::walk_states_mut].

@@ -27,9 +27,11 @@ impl TimelineWidget {
     pub fn new() -> Self {
         Self {
             context: UiContext {
+                theme: Theme::default(),
                 font_size: 1.0,
-                cursor_position: vec2::ZERO,
-                cursor_down: false,
+                can_focus: true,
+                cursor: CursorContext::new(),
+                delta_time: 0.1,
             },
             state: default(),
             current_beat: default(),
@@ -139,7 +141,7 @@ impl TimelineWidget {
     }
 
     pub fn get_cursor_time(&self) -> Time {
-        r32((self.context.cursor_position.x - self.state.position.min.x) / self.scale) - self.scroll
+        r32((self.context.cursor.position.x - self.state.position.min.x) / self.scale) - self.scroll
     }
 
     pub fn time_to_screen(&self, t: Time) -> vec2<f32> {

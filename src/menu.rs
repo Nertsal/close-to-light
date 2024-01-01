@@ -1,7 +1,8 @@
 mod level;
 mod main;
+mod splash;
 
-pub use self::{level::*, main::*};
+pub use self::{level::*, main::*, splash::*};
 
 use crate::{
     prelude::*,
@@ -9,9 +10,8 @@ use crate::{
         dither::DitherRender,
         util::{TextRenderOptions, UtilRender},
     },
+    OPTIONS_STORAGE, PLAYER_NAME_STORAGE,
 };
-
-const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
 
 pub async fn load_groups(
     manager: &geng::asset::Manager,

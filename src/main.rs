@@ -11,9 +11,17 @@ mod task;
 mod ui;
 mod util;
 
+use leaderboard::Leaderboard;
+use prelude::Options;
+
 use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0;
+
+const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
+const PLAYER_STORAGE: &str = "player";
+const OPTIONS_STORAGE: &str = "options";
+const HIGHSCORES_STORAGE: &str = "highscores";
 
 #[derive(clap::Parser)]
 struct Opts {
@@ -33,9 +41,9 @@ struct Opts {
     geng: geng::CliArgs,
 }
 
-#[derive(geng::asset::Load, Deserialize)]
+#[derive(geng::asset::Load, Deserialize, Clone)]
 #[load(serde = "toml")]
-struct Secrets {
+pub struct Secrets {
     leaderboard: LeaderboardSecrets,
 }
 
@@ -64,6 +72,8 @@ fn main() {
         let assets = assets::Assets::load(manager).await.unwrap();
         let assets = Rc::new(assets);
 
+        let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
+
         if let Some(text) = opts.text {
             let state = media::MediaState::new(&geng, &assets).with_text(text);
             geng.run_state(state).await;
@@ -84,6 +94,7 @@ fn main() {
                     geng.clone(),
                     assets,
                     editor_config,
+                    options,
                     config,
                     level,
                     music,
@@ -102,12 +113,32 @@ fn main() {
                     music,
                     start_time: prelude::Time::ZERO,
                 };
-                let state = game::Game::new(&geng, &assets, level, None, "".to_string());
+                let state = game::Game::new(
+                    &geng,
+                    &assets,
+                    options,
+                    level,
+                    Leaderboard::new(None),
+                    "".to_string(),
+                );
                 geng.run_state(state).await;
             }
         } else {
             // Main menu
-            let state = menu::MainMenu::new(&geng, &assets);
+            let secrets: Option<Secrets> =
+                geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+                    .await
+                    .ok();
+            let secrets = secrets.or_else(|| {
+                Some(Secrets {
+                    leaderboard: LeaderboardSecrets {
+                        url: option_env!("LEADERBOARD_URL")?.to_string(),
+                        key: option_env!("LEADERBOARD_KEY")?.to_string(),
+                    },
+                })
+            });
+
+            let state = menu::SplashScreen::new(&geng, &assets, secrets, options);
             geng.run_state(state).await;
         }
     });

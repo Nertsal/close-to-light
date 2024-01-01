@@ -10,8 +10,10 @@ pub use self::{
 };
 
 use crate::{
+    leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
+    ui::widget::CursorContext,
 };
 
 use geng::{Key, MouseButton};
@@ -25,7 +27,8 @@ pub struct EditorState {
     render: EditorRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
-    cursor_pos: vec2<f64>,
+    delta_time: Time,
+    cursor: CursorContext,
     render_options: RenderOptions,
     ui: EditorUI,
     drag: Option<Drag>,
@@ -35,7 +38,7 @@ pub struct EditorState {
 pub struct Drag {
     /// Whether we just clicked or actually starting moving.
     pub moved: bool,
-    pub from_screen: vec2<f64>,
+    pub from_screen: vec2<f32>,
     pub from_world: vec2<Coord>,
     pub from_time: Time,
     pub target: DragTarget,
@@ -126,6 +129,7 @@ impl EditorState {
         geng: Geng,
         assets: Rc<Assets>,
         config: EditorConfig,
+        options: Options,
         game_config: LevelConfig,
         level: Level,
         music: Music,
@@ -133,14 +137,15 @@ impl EditorState {
     ) -> Self {
         let (group_name, level_name) = crate::group_level_from_path(&level_path);
         let level_path = level_path.join("level.json"); // TODO: check and convenience
-        let model = Model::empty(&assets, game_config, level.clone(), music.clone());
+        let model = Model::empty(&assets, options, game_config, level.clone(), music.clone());
         Self {
             group_name,
             level_name,
             transition: None,
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
-            cursor_pos: vec2::ZERO,
+            delta_time: r32(0.1),
+            cursor: CursorContext::new(),
             render_options: RenderOptions {
                 show_grid: true,
                 hide_ui: false,
@@ -192,7 +197,14 @@ impl EditorState {
             start_time: self.editor.current_beat * self.editor.music.beat_time(),
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(
-            crate::game::Game::new(&self.geng, &self.assets, level, None, String::new()),
+            crate::game::Game::new(
+                &self.geng,
+                &self.assets,
+                self.editor.model.options.clone(),
+                level,
+                Leaderboard::new(None),
+                String::new(),
+            ),
         )));
     }
 
@@ -293,7 +305,17 @@ impl geng::State for EditorState {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
+        self.delta_time = delta_time;
         self.editor.real_time += delta_time;
+
+        self.editor
+            .music
+            .set_volume(self.editor.model.options.volume.music());
+
+        self.cursor.update(geng_utils::key::is_key_pressed(
+            self.geng.window(),
+            [MouseButton::Left],
+        ));
 
         self.update_drag();
 
@@ -344,7 +366,7 @@ impl geng::State for EditorState {
             }
         }
 
-        let pos = self.cursor_pos.as_f32();
+        let pos = self.cursor.position;
         let pos = pos - self.ui.game.position.bottom_left();
         let pos = self
             .editor
@@ -373,8 +395,8 @@ impl geng::State for EditorState {
             &mut self.editor,
             &mut self.render_options,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-            self.cursor_pos.as_f32(),
-            geng_utils::key::is_key_pressed(self.geng.window(), [MouseButton::Left]),
+            self.cursor,
+            self.delta_time,
             &self.geng,
         );
         self.render

@@ -261,7 +261,7 @@ impl EditorState {
                 }
             }
             geng::Event::CursorMove { position } => {
-                self.cursor_pos = position;
+                self.cursor.position = position.as_f32();
                 if let Some(drag) = &mut self.drag {
                     drag.moved = true;
                 }
@@ -320,7 +320,7 @@ impl EditorState {
     }
 
     fn cursor_down(&mut self) {
-        if self.ui.game.position.contains(self.cursor_pos.as_f32()) {
+        if self.ui.game.position.contains(self.cursor.position) {
             self.game_cursor_down();
         }
     }
@@ -390,7 +390,7 @@ impl EditorState {
         self.end_drag();
         self.drag = Some(Drag {
             moved: false,
-            from_screen: self.cursor_pos,
+            from_screen: self.cursor.position,
             from_world: self.editor.cursor_world_pos,
             from_time: self.editor.current_beat,
             target,

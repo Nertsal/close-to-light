@@ -1,6 +1,6 @@
 use crate::ui::widget::*;
 
-use super::*;
+use super::{mask::MaskedRender, *};
 
 pub struct UtilRender {
     geng: Geng,
@@ -40,6 +40,13 @@ impl TextRenderOptions {
 
     pub fn color(self, color: Color) -> Self {
         Self { color, ..self }
+    }
+
+    pub fn update(&mut self, context: &UiContext) {
+        self.size = context.font_size;
+        self.color = context.theme.light;
+        self.hover_color = self.color.map_rgb(|x| x * 0.7);
+        self.press_color = self.color.map_rgb(|x| x * 0.5);
     }
 }
 
@@ -278,6 +285,19 @@ impl UtilRender {
         }
     }
 
+    pub fn draw_quad(
+        &self,
+        quad: Aabb2<f32>,
+        color: Rgba<f32>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            &geng::PixelPerfectCamera,
+            &draw2d::Quad::new(quad, color),
+        );
+    }
+
     pub fn draw_checkbox(
         &self,
         widget: &CheckboxWidget,
@@ -327,6 +347,37 @@ impl UtilRender {
             &geng::PixelPerfectCamera,
             framebuffer,
         );
+    }
+
+    pub fn draw_slider_widget(&self, slider: &SliderWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_text_widget(&slider.text, framebuffer);
+        self.draw_text_widget(&slider.value, framebuffer);
+
+        if slider.bar.visible {
+            self.geng.draw2d().quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                slider.bar.position,
+                slider.options.color,
+            );
+        }
+
+        if slider.head.visible {
+            let options = &slider.options;
+            let color = if slider.bar_box.pressed {
+                options.press_color
+            } else if slider.bar_box.hovered {
+                options.hover_color
+            } else {
+                options.color
+            };
+            self.geng.draw2d().quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                slider.head.position,
+                color,
+            );
+        }
     }
 
     pub fn draw_button_widget(&self, widget: &ButtonWidget, framebuffer: &mut ugli::Framebuffer) {
@@ -576,6 +627,53 @@ impl UtilRender {
                 blend_mode: None,
                 ..default()
             },
+        );
+    }
+
+    pub fn draw_leaderboard(
+        &self,
+        leaderboard: &LeaderboardWidget,
+        theme: &Theme,
+        masked: &mut MaskedRender,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04; // TODO: put in some context
+        let camera = &geng::PixelPerfectCamera;
+
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            camera,
+            &draw2d::Quad::new(leaderboard.state.position, theme.dark),
+        );
+        self.draw_button_widget(&leaderboard.close, framebuffer);
+        self.draw_text_widget(&leaderboard.title, framebuffer);
+        self.draw_text_widget(&leaderboard.subtitle, framebuffer);
+        self.draw_text_widget(&leaderboard.status, framebuffer);
+
+        let mut buffer = masked.start();
+
+        buffer.mask_quad(leaderboard.rows_state.position);
+
+        for row in &leaderboard.rows {
+            self.draw_text_widget(&row.rank, &mut buffer.color);
+            self.draw_text_widget(&row.player, &mut buffer.color);
+            self.draw_text_widget(&row.score, &mut buffer.color);
+        }
+
+        masked.draw(draw_parameters(), framebuffer);
+
+        self.draw_quad(leaderboard.separator.position, theme.light, framebuffer);
+
+        self.draw_text_widget(&leaderboard.highscore.rank, framebuffer);
+        self.draw_text_widget(&leaderboard.highscore.player, framebuffer);
+        self.draw_text_widget(&leaderboard.highscore.score, framebuffer);
+
+        self.draw_outline(
+            &Collider::aabb(leaderboard.state.position.map(r32)),
+            font_size * 0.2,
+            theme.light,
+            camera,
+            framebuffer,
         );
     }
 }
