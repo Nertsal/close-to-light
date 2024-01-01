@@ -171,7 +171,8 @@ impl geng::State for Game {
                 Transition::LoadLeaderboard { submit_score } => {
                     let player_name = self.model.player.name.clone();
                     let submit_score = submit_score && !player_name.trim().is_empty();
-                    let score = submit_score.then_some(self.model.score.as_f32().ceil() as i32);
+                    let raw_score = self.model.score.as_f32().ceil() as i32;
+                    let score = submit_score.then_some(raw_score);
 
                     let meta = crate::leaderboard::ScoreMeta::new(
                         self.group_name.clone(),
@@ -183,6 +184,14 @@ impl geng::State for Game {
                     if submit_score {
                         self.model.leaderboard.submit(player_name, score, meta);
                     } else {
+                        // Save highscores on lost runs only locally
+                        self.model.leaderboard.loaded.reload_local(Some(
+                            &crate::leaderboard::SavedScore {
+                                player: player_name,
+                                score: raw_score,
+                                meta,
+                            },
+                        ));
                         self.model.leaderboard.refetch();
                     }
                 }

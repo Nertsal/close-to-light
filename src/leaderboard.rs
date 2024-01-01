@@ -216,7 +216,7 @@ impl LoadedBoard {
         }
     }
 
-    fn reload_local(&mut self, score: Option<&SavedScore>) {
+    pub fn reload_local(&mut self, score: Option<&SavedScore>) {
         log::debug!("Reloading local scores with a new score: {:?}", score);
         let mut highscores: Vec<SavedScore> =
             preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
