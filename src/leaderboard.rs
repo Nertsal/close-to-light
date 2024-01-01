@@ -225,6 +225,7 @@ impl LoadedBoard {
             if let Some(score) = score {
                 if score.score > highscore.score && score.meta == highscore.meta {
                     highscore.score = score.score;
+                    highscore.player = score.player.clone();
                     save = true;
                 }
             }
