@@ -31,6 +31,7 @@ impl TimelineWidget {
                 font_size: 1.0,
                 can_focus: true,
                 cursor: CursorContext::new(),
+                delta_time: 0.1,
             },
             state: default(),
             current_beat: default(),

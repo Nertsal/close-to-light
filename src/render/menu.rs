@@ -88,13 +88,7 @@ impl MenuRender {
             );
         }
 
-        self.masked.draw(
-            ugli::DrawParameters {
-                blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                ..default()
-            },
-            framebuffer,
-        );
+        self.masked.draw(draw_parameters(), framebuffer);
 
         {
             // Options
@@ -168,13 +162,7 @@ impl MenuRender {
                 }
             }
 
-            self.masked.draw(
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    ..default()
-                },
-                framebuffer,
-            );
+            self.masked.draw(draw_parameters(), framebuffer);
 
             // Outline
             let outline_width = font_size * 0.2;
@@ -218,14 +206,20 @@ impl MenuRender {
             self.util
                 .draw_text_widget(&ui.leaderboard.status, framebuffer);
 
-            self.util
-                .draw_quad(ui.leaderboard.separator.position, theme.light, framebuffer);
+            let mut buffer = self.masked.start();
+
+            buffer.mask_quad(ui.leaderboard.rows_state.position);
 
             for row in &ui.leaderboard.rows {
-                self.util.draw_text_widget(&row.rank, framebuffer);
-                self.util.draw_text_widget(&row.player, framebuffer);
-                self.util.draw_text_widget(&row.score, framebuffer);
+                self.util.draw_text_widget(&row.rank, &mut buffer.color);
+                self.util.draw_text_widget(&row.player, &mut buffer.color);
+                self.util.draw_text_widget(&row.score, &mut buffer.color);
             }
+
+            self.masked.draw(draw_parameters(), framebuffer);
+
+            self.util
+                .draw_quad(ui.leaderboard.separator.position, theme.light, framebuffer);
 
             self.util
                 .draw_text_widget(&ui.leaderboard.highscore.rank, framebuffer);
@@ -313,13 +307,7 @@ impl MenuRender {
                 }
             }
 
-            self.masked.draw(
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    ..default()
-                },
-                framebuffer,
-            );
+            self.masked.draw(draw_parameters(), framebuffer);
 
             self.util.draw_outline(
                 &Collider::aabb(ui.level_config.state.position.map(r32)),
@@ -329,5 +317,12 @@ impl MenuRender {
                 framebuffer,
             );
         }
+    }
+}
+
+fn draw_parameters() -> ugli::DrawParameters {
+    ugli::DrawParameters {
+        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+        ..default()
     }
 }

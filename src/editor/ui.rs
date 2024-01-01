@@ -62,6 +62,7 @@ impl EditorUI {
         render_options: &mut RenderOptions,
         screen: Aabb2<f32>,
         cursor: CursorContext,
+        delta_time: Time,
         geng: &Geng,
     ) {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
@@ -73,6 +74,7 @@ impl EditorUI {
             font_size,
             can_focus: true,
             cursor,
+            delta_time: delta_time.as_f32(),
         };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{

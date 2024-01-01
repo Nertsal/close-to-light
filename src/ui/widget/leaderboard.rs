@@ -12,6 +12,8 @@ pub struct LeaderboardWidget {
     pub title: TextWidget,
     pub subtitle: TextWidget,
     pub status: TextWidget,
+    pub scroll: f32,
+    pub target_scroll: f32,
     pub rows_state: WidgetState,
     pub rows: Vec<LeaderboardEntryWidget>,
     pub separator: WidgetState,
@@ -33,6 +35,8 @@ impl LeaderboardWidget {
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
             status: TextWidget::new(""),
+            scroll: 0.0,
+            target_scroll: 0.0,
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator: WidgetState::new(),
@@ -105,20 +109,42 @@ impl Widget for LeaderboardWidget {
         self.status.update(status, context);
         self.status.options.size = context.font_size * 1.0;
 
+        let main = main.extend_right(-0.5 * context.font_size);
+
         let (main, highscore) = layout::cut_top_down(main, main.height() - context.font_size * 1.5);
         self.highscore.update(highscore, context);
 
         let (main, separator) = layout::cut_top_down(main, main.height() - context.font_size * 0.1);
+        let separator = separator.extend_right(0.5 * context.font_size);
         self.separator.update(separator, context);
 
+        let main = main.extend_down(-0.2 * context.font_size);
+
         self.rows_state.update(main, context);
+        let main = main.translate(vec2(0.0, -self.scroll));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.0);
         let rows = layout::stack(row, vec2(0.0, -context.font_size * 1.0), self.rows.len());
+        let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
         for (row, position) in self.rows.iter_mut().zip(rows) {
             row.update(position, context);
         }
+
+        self.target_scroll += context.cursor.scroll;
+        let overflow_up = self.target_scroll;
+        let max_scroll = (height - main.height()).max(0.0);
+        let overflow_down = -max_scroll - self.target_scroll;
+        let overflow = if overflow_up > 0.0 {
+            overflow_up
+        } else if overflow_down > 0.0 {
+            -overflow_down
+        } else {
+            0.0
+        };
+        self.target_scroll -= overflow * (context.delta_time / 0.2).min(1.0);
+
+        self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {

@@ -27,6 +27,7 @@ pub struct EditorState {
     render: EditorRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
+    delta_time: Time,
     cursor: CursorContext,
     render_options: RenderOptions,
     ui: EditorUI,
@@ -143,6 +144,7 @@ impl EditorState {
             transition: None,
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
+            delta_time: r32(0.1),
             cursor: CursorContext::new(),
             render_options: RenderOptions {
                 show_grid: true,
@@ -303,6 +305,7 @@ impl geng::State for EditorState {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
+        self.delta_time = delta_time;
         self.editor.real_time += delta_time;
 
         self.editor
@@ -393,6 +396,7 @@ impl geng::State for EditorState {
             &mut self.render_options,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor,
+            self.delta_time,
             &self.geng,
         );
         self.render

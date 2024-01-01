@@ -479,6 +479,7 @@ impl geng::State for LevelMenu {
             self.last_delta_time.as_f32(),
             &self.geng,
         );
+        self.cursor.scroll = 0.0;
         self.render.draw_ui(&self.ui, &self.state, framebuffer);
     }
 
@@ -498,6 +499,9 @@ impl geng::State for LevelMenu {
                     // Go to main menu
                     self.transition = Some(geng::state::Transition::Pop);
                 }
+            }
+            geng::Event::Wheel { delta } => {
+                self.cursor.scroll += delta as f32;
             }
             geng::Event::CursorMove { position } => {
                 self.cursor.position = position.as_f32();

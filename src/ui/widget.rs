@@ -34,6 +34,7 @@ pub struct CursorContext {
     pub down: bool,
     /// Was the cursor down last frame.
     pub was_down: bool,
+    pub scroll: f32,
 }
 
 impl CursorContext {
@@ -42,6 +43,7 @@ impl CursorContext {
             position: vec2::ZERO,
             down: false,
             was_down: false,
+            scroll: 0.0,
         }
     }
 
@@ -58,6 +60,7 @@ pub struct UiContext {
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: bool,
     pub cursor: CursorContext,
+    pub delta_time: f32,
 }
 
 impl UiContext {

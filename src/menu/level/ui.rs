@@ -55,6 +55,7 @@ impl MenuUI {
             font_size: screen.height() * 0.04,
             can_focus: true,
             cursor,
+            delta_time,
         };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
