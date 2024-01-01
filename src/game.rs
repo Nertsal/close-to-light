@@ -184,6 +184,7 @@ impl geng::State for Game {
                     if submit_score {
                         self.model.leaderboard.submit(player_name, score, meta);
                     } else {
+                        self.model.leaderboard.loaded.meta = meta.clone();
                         // Save highscores on lost runs only locally
                         self.model.leaderboard.loaded.reload_local(Some(
                             &crate::leaderboard::SavedScore {
