@@ -49,45 +49,54 @@ impl MenuRender {
                     theme.light,
                 );
             }
-            self.ui.draw_text_widget(&group.name, &mut mask.color);
-            self.ui.draw_text_widget(&group.author, &mut mask.color);
 
-            let group = &group.state;
-            let color = if group.pressed {
-                theme.light.map_rgb(|x| x * 0.5)
-            } else if group.hovered {
-                theme.light.map_rgb(|x| x * 0.7)
+            let (bg_color, fg_color) = if group.selected_time.get_ratio() > 0.5 {
+                (theme.light, theme.dark)
             } else {
-                theme.light
+                (theme.dark, theme.light)
             };
-            self.util.draw_outline(
-                &Collider::aabb(group.position.map(r32)),
-                font_size * 0.2,
-                color,
-                camera,
+
+            let width = font_size * 0.2;
+            self.ui.draw_quad(
+                group.state.position.extend_uniform(-width),
+                bg_color,
                 &mut mask.color,
             );
+
+            self.ui
+                .draw_text_widget_colored(&group.name, fg_color, &mut mask.color);
+            self.ui
+                .draw_text_widget_colored(&group.author, fg_color, &mut mask.color);
+
+            self.ui
+                .draw_outline(group.state.position, width, theme.light, &mut mask.color);
         }
 
         for level in &ui.levels {
-            self.ui.draw_text_widget(&level.name, &mut mask.color);
-            self.ui.draw_text_widget(&level.author, &mut mask.color);
+            if !level.state.visible {
+                continue;
+            }
 
-            let level = &level.state;
-            let color = if level.pressed {
-                theme.light.map_rgb(|x| x * 0.5)
-            } else if level.hovered {
-                theme.light.map_rgb(|x| x * 0.7)
+            let (bg_color, fg_color) = if level.selected_time.get_ratio() > 0.5 {
+                (theme.light, theme.dark)
             } else {
-                theme.light
+                (theme.dark, theme.light)
             };
-            self.util.draw_outline(
-                &Collider::aabb(level.position.map(r32)),
-                font_size * 0.2,
-                color,
-                camera,
+
+            let width = font_size * 0.2;
+            self.ui.draw_quad(
+                level.state.position.extend_uniform(-width),
+                bg_color,
                 &mut mask.color,
             );
+
+            self.ui
+                .draw_text_widget_colored(&level.name, fg_color, &mut mask.color);
+            self.ui
+                .draw_text_widget_colored(&level.author, fg_color, &mut mask.color);
+
+            self.ui
+                .draw_outline(level.state.position, width, theme.light, &mut mask.color);
         }
 
         self.masked.draw(draw_parameters(), framebuffer);

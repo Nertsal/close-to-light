@@ -102,6 +102,15 @@ impl UiRender {
     }
 
     pub fn draw_text_widget(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_text_widget_colored(widget, widget.options.color, framebuffer)
+    }
+
+    pub fn draw_text_widget_colored(
+        &self,
+        widget: &TextWidget,
+        color: Color,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         if !widget.state.visible {
             return;
         }
@@ -109,7 +118,7 @@ impl UiRender {
         self.util.draw_text(
             &widget.text,
             geng_utils::layout::aabb_pos(widget.state.position, widget.options.align),
-            widget.options,
+            widget.options.color(color),
             &geng::PixelPerfectCamera,
             framebuffer,
         );
