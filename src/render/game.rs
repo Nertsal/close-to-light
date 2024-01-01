@@ -15,6 +15,7 @@ pub struct GameRender {
     masked: MaskedRender,
     util: UtilRender,
     ui: UiRender,
+    ui_texture: ugli::Texture,
 }
 
 impl GameRender {
@@ -26,6 +27,7 @@ impl GameRender {
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             util: UtilRender::new(geng, assets),
             ui: UiRender::new(geng, assets),
+            ui_texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
         }
     }
 
@@ -34,6 +36,7 @@ impl GameRender {
     }
 
     pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
+        self.dither.set_noise(1.0);
         let mut framebuffer = self.dither.start();
 
         let camera = &model.camera;
@@ -171,7 +174,17 @@ impl GameRender {
     }
 
     pub fn draw_ui(&mut self, ui: &GameUI, model: &Model, framebuffer: &mut ugli::Framebuffer) {
+        geng_utils::texture::update_texture_size(
+            &mut self.ui_texture,
+            framebuffer.size(),
+            self.geng.ugli(),
+        );
+        self.ui_texture.set_filter(ugli::Filter::Nearest);
         self.masked.update_size(framebuffer.size());
+
+        let mut buffer =
+            geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        ugli::clear(&mut buffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         // let camera = &geng::PixelPerfectCamera;
         let theme = &model.options.theme;
@@ -179,7 +192,26 @@ impl GameRender {
 
         if ui.leaderboard.state.visible {
             self.ui
-                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, &mut buffer);
         }
+
+        self.dither.set_noise(0.0);
+        let mut dither = self.dither.start();
+
+        geng_utils::texture::DrawTexture::new(&self.ui_texture)
+            .fit_screen(vec2(0.5, 0.5), &dither)
+            .draw(&geng::PixelPerfectCamera, &self.geng, &mut dither);
+
+        // self.dither.finish(
+        //     self.time,
+        //     &Theme {
+        //         dark: Color::TRANSPARENT_BLACK,
+        //         ..self.state.options.theme
+        //     },
+        // );
+
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit_screen(vec2(0.5, 0.5), framebuffer)
+            .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
     }
 }
