@@ -1,6 +1,6 @@
 use crate::ui::widget::*;
 
-use super::*;
+use super::{mask::MaskedRender, *};
 
 pub struct UtilRender {
     geng: Geng,
@@ -627,6 +627,53 @@ impl UtilRender {
                 blend_mode: None,
                 ..default()
             },
+        );
+    }
+
+    pub fn draw_leaderboard(
+        &self,
+        leaderboard: &LeaderboardWidget,
+        theme: &Theme,
+        masked: &mut MaskedRender,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04; // TODO: put in some context
+        let camera = &geng::PixelPerfectCamera;
+
+        self.geng.draw2d().draw2d(
+            framebuffer,
+            camera,
+            &draw2d::Quad::new(leaderboard.state.position, theme.dark),
+        );
+        self.draw_button_widget(&leaderboard.close, framebuffer);
+        self.draw_text_widget(&leaderboard.title, framebuffer);
+        self.draw_text_widget(&leaderboard.subtitle, framebuffer);
+        self.draw_text_widget(&leaderboard.status, framebuffer);
+
+        let mut buffer = masked.start();
+
+        buffer.mask_quad(leaderboard.rows_state.position);
+
+        for row in &leaderboard.rows {
+            self.draw_text_widget(&row.rank, &mut buffer.color);
+            self.draw_text_widget(&row.player, &mut buffer.color);
+            self.draw_text_widget(&row.score, &mut buffer.color);
+        }
+
+        masked.draw(draw_parameters(), framebuffer);
+
+        self.draw_quad(leaderboard.separator.position, theme.light, framebuffer);
+
+        self.draw_text_widget(&leaderboard.highscore.rank, framebuffer);
+        self.draw_text_widget(&leaderboard.highscore.player, framebuffer);
+        self.draw_text_widget(&leaderboard.highscore.score, framebuffer);
+
+        self.draw_outline(
+            &Collider::aabb(leaderboard.state.position.map(r32)),
+            font_size * 0.2,
+            theme.light,
+            camera,
+            framebuffer,
         );
     }
 }

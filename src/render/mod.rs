@@ -26,3 +26,10 @@ pub fn smooth_button(button: &HoverButton, time: Time) -> HoverButton {
     });
     button
 }
+
+fn draw_parameters() -> ugli::DrawParameters {
+    ugli::DrawParameters {
+        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+        ..default()
+    }
+}

@@ -75,7 +75,7 @@ impl LeaderboardWidget {
                 self.highscore.show();
                 self.highscore.rank.text = board
                     .my_position
-                    .map_or("".to_string(), |rank| format!("{}.", rank + 1));
+                    .map_or("???".to_string(), |rank| format!("{}.", rank + 1));
                 self.highscore.player.text = score.player.clone();
                 self.highscore.score.text = format!("{}", score.score);
             }

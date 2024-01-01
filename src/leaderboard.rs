@@ -250,22 +250,7 @@ impl LoadedBoard {
         });
 
         {
-            // Only leave unique names
-            let mut i = 0;
-            let mut names_seen = HashSet::new();
-            while i < scores.len() {
-                if !names_seen.contains(&scores[i].player) {
-                    names_seen.insert(scores[i].player.clone());
-                    i += 1;
-                // } else if Some(scores[i].score) == score {
-                //     i += 1;
-                } else {
-                    scores.remove(i);
-                }
-            }
-        }
-
-        {
+            // TODO: unique players
             // Only leave unique names
             let mut i = 0;
             let mut names_seen = HashSet::new();

@@ -190,52 +190,8 @@ impl MenuRender {
             );
         }
 
-        {
-            // Leaderboard
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                camera,
-                &draw2d::Quad::new(ui.leaderboard.state.position, theme.dark),
-            );
-            self.util
-                .draw_button_widget(&ui.leaderboard.close, framebuffer);
-            self.util
-                .draw_text_widget(&ui.leaderboard.title, framebuffer);
-            self.util
-                .draw_text_widget(&ui.leaderboard.subtitle, framebuffer);
-            self.util
-                .draw_text_widget(&ui.leaderboard.status, framebuffer);
-
-            let mut buffer = self.masked.start();
-
-            buffer.mask_quad(ui.leaderboard.rows_state.position);
-
-            for row in &ui.leaderboard.rows {
-                self.util.draw_text_widget(&row.rank, &mut buffer.color);
-                self.util.draw_text_widget(&row.player, &mut buffer.color);
-                self.util.draw_text_widget(&row.score, &mut buffer.color);
-            }
-
-            self.masked.draw(draw_parameters(), framebuffer);
-
-            self.util
-                .draw_quad(ui.leaderboard.separator.position, theme.light, framebuffer);
-
-            self.util
-                .draw_text_widget(&ui.leaderboard.highscore.rank, framebuffer);
-            self.util
-                .draw_text_widget(&ui.leaderboard.highscore.player, framebuffer);
-            self.util
-                .draw_text_widget(&ui.leaderboard.highscore.score, framebuffer);
-
-            self.util.draw_outline(
-                &Collider::aabb(ui.leaderboard.state.position.map(r32)),
-                font_size * 0.2,
-                theme.light,
-                camera,
-                framebuffer,
-            );
-        }
+        self.util
+            .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
 
         {
             // Level Config
@@ -317,12 +273,5 @@ impl MenuRender {
                 framebuffer,
             );
         }
-    }
-}
-
-fn draw_parameters() -> ugli::DrawParameters {
-    ugli::DrawParameters {
-        blend_mode: Some(ugli::BlendMode::straight_alpha()),
-        ..default()
     }
 }

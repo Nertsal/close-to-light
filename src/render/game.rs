@@ -1,15 +1,17 @@
-use crate::leaderboard::LeaderboardStatus;
-
 use super::{
     dither::DitherRender,
+    mask::MaskedRender,
     util::{TextRenderOptions, UtilRender},
     *,
 };
+
+use crate::game::GameUI;
 
 pub struct GameRender {
     geng: Geng,
     // assets: Rc<Assets>,
     dither: DitherRender,
+    masked: MaskedRender,
     util: UtilRender,
 }
 
@@ -19,6 +21,7 @@ impl GameRender {
             geng: geng.clone(),
             // assets: assets.clone(),
             dither: DitherRender::new(geng, assets),
+            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             util: UtilRender::new(geng, assets),
         }
     }
@@ -105,63 +108,6 @@ impl GameRender {
                 //     0.7,
                 //     vec2(0.5, 1.0),
                 // );
-
-                // Leaderboard
-                match &model.leaderboard.status {
-                    LeaderboardStatus::None => {
-                        draw_text("LEADERBOARD", vec2(4.0, 0.5), 0.8, vec2(0.5, 0.5));
-                        draw_text("NOT AVAILABLE", vec2(4.0, -0.5), 0.8, vec2(0.5, 0.5));
-                    }
-                    LeaderboardStatus::Pending => {
-                        let mut pos = vec2(4.0, 2.5);
-                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
-                        pos.y -= 0.8;
-                        draw_text("LOADING...", pos, 0.7, vec2(0.5, 1.0));
-                    }
-                    LeaderboardStatus::Failed => {
-                        let mut pos = vec2(4.0, 2.5);
-                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
-                        pos.y -= 0.8;
-                        draw_text("FAILED TO LOAD", pos, 0.7, vec2(0.5, 1.0));
-                    }
-                    LeaderboardStatus::Done => {
-                        let board = &model.leaderboard.loaded;
-
-                        let mut pos = vec2(4.0, 2.5);
-                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
-                        pos.y -= 0.8;
-                        // {
-                        //     let text = if let Some(place) = leaderboard.my_position {
-                        //         format!("{} PLACE", place + 1)
-                        //     } else if let State::Lost { .. } = model.state {
-                        //         "FINISH TO COMPETE".to_string()
-                        //     } else if model.player.name.trim().is_empty() {
-                        //         "CANNOT SUBMIT WITHOUT A NAME".to_string()
-                        //     } else {
-                        //         "".to_string()
-                        //     };
-                        //     draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
-                        //     pos.y -= 0.7;
-                        // }
-
-                        if board.filtered.is_empty() {
-                            pos.y -= 1.0;
-                            draw_text("EMPTY :(", pos, 0.6, vec2(0.5, 1.0));
-                        }
-
-                        for score in &board.filtered {
-                            let font_size = 0.6;
-                            draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));
-                            draw_text(
-                                &format!(" - {:.0}", score.score),
-                                pos,
-                                font_size,
-                                vec2(0.0, 1.0),
-                            );
-                            pos.y -= font_size;
-                        }
-                    }
-                }
             }
         } else if !model.config.modifiers.clean_auto {
             self.util.draw_text(
@@ -221,14 +167,16 @@ impl GameRender {
             .draw(&geng::PixelPerfectCamera, &self.geng, old_framebuffer);
     }
 
-    pub fn draw_ui(&mut self, _model: &Model, _framebuffer: &mut ugli::Framebuffer) {
-        // let camera = &geng::PixelPerfectCamera;
-        // let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
+    pub fn draw_ui(&mut self, ui: &GameUI, model: &Model, framebuffer: &mut ugli::Framebuffer) {
+        self.masked.update_size(framebuffer.size());
 
+        // let camera = &geng::PixelPerfectCamera;
+        let theme = &model.options.theme;
         // let font_size = screen.height() * 0.05;
 
-        // if let State::Playing = model.state {
-        //     self.util.draw_health(&model.player.health, &model.config.theme, framebuffer);
-        // }
+        if ui.leaderboard.state.visible {
+            self.util
+                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+        }
     }
 }
