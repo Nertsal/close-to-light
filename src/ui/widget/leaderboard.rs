@@ -101,8 +101,8 @@ impl Widget for LeaderboardWidget {
         let main = position;
 
         let close = layout::align_aabb(
-            vec2::splat(context.font_size * 0.75),
-            main.extend_uniform(-context.font_size * 0.2),
+            vec2::splat(1.0) * context.font_size,
+            main.extend_uniform(-0.5 * context.layout_size),
             vec2(0.0, 1.0),
         );
         self.close.update(close, context);

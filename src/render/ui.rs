@@ -6,6 +6,10 @@ use super::{
 
 use crate::ui::widget::*;
 
+fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
+    framebuffer.size().y as f32 / 360.0
+}
+
 pub struct UiRender {
     geng: Geng,
     assets: Rc<Assets>,
@@ -21,10 +25,28 @@ impl UiRender {
         }
     }
 
+    pub fn draw_texture(
+        &self,
+        quad: Aabb2<f32>,
+        texture: &ugli::Texture,
+        color: Color,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let size = texture.size().as_f32() * pixel_scale(framebuffer);
+        let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+        self.geng.draw2d().textured_quad(
+            framebuffer,
+            &geng::PixelPerfectCamera,
+            pos,
+            texture,
+            color,
+        );
+    }
+
     pub fn draw_outline(
         &self,
         quad: Aabb2<f32>,
-        _width: f32,
+        width: f32,
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -35,11 +57,16 @@ impl UiRender {
         //     &geng::PixelPerfectCamera,
         //     framebuffer,
         // );
+        let texture = if width < 5.0 {
+            &self.assets.sprites.border_thin
+        } else {
+            &self.assets.sprites.border
+        };
         self.util.draw_nine_slice(
             quad,
             color,
-            &self.assets.sprites.border,
-            3.0,
+            texture,
+            pixel_scale(framebuffer),
             &geng::PixelPerfectCamera,
             framebuffer,
         );
@@ -55,20 +82,6 @@ impl UiRender {
             framebuffer,
             &geng::PixelPerfectCamera,
             &draw2d::Quad::new(quad, color),
-        );
-    }
-
-    pub fn draw_circle(
-        &self,
-        position: vec2<f32>,
-        radius: f32,
-        color: Rgba<f32>,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        self.geng.draw2d().draw2d(
-            framebuffer,
-            &geng::PixelPerfectCamera,
-            &draw2d::Ellipse::circle(position, radius, color),
         );
     }
 
@@ -262,27 +275,16 @@ impl UiRender {
         let (bg_color, fg_color) = (theme.light, theme.danger);
 
         if state.hovered {
-            self.draw_circle(
-                button.text.state.position.center(),
-                button.text.state.position.width() / 2.0 * 1.5,
+            self.draw_texture(
+                button.text.state.position,
+                &self.assets.sprites.circle,
                 bg_color,
                 framebuffer,
             );
         }
 
         if let Some(texture) = &button.texture {
-            let target = geng_utils::layout::fit_aabb(
-                texture.size().as_f32(),
-                button.text.state.position,
-                vec2(0.5, 0.5),
-            );
-            self.geng.draw2d().textured_quad(
-                framebuffer,
-                &geng::PixelPerfectCamera,
-                target,
-                texture,
-                fg_color,
-            );
+            self.draw_texture(button.text.state.position, texture, fg_color, framebuffer);
         }
         self.draw_text_widget(&button.text, framebuffer);
     }
@@ -314,7 +316,7 @@ impl UiRender {
             0.0
         };
         let pos = state.position.extend_uniform(-shrink);
-        self.draw_quad(pos.extend_uniform(-width / 3.0), bg_color, framebuffer);
+        self.draw_quad(pos.extend_uniform(-width / 2.0), bg_color, framebuffer);
         if state.hovered || selected {
             self.draw_outline(pos, width, theme.light, framebuffer);
         }

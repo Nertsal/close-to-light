@@ -1,6 +1,9 @@
 use super::*;
 
-use crate::{render::THEME, Secrets};
+use crate::{
+    render::{ui::UiRender, THEME},
+    Secrets,
+};
 
 pub struct MainMenu {
     geng: Geng,
@@ -8,8 +11,11 @@ pub struct MainMenu {
     secrets: Option<Secrets>,
     options: Options,
     transition: Option<geng::state::Transition>,
+
     dither: DitherRender,
     util_render: UtilRender,
+    ui_render: UiRender,
+
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
     cursor_pos: vec2<f64>,
@@ -38,8 +44,11 @@ impl MainMenu {
             secrets,
             options,
             transition: None,
+
             dither: DitherRender::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
+            ui_render: UiRender::new(geng, assets),
+
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
@@ -176,41 +185,20 @@ impl geng::State for MainMenu {
             .draw_button(&button, "START", &THEME, &self.camera, &mut framebuffer);
 
         if !self.play_button.is_fading() {
-            geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
-                .fit_height(
-                    Aabb2::point(vec2(0.0, 3.5)).extend_symmetric(vec2(0.0, 1.2) / 2.0),
-                    0.5,
-                )
-                .colored(THEME.light)
-                .draw(&self.camera, &self.geng, &mut framebuffer);
-            // self.util_render.draw_text(
-            //     "CLOSE TO LIGHT",
-            //     vec2(0.0, 3.5).as_r32(),
-            //     1.2,
-            //     vec2::splat(0.5),
-            //     crate::render::COLOR_LIGHT,
-            //     &self.camera,
-            //     &mut framebuffer,
-            // );
+            if let Some(pos) = self
+                .camera
+                .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
+            {
+                self.ui_render.draw_texture(
+                    Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
+                    &self.assets.sprites.title,
+                    THEME.light,
+                    &mut framebuffer,
+                );
+            }
 
             self.util_render
                 .draw_player(&self.player, &self.camera, &mut framebuffer);
-
-            // Name
-            self.util_render.draw_text(
-                &self.name,
-                vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.8).color(THEME.light),
-                &self.camera,
-                &mut framebuffer,
-            );
-            self.util_render.draw_text(
-                "TYPE YOUR NAME",
-                vec2(0.0, -3.8).as_r32(),
-                TextRenderOptions::new(0.7).color(THEME.light),
-                &self.camera,
-                &mut framebuffer,
-            );
         }
 
         self.dither.finish(self.time, &self.options.theme);
@@ -219,6 +207,22 @@ impl geng::State for MainMenu {
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
             .draw(&geng::PixelPerfectCamera, &self.geng, screen_buffer);
+
+        // Name
+        self.util_render.draw_text(
+            &self.name,
+            vec2(0.0, -3.0).as_r32(),
+            TextRenderOptions::new(0.8).color(self.options.theme.light),
+            &self.camera,
+            screen_buffer,
+        );
+        self.util_render.draw_text(
+            "TYPE YOUR NAME",
+            vec2(0.0, -3.8).as_r32(),
+            TextRenderOptions::new(0.7).color(self.options.theme.light),
+            &self.camera,
+            screen_buffer,
+        );
     }
 }
 

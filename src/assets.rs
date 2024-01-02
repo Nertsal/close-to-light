@@ -34,8 +34,12 @@ pub struct Sprites {
     pub button_prev: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub button_close: Rc<ugli::Texture>,
-    #[load(postprocess = "pixel")]
+    #[load(options(filter = "ugli::Filter::Nearest"))]
     pub border: ugli::Texture,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub border_thin: ugli::Texture,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub circle: ugli::Texture,
 }
 
 #[derive(geng::asset::Load)]

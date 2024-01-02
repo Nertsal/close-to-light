@@ -47,9 +47,12 @@ impl Widget for LevelConfigWidget {
         self.state.update(position, context);
         let main = position;
 
-        let close = layout::align_aabb(vec2::splat(1.2) * context.font_size, main, vec2(1.0, 1.0));
-        self.close
-            .update(close.extend_uniform(-context.font_size * 0.2), context);
+        let close = layout::align_aabb(
+            vec2::splat(1.0) * context.font_size,
+            main.extend_uniform(-0.5 * context.layout_size),
+            vec2(1.0, 1.0),
+        );
+        self.close.update(close, context);
 
         let main = main.extend_up(-context.layout_size * 1.0);
         let (bar, main) = layout::cut_top_down(main, context.font_size * 1.2);

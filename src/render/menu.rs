@@ -28,10 +28,12 @@ impl MenuRender {
         let camera = &geng::PixelPerfectCamera;
         let theme = &state.options.theme;
 
-        geng_utils::texture::DrawTexture::new(&self.assets.sprites.title)
-            .fit_height(ui.ctl_logo.position, 0.5)
-            .colored(theme.light)
-            .draw(camera, &self.geng, framebuffer);
+        self.ui.draw_texture(
+            ui.ctl_logo.position,
+            &self.assets.sprites.title,
+            theme.light,
+            framebuffer,
+        );
 
         // Clip groups and levels
         let mut mask = self.masked.start();
@@ -155,7 +157,7 @@ impl MenuRender {
                     quad(1.0, palette.palette.light);
                     quad(2.0, palette.palette.danger);
 
-                    let outline_width = font_size * 0.15;
+                    let outline_width = font_size * 0.1;
                     self.ui.draw_outline(
                         palette.visual.position.extend_uniform(outline_width),
                         outline_width,
