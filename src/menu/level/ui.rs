@@ -307,7 +307,9 @@ impl MenuUI {
 
                 // Show level
                 if let Some(level) = hovered {
-                    state.show_level(Some(level));
+                    if state.show_group.as_ref().is_some_and(|show| show.going_up) {
+                        state.show_level(Some(level));
+                    }
                 }
             }
         }
