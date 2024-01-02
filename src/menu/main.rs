@@ -208,21 +208,23 @@ impl geng::State for MainMenu {
             .fit(aabb, vec2(0.5, 0.5))
             .draw(&geng::PixelPerfectCamera, &self.geng, screen_buffer);
 
-        // Name
-        self.util_render.draw_text(
-            &self.name,
-            vec2(0.0, -3.0).as_r32(),
-            TextRenderOptions::new(0.8).color(self.options.theme.light),
-            &self.camera,
-            screen_buffer,
-        );
-        self.util_render.draw_text(
-            "TYPE YOUR NAME",
-            vec2(0.0, -3.8).as_r32(),
-            TextRenderOptions::new(0.7).color(self.options.theme.light),
-            &self.camera,
-            screen_buffer,
-        );
+        if !self.play_button.is_fading() {
+            // Name
+            self.util_render.draw_text(
+                &self.name,
+                vec2(0.0, -3.0).as_r32(),
+                TextRenderOptions::new(0.8).color(self.options.theme.light),
+                &self.camera,
+                screen_buffer,
+            );
+            self.util_render.draw_text(
+                "TYPE YOUR NAME",
+                vec2(0.0, -3.8).as_r32(),
+                TextRenderOptions::new(0.7).color(self.options.theme.light),
+                &self.camera,
+                screen_buffer,
+            );
+        }
     }
 }
 

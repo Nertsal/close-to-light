@@ -113,16 +113,8 @@ impl MenuRender {
             buffer.mask_quad(head);
             buffer.mask_quad(options);
 
-            self.geng.draw2d().draw2d(
-                &mut buffer.color,
-                camera,
-                &draw2d::Quad::new(head, theme.dark),
-            );
-            self.geng.draw2d().draw2d(
-                &mut buffer.color,
-                camera,
-                &draw2d::Quad::new(options, theme.dark),
-            );
+            self.ui.draw_quad(head, theme.dark, &mut buffer.color);
+            self.ui.draw_quad(options, theme.dark, &mut buffer.color);
 
             {
                 // Volume
@@ -130,9 +122,6 @@ impl MenuRender {
                 self.ui.draw_text_widget(&volume.title, &mut buffer.color);
                 self.ui
                     .draw_slider_widget(&volume.master, &mut buffer.color);
-
-                self.ui
-                    .draw_text_widget(&ui.options_head, &mut buffer.color);
             }
 
             {
@@ -167,32 +156,54 @@ impl MenuRender {
                 }
             }
 
+            // Outline
+            let width = 15.0;
+            self.ui.draw_outline(
+                head.extend_up(2.0 * width),
+                width,
+                theme.light,
+                &mut buffer.color,
+            );
+            self.ui.draw_outline(
+                options.extend_up(width),
+                width,
+                theme.light,
+                &mut buffer.color,
+            );
+            self.ui.draw_quad(
+                head.extend_uniform(-width).extend_up(width * 3.0),
+                theme.dark,
+                &mut buffer.color,
+            );
+
+            self.ui
+                .draw_text_widget(&ui.options_head, &mut buffer.color);
+
             self.masked.draw(draw_parameters(), framebuffer);
 
-            // Outline
-            let outline_width = font_size * 0.2;
-            let [bl, br, tr, tl] = options
-                .extend_uniform(-outline_width / 2.0)
-                .extend_up(outline_width)
-                .corners();
-            let head = head.extend_uniform(-outline_width / 2.0);
-            let head_tl = vec2(head.min.x, bl.y);
-            let head_tr = vec2(head.max.x, br.y);
-            let chain = Chain::new(vec![
-                tl,
-                bl,
-                head_tl,
-                head.bottom_left(),
-                head.bottom_right(),
-                head_tr,
-                br,
-                tr,
-            ]);
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                camera,
-                &draw2d::Chain::new(chain, outline_width, theme.light, 1),
-            );
+            // let outline_width = font_size * 0.2;
+            // let [bl, br, tr, tl] = options
+            //     .extend_uniform(-outline_width / 2.0)
+            //     .extend_up(outline_width)
+            //     .corners();
+            // let head = head.extend_uniform(-outline_width / 2.0);
+            // let head_tl = vec2(head.min.x, bl.y);
+            // let head_tr = vec2(head.max.x, br.y);
+            // let chain = Chain::new(vec![
+            //     tl,
+            //     bl,
+            //     head_tl,
+            //     head.bottom_left(),
+            //     head.bottom_right(),
+            //     head_tr,
+            //     br,
+            //     tr,
+            // ]);
+            // self.geng.draw2d().draw2d(
+            //     framebuffer,
+            //     camera,
+            //     &draw2d::Chain::new(chain, outline_width, theme.light, 1),
+            // );
         }
 
         self.ui
