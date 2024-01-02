@@ -8,7 +8,7 @@ use crate::ui::widget::*;
 
 pub struct UiRender {
     geng: Geng,
-    // assets: Rc<Assets>,
+    assets: Rc<Assets>,
     util: UtilRender,
 }
 
@@ -16,7 +16,7 @@ impl UiRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
-            // assets: assets.clone(),
+            assets: assets.clone(),
             util: UtilRender::new(geng, assets),
         }
     }
@@ -24,14 +24,22 @@ impl UiRender {
     pub fn draw_outline(
         &self,
         quad: Aabb2<f32>,
-        width: f32,
+        _width: f32,
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        self.util.draw_outline(
-            &Collider::aabb(quad.map(r32)),
-            width,
+        // self.util.draw_outline(
+        //     &Collider::aabb(quad.map(r32)),
+        //     width,
+        //     color,
+        //     &geng::PixelPerfectCamera,
+        //     framebuffer,
+        // );
+        self.util.draw_nine_slice(
+            quad,
             color,
+            &self.assets.sprites.border,
+            3.0,
             &geng::PixelPerfectCamera,
             framebuffer,
         );
@@ -306,7 +314,7 @@ impl UiRender {
             0.0
         };
         let pos = state.position.extend_uniform(-shrink);
-        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
+        self.draw_quad(pos.extend_uniform(-width / 3.0), bg_color, framebuffer);
         if state.hovered || selected {
             self.draw_outline(pos, width, theme.light, framebuffer);
         }

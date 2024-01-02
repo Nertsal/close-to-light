@@ -210,11 +210,6 @@ impl MenuRender {
             self.ui
                 .draw_close_button(&ui.level_config.close, theme, &mut buffer.color);
 
-            self.ui.draw_quad(
-                ui.level_config.separator.position,
-                theme.light,
-                &mut buffer.color,
-            );
             for (tab, active) in [
                 (
                     &ui.level_config.tab_difficulty,
@@ -228,6 +223,11 @@ impl MenuRender {
                 self.ui
                     .draw_toggle_button(tab, active, false, theme, &mut buffer.color);
             }
+            self.ui.draw_quad(
+                ui.level_config.separator.position,
+                theme.light,
+                &mut buffer.color,
+            );
 
             if ui.level_config.difficulty.state.visible {
                 for preset in &ui.level_config.difficulty.presets {

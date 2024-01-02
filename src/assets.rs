@@ -34,6 +34,8 @@ pub struct Sprites {
     pub button_prev: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub button_close: Rc<ugli::Texture>,
+    #[load(postprocess = "pixel")]
+    pub border: ugli::Texture,
 }
 
 #[derive(geng::asset::Load)]
@@ -42,6 +44,7 @@ pub struct Shaders {
     pub solid: ugli::Program,
     pub light: ugli::Program,
     pub masked: ugli::Program,
+    pub texture: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]
