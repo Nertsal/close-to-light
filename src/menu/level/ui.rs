@@ -71,7 +71,7 @@ impl MenuUI {
         // Margin
         let main = screen
             .extend_uniform(-layout_size * 2.0)
-            .extend_up(-layout_size * 1.0);
+            .extend_up(-layout_size * 2.0);
 
         // Logo
         let (ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
