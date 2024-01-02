@@ -90,16 +90,17 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let text = text.as_ref();
-        let font = self.geng.default_font();
+        let font = &self.assets.fonts.pixel;
 
-        let size = font
-            .measure(text, options.align.map(geng::TextAlign))
-            .map_or(vec2::splat(1.0), |aabb| aabb.size());
+        let measure = font
+            .measure(text, vec2::splat(geng::TextAlign::CENTER))
+            .unwrap_or(Aabb2::ZERO.extend_positive(vec2::splat(1.0)));
+        let size = measure.size();
         let align = size * (options.align - vec2::splat(0.5)); // Centered by default
         let position = position.map(Float::as_f32);
         let transform = mat3::translate(position.map(Float::as_f32))
-            * mat3::scale_uniform(options.size)
-            * mat3::translate(vec2(0.0, 0.25) - align);
+            * mat3::scale_uniform(options.size * 0.6)
+            * mat3::translate(-measure.center() - align);
 
         let framebuffer_size = framebuffer.size();
 

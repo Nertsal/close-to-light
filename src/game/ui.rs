@@ -64,8 +64,11 @@ impl GameUI {
 
             let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
-            self.leaderboard
-                .update_state(&model.leaderboard.status, &model.leaderboard.loaded);
+            self.leaderboard.update_state(
+                &model.leaderboard.status,
+                &model.leaderboard.loaded,
+                &model.player.name,
+            );
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
         } else {

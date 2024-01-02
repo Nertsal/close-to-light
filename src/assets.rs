@@ -12,6 +12,12 @@ pub struct Assets {
     pub sprites: Sprites,
     pub dither: DitherAssets,
     pub shaders: Shaders,
+    pub fonts: Fonts,
+}
+
+#[derive(geng::asset::Load)]
+pub struct Fonts {
+    pub pixel: geng::Font,
 }
 
 #[derive(geng::asset::Load)]

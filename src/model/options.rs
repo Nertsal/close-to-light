@@ -42,3 +42,35 @@ impl Default for VolumeOptions {
         }
     }
 }
+
+impl Theme {
+    pub fn classic() -> Self {
+        Self {
+            dark: Color::BLACK,
+            light: Color::WHITE,
+            danger: Color::RED,
+        }
+    }
+
+    pub fn test() -> Self {
+        Self {
+            dark: Color::try_from("#2B3A67").unwrap(),
+            light: Color::try_from("#FFC482").unwrap(),
+            danger: Color::try_from("#D34F73").unwrap(),
+        }
+    }
+
+    /// Make `dark` color transparent black.
+    pub fn transparent(self) -> Self {
+        Self {
+            dark: Color::TRANSPARENT_BLACK,
+            ..self
+        }
+    }
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self::classic()
+    }
+}

@@ -55,7 +55,7 @@ impl MenuUI {
         let mut context = UiContext {
             theme: state.options.theme,
             layout_size,
-            font_size: screen.height() * 0.07,
+            font_size: screen.height() * 0.06,
             can_focus: true,
             cursor,
             delta_time,
@@ -143,8 +143,11 @@ impl MenuUI {
 
             let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
-            self.leaderboard
-                .update_state(&state.leaderboard.status, &state.leaderboard.loaded);
+            self.leaderboard.update_state(
+                &state.leaderboard.status,
+                &state.leaderboard.loaded,
+                &state.player.name,
+            );
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
 

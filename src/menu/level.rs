@@ -33,13 +33,13 @@ pub struct LevelMenu {
 
     camera: Camera2d,
     state: MenuState,
-    player: Player,
     exit_button: HoverButton,
     play_button: HoverButton,
 }
 
 pub struct MenuState {
     pub leaderboard: Leaderboard,
+    pub player: Player,
     pub options: Options,
     pub config: LevelConfig,
     pub groups: Vec<GroupEntry>,
@@ -110,6 +110,12 @@ impl LevelMenu {
         secrets: Option<Secrets>,
         options: Options,
     ) -> Self {
+        let mut player = Player::new(
+            Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
+            r32(0.0),
+        );
+        player.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
+
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
@@ -135,6 +141,7 @@ impl LevelMenu {
             },
             state: MenuState {
                 leaderboard: Leaderboard::new(secrets.map(|s| s.leaderboard)),
+                player,
                 options,
                 config: LevelConfig::default(),
                 groups,
@@ -162,10 +169,6 @@ impl LevelMenu {
                 },
                 leaderboard_request: None,
             },
-            player: Player::new(
-                Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
-                r32(0.0),
-            ),
             exit_button: HoverButton::new(
                 Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
                 3.0,
@@ -464,7 +467,7 @@ impl geng::State for LevelMenu {
         }
 
         self.util
-            .draw_player(&self.player, &self.camera, &mut dither_buffer);
+            .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
 
         self.dither.finish(self.time, &self.state.options.theme);
 
@@ -487,27 +490,42 @@ impl geng::State for LevelMenu {
 
             masked.mask_quad(self.ui.screen.position);
 
-            self.dither.set_noise(0.0);
-            let mut dither = self.dither.start();
-            self.masked.draw(
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    ..default()
-                },
-                &mut dither,
-            );
+            let pixelated = false;
 
-            // self.dither.finish(
-            //     self.time,
-            //     &Theme {
-            //         dark: Color::TRANSPARENT_BLACK,
-            //         ..self.state.options.theme
-            //     },
-            // );
+            if pixelated {
+                self.dither.set_noise(0.0);
+                let mut dither = self.dither.start();
 
-            geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-                .fit_screen(vec2(0.5, 0.5), framebuffer)
-                .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
+                self.masked.draw(
+                    ugli::DrawParameters {
+                        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                        ..default()
+                    },
+                    &mut dither,
+                );
+
+                // self.dither.finish(
+                //     self.time,
+                //     &Theme {
+                //         dark: Color::TRANSPARENT_BLACK,
+                //         ..self.state.options.theme
+                //     },
+                // );
+
+                geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+                    .fit_screen(vec2(0.5, 0.5), framebuffer)
+                    .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
+            } else {
+                self.masked.draw(
+                    ugli::DrawParameters {
+                        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                        ..default()
+                    },
+                    framebuffer,
+                );
+            };
+
+            if pixelated {}
         }
         self.cursor.scroll = 0.0;
     }
@@ -541,7 +559,7 @@ impl geng::State for LevelMenu {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as _);
-        self.player.update_tail(delta_time);
+        self.state.player.update_tail(delta_time);
     }
 
     fn update(&mut self, delta_time: f64) {
@@ -561,12 +579,14 @@ impl geng::State for LevelMenu {
         let pos = self.cursor.position - game_pos.bottom_left();
         let cursor_world = self.camera.screen_to_world(game_pos.size(), pos);
 
-        self.player.collider.position = cursor_world.as_r32();
-        self.player.reset_distance();
-        self.player
+        self.state.player.collider.position = cursor_world.as_r32();
+        self.state.player.reset_distance();
+        self.state
+            .player
             .update_distance(&self.exit_button.base_collider, false);
         if self.state.show_level.is_some() {
-            self.player
+            self.state
+                .player
                 .update_distance(&self.play_button.base_collider, false);
         }
 

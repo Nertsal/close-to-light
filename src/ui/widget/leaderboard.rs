@@ -45,8 +45,13 @@ impl LeaderboardWidget {
         }
     }
 
-    pub fn update_state(&mut self, state: &LeaderboardStatus, board: &LoadedBoard) {
-        let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
+    pub fn update_state(
+        &mut self,
+        state: &LeaderboardStatus,
+        board: &LoadedBoard,
+        player_name: &str,
+    ) {
+        // let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
         self.rows.clear();
         self.status.text = "".to_string();
         match state {
@@ -72,7 +77,7 @@ impl LeaderboardWidget {
                     (rank + 1).to_string(),
                     &entry.player,
                     entry.score,
-                    &entry.player == player_name,
+                    entry.player == player_name,
                 )
             })
             .collect();
@@ -83,7 +88,7 @@ impl LeaderboardWidget {
                 self.highscore.rank.text = board
                     .my_position
                     .map_or("???".to_string(), |rank| format!("{}.", rank + 1));
-                self.highscore.player.text = score.player.clone();
+                self.highscore.player.text = player_name.to_string(); // score.player.clone();
                 self.highscore.score.text = format!("{}", score.score);
             }
         }
