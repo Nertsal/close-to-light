@@ -157,9 +157,9 @@ impl MenuRender {
             }
 
             // Outline
-            let width = 15.0;
+            let width = 12.0;
             self.ui.draw_outline(
-                head.extend_up(2.0 * width),
+                head.extend_up(1.0 * width),
                 width,
                 theme.light,
                 &mut buffer.color,
