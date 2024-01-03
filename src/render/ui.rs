@@ -272,7 +272,11 @@ impl UiRender {
             return;
         }
 
-        let (bg_color, fg_color) = (theme.light, theme.danger);
+        let (bg_color, fg_color) = if state.hovered {
+            (theme.danger, theme.dark)
+        } else {
+            (theme.light, theme.danger)
+        };
 
         if state.hovered {
             self.draw_texture(
