@@ -213,7 +213,7 @@ impl MenuUI {
 
             // Layout each group
             let mut selected = None;
-            for (pos, (i, entry)) in layout::stack(
+            for (static_pos, (i, entry)) in layout::stack(
                 group,
                 vec2(0.0, -group.height() - layout_size * 0.5),
                 state.groups.len(),
@@ -229,7 +229,7 @@ impl MenuUI {
                 // Animate on hover
                 let t = group.selected_time.get_ratio();
                 let t = crate::util::smoothstep(t);
-                let pos = pos.translate(vec2(t * slide, 0.0));
+                let pos = static_pos.translate(vec2(t * slide, 0.0));
 
                 update!(group, pos);
                 group.set_group(entry);
@@ -240,7 +240,9 @@ impl MenuUI {
 
                 let target = if state.switch_group == Some(i) {
                     1.0
-                } else if group.state.hovered {
+                } else if group.state.hovered
+                    || context.can_focus && static_pos.contains(context.cursor.position)
+                {
                     0.5
                 } else {
                     0.0
@@ -280,7 +282,7 @@ impl MenuUI {
 
                 // Layout each level
                 let mut selected = None;
-                for (pos, (i, (_, level_meta))) in layout::stack(
+                for (static_pos, (i, (_, level_meta))) in layout::stack(
                     level,
                     vec2(0.0, -level.height() - layout_size * 0.5),
                     group.levels.len(),
@@ -296,7 +298,7 @@ impl MenuUI {
                     // Animate
                     let t = level.selected_time.get_ratio();
                     let t = crate::util::smoothstep(t);
-                    let pos = pos.translate(vec2(t * slide, 0.0));
+                    let pos = static_pos.translate(vec2(t * slide, 0.0));
 
                     update!(level, pos);
                     level.set_level(level_meta);
@@ -307,7 +309,9 @@ impl MenuUI {
 
                     let target = if state.switch_level == Some(i) {
                         1.0
-                    } else if level.state.hovered {
+                    } else if level.state.hovered
+                        || context.can_focus && static_pos.contains(context.cursor.position)
+                    {
                         0.5
                     } else {
                         0.0
