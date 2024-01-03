@@ -15,7 +15,6 @@ pub struct GameRender {
     masked: MaskedRender,
     util: UtilRender,
     ui: UiRender,
-    ui_texture: ugli::Texture,
 }
 
 impl GameRender {
@@ -27,7 +26,6 @@ impl GameRender {
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             util: UtilRender::new(geng, assets),
             ui: UiRender::new(geng, assets),
-            ui_texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
         }
     }
 
@@ -89,40 +87,6 @@ impl GameRender {
                 camera,
                 &mut framebuffer,
             );
-
-            let mut draw_text = |text: &str, position: vec2<f32>, size: f32, align: vec2<f32>| {
-                self.util.draw_text(
-                    text,
-                    position.as_r32(),
-                    TextRenderOptions::new(size).align(align).color(THEME.light),
-                    camera,
-                    &mut framebuffer,
-                );
-            };
-
-            if !fading {
-                draw_text(
-                    &format!("SCORE: {:.0}", model.score.ceil()),
-                    vec2(-3.0, -3.0),
-                    0.7,
-                    vec2(0.5, 1.0),
-                );
-                // TODO
-                // draw_text(
-                //     &format!("HIGHSCORE: {:.0}", model.high_score),
-                //     vec2(-3.0, -4.0),
-                //     0.7,
-                //     vec2(0.5, 1.0),
-                // );
-            }
-        } else if !model.config.modifiers.clean_auto {
-            self.util.draw_text(
-                format!("SCORE: {:.0}", model.score),
-                vec2(0.0, 4.5).as_r32(),
-                TextRenderOptions::new(0.7).color(THEME.light),
-                camera,
-                &mut framebuffer,
-            );
         }
 
         if !model.config.modifiers.clean_auto {
@@ -174,44 +138,39 @@ impl GameRender {
     }
 
     pub fn draw_ui(&mut self, ui: &GameUI, model: &Model, framebuffer: &mut ugli::Framebuffer) {
-        geng_utils::texture::update_texture_size(
-            &mut self.ui_texture,
-            framebuffer.size(),
-            self.geng.ugli(),
-        );
-        self.ui_texture.set_filter(ugli::Filter::Nearest);
         self.masked.update_size(framebuffer.size());
-
-        let mut buffer =
-            geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        ugli::clear(&mut buffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         // let camera = &geng::PixelPerfectCamera;
         let theme = &model.options.theme;
-        // let font_size = screen.height() * 0.05;
+        // let font_size = framebuffer.size().y as f32 * 0.05;
+
+        let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
+
+        if let State::Lost { .. } | State::Finished = model.state {
+            if !fading {
+                self.util.draw_text(
+                    &format!("SCORE: {:.0}", model.score.ceil()),
+                    vec2(-3.0, -3.0),
+                    TextRenderOptions::new(0.7).color(theme.light),
+                    &model.camera,
+                    framebuffer,
+                );
+            }
+        } else if !model.config.modifiers.clean_auto {
+            self.util.draw_text(
+                format!("SCORE: {:.0}", model.score.ceil()),
+                vec2(-0.8, 4.5).as_r32(),
+                TextRenderOptions::new(0.7)
+                    .color(theme.light)
+                    .align(vec2(0.0, 0.5)),
+                &model.camera,
+                framebuffer,
+            );
+        }
 
         if ui.leaderboard.state.visible {
             self.ui
-                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, &mut buffer);
+                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
         }
-
-        self.dither.set_noise(0.0);
-        let mut dither = self.dither.start();
-
-        geng_utils::texture::DrawTexture::new(&self.ui_texture)
-            .fit_screen(vec2(0.5, 0.5), &dither)
-            .draw(&geng::PixelPerfectCamera, &self.geng, &mut dither);
-
-        // self.dither.finish(
-        //     self.time,
-        //     &Theme {
-        //         dark: Color::TRANSPARENT_BLACK,
-        //         ..self.state.options.theme
-        //     },
-        // );
-
-        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), framebuffer)
-            .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
     }
 }
