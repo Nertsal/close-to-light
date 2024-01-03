@@ -180,10 +180,12 @@ impl UtilRender {
             .unwrap_or(Aabb2::ZERO.extend_positive(vec2::splat(1.0)));
         let size = measure.size();
         let align = size * (options.align - vec2::splat(0.5)); // Centered by default
+        let align = vec2(measure.center().x, 0.0) + align;
+
         let position = position.map(Float::as_f32);
         let transform = mat3::translate(position.map(Float::as_f32))
             * mat3::scale_uniform(options.size * 0.6)
-            * mat3::translate(-measure.center() - align);
+            * mat3::translate(-align);
 
         let framebuffer_size = framebuffer.size();
 
