@@ -1,11 +1,11 @@
-use super::{mask::MaskedRender, ui::UiRender, util::UtilRender, *};
+use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::menu::{MenuState, MenuUI};
 
 pub struct MenuRender {
     geng: Geng,
     assets: Rc<Assets>,
-    util: UtilRender,
+    // util: UtilRender,
     masked: MaskedRender,
     ui: UiRender,
 }
@@ -15,7 +15,7 @@ impl MenuRender {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            util: UtilRender::new(geng, assets),
+            // util: UtilRender::new(geng, assets),
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             ui: UiRender::new(geng, assets),
         }
@@ -267,11 +267,10 @@ impl MenuRender {
 
             self.masked.draw(draw_parameters(), framebuffer);
 
-            self.util.draw_outline(
-                &Collider::aabb(ui.level_config.state.position.map(r32)),
+            self.ui.draw_outline(
+                ui.level_config.state.position,
                 font_size * 0.2,
                 theme.light,
-                camera,
                 framebuffer,
             );
         }
