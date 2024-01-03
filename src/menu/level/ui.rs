@@ -212,7 +212,7 @@ impl MenuUI {
             }
 
             // Layout each group
-            let mut hovered = None;
+            let mut selected = None;
             for (pos, (i, entry)) in layout::stack(
                 group,
                 vec2(0.0, -group.height() - layout_size * 0.5),
@@ -234,18 +234,24 @@ impl MenuUI {
                 update!(group, pos);
                 group.set_group(entry);
 
-                if group.state.hovered {
-                    hovered = Some(i);
+                if group.state.clicked {
+                    selected = Some(i);
                 }
-                if group.state.hovered || state.switch_group == Some(i) {
-                    group.selected_time.change(delta_time);
+
+                let target = if state.switch_group == Some(i) {
+                    1.0
+                } else if group.state.hovered {
+                    0.5
                 } else {
-                    group.selected_time.change(-delta_time);
-                }
+                    0.0
+                };
+                let delta = (target * group.selected_time.max() - group.selected_time.value())
+                    .clamp_abs(delta_time);
+                group.selected_time.change(delta);
             }
 
             // Show levels for the group
-            if let Some(group) = hovered {
+            if let Some(group) = selected {
                 state.show_group(group);
             }
         }
@@ -273,7 +279,7 @@ impl MenuUI {
                 }
 
                 // Layout each level
-                let mut hovered = None;
+                let mut selected = None;
                 for (pos, (i, (_, level_meta))) in layout::stack(
                     level,
                     vec2(0.0, -level.height() - layout_size * 0.5),
@@ -287,7 +293,7 @@ impl MenuUI {
                         continue;
                     };
 
-                    // Animate on hover
+                    // Animate
                     let t = level.selected_time.get_ratio();
                     let t = crate::util::smoothstep(t);
                     let pos = pos.translate(vec2(t * slide, 0.0));
@@ -295,18 +301,24 @@ impl MenuUI {
                     update!(level, pos);
                     level.set_level(level_meta);
 
-                    if level.state.hovered {
-                        hovered = Some(i);
+                    if level.state.clicked {
+                        selected = Some(i);
                     }
-                    if level.state.hovered || state.switch_level == Some(i) {
-                        level.selected_time.change(delta_time);
+
+                    let target = if state.switch_level == Some(i) {
+                        1.0
+                    } else if level.state.hovered {
+                        0.5
                     } else {
-                        level.selected_time.change(-delta_time);
-                    }
+                        0.0
+                    };
+                    let delta = (target * level.selected_time.max() - level.selected_time.value())
+                        .clamp_abs(delta_time);
+                    level.selected_time.change(delta);
                 }
 
                 // Show level
-                if let Some(level) = hovered {
+                if let Some(level) = selected {
                     if state.show_group.as_ref().is_some_and(|show| show.going_up) {
                         state.show_level(Some(level));
                     }

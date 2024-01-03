@@ -306,14 +306,13 @@ impl UiRender {
             return;
         }
 
-        let options = text.options;
         let (bg_color, fg_color) = if selected {
             (theme.light, theme.dark)
         } else {
             (theme.dark, theme.light)
         };
 
-        let width = options.size * 0.2;
+        let width = text.options.size * 0.2;
         let shrink = if can_deselect && state.hovered && selected {
             width
         } else {
@@ -326,10 +325,35 @@ impl UiRender {
         }
         self.util.draw_text(
             &text.text,
-            geng_utils::layout::aabb_pos(state.position, options.align),
-            options.color(fg_color),
+            geng_utils::layout::aabb_pos(state.position, text.options.align),
+            text.options.color(fg_color),
             &geng::PixelPerfectCamera,
             framebuffer,
         );
+    }
+
+    pub fn draw_toggle_slide(
+        &self,
+        state: &WidgetState,
+        texts: &[&TextWidget],
+        width: f32,
+        selected: bool,
+        theme: &Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let (bg_color, fg_color) = if selected {
+            (theme.light, theme.dark)
+        } else {
+            (theme.dark, theme.light)
+        };
+
+        self.draw_quad(state.position.extend_uniform(-width), bg_color, framebuffer);
+
+        for text in texts {
+            self.draw_text_widget_colored(text, fg_color, framebuffer);
+            self.draw_text_widget_colored(text, fg_color, framebuffer);
+        }
+
+        self.draw_outline(state.position, width, theme.light, framebuffer);
     }
 }

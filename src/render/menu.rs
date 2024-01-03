@@ -52,26 +52,14 @@ impl MenuRender {
                 );
             }
 
-            let (bg_color, fg_color) = if group.selected_time.get_ratio() > 0.5 {
-                (theme.light, theme.dark)
-            } else {
-                (theme.dark, theme.light)
-            };
-
-            let width = font_size * 0.2;
-            self.ui.draw_quad(
-                group.state.position.extend_uniform(-width),
-                bg_color,
+            self.ui.draw_toggle_slide(
+                &group.state,
+                &[&group.name, &group.author],
+                font_size * 0.2,
+                group.selected_time.get_ratio() > 0.5,
+                theme,
                 &mut mask.color,
             );
-
-            self.ui
-                .draw_text_widget_colored(&group.name, fg_color, &mut mask.color);
-            self.ui
-                .draw_text_widget_colored(&group.author, fg_color, &mut mask.color);
-
-            self.ui
-                .draw_outline(group.state.position, width, theme.light, &mut mask.color);
         }
 
         for level in &ui.levels {
@@ -79,26 +67,14 @@ impl MenuRender {
                 continue;
             }
 
-            let (bg_color, fg_color) = if level.selected_time.get_ratio() > 0.5 {
-                (theme.light, theme.dark)
-            } else {
-                (theme.dark, theme.light)
-            };
-
-            let width = font_size * 0.2;
-            self.ui.draw_quad(
-                level.state.position.extend_uniform(-width),
-                bg_color,
+            self.ui.draw_toggle_slide(
+                &level.state,
+                &[&level.name, &level.author],
+                font_size * 0.2,
+                level.selected_time.get_ratio() > 0.5,
+                theme,
                 &mut mask.color,
             );
-
-            self.ui
-                .draw_text_widget_colored(&level.name, fg_color, &mut mask.color);
-            self.ui
-                .draw_text_widget_colored(&level.author, fg_color, &mut mask.color);
-
-            self.ui
-                .draw_outline(level.state.position, width, theme.light, &mut mask.color);
         }
 
         self.masked.draw(draw_parameters(), framebuffer);
