@@ -8,6 +8,7 @@ use super::*;
 pub struct LevelConfigWidget {
     pub state: WidgetState,
     pub close: ButtonWidget,
+    pub tabs: WidgetState,
     pub tab_difficulty: TextWidget,
     pub tab_mods: TextWidget,
     pub separator: WidgetState,
@@ -20,6 +21,7 @@ impl LevelConfigWidget {
         let mut w = Self {
             state: WidgetState::new(),
             close: ButtonWidget::new_textured("", &assets.sprites.button_close),
+            tabs: WidgetState::new(),
             tab_difficulty: TextWidget::new("Difficulty"),
             tab_mods: TextWidget::new("Modifiers"),
             separator: WidgetState::new(),
@@ -58,15 +60,23 @@ impl Widget for LevelConfigWidget {
         let (bar, main) = layout::cut_top_down(main, context.font_size * 1.2);
 
         let bar = bar.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
+
         let tab = Aabb2::point(bar.bottom_left())
             .extend_positive(vec2(4.0 * context.font_size, bar.height()));
-        // let tabs = layout::stack(tab, vec2(tab.width() + 2.0 * context.layout_size, 0.0), 2);
-        let offset = bar.center().x - bar.min.x;
-        let pad = 1.0 * context.layout_size;
-        let tabs = vec![
-            tab.translate(vec2(offset - tab.width() - pad, 0.0)),
-            tab.translate(vec2(offset + pad, 0.0)),
-        ];
+        let tabs = layout::stack(tab, vec2(tab.width() + 2.0 * context.layout_size, 0.0), 2);
+
+        let mut all_tabs = tab;
+        if let Some(tab) = tabs.last() {
+            all_tabs.max.x = tab.max.x;
+        }
+        let align = vec2(bar.center().x - all_tabs.center().x, 0.0);
+        let all_tabs = all_tabs
+            .translate(align)
+            .extend_symmetric(vec2(1.0, 0.0) * context.layout_size);
+        self.tabs.update(all_tabs, context);
+
+        let tabs: Vec<_> = tabs.into_iter().map(|tab| tab.translate(align)).collect();
+
         for (tab, pos) in [&mut self.tab_difficulty, &mut self.tab_mods]
             .into_iter()
             .zip(tabs)
