@@ -103,8 +103,8 @@ impl MenuUI {
 
             let options = options.translate(vec2(0.0, offset));
 
-            let head = Aabb2::point(screen.top_left() + vec2(10.0, 0.0) * layout_size)
-                .extend_right(context.font_size * 3.5)
+            let head = Aabb2::point(screen.top_right() - vec2(7.0, 0.0) * layout_size)
+                .extend_left(context.font_size * 3.5)
                 .extend_down(context.font_size * 1.2)
                 .translate(vec2(0.0, offset));
 

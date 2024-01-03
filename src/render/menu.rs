@@ -171,7 +171,9 @@ impl MenuRender {
                 &mut buffer.color,
             );
             self.ui.draw_quad(
-                head.extend_uniform(-width).extend_up(width * 3.0),
+                head.extend_uniform(-width)
+                    .extend_down(-width)
+                    .extend_up(width * 3.0),
                 theme.dark,
                 &mut buffer.color,
             );
