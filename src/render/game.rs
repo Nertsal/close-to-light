@@ -1,165 +1,107 @@
-use super::*;
+use super::{
+    dither::DitherRender,
+    mask::MaskedRender,
+    ui::UiRender,
+    util::{TextRenderOptions, UtilRender},
+    *,
+};
 
-#[allow(dead_code)]
+use crate::game::GameUI;
+
 pub struct GameRender {
     geng: Geng,
-    assets: Rc<Assets>,
-    render: Render,
+    // assets: Rc<Assets>,
+    dither: DitherRender,
+    masked: MaskedRender,
     util: UtilRender,
+    ui: UiRender,
 }
 
 impl GameRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
-            render: Render::new(geng, assets),
+            // assets: assets.clone(),
+            dither: DitherRender::new(geng, assets),
+            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             util: UtilRender::new(geng, assets),
+            ui: UiRender::new(geng, assets),
         }
     }
 
     pub fn get_render_size(&self) -> vec2<usize> {
-        self.render.get_render_size()
+        self.dither.get_render_size()
     }
 
     pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
-        let mut framebuffer = self.render.start(COLOR_DARK);
+        self.dither.set_noise(1.0);
+        let mut framebuffer = self.dither.start();
 
         let camera = &model.camera;
+        let theme = &model.options.theme;
 
-        // Telegraphs
-        for tele in &model.telegraphs {
-            self.util.draw_outline(
-                &tele.light.collider,
-                0.05,
-                COLOR_LIGHT,
-                camera,
-                &mut framebuffer,
-            );
+        if !model.config.modifiers.sudden {
+            // Telegraphs
+            for tele in &model.level_state.telegraphs {
+                let color = if tele.light.danger {
+                    THEME.danger
+                } else {
+                    THEME.light
+                };
+                self.util
+                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+            }
         }
 
-        // Lights
-        for light in &model.lights {
-            self.util
-                .draw_collider(&light.collider, COLOR_LIGHT, camera, &mut framebuffer);
+        if !model.config.modifiers.hidden {
+            // Lights
+            for light in &model.level_state.lights {
+                let color = if light.danger {
+                    THEME.danger
+                } else {
+                    THEME.light
+                };
+                self.util
+                    .draw_light(&light.collider, color, camera, &mut framebuffer);
+            }
         }
 
-        // Player
-        let player = model.player.collider.clone();
-        // player.position += model.player.shake;
-        // self.util
-        //     .draw_collider(&player, COLOR_LIGHT, camera, &mut framebuffer);
-        self.util
-            .draw_outline(&player, 0.05, COLOR_PLAYER, camera, &mut framebuffer);
-
-        let fading = model.restart_button.hover_time.get_ratio().as_f32() > 0.5;
-
-        if let State::Lost | State::Finished = model.state {
-            let button = smooth_button(&model.restart_button, model.switch_time);
-            self.util
-                .draw_button(&button, "RESTART", camera, &mut framebuffer);
+        let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
+        if let State::Lost { .. } | State::Finished = model.state {
+            for (button, text) in [
+                (&model.restart_button, "RESTART"),
+                (&model.exit_button, "EXIT"),
+            ] {
+                if fading && !button.is_fading() {
+                    continue;
+                }
+                let button = smooth_button(button, model.switch_time);
+                self.util
+                    .draw_button(&button, text, &THEME, camera, &mut framebuffer);
+            }
 
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                0.7,
-                vec2::splat(0.5),
-                COLOR_DARK,
+                TextRenderOptions::new(0.7).color(THEME.dark),
                 camera,
                 &mut framebuffer,
             );
+        }
 
-            let mut draw_text = |text: &str, position: vec2<f32>, size: f32, align: vec2<f32>| {
-                self.util.draw_text(
-                    text,
-                    position.as_r32(),
-                    size,
-                    align,
-                    COLOR_LIGHT,
-                    camera,
-                    &mut framebuffer,
-                );
-            };
-
-            if !fading {
-                draw_text(
-                    &format!("SCORE: {:.0}", model.score),
-                    vec2(-3.0, -3.0),
-                    0.7,
-                    vec2(0.5, 1.0),
-                );
-                draw_text(
-                    &format!("HIGHSCORE: {:.0}", model.high_score),
-                    vec2(-3.0, -4.0),
-                    0.7,
-                    vec2(0.5, 1.0),
-                );
-
-                // Leaderboard
-                match &model.leaderboard {
-                    LeaderboardState::None => {
-                        draw_text("LEADERBOARD", vec2(4.0, 0.5), 0.8, vec2(0.5, 0.5));
-                        draw_text("NOT AVAILABLE", vec2(4.0, -0.5), 0.8, vec2(0.5, 0.5));
-                    }
-                    LeaderboardState::Pending => {
-                        let mut pos = vec2(4.0, 2.5);
-                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
-                        pos.y -= 0.8;
-                        draw_text("LOADING...", pos, 0.7, vec2(0.5, 1.0));
-                    }
-                    LeaderboardState::Ready(leaderboard) => {
-                        let mut pos = vec2(4.0, 2.5);
-                        draw_text("LEADERBOARD", pos, 0.8, vec2(0.5, 1.0));
-                        pos.y -= 0.8;
-                        {
-                            let text = if let Some(place) = leaderboard.my_position {
-                                format!("{} PLACE", place + 1)
-                            } else if let State::Lost = model.state {
-                                "FINISH TO COMPETE".to_string()
-                            } else if model.player.name.trim().is_empty() {
-                                "CANNOT SUBMIT WITHOUT A NAME".to_string()
-                            } else {
-                                "".to_string()
-                            };
-                            draw_text(&text, pos, 0.7, vec2(0.5, 1.0));
-                            pos.y -= 0.7;
-                        }
-                        for score in &leaderboard.top10 {
-                            let font_size = 0.6;
-                            draw_text(&score.player, pos, font_size, vec2(1.0, 1.0));
-                            draw_text(
-                                &format!(" - {:.0}", score.score),
-                                pos,
-                                font_size,
-                                vec2(0.0, 1.0),
-                            );
-                            pos.y -= font_size;
-                        }
-                    }
-                }
-            }
-        } else {
-            self.util.draw_text(
-                format!("SCORE: {:.0}", model.score),
-                vec2(0.0, 4.5).as_r32(),
-                0.7,
-                vec2::splat(0.5),
-                COLOR_LIGHT,
-                camera,
-                &mut framebuffer,
-            );
+        if !model.config.modifiers.clean_auto {
+            self.util
+                .draw_player(&model.player, camera, &mut framebuffer);
         }
 
         if !fading {
             match model.state {
                 State::Starting { .. } | State::Playing => {}
-                State::Lost => {
+                State::Lost { .. } => {
                     self.util.draw_text(
                         "YOU FAILED TO CHASE THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        1.0,
-                        vec2::splat(0.5),
-                        COLOR_LIGHT,
+                        TextRenderOptions::new(1.0).color(THEME.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -168,9 +110,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        1.0,
-                        vec2::splat(0.5),
-                        COLOR_LIGHT,
+                        TextRenderOptions::new(1.0).color(THEME.light),
                         camera,
                         &mut framebuffer,
                     );
@@ -178,63 +118,59 @@ impl GameRender {
             }
         }
 
-        // let t = R32::ONE - (model.player.fear_meter.get_ratio() / r32(0.5)).min(R32::ONE);
-        let t = if let State::Playing = model.state {
-            model
-                .player
-                .light_distance_normalized
-                .map(|d| (r32(1.0) - d + r32(0.5)).min(r32(1.0)))
-                .unwrap_or(R32::ZERO)
-        } else {
-            R32::ZERO
-        };
-        self.render.dither(model.real_time, t);
+        if let State::Playing = model.state {
+            if !model.config.modifiers.clean_auto {
+                self.util.draw_health(
+                    &model.player.health,
+                    model.player.get_lit_state(),
+                    // &model.config.theme,
+                    &mut framebuffer,
+                );
+            }
+        }
+
+        self.dither.finish(model.real_time, theme);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
-        draw_texture_fit(
-            self.render.get_buffer(),
-            aabb,
-            vec2(0.5, 0.5),
-            &geng::PixelPerfectCamera,
-            &self.geng,
-            old_framebuffer,
-        );
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit(aabb, vec2(0.5, 0.5))
+            .draw(&geng::PixelPerfectCamera, &self.geng, old_framebuffer);
     }
 
-    pub fn draw_ui(&mut self, model: &Model, framebuffer: &mut ugli::Framebuffer) {
-        let camera = &geng::PixelPerfectCamera;
-        let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
+    pub fn draw_ui(&mut self, ui: &GameUI, model: &Model, framebuffer: &mut ugli::Framebuffer) {
+        self.masked.update_size(framebuffer.size());
 
-        let font_size = screen.height() * 0.05;
+        // let camera = &geng::PixelPerfectCamera;
+        let theme = &model.options.theme;
+        // let font_size = framebuffer.size().y as f32 * 0.05;
 
-        if let State::Playing = model.state {
-            // Fear meter
-            let fear = Aabb2::point(
-                geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
-            )
-            .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
-            .extend_up(font_size);
-            self.geng.draw2d().draw2d(
+        let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
+
+        if let State::Lost { .. } | State::Finished = model.state {
+            if !fading {
+                self.util.draw_text(
+                    &format!("SCORE: {:.0}", model.score.ceil()),
+                    vec2(-3.0, -3.0),
+                    TextRenderOptions::new(0.7).color(theme.light),
+                    &model.camera,
+                    framebuffer,
+                );
+            }
+        } else if !model.config.modifiers.clean_auto {
+            self.util.draw_text(
+                format!("SCORE: {:.0}", model.score.ceil()),
+                vec2(-0.8, 4.5).as_r32(),
+                TextRenderOptions::new(0.7)
+                    .color(theme.light)
+                    .align(vec2(0.0, 0.5)),
+                &model.camera,
                 framebuffer,
-                camera,
-                &draw2d::Quad::new(fear.extend_uniform(font_size * 0.1), COLOR_LIGHT),
             );
-            self.geng
-                .draw2d()
-                .draw2d(framebuffer, camera, &draw2d::Quad::new(fear, COLOR_DARK));
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                camera,
-                &draw2d::Quad::new(
-                    fear.extend_symmetric(
-                        vec2(
-                            -model.player.fear_meter.get_ratio().as_f32() * fear.width(),
-                            0.0,
-                        ) / 2.0,
-                    ),
-                    COLOR_LIGHT,
-                ),
-            );
+        }
+
+        if ui.leaderboard.state.visible {
+            self.ui
+                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
         }
     }
 }

@@ -1,0 +1,6862 @@
+{
+  "config": {
+    "health": {
+      "max": 1.5,
+      "dark_decrease_rate": 1.0,
+      "danger_decrease_rate": 2.0,
+      "restore_rate": 0.5
+    }
+  },
+  "events": [
+    {
+      "beat": -2.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": 3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 265.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 2.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -5.0,
+                      0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 0.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 4.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 6.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 10.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      5.0,
+                      -0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 8.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 12.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 13.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 267.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 295.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 189.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 184.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 134.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 181.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 168.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 6.0,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 154.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 161.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 167.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.5,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 25.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": 3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 2.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      2.5
+                    ],
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 192.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": -10.995578,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": -12.566378,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": -12.566378,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 28.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": 3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 176.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 125.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  1.875,
+                  -0.0
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 197.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 178.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 30.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 126.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 30.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 32.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 23.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 24.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 42.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -1.25
+                ],
+                "rotation": 3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -1.25,
+                      2.5
+                    ],
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      1.25
+                    ],
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      -2.5
+                    ],
+                    "rotation": 3.1415923,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 46.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -6.2831845,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": -6.2831845,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -10.995578,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 41.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  0.0
+                ],
+                "rotation": -3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 38.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 36.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 34.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 39.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      2.5
+                    ],
+                    "rotation": -3.1415923,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 35.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 37.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 52.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -0.0
+                    ],
+                    "rotation": -3.1415923,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 56.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  0.0
+                ],
+                "rotation": -10.995578,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 177.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 213.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 179.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 60.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -6.2831845,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 61.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -6.2831845,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": -6.2831845,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 63.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -6.2831845,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -6.2831845,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 65.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 180.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 237.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 58.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 59.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 57.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 69.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 68.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 239.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 241.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 245.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 243.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 247.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 70.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 18.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 17.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 20.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 16.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 21.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 19.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 22.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 75.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 73.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 77.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  5.0
+                ],
+                "rotation": -5.497787,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      5.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 72.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -0.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 15.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 78.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 14.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 82.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 81.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 80.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 253.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 249.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 54.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -3.1415923,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -3.1415923,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 251.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 259.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 83.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -0.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 159.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 163.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 261.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 263.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 138.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 2.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 85.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 88.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 87.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -4.7123885,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -4.7123885,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 151.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 135.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 165.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 232.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 233.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 234.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 221.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      -1.25,
+                      -1.25
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 91.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 136.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 88.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  5.0
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      5.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      5.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 235.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      -1.25
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 136.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 224.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 225.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 229.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 227.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      1.25
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 226.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 95.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 96.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 99.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 214.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 203.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 98.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 97.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 94.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 93.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 230.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 216.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 217.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 219.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      1.25
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 141.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 218.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 202.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  1.875,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 200.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -1.875,
+                  -0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 143.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 201.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 109.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  5.0
+                ],
+                "rotation": -6.2831845,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      5.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 106.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      -2.5
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 105.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 104.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  5.0,
+                  0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 103.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 100.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      2.5
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 114.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      -0.0
+                    ],
+                    "rotation": -7.8539805,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 116.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 113.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 112.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -5.0,
+                  0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 208.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 110.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -0.0
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 120.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 118.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 119.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 297.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 16.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 111.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  2.5
+                ],
+                "rotation": -7.8539805,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 205.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      -1.25,
+                      1.25
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 210.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  0.0
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 209.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 211.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -12.566377,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      1.25,
+                      -1.25
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 0.5,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -12.566377,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 145.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 122.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -9.424779,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 147.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 124.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 149.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 173.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 2.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -1.5707963,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -1.5707963,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 135.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 127.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -1.875,
+                  -0.0
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 128.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Line": {
+                "width": 1.7
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -9.424779,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -10.995578,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      -2.5
+                    ],
+                    "rotation": -12.566378,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -2.5,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                },
+                {
+                  "lerp_time": 2.0,
+                  "transform": {
+                    "translation": [
+                      2.5,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 269.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 270.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 271.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 272.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 273.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 274.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 275.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 277.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 278.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 279.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 280.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 281.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 282.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 284.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": [
+                {
+                  "lerp_time": 1.0,
+                  "transform": {
+                    "translation": [
+                      -0.0,
+                      0.0
+                    ],
+                    "rotation": -14.137175,
+                    "scale": 1.0
+                  }
+                }
+              ]
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 285.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 287.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 289.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  0.0,
+                  -2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 291.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  2.5,
+                  -0.0
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 293.0,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 2.0,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -0.0,
+                  2.5
+                ],
+                "rotation": -14.137175,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    },
+    {
+      "beat": 117.5,
+      "event": {
+        "Light": {
+          "light": {
+            "danger": false,
+            "shape": {
+              "Circle": {
+                "radius": 1.3
+              }
+            },
+            "movement": {
+              "fade_in": 1.5,
+              "fade_out": 1.0,
+              "initial": {
+                "translation": [
+                  -2.5,
+                  0.0
+                ],
+                "rotation": 0.0,
+                "scale": 1.0
+              },
+              "key_frames": []
+            }
+          },
+          "telegraph": {
+            "precede_time": 1.0,
+            "speed": 1.0
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,51 +1,108 @@
 mod collider;
-mod config;
 mod level;
 mod light;
 mod logic;
 mod movement;
+mod options;
+mod player;
 
-pub use self::{collider::*, config::*, level::*, light::*, movement::*};
+pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
 
-use crate::{assets::Assets, leaderboard::Leaderboard, LeaderboardSecrets};
-
-use std::collections::VecDeque;
-
-use geng::prelude::*;
-use geng_utils::{bounded::Bounded, conversions::Vec2RealConversions};
+use crate::{leaderboard::Leaderboard, prelude::*};
 
 pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
 pub type Score = R32;
 
+pub struct Music {
+    pub meta: MusicMeta,
+    sound: Rc<geng::Sound>,
+    effect: Option<geng::SoundEffect>,
+    volume: f64,
+    /// Stop the music after the timer runs out.
+    pub timer: Time,
+}
+
+impl Clone for Music {
+    fn clone(&self) -> Self {
+        Self::new(self.sound.clone(), self.meta.clone())
+    }
+}
+
+impl Music {
+    pub fn new(sound: Rc<geng::Sound>, meta: MusicMeta) -> Self {
+        Self {
+            meta,
+            sound,
+            volume: 0.5,
+            effect: None,
+            timer: Time::ZERO,
+        }
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        let volume = f64::from(volume);
+        let volume = volume.clamp(0.0, 1.0);
+        self.volume = volume;
+        if let Some(effect) = &mut self.effect {
+            effect.set_volume(volume);
+        }
+    }
+
+    pub fn stop(&mut self) {
+        if let Some(mut effect) = self.effect.take() {
+            effect.stop();
+        }
+        self.timer = Time::ZERO;
+    }
+
+    pub fn play_from(&mut self, time: time::Duration) {
+        self.stop();
+        let mut effect = self.sound.effect();
+        effect.set_volume(self.volume);
+        effect.play_from(time);
+        self.effect = Some(effect);
+    }
+
+    pub fn beat_time(&self) -> Time {
+        self.meta.beat_time()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HoverButton {
-    pub collider: Collider,
+    pub base_collider: Collider,
     pub hover_time: Lifetime,
+    pub animation: Movement,
 }
 
-#[derive(Debug)]
-pub struct QueuedEvent {
-    /// Delay until the event should happen (in seconds).
-    pub delay: Time,
-    pub event: Event,
-}
+impl HoverButton {
+    pub fn new(collider: Collider, hover_time: impl Float) -> Self {
+        Self {
+            base_collider: collider,
+            hover_time: Lifetime::new_zero(hover_time.as_r32()),
+            animation: Movement {
+                fade_in: r32(0.0),
+                initial: Transform::scale(2.25),
+                key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
+                fade_out: r32(0.2),
+            },
+        }
+    }
 
-#[derive(Debug, Clone)]
-pub struct Player {
-    pub name: String,
-    pub target_position: vec2<Coord>,
-    pub shake: vec2<Coord>,
-    pub collider: Collider,
-    pub fear_meter: Bounded<Time>,
-    // pub is_in_light: bool,
-    pub light_distance_normalized: Option<R32>,
-}
+    /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
+    pub fn is_fading(&self) -> bool {
+        // TODO: more custom
+        self.hover_time.get_ratio().as_f32() > 0.5
+    }
 
-impl Player {
-    pub fn is_in_light(&self) -> bool {
-        self.light_distance_normalized.is_some()
+    pub fn update(&mut self, hovering: bool, delta_time: Time) {
+        self.hover_time.change(if self.is_fading() || hovering {
+            delta_time
+        } else {
+            -delta_time
+        });
     }
 }
 
@@ -59,75 +116,82 @@ pub enum State {
         music_start_time: Time,
     },
     Playing,
-    Lost,
+    Lost {
+        /// The time of death.
+        death_beat_time: Time,
+    },
     Finished,
 }
 
 pub enum Transition {
     LoadLeaderboard { submit_score: bool },
-}
-
-pub enum LeaderboardState {
-    None,
-    Pending,
-    Ready(Leaderboard),
+    Exit,
 }
 
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
-    pub config: Config,
-    pub secrets: Option<LeaderboardSecrets>,
-    pub leaderboard: LeaderboardState,
-    /// The level to use when restarting the game.
-    pub level_clone: Level,
+    pub leaderboard: Leaderboard,
+
+    pub high_score: Score,
+    pub camera: Camera2d,
+    pub player: Player,
+
+    pub options: Options,
+    pub config: LevelConfig,
+    pub music: Music,
+    /// The level being played. Not changed.
     pub level: Level,
-    pub music: Option<geng::SoundEffect>,
+    /// Current state of the level.
+    pub level_state: LevelState,
     pub state: State,
     pub score: Score,
-    pub high_score: Score,
-    /// Can be negative when initializing (because of simulating negative time).
-    pub current_beat: isize,
-    pub camera: Camera2d,
+
     pub real_time: Time,
     /// Time since the last state change.
     pub switch_time: Time,
-    /// The time until the next music beat.
-    pub beat_timer: Time,
-    pub queued_events: Vec<QueuedEvent>,
-    pub player: Player,
-    pub telegraphs: Vec<LightTelegraph>,
-    pub lights: Vec<Light>,
+    /// Current time with beats as measure.
+    pub beat_time: Time,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
+    pub exit_button: HoverButton,
 }
 
 impl Drop for Model {
     fn drop(&mut self) {
-        self.stop_music();
+        self.music.stop();
     }
 }
 
 impl Model {
     pub fn new(
         assets: &Rc<Assets>,
-        config: Config,
+        options: Options,
+        config: LevelConfig,
         level: Level,
-        leaderboard: Option<LeaderboardSecrets>,
+        level_music: Music,
+        leaderboard: Leaderboard,
         player_name: String,
         start_time: Time,
     ) -> Self {
-        let mut model = Self::empty(assets, config, level);
-        model.secrets = leaderboard;
+        let mut model = Self::empty(assets, options, config, level, level_music);
         model.player.name = player_name;
+        model.leaderboard = leaderboard;
 
         model.init(start_time);
         model
     }
 
-    pub fn empty(assets: &Rc<Assets>, config: Config, level: Level) -> Self {
+    pub fn empty(
+        assets: &Rc<Assets>,
+        options: Options,
+        config: LevelConfig,
+        level: Level,
+        music: Music,
+    ) -> Self {
         Self {
+            leaderboard: Leaderboard::new(None),
             transition: None,
             assets: assets.clone(),
             state: State::Starting {
@@ -136,7 +200,7 @@ impl Model {
             },
             score: Score::ZERO,
             high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
-            current_beat: 0,
+            beat_time: Time::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -144,42 +208,28 @@ impl Model {
             },
             real_time: Time::ZERO,
             switch_time: Time::ZERO,
-            beat_timer: Time::ZERO,
-            queued_events: Vec::new(),
-            player: Player {
-                name: "anonymous".to_string(),
-                target_position: vec2::ZERO,
-                shake: vec2::ZERO,
-                collider: Collider::new(
+            player: Player::new(
+                Collider::new(
                     vec2::ZERO,
                     Shape::Circle {
-                        radius: r32(config.player.radius),
+                        radius: config.player.radius,
                     },
                 ),
-                fear_meter: Bounded::new(r32(0.0), r32(0.0)..=r32(1.0)),
-                light_distance_normalized: None,
-            },
-            telegraphs: vec![],
-            lights: vec![],
-            restart_button: HoverButton {
-                collider: Collider::new(
-                    vec2(-3.0, 0.0).as_r32(),
-                    Shape::Circle { radius: r32(1.0) },
-                ),
-                hover_time: Lifetime::new(Time::ZERO, Time::ZERO..=r32(3.0)),
-            },
+                config.health.max,
+            ),
+            restart_button: HoverButton::new(
+                Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),
+                2.0,
+            ),
+            exit_button: HoverButton::new(
+                Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
+                3.0,
+            ),
+            options,
             config,
-            secrets: None,
-            leaderboard: LeaderboardState::None,
-            level_clone: level.clone(),
+            level_state: LevelState::default(),
+            music,
             level,
-            music: None,
-        }
-    }
-
-    fn stop_music(&mut self) {
-        if let Some(mut music) = self.music.take() {
-            music.stop();
         }
     }
 }

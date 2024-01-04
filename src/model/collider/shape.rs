@@ -8,6 +8,13 @@ pub enum Shape {
 }
 
 impl Shape {
+    pub fn rectangle(size: vec2<Coord>) -> Self {
+        Self::Rectangle {
+            width: size.x,
+            height: size.y,
+        }
+    }
+
     pub fn to_parry(self) -> Box<dyn parry2d::shape::Shape> {
         match self {
             Shape::Circle { radius } => Box::new(parry2d::shape::Ball::new(radius.as_f32())),

@@ -1,15 +1,26 @@
 use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Movement<T: Float = Time> {
-    pub key_frames: VecDeque<MoveFrame<T>>,
+pub struct Movement {
+    /// Time (in beats) to spend fading into the initial position.
+    pub fade_in: Time,
+    /// Time (in beats) to spend fading out of the last keyframe.
+    pub fade_out: Time,
+    pub initial: Transform,
+    pub key_frames: VecDeque<MoveFrame>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct MoveFrame<T: Float = Time> {
-    /// How long should the interpolation from the last frame to that frame last.
-    pub lerp_time: T,
+pub struct MoveFrame {
+    /// How long (in beats) should the interpolation from the last frame to that frame last.
+    pub lerp_time: Time,
     pub transform: Transform,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum WaypointId {
+    Initial,
+    Frame(usize),
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -20,12 +31,28 @@ pub struct Transform {
     pub scale: Coord,
 }
 
+impl MoveFrame {
+    pub fn scale(lerp_time: impl Float, scale: impl Float) -> Self {
+        Self {
+            lerp_time: lerp_time.as_r32(),
+            transform: Transform::scale(scale),
+        }
+    }
+}
+
 impl Transform {
     pub fn identity() -> Self {
         Self {
             translation: vec2::ZERO,
             rotation: Angle::ZERO,
             scale: Coord::ONE,
+        }
+    }
+
+    pub fn scale(scale: impl Float) -> Self {
+        Self {
+            scale: scale.as_r32(),
+            ..Self::identity()
         }
     }
 
@@ -44,82 +71,111 @@ impl Default for Transform {
     }
 }
 
-impl<T: Float> MoveFrame<T> {
-    pub fn with_beat_time(self, beat_time: Time) -> MoveFrame<Time> {
-        MoveFrame {
-            lerp_time: Time::new(self.lerp_time.as_f32()) * beat_time,
-            transform: self.transform,
-        }
-    }
-}
-
-impl<T: Float> Movement<T> {
-    pub fn with_beat_time(self, beat_time: Time) -> Movement<Time> {
-        Movement {
-            key_frames: self
-                .key_frames
-                .into_iter()
-                .map(|m| m.with_beat_time(beat_time))
-                .collect(),
+impl Default for Movement {
+    fn default() -> Self {
+        Self {
+            fade_in: r32(1.0),
+            fade_out: r32(1.0),
+            initial: default(),
+            key_frames: default(),
         }
     }
 }
 
 impl Movement {
+    /// Iterate over frames with corrected (accumulated) transforms.
+    pub fn frames_iter(&self) -> impl Iterator<Item = &MoveFrame> {
+        self.key_frames.iter()
+    }
+
+    /// Iterate over all key transformations (including initial)
+    /// together with their start times.
+    pub fn timed_positions(&self) -> impl Iterator<Item = (WaypointId, Transform, Time)> + '_ {
+        std::iter::once((WaypointId::Initial, self.initial, self.fade_in))
+            .chain(
+                self.frames_iter()
+                    .enumerate()
+                    .map(|(i, frame)| (WaypointId::Frame(i), frame.transform, frame.lerp_time)),
+            )
+            .scan(Time::ZERO, |time, (i, trans, duration)| {
+                *time += duration;
+                Some((i, trans, *time))
+            })
+    }
+
+    pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut Transform> {
+        match id {
+            WaypointId::Initial => Some(&mut self.initial),
+            WaypointId::Frame(i) => self.key_frames.get_mut(i).map(|frame| &mut frame.transform),
+        }
+    }
+
+    pub fn get_time(&self, id: WaypointId) -> Option<Time> {
+        let i = match id {
+            WaypointId::Initial => 0,
+            WaypointId::Frame(i) => i + 1,
+        };
+        self.timed_positions().nth(i).map(|(_, _, time)| time)
+    }
+
     /// Get the transform at the given time.
     pub fn get(&self, mut time: Time) -> Transform {
-        let mut from = Transform::identity();
-        for frame in &self.key_frames {
-            // Translation and rotation are accumulating
-            let target = Transform {
-                translation: from.translation + frame.transform.translation,
-                rotation: from.rotation + frame.transform.rotation,
-                ..frame.transform
-            };
+        let mut from = self.initial;
 
+        let lerp = |from: Transform, to, time, duration| {
+            let t = if duration > Time::ZERO {
+                time / duration
+            } else {
+                Time::ONE
+            };
+            let t = crate::util::smoothstep(t);
+            from.lerp(&to, t)
+        };
+
+        // Fade in
+        if time <= self.fade_in {
+            return lerp(
+                Transform {
+                    scale: Coord::ZERO,
+                    ..from
+                },
+                from,
+                time,
+                self.fade_in,
+            );
+        }
+        time -= self.fade_in;
+
+        for frame in self.frames_iter() {
             if time <= frame.lerp_time {
-                let t = if frame.lerp_time > Time::ZERO {
-                    time / frame.lerp_time
-                } else {
-                    Time::ONE
-                };
-                let t = crate::util::smoothstep(t);
-                return from.lerp(&target, t);
+                return lerp(from, frame.transform, time, frame.lerp_time);
             }
             time -= frame.lerp_time;
-
-            from = target;
+            from = frame.transform;
         }
-        from
+
+        // Fade out
+        let target = Transform {
+            scale: Coord::ZERO,
+            ..from
+        };
+        if time <= self.fade_out {
+            lerp(from, target, time, self.fade_out)
+        } else {
+            target
+        }
     }
 
-    /// Get the transform at the end of the movement.
-    pub fn get_finish(&self) -> Transform {
-        let mut result = Transform::identity();
-        for frame in &self.key_frames {
-            result = Transform {
-                // Translation and rotation are accumulating
-                translation: result.translation + frame.transform.translation,
-                rotation: result.rotation + frame.transform.rotation,
-                ..frame.transform
-            };
-        }
-        result
+    /// Returns the total duration of the movement including fade in/out.
+    pub fn total_duration(&self) -> Time {
+        self.fade_in + self.movement_duration() + self.fade_out
     }
 
-    /// Returns the total duration of the movement.
-    pub fn duration(&self) -> Time {
+    /// Returns the duration of the movement excluding fade in/out.
+    pub fn movement_duration(&self) -> Time {
         self.key_frames
             .iter()
             .map(|frame| frame.lerp_time)
             .fold(Time::ZERO, Time::add)
-    }
-}
-
-impl Default for Movement {
-    fn default() -> Self {
-        Self {
-            key_frames: VecDeque::new(),
-        }
     }
 }

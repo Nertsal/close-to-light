@@ -1,64 +1,112 @@
-use crate::{
-    assets::Assets, leaderboard::Leaderboard, model::*, render::GameRender, LeaderboardSecrets,
-};
+mod ui;
+
+use self::ui::CursorContext;
+pub use self::ui::GameUI;
+
+use crate::{assets::Assets, leaderboard::Leaderboard, model::*, render::game::GameRender};
+
+// use std::thread::JoinHandle;
 
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
 pub struct Game {
     geng: Geng,
-    leaderboard_future: Option<Pin<Box<dyn Future<Output = Leaderboard>>>>,
     transition: Option<geng::state::Transition>,
     render: GameRender,
     model: Model,
+    group_name: String,
+    level_name: String,
     framebuffer_size: vec2<usize>,
-    /// Cursor position in screen space.
-    cursor_pos: vec2<f64>,
+    delta_time: Time,
+
     active_touch: Option<u64>,
+    cursor: CursorContext,
+    ui: GameUI,
+    ui_focused: bool,
+}
+
+pub struct PlayLevel {
+    pub group_name: String,
+    pub level_name: String,
+    pub config: LevelConfig,
+    pub level: Level,
+    pub music: Music,
+    pub start_time: Time,
 }
 
 impl Game {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        rules: Config,
-        level: Level,
-        leaderboard: Option<LeaderboardSecrets>,
+        options: Options,
+        level: PlayLevel,
+        leaderboard: Leaderboard,
         player_name: String,
-        start_time: Time,
     ) -> Self {
         Self::preloaded(
             geng,
             assets,
-            Model::new(assets, rules, level, leaderboard, player_name, start_time),
+            Model::new(
+                assets,
+                options,
+                level.config,
+                level.level,
+                level.music,
+                leaderboard,
+                player_name,
+                level.start_time,
+            ),
+            level.group_name,
+            level.level_name,
         )
     }
 
-    fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
+    fn preloaded(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        model: Model,
+        group_name: String,
+        level_name: String,
+    ) -> Self {
         Self {
             geng: geng.clone(),
-            leaderboard_future: None,
             transition: None,
             render: GameRender::new(geng, assets),
             model,
+            group_name,
+            level_name,
             framebuffer_size: vec2(1, 1),
-            cursor_pos: vec2::ZERO,
+            delta_time: r32(0.1),
+
             active_touch: None,
+            cursor: CursorContext::new(),
+            ui: GameUI::new(assets),
+            ui_focused: false,
         }
     }
 
-    fn load_leaderboard(&mut self, submit_score: bool) {
-        if let Some(secrets) = &self.model.secrets {
-            self.model.leaderboard = LeaderboardState::Pending;
-            let player_name = self.model.player.name.clone();
-            let submit_score = submit_score && !player_name.trim().is_empty();
-            let score = submit_score.then_some(self.model.score.as_f32());
-            let secrets = secrets.clone();
-            self.leaderboard_future = Some(
-                crate::leaderboard::Leaderboard::submit(player_name, score, secrets).boxed_local(),
-            );
-        }
-    }
+    // fn load_leaderboard(&mut self, submit_score: bool) {
+    //     if let Some(secrets) = &self.model.secrets {
+    //         self.model.leaderboard = LeaderboardState::Pending;
+    //         let player_name = self.model.player.name.clone();
+    //         let submit_score = submit_score && !player_name.trim().is_empty();
+    //         let score = submit_score.then_some(self.model.score.as_f32().ceil() as i32);
+    //         let secrets = secrets.clone();
+
+    //         let meta = crate::leaderboard::ScoreMeta::new(
+    //             self.group_name.clone(),
+    //             self.level_name.clone(),
+    //             self.model.config.modifiers.clone(),
+    //             self.model.config.health.clone(),
+    //         );
+
+    //         let future = async move {
+    //             crate::leaderboard::Leaderboard::submit(player_name, score, &meta, secrets).await
+    //         };
+    //         self.leaderboard_task = Some(Task::new(future));
+    //     }
+    // }
 }
 
 impl geng::State for Game {
@@ -68,9 +116,23 @@ impl geng::State for Game {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(crate::render::COLOR_DARK), None, None);
+        ugli::clear(framebuffer, Some(self.model.options.theme.dark), None, None);
+
+        let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
+
         self.render.draw_world(&self.model, framebuffer);
-        self.render.draw_ui(&self.model, framebuffer);
+
+        if !fading {
+            self.ui_focused = self.ui.layout(
+                &mut self.model,
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                self.cursor,
+                self.delta_time.as_f32(),
+                &self.geng,
+            );
+            self.render.draw_ui(&self.ui, &self.model, framebuffer);
+        }
+        self.cursor.scroll = 0.0;
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -80,14 +142,17 @@ impl geng::State for Game {
                 geng::Key::F11 => self.geng.window().toggle_fullscreen(),
                 _ => {}
             },
+            geng::Event::Wheel { delta } => {
+                self.cursor.scroll += delta as f32;
+            }
             geng::Event::CursorMove { position } => {
-                self.cursor_pos = position;
+                self.cursor.position = position.as_f32();
             }
             geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
                 self.active_touch = Some(touch.id);
             }
             geng::Event::TouchMove(touch) if Some(touch.id) == self.active_touch => {
-                self.cursor_pos = touch.position;
+                self.cursor.position = touch.position.as_f32();
             }
             geng::Event::TouchEnd(touch) if Some(touch.id) == self.active_touch => {
                 self.active_touch = None;
@@ -98,20 +163,48 @@ impl geng::State for Game {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as _);
+        self.delta_time = delta_time;
+        self.model.leaderboard.poll();
 
-        if let Some(future) = &mut self.leaderboard_future {
-            // Poll leaderboard
-            // FIXME: completes after a single poll (and takes a long time)
-            if let std::task::Poll::Ready(leaderboard) = future.as_mut().poll(
-                &mut std::task::Context::from_waker(futures::task::noop_waker_ref()),
-            ) {
-                self.leaderboard_future = None;
-                log::info!("Loaded leaderboard");
-                self.model.leaderboard = LeaderboardState::Ready(leaderboard);
+        if let Some(transition) = self.model.transition.take() {
+            match transition {
+                Transition::LoadLeaderboard { submit_score } => {
+                    let player_name = self.model.player.name.clone();
+                    let submit_score = submit_score && !player_name.trim().is_empty();
+                    let raw_score = self.model.score.as_f32().ceil() as i32;
+                    let score = submit_score.then_some(raw_score);
+
+                    let meta = crate::leaderboard::ScoreMeta::new(
+                        self.group_name.clone(),
+                        self.level_name.clone(),
+                        self.model.config.modifiers.clone(),
+                        self.model.config.health.clone(),
+                    );
+
+                    if submit_score {
+                        self.model.leaderboard.submit(player_name, score, meta);
+                    } else {
+                        self.model.leaderboard.loaded.meta = meta.clone();
+                        // Save highscores on lost runs only locally
+                        self.model.leaderboard.loaded.reload_local(Some(
+                            &crate::leaderboard::SavedScore {
+                                player: player_name,
+                                score: raw_score,
+                                meta,
+                            },
+                        ));
+                        self.model.leaderboard.refetch();
+                    }
+                }
+                Transition::Exit => self.transition = Some(geng::state::Transition::Pop),
             }
         }
+    }
 
-        let pos = self.cursor_pos.as_f32();
+    fn fixed_update(&mut self, delta_time: f64) {
+        let delta_time = Time::new(delta_time as _);
+
+        let pos = self.cursor.position;
         let game_pos = geng_utils::layout::fit_aabb(
             self.render.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
@@ -124,13 +217,5 @@ impl geng::State for Game {
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
         self.model.update(target_pos, delta_time);
-
-        if let Some(transition) = self.model.transition.take() {
-            match transition {
-                Transition::LoadLeaderboard { submit_score } => {
-                    self.load_leaderboard(submit_score);
-                }
-            }
-        }
     }
 }

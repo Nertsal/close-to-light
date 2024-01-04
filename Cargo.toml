@@ -7,8 +7,13 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.2", features = ["derive"] }
-geng = { git = "https://github.com/geng-engine/geng" }
-geng_utils = { git = "https://github.com/nertsal/geng_utils" }
+tokio = { version = "1", features = ["rt"] }
+geng = "0.17.0"
+geng-utils = "0.3.0"
 parry2d = "0.13.5"
 serde = { version = "1.0.183", features = ["derive"] }
-jornet = { git = "https://github.com/kuviman/jornet" }
+nertboard-client = { git = "https://github.com/Nertsal/nertboard", rev = "430f048e4d50cb34246ce2bd466e1d1689647d99" }
+enum-iterator = "1.4.1"
+
+[patch.crates-io]
+async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
