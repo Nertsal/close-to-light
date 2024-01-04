@@ -6,4 +6,12 @@ EditorConfig(
     playback_duration: 0.5,
     scroll_slow: 0.25,
     scroll_fast: 16.0,
+    theme: EditorTheme(
+        hover: "#9ff",
+        select: "#0ff",
+    ),
+    shapes: [
+        Circle( radius: 1.3 ),
+        Line( width: 1.7 ),
+    ],
 )
