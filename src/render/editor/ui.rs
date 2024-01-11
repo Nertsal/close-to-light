@@ -28,11 +28,7 @@ impl EditorRender {
                 .draw_text("Level", pos, options, camera, screen_buffer);
 
             let pos = pos - vec2(0.0, font_size);
-            let name = editor
-                .level_path
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("<invalid>");
+            let name = &editor.level.level_name;
             self.util
                 .draw_text(name, pos, options, camera, screen_buffer);
         }
@@ -178,7 +174,7 @@ impl EditorRender {
             } else {
                 editor.selected_light.map(|id| id.event)
             };
-            if let Some(event) = event.and_then(|i| editor.level.events.get(i)) {
+            if let Some(event) = event.and_then(|i| editor.level.level.events.get(i)) {
                 let from = event.beat;
                 if let Event::Light(event) = &event.event {
                     let from = from + event.telegraph.precede_time;

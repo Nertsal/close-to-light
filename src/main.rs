@@ -93,16 +93,18 @@ fn main() {
                         .await
                         .expect("failed to load editor config");
 
-                let state = editor::EditorState::new(
-                    geng.clone(),
-                    assets,
-                    editor_config,
-                    options,
+                let (group_name, level_name) = crate::group_level_from_path(&level_path);
+                let level = game::PlayLevel {
+                    group_name,
+                    level_name,
                     config,
                     level,
                     music,
-                    level_path,
-                );
+                    start_time: model::Time::ZERO,
+                };
+
+                let state =
+                    editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
                 geng.run_state(state).await;
             } else {
                 // Game

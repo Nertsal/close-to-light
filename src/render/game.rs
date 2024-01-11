@@ -40,7 +40,7 @@ impl GameRender {
         let camera = &model.camera;
         let theme = &model.options.theme;
 
-        if !model.config.modifiers.sudden {
+        if !model.level.config.modifiers.sudden {
             // Telegraphs
             for tele in &model.level_state.telegraphs {
                 let color = if tele.light.danger {
@@ -53,7 +53,7 @@ impl GameRender {
             }
         }
 
-        if !model.config.modifiers.hidden {
+        if !model.level.config.modifiers.hidden {
             // Lights
             for light in &model.level_state.lights {
                 let color = if light.danger {
@@ -89,7 +89,7 @@ impl GameRender {
             );
         }
 
-        if !model.config.modifiers.clean_auto {
+        if !model.level.config.modifiers.clean_auto {
             self.util
                 .draw_player(&model.player, camera, &mut framebuffer);
         }
@@ -119,7 +119,7 @@ impl GameRender {
         }
 
         if let State::Playing = model.state {
-            if !model.config.modifiers.clean_auto {
+            if !model.level.config.modifiers.clean_auto {
                 self.util.draw_health(
                     &model.player.health,
                     model.player.get_lit_state(),
@@ -156,7 +156,7 @@ impl GameRender {
                     framebuffer,
                 );
             }
-        } else if !model.config.modifiers.clean_auto {
+        } else if !model.level.config.modifiers.clean_auto {
             self.util.draw_text(
                 format!("SCORE: {:.0}", model.score.ceil()),
                 vec2(-0.8, 4.5).as_r32(),

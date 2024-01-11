@@ -8,7 +8,7 @@ mod player;
 
 pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
 
-use crate::{leaderboard::Leaderboard, prelude::*};
+use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
 pub type Time = R32;
 pub type Coord = R32;
@@ -22,6 +22,23 @@ pub struct Music {
     volume: f64,
     /// Stop the music after the timer runs out.
     pub timer: Time,
+}
+
+impl Drop for Music {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+impl Debug for Music {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Music")
+            .field("meta", &self.meta)
+            // .field("effect", &self.effect)
+            .field("volume", &self.volume)
+            .field("timer", &self.timer)
+            .finish()
+    }
 }
 
 impl Clone for Music {
@@ -138,10 +155,8 @@ pub struct Model {
     pub player: Player,
 
     pub options: Options,
-    pub config: LevelConfig,
-    pub music: Music,
-    /// The level being played. Not changed.
-    pub level: Level,
+    /// The level being played. Not changed, apart from music being played.
+    pub level: PlayLevel,
     /// Current state of the level.
     pub level_state: LevelState,
     pub state: State,
@@ -158,24 +173,16 @@ pub struct Model {
     pub exit_button: HoverButton,
 }
 
-impl Drop for Model {
-    fn drop(&mut self) {
-        self.music.stop();
-    }
-}
-
 impl Model {
     pub fn new(
         assets: &Rc<Assets>,
         options: Options,
-        config: LevelConfig,
-        level: Level,
-        level_music: Music,
+        level: PlayLevel,
         leaderboard: Leaderboard,
         player_name: String,
-        start_time: Time,
     ) -> Self {
-        let mut model = Self::empty(assets, options, config, level, level_music);
+        let start_time = level.start_time;
+        let mut model = Self::empty(assets, options, level);
         model.player.name = player_name;
         model.leaderboard = leaderboard;
 
@@ -183,13 +190,7 @@ impl Model {
         model
     }
 
-    pub fn empty(
-        assets: &Rc<Assets>,
-        options: Options,
-        config: LevelConfig,
-        level: Level,
-        music: Music,
-    ) -> Self {
+    pub fn empty(assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
         Self {
             leaderboard: Leaderboard::new(None),
             transition: None,
@@ -212,10 +213,10 @@ impl Model {
                 Collider::new(
                     vec2::ZERO,
                     Shape::Circle {
-                        radius: config.player.radius,
+                        radius: level.config.player.radius,
                     },
                 ),
-                config.health.max,
+                level.config.health.max,
             ),
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),
@@ -226,9 +227,7 @@ impl Model {
                 3.0,
             ),
             options,
-            config,
             level_state: LevelState::default(),
-            music,
             level,
         }
     }

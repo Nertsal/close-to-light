@@ -34,7 +34,9 @@ impl EditorState {
                     if let Some(waypoints) = &self.editor.level_state.waypoints {
                         // Delete a waypoint
                         if let Some(index) = waypoints.selected {
-                            if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                            if let Some(event) =
+                                self.editor.level.level.events.get_mut(waypoints.event)
+                            {
                                 if let Event::Light(light) = &mut event.event {
                                     match index {
                                         WaypointId::Initial => {
@@ -42,6 +44,7 @@ impl EditorState {
                                                 None => {
                                                     // No waypoints -> delete the whole event
                                                     self.editor
+                                                        .level
                                                         .level
                                                         .events
                                                         .swap_remove(waypoints.event);
@@ -72,7 +75,7 @@ impl EditorState {
                             }
                         }
                     } else if let Some(index) = self.editor.selected_light {
-                        self.editor.level.events.swap_remove(index.event);
+                        self.editor.level.level.events.swap_remove(index.event);
                     }
                     self.save_state(default());
                 }
@@ -96,7 +99,7 @@ impl EditorState {
                             if let Some(event) = self
                                 .editor
                                 .selected_light
-                                .and_then(|i| self.editor.level.events.get_mut(i.event))
+                                .and_then(|i| self.editor.level.level.events.get_mut(i.event))
                             {
                                 if let Event::Light(event) = &mut event.event {
                                     event.light.danger = !event.light.danger;
@@ -104,7 +107,7 @@ impl EditorState {
                             }
                         }
                         State::Waypoints { event, .. } => {
-                            if let Some(event) = self.editor.level.events.get_mut(*event) {
+                            if let Some(event) = self.editor.level.level.events.get_mut(*event) {
                                 if let Event::Light(event) = &mut event.event {
                                     event.light.danger = !event.light.danger;
                                 }
@@ -175,7 +178,7 @@ impl EditorState {
                     {
                         self.editor.current_beat = *start_beat;
                         self.editor.state = *old_state.clone();
-                        self.editor.music.stop();
+                        self.editor.level.music.stop();
                     } else {
                         self.editor.state = State::Playing {
                             start_beat: self.editor.current_beat,
@@ -183,10 +186,13 @@ impl EditorState {
                         };
                         // TODO: future proof in case level beat time is not constant
                         self.editor.real_time =
-                            self.editor.current_beat * self.editor.music.beat_time();
-                        self.editor.music.play_from(time::Duration::from_secs_f64(
-                            self.editor.real_time.as_f32() as f64,
-                        ));
+                            self.editor.current_beat * self.editor.level.music.beat_time();
+                        self.editor
+                            .level
+                            .music
+                            .play_from(time::Duration::from_secs_f64(
+                                self.editor.real_time.as_f32() as f64,
+                            ));
                     }
                 }
                 geng::Key::Digit1 => self.handle_digit(1),
@@ -220,7 +226,9 @@ impl EditorState {
                             (self.editor.place_scale + delta).clamp(r32(0.2), r32(2.0));
                     } else if let Some(waypoints) = &self.editor.level_state.waypoints {
                         if let Some(selected) = waypoints.selected {
-                            if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                            if let Some(event) =
+                                self.editor.level.level.events.get_mut(waypoints.event)
+                            {
                                 if let Event::Light(light) = &mut event.event {
                                     if let Some(frame) =
                                         light.light.movement.get_frame_mut(selected)
@@ -235,7 +243,7 @@ impl EditorState {
                     } else if let Some(event) = self
                         .editor
                         .selected_light
-                        .and_then(|light| self.editor.level.events.get_mut(light.event))
+                        .and_then(|light| self.editor.level.level.events.get_mut(light.event))
                     {
                         // Control fade time
                         let change = scroll * self.editor.config.scroll_slow;
@@ -283,7 +291,7 @@ impl EditorState {
                             beat,
                             event: Event::Light(event),
                         };
-                        self.editor.level.events.push(event);
+                        self.editor.level.level.events.push(event);
                         self.editor.state = State::Idle;
                         self.save_state(default());
                     }
@@ -338,7 +346,7 @@ impl EditorState {
         if let Some(waypoints) = &self.editor.level_state.waypoints {
             if let Some(waypoint) = waypoints.selected {
                 // Move waypoint in time
-                if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                if let Some(event) = self.editor.level.level.events.get_mut(waypoints.event) {
                     if let Event::Light(light) = &mut event.event {
                         // Move temporaly
                         if let Some(beat) = light.light.movement.get_time(waypoint) {
@@ -411,7 +419,7 @@ impl EditorState {
                 initial_time,
                 initial_translation,
             } => {
-                if let Some(event) = self.editor.level.events.get_mut(event) {
+                if let Some(event) = self.editor.level.level.events.get_mut(event) {
                     if let Event::Light(light) = &mut event.event {
                         // Move temporaly
                         event.beat = self.editor.current_beat - drag.from_time + initial_time;
@@ -433,7 +441,7 @@ impl EditorState {
                 waypoint,
                 initial_translation,
             } => {
-                if let Some(event) = self.editor.level.events.get_mut(event) {
+                if let Some(event) = self.editor.level.level.events.get_mut(event) {
                     if let Event::Light(light) = &mut event.event {
                         // Move spatially
                         if let Some(frame) = light.light.movement.get_frame_mut(waypoint) {
@@ -452,7 +460,7 @@ impl EditorState {
                 // Select a light
                 if let Some(event) = self.editor.level_state.hovered_event() {
                     self.editor.selected_light = Some(LightId { event });
-                    if let Some(e) = self.editor.level.events.get(event) {
+                    if let Some(e) = self.editor.level.level.events.get(event) {
                         if let Event::Light(light) = &e.event {
                             self.start_drag(DragTarget::Light {
                                 event,
@@ -519,7 +527,7 @@ impl EditorState {
                         {
                             if let Some(waypoint) = hovered.original {
                                 if let Some(event) =
-                                    self.editor.level.events.get_mut(waypoints.event)
+                                    self.editor.level.level.events.get_mut(waypoints.event)
                                 {
                                     if let Event::Light(event) = &mut event.event {
                                         if let Some(frame) =
@@ -542,7 +550,8 @@ impl EditorState {
                 }
                 WaypointsState::New => {
                     if let Some(waypoints) = &self.editor.level_state.waypoints {
-                        if let Some(event) = self.editor.level.events.get_mut(waypoints.event) {
+                        if let Some(event) = self.editor.level.level.events.get_mut(waypoints.event)
+                        {
                             if let Event::Light(light) = &mut event.event {
                                 if let Some(i) = waypoints
                                     .points
@@ -618,6 +627,7 @@ impl EditorState {
             .and_then(|waypoints| {
                 waypoints.selected.and_then(|selected| {
                     self.editor
+                        .level
                         .level
                         .events
                         .get_mut(waypoints.event)

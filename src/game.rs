@@ -26,6 +26,7 @@ pub struct Game {
     ui_focused: bool,
 }
 
+#[derive(Debug, Clone)]
 pub struct PlayLevel {
     pub group_name: String,
     pub level_name: String,
@@ -33,6 +34,17 @@ pub struct PlayLevel {
     pub level: Level,
     pub music: Music,
     pub start_time: Time,
+}
+
+impl PlayLevel {
+    pub fn level_path(&self) -> std::path::PathBuf {
+        run_dir()
+            .join("assets")
+            .join("groups")
+            .join(&self.group_name)
+            .join(&self.level_name)
+            .join("level.json")
+    }
 }
 
 impl Game {
@@ -47,16 +59,7 @@ impl Game {
         Self::preloaded(
             geng,
             assets,
-            Model::new(
-                assets,
-                options,
-                level.config,
-                level.level,
-                level.music,
-                leaderboard,
-                player_name,
-                level.start_time,
-            ),
+            Model::new(assets, options, level.clone(), leaderboard, player_name),
             level.group_name,
             level.level_name,
         )
@@ -177,8 +180,8 @@ impl geng::State for Game {
                     let meta = crate::leaderboard::ScoreMeta::new(
                         self.group_name.clone(),
                         self.level_name.clone(),
-                        self.model.config.modifiers.clone(),
-                        self.model.config.health.clone(),
+                        self.model.level.config.modifiers.clone(),
+                        self.model.level.config.health.clone(),
                     );
 
                     if submit_score {

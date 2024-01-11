@@ -49,43 +49,40 @@ impl EditorRender {
         let select_color = editor.config.theme.select;
         let selected_event = editor.selected_light.map(|i| i.event);
 
-        let get_color = |event_id: Option<usize>| -> Color {
-            if let Some(event_id) = event_id {
-                let check = |a: Option<usize>| -> bool { a == Some(event_id) };
-                let base_color =
-                    if editor
-                        .level
-                        .events
-                        .get(event_id)
-                        .map_or(false, |e| match &e.event {
+        let get_color =
+            |event_id: Option<usize>| -> Color {
+                if let Some(event_id) = event_id {
+                    let check = |a: Option<usize>| -> bool { a == Some(event_id) };
+                    let base_color = if editor.level.level.events.get(event_id).map_or(false, |e| {
+                        match &e.event {
                             Event::Light(event) => event.light.danger,
                             _ => false,
-                        })
-                    {
+                        }
+                    }) {
                         danger_color
                     } else {
                         light_color
                     };
-                let mod_color = if check(selected_event) {
-                    select_color
-                } else if check(hovered_event) {
-                    hover_color
-                } else {
-                    base_color
-                };
+                    let mod_color = if check(selected_event) {
+                        select_color
+                    } else if check(hovered_event) {
+                        hover_color
+                    } else {
+                        base_color
+                    };
 
-                let a = Hsva::<f32>::from(base_color);
-                let b = Hsva::<f32>::from(mod_color);
-                Color::from(Hsva {
-                    h: (a.h + b.h) / 2.0,
-                    s: (a.s + b.s) / 2.0,
-                    v: (a.v + b.v) / 2.0,
-                    a: (a.a + b.a) / 2.0,
-                })
-            } else {
-                active_color
-            }
-        };
+                    let a = Hsva::<f32>::from(base_color);
+                    let b = Hsva::<f32>::from(mod_color);
+                    Color::from(Hsva {
+                        h: (a.h + b.h) / 2.0,
+                        s: (a.s + b.s) / 2.0,
+                        v: (a.v + b.v) / 2.0,
+                        a: (a.a + b.a) / 2.0,
+                    })
+                } else {
+                    active_color
+                }
+            };
 
         let static_alpha = if let State::Place { .. }
         | State::Movement { .. }
@@ -153,7 +150,8 @@ impl EditorRender {
                     + light.telegraph.precede_time;
                 let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
                     let event = commit_light(light.clone());
-                    let (tele, light) = render_light(&event, time, None, &editor.model.config);
+                    let (tele, light) =
+                        render_light(&event, time, None, &editor.model.level.config);
                     for tele in tele {
                         draw_telegraph(&tele, pixel_buffer);
                     }
@@ -164,7 +162,7 @@ impl EditorRender {
 
                 let mut pixel_buffer = if editor.visualize_beat {
                     // Active movement
-                    let time = time + (editor.real_time / editor.music.beat_time()).fract();
+                    let time = time + (editor.real_time / editor.level.music.beat_time()).fract();
                     draw_active(time, &mut pixel_buffer);
                     draw_game!(0.75)
                 } else {
@@ -204,7 +202,7 @@ impl EditorRender {
 
         if let State::Waypoints { event, .. } = &editor.state {
             let event = *event;
-            if let Some(event) = editor.level.events.get(event) {
+            if let Some(event) = editor.level.level.events.get(event) {
                 if let Event::Light(event) = &event.event {
                     let color = if event.light.danger {
                         danger_color
@@ -270,7 +268,8 @@ impl EditorRender {
                                 &mut pixel_buffer,
                             );
                             if let Some(i) = point.original {
-                                if let Some(event) = editor.level.events.get(waypoints.event) {
+                                if let Some(event) = editor.level.level.events.get(waypoints.event)
+                                {
                                     if let Event::Light(light) = &event.event {
                                         if let Some(beat) = light.light.movement.get_time(i) {
                                             let beat =
@@ -397,7 +396,7 @@ impl EditorRender {
             //     text_color,
             // );
 
-            if editor.model.level != editor.level {
+            if editor.model.level.level != editor.level.level {
                 // Save indicator
                 let text = "Ctrl+S to save the level";
                 font.draw(
