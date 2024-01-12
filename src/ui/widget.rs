@@ -9,6 +9,7 @@ mod options;
 mod slider;
 mod text;
 mod timeline;
+mod value;
 
 pub use self::{
     button::ButtonWidget,
@@ -22,6 +23,7 @@ pub use self::{
     slider::SliderWidget,
     text::TextWidget,
     timeline::TimelineWidget,
+    value::ValueWidget,
 };
 
 use crate::prelude::Theme;

@@ -6,23 +6,22 @@ use crate::ui::{layout, widget::*};
 pub struct EditorUI {
     pub screen: WidgetState,
     pub game: WidgetState,
-    pub level_info: WidgetState,
-    pub general: WidgetState,
 
+    pub new_event: TextWidget,
     pub new_palette: ButtonWidget,
-    pub new_light: ButtonWidget,
-    pub new_selector: WidgetState,
-    // TODO: dynamic
-    pub new_circle: LightWidget,
-    pub new_line: LightWidget,
+    pub new_circle: ButtonWidget,
+    pub new_line: ButtonWidget,
 
     pub selected_text: TextWidget,
     pub selected_light: LightStateWidget,
 
-    /// The size for the light texture to render pixel-perfectly.
-    pub light_size: vec2<usize>,
+    pub view: TextWidget,
     pub visualize_beat: CheckboxWidget,
     pub show_grid: CheckboxWidget,
+    pub view_lights: ButtonWidget,
+    pub view_waypoints: ButtonWidget,
+    pub view_zoom: ValueWidget<f32>,
+
     pub snap_grid: CheckboxWidget,
 
     pub current_beat: TextWidget,
@@ -34,23 +33,24 @@ impl EditorUI {
         Self {
             screen: default(),
             game: default(),
-            level_info: default(),
-            general: default(),
+
+            new_event: TextWidget::new("Event"),
             new_palette: ButtonWidget::new("Palette Swap"),
-            new_light: ButtonWidget::new("New Light"),
-            new_selector: {
-                let mut state = WidgetState::default();
-                state.hide();
-                state
-            },
-            new_circle: LightWidget::new_shape(Shape::Circle { radius: r32(1.3) }),
-            new_line: LightWidget::new_shape(Shape::Line { width: r32(1.7) }),
+            new_circle: ButtonWidget::new("Circle"),
+            new_line: ButtonWidget::new("Line"),
+
             selected_text: default(),
             selected_light: LightStateWidget::new(),
-            light_size: vec2(1, 1),
-            visualize_beat: CheckboxWidget::new("Show movement"),
-            show_grid: CheckboxWidget::new("Show grid"),
-            snap_grid: CheckboxWidget::new("Snap to grid"),
+
+            view: TextWidget::new("View"),
+            visualize_beat: CheckboxWidget::new("Dynamic"),
+            show_grid: CheckboxWidget::new("Grid"),
+            view_lights: ButtonWidget::new("Lights"),
+            view_waypoints: ButtonWidget::new("Waypoints"),
+            view_zoom: ValueWidget::new("Zoom: ", 1.0, 0.5..=2.0, 0.25),
+
+            snap_grid: CheckboxWidget::new("Grid snap"),
+
             current_beat: default(),
             timeline: TimelineWidget::new(),
         }
@@ -68,10 +68,11 @@ impl EditorUI {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let font_size = screen.height() * 0.03;
+        let layout_size = screen.height() * 0.03;
 
         let context = UiContext {
             theme: editor.model.options.theme,
-            layout_size: screen.height() * 0.03,
+            layout_size,
             font_size,
             can_focus: true,
             cursor,
@@ -86,7 +87,7 @@ impl EditorUI {
         update!(self.screen, screen);
 
         {
-            let max_size = screen.size() * 0.8;
+            let max_size = screen.size() * 0.7;
 
             let ratio = 16.0 / 9.0;
             let max_height = max_size.y.min(max_size.x / ratio);
@@ -94,134 +95,173 @@ impl EditorUI {
             let game_height = max_height;
             let game_size = vec2(game_height * ratio, game_height);
 
-            update!(
-                self.game,
-                layout::align_aabb(game_size, screen, vec2(0.0, 1.0))
-            );
+            let game = layout::align_aabb(game_size, screen, vec2(0.5, 0.5));
+            update!(self.game, game);
         }
 
-        let margin = screen.width().min(screen.height()) * 0.02;
+        let main = screen;
+        let (top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
+        let main = main.extend_down(-layout_size);
+        let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 1.5);
 
-        let side_bar = Aabb2 {
-            min: vec2(self.game.position.max.x, screen.min.y),
-            max: self.screen.position.max,
-        }
-        .extend_uniform(-margin);
-        let bottom_bar = Aabb2 {
-            min: self.screen.position.min,
-            max: vec2(self.game.position.max.x, self.game.position.min.y),
-        }
-        .extend_uniform(-margin);
-
-        let (side_bar, level_info) = layout::split_top_down(side_bar, 0.8);
-        update!(self.level_info, level_info);
-
-        let (side_bar, general) = layout::split_top_down(side_bar, 0.6);
-        let (_, general) = layout::cut_top_down(general, font_size);
+        let main = main.extend_symmetric(-vec2(1.0, 2.0) * layout_size);
+        let (left_bar, main) = layout::cut_left_right(main, font_size * 5.0);
+        let (right_bar, main) = layout::cut_left_right(main, main.width() - font_size * 5.0);
 
         {
-            update!(self.general, general);
+            let bar = left_bar;
+            let spacing = layout_size * 0.25;
+            let button_height = font_size * 1.2;
 
-            let pos = layout::cut_top_down(general, font_size)
-                .0
-                .extend_symmetric(vec2(-font_size, 0.0));
-            let targets = [
-                (&mut self.visualize_beat, &mut editor.visualize_beat),
-                (&mut self.show_grid, &mut render_options.show_grid),
-                (&mut self.snap_grid, &mut editor.snap_to_grid),
-            ];
-            for (pos, (target, value)) in layout::stack(pos, vec2(0.0, -font_size), targets.len())
-                .into_iter()
-                .zip(targets)
-            {
-                update!(target, pos);
-                if target.check.clicked {
-                    *value = !*value;
-                }
-                target.checked = *value;
-            }
-        }
+            let (event, bar) = layout::cut_top_down(bar, font_size);
+            update!(self.new_event, event);
 
-        let (buttons_new, side_bar) = layout::cut_top_down(side_bar, font_size * 1.5);
-        {
-            let targets = [&mut self.new_palette, &mut self.new_light];
-            for (pos, target) in layout::split_columns(buttons_new, 2)
-                .into_iter()
-                .zip(targets)
-            {
-                update!(target, pos);
-            }
-
-            if let State::Idle
-            | State::Waypoints {
-                state: WaypointsState::Idle,
-                ..
-            } = &editor.state
-            {
-                self.new_light.show();
-            } else {
-                self.new_light.hide();
-            }
-
-            if let State::Idle = &editor.state {
-                self.new_palette.show();
-            } else {
-                self.new_palette.hide();
-            }
-
-            if self.new_light.text.state.clicked {
-                match &mut editor.state {
-                    State::Idle => {
-                        if self.new_selector.visible {
-                            self.new_selector.hide();
-                            self.new_circle.hide();
-                            self.new_line.hide();
-                        } else {
-                            self.new_selector.show();
-                            self.new_circle.show();
-                            self.new_line.show();
-                        }
-                    }
-                    State::Waypoints {
-                        state: state @ WaypointsState::Idle,
-                        ..
-                    } => {
-                        *state = WaypointsState::New;
-                    }
-                    _ => {}
-                }
-            } else if self.new_palette.text.state.clicked {
+            let (palette, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            update!(self.new_palette, palette);
+            if self.new_palette.text.state.clicked {
                 editor.palette_swap();
             }
-        }
 
-        {
-            // Selector
-            let (selector, _) = layout::cut_top_down(side_bar, side_bar.width());
-            let targets = [&mut self.new_circle, &mut self.new_line];
-            for (pos, target) in layout::split_rows(selector, 2).into_iter().zip(targets) {
-                update!(target, pos);
-                if target.state.clicked {
-                    editor.state = State::Place {
-                        shape: target.light.shape,
-                        danger: false,
-                    };
-                }
+            let (circle, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            update!(self.new_circle, circle);
+            if self.new_circle.text.state.clicked {
+                editor.new_light_circle();
             }
+
+            let (line, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            update!(self.new_line, line);
+            if self.new_line.text.state.clicked {
+                editor.new_light_line();
+            }
+
+            let bar = bar.extend_up(-layout_size * 1.5);
+
+            let (view, bar) = layout::cut_top_down(bar, font_size);
+            let bar = bar.extend_up(-spacing);
+            update!(self.view, view);
+
+            let (dynamic, bar) = layout::cut_top_down(bar, font_size);
+            let bar = bar.extend_up(-spacing);
+            update!(self.visualize_beat, dynamic);
+            if self.visualize_beat.state.clicked {
+                editor.visualize_beat = !editor.visualize_beat;
+            }
+            self.visualize_beat.checked = editor.visualize_beat;
+
+            let (grid, bar) = layout::cut_top_down(bar, font_size);
+            let bar = bar.extend_up(-spacing);
+            update!(self.show_grid, grid);
+            if self.show_grid.state.clicked {
+                render_options.show_grid = !render_options.show_grid;
+            }
+            self.show_grid.checked = editor.visualize_beat;
+
+            let (lights, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            update!(self.view_lights, lights);
+            if self.view_lights.text.state.clicked {
+                editor.view_lights();
+            }
+
+            let (waypoints, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            update!(self.view_waypoints, waypoints);
+            if self.view_waypoints.text.state.clicked {
+                editor.view_waypoints();
+            }
+
+            let (zoom, bar) = layout::cut_top_down(bar, font_size);
+            let bar = bar.extend_up(-spacing);
+            self.view_zoom.value.set(editor.view_zoom);
+            update!(self.view_zoom, zoom);
+            editor.view_zoom = self.view_zoom.value.value();
+
+            let _ = bar;
         }
 
-        {
-            update!(self.selected_light, side_bar);
+        // let (buttons_new, side_bar) = layout::cut_top_down(side_bar, font_size * 1.5);
+        // {
+        //     let targets = [&mut self.new_palette, &mut self.new_light];
+        //     for (pos, target) in layout::split_columns(buttons_new, 2)
+        //         .into_iter()
+        //         .zip(targets)
+        //     {
+        //         update!(target, pos);
+        //     }
 
-            let light_size = self.selected_light.light.state.position.size();
-            self.light_size = light_size.map(|x| x.round() as usize);
+        //     if let State::Idle
+        //     | State::Waypoints {
+        //         state: WaypointsState::Idle,
+        //         ..
+        //     } = &editor.state
+        //     {
+        //         self.new_light.show();
+        //     } else {
+        //         self.new_light.hide();
+        //     }
 
-            let target = side_bar;
-            update!(
-                self.selected_text,
-                layout::fit_aabb_width(vec2(target.width(), font_size), target, 1.0)
-            );
-        }
+        //     if let State::Idle = &editor.state {
+        //         self.new_palette.show();
+        //     } else {
+        //         self.new_palette.hide();
+        //     }
+
+        //     if self.new_light.text.state.clicked {
+        //         match &mut editor.state {
+        //             State::Idle => {
+        //                 if self.new_selector.visible {
+        //                     self.new_selector.hide();
+        //                     self.new_circle.hide();
+        //                     self.new_line.hide();
+        //                 } else {
+        //                     self.new_selector.show();
+        //                     self.new_circle.show();
+        //                     self.new_line.show();
+        //                 }
+        //             }
+        //             State::Waypoints {
+        //                 state: state @ WaypointsState::Idle,
+        //                 ..
+        //             } => {
+        //                 *state = WaypointsState::New;
+        //             }
+        //             _ => {}
+        //         }
+        //     } else if self.new_palette.text.state.clicked {
+        //         editor.palette_swap();
+        //     }
+        // }
+
+        // {
+        //     // Selector
+        //     let (selector, _) = layout::cut_top_down(side_bar, side_bar.width());
+        //     let targets = [&mut self.new_circle, &mut self.new_line];
+        //     for (pos, target) in layout::split_rows(selector, 2).into_iter().zip(targets) {
+        //         update!(target, pos);
+        //         if target.state.clicked {
+        //             editor.state = State::Place {
+        //                 shape: target.light.shape,
+        //                 danger: false,
+        //             };
+        //         }
+        //     }
+        // }
+
+        // {
+        //     update!(self.selected_light, side_bar);
+
+        //     let light_size = self.selected_light.light.state.position.size();
+        //     self.light_size = light_size.map(|x| x.round() as usize);
+
+        //     let target = side_bar;
+        //     update!(
+        //         self.selected_text,
+        //         layout::fit_aabb_width(vec2(target.width(), font_size), target, 1.0)
+        //     );
+        // }
 
         {
             let selected = if let State::Place { shape, danger } = &mut editor.state {

@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Debug, Default)]
 pub struct CheckboxWidget {
+    pub state: WidgetState,
     pub text: TextWidget,
     pub check: WidgetState,
     pub checked: bool,
@@ -18,6 +19,8 @@ impl CheckboxWidget {
 
 impl Widget for CheckboxWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        self.state.update(position, context);
+
         let check_size = position.height().min(context.font_size) * 0.5;
         let check_pos = Aabb2::point(vec2(position.min.x + check_size / 2.0, position.center().y))
             .extend_uniform(check_size / 2.0);

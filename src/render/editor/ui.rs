@@ -18,132 +18,71 @@ impl EditorRender {
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
 
-        {
-            // Level info
-            let pos = vec2(
-                ui.level_info.position.center().x,
-                ui.level_info.position.max.y,
-            );
-            self.util
-                .draw_text("Level", pos, options, camera, screen_buffer);
+        self.ui.draw_text(&ui.new_event, screen_buffer);
+        self.ui.draw_button(&ui.new_palette, screen_buffer);
+        self.ui.draw_button(&ui.new_circle, screen_buffer);
+        self.ui.draw_button(&ui.new_line, screen_buffer);
 
-            let pos = pos - vec2(0.0, font_size);
-            let name = &editor.level.level_name;
-            self.util
-                .draw_text(name, pos, options, camera, screen_buffer);
-        }
+        self.ui.draw_text(&ui.view, screen_buffer);
+        self.ui
+            .draw_checkbox(&ui.visualize_beat, options, screen_buffer);
+        self.ui.draw_checkbox(&ui.show_grid, options, screen_buffer);
+        self.ui.draw_button(&ui.view_lights, screen_buffer);
+        self.ui.draw_button(&ui.view_waypoints, screen_buffer);
+        self.ui.draw_value(&ui.view_zoom, screen_buffer);
 
-        {
-            // General
-            for widget in [&ui.visualize_beat, &ui.show_grid, &ui.snap_grid] {
-                self.ui.draw_checkbox(widget, options, screen_buffer);
-            }
-        }
+        self.ui.draw_text(&ui.selected_text, screen_buffer);
 
-        self.ui.draw_button_widget(&ui.new_palette, screen_buffer);
-        self.ui.draw_button_widget(&ui.new_light, screen_buffer);
+        // if ui.selected_light.light.state.visible {
+        //     let light = &ui.selected_light.light.light;
+        //     let mut dither_buffer = self.dither_small.start();
+        //     let mut collider = Collider::new(vec2::ZERO, light.shape);
+        //     collider.rotation = light.movement.initial.rotation;
+        //     let color = if light.danger {
+        //         THEME.danger
+        //     } else {
+        //         THEME.light
+        //     };
+        //     self.util.draw_light(
+        //         &collider,
+        //         color,
+        //         &Camera2d {
+        //             center: vec2::ZERO,
+        //             rotation: Angle::ZERO,
+        //             fov: 3.0,
+        //         },
+        //         &mut dither_buffer,
+        //     );
+        //     self.dither_small
+        //         .finish(editor.real_time, &theme.transparent());
 
-        if ui.new_selector.visible {
-            // Selector
-            for widget in [&ui.new_circle, &ui.new_line] {
-                let light = &widget.light;
-                let mut dither_buffer = self.dither_small.start();
-                let collider = Collider::new(vec2::ZERO, light.shape);
-                let color = if widget.state.hovered {
-                    editor.config.theme.hover
-                } else {
-                    THEME.light
-                };
-                self.util.draw_light(
-                    &collider,
-                    color,
-                    &Camera2d {
-                        center: vec2::ZERO,
-                        rotation: Angle::ZERO,
-                        fov: 3.0,
-                    },
-                    &mut dither_buffer,
-                );
-                self.dither_small
-                    .finish(editor.real_time, &theme.transparent());
+        //     let size = ui.light_size.as_f32();
+        //     let pos = geng_utils::layout::aabb_pos(
+        //         ui.selected_light.light.state.position,
+        //         vec2(0.5, 1.0),
+        //     );
+        //     let pos = pos - vec2(0.0, font_size + size.y / 2.0);
+        //     let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
+        //     self.geng.draw2d().textured_quad(
+        //         screen_buffer,
+        //         camera,
+        //         aabb,
+        //         self.dither_small.get_buffer(),
+        //         Color::WHITE,
+        //     );
 
-                let size = ui.light_size.as_f32();
-                let pos = geng_utils::layout::aabb_pos(widget.state.position, vec2(0.5, 0.5));
-                let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
-                self.geng.draw2d().textured_quad(
-                    screen_buffer,
-                    camera,
-                    aabb,
-                    self.dither_small.get_buffer(),
-                    Color::WHITE,
-                );
-            }
-        }
-
-        if ui.selected_text.state.visible {
-            // Selected light
-            let pos = geng_utils::layout::aabb_pos(ui.selected_text.state.position, vec2(0.5, 1.0));
-            self.util.draw_text(
-                &ui.selected_text.text,
-                pos,
-                options.size(font_size * 0.7),
-                camera,
-                screen_buffer,
-            );
-        }
-
-        if ui.selected_light.light.state.visible {
-            let light = &ui.selected_light.light.light;
-            let mut dither_buffer = self.dither_small.start();
-            let mut collider = Collider::new(vec2::ZERO, light.shape);
-            collider.rotation = light.movement.initial.rotation;
-            let color = if light.danger {
-                THEME.danger
-            } else {
-                THEME.light
-            };
-            self.util.draw_light(
-                &collider,
-                color,
-                &Camera2d {
-                    center: vec2::ZERO,
-                    rotation: Angle::ZERO,
-                    fov: 3.0,
-                },
-                &mut dither_buffer,
-            );
-            self.dither_small
-                .finish(editor.real_time, &theme.transparent());
-
-            let size = ui.light_size.as_f32();
-            let pos = geng_utils::layout::aabb_pos(
-                ui.selected_light.light.state.position,
-                vec2(0.5, 1.0),
-            );
-            let pos = pos - vec2(0.0, font_size + size.y / 2.0);
-            let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
-            self.geng.draw2d().textured_quad(
-                screen_buffer,
-                camera,
-                aabb,
-                self.dither_small.get_buffer(),
-                Color::WHITE,
-            );
-
-            let options = options.align(vec2(0.0, 0.5));
-            self.ui
-                .draw_checkbox(&ui.selected_light.danger, options, screen_buffer);
-            self.ui
-                .draw_text_widget(&ui.selected_light.fade_in, screen_buffer);
-            self.ui
-                .draw_text_widget(&ui.selected_light.fade_out, screen_buffer);
-            self.ui
-                .draw_text_widget(&ui.selected_light.scale, screen_buffer);
-        }
+        //     let options = options.align(vec2(0.0, 0.5));
+        //     self.ui
+        //         .draw_checkbox(&ui.selected_light.danger, options, screen_buffer);
+        //     self.ui.draw_text(&ui.selected_light.fade_in, screen_buffer);
+        //     self.ui
+        //         .draw_text(&ui.selected_light.fade_out, screen_buffer);
+        //     self.ui.draw_text(&ui.selected_light.scale, screen_buffer);
+        // }
 
         {
             // Timeline
-            self.ui.draw_text_widget(&ui.current_beat, screen_buffer);
+            self.ui.draw_text(&ui.current_beat, screen_buffer);
 
             let mut quad =
                 |aabb, color| self.geng.draw2d().quad(screen_buffer, camera, aabb, color);

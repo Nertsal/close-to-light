@@ -95,17 +95,16 @@ impl MenuRender {
             {
                 // Volume
                 let volume = &ui.options.volume;
-                self.ui.draw_text_widget(&volume.title, &mut buffer.color);
-                self.ui
-                    .draw_slider_widget(&volume.master, &mut buffer.color);
+                self.ui.draw_text(&volume.title, &mut buffer.color);
+                self.ui.draw_slider(&volume.master, &mut buffer.color);
             }
 
             {
                 // Palette
                 let palette = &ui.options.palette;
-                self.ui.draw_text_widget(&palette.title, &mut buffer.color);
+                self.ui.draw_text(&palette.title, &mut buffer.color);
                 for palette in &palette.palettes {
-                    self.ui.draw_text_widget(&palette.name, &mut buffer.color);
+                    self.ui.draw_text(&palette.name, &mut buffer.color);
 
                     let mut quad = |i: f32, color: Color| {
                         let pos = palette.visual.position;
@@ -154,8 +153,7 @@ impl MenuRender {
                 &mut buffer.color,
             );
 
-            self.ui
-                .draw_text_widget(&ui.options_head, &mut buffer.color);
+            self.ui.draw_text(&ui.options_head, &mut buffer.color);
 
             self.masked.draw(draw_parameters(), framebuffer);
 

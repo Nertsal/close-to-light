@@ -99,6 +99,7 @@ pub struct Editor {
     /// At what scale the objects should be placed.
     pub place_scale: Coord,
 
+    pub view_zoom: f32,
     pub state: State,
     /// Whether the last frame was scrolled through time.
     pub was_scrolling_time: bool,
@@ -151,6 +152,7 @@ impl EditorState {
                 selected_light: None,
                 place_rotation: Angle::ZERO,
                 place_scale: Coord::ONE,
+                view_zoom: 1.0,
                 state: State::Idle,
                 was_scrolling_time: false,
                 scrolling_time: false,
@@ -388,6 +390,7 @@ impl geng::State for EditorState {
             self.delta_time,
             &self.geng,
         );
+        self.editor.model.camera.fov = 10.0 / self.editor.view_zoom;
         self.render
             .draw_editor(&self.editor, &self.ui, &self.render_options, framebuffer);
     }
@@ -420,6 +423,22 @@ impl Editor {
                 event: Event::PaletteSwap,
             });
         }
+    }
+
+    fn new_light_circle(&mut self) {
+        todo!()
+    }
+
+    fn new_light_line(&mut self) {
+        todo!()
+    }
+
+    fn view_lights(&mut self) {
+        todo!()
+    }
+
+    fn view_waypoints(&mut self) {
+        todo!()
     }
 
     fn scroll_time(&mut self, delta: Time) {
