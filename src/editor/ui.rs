@@ -113,7 +113,7 @@ impl EditorUI {
         }
 
         let main = screen;
-        let (top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
+        let (_top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
 
         let main = main.extend_down(-layout_size);
         let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 3.0);

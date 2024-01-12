@@ -4,7 +4,6 @@ mod group;
 mod leaderboard;
 mod level;
 mod level_config;
-mod light;
 mod options;
 mod slider;
 mod text;
@@ -18,7 +17,6 @@ pub use self::{
     leaderboard::{LeaderboardEntryWidget, LeaderboardWidget},
     level::*,
     level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
-    light::{LightStateWidget, LightWidget},
     options::{OptionsWidget, PaletteChooseWidget, PaletteWidget, VolumeWidget},
     slider::SliderWidget,
     text::TextWidget,

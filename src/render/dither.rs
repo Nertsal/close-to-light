@@ -37,11 +37,11 @@ impl DitherRender {
         &self.double_buffer.0
     }
 
-    pub fn update_render_size(&mut self, new_size: vec2<usize>) {
-        if self.get_render_size() != new_size {
-            self.double_buffer = init_buffers(self.geng.ugli(), new_size);
-        }
-    }
+    // pub fn update_render_size(&mut self, new_size: vec2<usize>) {
+    //     if self.get_render_size() != new_size {
+    //         self.double_buffer = init_buffers(self.geng.ugli(), new_size);
+    //     }
+    // }
 
     pub fn start(&mut self) -> ugli::Framebuffer {
         let mut framebuffer =
