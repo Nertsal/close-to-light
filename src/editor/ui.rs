@@ -64,13 +64,13 @@ impl EditorUI {
         cursor: CursorContext,
         delta_time: Time,
         geng: &Geng,
-    ) {
+    ) -> bool {
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let font_size = screen.height() * 0.03;
         let layout_size = screen.height() * 0.03;
 
-        let context = UiContext {
+        let mut context = UiContext {
             theme: editor.model.options.theme,
             layout_size,
             font_size,
@@ -177,6 +177,7 @@ impl EditorUI {
             let bar = bar.extend_up(-spacing);
             self.view_zoom.value.set(editor.view_zoom);
             update!(self.view_zoom, zoom);
+            context.update_focus(self.view_zoom.state.hovered);
             editor.view_zoom = self.view_zoom.value.value();
 
             let _ = bar;
@@ -361,5 +362,7 @@ impl EditorUI {
 
             self.timeline.auto_scale(editor.level.level.last_beat());
         }
+
+        context.can_focus
     }
 }

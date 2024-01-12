@@ -30,6 +30,7 @@ pub struct EditorState {
     cursor: CursorContext,
     render_options: RenderOptions,
     ui: EditorUI,
+    ui_focused: bool,
     drag: Option<Drag>,
 }
 
@@ -142,6 +143,7 @@ impl EditorState {
                 hide_ui: false,
             },
             ui: EditorUI::new(),
+            ui_focused: false,
             drag: None,
             editor: Editor {
                 grid_size: Coord::new(model.camera.fov) / config.grid.height,
@@ -382,7 +384,7 @@ impl geng::State for EditorState {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(Color::BLACK), None, None);
 
-        self.ui.layout(
+        self.ui_focused = !self.ui.layout(
             &mut self.editor,
             &mut self.render_options,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
@@ -390,6 +392,7 @@ impl geng::State for EditorState {
             self.delta_time,
             &self.geng,
         );
+        self.cursor.scroll = 0.0;
         self.editor.model.camera.fov = 10.0 / self.editor.view_zoom;
         self.render
             .draw_editor(&self.editor, &self.ui, &self.render_options, framebuffer);

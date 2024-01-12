@@ -211,61 +211,66 @@ impl EditorState {
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
-                let scroll = r32(delta.signum() as f32);
-                if ctrl {
-                    if let State::Place { .. }
-                    | State::Movement { .. }
-                    | State::Waypoints {
-                        state: WaypointsState::New,
-                        ..
-                    } = self.editor.state
-                    {
-                        // Scale light
-                        let delta = scroll * r32(0.1);
-                        self.editor.place_scale =
-                            (self.editor.place_scale + delta).clamp(r32(0.2), r32(2.0));
-                    } else if let Some(waypoints) = &self.editor.level_state.waypoints {
-                        if let Some(selected) = waypoints.selected {
-                            if let Some(event) =
-                                self.editor.level.level.events.get_mut(waypoints.event)
-                            {
-                                if let Event::Light(light) = &mut event.event {
-                                    if let Some(frame) =
-                                        light.light.movement.get_frame_mut(selected)
-                                    {
-                                        let delta = scroll * r32(0.1);
-                                        frame.scale =
-                                            (frame.scale + delta).clamp(r32(0.2), r32(2.0));
+                let delta = delta as f32;
+                self.cursor.scroll += delta;
+                if !self.ui_focused {
+                    let scroll = r32(delta.signum());
+                    if ctrl {
+                        if let State::Place { .. }
+                        | State::Movement { .. }
+                        | State::Waypoints {
+                            state: WaypointsState::New,
+                            ..
+                        } = self.editor.state
+                        {
+                            // Scale light
+                            let delta = scroll * r32(0.1);
+                            self.editor.place_scale =
+                                (self.editor.place_scale + delta).clamp(r32(0.2), r32(2.0));
+                        } else if let Some(waypoints) = &self.editor.level_state.waypoints {
+                            if let Some(selected) = waypoints.selected {
+                                if let Some(event) =
+                                    self.editor.level.level.events.get_mut(waypoints.event)
+                                {
+                                    if let Event::Light(light) = &mut event.event {
+                                        if let Some(frame) =
+                                            light.light.movement.get_frame_mut(selected)
+                                        {
+                                            let delta = scroll * r32(0.1);
+                                            frame.scale =
+                                                (frame.scale + delta).clamp(r32(0.2), r32(2.0));
+                                        }
                                     }
                                 }
                             }
-                        }
-                    } else if let Some(event) = self
-                        .editor
-                        .selected_light
-                        .and_then(|light| self.editor.level.level.events.get_mut(light.event))
-                    {
-                        // Control fade time
-                        let change = scroll * self.editor.config.scroll_slow;
-                        if let Event::Light(light) = &mut event.event {
-                            let movement = &mut light.light.movement;
-                            if shift {
-                                // Fade out
-                                let change = change.max(-movement.fade_out + r32(0.25));
-                                movement.fade_out =
-                                    (movement.fade_out + change).clamp(r32(0.0), r32(10.0));
-                            } else {
-                                // Fade in
-                                let change = change.max(-movement.fade_in + r32(0.25));
-                                let target = (movement.fade_in + change).clamp(r32(0.0), r32(10.0));
-                                event.beat -= target - movement.fade_in;
-                                movement.fade_in = target;
+                        } else if let Some(event) = self
+                            .editor
+                            .selected_light
+                            .and_then(|light| self.editor.level.level.events.get_mut(light.event))
+                        {
+                            // Control fade time
+                            let change = scroll * self.editor.config.scroll_slow;
+                            if let Event::Light(light) = &mut event.event {
+                                let movement = &mut light.light.movement;
+                                if shift {
+                                    // Fade out
+                                    let change = change.max(-movement.fade_out + r32(0.25));
+                                    movement.fade_out =
+                                        (movement.fade_out + change).clamp(r32(0.0), r32(10.0));
+                                } else {
+                                    // Fade in
+                                    let change = change.max(-movement.fade_in + r32(0.25));
+                                    let target =
+                                        (movement.fade_in + change).clamp(r32(0.0), r32(10.0));
+                                    event.beat -= target - movement.fade_in;
+                                    movement.fade_in = target;
+                                }
                             }
                         }
+                        self.save_state(HistoryLabel::Scroll);
+                    } else {
+                        self.scroll_time(scroll * scroll_speed);
                     }
-                    self.save_state(HistoryLabel::Scroll);
-                } else {
-                    self.scroll_time(scroll * scroll_speed);
                 }
             }
             geng::Event::CursorMove { position } => {
