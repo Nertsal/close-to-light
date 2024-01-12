@@ -18,20 +18,30 @@ impl EditorRender {
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
 
+        // Event
         self.ui.draw_text(&ui.new_event, screen_buffer);
         self.ui.draw_button(&ui.new_palette, screen_buffer);
         self.ui.draw_button(&ui.new_circle, screen_buffer);
         self.ui.draw_button(&ui.new_line, screen_buffer);
 
+        // View
         self.ui.draw_text(&ui.view, screen_buffer);
         self.ui
             .draw_checkbox(&ui.visualize_beat, options, screen_buffer);
         self.ui.draw_checkbox(&ui.show_grid, options, screen_buffer);
-        self.ui.draw_button(&ui.view_lights, screen_buffer);
-        self.ui.draw_button(&ui.view_waypoints, screen_buffer);
         self.ui.draw_value(&ui.view_zoom, screen_buffer);
 
-        self.ui.draw_text(&ui.selected_text, screen_buffer);
+        // Placement
+        self.ui.draw_text(&ui.placement, screen_buffer);
+        self.ui.draw_checkbox(&ui.snap_grid, options, screen_buffer);
+        self.ui.draw_value(&ui.grid_size, screen_buffer);
+
+        // Light
+        self.ui.draw_text(&ui.light, screen_buffer);
+        self.ui
+            .draw_checkbox(&ui.light_danger, options, screen_buffer);
+        self.ui.draw_value(&ui.light_fade_in, screen_buffer);
+        self.ui.draw_value(&ui.light_fade_out, screen_buffer);
 
         // if ui.selected_light.light.state.visible {
         //     let light = &ui.selected_light.light.light;

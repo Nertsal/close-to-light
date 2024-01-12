@@ -123,20 +123,7 @@ impl EditorState {
                     }
                     self.save_state(default());
                 }
-                geng::Key::W => match self.editor.state {
-                    State::Idle => {
-                        if let Some(selected) = self.editor.selected_light {
-                            self.editor.state = State::Waypoints {
-                                event: selected.event,
-                                state: WaypointsState::Idle,
-                            };
-                        }
-                    }
-                    State::Waypoints { .. } => {
-                        self.editor.state = State::Idle;
-                    }
-                    _ => (),
-                },
+                geng::Key::W => self.editor.view_waypoints(),
                 geng::Key::Backquote => {
                     if ctrl {
                         self.render_options.show_grid = !self.render_options.show_grid;

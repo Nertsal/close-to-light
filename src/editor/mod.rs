@@ -146,7 +146,7 @@ impl EditorState {
             ui_focused: false,
             drag: None,
             editor: Editor {
-                grid_size: Coord::new(model.camera.fov) / config.grid.height,
+                grid_size: r32(10.0) / config.grid.height,
                 cursor_world_pos: vec2::ZERO,
                 level_state: EditorLevelState::default(),
                 current_beat: Time::ZERO,
@@ -429,19 +429,34 @@ impl Editor {
     }
 
     fn new_light_circle(&mut self) {
-        todo!()
+        self.state = State::Place {
+            shape: Shape::Circle { radius: r32(1.3) },
+            danger: false,
+        };
     }
 
     fn new_light_line(&mut self) {
-        todo!()
-    }
-
-    fn view_lights(&mut self) {
-        todo!()
+        self.state = State::Place {
+            shape: Shape::Line { width: r32(1.7) },
+            danger: false,
+        };
     }
 
     fn view_waypoints(&mut self) {
-        todo!()
+        match self.state {
+            State::Idle => {
+                if let Some(selected) = self.selected_light {
+                    self.state = State::Waypoints {
+                        event: selected.event,
+                        state: WaypointsState::Idle,
+                    };
+                }
+            }
+            State::Waypoints { .. } => {
+                self.state = State::Idle;
+            }
+            _ => (),
+        }
     }
 
     fn scroll_time(&mut self, delta: Time) {

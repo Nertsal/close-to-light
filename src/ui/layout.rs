@@ -53,3 +53,11 @@ pub fn stack(cell: Area, offset: vec2<f32>, cells: usize) -> Vec<Area> {
         .map(|i| cell.translate(offset * i as f32))
         .collect()
 }
+
+pub fn with_width(aabb: Area, width: f32, align: f32) -> Area {
+    align_aabb(vec2(width, aabb.height()), aabb, vec2(align, 0.5))
+}
+
+pub fn with_height(aabb: Area, height: f32, align: f32) -> Area {
+    align_aabb(vec2(aabb.width(), height), aabb, vec2(0.5, align))
+}

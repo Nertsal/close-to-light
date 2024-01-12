@@ -12,17 +12,24 @@ pub struct EditorUI {
     pub new_circle: ButtonWidget,
     pub new_line: ButtonWidget,
 
-    pub selected_text: TextWidget,
-    pub selected_light: LightStateWidget,
-
     pub view: TextWidget,
     pub visualize_beat: CheckboxWidget,
     pub show_grid: CheckboxWidget,
-    pub view_lights: ButtonWidget,
-    pub view_waypoints: ButtonWidget,
     pub view_zoom: ValueWidget<f32>,
 
+    pub placement: TextWidget,
     pub snap_grid: CheckboxWidget,
+    pub grid_size: ValueWidget<f32>,
+
+    pub light: TextWidget,
+    pub light_danger: CheckboxWidget,
+    pub light_fade_in: ValueWidget<f32>,
+    pub light_fade_out: ValueWidget<f32>,
+
+    pub waypoint: ButtonWidget,
+    pub waypoint_scale: ValueWidget<f32>,
+    /// Angle in degrees.
+    pub waypoint_angle: ValueWidget<f32>,
 
     pub current_beat: TextWidget,
     pub timeline: TimelineWidget,
@@ -39,17 +46,23 @@ impl EditorUI {
             new_circle: ButtonWidget::new("Circle"),
             new_line: ButtonWidget::new("Line"),
 
-            selected_text: default(),
-            selected_light: LightStateWidget::new(),
-
             view: TextWidget::new("View"),
             visualize_beat: CheckboxWidget::new("Dynamic"),
             show_grid: CheckboxWidget::new("Grid"),
-            view_lights: ButtonWidget::new("Lights"),
-            view_waypoints: ButtonWidget::new("Waypoints"),
             view_zoom: ValueWidget::new("Zoom: ", 1.0, 0.5..=2.0, 0.25),
 
+            placement: TextWidget::new("Placement"),
             snap_grid: CheckboxWidget::new("Grid snap"),
+            grid_size: ValueWidget::new("Grid size", 16.0, 2.0..=32.0, 1.0),
+
+            light: TextWidget::new("Light"),
+            light_danger: CheckboxWidget::new("Danger"),
+            light_fade_in: ValueWidget::new("Fade in", 1.0, 0.25..=10.0, 0.25),
+            light_fade_out: ValueWidget::new("Fade out", 1.0, 0.25..=10.0, 0.25),
+
+            waypoint: ButtonWidget::new("Waypoints"),
+            waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
+            waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0),
 
             current_beat: default(),
             timeline: TimelineWidget::new(),
@@ -101,12 +114,14 @@ impl EditorUI {
 
         let main = screen;
         let (top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
+
         let main = main.extend_down(-layout_size);
-        let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 1.5);
+        let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 3.0);
+        let bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
 
         let main = main.extend_symmetric(-vec2(1.0, 2.0) * layout_size);
         let (left_bar, main) = layout::cut_left_right(main, font_size * 5.0);
-        let (right_bar, main) = layout::cut_left_right(main, main.width() - font_size * 5.0);
+        let (main, mut right_bar) = layout::cut_left_right(main, main.width() - font_size * 5.0);
 
         {
             let bar = left_bar;
@@ -157,21 +172,14 @@ impl EditorUI {
             if self.show_grid.state.clicked {
                 render_options.show_grid = !render_options.show_grid;
             }
-            self.show_grid.checked = editor.visualize_beat;
+            self.show_grid.checked = render_options.show_grid;
 
-            let (lights, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
-            update!(self.view_lights, lights);
-            if self.view_lights.text.state.clicked {
-                editor.view_lights();
-            }
-
-            let (waypoints, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
-            update!(self.view_waypoints, waypoints);
-            if self.view_waypoints.text.state.clicked {
-                editor.view_waypoints();
-            }
+            // let (waypoints, bar) = layout::cut_top_down(bar, button_height);
+            // let bar = bar.extend_up(-spacing);
+            // update!(self.view_waypoints, waypoints);
+            // if self.view_waypoints.text.state.clicked {
+            //     editor.view_waypoints();
+            // }
 
             let (zoom, bar) = layout::cut_top_down(bar, font_size);
             let bar = bar.extend_up(-spacing);
@@ -265,27 +273,36 @@ impl EditorUI {
         // }
 
         {
-            let selected = if let State::Place { shape, danger } = &mut editor.state {
-                // Place new
-                let light = LightSerde {
-                    danger: *danger,
-                    shape: shape.scaled(editor.place_scale),
-                    movement: Movement {
-                        initial: Transform {
-                            rotation: editor.place_rotation,
-                            ..default()
-                        },
-                        ..default()
-                    },
-                };
-                Some(("Left click to place a new light", danger, light))
-            } else if let Some(selected_event) = editor
+            // Spacing
+            let bar = right_bar;
+            let spacing = layout_size * 0.25;
+            let button_height = font_size * 1.2;
+
+            let (placement, bar) = layout::cut_top_down(bar, font_size);
+            update!(self.placement, placement);
+
+            let (grid_snap, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            update!(self.snap_grid, grid_snap);
+
+            let (grid_size, bar) = layout::cut_top_down(bar, button_height);
+            let bar = bar.extend_up(-spacing);
+            self.grid_size.value.set(10.0 / editor.grid_size.as_f32());
+            update!(self.grid_size, grid_size);
+            context.update_focus(self.grid_size.state.hovered);
+            editor.grid_size = r32(10.0 / self.grid_size.value.value());
+
+            right_bar = bar.extend_up(-font_size * 1.5);
+        }
+
+        {
+            // Light
+            let selected = if let Some(selected_event) = editor
                 .selected_light
                 .and_then(|i| editor.level.level.events.get_mut(i.event))
             {
                 if let Event::Light(event) = &mut selected_event.event {
-                    let light = event.light.clone();
-                    Some(("Selected light", &mut event.light.danger, light))
+                    Some(&mut event.light)
                 } else {
                     None
                 }
@@ -295,33 +312,67 @@ impl EditorUI {
 
             match selected {
                 None => {
-                    self.selected_text.hide();
-                    self.selected_light.hide();
+                    self.light.hide();
+                    self.light_danger.hide();
+                    self.light_fade_in.hide();
+                    self.light_fade_out.hide();
                 }
-                Some((text, danger, light)) => {
-                    // Selected light
-                    self.selected_text.show();
-                    self.selected_text.text = text.to_owned();
-                    self.selected_light.show();
+                Some(light) => {
+                    self.light.show();
+                    self.light_danger.show();
+                    self.light_fade_in.show();
+                    self.light_fade_out.show();
 
-                    if self.selected_light.danger.check.clicked {
-                        *danger = !*danger;
+                    let bar = right_bar;
+                    let spacing = layout_size * 0.25;
+                    let button_height = font_size * 1.2;
+
+                    let (light_pos, bar) = layout::cut_top_down(bar, font_size);
+                    update!(self.light, light_pos);
+
+                    let (danger_pos, bar) = layout::cut_top_down(bar, button_height);
+                    let bar = bar.extend_up(-spacing);
+                    update!(self.light_danger, danger_pos);
+                    if self.light_danger.state.clicked {
+                        light.danger = !light.danger;
                     }
-                    self.selected_light.danger.checked = *danger;
+                    self.light_danger.checked = light.danger;
 
-                    let scale = match light.shape {
-                        Shape::Circle { radius } => format!("{:.1}", radius),
-                        Shape::Line { width } => format!("{:.1}", width),
-                        Shape::Rectangle { width, height } => format!("{:.1}x{:.1}", width, height),
-                    };
-                    self.selected_light.scale.text = format!("{} Scale", scale);
-                    let fade_out = light.movement.fade_out;
-                    let fade_in = light.movement.fade_in;
-                    self.selected_light.fade_in.text = format!("{:.1} Fade in time", fade_in);
-                    self.selected_light.fade_out.text = format!("{:.1} Fade out time", fade_out);
-                    self.selected_light.light.light = light;
+                    let (fade_in, bar) = layout::cut_top_down(bar, button_height);
+                    let bar = bar.extend_up(-spacing);
+                    self.light_fade_in
+                        .value
+                        .set(light.movement.fade_in.as_f32());
+                    update!(self.light_fade_in, fade_in);
+                    context.update_focus(self.light_fade_in.state.hovered);
+                    light.movement.fade_in = r32(self.light_fade_in.value.value());
+
+                    let (fade_out, bar) = layout::cut_top_down(bar, button_height);
+                    let bar = bar.extend_up(-spacing);
+                    self.light_fade_out
+                        .value
+                        .set(light.movement.fade_out.as_f32());
+                    update!(self.light_fade_out, fade_out);
+                    context.update_focus(self.light_fade_out.state.hovered);
+                    light.movement.fade_out = r32(self.light_fade_out.value.value());
+
+                    // let scale = match light.shape {
+                    //     Shape::Circle { radius } => format!("{:.1}", radius),
+                    //     Shape::Line { width } => format!("{:.1}", width),
+                    //     Shape::Rectangle { width, height } => format!("{:.1}x{:.1}", width, height),
+                    // };
+                    // self.selected_light.scale.text = format!("{} Scale", scale);
+
+                    right_bar = bar.extend_up(-font_size * 1.5);
                 }
             }
+        }
+
+        {
+            // Waypoint
+            let bar = right_bar;
+
+            let _ = bar;
         }
 
         {
