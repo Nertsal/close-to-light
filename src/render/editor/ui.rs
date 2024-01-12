@@ -48,53 +48,6 @@ impl EditorRender {
         self.ui.draw_value(&ui.waypoint_scale, screen_buffer);
         self.ui.draw_value(&ui.waypoint_angle, screen_buffer);
 
-        // if ui.selected_light.light.state.visible {
-        //     let light = &ui.selected_light.light.light;
-        //     let mut dither_buffer = self.dither_small.start();
-        //     let mut collider = Collider::new(vec2::ZERO, light.shape);
-        //     collider.rotation = light.movement.initial.rotation;
-        //     let color = if light.danger {
-        //         THEME.danger
-        //     } else {
-        //         THEME.light
-        //     };
-        //     self.util.draw_light(
-        //         &collider,
-        //         color,
-        //         &Camera2d {
-        //             center: vec2::ZERO,
-        //             rotation: Angle::ZERO,
-        //             fov: 3.0,
-        //         },
-        //         &mut dither_buffer,
-        //     );
-        //     self.dither_small
-        //         .finish(editor.real_time, &theme.transparent());
-
-        //     let size = ui.light_size.as_f32();
-        //     let pos = geng_utils::layout::aabb_pos(
-        //         ui.selected_light.light.state.position,
-        //         vec2(0.5, 1.0),
-        //     );
-        //     let pos = pos - vec2(0.0, font_size + size.y / 2.0);
-        //     let aabb = Aabb2::point(pos).extend_symmetric(size / 2.0);
-        //     self.geng.draw2d().textured_quad(
-        //         screen_buffer,
-        //         camera,
-        //         aabb,
-        //         self.dither_small.get_buffer(),
-        //         Color::WHITE,
-        //     );
-
-        //     let options = options.align(vec2(0.0, 0.5));
-        //     self.ui
-        //         .draw_checkbox(&ui.selected_light.danger, options, screen_buffer);
-        //     self.ui.draw_text(&ui.selected_light.fade_in, screen_buffer);
-        //     self.ui
-        //         .draw_text(&ui.selected_light.fade_out, screen_buffer);
-        //     self.ui.draw_text(&ui.selected_light.scale, screen_buffer);
-        // }
-
         {
             // Timeline
             self.ui.draw_text(&ui.current_beat, screen_buffer);

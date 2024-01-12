@@ -209,6 +209,10 @@ impl EditorUI {
             let (grid_snap, bar) = layout::cut_top_down(bar, button_height);
             let bar = bar.extend_up(-spacing);
             update!(self.snap_grid, grid_snap);
+            if self.snap_grid.state.clicked {
+                editor.snap_to_grid = !editor.snap_to_grid;
+            }
+            self.snap_grid.checked = editor.snap_to_grid;
 
             let (grid_size, bar) = layout::cut_top_down(bar, button_height);
             let bar = bar.extend_up(-spacing);

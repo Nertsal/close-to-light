@@ -318,7 +318,7 @@ impl EditorRender {
                     let width = if thick > 0 && x % thick == 0 {
                         0.05
                     } else {
-                        0.01
+                        0.02
                     };
                     let x = x as f32;
                     let y = view.y as f32;
@@ -411,78 +411,6 @@ impl EditorRender {
                     text_color,
                 );
             }
-
-            // Undo/redo stack
-            let text = match &editor.state {
-                State::Playing { .. } => "".to_string(),
-                State::Movement {
-                    light, redo_stack, ..
-                } => format!(
-                    "New light stack\nUndo: {}\nRedo: {}\n",
-                    light.light.movement.key_frames.len(),
-                    redo_stack.len()
-                ),
-                State::Place { .. } => "idk what should we do here".to_string(),
-                State::Idle | State::Waypoints { .. } => format!(
-                    "Level stack\nUndo: {}\nRedo: {}\n",
-                    editor.undo_stack.len(),
-                    editor.redo_stack.len()
-                ),
-            };
-            font.draw(
-                game_buffer,
-                camera,
-                &text,
-                vec2(geng::TextAlign::LEFT, geng::TextAlign::CENTER),
-                mat3::translate(
-                    geng_utils::layout::aabb_pos(screen, vec2(0.0, 0.5))
-                        + vec2(1.0, 1.0) * font_size,
-                ) * mat3::scale_uniform(font_size * 0.5)
-                    * mat3::translate(vec2(0.0, -0.5)),
-                text_color,
-            );
-
-            // Help
-            let text =
-            "Scroll or arrow keys to go forward or backward in time\nHold Shift to scroll by quarter beats\nSpace to play the music\nF to pause movement\nQ/E to rotate\n` (backtick) to toggle grid snap\nCtrl+` to toggle grid visibility";
-            font.draw(
-                game_buffer,
-                camera,
-                text,
-                vec2::splat(geng::TextAlign::RIGHT),
-                mat3::translate(
-                    geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0))
-                        + vec2(-1.0, -1.0) * font_size,
-                ) * mat3::scale_uniform(font_size * 0.5),
-                text_color,
-            );
-
-            // Status
-            let text = if editor.selected_light.is_some() {
-                "X to delete the light\nCtrl + scroll to change fade in time\nCtrl + Shift + scroll to change fade out time"
-            } else {
-                match &editor.state {
-                    State::Idle => "Click on a light to configure\n1/2 to spawn a new one",
-                    State::Place { .. } => "Click to set the spawn position for the new light",
-                    State::Movement { .. } => {
-                        "Left click to create a new waypoint\nRight click to finish\nEscape to cancel"
-                    }
-                    State::Playing { .. } => "Playing the music...\nSpace to stop",
-                    State::Waypoints { ..} => "Drag, rotate, and scale waypoints",
-                }
-            };
-            font.draw(
-                game_buffer,
-                camera,
-                text,
-                vec2(geng::TextAlign::CENTER, geng::TextAlign::BOTTOM),
-                mat3::translate(
-                    geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0))
-                        + vec2(0.0, 1.5 * font_size),
-                ) * mat3::scale_uniform(font_size)
-                    * mat3::translate(vec2(0.0, 1.0)),
-                text_color,
-            );
         }
     }
 }
