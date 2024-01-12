@@ -43,6 +43,11 @@ impl EditorRender {
         self.ui.draw_value(&ui.light_fade_in, screen_buffer);
         self.ui.draw_value(&ui.light_fade_out, screen_buffer);
 
+        // Waypoints
+        self.ui.draw_button(&ui.waypoint, screen_buffer);
+        self.ui.draw_value(&ui.waypoint_scale, screen_buffer);
+        self.ui.draw_value(&ui.waypoint_angle, screen_buffer);
+
         // if ui.selected_light.light.state.visible {
         //     let light = &ui.selected_light.light.light;
         //     let mut dither_buffer = self.dither_small.start();

@@ -62,7 +62,7 @@ impl EditorUI {
 
             waypoint: ButtonWidget::new("Waypoints"),
             waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
-            waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0),
+            waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
             current_beat: default(),
             timeline: TimelineWidget::new(),
@@ -119,17 +119,23 @@ impl EditorUI {
         let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 3.0);
         let bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
 
-        let main = main.extend_symmetric(-vec2(1.0, 2.0) * layout_size);
+        let main = main
+            .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
+            .extend_up(-layout_size * 5.0);
         let (left_bar, main) = layout::cut_left_right(main, font_size * 5.0);
         let (main, mut right_bar) = layout::cut_left_right(main, main.width() - font_size * 5.0);
+        let _ = main;
+
+        let spacing = layout_size * 0.25;
+        let title_size = font_size * 1.3;
+        let button_height = font_size * 1.2;
 
         {
             let bar = left_bar;
-            let spacing = layout_size * 0.25;
-            let button_height = font_size * 1.2;
 
-            let (event, bar) = layout::cut_top_down(bar, font_size);
+            let (event, bar) = layout::cut_top_down(bar, title_size);
             update!(self.new_event, event);
+            self.new_event.options.size = title_size;
 
             let (palette, bar) = layout::cut_top_down(bar, button_height);
             let bar = bar.extend_up(-spacing);
@@ -154,9 +160,10 @@ impl EditorUI {
 
             let bar = bar.extend_up(-layout_size * 1.5);
 
-            let (view, bar) = layout::cut_top_down(bar, font_size);
+            let (view, bar) = layout::cut_top_down(bar, title_size);
             let bar = bar.extend_up(-spacing);
             update!(self.view, view);
+            self.view.options.size = title_size;
 
             let (dynamic, bar) = layout::cut_top_down(bar, font_size);
             let bar = bar.extend_up(-spacing);
@@ -191,95 +198,13 @@ impl EditorUI {
             let _ = bar;
         }
 
-        // let (buttons_new, side_bar) = layout::cut_top_down(side_bar, font_size * 1.5);
-        // {
-        //     let targets = [&mut self.new_palette, &mut self.new_light];
-        //     for (pos, target) in layout::split_columns(buttons_new, 2)
-        //         .into_iter()
-        //         .zip(targets)
-        //     {
-        //         update!(target, pos);
-        //     }
-
-        //     if let State::Idle
-        //     | State::Waypoints {
-        //         state: WaypointsState::Idle,
-        //         ..
-        //     } = &editor.state
-        //     {
-        //         self.new_light.show();
-        //     } else {
-        //         self.new_light.hide();
-        //     }
-
-        //     if let State::Idle = &editor.state {
-        //         self.new_palette.show();
-        //     } else {
-        //         self.new_palette.hide();
-        //     }
-
-        //     if self.new_light.text.state.clicked {
-        //         match &mut editor.state {
-        //             State::Idle => {
-        //                 if self.new_selector.visible {
-        //                     self.new_selector.hide();
-        //                     self.new_circle.hide();
-        //                     self.new_line.hide();
-        //                 } else {
-        //                     self.new_selector.show();
-        //                     self.new_circle.show();
-        //                     self.new_line.show();
-        //                 }
-        //             }
-        //             State::Waypoints {
-        //                 state: state @ WaypointsState::Idle,
-        //                 ..
-        //             } => {
-        //                 *state = WaypointsState::New;
-        //             }
-        //             _ => {}
-        //         }
-        //     } else if self.new_palette.text.state.clicked {
-        //         editor.palette_swap();
-        //     }
-        // }
-
-        // {
-        //     // Selector
-        //     let (selector, _) = layout::cut_top_down(side_bar, side_bar.width());
-        //     let targets = [&mut self.new_circle, &mut self.new_line];
-        //     for (pos, target) in layout::split_rows(selector, 2).into_iter().zip(targets) {
-        //         update!(target, pos);
-        //         if target.state.clicked {
-        //             editor.state = State::Place {
-        //                 shape: target.light.shape,
-        //                 danger: false,
-        //             };
-        //         }
-        //     }
-        // }
-
-        // {
-        //     update!(self.selected_light, side_bar);
-
-        //     let light_size = self.selected_light.light.state.position.size();
-        //     self.light_size = light_size.map(|x| x.round() as usize);
-
-        //     let target = side_bar;
-        //     update!(
-        //         self.selected_text,
-        //         layout::fit_aabb_width(vec2(target.width(), font_size), target, 1.0)
-        //     );
-        // }
-
         {
             // Spacing
             let bar = right_bar;
-            let spacing = layout_size * 0.25;
-            let button_height = font_size * 1.2;
 
-            let (placement, bar) = layout::cut_top_down(bar, font_size);
+            let (placement, bar) = layout::cut_top_down(bar, title_size);
             update!(self.placement, placement);
+            self.placement.options.size = title_size;
 
             let (grid_snap, bar) = layout::cut_top_down(bar, button_height);
             let bar = bar.extend_up(-spacing);
@@ -316,19 +241,20 @@ impl EditorUI {
                     self.light_danger.hide();
                     self.light_fade_in.hide();
                     self.light_fade_out.hide();
+                    self.waypoint.hide();
                 }
                 Some(light) => {
                     self.light.show();
                     self.light_danger.show();
                     self.light_fade_in.show();
                     self.light_fade_out.show();
+                    self.waypoint.show();
 
                     let bar = right_bar;
-                    let spacing = layout_size * 0.25;
-                    let button_height = font_size * 1.2;
 
-                    let (light_pos, bar) = layout::cut_top_down(bar, font_size);
+                    let (light_pos, bar) = layout::cut_top_down(bar, title_size);
                     update!(self.light, light_pos);
+                    self.light.options.size = title_size;
 
                     let (danger_pos, bar) = layout::cut_top_down(bar, button_height);
                     let bar = bar.extend_up(-spacing);
@@ -356,23 +282,58 @@ impl EditorUI {
                     context.update_focus(self.light_fade_out.state.hovered);
                     light.movement.fade_out = r32(self.light_fade_out.value.value());
 
-                    // let scale = match light.shape {
-                    //     Shape::Circle { radius } => format!("{:.1}", radius),
-                    //     Shape::Line { width } => format!("{:.1}", width),
-                    //     Shape::Rectangle { width, height } => format!("{:.1}x{:.1}", width, height),
-                    // };
-                    // self.selected_light.scale.text = format!("{} Scale", scale);
+                    let bar = bar.extend_up(-font_size * 0.5);
 
-                    right_bar = bar.extend_up(-font_size * 1.5);
+                    let (waypoints, bar) = layout::cut_top_down(bar, button_height);
+                    update!(self.waypoint, waypoints);
+                    if self.waypoint.text.state.clicked {
+                        editor.view_waypoints();
+                    }
+
+                    right_bar = bar.extend_up(-spacing);
                 }
             }
         }
 
-        {
-            // Waypoint
-            let bar = right_bar;
+        let mut waypoint = false;
+        if let Some(waypoints) = &editor.level_state.waypoints {
+            if let Some(selected) = waypoints.selected {
+                if let Some(event) = editor.level.level.events.get_mut(waypoints.event) {
+                    if let Event::Light(light) = &mut event.event {
+                        if let Some(frame) = light.light.movement.get_frame_mut(selected) {
+                            // Waypoint
+                            waypoint = true;
+                            self.waypoint_scale.show();
+                            self.waypoint_angle.show();
 
-            let _ = bar;
+                            let bar = right_bar;
+
+                            let (scale, bar) = layout::cut_top_down(bar, button_height);
+                            let bar = bar.extend_up(-spacing);
+                            self.waypoint_scale.value.set(frame.scale.as_f32());
+                            update!(self.waypoint_scale, scale);
+                            context.update_focus(self.waypoint_scale.state.hovered);
+                            frame.scale = r32(self.waypoint_scale.value.value());
+
+                            let (angle, bar) = layout::cut_top_down(bar, button_height);
+                            let bar = bar.extend_up(-spacing);
+                            self.waypoint_angle
+                                .value
+                                .set(frame.rotation.as_degrees().as_f32());
+                            update!(self.waypoint_angle, angle);
+                            context.update_focus(self.waypoint_angle.state.hovered);
+                            frame.rotation =
+                                Angle::from_degrees(r32(self.waypoint_angle.value.value()));
+
+                            let _ = bar;
+                        }
+                    }
+                }
+            }
+        }
+        if !waypoint {
+            self.waypoint_scale.hide();
+            self.waypoint_angle.hide();
         }
 
         {

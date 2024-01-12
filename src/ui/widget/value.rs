@@ -8,6 +8,8 @@ pub struct ValueWidget<T> {
     pub value: Bounded<T>,
     pub value_text: TextWidget,
     pub scroll_by: T,
+    /// Whether to wrap around the bounds.
+    pub wrap: bool,
 }
 
 impl<T: Num + Copy> ValueWidget<T> {
@@ -18,7 +20,12 @@ impl<T: Num + Copy> ValueWidget<T> {
             value: Bounded::new(value, range),
             value_text: TextWidget::new("<value>"),
             scroll_by,
+            wrap: false,
         }
+    }
+
+    pub fn wrapping(self) -> Self {
+        Self { wrap: true, ..self }
     }
 }
 
@@ -34,7 +41,18 @@ impl<T: Num + Display> Widget for ValueWidget<T> {
             } else {
                 -T::ONE
             };
-            self.value.change(sign * self.scroll_by);
+
+            let mut target = self.value.value() + sign * self.scroll_by;
+            if self.wrap {
+                // TODO: move to Bounded
+                let range = self.value.max() - self.value.min();
+                if target > self.value.max() {
+                    target -= range;
+                } else if target < self.value.min() {
+                    target += range;
+                }
+            }
+            self.value.set(target);
         }
 
         self.text.align(vec2(0.0, 0.5));

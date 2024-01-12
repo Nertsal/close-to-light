@@ -97,7 +97,7 @@ pub struct Editor {
 
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
-    /// At what scale the objects should be placed.
+    /// The scale at which the objects should be placed.
     pub place_scale: Coord,
 
     pub view_zoom: f32,
