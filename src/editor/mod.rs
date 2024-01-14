@@ -361,12 +361,12 @@ impl geng::State for EditorState {
         }
 
         let pos = self.cursor.position;
-        let pos = pos - self.ui.game.position.bottom_left();
+        let pos = pos - self.ui.screen.position.bottom_left();
         let pos = self
             .editor
             .model
             .camera
-            .screen_to_world(self.ui.game.position.size(), pos)
+            .screen_to_world(self.ui.screen.position.size(), pos)
             .as_r32();
         self.editor.cursor_world_pos = if self.editor.snap_to_grid {
             self.snap_pos_grid(pos)

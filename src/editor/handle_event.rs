@@ -325,7 +325,9 @@ impl EditorState {
     }
 
     fn cursor_down(&mut self) {
-        if self.ui.game.position.contains(self.cursor.position) {
+        if self.ui.game.position.contains(self.cursor.position)
+            || self.editor.render_options.hide_ui
+        {
             self.game_cursor_down();
         }
     }
