@@ -80,7 +80,7 @@ impl EditorUI {
         let font_size = screen.height() * 0.03;
         let layout_size = screen.height() * 0.03;
 
-        let context = UiContext {
+        let mut context = UiContext {
             theme: editor.model.options.theme,
             layout_size,
             font_size,
@@ -104,6 +104,8 @@ impl EditorUI {
             let game = layout::align_aabb(game_size, screen, vec2(0.5, 0.5));
             self.game.update(game, &context);
         }
+
+        self.edit.update(screen, &mut context, editor);
 
         context.can_focus
     }
