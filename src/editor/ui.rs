@@ -112,7 +112,7 @@ impl EditorUI {
         self.screen.update(screen, &context);
 
         {
-            let max_size = screen.size() * 0.7;
+            let max_size = screen.size() * 0.75;
 
             let ratio = 16.0 / 9.0;
             let max_height = max_size.y.min(max_size.x / ratio);

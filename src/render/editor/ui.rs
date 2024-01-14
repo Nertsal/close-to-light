@@ -6,9 +6,8 @@ impl EditorRender {
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
         let theme = &editor.model.options.theme;
 
-        let framebuffer_size = framebuffer.size().as_f32();
         let camera = &geng::PixelPerfectCamera;
-        ugli::clear(framebuffer, Some(theme.dark), None, None);
+        ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
@@ -37,29 +36,6 @@ impl EditorRender {
 
             let framebuffer =
                 &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-
-            // Leave the game area transparent
-            ugli::draw(
-                framebuffer,
-                &self.assets.shaders.solid,
-                ugli::DrawMode::TriangleFan,
-                &self.unit_quad,
-                (
-                    ugli::uniforms! {
-                        u_model_matrix: mat3::translate(ui.game.position.center()) * mat3::scale(ui.game.position.size() / 2.0),
-                        u_color: Color::TRANSPARENT_BLACK,
-                    },
-                    camera.uniforms(framebuffer_size),
-                ),
-                ugli::DrawParameters {
-                    blend_mode: Some(BlendMode::combined(ChannelBlendMode {
-                        src_factor: BlendFactor::One,
-                        dst_factor: BlendFactor::Zero,
-                        equation: BlendEquation::Add,
-                    })),
-                    ..default()
-                },
-            );
 
             // Game border
             let width = 5.0;

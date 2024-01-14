@@ -3,6 +3,7 @@ mod ui;
 
 use super::{
     dither::DitherRender,
+    mask::MaskedRender,
     ui::UiRender,
     util::{TextRenderOptions, UtilRender},
     *,
@@ -10,15 +11,14 @@ use super::{
 
 use crate::editor::{State, *};
 
-use geng::prelude::ugli::{BlendEquation, BlendFactor, BlendMode, ChannelBlendMode};
-
 pub struct EditorRender {
     geng: Geng,
-    assets: Rc<Assets>,
+    // assets: Rc<Assets>,
     dither: DitherRender,
     util: UtilRender,
     ui: UiRender,
-    unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
+    mask: MaskedRender,
+    // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
 }
@@ -37,11 +37,12 @@ impl EditorRender {
 
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
+            // assets: assets.clone(),
             dither: DitherRender::new(geng, assets),
             util: UtilRender::new(geng, assets),
             ui: UiRender::new(geng, assets),
-            unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
+            mask: MaskedRender::new(geng, assets, vec2(1, 1)),
+            // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
         }
@@ -53,11 +54,9 @@ impl EditorRender {
         ui: &EditorUI,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        geng_utils::texture::update_texture_size(
-            &mut self.game_texture,
-            ui.game.position.size().map(|x| x.round() as usize),
-            self.geng.ugli(),
-        );
+        let size = ui.screen.position.size().map(|x| x.round() as usize);
+        self.mask.update_size(size);
+        geng_utils::texture::update_texture_size(&mut self.game_texture, size, self.geng.ugli());
         geng_utils::texture::update_texture_size(
             &mut self.ui_texture,
             framebuffer.size(),
@@ -68,13 +67,18 @@ impl EditorRender {
         self.draw_ui(editor, ui);
 
         let camera = &geng::PixelPerfectCamera;
+
+        let mut masked = self.mask.start();
+        masked.mask_quad(ui.game.position);
         self.geng.draw2d().textured_quad(
-            framebuffer,
+            &mut masked.color,
             camera,
-            ui.game.position,
+            ui.screen.position,
             &self.game_texture,
             Color::WHITE,
         );
+        self.mask.draw(draw_parameters(), framebuffer);
+
         self.geng.draw2d().textured_quad(
             framebuffer,
             camera,
