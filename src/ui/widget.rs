@@ -1,6 +1,7 @@
 mod button;
 mod checkbox;
 mod group;
+mod icon;
 mod leaderboard;
 mod level;
 mod level_config;
@@ -14,6 +15,7 @@ pub use self::{
     button::ButtonWidget,
     checkbox::CheckboxWidget,
     group::GroupWidget,
+    icon::IconWidget,
     leaderboard::{LeaderboardEntryWidget, LeaderboardWidget},
     level::*,
     level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},

@@ -138,7 +138,7 @@ impl EditorState {
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
             cursor: CursorContext::new(),
-            ui: EditorUI::new(),
+            ui: EditorUI::new(&assets),
             ui_focused: false,
             drag: None,
             editor: Editor {

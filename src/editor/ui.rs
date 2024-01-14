@@ -2,15 +2,25 @@ use super::*;
 
 use crate::ui::{layout, widget::*};
 
+const HELP: &str = "
+Scroll / Arrow keys - move through time
+Hold Shift / Alt - scroll slower / faster
+Space - play music
+Q / E - rotate
+Ctrl+Scroll - scale lights
+F1 - Hide UI
+";
+
 /// Layout and state of the UI.
 pub struct EditorUI {
     pub screen: WidgetState,
     pub game: WidgetState,
 
-    pub help: TextWidget,
+    pub help: IconWidget,
     pub tab_edit: ButtonWidget,
     pub tab_config: ButtonWidget,
 
+    pub help_text: TextWidget,
     pub edit: EditorEditWidget,
     pub config: EditorConfigWidget,
 }
@@ -68,15 +78,16 @@ pub struct EditorEditWidget {
 }
 
 impl EditorUI {
-    pub fn new() -> Self {
+    pub fn new(assets: &Assets) -> Self {
         Self {
             screen: default(),
             game: default(),
 
-            help: TextWidget::new("?"),
+            help: IconWidget::new(&assets.sprites.help),
             tab_edit: ButtonWidget::new("Edit"),
             tab_config: ButtonWidget::new("Config"),
 
+            help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
             edit: EditorEditWidget::new(),
             config: {
                 let mut w = EditorConfigWidget::new();
@@ -129,6 +140,25 @@ impl EditorUI {
         let (top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
 
         let (help, top_bar) = layout::cut_left_right(top_bar, layout_size * 3.0);
+        self.help.update(help, &mut context);
+
+        let help_text = Aabb2::point(help.bottom_right())
+            .extend_right(layout_size * 12.0)
+            .extend_down(font_size * HELP.lines().count() as f32);
+        self.help_text.update(help_text, &mut context);
+        context.update_focus(self.help_text.state.hovered);
+        if self.help.state.hovered {
+            self.help_text.show();
+        } else if !self.help_text.state.hovered
+            && !Aabb2::from_corners(
+                self.help.state.position.top_left(),
+                self.help_text.state.position.bottom_right(),
+            )
+            .contains(cursor.position)
+        {
+            self.help_text.hide();
+        }
+
         let tabs = [&mut self.tab_edit, &mut self.tab_config];
         let tab = Aabb2::point(top_bar.bottom_left())
             .extend_positive(vec2(layout_size * 5.0, top_bar.height()));

@@ -85,6 +85,10 @@ impl UiRender {
         );
     }
 
+    pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_texture(icon.state.position, &icon.texture, icon.color, framebuffer);
+    }
+
     pub fn draw_checkbox(
         &self,
         widget: &CheckboxWidget,

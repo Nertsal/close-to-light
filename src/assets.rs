@@ -40,6 +40,10 @@ pub struct Sprites {
     pub border_thin: ugli::Texture,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub circle: ugli::Texture,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub help: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub reset: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]

@@ -12,21 +12,6 @@ impl EditorRender {
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
 
-        self.ui.draw_toggle_button(
-            &ui.tab_edit.text,
-            ui.edit.state.visible,
-            false,
-            theme,
-            framebuffer,
-        );
-        self.ui.draw_toggle_button(
-            &ui.tab_config.text,
-            ui.config.state.visible,
-            false,
-            theme,
-            framebuffer,
-        );
-
         if ui.config.state.visible {
             self.draw_tab_config(editor, &ui.config);
         }
@@ -47,6 +32,36 @@ impl EditorRender {
                 framebuffer,
             );
         }
+
+        let framebuffer =
+            &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+
+        self.ui.draw_toggle_button(
+            &ui.tab_edit.text,
+            ui.edit.state.visible,
+            false,
+            theme,
+            framebuffer,
+        );
+        self.ui.draw_toggle_button(
+            &ui.tab_config.text,
+            ui.config.state.visible,
+            false,
+            theme,
+            framebuffer,
+        );
+
+        if ui.help_text.state.visible {
+            let width = font_size * 0.1;
+            let pos = Aabb2::from_corners(
+                ui.help.state.position.top_left() + vec2(-1.0, 1.0) * 2.0 * width,
+                ui.help_text.state.position.bottom_right(),
+            );
+            self.ui.draw_quad(pos, theme.dark, framebuffer);
+            self.ui.draw_outline(pos, width, theme.light, framebuffer);
+        }
+        self.ui.draw_icon(&ui.help, framebuffer);
+        self.ui.draw_text(&ui.help_text, framebuffer);
     }
 
     fn draw_tab_config(&mut self, _editor: &Editor, ui: &EditorConfigWidget) {
