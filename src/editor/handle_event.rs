@@ -11,7 +11,7 @@ impl EditorState {
         } else if alt {
             self.editor.config.scroll_fast
         } else {
-            Time::ONE
+            self.editor.config.scroll_normal
         };
 
         match event {

@@ -91,6 +91,7 @@ impl EditorRender {
         self.ui.draw_text(&ui.timeline, framebuffer);
         self.ui.draw_value(&ui.scroll_by, framebuffer);
         self.ui.draw_value(&ui.shift_scroll, framebuffer);
+        self.ui.draw_value(&ui.alt_scroll, framebuffer);
     }
 
     fn draw_tab_edit(

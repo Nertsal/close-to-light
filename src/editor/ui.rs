@@ -19,16 +19,20 @@ pub struct EditorConfigWidget {
     pub state: WidgetState,
 
     pub timing: TextWidget,
-    pub bpm: ValueWidget<f32>,
+    pub bpm: ValueWidget<Time>,
     // pub tempo:
-    pub offset: ValueWidget<f32>,
+    pub offset: ValueWidget<Time>,
 
     pub music: TextWidget,
     pub level: TextWidget, // TODO: input
 
     pub timeline: TextWidget,
-    pub scroll_by: ValueWidget<f32>, // TODO: 1/4 instead of 0.25
-    pub shift_scroll: ValueWidget<f32>,
+    /// Normal time scroll.
+    pub scroll_by: ValueWidget<Time>, // TODO: 1/4 instead of 0.25
+    /// Slow time scroll.
+    pub shift_scroll: ValueWidget<Time>,
+    /// Fast time scroll.
+    pub alt_scroll: ValueWidget<Time>,
     // pub snap_to: CheckboxWidget,
 }
 
@@ -51,8 +55,8 @@ pub struct EditorEditWidget {
 
     pub light: TextWidget,
     pub light_danger: CheckboxWidget,
-    pub light_fade_in: ValueWidget<f32>,
-    pub light_fade_out: ValueWidget<f32>,
+    pub light_fade_in: ValueWidget<Time>,
+    pub light_fade_out: ValueWidget<Time>,
 
     pub waypoint: ButtonWidget,
     pub waypoint_scale: ValueWidget<f32>,
@@ -171,8 +175,13 @@ impl EditorEditWidget {
 
             light: TextWidget::new("Light"),
             light_danger: CheckboxWidget::new("Danger"),
-            light_fade_in: ValueWidget::new("Fade in", 1.0, 0.25..=10.0, 0.25),
-            light_fade_out: ValueWidget::new("Fade out", 1.0, 0.25..=10.0, 0.25),
+            light_fade_in: ValueWidget::new("Fade in", r32(1.0), r32(0.25)..=r32(10.0), r32(0.25)),
+            light_fade_out: ValueWidget::new(
+                "Fade out",
+                r32(1.0),
+                r32(0.25)..=r32(10.0),
+                r32(0.25),
+            ),
 
             waypoint: ButtonWidget::new("Waypoints"),
             waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
@@ -196,6 +205,9 @@ impl StatefulWidget for EditorEditWidget {
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
                 $widget.update($position, context);
+            }};
+            ($widget:expr, $position:expr, $state:expr) => {{
+                $widget.update($position, context, $state);
             }};
         }
 
@@ -273,10 +285,8 @@ impl StatefulWidget for EditorEditWidget {
 
             let (zoom, bar) = layout::cut_top_down(bar, font_size);
             let bar = bar.extend_up(-spacing);
-            self.view_zoom.value.set(editor.view_zoom);
-            update!(self.view_zoom, zoom);
+            update!(self.view_zoom, zoom, &mut editor.view_zoom);
             context.update_focus(self.view_zoom.state.hovered);
-            editor.view_zoom = self.view_zoom.value.value();
 
             let _ = bar;
         }
@@ -299,10 +309,10 @@ impl StatefulWidget for EditorEditWidget {
 
             let (grid_size, bar) = layout::cut_top_down(bar, button_height);
             let bar = bar.extend_up(-spacing);
-            self.grid_size.value.set(10.0 / editor.grid_size.as_f32());
-            update!(self.grid_size, grid_size);
+            let mut value = 10.0 / editor.grid_size.as_f32();
+            update!(self.grid_size, grid_size, &mut value);
+            editor.grid_size = r32(10.0 / value);
             context.update_focus(self.grid_size.state.hovered);
-            editor.grid_size = r32(10.0 / self.grid_size.value.value());
 
             right_bar = bar.extend_up(-font_size * 1.5);
         }
@@ -353,21 +363,13 @@ impl StatefulWidget for EditorEditWidget {
 
                     let (fade_in, bar) = layout::cut_top_down(bar, button_height);
                     let bar = bar.extend_up(-spacing);
-                    self.light_fade_in
-                        .value
-                        .set(light.movement.fade_in.as_f32());
-                    update!(self.light_fade_in, fade_in);
+                    update!(self.light_fade_in, fade_in, &mut light.movement.fade_in);
                     context.update_focus(self.light_fade_in.state.hovered);
-                    light.movement.fade_in = r32(self.light_fade_in.value.value());
 
                     let (fade_out, bar) = layout::cut_top_down(bar, button_height);
                     let bar = bar.extend_up(-spacing);
-                    self.light_fade_out
-                        .value
-                        .set(light.movement.fade_out.as_f32());
-                    update!(self.light_fade_out, fade_out);
+                    update!(self.light_fade_out, fade_out, &mut light.movement.fade_out);
                     context.update_focus(self.light_fade_out.state.hovered);
-                    light.movement.fade_out = r32(self.light_fade_out.value.value());
 
                     let bar = bar.extend_up(-font_size * 0.5);
 
@@ -397,20 +399,17 @@ impl StatefulWidget for EditorEditWidget {
 
                             let (scale, bar) = layout::cut_top_down(bar, button_height);
                             let bar = bar.extend_up(-spacing);
-                            self.waypoint_scale.value.set(frame.scale.as_f32());
-                            update!(self.waypoint_scale, scale);
+                            let mut value = frame.scale.as_f32();
+                            update!(self.waypoint_scale, scale, &mut value);
+                            frame.scale = r32(value);
                             context.update_focus(self.waypoint_scale.state.hovered);
-                            frame.scale = r32(self.waypoint_scale.value.value());
 
                             let (angle, bar) = layout::cut_top_down(bar, button_height);
                             let bar = bar.extend_up(-spacing);
-                            self.waypoint_angle
-                                .value
-                                .set(frame.rotation.as_degrees().as_f32());
-                            update!(self.waypoint_angle, angle);
+                            let mut value = frame.rotation.as_degrees().as_f32();
+                            update!(self.waypoint_angle, angle, &mut value);
+                            frame.rotation = Angle::from_degrees(r32(value));
                             context.update_focus(self.waypoint_angle.state.hovered);
-                            frame.rotation =
-                                Angle::from_degrees(r32(self.waypoint_angle.value.value()));
 
                             let _ = bar;
                         }
@@ -474,15 +473,21 @@ impl EditorConfigWidget {
             state: WidgetState::new(),
 
             timing: TextWidget::new("Timing"),
-            bpm: ValueWidget::new("BPM", 150.0, 60.0..=240.0, 1.0), // TODO: different
-            offset: ValueWidget::new("Offset", 0.0, -10.0..=10.0, 0.1),
+            bpm: ValueWidget::new("BPM", r32(150.0), r32(60.0)..=r32(240.0), r32(1.0)), // TODO: different
+            offset: ValueWidget::new("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
 
             music: TextWidget::new("Music"),
             level: TextWidget::new("Level"),
 
             timeline: TextWidget::new("Timeline"),
-            scroll_by: ValueWidget::new("Scroll by", 1.0, 0.25..=4.0, 0.25),
-            shift_scroll: ValueWidget::new("Shift scroll", 0.25, 0.125..=1.0, 0.125),
+            scroll_by: ValueWidget::new("Scroll by", r32(1.0), r32(0.25)..=r32(4.0), r32(0.25)),
+            shift_scroll: ValueWidget::new(
+                "Shift scroll",
+                r32(0.25),
+                r32(0.125)..=r32(1.0),
+                r32(0.125),
+            ),
+            alt_scroll: ValueWidget::new("Alt scroll", r32(10.0), r32(1.0)..=r32(20.0), r32(0.5)),
         }
     }
 }
@@ -511,10 +516,11 @@ impl StatefulWidget for EditorConfigWidget {
         self.timing.update(timing, context);
 
         let (bpm, bar) = layout::cut_top_down(bar, context.font_size);
-        self.bpm.update(bpm, context);
+        self.bpm
+            .update(bpm, context, &mut state.level.group_meta.music.bpm);
 
-        let (offset, bar) = layout::cut_top_down(bar, context.font_size);
-        self.offset.update(offset, context);
+        // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
+        // self.offset.update(offset, context);
 
         let _ = bar;
 
@@ -534,10 +540,16 @@ impl StatefulWidget for EditorConfigWidget {
         self.timeline.update(timeline, context);
 
         let (scroll_by, bar) = layout::cut_top_down(bar, context.font_size);
-        self.scroll_by.update(scroll_by, context);
+        self.scroll_by
+            .update(scroll_by, context, &mut state.config.scroll_normal);
 
         let (shift_scroll, bar) = layout::cut_top_down(bar, context.font_size);
-        self.shift_scroll.update(shift_scroll, context);
+        self.shift_scroll
+            .update(shift_scroll, context, &mut state.config.scroll_slow);
+
+        let (alt_scroll, bar) = layout::cut_top_down(bar, context.font_size);
+        self.alt_scroll
+            .update(alt_scroll, context, &mut state.config.scroll_fast);
 
         let _ = bar;
     }

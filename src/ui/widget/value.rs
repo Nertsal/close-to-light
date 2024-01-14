@@ -29,8 +29,11 @@ impl<T: Num + Copy> ValueWidget<T> {
     }
 }
 
-impl<T: Num + Display> Widget for ValueWidget<T> {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
+    type State = T;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut T) {
+        self.value.set(*state);
         self.state.update(position, context);
 
         if self.state.hovered {
@@ -61,6 +64,8 @@ impl<T: Num + Display> Widget for ValueWidget<T> {
         self.value_text.align(vec2(1.0, 0.5));
         self.value_text.text = format!("{}", self.value.value());
         self.value_text.update(position, context);
+
+        *state = self.value.value();
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
