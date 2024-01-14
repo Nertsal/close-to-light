@@ -29,7 +29,9 @@ pub struct Game {
 #[derive(Debug, Clone)]
 pub struct PlayLevel {
     pub group_name: String,
+    pub group_meta: GroupMeta,
     pub level_name: String,
+    pub level_meta: LevelMeta,
     pub config: LevelConfig,
     pub level: Level,
     pub music: Music,

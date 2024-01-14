@@ -64,7 +64,7 @@ pub async fn load_groups(
 pub async fn load_level(
     manager: &geng::asset::Manager,
     level_path: impl AsRef<std::path::Path>,
-) -> anyhow::Result<(GroupMeta, Music, Level)> {
+) -> anyhow::Result<(GroupMeta, LevelMeta, Music, Level)> {
     let level_path = level_path.as_ref();
     log::debug!("loading level at {:?}", level_path);
 
@@ -73,12 +73,16 @@ pub async fn load_level(
         .expect("level has to be in a folder")
         .parent()
         .expect("level has to be in a group");
-    let level_path = &level_path.join("level.json");
 
-    let meta: GroupMeta = file::load_detect(group_path.join("meta.toml"))
+    let group_meta: GroupMeta = file::load_detect(group_path.join("meta.toml"))
+        .await
+        .context(format!("when loading group meta at {:?}", group_path))?;
+
+    let level_meta: LevelMeta = file::load_detect(level_path.join("meta.toml"))
         .await
         .context(format!("when loading level meta at {:?}", level_path))?;
 
+    let level_path = &level_path.join("level.json");
     let level: Level = geng::asset::Load::load(manager, level_path, &())
         .await
         .context(format!("when loading level at {:?}", level_path))?;
@@ -86,7 +90,7 @@ pub async fn load_level(
     let music: crate::assets::MusicAssets = geng::asset::Load::load(manager, group_path, &())
         .await
         .context(format!("when loading music for level at {:?}", group_path))?;
-    let music = Music::new(Rc::new(music.music), meta.music.clone());
+    let music = Music::new(Rc::new(music.music), group_meta.music.clone());
 
-    Ok((meta, music, level))
+    Ok((group_meta, level_meta, music, level))
 }

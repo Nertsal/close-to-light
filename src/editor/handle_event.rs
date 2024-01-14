@@ -205,7 +205,7 @@ impl EditorState {
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
                 self.cursor.scroll += delta;
-                if !self.ui_focused {
+                if !self.ui_focused && self.ui.edit.state.visible {
                     let scroll = r32(delta.signum());
                     if ctrl {
                         if let State::Place { .. }

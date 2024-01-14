@@ -217,14 +217,16 @@ impl LevelMenu {
             async move {
                 let manager = geng.asset_manager();
 
-                let (_, level_music, level) = load_level(manager, &level_path)
+                let (group_meta, level_meta, level_music, level) = load_level(manager, &level_path)
                     .await
                     .expect("failed to load level");
 
                 let (group_name, level_name) = crate::group_level_from_path(level_path);
                 let level = crate::game::PlayLevel {
                     group_name,
+                    group_meta,
                     level_name,
+                    level_meta,
                     config,
                     level,
                     music: level_music,

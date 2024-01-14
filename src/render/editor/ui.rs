@@ -13,8 +13,26 @@ impl EditorRender {
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
 
-        // if tab_edit
-        {
+        self.ui.draw_toggle_button(
+            &ui.tab_edit.text,
+            ui.edit.state.visible,
+            false,
+            theme,
+            framebuffer,
+        );
+        self.ui.draw_toggle_button(
+            &ui.tab_config.text,
+            ui.config.state.visible,
+            false,
+            theme,
+            framebuffer,
+        );
+
+        if ui.config.state.visible {
+            self.draw_tab_config(editor, &ui.config);
+        }
+
+        if ui.edit.state.visible {
             self.draw_tab_edit(editor, &ui.edit, options);
 
             let framebuffer =
@@ -55,12 +73,36 @@ impl EditorRender {
         }
     }
 
+    fn draw_tab_config(&mut self, _editor: &Editor, ui: &EditorConfigWidget) {
+        if !ui.state.visible {
+            return;
+        }
+
+        let framebuffer =
+            &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+
+        self.ui.draw_text(&ui.timing, framebuffer);
+        self.ui.draw_value(&ui.bpm, framebuffer);
+        self.ui.draw_value(&ui.offset, framebuffer);
+
+        self.ui.draw_text(&ui.music, framebuffer);
+        self.ui.draw_text(&ui.level, framebuffer);
+
+        self.ui.draw_text(&ui.timeline, framebuffer);
+        self.ui.draw_value(&ui.scroll_by, framebuffer);
+        self.ui.draw_value(&ui.shift_scroll, framebuffer);
+    }
+
     fn draw_tab_edit(
         &mut self,
         editor: &Editor,
         ui: &EditorEditWidget,
         options: TextRenderOptions,
     ) {
+        if !ui.state.visible {
+            return;
+        }
+
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 

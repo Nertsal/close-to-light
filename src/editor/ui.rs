@@ -15,15 +15,26 @@ pub struct EditorUI {
     pub config: EditorConfigWidget,
 }
 
-pub struct EditorConfigWidget {}
+pub struct EditorConfigWidget {
+    pub state: WidgetState,
 
-impl EditorConfigWidget {
-    pub fn new() -> Self {
-        Self {}
-    }
+    pub timing: TextWidget,
+    pub bpm: ValueWidget<f32>,
+    // pub tempo:
+    pub offset: ValueWidget<f32>,
+
+    pub music: TextWidget,
+    pub level: TextWidget, // TODO: input
+
+    pub timeline: TextWidget,
+    pub scroll_by: ValueWidget<f32>, // TODO: 1/4 instead of 0.25
+    pub shift_scroll: ValueWidget<f32>,
+    // pub snap_to: CheckboxWidget,
 }
 
 pub struct EditorEditWidget {
+    pub state: WidgetState,
+
     pub new_event: TextWidget,
     pub new_palette: ButtonWidget,
     pub new_circle: ButtonWidget,
@@ -63,7 +74,11 @@ impl EditorUI {
             tab_config: ButtonWidget::new("Config"),
 
             edit: EditorEditWidget::new(),
-            config: EditorConfigWidget::new(),
+            config: {
+                let mut w = EditorConfigWidget::new();
+                w.hide();
+                w
+            },
         }
     }
 
@@ -105,7 +120,31 @@ impl EditorUI {
             self.game.update(game, &context);
         }
 
-        self.edit.update(screen, &mut context, editor);
+        let main = screen;
+
+        let (top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
+
+        let (help, top_bar) = layout::cut_left_right(top_bar, layout_size * 3.0);
+        let tabs = [&mut self.tab_edit, &mut self.tab_config];
+        let tab = Aabb2::point(top_bar.bottom_left())
+            .extend_positive(vec2(layout_size * 5.0, top_bar.height()));
+        let tabs_pos = layout::stack(tab, vec2(tab.width() + layout_size, 0.0), tabs.len());
+        for (tab, pos) in tabs.into_iter().zip(tabs_pos) {
+            tab.update(pos, &mut context);
+        }
+
+        if self.tab_edit.text.state.clicked {
+            self.edit.show();
+            self.config.hide();
+        } else if self.tab_config.text.state.clicked {
+            self.edit.hide();
+            self.config.show();
+        }
+
+        let main = main.extend_down(-layout_size).extend_up(-layout_size * 3.0);
+
+        self.edit.update(main, &mut context, editor);
+        self.config.update(main, &mut context, editor);
 
         context.can_focus
     }
@@ -114,6 +153,8 @@ impl EditorUI {
 impl EditorEditWidget {
     pub fn new() -> Self {
         Self {
+            state: WidgetState::new(),
+
             new_event: TextWidget::new("Event"),
             new_palette: ButtonWidget::new("Palette Swap"),
             new_circle: ButtonWidget::new("Circle"),
@@ -158,9 +199,6 @@ impl StatefulWidget for EditorEditWidget {
             }};
         }
 
-        let (_top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
-
-        let main = main.extend_down(-layout_size);
         let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 3.0);
         let bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
 
@@ -425,7 +463,86 @@ impl StatefulWidget for EditorEditWidget {
         }
     }
 
-    fn walk_states_mut(&mut self, _f: &dyn Fn(&mut WidgetState)) {
-        // Should I?
+    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
+        self.state.walk_states_mut(f);
+    }
+}
+
+impl EditorConfigWidget {
+    pub fn new() -> Self {
+        Self {
+            state: WidgetState::new(),
+
+            timing: TextWidget::new("Timing"),
+            bpm: ValueWidget::new("BPM", 150.0, 60.0..=240.0, 1.0), // TODO: different
+            offset: ValueWidget::new("Offset", 0.0, -10.0..=10.0, 0.1),
+
+            music: TextWidget::new("Music"),
+            level: TextWidget::new("Level"),
+
+            timeline: TextWidget::new("Timeline"),
+            scroll_by: ValueWidget::new("Scroll by", 1.0, 0.25..=4.0, 0.25),
+            shift_scroll: ValueWidget::new("Shift scroll", 0.25, 0.125..=1.0, 0.125),
+        }
+    }
+}
+
+impl StatefulWidget for EditorConfigWidget {
+    type State = Editor;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        self.state.update(position, context);
+
+        let main = position;
+
+        let width = context.layout_size * 7.0;
+        let spacing = context.layout_size * 5.0;
+
+        let columns = 3;
+        let total_width = columns as f32 * width + (columns - 1) as f32 * spacing;
+        let column = Aabb2::point(vec2(main.center().x - total_width / 2.0, main.max.y))
+            .extend_right(width)
+            .extend_down(main.height());
+
+        let columns = layout::stack(column, vec2(width + spacing, 0.0), columns);
+
+        let bar = columns[0];
+        let (timing, bar) = layout::cut_top_down(bar, context.font_size);
+        self.timing.update(timing, context);
+
+        let (bpm, bar) = layout::cut_top_down(bar, context.font_size);
+        self.bpm.update(bpm, context);
+
+        let (offset, bar) = layout::cut_top_down(bar, context.font_size);
+        self.offset.update(offset, context);
+
+        let _ = bar;
+
+        let bar = columns[1];
+        let (music, bar) = layout::cut_top_down(bar, context.font_size);
+        self.music.text = format!("Music: {}", state.level.group_meta.name);
+        self.music.update(music, context);
+
+        let (level, bar) = layout::cut_top_down(bar, context.font_size);
+        self.level.text = format!("Level: {}", state.level.level_meta.name);
+        self.level.update(level, context);
+
+        let _ = bar;
+
+        let bar = columns[2];
+        let (timeline, bar) = layout::cut_top_down(bar, context.font_size);
+        self.timeline.update(timeline, context);
+
+        let (scroll_by, bar) = layout::cut_top_down(bar, context.font_size);
+        self.scroll_by.update(scroll_by, context);
+
+        let (shift_scroll, bar) = layout::cut_top_down(bar, context.font_size);
+        self.shift_scroll.update(shift_scroll, context);
+
+        let _ = bar;
+    }
+
+    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
+        self.state.walk_states_mut(f);
     }
 }
