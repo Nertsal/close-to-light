@@ -44,6 +44,7 @@ impl PlayLevel {
             .join("assets")
             .join("groups")
             .join(&self.group_name)
+            .join("levels")
             .join(&self.level_name)
             .join("level.json")
     }
