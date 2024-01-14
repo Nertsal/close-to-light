@@ -23,7 +23,7 @@ impl ButtonWidget {
 }
 
 impl Widget for ButtonWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.text.update(position, context);
     }
 

@@ -51,7 +51,6 @@ impl EditorRender {
         &mut self,
         editor: &Editor,
         ui: &EditorUI,
-        options: &RenderOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         geng_utils::texture::update_texture_size(
@@ -65,8 +64,8 @@ impl EditorRender {
             self.geng.ugli(),
         );
 
-        self.draw_game(editor, options);
-        self.draw_ui(editor, ui, options);
+        self.draw_game(editor);
+        self.draw_ui(editor, ui);
 
         let camera = &geng::PixelPerfectCamera;
         self.geng.draw2d().textured_quad(

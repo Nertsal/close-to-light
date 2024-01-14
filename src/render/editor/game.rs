@@ -1,7 +1,9 @@
 use super::*;
 
 impl EditorRender {
-    pub(super) fn draw_game(&mut self, editor: &Editor, options: &RenderOptions) {
+    pub(super) fn draw_game(&mut self, editor: &Editor) {
+        let options = &editor.render_options;
+
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
 

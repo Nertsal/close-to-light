@@ -23,7 +23,7 @@ impl TextWidget {
 }
 
 impl Widget for TextWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.options.update(context);
     }

@@ -53,6 +53,23 @@ impl CursorContext {
     }
 }
 
+#[derive(Default, Debug, Clone, Copy)]
+pub struct KeyModifiers {
+    pub shift: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+}
+
+impl KeyModifiers {
+    pub fn from_window(window: &geng::Window) -> Self {
+        Self {
+            shift: geng_utils::key::is_key_pressed(window, [geng::Key::ShiftLeft]),
+            ctrl: geng_utils::key::is_key_pressed(window, [geng::Key::ControlLeft]),
+            alt: geng_utils::key::is_key_pressed(window, [geng::Key::AltLeft]),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct UiContext {
     pub theme: Theme,
@@ -62,6 +79,8 @@ pub struct UiContext {
     pub can_focus: bool,
     pub cursor: CursorContext,
     pub delta_time: f32,
+    /// Active key modifiers.
+    pub mods: KeyModifiers,
 }
 
 impl UiContext {
@@ -80,7 +99,7 @@ impl UiContext {
 
 pub trait Widget {
     /// Update position and related properties.
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext);
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext);
     /// Apply a function to all states contained in the widget.
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
     /// Make the widget visible.
@@ -92,6 +111,36 @@ pub trait Widget {
         self.walk_states_mut(&WidgetState::hide)
     }
 }
+
+pub trait StatefulWidget {
+    /// The external state that the widget operates on and can modify.
+    type State;
+
+    /// Update position and related properties.
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State);
+    /// Apply a function to all states contained in the widget.
+    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
+    /// Make the widget visible.
+    fn show(&mut self) {
+        self.walk_states_mut(&WidgetState::show)
+    }
+    /// Hide the widget and disable interactions.
+    fn hide(&mut self) {
+        self.walk_states_mut(&WidgetState::hide)
+    }
+}
+
+// impl<T: Widget> StatefulWidget for T {
+//     type State = ();
+
+//     fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Self::State) {
+//         self.update(position, context)
+//     }
+
+//     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
+//         self.walk_states_mut(f)
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct WidgetState {
@@ -137,6 +186,7 @@ impl WidgetState {
 
     pub fn hide(&mut self) {
         self.visible = false;
+        self.hovered = false;
         self.pressed = false;
         self.clicked = false;
     }

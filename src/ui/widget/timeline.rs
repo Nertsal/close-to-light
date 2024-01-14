@@ -33,6 +33,7 @@ impl TimelineWidget {
                 can_focus: true,
                 cursor: CursorContext::new(),
                 delta_time: 0.1,
+                mods: KeyModifiers::default(),
             },
             state: default(),
             current_beat: default(),
@@ -155,7 +156,7 @@ impl TimelineWidget {
 }
 
 impl Widget for TimelineWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.context = *context;
         self.reload();

@@ -96,7 +96,7 @@ impl LeaderboardWidget {
 }
 
 impl Widget for LeaderboardWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         let main = position;
 
@@ -112,7 +112,7 @@ impl Widget for LeaderboardWidget {
             .extend_up(-context.layout_size);
 
         let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
-        self.title.update(title, &context.scale_font(1.1));
+        self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
 
         let (subtitle, main) = layout::cut_top_down(main, context.font_size * 1.0);
         self.subtitle.update(subtitle, context);
@@ -196,7 +196,7 @@ impl LeaderboardEntryWidget {
 }
 
 impl Widget for LeaderboardEntryWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         let main = position;
 
         let (rank, main) = layout::cut_left_right(main, context.font_size * 1.0);

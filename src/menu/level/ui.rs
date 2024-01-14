@@ -45,7 +45,7 @@ impl MenuUI {
         screen: Aabb2<f32>,
         cursor: CursorContext,
         delta_time: f32,
-        _geng: &Geng,
+        geng: &Geng,
     ) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
@@ -59,10 +59,14 @@ impl MenuUI {
             can_focus: true,
             cursor,
             delta_time,
+            mods: KeyModifiers::from_window(geng.window()),
         };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, &context);
+                $widget.update($position, &mut context);
+            }};
+            ($widget:expr, $position:expr, $state:expr) => {{
+                $widget.update($position, &mut context, $state);
             }};
         }
 
@@ -111,11 +115,9 @@ impl MenuUI {
             update!(self.options_head, head);
             context.update_focus(self.options_head.state.hovered);
 
-            self.options.set_options(state.options.clone());
-            update!(self.options, options);
             let old_options = state.options.clone();
+            update!(self.options, options, &mut state.options);
             context.update_focus(self.options.state.hovered);
-            self.options.update_options(&mut state.options);
             if state.options != old_options {
                 preferences::save(OPTIONS_STORAGE, &state.options);
             }

@@ -7,6 +7,23 @@ pub struct EditorUI {
     pub screen: WidgetState,
     pub game: WidgetState,
 
+    pub help: TextWidget,
+    pub tab_edit: ButtonWidget,
+    pub tab_config: ButtonWidget,
+
+    pub edit: EditorEditWidget,
+    pub config: EditorConfigWidget,
+}
+
+pub struct EditorConfigWidget {}
+
+impl EditorConfigWidget {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+pub struct EditorEditWidget {
     pub new_event: TextWidget,
     pub new_palette: ButtonWidget,
     pub new_circle: ButtonWidget,
@@ -41,6 +58,60 @@ impl EditorUI {
             screen: default(),
             game: default(),
 
+            help: TextWidget::new("?"),
+            tab_edit: ButtonWidget::new("Edit"),
+            tab_config: ButtonWidget::new("Config"),
+
+            edit: EditorEditWidget::new(),
+            config: EditorConfigWidget::new(),
+        }
+    }
+
+    pub fn layout(
+        &mut self,
+        editor: &mut Editor,
+        screen: Aabb2<f32>,
+        cursor: CursorContext,
+        delta_time: Time,
+        geng: &Geng,
+    ) -> bool {
+        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+
+        let font_size = screen.height() * 0.03;
+        let layout_size = screen.height() * 0.03;
+
+        let context = UiContext {
+            theme: editor.model.options.theme,
+            layout_size,
+            font_size,
+            can_focus: true,
+            cursor,
+            delta_time: delta_time.as_f32(),
+            mods: KeyModifiers::from_window(geng.window()),
+        };
+
+        self.screen.update(screen, &context);
+
+        {
+            let max_size = screen.size() * 0.7;
+
+            let ratio = 16.0 / 9.0;
+            let max_height = max_size.y.min(max_size.x / ratio);
+
+            let game_height = max_height;
+            let game_size = vec2(game_height * ratio, game_height);
+
+            let game = layout::align_aabb(game_size, screen, vec2(0.5, 0.5));
+            self.game.update(game, &context);
+        }
+
+        context.can_focus
+    }
+}
+
+impl EditorEditWidget {
+    pub fn new() -> Self {
+        Self {
             new_event: TextWidget::new("Event"),
             new_palette: ButtonWidget::new("Palette Swap"),
             new_circle: ButtonWidget::new("Circle"),
@@ -68,51 +139,23 @@ impl EditorUI {
             timeline: TimelineWidget::new(),
         }
     }
+}
 
-    pub fn layout(
-        &mut self,
-        editor: &mut Editor,
-        render_options: &mut RenderOptions,
-        screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: Time,
-        geng: &Geng,
-    ) -> bool {
-        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+impl StatefulWidget for EditorEditWidget {
+    type State = Editor;
 
-        let font_size = screen.height() * 0.03;
-        let layout_size = screen.height() * 0.03;
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        let editor = state;
+        let main = position;
+        let font_size = context.font_size;
+        let layout_size = context.layout_size;
 
-        let mut context = UiContext {
-            theme: editor.model.options.theme,
-            layout_size,
-            font_size,
-            can_focus: true,
-            cursor,
-            delta_time: delta_time.as_f32(),
-        };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, &context);
+                $widget.update($position, context);
             }};
         }
 
-        update!(self.screen, screen);
-
-        {
-            let max_size = screen.size() * 0.7;
-
-            let ratio = 16.0 / 9.0;
-            let max_height = max_size.y.min(max_size.x / ratio);
-
-            let game_height = max_height;
-            let game_size = vec2(game_height * ratio, game_height);
-
-            let game = layout::align_aabb(game_size, screen, vec2(0.5, 0.5));
-            update!(self.game, game);
-        }
-
-        let main = screen;
         let (_top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
 
         let main = main.extend_down(-layout_size);
@@ -177,9 +220,9 @@ impl EditorUI {
             let bar = bar.extend_up(-spacing);
             update!(self.show_grid, grid);
             if self.show_grid.state.clicked {
-                render_options.show_grid = !render_options.show_grid;
+                editor.render_options.show_grid = !editor.render_options.show_grid;
             }
-            self.show_grid.checked = render_options.show_grid;
+            self.show_grid.checked = editor.render_options.show_grid;
 
             // let (waypoints, bar) = layout::cut_top_down(bar, button_height);
             // let bar = bar.extend_up(-spacing);
@@ -359,7 +402,7 @@ impl EditorUI {
                 .map(|replay| replay.current_beat);
             self.timeline.update_time(editor.current_beat, replay);
 
-            let select = geng_utils::key::is_key_pressed(geng.window(), [Key::ControlLeft]);
+            let select = context.mods.ctrl;
             if select {
                 if !was_pressed && self.timeline.state.pressed {
                     self.timeline.start_selection();
@@ -378,7 +421,9 @@ impl EditorUI {
 
             self.timeline.auto_scale(editor.level.level.last_beat());
         }
+    }
 
-        context.can_focus
+    fn walk_states_mut(&mut self, _f: &dyn Fn(&mut WidgetState)) {
+        // Should I?
     }
 }

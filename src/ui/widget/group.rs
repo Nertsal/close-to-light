@@ -30,7 +30,7 @@ impl GroupWidget {
 }
 
 impl Widget for GroupWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
         // let logo_size = position.height();
@@ -46,7 +46,7 @@ impl Widget for GroupWidget {
         self.name.update(name, context);
         self.name.align(vec2(0.5, 0.0));
 
-        self.author.update(author, &context.scale_font(0.6));
+        self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.5, 1.0));
     }
 

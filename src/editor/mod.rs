@@ -17,7 +17,7 @@ use crate::{
     ui::widget::CursorContext,
 };
 
-use geng::{Key, MouseButton};
+use geng::MouseButton;
 
 pub struct EditorState {
     geng: Geng,
@@ -28,7 +28,6 @@ pub struct EditorState {
     framebuffer_size: vec2<usize>,
     delta_time: Time,
     cursor: CursorContext,
-    render_options: RenderOptions,
     ui: EditorUI,
     ui_focused: bool,
     drag: Option<Drag>,
@@ -78,6 +77,7 @@ impl HistoryLabel {
 
 pub struct Editor {
     pub config: EditorConfig,
+    pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
 
     pub level: PlayLevel,
@@ -138,14 +138,14 @@ impl EditorState {
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
             cursor: CursorContext::new(),
-            render_options: RenderOptions {
-                show_grid: true,
-                hide_ui: false,
-            },
             ui: EditorUI::new(),
             ui_focused: false,
             drag: None,
             editor: Editor {
+                render_options: RenderOptions {
+                    show_grid: true,
+                    hide_ui: false,
+                },
                 grid_size: r32(10.0) / config.grid.height,
                 cursor_world_pos: vec2::ZERO,
                 level_state: EditorLevelState::default(),
@@ -386,7 +386,6 @@ impl geng::State for EditorState {
 
         self.ui_focused = !self.ui.layout(
             &mut self.editor,
-            &mut self.render_options,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             self.cursor,
             self.delta_time,
@@ -394,8 +393,7 @@ impl geng::State for EditorState {
         );
         self.cursor.scroll = 0.0;
         self.editor.model.camera.fov = 10.0 / self.editor.view_zoom;
-        self.render
-            .draw_editor(&self.editor, &self.ui, &self.render_options, framebuffer);
+        self.render.draw_editor(&self.editor, &self.ui, framebuffer);
     }
 }
 

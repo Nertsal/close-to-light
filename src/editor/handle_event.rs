@@ -25,7 +25,7 @@ impl EditorState {
                 geng::Key::F => {
                     if ctrl {
                         self.editor.dynamic_segment = None;
-                        self.ui.timeline.clear_selection();
+                        self.ui.edit.timeline.clear_selection();
                     } else {
                         self.editor.visualize_beat = !self.editor.visualize_beat
                     }
@@ -91,7 +91,9 @@ impl EditorState {
                         self.undo();
                     }
                 }
-                geng::Key::H => self.render_options.hide_ui = !self.render_options.hide_ui,
+                geng::Key::H => {
+                    self.editor.render_options.hide_ui = !self.editor.render_options.hide_ui
+                }
                 geng::Key::D => {
                     // Toggle danger
                     match &mut self.editor.state {
@@ -126,7 +128,8 @@ impl EditorState {
                 geng::Key::W => self.editor.view_waypoints(),
                 geng::Key::Backquote => {
                     if ctrl {
-                        self.render_options.show_grid = !self.render_options.show_grid;
+                        self.editor.render_options.show_grid =
+                            !self.editor.render_options.show_grid;
                     } else {
                         self.editor.snap_to_grid = !self.editor.snap_to_grid;
                     }
@@ -192,7 +195,9 @@ impl EditorState {
                 geng::Key::Digit8 => self.handle_digit(8),
                 geng::Key::Digit9 => self.handle_digit(9),
                 geng::Key::Digit0 => self.handle_digit(0),
-                geng::Key::F1 => self.render_options.hide_ui = !self.render_options.hide_ui,
+                geng::Key::F1 => {
+                    self.editor.render_options.hide_ui = !self.editor.render_options.hide_ui
+                }
                 geng::Key::F5 => self.play_game(),
                 geng::Key::F11 => self.geng.window().toggle_fullscreen(),
                 _ => {}

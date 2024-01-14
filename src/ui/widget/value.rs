@@ -30,7 +30,7 @@ impl<T: Num + Copy> ValueWidget<T> {
 }
 
 impl<T: Num + Display> Widget for ValueWidget<T> {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
         if self.state.hovered {

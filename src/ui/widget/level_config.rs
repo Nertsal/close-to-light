@@ -45,7 +45,7 @@ impl LevelConfigWidget {
 }
 
 impl Widget for LevelConfigWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         let main = position;
 
@@ -126,7 +126,7 @@ impl<T> PresetWidget<T> {
 }
 
 impl<T> Widget for PresetWidget<T> {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.button.update(position, context);
     }
 
@@ -159,7 +159,7 @@ impl LevelDifficultyWidget {
 }
 
 impl Widget for LevelDifficultyWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         for (pos, (_i, target)) in layout::split_columns(position, self.presets.len())
             .into_iter()
@@ -202,7 +202,7 @@ impl LevelModsWidget {
 }
 
 impl Widget for LevelModsWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         for (pos, (_i, target)) in layout::split_columns(position, self.mods.len())
             .into_iter()
