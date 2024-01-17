@@ -118,6 +118,12 @@ impl Movement {
         self.timed_positions().nth(i).map(|(_, _, time)| time)
     }
 
+    /// Whether currently at a waypoint with specified precision.
+    pub fn is_at_waypoint(&self, time: Time, precision: Time) -> bool {
+        self.timed_positions()
+            .any(|(_, _, key_time)| (key_time - time).abs() <= precision)
+    }
+
     /// Get the transform at the given time.
     pub fn get(&self, mut time: Time) -> Transform {
         let mut from = self.initial;

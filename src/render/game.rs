@@ -149,7 +149,7 @@ impl GameRender {
         if let State::Lost { .. } | State::Finished = model.state {
             if !fading {
                 self.util.draw_text(
-                    &format!("SCORE: {:.0}", model.score.ceil()),
+                    &format!("SCORE: {}", model.score.calculated.combined),
                     vec2(-3.0, -3.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
@@ -157,9 +157,18 @@ impl GameRender {
                 );
             }
         } else if !model.level.config.modifiers.clean_auto {
+            // self.util.draw_text(
+            //     format!("SCORE: {}", model.score.calculated.combined),
+            //     vec2(-0.8, 4.5).as_r32(),
+            //     TextRenderOptions::new(0.7)
+            //         .color(theme.light)
+            //         .align(vec2(0.0, 0.5)),
+            //     &model.camera,
+            //     framebuffer,
+            // );
             self.util.draw_text(
-                format!("SCORE: {:.0}", model.score.ceil()),
-                vec2(-0.8, 4.5).as_r32(),
+                format!("{:#?}", model.score),
+                vec2(-7.0, 0.0).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),

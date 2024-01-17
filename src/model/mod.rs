@@ -5,15 +5,15 @@ mod logic;
 mod movement;
 mod options;
 mod player;
+mod score;
 
-pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
+pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
 pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
-pub type Score = R32;
 
 pub struct Music {
     pub meta: MusicMeta,
@@ -150,7 +150,7 @@ pub struct Model {
     pub assets: Rc<Assets>,
     pub leaderboard: Leaderboard,
 
-    pub high_score: Score,
+    pub high_score: i32,
     pub camera: Camera2d,
     pub player: Player,
 
@@ -199,8 +199,8 @@ impl Model {
                 start_timer: Time::ZERO, // reset during init
                 music_start_time: Time::ZERO,
             },
-            score: Score::ZERO,
-            high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
+            score: Score::new(),
+            high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
             beat_time: Time::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,

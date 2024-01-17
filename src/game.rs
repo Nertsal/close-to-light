@@ -177,7 +177,7 @@ impl geng::State for Game {
                 Transition::LoadLeaderboard { submit_score } => {
                     let player_name = self.model.player.name.clone();
                     let submit_score = submit_score && !player_name.trim().is_empty();
-                    let raw_score = self.model.score.as_f32().ceil() as i32;
+                    let raw_score = self.model.score.calculated.combined;
                     let score = submit_score.then_some(raw_score);
 
                     let meta = crate::leaderboard::ScoreMeta::new(

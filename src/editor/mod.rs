@@ -374,7 +374,8 @@ impl geng::State for EditorState {
             pos
         };
 
-        self.editor.render_lights(self.editor.visualize_beat);
+        self.editor
+            .render_lights(self.editor.visualize_beat, delta_time);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -470,7 +471,7 @@ impl Editor {
         self.scrolling_time = true;
     }
 
-    pub fn render_lights(&mut self, visualize_beat: bool) {
+    pub fn render_lights(&mut self, visualize_beat: bool, delta_time: Time) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
             (None, Some(self.current_beat))
@@ -489,10 +490,22 @@ impl Editor {
         };
 
         let static_level = static_time.map(|time| {
-            LevelState::render(&self.level.level, &self.model.level.config, time, None)
+            LevelState::render(
+                &self.level.level,
+                &self.model.level.config,
+                time,
+                None,
+                delta_time,
+            )
         });
         let dynamic_level = dynamic_time.map(|time| {
-            LevelState::render(&self.level.level, &self.model.level.config, time, None)
+            LevelState::render(
+                &self.level.level,
+                &self.model.level.config,
+                time,
+                None,
+                delta_time,
+            )
         });
 
         // if let State::Movement {

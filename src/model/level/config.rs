@@ -71,7 +71,7 @@ impl Default for LevelModifiers {
     fn default() -> Self {
         Self {
             clean_auto: false,
-            nofail: false,
+            nofail: true,
             sudden: false,
             hidden: false,
         }

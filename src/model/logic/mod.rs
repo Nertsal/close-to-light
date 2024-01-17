@@ -51,12 +51,13 @@ impl Model {
             &self.level.config,
             self.beat_time,
             ignore_time,
+            delta_time,
         );
 
         // Check if the player is in light
         self.player.reset_distance();
         for light in self.level_state.lights.iter() {
-            self.player.update_distance(&light.collider, light.danger);
+            self.player.update_light_distance(light);
         }
 
         match &mut self.state {
@@ -87,18 +88,17 @@ impl Model {
                                 * multiplier
                                 * delta_time,
                         );
-                    } else if let Some(distance) = self.player.light_distance {
-                        let distance = distance.clamp(r32(0.0), r32(1.3)) / r32(1.3);
-                        let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
+                    } else if self.player.light_distance.is_some() {
                         self.player
                             .health
                             .change(self.level.config.health.restore_rate * delta_time);
-                        self.score += delta_time * score_multiplier * r32(100.0);
                     } else {
                         self.player
                             .health
                             .change(-self.level.config.health.dark_decrease_rate * delta_time);
                     }
+
+                    self.score.update(&self.player, delta_time);
 
                     if !self.level.config.modifiers.nofail && self.player.health.is_min() {
                         self.lose();
@@ -113,7 +113,7 @@ impl Model {
                     .check(&self.player.collider);
                 self.restart_button.update(hovering, delta_time);
                 self.player
-                    .update_distance(&self.restart_button.base_collider, false);
+                    .update_distance(&self.restart_button.base_collider, false, false);
                 if self.restart_button.hover_time.is_max() {
                     self.restart();
                 }
@@ -122,7 +122,7 @@ impl Model {
                 let hovering = self.exit_button.base_collider.check(&self.player.collider);
                 self.exit_button.update(hovering, delta_time);
                 self.player
-                    .update_distance(&self.exit_button.base_collider, false);
+                    .update_distance(&self.exit_button.base_collider, false, false);
                 if self.exit_button.hover_time.is_max() {
                     self.transition = Some(Transition::Exit);
                 }
@@ -137,7 +137,7 @@ impl Model {
     }
 
     pub fn save_highscore(&self) {
-        let high_score = self.high_score.max(self.score);
+        let high_score = self.high_score.max(self.score.calculated.combined);
         preferences::save("highscore", &high_score);
     }
 
