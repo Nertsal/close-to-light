@@ -1,3 +1,5 @@
+mod event;
+
 use super::*;
 
 impl Model {
@@ -14,6 +16,8 @@ impl Model {
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
         self.level.music.set_volume(self.options.volume.music());
+
+        self.update_rhythm(delta_time);
 
         // Move
         self.player.collider.position = player_target;
@@ -97,7 +101,10 @@ impl Model {
                             .change(-self.level.config.health.dark_decrease_rate * delta_time);
                     }
 
-                    self.score.update(&self.player, delta_time);
+                    let events = self.score.update(&self.player, delta_time);
+                    for event in events {
+                        self.handle_event(event);
+                    }
 
                     if !self.level.config.modifiers.nofail && self.player.health.is_min() {
                         self.lose();
@@ -133,6 +140,13 @@ impl Model {
             // Player tail
             self.player.update_tail(delta_time);
         }
+    }
+
+    fn update_rhythm(&mut self, delta_time: Time) {
+        for rhythm in &mut self.rhythms {
+            rhythm.time.change(delta_time);
+        }
+        self.rhythms.retain(|rhythm| !rhythm.time.is_max());
     }
 
     pub fn save_highscore(&self) {

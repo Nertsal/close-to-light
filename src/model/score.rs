@@ -48,9 +48,11 @@ impl Score {
     }
 
     /// Update the score given current player state.
-    pub fn update(&mut self, player: &Player, delta_time: Time) {
-        self.metrics.update(player, delta_time);
+    #[must_use]
+    pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
+        let events = self.metrics.update(player, delta_time);
         self.calculated = CalculatedScore::from_metrics(&self.metrics);
+        events
     }
 }
 
@@ -87,11 +89,13 @@ impl ScoreMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, delta_time: Time) {
+    pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
+        let mut events = Vec::new();
         if player.is_keyframe {
-            self.discrete.update(player);
+            events.extend(self.discrete.update(player));
         }
-        self.dynamic.update(player, delta_time);
+        events.extend(self.dynamic.update(player, delta_time));
+        events
     }
 }
 
@@ -104,13 +108,20 @@ impl DiscreteMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player) {
+    pub fn update(&mut self, player: &Player) -> Vec<GameEvent> {
+        let mut events = Vec::new();
+
         if player.danger_distance.is_none() && player.light_distance.is_some() {
             if player.is_perfect {
                 self.perfect += 1;
             }
             self.total += 1;
+            events.push(GameEvent::Rhythm {
+                perfect: player.is_perfect,
+            });
         }
+
+        events
     }
 }
 
@@ -123,7 +134,9 @@ impl DynamicMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, _delta_time: Time) {
+    pub fn update(&mut self, player: &Player, _delta_time: Time) -> Vec<GameEvent> {
+        let events = Vec::new();
+
         self.frames += 1;
         self.distance_sum += player.light_distance.map_or(r32(1.0), |distance| {
             if player.is_perfect {
@@ -132,6 +145,8 @@ impl DynamicMetrics {
                 distance.clamp(r32(0.0), r32(1.3)) / r32(1.3)
             }
         });
+
+        events
     }
 }
 

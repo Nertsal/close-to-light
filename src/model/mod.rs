@@ -15,6 +15,11 @@ pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
 
+#[derive(Debug, Clone)]
+pub enum GameEvent {
+    Rhythm { perfect: bool },
+}
+
 pub struct Music {
     pub meta: MusicMeta,
     sound: Rc<geng::Sound>,
@@ -145,6 +150,14 @@ pub enum Transition {
     Exit,
 }
 
+#[derive(Debug, Clone)]
+pub struct Rhythm {
+    /// Time since the beat.
+    pub time: Bounded<Time>,
+    /// Whether player input was perfect at the beat.
+    pub perfect: bool,
+}
+
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
@@ -161,6 +174,9 @@ pub struct Model {
     pub level_state: LevelState,
     pub state: State,
     pub score: Score,
+
+    /// Waypoint rhythms.
+    pub rhythms: Vec<Rhythm>,
 
     pub real_time: Time,
     /// Time since the last state change.
@@ -192,23 +208,16 @@ impl Model {
 
     pub fn empty(assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
         Self {
-            leaderboard: Leaderboard::new(None),
             transition: None,
             assets: assets.clone(),
-            state: State::Starting {
-                start_timer: Time::ZERO, // reset during init
-                music_start_time: Time::ZERO,
-            },
-            score: Score::new(),
+            leaderboard: Leaderboard::new(None),
+
             high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
-            beat_time: Time::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
-            real_time: Time::ZERO,
-            switch_time: Time::ZERO,
             player: Player::new(
                 Collider::new(
                     vec2::ZERO,
@@ -218,6 +227,20 @@ impl Model {
                 ),
                 level.config.health.max,
             ),
+
+            level_state: LevelState::default(),
+            state: State::Starting {
+                start_timer: Time::ZERO, // reset during init
+                music_start_time: Time::ZERO,
+            },
+            score: Score::new(),
+
+            rhythms: Vec::new(),
+
+            beat_time: Time::ZERO,
+            real_time: Time::ZERO,
+            switch_time: Time::ZERO,
+
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),
                 2.0,
@@ -226,8 +249,8 @@ impl Model {
                 Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
                 3.0,
             ),
+
             options,
-            level_state: LevelState::default(),
             level,
         }
     }

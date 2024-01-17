@@ -129,6 +129,30 @@ impl GameRender {
             }
         }
 
+        {
+            // Rhythm
+            let radius = 0.2;
+            for rhythm in &model.rhythms {
+                let t = rhythm.time.get_ratio().as_f32();
+
+                let t = t * f32::PI;
+                let (sin, cos) = t.sin_cos();
+                let pos = vec2(0.0, 5.0 - radius) + vec2(cos, sin) * vec2(1.0, -0.2);
+
+                let color = if rhythm.perfect {
+                    THEME.light
+                } else {
+                    THEME.danger
+                };
+
+                self.geng.draw2d().draw2d(
+                    &mut framebuffer,
+                    camera,
+                    &draw2d::Ellipse::circle(pos, radius, color),
+                );
+            }
+        }
+
         self.dither.finish(model.real_time, theme);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
