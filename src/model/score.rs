@@ -65,11 +65,16 @@ impl CalculatedScore {
     }
 
     pub fn from_metrics(metrics: &ScoreMetrics) -> Self {
+        let accuracy = r32(metrics.discrete.perfect as f32 / metrics.discrete.total.max(1) as f32);
+        let precision =
+            R32::ONE - metrics.dynamic.distance_sum / r32(metrics.dynamic.frames.max(1) as f32);
+
+        let w = r32(0.7);
+        let combined = accuracy * w + precision * (R32::ONE - w);
         Self {
-            combined: 0,
-            accuracy: r32(metrics.discrete.perfect as f32 / metrics.discrete.total.max(1) as f32),
-            precision: R32::ONE
-                - metrics.dynamic.distance_sum / r32(metrics.dynamic.frames.max(1) as f32),
+            combined: (100_000.0 * combined.as_f32()) as i32,
+            accuracy,
+            precision,
         }
     }
 }
