@@ -51,13 +51,12 @@ impl Model {
             &self.level.config,
             self.beat_time,
             ignore_time,
-            delta_time,
         );
 
         // Check if the player is in light
         self.player.reset_distance();
         for light in self.level_state.lights.iter() {
-            self.player.update_light_distance(light);
+            self.player.update_light_distance(light, delta_time);
         }
 
         match &mut self.state {

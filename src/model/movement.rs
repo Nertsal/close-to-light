@@ -118,10 +118,11 @@ impl Movement {
         self.timed_positions().nth(i).map(|(_, _, time)| time)
     }
 
-    /// Whether currently at a waypoint with specified precision.
-    pub fn is_at_waypoint(&self, time: Time, precision: Time) -> bool {
+    /// Find the temporaly closest waypoint (in past or future).
+    pub fn closest_waypoint(&self, time: Time) -> (WaypointId, Transform, Time) {
         self.timed_positions()
-            .any(|(_, _, key_time)| (key_time - time).abs() <= precision)
+            .min_by_key(|(_, _, key_time)| (*key_time - time).abs())
+            .expect("Light has no waypoints") // NOTE: Can unwrap because there is always at least one waypoint - initial
     }
 
     /// Get the transform at the given time.

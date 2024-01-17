@@ -122,7 +122,8 @@ impl Player {
         }
     }
 
-    pub fn update_light_distance(&mut self, light: &Light) {
-        self.update_distance(&light.collider, light.danger, light.is_at_waypoint)
+    pub fn update_light_distance(&mut self, light: &Light, delta_time: Time) {
+        let at_waypoint = light.closest_waypoint.abs() < delta_time / r32(2.0); // TODO: better
+        self.update_distance(&light.collider, light.danger, at_waypoint)
     }
 }

@@ -112,8 +112,12 @@ impl EditorRender {
         };
         let draw_light = |light: &Light, framebuffer: &mut ugli::Framebuffer| {
             let color = get_color(light.event_id);
-            self.util
-                .draw_light(&light.collider, color, &editor.model.camera, framebuffer);
+            self.util.draw_light_gradient(
+                &light.collider,
+                color,
+                &editor.model.camera,
+                framebuffer,
+            );
         };
 
         // Dynamic
@@ -153,7 +157,7 @@ impl EditorRender {
                 let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
                     let event = commit_light(light.clone());
                     let (tele, light) =
-                        render_light(&event, time, None, &editor.model.level.config, Time::ZERO);
+                        render_light(&event, time, None, &editor.model.level.config);
                     for tele in tele {
                         draw_telegraph(&tele, pixel_buffer);
                     }

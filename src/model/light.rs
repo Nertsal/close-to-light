@@ -13,8 +13,8 @@ pub struct Light {
     pub danger: bool,
     /// Id of the original event in the level.
     pub event_id: Option<usize>,
-    /// Whether currently at a waypoint.
-    pub is_at_waypoint: bool,
+    /// Time delta to the closest waypoint.
+    pub closest_waypoint: Time,
 }
 
 #[derive(Debug, Clone)]

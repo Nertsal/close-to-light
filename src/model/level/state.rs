@@ -33,7 +33,6 @@ impl LevelState {
         config: &LevelConfig,
         beat_time: Time,
         ignore_after: Option<Time>,
-        delta_time: Time,
     ) -> Self {
         let mut state = Self {
             beat_time,
@@ -45,7 +44,7 @@ impl LevelState {
         };
 
         for (i, e) in level.events.iter().enumerate() {
-            state.render_event(e, Some(i), config, delta_time);
+            state.render_event(e, Some(i), config);
         }
         state
     }
@@ -55,7 +54,6 @@ impl LevelState {
         event: &TimedEvent,
         event_id: Option<usize>,
         config: &LevelConfig,
-        delta_time: Time,
     ) {
         if self.beat_time < event.beat {
             self.is_finished = false;
@@ -73,7 +71,7 @@ impl LevelState {
         match &event.event {
             Event::PaletteSwap => self.swap_palette = !self.swap_palette,
             Event::Light(event) => {
-                let (telegraph, light) = render_light(event, time, event_id, config, delta_time);
+                let (telegraph, light) = render_light(event, time, event_id, config);
                 self.telegraphs.extend(telegraph);
                 self.lights.extend(light);
             }
@@ -88,7 +86,6 @@ pub fn render_light(
     relative_time: Time,
     event_id: Option<usize>,
     config: &LevelConfig,
-    delta_time: Time,
 ) -> (Vec<LightTelegraph>, Option<Light>) {
     let movement = &event.light.movement;
     let base_light = event.light.clone().instantiate(event_id);
@@ -148,10 +145,8 @@ pub fn render_light(
         let transform = event.light.movement.get(relative_time);
         let mut main_light = base_tele.light;
         main_light.collider = base_light.collider.transformed(transform);
-        main_light.is_at_waypoint = event
-            .light
-            .movement
-            .is_at_waypoint(relative_time, delta_time);
+        let (_, _, closest_time) = event.light.movement.closest_waypoint(relative_time);
+        main_light.closest_waypoint = closest_time - relative_time;
         main_light
     });
 

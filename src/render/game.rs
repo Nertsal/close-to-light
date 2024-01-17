@@ -62,7 +62,7 @@ impl GameRender {
                     THEME.light
                 };
                 self.util
-                    .draw_light(&light.collider, color, camera, &mut framebuffer);
+                    .draw_light(light, color, THEME.dark, camera, &mut framebuffer);
             }
         }
 

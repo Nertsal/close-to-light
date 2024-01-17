@@ -29,7 +29,6 @@ pub struct ScoreMetrics {
 pub struct DiscreteMetrics {
     /// The number of times player has been in `perfect` distance to a light.
     pub perfect: usize,
-    /// The number of times player has been in `perfect` distance to a light.
     pub total: usize,
 }
 

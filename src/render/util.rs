@@ -224,8 +224,44 @@ impl UtilRender {
 
     pub fn draw_light(
         &self,
+        light: &Light,
+        color: Color,
+        dark_color: Color,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.draw_light_gradient(&light.collider, color, camera, framebuffer);
+
+        // Waypoint visual
+        let radius_max = 0.2;
+        let width = 0.05;
+        let fade_in = 0.25;
+        let fade_out = 0.5;
+
+        let t = light.closest_waypoint.as_f32();
+        let t = (t / fade_in + 1.0).min(1.0 - t / fade_out).max(0.0);
+        let radius = r32(t * radius_max);
+
+        if radius.as_f32() < width {
+            return;
+        }
+
+        let shape = match light.collider.shape {
+            Shape::Circle { .. } => Shape::circle(radius),
+            Shape::Line { .. } => Shape::line(radius / r32(2.0)),
+            Shape::Rectangle { .. } => Shape::rectangle(vec2::splat(radius)),
+        };
+        let waypoint = Collider {
+            shape,
+            ..light.collider
+        };
+        self.draw_outline(&waypoint, width, dark_color, camera, framebuffer);
+    }
+
+    pub fn draw_light_gradient(
+        &self,
         collider: &Collider,
-        color: Rgba<f32>,
+        color: Color,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -358,7 +394,7 @@ impl UtilRender {
         let collider = button
             .base_collider
             .transformed(Transform { scale, ..default() });
-        self.draw_light(&collider, theme.light, camera, framebuffer);
+        self.draw_light_gradient(&collider, theme.light, camera, framebuffer);
 
         if t.as_f32() < 0.5 {
             self.draw_text(
