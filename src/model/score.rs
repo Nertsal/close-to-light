@@ -80,8 +80,10 @@ impl CalculatedScore {
         let precision =
             R32::ONE - metrics.dynamic.distance_sum / r32(metrics.dynamic.frames.max(1) as f32);
 
+        let discrete = (metrics.discrete.score as f32 * accuracy.as_f32()).ceil() as i32;
+
         Self {
-            combined: metrics.discrete.score + metrics.dynamic.score,
+            combined: discrete + metrics.dynamic.score,
             accuracy,
             precision,
         }
