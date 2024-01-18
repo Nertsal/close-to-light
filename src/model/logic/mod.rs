@@ -76,6 +76,7 @@ impl Model {
         let light = get_light(self.player.closest_light);
         if last_light.is_some() && last_light != light && last_light != Some(self.last_rhythm) {
             // Light has changed and no perfect rhythm
+            self.score.metrics.discrete.missed_rhythm();
             self.handle_event(GameEvent::Rhythm { perfect: false });
         }
 

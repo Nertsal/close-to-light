@@ -120,20 +120,20 @@ impl DiscreteMetrics {
     pub fn update(&mut self, player: &Player) -> Vec<GameEvent> {
         let mut events = Vec::new();
 
-        if player.danger_distance.is_none() && player.light_distance.is_some() {
-            if player.is_perfect {
-                self.perfect += 1;
-                self.score += DISCRETE_PERFECT;
-            } else {
-                self.score += DISCRETE_OK;
-            }
+        if player.danger_distance.is_none() && player.light_distance.is_some() && player.is_perfect
+        {
+            self.perfect += 1;
             self.total += 1;
-            events.push(GameEvent::Rhythm {
-                perfect: player.is_perfect,
-            });
+            self.score += DISCRETE_PERFECT;
+            events.push(GameEvent::Rhythm { perfect: true });
         }
 
         events
+    }
+
+    pub fn missed_rhythm(&mut self) {
+        self.total += 1;
+        self.score += DISCRETE_OK;
     }
 }
 

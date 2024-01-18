@@ -17,8 +17,10 @@ impl Model {
                     }
                 }
 
+                let position = self.player.collider.position;
+                log::debug!("Rhythm (perfect: {}) at {:?}", perfect, position);
                 self.rhythms.push(Rhythm {
-                    position: self.player.collider.position,
+                    position,
                     time: Bounded::new_zero(self.level.music.beat_time()),
                     perfect,
                 });
