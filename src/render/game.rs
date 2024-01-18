@@ -95,6 +95,25 @@ impl GameRender {
         }
 
         if !model.level.config.modifiers.clean_auto {
+            // Rhythm feedback
+            if let Some(rhythm) = model.rhythms.last() {
+                let color = if rhythm.perfect {
+                    THEME.highlight
+                } else {
+                    THEME.danger
+                };
+                let t = rhythm.time.get_ratio().as_f32();
+
+                let scale = r32(crate::util::smoothstep(1.0 - t));
+                let mut visual = model
+                    .player
+                    .collider
+                    .transformed(Transform { scale, ..default() });
+                visual.position = rhythm.position;
+                self.util
+                    .draw_outline(&visual, 0.05, color, camera, &mut framebuffer);
+            }
+
             self.util
                 .draw_player(&model.player, camera, &mut framebuffer);
         }

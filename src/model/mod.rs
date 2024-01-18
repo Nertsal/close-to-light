@@ -155,6 +155,8 @@ pub enum Transition {
 
 #[derive(Debug, Clone)]
 pub struct Rhythm {
+    /// Position where the rhythm occured.
+    pub position: vec2<Coord>,
     /// Time since the beat.
     pub time: Bounded<Time>,
     /// Whether player input was perfect at the beat.

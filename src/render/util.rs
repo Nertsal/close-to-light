@@ -511,7 +511,6 @@ impl UtilRender {
     pub fn draw_player(
         &self,
         player: &Player,
-        // theme: &Theme,
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
