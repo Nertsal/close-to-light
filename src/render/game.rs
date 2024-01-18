@@ -220,6 +220,16 @@ impl GameRender {
                 &model.camera,
                 framebuffer,
             );
+            let accuracy = (model.score.calculated.accuracy.as_f32() * 100.0).floor() as i32;
+            self.util.draw_text(
+                format!("acc: {}%", accuracy),
+                vec2(-3.0, 4.5).as_r32(),
+                TextRenderOptions::new(0.7)
+                    .color(theme.light)
+                    .align(vec2(0.0, 0.5)),
+                &model.camera,
+                framebuffer,
+            );
             if debug_mode {
                 self.util.draw_text(
                     format!("{:#?}", model.score),

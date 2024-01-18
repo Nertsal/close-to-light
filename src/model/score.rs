@@ -60,13 +60,17 @@ impl CalculatedScore {
     pub fn new() -> Self {
         Self {
             combined: 0,
-            accuracy: R32::ZERO,
-            precision: R32::ZERO,
+            accuracy: R32::ONE,
+            precision: R32::ONE,
         }
     }
 
     pub fn from_metrics(metrics: &ScoreMetrics) -> Self {
-        let accuracy = r32(metrics.discrete.perfect as f32 / metrics.discrete.total.max(1) as f32);
+        let accuracy = if metrics.discrete.total == 0 {
+            R32::ONE
+        } else {
+            r32(metrics.discrete.perfect as f32 / metrics.discrete.total as f32)
+        };
         let precision =
             R32::ONE - metrics.dynamic.distance_sum / r32(metrics.dynamic.frames.max(1) as f32);
 
