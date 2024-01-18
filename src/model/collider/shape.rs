@@ -8,6 +8,14 @@ pub enum Shape {
 }
 
 impl Shape {
+    pub fn circle(radius: Coord) -> Self {
+        Self::Circle { radius }
+    }
+
+    pub fn line(width: Coord) -> Self {
+        Self::Line { width }
+    }
+
     pub fn rectangle(size: vec2<Coord>) -> Self {
         Self::Rectangle {
             width: size.x,

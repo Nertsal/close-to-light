@@ -79,6 +79,7 @@ impl DitherRender {
                 u_color_dark: theme.dark,
                 u_color_light: theme.light,
                 u_color_danger: theme.danger,
+                u_color_highlight: theme.highlight,
                 u_texture: &self.double_buffer.0,
                 u_dither1: &self.assets.dither.dither1,
                 u_dither2: &self.assets.dither.dither2,

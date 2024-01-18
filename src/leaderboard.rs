@@ -66,7 +66,7 @@ pub struct ScoreMeta {
 impl ScoreMeta {
     pub fn new(group: String, level: String, mods: LevelModifiers, health: HealthConfig) -> Self {
         Self {
-            version: 0,
+            version: 1,
             group,
             level,
             mods,

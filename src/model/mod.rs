@@ -5,15 +5,23 @@ mod logic;
 mod movement;
 mod options;
 mod player;
+mod score;
 
-pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*};
+pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
+
+const COYOTE_TIME: f32 = 0.1;
+const BUFFER_TIME: f32 = 0.1;
 
 pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
-pub type Score = R32;
+
+#[derive(Debug, Clone)]
+pub enum GameEvent {
+    Rhythm { perfect: bool },
+}
 
 pub struct Music {
     pub meta: MusicMeta,
@@ -145,12 +153,22 @@ pub enum Transition {
     Exit,
 }
 
+#[derive(Debug, Clone)]
+pub struct Rhythm {
+    /// Position where the rhythm occured.
+    pub position: vec2<Coord>,
+    /// Time since the beat.
+    pub time: Bounded<Time>,
+    /// Whether player input was perfect at the beat.
+    pub perfect: bool,
+}
+
 pub struct Model {
     pub transition: Option<Transition>,
     pub assets: Rc<Assets>,
     pub leaderboard: Leaderboard,
 
-    pub high_score: Score,
+    pub high_score: i32,
     pub camera: Camera2d,
     pub player: Player,
 
@@ -161,6 +179,11 @@ pub struct Model {
     pub level_state: LevelState,
     pub state: State,
     pub score: Score,
+
+    /// List collected rhythm (event_id, waypoint_id).
+    pub last_rhythm: (usize, WaypointId),
+    /// Waypoint rhythms.
+    pub rhythms: Vec<Rhythm>,
 
     pub real_time: Time,
     /// Time since the last state change.
@@ -192,23 +215,16 @@ impl Model {
 
     pub fn empty(assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
         Self {
-            leaderboard: Leaderboard::new(None),
             transition: None,
             assets: assets.clone(),
-            state: State::Starting {
-                start_timer: Time::ZERO, // reset during init
-                music_start_time: Time::ZERO,
-            },
-            score: Score::ZERO,
-            high_score: preferences::load("highscore").unwrap_or(Score::ZERO),
-            beat_time: Time::ZERO,
+            leaderboard: Leaderboard::new(None),
+
+            high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
-            real_time: Time::ZERO,
-            switch_time: Time::ZERO,
             player: Player::new(
                 Collider::new(
                     vec2::ZERO,
@@ -218,6 +234,21 @@ impl Model {
                 ),
                 level.config.health.max,
             ),
+
+            level_state: LevelState::default(),
+            state: State::Starting {
+                start_timer: Time::ZERO, // reset during init
+                music_start_time: Time::ZERO,
+            },
+            score: Score::new(),
+
+            last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
+            rhythms: Vec::new(),
+
+            beat_time: Time::ZERO,
+            real_time: Time::ZERO,
+            switch_time: Time::ZERO,
+
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),
                 2.0,
@@ -226,8 +257,8 @@ impl Model {
                 Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
                 3.0,
             ),
+
             options,
-            level_state: LevelState::default(),
             level,
         }
     }

@@ -17,7 +17,7 @@ pub struct MoveFrame {
     pub transform: Transform,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WaypointId {
     Initial,
     Frame(usize),
@@ -116,6 +116,13 @@ impl Movement {
             WaypointId::Frame(i) => i + 1,
         };
         self.timed_positions().nth(i).map(|(_, _, time)| time)
+    }
+
+    /// Find the temporaly closest waypoint (in past or future).
+    pub fn closest_waypoint(&self, time: Time) -> (WaypointId, Transform, Time) {
+        self.timed_positions()
+            .min_by_key(|(_, _, key_time)| (*key_time - time).abs())
+            .expect("Light has no waypoints") // NOTE: Can unwrap because there is always at least one waypoint - initial
     }
 
     /// Get the transform at the given time.

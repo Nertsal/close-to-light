@@ -112,8 +112,12 @@ impl EditorRender {
         };
         let draw_light = |light: &Light, framebuffer: &mut ugli::Framebuffer| {
             let color = get_color(light.event_id);
-            self.util
-                .draw_light(&light.collider, color, &editor.model.camera, framebuffer);
+            self.util.draw_light_gradient(
+                &light.collider,
+                color,
+                &editor.model.camera,
+                framebuffer,
+            );
         };
 
         // Dynamic

@@ -169,7 +169,7 @@ impl StatefulWidget for PaletteWidget {
         let (visual, name) = layout::split_left_right(main, 0.5);
 
         let height = main.height() * 0.5;
-        let visual = visual.extend_left(height * 3.0 - visual.width());
+        let visual = visual.extend_left(height * 4.0 - visual.width());
         let visual = visual.extend_symmetric(vec2(0.0, height - visual.height()) / 2.0);
         self.visual.update(visual, context);
 

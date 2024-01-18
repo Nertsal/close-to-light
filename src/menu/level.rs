@@ -587,11 +587,11 @@ impl geng::State for LevelMenu {
         self.state.player.reset_distance();
         self.state
             .player
-            .update_distance(&self.exit_button.base_collider, false);
+            .update_distance_simple(&self.exit_button.base_collider);
         if self.state.show_level.is_some() {
             self.state
                 .player
-                .update_distance(&self.play_button.base_collider, false);
+                .update_distance_simple(&self.play_button.base_collider);
         }
 
         if !self.ui_focused {
