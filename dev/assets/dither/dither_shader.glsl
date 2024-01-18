@@ -23,6 +23,7 @@ uniform float u_noise;
 uniform vec4 u_color_dark;
 uniform vec4 u_color_light;
 uniform vec4 u_color_danger;
+uniform vec4 u_color_highlight;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_dither1;
@@ -113,26 +114,29 @@ float dither_inverted(float amp) {
 	return 1.0;
 }
 
-vec4 dither_final(vec2 amps) {
+vec4 dither_final(vec3 amps) {
 	float noise_light = u_noise * 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
 	float noise_danger = u_noise * 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
 	
 	float amp_light = amps.g + noise_light;
 	float amp_danger = amps.r + noise_danger;
+	float amp_highlight = amps.b;
 	float total = amp_light + amp_danger;
 	if (total > 1.0) {
 		amp_light /= total;
 		amp_danger /= total;
 	}
+
+	vec4 base_color = u_color_dark;
 	
-	if (dither_inverted(amp_danger) > 0.0) return u_color_danger;
-	if (dither(amp_light) > 0.0) return u_color_light;
+	if (dither_inverted(amp_danger) > 0.0) base_color = u_color_danger;
+	else if (dither(amp_light) > 0.0) base_color = u_color_light;
 	
-	return u_color_dark;
+	return base_color + (u_color_highlight - base_color) * amp_highlight;
 }
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-	gl_FragColor = dither_final(in_color.rg);
+	gl_FragColor = dither_final(in_color.rgb);
 }
 #endif
