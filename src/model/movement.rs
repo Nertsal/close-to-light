@@ -17,7 +17,7 @@ pub struct MoveFrame {
     pub transform: Transform,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WaypointId {
     Initial,
     Frame(usize),

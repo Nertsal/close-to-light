@@ -238,7 +238,7 @@ impl UtilRender {
         let fade_in = 0.25;
         let fade_out = 0.5;
 
-        let t = light.closest_waypoint.as_f32();
+        let t = light.closest_waypoint.0.as_f32();
         let t = (t / fade_in + 1.0).min(1.0 - t / fade_out).max(0.0);
         let radius = r32(t * radius_max);
 

@@ -11,6 +11,9 @@ pub use self::{collider::*, level::*, light::*, movement::*, options::*, player:
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
+const COYOTE_TIME: f32 = 0.1;
+const BUFFER_TIME: f32 = 0.1;
+
 pub type Time = R32;
 pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
@@ -175,6 +178,8 @@ pub struct Model {
     pub state: State,
     pub score: Score,
 
+    /// List collected rhythm (event_id, waypoint_id).
+    pub last_rhythm: (usize, WaypointId),
     /// Waypoint rhythms.
     pub rhythms: Vec<Rhythm>,
 
@@ -235,6 +240,7 @@ impl Model {
             },
             score: Score::new(),
 
+            last_rhythm: (0, WaypointId::Initial),
             rhythms: Vec::new(),
 
             beat_time: Time::ZERO,

@@ -33,7 +33,12 @@ impl GameRender {
         self.dither.get_render_size()
     }
 
-    pub fn draw_world(&mut self, model: &Model, old_framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_world(
+        &mut self,
+        model: &Model,
+        _debug_mode: bool,
+        old_framebuffer: &mut ugli::Framebuffer,
+    ) {
         self.dither.set_noise(1.0);
         let mut framebuffer = self.dither.start();
 
@@ -161,7 +166,13 @@ impl GameRender {
             .draw(&geng::PixelPerfectCamera, &self.geng, old_framebuffer);
     }
 
-    pub fn draw_ui(&mut self, ui: &GameUI, model: &Model, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_ui(
+        &mut self,
+        ui: &GameUI,
+        model: &Model,
+        debug_mode: bool,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         self.masked.update_size(framebuffer.size());
 
         // let camera = &geng::PixelPerfectCamera;
@@ -181,24 +192,26 @@ impl GameRender {
                 );
             }
         } else if !model.level.config.modifiers.clean_auto {
-            // self.util.draw_text(
-            //     format!("SCORE: {}", model.score.calculated.combined),
-            //     vec2(-0.8, 4.5).as_r32(),
-            //     TextRenderOptions::new(0.7)
-            //         .color(theme.light)
-            //         .align(vec2(0.0, 0.5)),
-            //     &model.camera,
-            //     framebuffer,
-            // );
             self.util.draw_text(
-                format!("{:#?}", model.score),
-                vec2(-7.0, 0.0).as_r32(),
+                format!("SCORE: {}", model.score.calculated.combined),
+                vec2(-1.0, 4.2).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),
                 &model.camera,
                 framebuffer,
             );
+            if debug_mode {
+                self.util.draw_text(
+                    format!("{:#?}", model.score),
+                    vec2(-7.0, 0.0).as_r32(),
+                    TextRenderOptions::new(0.7)
+                        .color(theme.light)
+                        .align(vec2(0.0, 0.5)),
+                    &model.camera,
+                    framebuffer,
+                );
+            }
         }
 
         if ui.leaderboard.state.visible {

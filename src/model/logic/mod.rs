@@ -58,9 +58,25 @@ impl Model {
         );
 
         // Check if the player is in light
+        let get_light = |id: Option<usize>| {
+            id.and_then(|id| {
+                self.level_state
+                    .lights
+                    .iter()
+                    .find(|light| light.event_id == Some(id))
+                    .filter(|light| light.closest_waypoint.0.as_f32() < COYOTE_TIME)
+                    .map(|light| (id, light.closest_waypoint.1))
+            })
+        };
+        let last_light = get_light(self.player.closest_light);
         self.player.reset_distance();
         for light in self.level_state.lights.iter() {
-            self.player.update_light_distance(light, delta_time);
+            self.player.update_light_distance(light, self.last_rhythm);
+        }
+        let light = get_light(self.player.closest_light);
+        if last_light.is_some() && last_light != light && last_light != Some(self.last_rhythm) {
+            // Light has changed and no perfect rhythm
+            self.handle_event(GameEvent::Rhythm { perfect: false });
         }
 
         match &mut self.state {
@@ -119,7 +135,7 @@ impl Model {
                     .check(&self.player.collider);
                 self.restart_button.update(hovering, delta_time);
                 self.player
-                    .update_distance(&self.restart_button.base_collider, false, false);
+                    .update_distance_simple(&self.restart_button.base_collider);
                 if self.restart_button.hover_time.is_max() {
                     self.restart();
                 }
@@ -128,7 +144,7 @@ impl Model {
                 let hovering = self.exit_button.base_collider.check(&self.player.collider);
                 self.exit_button.update(hovering, delta_time);
                 self.player
-                    .update_distance(&self.exit_button.base_collider, false, false);
+                    .update_distance_simple(&self.exit_button.base_collider);
                 if self.exit_button.hover_time.is_max() {
                     self.transition = Some(Transition::Exit);
                 }

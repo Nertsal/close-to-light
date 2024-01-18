@@ -11,6 +11,8 @@ pub struct Player {
     pub is_perfect: bool,
     /// Whether currently closest light is in a keyframe.
     pub is_keyframe: bool,
+    /// Event id of the closest friendly light.
+    pub closest_light: Option<usize>,
     /// Distance to the closest friendly light.
     pub light_distance: Option<R32>,
     /// Distance to the closest dangerous light.
@@ -41,6 +43,7 @@ impl Player {
             health: Bounded::new_max(health),
             is_perfect: false,
             is_keyframe: false,
+            closest_light: None,
             light_distance: None,
             danger_distance: None,
             tail: Vec::new(),
@@ -84,7 +87,17 @@ impl Player {
         self.danger_distance = None;
     }
 
-    pub fn update_distance(&mut self, light: &Collider, danger: bool, at_waypoint: bool) {
+    pub fn update_distance_simple(&mut self, light: &Collider) {
+        self.update_distance(light, None, false, false)
+    }
+
+    pub fn update_distance(
+        &mut self,
+        light: &Collider,
+        light_id: Option<usize>,
+        danger: bool,
+        at_waypoint: bool,
+    ) {
         let delta_pos = self.collider.position - light.position;
         let (raw_distance, max_distance) = match light.shape {
             Shape::Circle { radius } => (delta_pos.len(), radius),
@@ -107,9 +120,9 @@ impl Player {
         if danger {
             update(&mut self.danger_distance);
         } else {
-            let old = self.light_distance;
-            update(&mut self.light_distance);
-            if old != self.light_distance {
+            if self.light_distance.map_or(true, |old| raw_distance < old) {
+                self.light_distance = Some(raw_distance);
+                self.closest_light = light_id;
                 self.is_keyframe = at_waypoint;
             }
 
@@ -122,8 +135,13 @@ impl Player {
         }
     }
 
-    pub fn update_light_distance(&mut self, light: &Light, delta_time: Time) {
-        let at_waypoint = light.closest_waypoint.abs() < delta_time / r32(2.0); // TODO: better
-        self.update_distance(&light.collider, light.danger, at_waypoint)
+    pub fn update_light_distance(&mut self, light: &Light, last_rhythm: (usize, WaypointId)) {
+        let (time, waypoint) = light.closest_waypoint;
+        let at_waypoint = time.as_f32() > -BUFFER_TIME
+            && time.as_f32() < COYOTE_TIME
+            && light
+                .event_id
+                .map_or(false, |event| last_rhythm != (event, waypoint));
+        self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
     }
 }

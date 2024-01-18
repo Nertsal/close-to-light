@@ -14,9 +14,12 @@ pub struct Game {
     geng: Geng,
     transition: Option<geng::state::Transition>,
     render: GameRender,
+
     model: Model,
+    debug_mode: bool,
     group_name: String,
     level_name: String,
+
     framebuffer_size: vec2<usize>,
     delta_time: Time,
 
@@ -79,9 +82,12 @@ impl Game {
             geng: geng.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
+
             model,
+            debug_mode: false,
             group_name,
             level_name,
+
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
 
@@ -126,7 +132,8 @@ impl geng::State for Game {
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
-        self.render.draw_world(&self.model, framebuffer);
+        self.render
+            .draw_world(&self.model, self.debug_mode, framebuffer);
 
         if !fading {
             self.ui_focused = self.ui.layout(
@@ -136,7 +143,8 @@ impl geng::State for Game {
                 self.delta_time.as_f32(),
                 &self.geng,
             );
-            self.render.draw_ui(&self.ui, &self.model, framebuffer);
+            self.render
+                .draw_ui(&self.ui, &self.model, self.debug_mode, framebuffer);
         }
         self.cursor.scroll = 0.0;
     }
@@ -146,6 +154,7 @@ impl geng::State for Game {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::Escape => self.transition = Some(geng::state::Transition::Pop),
                 geng::Key::F11 => self.geng.window().toggle_fullscreen(),
+                geng::Key::F1 => self.debug_mode = !self.debug_mode,
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
