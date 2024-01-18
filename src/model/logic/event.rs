@@ -12,13 +12,16 @@ impl Model {
                         .find(|light| light.event_id == Some(id))
                         .map(|light| (id, light))
                 }) {
-                    if perfect {
-                        self.last_rhythm = (event, light.closest_waypoint.1);
-                    }
+                    self.last_rhythm = (event, light.closest_waypoint.1);
                 }
 
                 let position = self.player.collider.position;
-                log::debug!("Rhythm (perfect: {}) at {:?}", perfect, position);
+                log::debug!(
+                    "Rhythm (perfect: {}) at {:?}: {:?}",
+                    perfect,
+                    position,
+                    self.last_rhythm
+                );
                 self.rhythms.push(Rhythm {
                     position,
                     time: Bounded::new_zero(self.level.music.beat_time()),

@@ -242,7 +242,7 @@ impl Model {
             },
             score: Score::new(),
 
-            last_rhythm: (0, WaypointId::Initial),
+            last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
             rhythms: Vec::new(),
 
             beat_time: Time::ZERO,

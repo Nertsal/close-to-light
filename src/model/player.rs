@@ -6,17 +6,20 @@ pub struct Player {
     pub shake: vec2<Coord>,
     pub collider: Collider,
     pub health: Bounded<Time>,
+
     /// Whether currently perfectly inside the center of the light.
     /// Controlled by the collider.
     pub is_perfect: bool,
     /// Whether currently closest light is in a keyframe.
     pub is_keyframe: bool,
+
     /// Event id of the closest friendly light.
     pub closest_light: Option<usize>,
     /// Distance to the closest friendly light.
     pub light_distance: Option<R32>,
     /// Distance to the closest dangerous light.
     pub danger_distance: Option<R32>,
+
     pub tail: Vec<PlayerTail>,
 }
 
@@ -41,11 +44,14 @@ impl Player {
             shake: vec2::ZERO,
             collider,
             health: Bounded::new_max(health),
+
             is_perfect: false,
             is_keyframe: false,
+
             closest_light: None,
             light_distance: None,
             danger_distance: None,
+
             tail: Vec::new(),
         }
     }
@@ -83,6 +89,7 @@ impl Player {
     pub fn reset_distance(&mut self) {
         self.is_perfect = false;
         self.is_keyframe = false;
+        self.closest_light = None;
         self.light_distance = None;
         self.danger_distance = None;
     }
@@ -137,8 +144,8 @@ impl Player {
 
     pub fn update_light_distance(&mut self, light: &Light, last_rhythm: (usize, WaypointId)) {
         let (time, waypoint) = light.closest_waypoint;
-        let at_waypoint = time.as_f32() > -BUFFER_TIME
-            && time.as_f32() < COYOTE_TIME
+        let at_waypoint = time.as_f32() > -COYOTE_TIME
+            && time.as_f32() < BUFFER_TIME
             && light
                 .event_id
                 .map_or(false, |event| last_rhythm != (event, waypoint));

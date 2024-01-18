@@ -57,23 +57,41 @@ impl Model {
             ignore_time,
         );
 
-        // Check if the player is in light
-        let get_light = |id: Option<usize>| {
+        // Update player's light state
+        // And check for missed rhythm
+        let get_light = |id: Option<usize>, pass: bool| {
             id.and_then(|id| {
                 self.level_state
                     .lights
                     .iter()
                     .find(|light| light.event_id == Some(id))
-                    .filter(|light| light.closest_waypoint.0.as_f32() < COYOTE_TIME)
+                    .filter(|light| {
+                        // Can only miss after the waypoint, not before, hence no buffer time
+                        // (allows for unpunished early exit)
+                        //
+                        // A miss occurs when the player was inside a light that was leaving its waypoint
+                        // and has missed the coyote time
+                        //
+                        // `pass` used to extend the coyote time for `last_light`,
+                        // because otherwise we cannot detect a miss
+                        // as both will get set to `None` at the same frame
+                        // (allows for unpunished late entrance)
+                        let time = light.closest_waypoint.0.as_f32();
+                        time < 0.0 && (time > -COYOTE_TIME || pass && time > -COYOTE_TIME * 2.0)
+                    })
                     .map(|light| (id, light.closest_waypoint.1))
             })
         };
-        let last_light = get_light(self.player.closest_light);
+        let last_light = get_light(self.player.closest_light, true);
+
+        // Update light state
         self.player.reset_distance();
         for light in self.level_state.lights.iter() {
             self.player.update_light_distance(light, self.last_rhythm);
         }
-        let light = get_light(self.player.closest_light);
+
+        // Check missed rhythm
+        let light = get_light(self.player.closest_light, false);
         if last_light.is_some() && last_light != light && last_light != Some(self.last_rhythm) {
             // Light has changed and no perfect rhythm
             self.score.metrics.discrete.missed_rhythm();
