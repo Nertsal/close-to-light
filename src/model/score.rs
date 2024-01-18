@@ -2,6 +2,10 @@ use super::*;
 
 const SCORE_VERSION: &str = "v0.1";
 
+pub const DISCRETE_PERFECT: i32 = 1000;
+pub const DISCRETE_OK: i32 = 100;
+pub const DYNAMIC_SCALE: f32 = 1000.0;
+
 #[derive(Debug, Clone)]
 pub struct Score {
     pub calculated: CalculatedScore,
@@ -30,6 +34,7 @@ pub struct DiscreteMetrics {
     /// The number of times player has been in `perfect` distance to a light.
     pub perfect: usize,
     pub total: usize,
+    pub score: i32,
 }
 
 /// Raw dynamic/continuous metrics.
@@ -37,6 +42,7 @@ pub struct DiscreteMetrics {
 pub struct DynamicMetrics {
     pub distance_sum: R32,
     pub frames: usize,
+    pub score: i32,
 }
 
 impl Score {
@@ -74,10 +80,8 @@ impl CalculatedScore {
         let precision =
             R32::ONE - metrics.dynamic.distance_sum / r32(metrics.dynamic.frames.max(1) as f32);
 
-        let w = r32(0.7);
-        let combined = accuracy * w + precision * (R32::ONE - w);
         Self {
-            combined: (100_000.0 * combined.as_f32()) as i32,
+            combined: metrics.discrete.score + metrics.dynamic.score,
             accuracy,
             precision,
         }
@@ -108,6 +112,7 @@ impl DiscreteMetrics {
         Self {
             perfect: 0,
             total: 0,
+            score: 0,
         }
     }
 
@@ -118,6 +123,9 @@ impl DiscreteMetrics {
         if player.danger_distance.is_none() && player.light_distance.is_some() {
             if player.is_perfect {
                 self.perfect += 1;
+                self.score += DISCRETE_PERFECT;
+            } else {
+                self.score += DISCRETE_OK;
             }
             self.total += 1;
             events.push(GameEvent::Rhythm {
@@ -134,11 +142,12 @@ impl DynamicMetrics {
         Self {
             distance_sum: R32::ZERO,
             frames: 0,
+            score: 0,
         }
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, _delta_time: Time) -> Vec<GameEvent> {
+    pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
         let events = Vec::new();
 
         self.frames += 1;
@@ -150,9 +159,14 @@ impl DynamicMetrics {
             }
         });
 
+        if player.danger_distance.is_none() {
+            if let Some(distance) = player.light_distance {
+                let score_multiplier = (1.0 - distance.as_f32() + 0.5).min(1.0);
+                self.score +=
+                    (delta_time.as_f32() * score_multiplier * DYNAMIC_SCALE).ceil() as i32;
+            }
+        }
+
         events
     }
 }
-
-// let score_multiplier = (r32(1.0) - distance + r32(0.5)).min(r32(1.0));
-// self.score += delta_time * score_multiplier * r32(100.0);

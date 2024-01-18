@@ -200,11 +200,28 @@ impl GameRender {
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
 
+        let accuracy = (model.score.calculated.accuracy.as_f32() * 100.0).floor() as i32;
+        let precision = (model.score.calculated.precision.as_f32() * 100.0).floor() as i32;
+
         if let State::Lost { .. } | State::Finished = model.state {
             if !fading {
                 self.util.draw_text(
                     &format!("SCORE: {}", model.score.calculated.combined),
                     vec2(-3.0, -3.0),
+                    TextRenderOptions::new(0.7).color(theme.light),
+                    &model.camera,
+                    framebuffer,
+                );
+                self.util.draw_text(
+                    &format!("ACCURACY: {}%", accuracy),
+                    vec2(-3.0, -3.5),
+                    TextRenderOptions::new(0.7).color(theme.light),
+                    &model.camera,
+                    framebuffer,
+                );
+                self.util.draw_text(
+                    &format!("PRECISION: {}%", precision),
+                    vec2(-3.0, -4.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
                     framebuffer,
@@ -220,16 +237,27 @@ impl GameRender {
                 &model.camera,
                 framebuffer,
             );
-            let accuracy = (model.score.calculated.accuracy.as_f32() * 100.0).floor() as i32;
+
             self.util.draw_text(
-                format!("acc: {}%", accuracy),
-                vec2(-3.0, 4.5).as_r32(),
+                format!("acc: {:3}%", accuracy),
+                vec2(-8.0, 4.0).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),
                 &model.camera,
                 framebuffer,
             );
+
+            self.util.draw_text(
+                format!("prec: {:3}%", precision),
+                vec2(-8.0, 3.5).as_r32(),
+                TextRenderOptions::new(0.7)
+                    .color(theme.light)
+                    .align(vec2(0.0, 0.5)),
+                &model.camera,
+                framebuffer,
+            );
+
             if debug_mode {
                 self.util.draw_text(
                     format!("{:#?}", model.score),

@@ -120,6 +120,7 @@ impl MenuRender {
                     quad(0.0, palette.palette.dark);
                     quad(1.0, palette.palette.light);
                     quad(2.0, palette.palette.danger);
+                    quad(3.0, palette.palette.highlight);
 
                     let outline_width = font_size * 0.1;
                     self.ui.draw_outline(
