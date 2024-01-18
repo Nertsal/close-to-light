@@ -4,8 +4,8 @@ use crate::{
     LeaderboardSecrets,
 };
 
+use ctl_client::{Nertboard, Player, ScoreEntry};
 use geng::prelude::*;
-use nertboard_client::{Nertboard, Player, ScoreEntry};
 
 #[derive(Debug)]
 pub enum LeaderboardStatus {
@@ -78,7 +78,7 @@ impl ScoreMeta {
 impl Leaderboard {
     pub fn new(secrets: Option<LeaderboardSecrets>) -> Self {
         let client = secrets.map(|secrets| {
-            Arc::new(nertboard_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap())
+            Arc::new(ctl_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap())
         });
         Self {
             client,

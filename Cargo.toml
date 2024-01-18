@@ -1,19 +1,57 @@
-[package]
-name = "close-to-light"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace.dependencies]
+ctl-core = { path = "crates/ctl-core" }
+ctl-client = { path = "crates/ctl-client" }
 
-[dependencies]
-clap = { version = "4.3.2", features = ["derive"] }
-tokio = { version = "1", features = ["rt"] }
+# Common
+clap = { version = "4.4.11", features = ["derive"] }
+thiserror = "1.0.51"
+color-eyre = "0.6.2"
+rand = "0.8.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["rt", "macros", "rt-multi-thread"] }
+enum-iterator = "1.4.1"
+
+# Game
 geng = "0.17.0"
 geng-utils = "0.3.0"
 parry2d = "0.13.5"
-serde = { version = "1.0.183", features = ["derive"] }
-nertboard-client = { git = "https://github.com/Nertsal/nertboard", rev = "430f048e4d50cb34246ce2bd466e1d1689647d99" }
-enum-iterator = "1.4.1"
+
+# Server
+axum = "0.7.2"
+tower = "0.4.13"
+tower-http = { version = "0.5.0", features = ["trace", "cors"] }
+http-body-util = "0.1.0"
+uuid = { version = "1.6.1", features = ["serde"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+sqlx = { version = "0.7.3", features = ["runtime-tokio", "mysql", "postgres", "sqlite"] }
+dotenv = "0.15.0"
+
+# Client
+reqwest = { version = "0.11.23", features = ["json"] }
+
+[package]
+name = "close-to-light"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-client.workspace = true
+geng.workspace = true
+geng-utils.workspace = true
+parry2d.workspace = true
+enum-iterator.workspace = true
+tokio.workspace = true
+serde.workspace = true
 
 [patch.crates-io]
 async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
