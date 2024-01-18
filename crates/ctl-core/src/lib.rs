@@ -1,4 +1,22 @@
-use serde::{Deserialize, Serialize};
+pub mod model;
+pub mod types;
+
+pub mod prelude {
+    pub use crate::{model::*, types::*};
+
+    pub use std::collections::VecDeque;
+
+    pub use geng::prelude::*;
+    pub use geng_utils::{
+        bounded::Bounded,
+        conversions::{RealConversions, Vec2RealConversions},
+    };
+    pub use serde::{Deserialize, Serialize};
+
+    pub type Color = Rgba<f32>;
+}
+
+use crate::prelude::*;
 
 pub type Score = i32;
 

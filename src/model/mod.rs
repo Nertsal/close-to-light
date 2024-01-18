@@ -1,21 +1,17 @@
-mod collider;
 mod level;
-mod light;
 mod logic;
 mod movement;
 mod options;
 mod player;
 mod score;
 
-pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*, score::*};
+pub use self::{level::*, movement::*, options::*, player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
 const COYOTE_TIME: f32 = 0.1;
 const BUFFER_TIME: f32 = 0.1;
 
-pub type Time = R32;
-pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
 
 #[derive(Debug, Clone)]

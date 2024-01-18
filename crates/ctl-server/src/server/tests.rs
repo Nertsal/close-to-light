@@ -85,12 +85,12 @@ async fn test_e2e() -> Result<()> {
 
     // Submit scores
     let scores = vec![
-        nertboard_core::ScoreEntry {
+        ctl_core::ScoreEntry {
             player: "nertsal".to_string(),
             score: 10,
             extra_info: None,
         },
-        nertboard_core::ScoreEntry {
+        ctl_core::ScoreEntry {
             player: "nert".to_string(), // Change name
             score: 5,
             extra_info: Some("very cool".to_string()),
@@ -140,11 +140,11 @@ async fn test_e2e() -> Result<()> {
 
     println!("{:?}", response);
     assert_eq!(response.status(), StatusCode::OK);
-    let returned_scores: Vec<nertboard_core::ScoreEntry> = response_json(response).await?;
+    let returned_scores: Vec<ctl_core::ScoreEntry> = response_json(response).await?;
     // Update name
     let new_scores: Vec<_> = scores
         .into_iter()
-        .map(|entry| nertboard_core::ScoreEntry {
+        .map(|entry| ctl_core::ScoreEntry {
             player: "nert".to_string(),
             ..entry
         })

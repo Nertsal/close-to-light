@@ -102,7 +102,7 @@ fn main() {
                     config,
                     level,
                     music,
-                    start_time: model::Time::ZERO,
+                    start_time: prelude::Time::ZERO,
                 };
 
                 let state =

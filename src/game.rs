@@ -3,12 +3,7 @@ mod ui;
 use self::ui::CursorContext;
 pub use self::ui::GameUI;
 
-use crate::{assets::Assets, leaderboard::Leaderboard, model::*, render::game::GameRender};
-
-// use std::thread::JoinHandle;
-
-use geng::prelude::*;
-use geng_utils::conversions::Vec2RealConversions;
+use crate::{leaderboard::Leaderboard, prelude::*, render::game::GameRender};
 
 pub struct Game {
     geng: Geng,

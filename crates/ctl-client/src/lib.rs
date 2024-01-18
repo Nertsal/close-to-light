@@ -1,4 +1,6 @@
 pub use ctl_core::{Player, ScoreEntry};
+pub use ctl_core as core;
+
 use reqwest::{Client, Result, Url};
 
 pub struct Nertboard {
