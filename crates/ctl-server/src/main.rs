@@ -9,7 +9,7 @@ use self::prelude::*;
 use std::path::PathBuf;
 
 const DEFAULT_DATABASE: &str = "sqlite://database.db";
-const DEFAULT_LEVELS: &str = "levels";
+const DEFAULT_GROUPS: &str = "groups";
 
 #[derive(clap::Parser)]
 struct Opts {
@@ -27,17 +27,17 @@ async fn main() -> Result<()> {
         DEFAULT_DATABASE.to_owned()
     });
 
-    let levels_path: String = dotenv::var("LEVELS_PATH").unwrap_or_else(|_| {
-        warn!("LEVELS_PATH environment variable is not set, using default");
-        DEFAULT_LEVELS.to_owned()
+    let groups_path: String = dotenv::var("GROUPS_PATH").unwrap_or_else(|_| {
+        warn!("GROUPS_PATH environment variable is not set, using default");
+        DEFAULT_GROUPS.to_owned()
     });
-    let levels_path: PathBuf = PathBuf::from(levels_path);
+    let groups_path: PathBuf = PathBuf::from(groups_path);
 
     let database_pool = setup::connect_database(&database_url)
         .await
         .context(format!("when connecting to the database: {}", database_url))?;
 
-    server::run(opts.port, database_pool, levels_path)
+    server::run(opts.port, database_pool, groups_path)
         .await
         .context("server error")
 }

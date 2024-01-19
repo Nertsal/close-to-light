@@ -31,5 +31,5 @@ async fn download(
     let file_path: String = row.try_get("file_path")?;
     let file_path = PathBuf::from(file_path);
 
-    upload_file(file_path, content_level()).await
+    send_file(file_path, content_level()).await
 }

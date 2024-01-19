@@ -8,7 +8,6 @@ pub async fn init_database(database: &DatabasePool) -> color_eyre::Result<()> {
     CREATE TABLE IF NOT EXISTS keys
     (
         key TEXT NOT NULL,
-        read BIT,
         submit BIT,
         admin BIT
     )
