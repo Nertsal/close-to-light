@@ -12,6 +12,7 @@ pub mod prelude {
         conversions::{RealConversions, Vec2RealConversions},
     };
     pub use serde::{Deserialize, Serialize};
+    pub use uuid::Uuid;
 
     pub type Color = Rgba<f32>;
 }

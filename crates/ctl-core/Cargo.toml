@@ -10,3 +10,4 @@ geng.workspace = true
 geng-utils.workspace = true
 serde.workspace = true
 parry2d.workspace = true
+uuid.workspace = true

@@ -2,29 +2,23 @@ use super::*;
 
 pub fn route(router: Router) -> Router {
     router
-        .route(
-            "/level/:level_id",
-            get(level_get).post(level_post).delete(level_delete),
-        )
+        .route("/level/:level_id", delete(level_delete))
         .route("/level/:level_id/download", get(download))
         .route("/level/create", post(level_create))
 }
 
-async fn level_get() {}
+async fn level_delete() {
+    // TODO
+}
 
-async fn level_post() {}
-
-async fn level_delete() {}
-
-async fn level_create() {}
+async fn level_create() {
+    // TODO
+}
 
 async fn download(
     State(database): State<Arc<DatabasePool>>,
-    level_id: String,
+    Path(level_id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
-    let level_id =
-        Uuid::try_parse(&level_id).map_err(|_| RequestError::InvalidLevelId(level_id))?;
-
     let level_row = sqlx::query("SELECT file_path FROM levels WHERE level_id = ?")
         .bind(level_id)
         .fetch_optional(&*database)

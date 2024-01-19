@@ -1,3 +1,4 @@
+mod group;
 mod level;
 mod player;
 
@@ -12,15 +13,17 @@ use crate::{
 
 use std::path::PathBuf;
 
+use ctl_core::prelude::{GroupInfo, LevelInfo, MusicInfo, PlayerInfo};
+
 use axum::{
     body::Body,
     extract::{Path, Query, State},
     http::{header, StatusCode},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post},
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
@@ -52,6 +55,7 @@ fn app(database_pool: Arc<DatabasePool>) -> axum::Router {
         .route("/player/create", post(player::create));
 
     let router = level::route(router);
+    let router = group::route(router);
 
     router
         .layer(TraceLayer::new_for_http())

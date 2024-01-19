@@ -20,6 +20,7 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["rt", "macros", "rt-multi-thread"] }
 tokio-util = "0.7"
 enum-iterator = "1.4.1"
+uuid = { version = "1.6.1", features = ["serde"] }
 
 # Game
 geng = "0.17.0"

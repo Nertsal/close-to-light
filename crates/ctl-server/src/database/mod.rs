@@ -29,9 +29,11 @@ pub enum RequestError {
     Forbidden,
     #[error("player key is invalid")]
     InvalidPlayer,
-    #[error("invalid level name: {0}")]
-    InvalidLevelId(String),
-    #[error("a level {0} not found")]
+    #[error("group {0} not found")]
+    NoSuchGroup(Uuid),
+    #[error("music {0} not found")]
+    NoSuchMusic(Uuid),
+    #[error("level {0} not found")]
     NoSuchLevel(Uuid),
     #[error("file not found: {0}")]
     FileNotFound(String),
@@ -45,9 +47,10 @@ impl RequestError {
             RequestError::Unathorized => StatusCode::UNAUTHORIZED,
             RequestError::Forbidden => StatusCode::FORBIDDEN,
             RequestError::InvalidPlayer => StatusCode::FORBIDDEN,
-            RequestError::InvalidLevelId(_) => StatusCode::BAD_REQUEST,
             // RequestError::LevelAlreadyExists(_) => StatusCode::CONFLICT,
             RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchMusic(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchGroup(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchLevel(_) => StatusCode::NOT_FOUND,
             RequestError::Sql(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
