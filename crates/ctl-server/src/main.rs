@@ -16,6 +16,10 @@ struct Opts {
     port: u16,
 }
 
+struct AppConfig {
+    groups_path: PathBuf,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let opts: Opts = clap::Parser::parse();
@@ -33,11 +37,13 @@ async fn main() -> Result<()> {
     });
     let groups_path: PathBuf = PathBuf::from(groups_path);
 
+    let config = AppConfig { groups_path };
+
     let database_pool = setup::connect_database(&database_url)
         .await
         .context(format!("when connecting to the database: {}", database_url))?;
 
-    server::run(opts.port, database_pool, groups_path)
+    server::run(opts.port, database_pool, config)
         .await
         .context("server error")
 }

@@ -16,12 +16,12 @@ async fn level_create() {
 }
 
 async fn download(
-    State(database): State<Arc<DatabasePool>>,
+    State(app): State<Arc<App>>,
     Path(level_id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     let level_row = sqlx::query("SELECT file_path FROM levels WHERE level_id = ?")
         .bind(level_id)
-        .fetch_optional(&*database)
+        .fetch_optional(&app.database)
         .await?;
 
     let Some(row) = level_row else {

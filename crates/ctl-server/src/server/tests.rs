@@ -28,11 +28,15 @@ async fn test_database() -> Result<DatabasePool> {
 }
 
 async fn test_app() -> Result<axum::Router> {
-    Ok(app(Arc::new(
-        test_database()
-            .await
-            .context("when setting up a test database")?,
-    )))
+    // TODO: idk
+    let config = AppConfig {
+        groups_path: PathBuf::from("test_groups"),
+    };
+    let database = test_database()
+        .await
+        .context("when setting up a test database")?;
+
+    Ok(app(Arc::new(App { database, config })))
 }
 
 fn request_json<T: Serialize>(request: Builder, body: &T) -> Result<Request<Body>> {

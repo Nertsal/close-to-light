@@ -30,7 +30,7 @@ pub struct ScoreEntry {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
-    pub id: i32,
+    pub id: Uuid,
     /// Secret key used to authenticate.
     pub key: String,
     pub name: String,

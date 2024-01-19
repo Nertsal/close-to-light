@@ -8,8 +8,9 @@ mod tests;
 
 use crate::{
     api_key::*,
-    database::{DBRow, DatabasePool, Id, RequestError, RequestResult as Result},
+    database::{DBRow, DatabasePool, RequestError, RequestResult as Result},
     prelude::*,
+    AppConfig,
 };
 
 use std::path::PathBuf;
@@ -28,29 +29,30 @@ use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
-type Router = axum::Router<Arc<DatabasePool>>;
+type Router = axum::Router<Arc<App>>;
 
 #[derive(Deserialize)]
 struct PlayerIdQuery {
-    player_id: Id,
+    player_id: Uuid,
 }
 
-pub async fn run(
-    port: u16,
-    database_pool: DatabasePool,
-    groups_path: PathBuf,
-) -> color_eyre::Result<()> {
+struct App {
+    database: DatabasePool,
+    config: AppConfig,
+}
+
+pub async fn run(port: u16, database: DatabasePool, config: AppConfig) -> color_eyre::Result<()> {
     let addr = format!("0.0.0.0:{}", port);
     info!("Starting the server on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .context("when binding a tcp listener")?;
 
-    axum::serve(listener, app(Arc::new(database_pool))).await?;
+    axum::serve(listener, app(Arc::new(App { database, config }))).await?;
     Ok(())
 }
 
-fn app(database_pool: Arc<DatabasePool>) -> axum::Router {
+fn app(app: Arc<App>) -> axum::Router {
     let router = Router::new()
         .route("/", get(get_root))
         .route("/player/create", post(player::create));
@@ -66,7 +68,7 @@ fn app(database_pool: Arc<DatabasePool>) -> axum::Router {
                 .allow_origin(tower_http::cors::Any)
                 .allow_headers(tower_http::cors::Any),
         )
-        .with_state(database_pool)
+        .with_state(app)
 }
 
 async fn get_root() -> &'static str {

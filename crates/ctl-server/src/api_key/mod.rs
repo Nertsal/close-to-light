@@ -42,28 +42,6 @@ impl StringKey {
     }
 }
 
-impl BoardKeys {
-    pub fn generate() -> Self {
-        Self {
-            read: StringKey::generate(10),
-            submit: StringKey::generate(10),
-            admin: StringKey::generate(20),
-        }
-    }
-
-    pub fn check_authority(&self, key: &str) -> AuthorityLevel {
-        if key == self.read.inner() {
-            AuthorityLevel::Read
-        } else if key == self.submit.inner() {
-            AuthorityLevel::Submit
-        } else if key == self.admin.inner() {
-            AuthorityLevel::Admin
-        } else {
-            AuthorityLevel::Unauthorized
-        }
-    }
-}
-
 pub struct ApiKey(pub String);
 
 #[axum::async_trait]

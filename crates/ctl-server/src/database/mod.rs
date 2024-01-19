@@ -11,12 +11,11 @@ pub type DBRow = sqlx::sqlite::SqliteRow;
 
 pub type RequestResult<T, E = RequestError> = std::result::Result<T, E>;
 
-pub type Id = i32;
 pub type Score = i32;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreRecord {
-    pub player_id: Id,
+    pub player_id: Uuid,
     pub score: Score,
     pub extra_info: Option<String>,
 }

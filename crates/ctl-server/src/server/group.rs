@@ -7,13 +7,13 @@ pub fn route(router: Router) -> Router {
 }
 
 async fn group_get(
-    State(database): State<Arc<DatabasePool>>,
+    State(app): State<Arc<App>>,
     Path(group_id): Path<Uuid>,
 ) -> Result<Json<GroupInfo>> {
     let music_id: Option<Uuid> = sqlx::query("SELECT music_id WHERE group_id = ?")
         .bind(group_id)
         .try_map(|row: DBRow| row.try_get("music_id"))
-        .fetch_optional(&*database)
+        .fetch_optional(&app.database)
         .await?;
     let Some(music_id) = music_id else {
         return Err(RequestError::NoSuchGroup(group_id));
@@ -22,7 +22,7 @@ async fn group_get(
     let music_name: Option<String> = sqlx::query("SELECT name FROM musics WHERE music_id = ?")
         .bind(music_id)
         .try_map(|row: DBRow| row.try_get("name"))
-        .fetch_optional(&*database)
+        .fetch_optional(&app.database)
         .await?;
     let Some(music_name) = music_name else {
         return Err(RequestError::NoSuchMusic(music_id));
@@ -43,7 +43,7 @@ JOIN players ON music_authors.player_id = players.player_id
             name: row.try_get("name")?,
         })
     })
-    .fetch_all(&*database)
+    .fetch_all(&app.database)
     .await?;
 
     let music = MusicInfo {
@@ -56,7 +56,7 @@ JOIN players ON music_authors.player_id = players.player_id
         sqlx::query("SELECT level_id, name FROM levels WHERE group_id = ?")
             .bind(group_id)
             .try_map(|row: DBRow| Ok((row.try_get("level_id")?, row.try_get("name")?)))
-            .fetch_all(&*database)
+            .fetch_all(&app.database)
             .await?;
 
     let mut levels = Vec::new();
@@ -76,7 +76,7 @@ JOIN players ON level_authors.player_id = players.player_id
                 name: row.try_get("name")?,
             })
         })
-        .fetch_all(&*database)
+        .fetch_all(&app.database)
         .await?;
 
         levels.push(LevelInfo {

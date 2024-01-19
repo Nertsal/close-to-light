@@ -2,10 +2,10 @@ use super::*;
 
 pub fn route(router: Router) -> Router {
     router
-        // .route(
-        //     "/music/:music_id/authors",
-        //     post(add_author).delete(remove_author),
-        // )
+        .route(
+            "/music/:music_id/authors",
+            post(add_author).delete(remove_author),
+        )
         .route("/music/:music_id/download", get(download))
         .route("/music/create", post(music_create))
 }
@@ -16,12 +16,12 @@ struct NewMusic {
 }
 
 async fn music_create(
-    State(database): State<Arc<DatabasePool>>,
+    State(app): State<Arc<App>>,
     Query(music): Query<NewMusic>,
     api_key: ApiKey,
     multipart: Multipart,
 ) -> Result<Json<Uuid>> {
-    let auth = get_auth(Some(api_key), &database).await?;
+    let auth = get_auth(Some(api_key), &app.database).await?;
     check_auth(auth, AuthorityLevel::Admin)?;
 
     let music_name = validate_name(music.music_name)?;
@@ -32,8 +32,7 @@ async fn music_create(
     let uuid = Uuid::new_v4();
 
     // Check path
-    let base_path = PathBuf::from(crate::DEFAULT_GROUPS);
-    let dir_path = base_path.join("music");
+    let dir_path = app.config.groups_path.join("music");
     std::fs::create_dir_all(&dir_path)?;
     let path = dir_path.join(uuid.hyphenated().to_string());
     debug!("Saving music file at {:?}", path);
@@ -57,7 +56,7 @@ async fn music_create(
         .bind(uuid)
         .bind(music_name)
         .bind(music_path)
-        .execute(&*database)
+        .execute(&app.database)
         .await?;
 
     debug!("New music committed to the database");
@@ -65,13 +64,74 @@ async fn music_create(
     Ok(Json(uuid))
 }
 
+async fn add_author(
+    State(app): State<Arc<App>>,
+    Path(music_id): Path<Uuid>,
+    Query(player): Query<PlayerIdQuery>,
+    api_key: ApiKey,
+) -> Result<()> {
+    let auth = get_auth(Some(api_key), &app.database).await?;
+    check_auth(auth, AuthorityLevel::Admin)?;
+
+    let player_id = player.player_id;
+
+    // Check that music exists
+    let check = sqlx::query("SELECT null FROM musics WHERE music_id = ?")
+        .bind(music_id)
+        .fetch_optional(&app.database)
+        .await?;
+    if check.is_none() {
+        return Err(RequestError::NoSuchMusic(music_id));
+    }
+
+    // Check that player is not already an author
+    let check = sqlx::query("SELECT null FROM music_authors WHERE music_id = ? AND player_id = ?")
+        .bind(music_id)
+        .bind(player_id)
+        .fetch_optional(&app.database)
+        .await?;
+    if check.is_some() {
+        // Already in the database
+        return Ok(());
+    }
+
+    // Add player as author
+    sqlx::query("INSERT INTO music_authors (music_id, player_id) VALUES (?, ?)")
+        .bind(music_id)
+        .bind(player_id)
+        .execute(&app.database)
+        .await?;
+
+    Ok(())
+}
+
+async fn remove_author(
+    State(app): State<Arc<App>>,
+    Path(music_id): Path<Uuid>,
+    Query(player): Query<PlayerIdQuery>,
+    api_key: ApiKey,
+) -> Result<()> {
+    let auth = get_auth(Some(api_key), &app.database).await?;
+    check_auth(auth, AuthorityLevel::Admin)?;
+
+    let player_id = player.player_id;
+
+    sqlx::query("DELETE FROM music_authors WHERE music_id = ? AND player_id = ?")
+        .bind(music_id)
+        .bind(player_id)
+        .execute(&app.database)
+        .await?;
+
+    Ok(())
+}
+
 async fn download(
-    State(database): State<Arc<DatabasePool>>,
+    State(app): State<Arc<App>>,
     Path(music_id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     let music_row = sqlx::query("SELECT file_path FROM musics WHERE music_id = ?")
         .bind(music_id)
-        .fetch_optional(&*database)
+        .fetch_optional(&app.database)
         .await?;
 
     let Some(row) = music_row else {
