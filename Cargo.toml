@@ -18,6 +18,7 @@ rand = "0.8.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["rt", "macros", "rt-multi-thread"] }
+tokio-util = "0.7"
 enum-iterator = "1.4.1"
 
 # Game
@@ -30,10 +31,9 @@ axum = "0.7.2"
 tower = "0.4.13"
 tower-http = { version = "0.5.0", features = ["trace", "cors"] }
 http-body-util = "0.1.0"
-uuid = { version = "1.6.1", features = ["serde"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-sqlx = { version = "0.7.3", features = ["runtime-tokio", "mysql", "postgres", "sqlite"] }
+sqlx = { version = "0.7.3", features = ["uuid", "runtime-tokio", "sqlite"] }
 dotenv = "0.15.0"
 
 # Client

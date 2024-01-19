@@ -5,25 +5,24 @@ use color_eyre::eyre::Context;
 pub async fn init_database(database: &DatabasePool) -> color_eyre::Result<()> {
     sqlx::query(
         "
-CREATE TABLE IF NOT EXISTS boards
-(
-    board_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    board_name TEXT NOT NULL,
-    read_key TEXT,
-    submit_key TEXT,
-    admin_key TEXT NOT NULL
-)
-        ",
+    CREATE TABLE IF NOT EXISTS keys
+    (
+        key TEXT NOT NULL,
+        read BIT,
+        submit BIT,
+        admin BIT
+    )
+            ",
     )
     .execute(database)
     .await
-    .context("when creating table `boards`")?;
+    .context("when creating table `keys`")?;
 
     sqlx::query(
         "
     CREATE TABLE IF NOT EXISTS players
     (
-        player_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        player_id BINARY(16) NOT NULL PRIMARY KEY AUTOINCREMENT,
         key TEXT NOT NULL,
         name TEXT NOT NULL
     )
@@ -37,11 +36,11 @@ CREATE TABLE IF NOT EXISTS boards
         "
 CREATE TABLE IF NOT EXISTS scores
 (
-    board_id INTEGER NOT NULL,
-    player_id INTEGER NOT NULL,
+    level_id BINARY(16) NOT NULL,
+    player_id BINARY(16) NOT NULL,
     score INTEGER NOT NULL,
     extra_info TEXT,
-    FOREIGN KEY(board_id) REFERENCES boards(board_id),
+    FOREIGN KEY(level_id) REFERENCES levels(level_id),
     FOREIGN KEY(player_id) REFERENCES players(player_id)
 )
         ",
@@ -49,6 +48,79 @@ CREATE TABLE IF NOT EXISTS scores
     .execute(database)
     .await
     .context("when creating table `scores`")?;
+
+    sqlx::query(
+        "
+CREATE TABLE IF NOT EXISTS musics
+(
+    music_id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT,
+    file_path TEXT
+)
+        ",
+    )
+    .execute(database)
+    .await
+    .context("when creating table `musics`")?;
+
+    sqlx::query(
+        "
+CREATE TABLE IF NOT EXISTS music_authors
+(
+    player_id BINARY(16) NOT NULL,
+    music_id BINARY(16) NOT NULL,
+    FOREIGN KEY(player_id) REFERENCES players(player_id),
+    FOREIGN KEY(music_id) REFERENCES musics(music_id)
+)
+        ",
+    )
+    .execute(database)
+    .await
+    .context("when creating table `music_authors`")?;
+
+    sqlx::query(
+        "
+CREATE TABLE IF NOT EXISTS groups
+(
+    group_id BINARY(16) NOT NULL PRIMARY KEY,
+    music_id BINARY(16) NOT NULL,
+    FOREIGN KEY(music_id) REFERENCES musics(music_id)
+)
+        ",
+    )
+    .execute(database)
+    .await
+    .context("when creating table `groups`")?;
+
+    sqlx::query(
+        "
+CREATE TABLE IF NOT EXISTS levels
+(
+    level_id BINARY(16) NOT NULL PRIMARY KEY,
+    group_id BINARY(16) NOT NULL,
+    name TEXT,
+    file_path TEXT
+)
+        ",
+    )
+    .execute(database)
+    .await
+    .context("when creating table `levels`")?;
+
+    sqlx::query(
+        "
+CREATE TABLE IF NOT EXISTS level_authors
+(
+    player_id BINARY(16) NOT NULL,
+    level_id BINARY(16) NOT NULL,
+    FOREIGN KEY(player_id) REFERENCES players(player_id),
+    FOREIGN KEY(level_id) REFERENCES levels(level_id)
+)
+        ",
+    )
+    .execute(database)
+    .await
+    .context("when creating table `level_authors`")?;
 
     Ok(())
 }

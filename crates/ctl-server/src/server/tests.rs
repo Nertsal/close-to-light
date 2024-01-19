@@ -13,7 +13,7 @@ use tower::{util::ServiceExt, Service};
 async fn test_database() -> Result<DatabasePool> {
     crate::setup::setup().context("when setting up the environment")?;
 
-    let pool = sqlx::any::AnyPoolOptions::new()
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
         .min_connections(1)
         .max_connections(1)
         .connect("sqlite::memory:")
@@ -27,7 +27,7 @@ async fn test_database() -> Result<DatabasePool> {
     Ok(pool)
 }
 
-async fn test_app() -> Result<Router> {
+async fn test_app() -> Result<axum::Router> {
     Ok(app(Arc::new(
         test_database()
             .await

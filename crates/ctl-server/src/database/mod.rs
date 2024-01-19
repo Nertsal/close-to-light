@@ -4,8 +4,10 @@ pub use self::init::init_database;
 
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use sqlx::types::Uuid;
 
-pub type DatabasePool = sqlx::AnyPool; // TODO: behind a trait?
+pub type DatabasePool = sqlx::SqlitePool; // TODO: behind a trait?
+pub type DBRow = sqlx::sqlite::SqliteRow;
 
 pub type RequestResult<T, E = RequestError> = std::result::Result<T, E>;
 
@@ -27,12 +29,12 @@ pub enum RequestError {
     Forbidden,
     #[error("player key is invalid")]
     InvalidPlayer,
-    #[error("invalid board name: {0}")]
-    InvalidBoardName(String),
-    #[error("a board called {0} already exists")]
-    BoardAlreadyExists(String),
-    #[error("a board called {0} not found")]
-    NoSuchBoard(String),
+    #[error("invalid level name: {0}")]
+    InvalidLevelId(String),
+    #[error("a level {0} not found")]
+    NoSuchLevel(Uuid),
+    #[error("file not found: {0}")]
+    FileNotFound(String),
     #[error("database error: {0}")]
     Sql(#[from] sqlx::Error),
 }
@@ -43,9 +45,10 @@ impl RequestError {
             RequestError::Unathorized => StatusCode::UNAUTHORIZED,
             RequestError::Forbidden => StatusCode::FORBIDDEN,
             RequestError::InvalidPlayer => StatusCode::FORBIDDEN,
-            RequestError::InvalidBoardName(_) => StatusCode::BAD_REQUEST,
-            RequestError::BoardAlreadyExists(_) => StatusCode::CONFLICT,
-            RequestError::NoSuchBoard(_) => StatusCode::NOT_FOUND,
+            RequestError::InvalidLevelId(_) => StatusCode::BAD_REQUEST,
+            // RequestError::LevelAlreadyExists(_) => StatusCode::CONFLICT,
+            RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchLevel(_) => StatusCode::NOT_FOUND,
             RequestError::Sql(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

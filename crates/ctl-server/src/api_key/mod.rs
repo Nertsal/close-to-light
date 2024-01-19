@@ -2,6 +2,8 @@ use axum::http::{request::Parts, StatusCode};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
+pub use sqlx::types::Uuid;
+
 #[derive(Serialize, Deserialize)]
 pub struct StringKey(Box<str>);
 
