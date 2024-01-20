@@ -1,5 +1,5 @@
 pub use ctl_core as core;
-pub use ctl_core::{Player, ScoreEntry};
+use ctl_core::{prelude::Uuid, Player, ScoreEntry};
 
 use reqwest::{Client, Result, Url};
 
@@ -19,8 +19,7 @@ impl Nertboard {
     }
 
     pub async fn create_player(&self, name: &str) -> Result<Player> {
-        let mut url = self.url.clone();
-        url.set_path("player/create");
+        let url = self.url.join("player/create/").unwrap();
         let req = self.client.post(url).json(&name);
         let response = req.send().await?;
         response.json().await
@@ -36,11 +35,19 @@ impl Nertboard {
         response.json().await
     }
 
-    pub async fn submit_score(&self, player: &Player, entry: &ScoreEntry) -> Result<()> {
+    pub async fn submit_score(
+        &self,
+        level: Uuid,
+        player: &Player,
+        entry: &ScoreEntry,
+    ) -> Result<()> {
         let mut req = self
             .client
-            .post(self.url.clone())
-            .query(&[("player_id", player.id)])
+            .post(
+                self.url
+                    .join(&format!("levels/{}/scores/", level.simple()))
+                    .unwrap(),
+            )
             .header("player-key", &player.key);
         if let Some(key) = &self.api_key {
             req = req.header("api-key", key);
