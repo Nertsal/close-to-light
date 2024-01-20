@@ -12,8 +12,6 @@ pub struct Game {
 
     model: Model,
     debug_mode: bool,
-    group_name: String,
-    level_name: String,
 
     framebuffer_size: vec2<usize>,
     delta_time: Time,
@@ -26,26 +24,13 @@ pub struct Game {
 
 #[derive(Debug, Clone)]
 pub struct PlayLevel {
-    pub group_name: String,
+    pub level_path: std::path::PathBuf,
     pub group_meta: GroupMeta,
-    pub level_name: String,
     pub level_meta: LevelMeta,
     pub config: LevelConfig,
     pub level: Level,
     pub music: Music,
     pub start_time: Time,
-}
-
-impl PlayLevel {
-    pub fn level_path(&self) -> std::path::PathBuf {
-        run_dir()
-            .join("assets")
-            .join("groups")
-            .join(&self.group_name)
-            .join("levels")
-            .join(&self.level_name)
-            .join("level.json")
-    }
 }
 
 impl Game {
@@ -57,22 +42,18 @@ impl Game {
         leaderboard: Leaderboard,
         player_name: String,
     ) -> Self {
+        let player = PlayerInfo {
+            id: Uuid::nil(),
+            name: player_name,
+        };
         Self::preloaded(
             geng,
             assets,
-            Model::new(assets, options, level.clone(), leaderboard, player_name),
-            level.group_name,
-            level.level_name,
+            Model::new(assets, options, level.clone(), leaderboard, player),
         )
     }
 
-    fn preloaded(
-        geng: &Geng,
-        assets: &Rc<Assets>,
-        model: Model,
-        group_name: String,
-        level_name: String,
-    ) -> Self {
+    fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
         Self {
             geng: geng.clone(),
             transition: None,
@@ -80,8 +61,6 @@ impl Game {
 
             model,
             debug_mode: false,
-            group_name,
-            level_name,
 
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
@@ -92,28 +71,6 @@ impl Game {
             ui_focused: false,
         }
     }
-
-    // fn load_leaderboard(&mut self, submit_score: bool) {
-    //     if let Some(secrets) = &self.model.secrets {
-    //         self.model.leaderboard = LeaderboardState::Pending;
-    //         let player_name = self.model.player.name.clone();
-    //         let submit_score = submit_score && !player_name.trim().is_empty();
-    //         let score = submit_score.then_some(self.model.score.as_f32().ceil() as i32);
-    //         let secrets = secrets.clone();
-
-    //         let meta = crate::leaderboard::ScoreMeta::new(
-    //             self.group_name.clone(),
-    //             self.level_name.clone(),
-    //             self.model.config.modifiers.clone(),
-    //             self.model.config.health.clone(),
-    //         );
-
-    //         let future = async move {
-    //             crate::leaderboard::Leaderboard::submit(player_name, score, &meta, secrets).await
-    //         };
-    //         self.leaderboard_task = Some(Task::new(future));
-    //     }
-    // }
 }
 
 impl geng::State for Game {
@@ -175,30 +132,36 @@ impl geng::State for Game {
         let delta_time = Time::new(delta_time as _);
         self.delta_time = delta_time;
         self.model.leaderboard.poll();
+        if let Some(player) = self.model.leaderboard.loaded.player {
+            self.model.player.info.id = player;
+        }
 
         if let Some(transition) = self.model.transition.take() {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
-                    let player_name = self.model.player.name.clone();
+                    let player_name = self.model.player.info.name.clone();
                     let submit_score = submit_score && !player_name.trim().is_empty();
                     let raw_score = self.model.score.calculated.combined;
                     let score = submit_score.then_some(raw_score);
 
                     let meta = crate::leaderboard::ScoreMeta::new(
-                        self.group_name.clone(),
-                        self.level_name.clone(),
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
                     );
 
                     if submit_score {
-                        self.model.leaderboard.submit(player_name, score, meta);
+                        self.model.leaderboard.submit(
+                            player_name,
+                            score,
+                            self.model.level.level_meta.id,
+                            meta,
+                        );
                     } else {
                         self.model.leaderboard.loaded.meta = meta.clone();
                         // Save highscores on lost runs only locally
                         self.model.leaderboard.loaded.reload_local(Some(
                             &crate::leaderboard::SavedScore {
-                                player: player_name,
+                                level: self.model.level.level_meta.id,
                                 score: raw_score,
                                 meta,
                             },

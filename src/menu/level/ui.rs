@@ -148,7 +148,7 @@ impl MenuUI {
             self.leaderboard.update_state(
                 &state.leaderboard.status,
                 &state.leaderboard.loaded,
-                &state.player.name,
+                &state.player.info,
             );
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);

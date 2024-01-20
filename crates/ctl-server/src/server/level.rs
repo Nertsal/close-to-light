@@ -25,6 +25,16 @@ async fn fetch_scores(
     State(app): State<Arc<App>>,
     Path(level_id): Path<Uuid>,
 ) -> Result<Json<Vec<ScoreEntry>>> {
+    // Check that the level exists
+    let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
+        .bind(level_id)
+        .fetch_optional(&app.database)
+        .await?;
+    if check.is_none() {
+        return Err(RequestError::NoSuchLevel(level_id));
+    }
+
+    // Fetch scores
     let scores = sqlx::query(
         "
 SELECT name, score, extra_info
@@ -60,6 +70,15 @@ async fn submit_score(
     // Check permission
     let auth = get_auth(Some(api_key), &app.database).await?;
     check_auth(auth, AuthorityLevel::Submit)?;
+
+    // Check that the level exists
+    let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
+        .bind(level_id)
+        .fetch_optional(&app.database)
+        .await?;
+    if check.is_none() {
+        return Err(RequestError::NoSuchLevel(level_id));
+    }
 
     // Authorize player
     let (real_key, player_name): (String, String) =

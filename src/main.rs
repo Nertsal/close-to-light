@@ -93,11 +93,9 @@ fn main() {
                         .await
                         .expect("failed to load editor config");
 
-                let (group_name, level_name) = crate::group_level_from_path(&level_path);
                 let level = game::PlayLevel {
-                    group_name,
+                    level_path,
                     group_meta,
-                    level_name,
                     level_meta,
                     config,
                     level,
@@ -110,12 +108,10 @@ fn main() {
                 geng.run_state(state).await;
             } else {
                 // Game
-                let (group_name, level_name) = group_level_from_path(level_path);
                 config.modifiers.clean_auto = opts.clean_auto;
                 let level = game::PlayLevel {
-                    group_name,
+                    level_path,
                     group_meta,
-                    level_name,
                     level_meta,
                     config,
                     level,
@@ -163,20 +159,4 @@ fn main() {
             }
         }
     });
-}
-
-fn group_level_from_path(path: impl AsRef<std::path::Path>) -> (String, String) {
-    let path = path.as_ref();
-    let group_name = path
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_owned();
-    let level_name = path.file_name().unwrap().to_str().unwrap().to_owned();
-    (group_name, level_name)
 }

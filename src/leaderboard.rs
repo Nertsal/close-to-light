@@ -1,10 +1,13 @@
 use crate::{
-    prelude::{HealthConfig, LevelModifiers},
+    prelude::{HealthConfig, LevelModifiers, Uuid},
     task::Task,
     LeaderboardSecrets,
 };
 
-use ctl_client::{Nertboard, Player, ScoreEntry};
+use ctl_client::{
+    core::{types::PlayerInfo, Player, ScoreEntry},
+    Nertboard,
+};
 use geng::prelude::*;
 
 #[derive(Debug)]
@@ -15,9 +18,14 @@ pub enum LeaderboardStatus {
     Done,
 }
 
+struct BoardUpdate {
+    player: Option<Uuid>,
+    scores: Vec<ScoreEntry>,
+}
+
 pub struct Leaderboard {
     client: Option<Arc<Nertboard>>,
-    task: Option<Task<anyhow::Result<Vec<ScoreEntry>>>>,
+    task: Option<Task<anyhow::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -39,14 +47,16 @@ impl Clone for Leaderboard {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavedScore {
-    pub player: String,
+    pub level: Uuid,
     pub score: i32,
     pub meta: ScoreMeta,
 }
 
 #[derive(Debug)]
 pub struct LoadedBoard {
+    pub level: Uuid,
     pub meta: ScoreMeta,
+    pub player: Option<Uuid>,
     pub my_position: Option<usize>,
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
@@ -57,18 +67,14 @@ pub struct LoadedBoard {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ScoreMeta {
     pub version: u32,
-    pub group: String,
-    pub level: String,
     pub mods: LevelModifiers,
     pub health: HealthConfig,
 }
 
 impl ScoreMeta {
-    pub fn new(group: String, level: String, mods: LevelModifiers, health: HealthConfig) -> Self {
+    pub fn new(mods: LevelModifiers, health: HealthConfig) -> Self {
         Self {
             version: 1,
-            group,
-            level,
             mods,
             health,
         }
@@ -94,10 +100,11 @@ impl Leaderboard {
             if let Some(res) = task.poll() {
                 self.task = None;
                 match res {
-                    Ok(Ok(scores)) => {
+                    Ok(Ok(update)) => {
                         log::debug!("Successfully loaded the leaderboard");
                         self.status = LeaderboardStatus::Done;
-                        self.load_scores(scores);
+                        self.loaded.player = update.player;
+                        self.load_scores(update.scores);
                     }
                     Ok(Err(err)) | Err(err) => {
                         log::error!("Loading leaderboard failed: {:?}", err);
@@ -140,29 +147,29 @@ impl Leaderboard {
             let board = Arc::clone(client);
             let future = async move {
                 log::debug!("Fetching scores...");
-                board.fetch_scores().await.map_err(anyhow::Error::from)
+                board
+                    .fetch_scores()
+                    .await
+                    .map(|scores| BoardUpdate {
+                        player: None,
+                        scores,
+                    })
+                    .map_err(anyhow::Error::from)
             };
             self.task = Some(Task::new(future));
             self.status = LeaderboardStatus::Pending;
         }
     }
 
-    pub fn submit(&mut self, name: String, score: Option<i32>, meta: ScoreMeta) {
+    pub fn submit(&mut self, name: String, score: Option<i32>, level: Uuid, meta: ScoreMeta) {
         let score = score.map(|score| SavedScore {
-            player: name.clone(),
+            level,
             score,
             meta: meta.clone(),
         });
 
         self.loaded.meta = meta.clone();
         self.loaded.reload_local(score.as_ref());
-
-        let meta_str = meta_str(&meta);
-        let score = score.map(|score| ScoreEntry {
-            player: score.player,
-            score: score.score,
-            extra_info: Some(meta_str),
-        });
 
         if let Some(board) = &self.client {
             let board = Arc::clone(board);
@@ -188,11 +195,25 @@ impl Leaderboard {
                         player.clone()
                     };
 
+                let meta_str = meta_str(&meta);
+                let score = score.map(|score| ScoreEntry {
+                    player: PlayerInfo {
+                        id: player.id,
+                        name: name.to_owned(),
+                    },
+                    score: score.score,
+                    extra_info: Some(meta_str),
+                });
+
                 if let Some(score) = &score {
-                    board.submit_score(&player, score).await.unwrap();
+                    board.submit_score(level, &player, score).await.unwrap();
                 }
 
-                board.fetch_scores().await.map_err(anyhow::Error::from)
+                let scores = board.fetch_scores().await.map_err(anyhow::Error::from)?;
+                Ok(BoardUpdate {
+                    player: Some(player.id),
+                    scores,
+                })
             };
             self.task = Some(Task::new(future));
             self.status = LeaderboardStatus::Pending;
@@ -203,12 +224,9 @@ impl Leaderboard {
 impl LoadedBoard {
     fn new() -> Self {
         Self {
-            meta: ScoreMeta::new(
-                "none".to_string(),
-                "none".to_string(),
-                LevelModifiers::default(),
-                HealthConfig::default(),
-            ),
+            level: Uuid::nil(),
+            meta: ScoreMeta::new(LevelModifiers::default(), HealthConfig::default()),
+            player: None,
             my_position: None,
             all_scores: Vec::new(),
             filtered: Vec::new(),
@@ -225,7 +243,6 @@ impl LoadedBoard {
             if let Some(score) = score {
                 if score.score > highscore.score && score.meta == highscore.meta {
                     highscore.score = score.score;
-                    highscore.player = score.player.clone();
                     save = true;
                 }
             }
@@ -250,7 +267,7 @@ impl LoadedBoard {
 
         // Filter for the same meta
         scores.retain(|entry| {
-            !entry.player.is_empty()
+            !entry.player.name.is_empty()
                 && entry.extra_info.as_ref().map_or(false, |info| {
                     serde_json::from_str::<ScoreMeta>(info)
                         .map_or(false, |entry_meta| entry_meta == self.meta)
@@ -258,13 +275,13 @@ impl LoadedBoard {
         });
 
         {
-            // TODO: unique players
-            // Only leave unique names
+            // TODO: leave unique on server
+            // Only leave unique players
             let mut i = 0;
-            let mut names_seen = HashSet::new();
+            let mut ids_seen = HashSet::new();
             while i < scores.len() {
-                if !names_seen.contains(&scores[i].player) {
-                    names_seen.insert(scores[i].player.clone());
+                if !ids_seen.contains(&scores[i].player.id) {
+                    ids_seen.insert(scores[i].player.id);
                     i += 1;
                 } else {
                     scores.remove(i);

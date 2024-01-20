@@ -266,12 +266,12 @@ impl EditorState {
     }
 
     fn save(&mut self) {
-        let path = self.editor.level.level_path();
+        let path = &self.editor.level.level_path;
         let result = (|| -> anyhow::Result<()> {
             // TODO: switch back to ron
             // https://github.com/geng-engine/geng/issues/71
             let level = serde_json::to_string_pretty(&self.editor.level.level)?;
-            let mut writer = std::io::BufWriter::new(std::fs::File::create(&path)?);
+            let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
             write!(writer, "{}", level)?;
             Ok(())
         })();

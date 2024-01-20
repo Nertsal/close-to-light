@@ -114,7 +114,7 @@ impl LevelMenu {
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
             r32(0.0),
         );
-        player.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
+        player.info.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
 
         Self {
             geng: geng.clone(),
@@ -221,11 +221,9 @@ impl LevelMenu {
                     .await
                     .expect("failed to load level");
 
-                let (group_name, level_name) = crate::group_level_from_path(level_path);
                 let level = crate::game::PlayLevel {
-                    group_name,
+                    level_path,
                     group_meta,
-                    level_name,
                     level_meta,
                     config,
                     level,
@@ -325,21 +323,11 @@ impl LevelMenu {
     }
 
     fn fetch_leaderboard(&mut self) {
-        if let Some(group) = &self.state.show_group {
-            if let Some(group) = self.state.groups.get(group.data) {
-                if let Some(level) = &self.state.show_level {
-                    if let Some((path, _)) = group.levels.get(level.data) {
-                        let (group, level) = crate::group_level_from_path(path);
+        let mods = self.state.config.modifiers.clone();
+        let health = self.state.config.health.clone();
 
-                        let mods = self.state.config.modifiers.clone();
-                        let health = self.state.config.health.clone();
-
-                        let meta = crate::leaderboard::ScoreMeta::new(group, level, mods, health);
-                        self.state.leaderboard.change_meta(meta);
-                    }
-                }
-            }
-        }
+        let meta = crate::leaderboard::ScoreMeta::new(mods, health);
+        self.state.leaderboard.change_meta(meta);
     }
 
     fn update_leaderboard(&mut self, delta_time: Time) {
@@ -617,6 +605,9 @@ impl geng::State for LevelMenu {
         }
 
         self.state.leaderboard.poll();
+        if let Some(player) = self.state.leaderboard.loaded.player {
+            self.state.player.info.id = player;
+        }
 
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);

@@ -68,7 +68,7 @@ impl GameUI {
             self.leaderboard.update_state(
                 &model.leaderboard.status,
                 &model.leaderboard.loaded,
-                &model.player.name,
+                &model.player.info,
             );
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);

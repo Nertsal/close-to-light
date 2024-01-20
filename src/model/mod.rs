@@ -198,11 +198,11 @@ impl Model {
         options: Options,
         level: PlayLevel,
         leaderboard: Leaderboard,
-        player_name: String,
+        player: PlayerInfo,
     ) -> Self {
         let start_time = level.start_time;
         let mut model = Self::empty(assets, options, level);
-        model.player.name = player_name;
+        model.player.info = player;
         model.leaderboard = leaderboard;
 
         model.init(start_time);

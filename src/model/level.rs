@@ -23,6 +23,7 @@ pub struct MusicMeta {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelMeta {
+    pub id: Uuid,
     pub name: Name,
     pub author: Name,
 }

@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub struct Player {
-    pub name: String,
+    pub info: PlayerInfo,
     pub shake: vec2<Coord>,
     pub collider: Collider,
     pub health: Bounded<Time>,
@@ -40,7 +40,10 @@ pub enum LitState {
 impl Player {
     pub fn new(collider: Collider, health: Time) -> Self {
         Self {
-            name: "anonymous".to_string(),
+            info: PlayerInfo {
+                id: Uuid::nil(),
+                name: String::from("anonymous"),
+            },
             shake: vec2::ZERO,
             collider,
             health: Bounded::new_max(health),
