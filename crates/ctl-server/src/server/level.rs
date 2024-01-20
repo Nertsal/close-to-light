@@ -1,8 +1,14 @@
 use super::*;
 
+use ctl_core::ScoreEntry;
+
 pub fn route(router: Router) -> Router {
     router
         .route("/level/:level_id", delete(level_delete))
+        .route(
+            "/level/:level_id/scores",
+            get(fetch_scores).post(submit_score),
+        )
         .route("/level/:level_id/download", get(download))
         .route("/level/create", post(level_create))
 }
@@ -13,6 +19,81 @@ async fn level_delete() {
 
 async fn level_create() {
     // TODO
+}
+
+async fn fetch_scores(
+    State(app): State<Arc<App>>,
+    Path(level_id): Path<Uuid>,
+) -> Result<Json<Vec<ScoreEntry>>> {
+    let scores = sqlx::query(
+        "
+SELECT name, score, extra_info
+FROM scores
+JOIN players ON scores.player_id = players.player_id
+WHERE level_id = ?
+        ",
+    )
+    .bind(level_id)
+    .try_map(|row: DBRow| {
+        Ok(ScoreEntry {
+            player: PlayerInfo {
+                id: row.try_get("player_id")?,
+                name: row.try_get("name")?,
+            },
+            score: row.try_get("score")?,
+            extra_info: row.try_get("extra_info")?,
+        })
+    })
+    .fetch_all(&app.database)
+    .await?;
+
+    Ok(Json(scores))
+}
+
+async fn submit_score(
+    State(app): State<Arc<App>>,
+    Path(level_id): Path<Uuid>,
+    api_key: ApiKey,
+    player_key: PlayerKey,
+    Json(score): Json<ScoreEntry>,
+) -> Result<()> {
+    // Check permission
+    let auth = get_auth(Some(api_key), &app.database).await?;
+    check_auth(auth, AuthorityLevel::Submit)?;
+
+    // Authorize player
+    let (real_key, player_name): (String, String) =
+        sqlx::query("SELECT key, name FROM players WHERE player_id = ?")
+            .bind(score.player.id)
+            .try_map(|row: DBRow| Ok((row.try_get("key")?, row.try_get("name")?)))
+            .fetch_one(&app.database)
+            .await?;
+
+    if real_key != player_key.0 {
+        // Incorrect key
+        return Err(RequestError::InvalidPlayer);
+    }
+
+    if player_name != score.player.name {
+        // Name changed
+        sqlx::query("UPDATE players SET name = ? WHERE player_id = ?")
+            .bind(&score.player.name)
+            .bind(score.player.id)
+            .execute(&app.database)
+            .await?;
+    }
+
+    // Insert new score
+    // TODO: Keep only highest score
+    sqlx::query("INSERT INTO scores (level_id, player_id, score, extra_info) VALUES (?, ?, ?, ?)")
+        .bind(level_id)
+        .bind(score.player.id)
+        .bind(score.score)
+        .bind(&score.extra_info)
+        .execute(&app.database)
+        .await?;
+
+    Ok(())
 }
 
 async fn download(

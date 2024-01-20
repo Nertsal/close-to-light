@@ -1,5 +1,5 @@
-pub use ctl_core::{Player, ScoreEntry};
 pub use ctl_core as core;
+pub use ctl_core::{Player, ScoreEntry};
 
 use reqwest::{Client, Result, Url};
 

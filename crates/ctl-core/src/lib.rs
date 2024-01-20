@@ -19,12 +19,10 @@ pub mod prelude {
 
 use crate::prelude::*;
 
-pub type Score = i32;
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ScoreEntry {
-    pub player: String,
-    pub score: Score,
+    pub player: PlayerInfo,
+    pub score: i32,
     pub extra_info: Option<String>,
 }
 

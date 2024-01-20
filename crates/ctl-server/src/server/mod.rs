@@ -53,10 +53,9 @@ pub async fn run(port: u16, database: DatabasePool, config: AppConfig) -> color_
 }
 
 fn app(app: Arc<App>) -> axum::Router {
-    let router = Router::new()
-        .route("/", get(get_root))
-        .route("/player/create", post(player::create));
+    let router = Router::new().route("/", get(get_root));
 
+    let router = player::route(router);
     let router = music::route(router);
     let router = group::route(router);
     let router = level::route(router);

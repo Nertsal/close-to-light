@@ -1,17 +1,22 @@
 use super::*;
 
+pub fn route(router: Router) -> Router {
+    router.route("/player/create", post(create))
+}
+
 pub async fn create(
     State(app): State<Arc<App>>,
     Json(player_name): Json<String>,
 ) -> Result<Json<ctl_core::Player>> {
-    // Generate a random key
+    // Generate a random key and uuid
     let key = StringKey::generate(10).inner().to_owned();
+    let id = Uuid::new_v4();
 
-    let id = sqlx::query("INSERT INTO players (key, name) VALUES (?, ?) RETURNING player_id")
+    sqlx::query("INSERT INTO players (player_id, key, name) VALUES (?, ?, ?)")
+        .bind(id)
         .bind(&key)
         .bind(&player_name)
-        .try_map(|row: DBRow| row.try_get::<Uuid, _>("player_id"))
-        .fetch_one(&app.database)
+        .execute(&app.database)
         .await?;
 
     Ok(Json(ctl_core::Player {
