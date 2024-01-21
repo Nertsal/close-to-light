@@ -1,5 +1,7 @@
 use super::*;
 
+const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
+
 pub fn route(router: Router) -> Router {
     router
         .route(
@@ -19,7 +21,7 @@ async fn music_create(
     State(app): State<Arc<App>>,
     Query(music): Query<NewMusic>,
     api_key: ApiKey,
-    multipart: Multipart,
+    body: Body,
 ) -> Result<Json<Uuid>> {
     let auth = get_auth(Some(api_key), &app.database).await?;
     check_auth(auth, AuthorityLevel::Admin)?;
@@ -28,7 +30,9 @@ async fn music_create(
 
     // TODO: check that file is mp3 format
     // Download the file
-    let data = receive_file(multipart).await?;
+    let data = axum::body::to_bytes(body, MUSIC_SIZE_LIMIT)
+        .await
+        .expect("not bytes idk");
     let uuid = Uuid::new_v4();
 
     // Check path

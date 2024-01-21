@@ -14,6 +14,8 @@ mod util;
 use leaderboard::Leaderboard;
 use prelude::Options;
 
+use std::path::PathBuf;
+
 use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0;
@@ -25,12 +27,11 @@ const HIGHSCORES_STORAGE: &str = "highscores";
 
 #[derive(clap::Parser)]
 struct Opts {
+    #[command(subcommand)]
+    command: Option<Commands>,
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
-    /// Just display some dithered text on screen.
-    #[clap(long)]
-    text: Option<String>,
     /// Play a specific level.
     #[clap(long)]
     level: Option<std::path::PathBuf>,
@@ -42,6 +43,14 @@ struct Opts {
     edit: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
+}
+
+#[derive(clap::Subcommand)]
+enum Commands {
+    /// Just display some dithered text on screen.
+    Text { text: String },
+    /// Upload music to the server.
+    MusicUpload { path: PathBuf, name: String },
 }
 
 #[derive(geng::asset::Load, Deserialize, Clone)]
@@ -77,9 +86,45 @@ fn main() {
 
         let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
-        if let Some(text) = opts.text {
-            let state = media::MediaState::new(&geng, &assets).with_text(text);
-            geng.run_state(state).await;
+        let secrets: Option<Secrets> =
+            geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+                .await
+                .ok();
+        let secrets = secrets.or_else(|| {
+            Some(Secrets {
+                leaderboard: LeaderboardSecrets {
+                    url: option_env!("LEADERBOARD_URL")?.to_string(),
+                    key: option_env!("LEADERBOARD_KEY")?.to_string(),
+                },
+            })
+        });
+
+        if let Some(command) = opts.command {
+            match command {
+                Commands::Text { text } => {
+                    let state = media::MediaState::new(&geng, &assets).with_text(text);
+                    geng.run_state(state).await;
+                }
+                Commands::MusicUpload { path, name } => {
+                    log::info!("Uploading music from {:?}", path);
+                    let secrets = secrets.expect("Cannot upload music without leaderboard secrets");
+
+                    let future = async move {
+                        let client = ctl_client::Nertboard::new(
+                            &secrets.leaderboard.url,
+                            Some(secrets.leaderboard.key),
+                        )
+                        .expect("Client initialization failed");
+                        let music_id = client
+                            .upload_music(&path, &name)
+                            .await
+                            .expect("failed to upload music");
+                        log::info!("Music uploaded successfully, id: {}", music_id.simple());
+                    };
+                    let mut task = task::Task::new(future);
+                    while task.poll().is_none() {}
+                }
+            }
         } else if let Some(level_path) = opts.level {
             let mut config = model::LevelConfig::default();
             let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
@@ -130,19 +175,6 @@ fn main() {
             }
         } else {
             // Main menu
-            let secrets: Option<Secrets> =
-                geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
-                    .await
-                    .ok();
-            let secrets = secrets.or_else(|| {
-                Some(Secrets {
-                    leaderboard: LeaderboardSecrets {
-                        url: option_env!("LEADERBOARD_URL")?.to_string(),
-                        key: option_env!("LEADERBOARD_KEY")?.to_string(),
-                    },
-                })
-            });
-
             if opts.skip_intro {
                 let assets_path = run_dir().join("assets");
                 let groups_path = assets_path.join("groups");

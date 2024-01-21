@@ -118,21 +118,21 @@ fn validate_name(name: String) -> Result<String> {
     Ok(name)
 }
 
-/// Load the file as bytes from a multipart message.
-async fn receive_file(mut multipart: Multipart) -> std::io::Result<Vec<u8>> {
-    use std::io::Write;
+// /// Load the file as bytes from a multipart message.
+// async fn receive_file(mut multipart: Multipart) -> std::io::Result<Vec<u8>> {
+//     use std::io::Write;
 
-    debug!("Receiving a file...");
-    let mut file = Vec::new();
-    while let Some(field) = multipart.next_field().await.unwrap() {
-        // let name = field.name().unwrap().to_string();
-        let data = field.bytes().await.unwrap();
-        file.write_all(&data)?;
-    }
-    debug!("File downloaded successfully");
+//     debug!("Receiving a file...");
+//     let mut file = Vec::new();
+//     while let Some(field) = multipart.next_field().await.unwrap() {
+//         // let name = field.name().unwrap().to_string();
+//         let data = field.bytes().await.unwrap();
+//         file.write_all(&data)?;
+//     }
+//     debug!("File downloaded successfully");
 
-    Ok(file)
-}
+//     Ok(file)
+// }
 
 async fn send_file(
     path: impl AsRef<std::path::Path>,

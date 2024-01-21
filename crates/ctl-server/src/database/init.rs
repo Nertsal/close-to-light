@@ -21,7 +21,7 @@ pub async fn init_database(database: &DatabasePool) -> color_eyre::Result<()> {
         "
     CREATE TABLE IF NOT EXISTS players
     (
-        player_id BINARY(16) NOT NULL PRIMARY KEY,
+        player_id BLOB NOT NULL PRIMARY KEY,
         key TEXT NOT NULL,
         name TEXT NOT NULL
     )
@@ -35,8 +35,8 @@ pub async fn init_database(database: &DatabasePool) -> color_eyre::Result<()> {
         "
 CREATE TABLE IF NOT EXISTS scores
 (
-    level_id BINARY(16) NOT NULL,
-    player_id BINARY(16) NOT NULL,
+    level_id BLOB NOT NULL,
+    player_id BLOB NOT NULL,
     score INTEGER NOT NULL,
     extra_info TEXT,
     FOREIGN KEY(level_id) REFERENCES levels(level_id),
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS scores
         "
 CREATE TABLE IF NOT EXISTS musics
 (
-    music_id INTEGER NOT NULL PRIMARY KEY,
+    music_id BLOB NOT NULL PRIMARY KEY,
     name TEXT,
     file_path TEXT
 )
@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS musics
         "
 CREATE TABLE IF NOT EXISTS music_authors
 (
-    player_id BINARY(16) NOT NULL,
-    music_id BINARY(16) NOT NULL,
+    player_id BLOB NOT NULL,
+    music_id BLOB NOT NULL,
     FOREIGN KEY(player_id) REFERENCES players(player_id),
     FOREIGN KEY(music_id) REFERENCES musics(music_id)
 )
@@ -81,8 +81,8 @@ CREATE TABLE IF NOT EXISTS music_authors
         "
 CREATE TABLE IF NOT EXISTS groups
 (
-    group_id BINARY(16) NOT NULL PRIMARY KEY,
-    music_id BINARY(16) NOT NULL,
+    group_id BLOB NOT NULL PRIMARY KEY,
+    music_id BLOB NOT NULL,
     FOREIGN KEY(music_id) REFERENCES musics(music_id)
 )
         ",
@@ -95,8 +95,8 @@ CREATE TABLE IF NOT EXISTS groups
         "
 CREATE TABLE IF NOT EXISTS levels
 (
-    level_id BINARY(16) NOT NULL PRIMARY KEY,
-    group_id BINARY(16) NOT NULL,
+    level_id BLOB NOT NULL PRIMARY KEY,
+    group_id BLOB NOT NULL,
     name TEXT,
     file_path TEXT
 )
@@ -110,8 +110,8 @@ CREATE TABLE IF NOT EXISTS levels
         "
 CREATE TABLE IF NOT EXISTS level_authors
 (
-    player_id BINARY(16) NOT NULL,
-    level_id BINARY(16) NOT NULL,
+    player_id BLOB NOT NULL,
+    level_id BLOB NOT NULL,
     FOREIGN KEY(player_id) REFERENCES players(player_id),
     FOREIGN KEY(level_id) REFERENCES levels(level_id)
 )

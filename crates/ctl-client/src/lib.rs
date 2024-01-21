@@ -1,7 +1,15 @@
 pub use ctl_core as core;
-use ctl_core::{prelude::Uuid, Player, ScoreEntry};
+use ctl_core::{
+    prelude::{
+        anyhow::{Context, Result},
+        log, serde_json, DeserializeOwned, Uuid,
+    },
+    Player, ScoreEntry,
+};
 
-use reqwest::{Client, Result, Url};
+use reqwest::{Body, Client, Response, Url};
+use tokio::fs::File;
+use tokio_util::codec::{BytesCodec, FramedRead};
 
 pub struct Nertboard {
     url: Url,
@@ -22,7 +30,8 @@ impl Nertboard {
         let url = self.url.join("player/create/").unwrap();
         let req = self.client.post(url).json(&name);
         let response = req.send().await?;
-        response.json().await
+        let res = read_json(response).await?;
+        Ok(res)
     }
 
     pub async fn fetch_scores(&self, level: Uuid) -> Result<Vec<ScoreEntry>> {
@@ -36,7 +45,8 @@ impl Nertboard {
         }
 
         let response = req.send().await?;
-        response.json().await
+        let res = read_json(response).await?;
+        Ok(res)
     }
 
     pub async fn submit_score(
@@ -63,4 +73,45 @@ impl Nertboard {
         // TODO: check returned error
         Ok(())
     }
+
+    pub async fn upload_music(
+        &self,
+        path: impl AsRef<std::path::Path>,
+        name: &str,
+    ) -> Result<Uuid> {
+        let path = path.as_ref();
+        let url = self.url.join("music/create").unwrap();
+
+        let file = File::open(path)
+            .await
+            .context("when opening the music file")?;
+        let mut req = self
+            .client
+            .post(url)
+            .body(file_to_body(file))
+            .query(&[("music_name", &name)]);
+        if let Some(key) = &self.api_key {
+            req = req.header("api-key", key);
+        }
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
+    }
+}
+
+async fn read_json<T: DeserializeOwned>(response: Response) -> Result<T> {
+    log::debug!("Response: {:?}", response);
+    let body = response
+        .text()
+        .await
+        .context("when reading response body")?;
+    log::debug!("Parsing response body: {:?}", body);
+    let value = serde_json::from_str(&body).context("when parsing response as json")?;
+    Ok(value)
+}
+
+fn file_to_body(file: File) -> Body {
+    let stream = FramedRead::new(file, BytesCodec::new());
+    Body::wrap_stream(stream)
 }
