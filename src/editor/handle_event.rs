@@ -43,11 +43,15 @@ impl EditorState {
                                             match light.light.movement.key_frames.pop_front() {
                                                 None => {
                                                     // No waypoints -> delete the whole event
-                                                    self.editor
-                                                        .level
-                                                        .level
-                                                        .events
-                                                        .swap_remove(waypoints.event);
+                                                    if waypoints.event
+                                                        < self.editor.level.level.events.len()
+                                                    {
+                                                        self.editor
+                                                            .level
+                                                            .level
+                                                            .events
+                                                            .swap_remove(waypoints.event);
+                                                    }
                                                     self.editor.level_state.waypoints = None;
                                                     self.editor.state = State::Idle;
                                                 }
@@ -73,9 +77,15 @@ impl EditorState {
                                     }
                                 }
                             }
+                            if let Some(waypoints) = &mut self.editor.level_state.waypoints {
+                                waypoints.selected = None;
+                            }
                         }
                     } else if let Some(index) = self.editor.selected_light {
-                        self.editor.level.level.events.swap_remove(index.event);
+                        if index.event < self.editor.level.level.events.len() {
+                            self.editor.level.level.events.swap_remove(index.event);
+                        }
+                        self.editor.selected_light = None;
                     }
                     self.save_state(default());
                 }
