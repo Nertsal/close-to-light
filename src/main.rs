@@ -50,7 +50,12 @@ enum Commands {
     /// Just display some dithered text on screen.
     Text { text: String },
     /// Upload music to the server.
-    MusicUpload { path: PathBuf, name: String },
+    MusicUpload {
+        path: PathBuf,
+        name: String,
+        original: bool,
+        bpm: f32,
+    },
 }
 
 #[derive(geng::asset::Load, Deserialize, Clone)]
@@ -105,8 +110,18 @@ fn main() {
                     let state = media::MediaState::new(&geng, &assets).with_text(text);
                     geng.run_state(state).await;
                 }
-                Commands::MusicUpload { path, name } => {
-                    log::info!("Uploading music from {:?}", path);
+                Commands::MusicUpload {
+                    path,
+                    name,
+                    original,
+                    bpm,
+                } => {
+                    let music = ctl_client::core::types::NewMusic {
+                        name,
+                        original,
+                        bpm,
+                    };
+                    log::info!("Uploading music from {:?}: {:?}", path, music);
                     let secrets = secrets.expect("Cannot upload music without leaderboard secrets");
 
                     let future = async move {
@@ -116,10 +131,10 @@ fn main() {
                         )
                         .expect("Client initialization failed");
                         let music_id = client
-                            .upload_music(&path, &name)
+                            .upload_music(&path, &music)
                             .await
                             .expect("failed to upload music");
-                        log::info!("Music uploaded successfully, id: {}", music_id.simple());
+                        log::info!("Music uploaded successfully, id: {}", music_id);
                     };
                     let mut task = task::Task::new(future);
                     while task.poll().is_none() {}

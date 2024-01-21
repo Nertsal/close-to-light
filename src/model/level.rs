@@ -23,8 +23,8 @@ pub struct MusicMeta {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelMeta {
-    #[serde(default)] // Nil id for new levels not yet uploaded to the server.
-    pub id: Uuid,
+    #[serde(default)] // 0 id for new levels not yet uploaded to the server.
+    pub id: Id,
     pub name: Name,
     pub author: Name,
 }

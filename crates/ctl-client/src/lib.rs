@@ -2,7 +2,7 @@ pub use ctl_core as core;
 use ctl_core::{
     prelude::{
         anyhow::{Context, Result},
-        log, serde_json, DeserializeOwned, Uuid,
+        log, serde_json, DeserializeOwned, Id, NewMusic,
     },
     Player, ScoreEntry,
 };
@@ -34,11 +34,8 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn fetch_scores(&self, level: Uuid) -> Result<Vec<ScoreEntry>> {
-        let url = self
-            .url
-            .join(&format!("levels/{}/scores/", level.simple()))
-            .unwrap();
+    pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
+        let url = self.url.join(&format!("levels/{}/scores/", level)).unwrap();
         let mut req = self.client.get(url);
         if let Some(key) = &self.api_key {
             req = req.header("api-key", key);
@@ -49,19 +46,10 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn submit_score(
-        &self,
-        level: Uuid,
-        player: &Player,
-        entry: &ScoreEntry,
-    ) -> Result<()> {
+    pub async fn submit_score(&self, level: Id, player: &Player, entry: &ScoreEntry) -> Result<()> {
         let mut req = self
             .client
-            .post(
-                self.url
-                    .join(&format!("levels/{}/scores/", level.simple()))
-                    .unwrap(),
-            )
+            .post(self.url.join(&format!("levels/{}/scores/", level)).unwrap())
             .header("player-key", &player.key);
         if let Some(key) = &self.api_key {
             req = req.header("api-key", key);
@@ -77,19 +65,19 @@ impl Nertboard {
     pub async fn upload_music(
         &self,
         path: impl AsRef<std::path::Path>,
-        name: &str,
-    ) -> Result<Uuid> {
+        music: &NewMusic,
+    ) -> Result<Id> {
         let path = path.as_ref();
         let url = self.url.join("music/create").unwrap();
 
         let file = File::open(path)
             .await
             .context("when opening the music file")?;
-        let mut req = self
-            .client
-            .post(url)
-            .body(file_to_body(file))
-            .query(&[("music_name", &name)]);
+        let mut req = self.client.post(url).body(file_to_body(file)).query(&[
+            ("music_name", &music.name),
+            ("original", &music.original.to_string()),
+            ("bpm", &music.bpm.to_string()),
+        ]);
         if let Some(key) = &self.api_key {
             req = req.header("api-key", key);
         }

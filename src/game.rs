@@ -43,7 +43,7 @@ impl Game {
         player_name: String,
     ) -> Self {
         let player = PlayerInfo {
-            id: Uuid::nil(),
+            id: 0,
             name: player_name,
         };
         Self::preloaded(

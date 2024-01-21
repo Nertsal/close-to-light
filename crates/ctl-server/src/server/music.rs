@@ -1,5 +1,7 @@
 use super::*;
 
+use ctl_core::types::NewMusic;
+
 const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
 
 pub fn route(router: Router) -> Router {
@@ -12,42 +14,48 @@ pub fn route(router: Router) -> Router {
         .route("/music/create", post(music_create))
 }
 
-#[derive(Deserialize)]
-struct NewMusic {
-    music_name: String,
-}
-
 async fn music_create(
     State(app): State<Arc<App>>,
-    Query(music): Query<NewMusic>,
+    Query(mut music): Query<NewMusic>,
     api_key: ApiKey,
     body: Body,
-) -> Result<Json<Uuid>> {
+) -> Result<Json<Id>> {
     let auth = get_auth(Some(api_key), &app.database).await?;
     check_auth(auth, AuthorityLevel::Admin)?;
 
-    let music_name = validate_name(music.music_name)?;
+    music.name = validate_name(music.name)?;
 
     // TODO: check that file is mp3 format
     // Download the file
     let data = axum::body::to_bytes(body, MUSIC_SIZE_LIMIT)
         .await
         .expect("not bytes idk");
-    let uuid = Uuid::new_v4();
+
+    // Commit to database
+    let music_id: Id = sqlx::query(
+        "INSERT INTO musics (name, public, original, bpm) VALUES (?, ?, ?, ?) RETURNING music_id",
+    )
+    .bind(music.name)
+    .bind(false)
+    .bind(music.original)
+    .bind(music.bpm)
+    .try_map(|row: DBRow| row.try_get("music_id"))
+    .fetch_one(&app.database)
+    .await?;
 
     // Check path
     let dir_path = app.config.groups_path.join("music");
     std::fs::create_dir_all(&dir_path)?;
-    let path = dir_path.join(uuid.hyphenated().to_string());
+    let path = dir_path.join(music_id.to_string());
     debug!("Saving music file at {:?}", path);
 
-    let Some(music_path) = path.to_str() else {
-        error!("Music path is not valid unicode");
-        return Err(RequestError::Internal);
-    };
+    // let Some(music_path) = path.to_str() else {
+    //     error!("Music path is not valid unicode");
+    //     return Err(RequestError::Internal);
+    // };
 
     if path.exists() {
-        error!("Duplicate music UUID generated: {}", uuid);
+        error!("Duplicate music ID generated: {}", music_id);
         return Err(RequestError::Internal);
     }
 
@@ -55,17 +63,9 @@ async fn music_create(
     std::fs::write(&path, data)?;
     debug!("Saved music file successfully");
 
-    // Commit to database
-    sqlx::query("INSERT INTO musics (music_id, name, file_path) VALUES (?, ?, ?)")
-        .bind(uuid)
-        .bind(music_name)
-        .bind(music_path)
-        .execute(&app.database)
-        .await?;
-
     debug!("New music committed to the database");
 
-    Ok(Json(uuid))
+    Ok(Json(music_id))
 }
 
 async fn add_author(

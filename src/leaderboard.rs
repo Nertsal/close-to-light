@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{HealthConfig, LevelModifiers, Uuid},
+    prelude::{HealthConfig, Id, LevelModifiers},
     task::Task,
     LeaderboardSecrets,
 };
@@ -19,7 +19,7 @@ pub enum LeaderboardStatus {
 }
 
 struct BoardUpdate {
-    player: Option<Uuid>,
+    player: Option<Id>,
     scores: Vec<ScoreEntry>,
 }
 
@@ -47,16 +47,16 @@ impl Clone for Leaderboard {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavedScore {
-    pub level: Uuid,
+    pub level: Id,
     pub score: i32,
     pub meta: ScoreMeta,
 }
 
 #[derive(Debug)]
 pub struct LoadedBoard {
-    pub level: Uuid,
+    pub level: Id,
     pub meta: ScoreMeta,
-    pub player: Option<Uuid>,
+    pub player: Option<Id>,
     pub my_position: Option<usize>,
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
@@ -162,7 +162,7 @@ impl Leaderboard {
         }
     }
 
-    pub fn submit(&mut self, name: String, score: Option<i32>, level: Uuid, meta: ScoreMeta) {
+    pub fn submit(&mut self, name: String, score: Option<i32>, level: Id, meta: ScoreMeta) {
         let score = score.map(|score| SavedScore {
             level,
             score,
@@ -228,7 +228,7 @@ impl Leaderboard {
 impl LoadedBoard {
     fn new() -> Self {
         Self {
-            level: Uuid::nil(),
+            level: 0,
             meta: ScoreMeta::new(LevelModifiers::default(), HealthConfig::default()),
             player: None,
             my_position: None,

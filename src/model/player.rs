@@ -41,7 +41,7 @@ impl Player {
     pub fn new(collider: Collider, health: Time) -> Self {
         Self {
             info: PlayerInfo {
-                id: Uuid::nil(),
+                id: 0,
                 name: String::from("anonymous"),
             },
             shake: vec2::ZERO,
