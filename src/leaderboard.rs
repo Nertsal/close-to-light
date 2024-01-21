@@ -145,10 +145,11 @@ impl Leaderboard {
 
         if let Some(client) = &self.client {
             let board = Arc::clone(client);
+            let level = self.loaded.level;
             let future = async move {
-                log::debug!("Fetching scores...");
+                log::debug!("Fetching scores for level {}...", level);
                 board
-                    .fetch_scores()
+                    .fetch_scores(level)
                     .await
                     .map(|scores| BoardUpdate {
                         player: None,
@@ -209,7 +210,10 @@ impl Leaderboard {
                     board.submit_score(level, &player, score).await.unwrap();
                 }
 
-                let scores = board.fetch_scores().await.map_err(anyhow::Error::from)?;
+                let scores = board
+                    .fetch_scores(level)
+                    .await
+                    .map_err(anyhow::Error::from)?;
                 Ok(BoardUpdate {
                     player: Some(player.id),
                     scores,

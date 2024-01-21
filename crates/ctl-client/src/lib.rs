@@ -25,8 +25,12 @@ impl Nertboard {
         response.json().await
     }
 
-    pub async fn fetch_scores(&self) -> Result<Vec<ScoreEntry>> {
-        let mut req = self.client.get(self.url.clone());
+    pub async fn fetch_scores(&self, level: Uuid) -> Result<Vec<ScoreEntry>> {
+        let url = self
+            .url
+            .join(&format!("levels/{}/scores/", level.simple()))
+            .unwrap();
+        let mut req = self.client.get(url);
         if let Some(key) = &self.api_key {
             req = req.header("api-key", key);
         }

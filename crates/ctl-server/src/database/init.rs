@@ -21,7 +21,7 @@ pub async fn init_database(database: &DatabasePool) -> color_eyre::Result<()> {
         "
     CREATE TABLE IF NOT EXISTS players
     (
-        player_id BINARY(16) NOT NULL PRIMARY KEY AUTOINCREMENT,
+        player_id BINARY(16) NOT NULL PRIMARY KEY,
         key TEXT NOT NULL,
         name TEXT NOT NULL
     )
