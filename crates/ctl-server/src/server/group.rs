@@ -30,26 +30,32 @@ async fn group_get(
             .fetch_all(&app.database)
             .await?;
 
-    let mut levels = Vec::new();
-    for (level_id, level_name) in level_rows {
-        let authors: Vec<PlayerInfo> = sqlx::query(
-            "
-SELECT players.player_id, name
+    let authors: Vec<(Id, PlayerInfo)> = sqlx::query(
+        "
+SELECT level_id, players.player_id, name
 FROM level_authors
-WHERE level_id = ?
 JOIN players ON level_authors.player_id = players.player_id
         ",
-        )
-        .bind(level_id)
-        .try_map(|row: DBRow| {
-            Ok(PlayerInfo {
+    )
+    .try_map(|row: DBRow| {
+        Ok((
+            row.try_get("level_id")?,
+            PlayerInfo {
                 id: row.try_get("player_id")?,
                 name: row.try_get("name")?,
-            })
-        })
-        .fetch_all(&app.database)
-        .await?;
+            },
+        ))
+    })
+    .fetch_all(&app.database)
+    .await?;
 
+    let mut levels = Vec::new();
+    for (level_id, level_name) in level_rows {
+        let authors = authors
+            .iter()
+            .filter(|(id, _)| *id == level_id)
+            .map(|(_, player)| player.clone())
+            .collect();
         levels.push(LevelInfo {
             id: level_id,
             name: level_name,

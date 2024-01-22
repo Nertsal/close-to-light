@@ -23,31 +23,31 @@ pub struct ScoreRecord {
 // TODO: fix so that the message appears in logs, not on the client
 #[derive(thiserror::Error, Debug)]
 pub enum RequestError {
-    #[error("internal error")]
+    #[error("Server error")]
     Internal,
-    #[error("unathorized request")]
+    #[error("Unathorized request")]
     Unathorized,
-    #[error("unathorized request, not enough rights")]
+    #[error("Forbidden")]
     Forbidden,
-    #[error("player key is invalid")]
+    #[error("Player key is invalid")]
     InvalidPlayer,
-    #[error("invalid name {0}")]
+    #[error("Invalid name {0}")]
     InvalidName(String),
-    #[error("player {0} not found")]
+    #[error("Player {0} not found")]
     NoSuchPlayer(Id),
-    #[error("artist {0} not found")]
+    #[error("Artist {0} not found")]
     NoSuchArtist(Id),
-    #[error("group {0} not found")]
+    #[error("Group {0} not found")]
     NoSuchGroup(Id),
-    #[error("music {0} not found")]
+    #[error("Music {0} not found")]
     NoSuchMusic(Id),
-    #[error("level {0} not found")]
+    #[error("Level {0} not found")]
     NoSuchLevel(Id),
-    #[error("file not found: {0}")]
+    #[error("Server error")]
     FileNotFound(String),
-    #[error("database error: {0}")]
+    #[error("Database error")]
     Sql(#[from] sqlx::Error),
-    #[error("io error: {0}")]
+    #[error("Server error")]
     Io(#[from] std::io::Error),
 }
 
@@ -73,6 +73,7 @@ impl RequestError {
 
 impl axum::response::IntoResponse for RequestError {
     fn into_response(self) -> axum::response::Response {
+        tracing::debug!("Responding with an error: {:?}", self);
         let body = format!("{}", self);
         (self.status(), body).into_response()
     }

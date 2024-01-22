@@ -37,6 +37,9 @@ async fn main() -> Result<()> {
     });
     let groups_path: PathBuf = PathBuf::from(groups_path);
 
+    info!("Database: {}", database_url);
+    info!("Groups: {:?}", groups_path);
+
     let config = AppConfig { groups_path };
 
     let database_pool = setup::connect_database(&database_url)
