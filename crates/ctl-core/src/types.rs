@@ -31,7 +31,7 @@ pub struct PlayerInfo {
     pub name: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewMusic {
     pub name: String,
     pub original: bool,

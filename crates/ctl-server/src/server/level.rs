@@ -23,7 +23,7 @@ async fn level_create() {
 
 async fn fetch_scores(
     State(app): State<Arc<App>>,
-    Path(level_id): Path<Uuid>,
+    Path(level_id): Path<Id>,
 ) -> Result<Json<Vec<ScoreEntry>>> {
     // Check that the level exists
     let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
@@ -62,7 +62,7 @@ WHERE level_id = ?
 
 async fn submit_score(
     State(app): State<Arc<App>>,
-    Path(level_id): Path<Uuid>,
+    Path(level_id): Path<Id>,
     api_key: ApiKey,
     player_key: PlayerKey,
     Json(score): Json<ScoreEntry>,
@@ -117,7 +117,7 @@ async fn submit_score(
 
 async fn download(
     State(app): State<Arc<App>>,
-    Path(level_id): Path<Uuid>,
+    Path(level_id): Path<Id>,
 ) -> Result<impl IntoResponse> {
     let level_row = sqlx::query("SELECT file_path FROM levels WHERE level_id = ?")
         .bind(level_id)

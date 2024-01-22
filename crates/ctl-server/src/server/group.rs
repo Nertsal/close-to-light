@@ -8,9 +8,9 @@ pub fn route(router: Router) -> Router {
 
 async fn group_get(
     State(app): State<Arc<App>>,
-    Path(group_id): Path<Uuid>,
+    Path(group_id): Path<Id>,
 ) -> Result<Json<GroupInfo>> {
-    let music_id: Option<Uuid> = sqlx::query("SELECT music_id WHERE group_id = ?")
+    let music_id: Option<Id> = sqlx::query("SELECT music_id WHERE group_id = ?")
         .bind(group_id)
         .try_map(|row: DBRow| row.try_get("music_id"))
         .fetch_optional(&app.database)
@@ -52,7 +52,7 @@ JOIN players ON music_authors.player_id = players.player_id
         authors: music_authors,
     };
 
-    let level_rows: Vec<(Uuid, String)> =
+    let level_rows: Vec<(Id, String)> =
         sqlx::query("SELECT level_id, name FROM levels WHERE group_id = ?")
             .bind(group_id)
             .try_map(|row: DBRow| Ok((row.try_get("level_id")?, row.try_get("name")?)))

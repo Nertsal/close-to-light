@@ -3,8 +3,8 @@ mod init;
 pub use self::init::init_database;
 
 use axum::http::StatusCode;
+use ctl_core::types::Id;
 use serde::{Deserialize, Serialize};
-use sqlx::types::Uuid;
 
 pub type DatabasePool = sqlx::SqlitePool; // TODO: behind a trait?
 pub type DBRow = sqlx::sqlite::SqliteRow;
@@ -15,7 +15,7 @@ pub type Score = i32;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreRecord {
-    pub player_id: Uuid,
+    pub player_id: Id,
     pub score: Score,
     pub extra_info: Option<String>,
 }
@@ -34,11 +34,11 @@ pub enum RequestError {
     #[error("invalid name {0}")]
     InvalidName(String),
     #[error("group {0} not found")]
-    NoSuchGroup(Uuid),
+    NoSuchGroup(Id),
     #[error("music {0} not found")]
-    NoSuchMusic(Uuid),
+    NoSuchMusic(Id),
     #[error("level {0} not found")]
-    NoSuchLevel(Uuid),
+    NoSuchLevel(Id),
     #[error("file not found: {0}")]
     FileNotFound(String),
     #[error("database error: {0}")]

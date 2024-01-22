@@ -52,8 +52,11 @@ enum Commands {
     /// Upload music to the server.
     MusicUpload {
         path: PathBuf,
+        #[clap(long)]
         name: String,
+        #[clap(long)]
         original: bool,
+        #[clap(long)]
         bpm: f32,
     },
 }

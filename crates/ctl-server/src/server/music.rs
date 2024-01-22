@@ -70,7 +70,7 @@ async fn music_create(
 
 async fn add_author(
     State(app): State<Arc<App>>,
-    Path(music_id): Path<Uuid>,
+    Path(music_id): Path<Id>,
     Query(player): Query<PlayerIdQuery>,
     api_key: ApiKey,
 ) -> Result<()> {
@@ -111,7 +111,7 @@ async fn add_author(
 
 async fn remove_author(
     State(app): State<Arc<App>>,
-    Path(music_id): Path<Uuid>,
+    Path(music_id): Path<Id>,
     Query(player): Query<PlayerIdQuery>,
     api_key: ApiKey,
 ) -> Result<()> {
@@ -131,7 +131,7 @@ async fn remove_author(
 
 async fn download(
     State(app): State<Arc<App>>,
-    Path(music_id): Path<Uuid>,
+    Path(music_id): Path<Id>,
 ) -> Result<impl IntoResponse> {
     let music_row = sqlx::query("SELECT file_path FROM musics WHERE music_id = ?")
         .bind(music_id)
