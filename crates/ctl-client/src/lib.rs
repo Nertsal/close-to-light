@@ -2,7 +2,7 @@ pub use ctl_core as core;
 use ctl_core::{
     prelude::{
         anyhow::{Context, Result},
-        log, serde_json, DeserializeOwned, Id, MusicUpdate, NewMusic,
+        log, serde_json, DeserializeOwned, Id, MusicInfo, MusicUpdate, NewMusic,
     },
     Player, ScoreEntry,
 };
@@ -61,6 +61,15 @@ impl Nertboard {
         get_body(response).await?;
         // TODO: check returned error
         Ok(())
+    }
+
+    pub async fn get_music_list(&self) -> Result<Vec<MusicInfo>> {
+        let url = self.url.join("music").unwrap();
+        let req = self.client.get(url);
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
     }
 
     pub async fn upload_music(

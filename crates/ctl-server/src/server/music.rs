@@ -9,6 +9,7 @@ const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
 
 pub fn route(router: Router) -> Router {
     router
+        .route("/music", get(music_list))
         .route("/music/:music_id", get(music_get).patch(music_update))
         .route(
             "/music/:music_id/authors",
@@ -16,6 +17,61 @@ pub fn route(router: Router) -> Router {
         )
         .route("/music/:music_id/download", get(download))
         .route("/music/create", post(music_create))
+}
+
+async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>> {
+    let rows: Vec<(Id, String, bool, f32)> =
+        sqlx::query("SELECT music_id, name, original, bpm FROM musics WHERE public = 1")
+            .try_map(|row: DBRow| {
+                Ok((
+                    row.try_get("music_id")?,
+                    row.try_get("name")?,
+                    row.try_get("original")?,
+                    row.try_get("bpm")?,
+                ))
+            })
+            .fetch_all(&app.database)
+            .await?;
+
+    let authors: Vec<(Id, ArtistInfo)> = sqlx::query(
+        "
+SELECT music_id, artists.artist_id, name
+FROM music_authors
+JOIN artists ON music_authors.artist_id = artists.artist_id
+        ",
+    )
+    .try_map(|row: DBRow| {
+        Ok((
+            row.try_get("music_id")?,
+            ArtistInfo {
+                id: row.try_get("artist_id")?,
+                name: row.try_get("name")?,
+            },
+        ))
+    })
+    .fetch_all(&app.database)
+    .await?;
+
+    let music = rows
+        .into_iter()
+        .map(|(id, name, original, bpm)| {
+            let authors = authors
+                .iter()
+                .filter(|(music_id, _)| *music_id == id)
+                .map(|(_, info)| info.clone())
+                .collect();
+            MusicInfo {
+                id,
+                public: true,
+                original,
+                name,
+                bpm: r32(bpm),
+                authors,
+            }
+        })
+        .collect();
+
+    Ok(Json(music))
 }
 
 pub(super) async fn music_get(
