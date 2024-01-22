@@ -33,6 +33,10 @@ pub enum RequestError {
     InvalidPlayer,
     #[error("invalid name {0}")]
     InvalidName(String),
+    #[error("player {0} not found")]
+    NoSuchPlayer(Id),
+    #[error("artist {0} not found")]
+    NoSuchArtist(Id),
     #[error("group {0} not found")]
     NoSuchGroup(Id),
     #[error("music {0} not found")]
@@ -56,6 +60,8 @@ impl RequestError {
             RequestError::InvalidPlayer => StatusCode::FORBIDDEN,
             RequestError::InvalidName(_) => StatusCode::BAD_REQUEST,
             RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchPlayer(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchArtist(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchMusic(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchGroup(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchLevel(_) => StatusCode::NOT_FOUND,

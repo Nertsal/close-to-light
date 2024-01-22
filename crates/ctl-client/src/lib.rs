@@ -57,7 +57,8 @@ impl Nertboard {
 
         let req = req.json(entry);
 
-        let _response = req.send().await?;
+        let response = req.send().await?;
+        get_body(response).await?;
         // TODO: check returned error
         Ok(())
     }
@@ -87,6 +88,32 @@ impl Nertboard {
         let url = self.url.join(&format!("music/{}", music)).unwrap();
 
         let mut req = self.client.patch(url).json(update);
+        if let Some(key) = &self.api_key {
+            req = req.header("api-key", key);
+        }
+
+        let response = req.send().await.context("when sending request")?;
+        get_body(response).await?;
+        Ok(())
+    }
+
+    pub async fn music_author_add(&self, music: Id, artist: Id) -> Result<()> {
+        let url = self.url.join(&format!("music/{}/authors", music)).unwrap();
+
+        let mut req = self.client.post(url).query(&[("id", artist)]);
+        if let Some(key) = &self.api_key {
+            req = req.header("api-key", key);
+        }
+
+        let response = req.send().await.context("when sending request")?;
+        get_body(response).await?;
+        Ok(())
+    }
+
+    pub async fn music_author_remove(&self, music: Id, artist: Id) -> Result<()> {
+        let url = self.url.join(&format!("music/{}/authors", music)).unwrap();
+
+        let mut req = self.client.delete(url).query(&[("id", artist)]);
         if let Some(key) = &self.api_key {
             req = req.header("api-key", key);
         }

@@ -166,6 +166,15 @@ async fn add_author(
 
     let artist_id = artist.id;
 
+    // Check that artist exists
+    let check = sqlx::query("SELECT null FROM artists WHERE artist_id = ?")
+        .bind(artist_id)
+        .fetch_optional(&app.database)
+        .await?;
+    if check.is_none() {
+        return Err(RequestError::NoSuchArtist(artist_id));
+    }
+
     // Check that music exists
     let check = sqlx::query("SELECT null FROM musics WHERE music_id = ?")
         .bind(music_id)
