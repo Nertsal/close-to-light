@@ -1,17 +1,57 @@
 use super::*;
 
-use ctl_core::types::NewMusic;
+use ctl_core::types::{ArtistInfo, MusicUpdate, NewMusic};
 
 const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
 
 pub fn route(router: Router) -> Router {
     router
+        .route("/music/:music_id", get(music_get).patch(music_update))
         .route(
             "/music/:music_id/authors",
             post(add_author).delete(remove_author),
         )
         .route("/music/:music_id/download", get(download))
         .route("/music/create", post(music_create))
+}
+
+pub(super) async fn music_get(
+    State(app): State<Arc<App>>,
+    Path(music_id): Path<Id>,
+) -> Result<Json<MusicInfo>> {
+    let music_name: Option<String> = sqlx::query("SELECT name FROM musics WHERE music_id = ?")
+        .bind(music_id)
+        .try_map(|row: DBRow| row.try_get("name"))
+        .fetch_optional(&app.database)
+        .await?;
+    let Some(music_name) = music_name else {
+        return Err(RequestError::NoSuchMusic(music_id));
+    };
+
+    let music_authors: Vec<ArtistInfo> = sqlx::query(
+        "
+SELECT artists.artist_id, name
+FROM music_authors
+JOIN artists ON music_authors.artist_id = artists.artist_id
+WHERE music_id = ?
+        ",
+    )
+    .bind(music_id)
+    .try_map(|row: DBRow| {
+        Ok(ArtistInfo {
+            id: row.try_get("artist_id")?,
+            name: row.try_get("name")?,
+        })
+    })
+    .fetch_all(&app.database)
+    .await?;
+
+    let music = MusicInfo {
+        id: music_id,
+        name: music_name,
+        authors: music_authors,
+    };
+    Ok(Json(music))
 }
 
 async fn music_create(
@@ -68,16 +108,49 @@ async fn music_create(
     Ok(Json(music_id))
 }
 
+async fn music_update(
+    State(app): State<Arc<App>>,
+    Path(music_id): Path<Id>,
+    api_key: ApiKey,
+    Json(update): Json<MusicUpdate>,
+) -> Result<()> {
+    let auth = get_auth(Some(api_key), &app.database).await?;
+    check_auth(auth, AuthorityLevel::Admin)?;
+
+    let result = sqlx::query(
+        "
+UPDATE musics
+SET name = COALESCE(?, name),
+    public = COALESCE(?, public),
+    original = COALESCE(?, original),
+    bpm = COALESCE(?, bpm)
+WHERE music_id = ?",
+    )
+    .bind(&update.name)
+    .bind(update.public)
+    .bind(update.original)
+    .bind(update.bpm)
+    .bind(music_id)
+    .execute(&app.database)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(RequestError::NoSuchMusic(music_id));
+    }
+
+    Ok(())
+}
+
 async fn add_author(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
-    Query(player): Query<PlayerIdQuery>,
+    Query(artist): Query<IdQuery>,
     api_key: ApiKey,
 ) -> Result<()> {
     let auth = get_auth(Some(api_key), &app.database).await?;
     check_auth(auth, AuthorityLevel::Admin)?;
 
-    let player_id = player.player_id;
+    let artist_id = artist.id;
 
     // Check that music exists
     let check = sqlx::query("SELECT null FROM musics WHERE music_id = ?")
@@ -88,10 +161,10 @@ async fn add_author(
         return Err(RequestError::NoSuchMusic(music_id));
     }
 
-    // Check that player is not already an author
-    let check = sqlx::query("SELECT null FROM music_authors WHERE music_id = ? AND player_id = ?")
+    // Check that artist is not already an author
+    let check = sqlx::query("SELECT null FROM music_authors WHERE music_id = ? AND artist_id = ?")
         .bind(music_id)
-        .bind(player_id)
+        .bind(artist_id)
         .fetch_optional(&app.database)
         .await?;
     if check.is_some() {
@@ -99,10 +172,10 @@ async fn add_author(
         return Ok(());
     }
 
-    // Add player as author
-    sqlx::query("INSERT INTO music_authors (music_id, player_id) VALUES (?, ?)")
+    // Add artist as author
+    sqlx::query("INSERT INTO music_authors (music_id, artist_id) VALUES (?, ?)")
         .bind(music_id)
-        .bind(player_id)
+        .bind(artist_id)
         .execute(&app.database)
         .await?;
 
@@ -112,17 +185,17 @@ async fn add_author(
 async fn remove_author(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
-    Query(player): Query<PlayerIdQuery>,
+    Query(artist): Query<IdQuery>,
     api_key: ApiKey,
 ) -> Result<()> {
     let auth = get_auth(Some(api_key), &app.database).await?;
     check_auth(auth, AuthorityLevel::Admin)?;
 
-    let player_id = player.player_id;
+    let artist_id = artist.id;
 
-    sqlx::query("DELETE FROM music_authors WHERE music_id = ? AND player_id = ?")
+    sqlx::query("DELETE FROM music_authors WHERE music_id = ? AND artist_id = ?")
         .bind(music_id)
-        .bind(player_id)
+        .bind(artist_id)
         .execute(&app.database)
         .await?;
 

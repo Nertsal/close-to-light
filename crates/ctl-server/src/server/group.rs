@@ -19,38 +19,9 @@ async fn group_get(
         return Err(RequestError::NoSuchGroup(group_id));
     };
 
-    let music_name: Option<String> = sqlx::query("SELECT name FROM musics WHERE music_id = ?")
-        .bind(music_id)
-        .try_map(|row: DBRow| row.try_get("name"))
-        .fetch_optional(&app.database)
-        .await?;
-    let Some(music_name) = music_name else {
-        return Err(RequestError::NoSuchMusic(music_id));
-    };
-
-    let music_authors: Vec<PlayerInfo> = sqlx::query(
-        "
-SELECT players.player_id, name
-FROM music_authors
-WHERE music_id = ?
-JOIN players ON music_authors.player_id = players.player_id
-        ",
-    )
-    .bind(music_id)
-    .try_map(|row: DBRow| {
-        Ok(PlayerInfo {
-            id: row.try_get("player_id")?,
-            name: row.try_get("name")?,
-        })
-    })
-    .fetch_all(&app.database)
-    .await?;
-
-    let music = MusicInfo {
-        id: music_id,
-        name: music_name,
-        authors: music_authors,
-    };
+    let music = music::music_get(State(app.clone()), Path(music_id))
+        .await?
+        .0;
 
     let level_rows: Vec<(Id, String)> =
         sqlx::query("SELECT level_id, name FROM levels WHERE group_id = ?")

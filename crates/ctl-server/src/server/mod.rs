@@ -19,21 +19,21 @@ use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, PlayerInfo};
 
 use axum::{
     body::Body,
-    extract::{Multipart, Path, Query, State},
+    extract::{Path, Query, State},
     http::header,
     response::IntoResponse,
     routing::{delete, get, post},
     Json,
 };
 use serde::Deserialize;
-use sqlx::{types::Uuid, Row};
+use sqlx::Row;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 type Router = axum::Router<Arc<App>>;
 
 #[derive(Deserialize)]
-struct PlayerIdQuery {
-    player_id: Uuid,
+struct IdQuery {
+    id: Id,
 }
 
 struct App {

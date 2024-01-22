@@ -15,7 +15,7 @@ pub struct GroupInfo {
 pub struct MusicInfo {
     pub id: Id,
     pub name: String,
-    pub authors: Vec<PlayerInfo>,
+    pub authors: Vec<ArtistInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,9 +31,23 @@ pub struct PlayerInfo {
     pub name: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ArtistInfo {
+    pub id: Id,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewMusic {
     pub name: String,
     pub original: bool,
     pub bpm: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MusicUpdate {
+    pub name: Option<String>,
+    pub public: Option<bool>,
+    pub original: Option<bool>,
+    pub bpm: Option<f32>,
 }
