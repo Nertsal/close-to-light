@@ -2,7 +2,7 @@ pub use ctl_core as core;
 use ctl_core::{
     prelude::{
         anyhow::{Context, Result},
-        log, serde_json, DeserializeOwned, Id, NewMusic,
+        log, serde_json, DeserializeOwned, Id, MusicUpdate, NewMusic,
     },
     Player, ScoreEntry,
 };
@@ -82,15 +82,33 @@ impl Nertboard {
         let res = read_json(response).await?;
         Ok(res)
     }
+
+    pub async fn update_music(&self, music: Id, update: &MusicUpdate) -> Result<()> {
+        let url = self.url.join(&format!("music/{}", music)).unwrap();
+
+        let mut req = self.client.patch(url).json(update);
+        if let Some(key) = &self.api_key {
+            req = req.header("api-key", key);
+        }
+
+        let response = req.send().await.context("when sending request")?;
+        get_body(response).await?;
+        Ok(())
+    }
 }
 
-async fn read_json<T: DeserializeOwned>(response: Response) -> Result<T> {
+async fn get_body(response: Response) -> Result<String> {
     log::debug!("Response: {:?}", response);
     let body = response
         .text()
         .await
         .context("when reading response body")?;
-    log::debug!("Parsing response body: {:?}", body);
+    log::debug!("Response body: {:?}", body);
+    Ok(body)
+}
+
+async fn read_json<T: DeserializeOwned>(response: Response) -> Result<T> {
+    let body = get_body(response).await?;
     let value = serde_json::from_str(&body).context("when parsing response as json")?;
     Ok(value)
 }

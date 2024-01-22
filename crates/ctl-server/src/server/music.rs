@@ -1,6 +1,9 @@
 use super::*;
 
-use ctl_core::types::{ArtistInfo, MusicUpdate, NewMusic};
+use ctl_core::{
+    prelude::r32,
+    types::{ArtistInfo, MusicUpdate, NewMusic},
+};
 
 const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
 
@@ -19,16 +22,24 @@ pub(super) async fn music_get(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
 ) -> Result<Json<MusicInfo>> {
-    let music_name: Option<String> = sqlx::query("SELECT name FROM musics WHERE music_id = ?")
-        .bind(music_id)
-        .try_map(|row: DBRow| row.try_get("name"))
-        .fetch_optional(&app.database)
-        .await?;
-    let Some(music_name) = music_name else {
+    let row: Option<(String, bool, bool, f32)> =
+        sqlx::query("SELECT name, public, original, bpm FROM musics WHERE music_id = ?")
+            .bind(music_id)
+            .try_map(|row: DBRow| {
+                Ok((
+                    row.try_get("name")?,
+                    row.try_get("public")?,
+                    row.try_get("original")?,
+                    row.try_get("bpm")?,
+                ))
+            })
+            .fetch_optional(&app.database)
+            .await?;
+    let Some((music_name, public, original, bpm)) = row else {
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let music_authors: Vec<ArtistInfo> = sqlx::query(
+    let authors: Vec<ArtistInfo> = sqlx::query(
         "
 SELECT artists.artist_id, name
 FROM music_authors
@@ -48,8 +59,11 @@ WHERE music_id = ?
 
     let music = MusicInfo {
         id: music_id,
+        public,
+        original,
         name: music_name,
-        authors: music_authors,
+        bpm: r32(bpm),
+        authors,
     };
     Ok(Json(music))
 }

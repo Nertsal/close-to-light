@@ -1,4 +1,5 @@
 mod assets;
+mod command;
 mod editor;
 mod game;
 mod leaderboard;
@@ -11,6 +12,7 @@ mod task;
 mod ui;
 mod util;
 
+use command::Command;
 use leaderboard::Leaderboard;
 use prelude::Options;
 
@@ -28,7 +30,7 @@ const HIGHSCORES_STORAGE: &str = "highscores";
 #[derive(clap::Parser)]
 struct Opts {
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Option<Command>,
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
@@ -43,22 +45,6 @@ struct Opts {
     edit: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
-}
-
-#[derive(clap::Subcommand)]
-enum Commands {
-    /// Just display some dithered text on screen.
-    Text { text: String },
-    /// Upload music to the server.
-    MusicUpload {
-        path: PathBuf,
-        #[clap(long)]
-        name: String,
-        #[clap(long)]
-        original: bool,
-        #[clap(long)]
-        bpm: f32,
-    },
 }
 
 #[derive(geng::asset::Load, Deserialize, Clone)]
@@ -108,41 +94,10 @@ fn main() {
         });
 
         if let Some(command) = opts.command {
-            match command {
-                Commands::Text { text } => {
-                    let state = media::MediaState::new(&geng, &assets).with_text(text);
-                    geng.run_state(state).await;
-                }
-                Commands::MusicUpload {
-                    path,
-                    name,
-                    original,
-                    bpm,
-                } => {
-                    let music = ctl_client::core::types::NewMusic {
-                        name,
-                        original,
-                        bpm,
-                    };
-                    log::info!("Uploading music from {:?}: {:?}", path, music);
-                    let secrets = secrets.expect("Cannot upload music without leaderboard secrets");
-
-                    let future = async move {
-                        let client = ctl_client::Nertboard::new(
-                            &secrets.leaderboard.url,
-                            Some(secrets.leaderboard.key),
-                        )
-                        .expect("Client initialization failed");
-                        let music_id = client
-                            .upload_music(&path, &music)
-                            .await
-                            .expect("failed to upload music");
-                        log::info!("Music uploaded successfully, id: {}", music_id);
-                    };
-                    let mut task = task::Task::new(future);
-                    while task.poll().is_none() {}
-                }
-            }
+            command
+                .execute(geng, assets, secrets)
+                .await
+                .expect("failed to execute the command");
         } else if let Some(level_path) = opts.level {
             let mut config = model::LevelConfig::default();
             let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)

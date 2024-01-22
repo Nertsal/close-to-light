@@ -14,7 +14,10 @@ pub struct GroupInfo {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MusicInfo {
     pub id: Id,
+    pub public: bool,
+    pub original: bool,
     pub name: String,
+    pub bpm: R32,
     pub authors: Vec<ArtistInfo>,
 }
 
