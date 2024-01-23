@@ -54,3 +54,14 @@ pub struct MusicUpdate {
     pub original: Option<bool>,
     pub bpm: Option<f32>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewLevel {
+    pub name: String,
+    pub group: Id,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LevelUpdate {
+    pub name: Option<String>,
+}

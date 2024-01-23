@@ -1,3 +1,4 @@
+mod auth;
 mod group;
 mod level;
 mod music;
@@ -8,13 +9,18 @@ mod tests;
 
 use crate::{
     api_key::*,
-    database::{DBRow, DatabasePool, RequestError, RequestResult as Result},
+    database::{
+        auth::AuthSession,
+        error::{RequestError, RequestResult as Result},
+        types::{DBRow, DatabasePool},
+    },
     prelude::*,
     AppConfig,
 };
 
 use std::path::PathBuf;
 
+use axum_login::AuthManagerLayerBuilder;
 use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, PlayerInfo};
 
 use axum::{
@@ -22,12 +28,14 @@ use axum::{
     extract::{Path, Query, State},
     http::header,
     response::IntoResponse,
-    routing::{delete, get, post},
-    Json,
+    routing::{get, post},
+    Form, Json,
 };
 use serde::Deserialize;
 use sqlx::Row;
+use time::Duration;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer, SqliteStore};
 
 type Router = axum::Router<Arc<App>>;
 
@@ -44,30 +52,54 @@ struct App {
 pub async fn run(port: u16, database: DatabasePool, config: AppConfig) -> color_eyre::Result<()> {
     let addr = format!("0.0.0.0:{}", port);
     info!("Starting the server on {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .context("when binding a tcp listener")?;
 
-    axum::serve(listener, app(Arc::new(App { database, config }))).await?;
-    Ok(())
-}
+    let app = Arc::new(App { database, config });
 
-fn app(app: Arc<App>) -> axum::Router {
-    let router = Router::new().route("/", get(get_root));
+    // Session layer
+    let session_store = SqliteStore::new(app.database.clone());
+    session_store.migrate().await?;
+
+    let deletion_task = tokio::task::spawn(
+        session_store
+            .clone()
+            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+    );
+
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(Expiry::OnInactivity(Duration::days(1)));
+
+    // Auth service
+    let backend = crate::database::auth::Backend::new(app.database.clone());
+    let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+
+    let router = Router::new()
+        .route("/", get(get_root))
+        .merge(auth::router());
 
     let router = player::route(router);
     let router = music::route(router);
     let router = group::route(router);
     let router = level::route(router);
 
-    router
+    let router = router
         .layer(TraceLayer::new_for_http())
         .layer(
             CorsLayer::new()
                 .allow_origin(tower_http::cors::Any)
                 .allow_headers(tower_http::cors::Any),
         )
-        .with_state(app)
+        .layer(auth_layer)
+        .with_state(app);
+
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .context("when binding a tcp listener")?;
+    axum::serve(listener, router).await?;
+
+    deletion_task.await??;
+
+    Ok(())
 }
 
 async fn get_root() -> &'static str {

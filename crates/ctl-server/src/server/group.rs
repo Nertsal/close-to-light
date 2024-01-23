@@ -2,7 +2,7 @@ use super::*;
 
 pub fn route(router: Router) -> Router {
     router
-        .route("/group/:group_id", get(group_get).delete(group_delete))
+        .route("/group/:group_id", get(group_get))
         .route("/group/create", post(group_create))
 }
 
@@ -70,6 +70,23 @@ JOIN players ON level_authors.player_id = players.player_id
     }))
 }
 
-async fn group_delete() {}
+async fn group_create(
+    State(app): State<Arc<App>>,
+    Query(music): Query<IdQuery>,
+    api_key: ApiKey,
+) -> Result<Json<Id>> {
+    let auth = get_auth(Some(api_key), &app.database).await?;
+    check_auth(auth, AuthorityLevel::Submit)?;
 
-async fn group_create() {}
+    music::music_exists(&app, music.id).await?;
+
+    let group_id: Id = todo!();
+    // sqlx::query("INSERT INTO groups (music_id, owner_id) VALUES (?, ?) RETURNING group_id")
+    //     .bind(music.id)
+    //     .bind(player_id)
+    //     .try_map(|row: DBRow| row.try_get("group_id"))
+    //     .fetch_one(&app.database)
+    //     .await?;
+
+    Ok(Json(group_id))
+}

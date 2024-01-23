@@ -1,4 +1,4 @@
-use crate::{database::DatabasePool, prelude::*};
+use crate::{database::types::DatabasePool, prelude::*};
 
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

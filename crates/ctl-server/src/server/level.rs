@@ -1,10 +1,10 @@
 use super::*;
 
-use ctl_core::ScoreEntry;
+use ctl_core::{types::NewLevel, ScoreEntry};
 
 pub fn route(router: Router) -> Router {
     router
-        .route("/level/:level_id", delete(level_delete))
+        // .route("/level/:level_id", patch(level_update))
         .route(
             "/level/:level_id/scores",
             get(fetch_scores).post(submit_score),
@@ -13,12 +13,27 @@ pub fn route(router: Router) -> Router {
         .route("/level/create", post(level_create))
 }
 
-async fn level_delete() {
-    // TODO
-}
+async fn level_create(
+    State(app): State<Arc<App>>,
+    api_key: ApiKey,
+    Json(level): Json<NewLevel>,
+) -> Result<Json<Id>> {
+    // Check permission
+    let auth = get_auth(Some(api_key), &app.database).await?;
+    check_auth(auth, AuthorityLevel::Submit)?;
 
-async fn level_create() {
-    // TODO
+    // Check that group exists and the player has rights to add levels to it
+    let group = sqlx::query("SELECT null FROM groups WHERE group_id = ?")
+        .bind(level.group)
+        .fetch_optional(&app.database)
+        .await?;
+    if group.is_none() {
+        return Err(RequestError::NoSuchGroup(level.group));
+    }
+
+    let level_id = todo!();
+
+    Ok(Json(level_id))
 }
 
 async fn fetch_scores(

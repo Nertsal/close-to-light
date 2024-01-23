@@ -19,6 +19,18 @@ pub fn route(router: Router) -> Router {
         .route("/music/create", post(music_create))
 }
 
+/// Check if music exists.
+pub(super) async fn music_exists(app: &App, music_id: Id) -> Result<()> {
+    let check = sqlx::query("SELECT null FROM musics WHERE music_id = ?")
+        .bind(music_id)
+        .fetch_optional(&app.database)
+        .await?;
+    if check.is_none() {
+        return Err(RequestError::NoSuchMusic(music_id));
+    }
+    Ok(())
+}
+
 async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>> {
     let rows: Vec<(Id, String, bool, f32)> =
         sqlx::query("SELECT music_id, name, original, bpm FROM musics WHERE public = 1")
@@ -231,14 +243,7 @@ async fn add_author(
         return Err(RequestError::NoSuchArtist(artist_id));
     }
 
-    // Check that music exists
-    let check = sqlx::query("SELECT null FROM musics WHERE music_id = ?")
-        .bind(music_id)
-        .fetch_optional(&app.database)
-        .await?;
-    if check.is_none() {
-        return Err(RequestError::NoSuchMusic(music_id));
-    }
+    music_exists(&app, music_id).await?;
 
     // Check that artist is not already an author
     let check = sqlx::query("SELECT null FROM music_authors WHERE music_id = ? AND artist_id = ?")
