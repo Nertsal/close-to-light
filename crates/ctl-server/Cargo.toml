@@ -11,7 +11,7 @@ ctl-core.workspace = true
 axum.workspace = true
 axum-login.workspace = true
 password-auth.workspace = true
-tokio.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-util.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

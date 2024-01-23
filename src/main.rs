@@ -1,8 +1,10 @@
 mod assets;
+#[cfg(not(target_arch = "wasm32"))]
 mod command;
 mod editor;
 mod game;
 mod leaderboard;
+#[cfg(not(target_arch = "wasm32"))]
 mod media;
 mod menu;
 mod model;
@@ -12,11 +14,8 @@ mod task;
 mod ui;
 mod util;
 
-use command::Command;
 use leaderboard::Leaderboard;
 use prelude::Options;
-
-use std::path::PathBuf;
 
 use geng::prelude::*;
 
@@ -29,8 +28,9 @@ const HIGHSCORES_STORAGE: &str = "highscores";
 
 #[derive(clap::Parser)]
 struct Opts {
+    #[cfg(not(target_arch = "wasm32"))]
     #[command(subcommand)]
-    command: Option<Command>,
+    command: Option<command::Command>,
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
@@ -93,12 +93,16 @@ fn main() {
             })
         });
 
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(command) = opts.command {
             command
                 .execute(geng, assets, secrets)
                 .await
                 .expect("failed to execute the command");
-        } else if let Some(level_path) = opts.level {
+            return;
+        }
+
+        if let Some(level_path) = opts.level {
             let mut config = model::LevelConfig::default();
             let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
                 .await

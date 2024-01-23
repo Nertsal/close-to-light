@@ -1,5 +1,7 @@
 use super::*;
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use assets::Assets;
 use ctl_client::core::types::Id;
