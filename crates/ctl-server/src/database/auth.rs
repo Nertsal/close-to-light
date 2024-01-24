@@ -1,6 +1,7 @@
 use super::{types::DatabasePool, *};
 
 use axum_login::{AuthUser, AuthnBackend, UserId};
+use ctl_core::auth::Credentials;
 use sqlx::FromRow;
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
@@ -33,13 +34,6 @@ impl AuthUser for User {
         // so changing password invalidates session
         self.password.as_bytes()
     }
-}
-
-/// Authentications credentials.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Credentials {
-    pub username: String,
-    pub password: String,
 }
 
 pub type AuthSession = axum_login::AuthSession<Backend>;

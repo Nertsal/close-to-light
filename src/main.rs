@@ -19,7 +19,7 @@ use prelude::Options;
 
 use geng::prelude::*;
 
-const FIXED_FPS: f64 = 60.0;
+const FIXED_FPS: f64 = 60.0; // TODO: upgrade to 120 i think
 
 const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
 const PLAYER_STORAGE: &str = "player";
@@ -128,28 +128,29 @@ fn main() {
                 let state =
                     editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
                 geng.run_state(state).await;
-            } else {
-                // Game
-                config.modifiers.clean_auto = opts.clean_auto;
-                let level = game::PlayLevel {
-                    level_path,
-                    group_meta,
-                    level_meta,
-                    config,
-                    level,
-                    music,
-                    start_time: prelude::Time::ZERO,
-                };
-                let state = game::Game::new(
-                    &geng,
-                    &assets,
-                    options,
-                    level,
-                    Leaderboard::new(None),
-                    "".to_string(),
-                );
-                geng.run_state(state).await;
+                return;
             }
+
+            // Game
+            config.modifiers.clean_auto = opts.clean_auto;
+            let level = game::PlayLevel {
+                level_path,
+                group_meta,
+                level_meta,
+                config,
+                level,
+                music,
+                start_time: prelude::Time::ZERO,
+            };
+            let state = game::Game::new(
+                &geng,
+                &assets,
+                options,
+                level,
+                Leaderboard::new(None),
+                "".to_string(),
+            );
+            geng.run_state(state).await;
         } else {
             // Main menu
             if opts.skip_intro {
