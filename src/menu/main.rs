@@ -11,6 +11,7 @@ pub struct MainMenu {
     secrets: Option<Secrets>,
     options: Options,
     transition: Option<geng::state::Transition>,
+    client: Option<Arc<ctl_client::Nertboard>>,
 
     dither: DitherRender,
     util_render: UtilRender,
@@ -22,10 +23,97 @@ pub struct MainMenu {
     active_touch: Option<u64>,
     cursor_world_pos: vec2<Coord>,
     camera: Camera2d,
+
     time: Time,
     play_button: HoverButton,
     player: Player,
     name: String,
+    password: String,
+    text_edit: TextEdit<TextTarget>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TextTarget {
+    Username,
+    Password,
+}
+
+pub struct TextEdit<S> {
+    pub geng: Geng,
+    pub state: Option<TextEditState<S>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextEditState<S> {
+    pub status: S,
+    pub text: String,
+    pub options: TextEditOptions,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextEditOptions {
+    pub max_len: usize,
+    pub lowercase: bool,
+}
+
+impl Default for TextEditOptions {
+    fn default() -> Self {
+        Self {
+            max_len: 10,
+            lowercase: true,
+        }
+    }
+}
+
+impl<S> TextEdit<S> {
+    pub fn new(geng: &Geng) -> Self {
+        Self {
+            geng: geng.clone(),
+            state: None,
+        }
+    }
+
+    pub fn start(&mut self, status: S, text: String, options: TextEditOptions) {
+        let mut state = TextEditState::new(status, options);
+        state.update(text);
+        self.geng.window().start_text_edit(&state.text);
+        self.state = Some(state);
+    }
+
+    pub fn stop(&mut self) -> Option<String> {
+        let state = self.state.take()?;
+        self.geng.window().stop_text_edit();
+        Some(state.text)
+    }
+
+    pub fn update(&mut self, text: String) {
+        let Some(state) = &mut self.state else {
+            log::error!("Editing text but state says otherwise");
+            self.geng.window().stop_text_edit();
+            return;
+        };
+
+        state.update(text);
+        self.geng.window().start_text_edit(&state.text);
+    }
+}
+
+impl<S> TextEditState<S> {
+    pub fn new(status: S, options: TextEditOptions) -> Self {
+        Self {
+            status,
+            text: String::new(),
+            options,
+        }
+    }
+
+    pub fn update(&mut self, mut text: String) {
+        if self.options.lowercase {
+            text = text.to_lowercase();
+        }
+        text = text.chars().take(self.options.max_len).collect();
+        self.text = text;
+    }
 }
 
 impl MainMenu {
@@ -41,9 +129,18 @@ impl MainMenu {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            transition: None,
+            client: secrets.as_ref().map(|secrets| {
+                Arc::new(
+                    ctl_client::Nertboard::new(
+                        &secrets.leaderboard.url,
+                        Some(secrets.leaderboard.key.clone()),
+                    )
+                    .unwrap(),
+                )
+            }),
             secrets,
             options,
-            transition: None,
 
             dither: DitherRender::new(geng, assets),
             util_render: UtilRender::new(geng, assets),
@@ -58,6 +155,7 @@ impl MainMenu {
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
+
             time: Time::ZERO,
             play_button: HoverButton::new(
                 Collider {
@@ -72,11 +170,13 @@ impl MainMenu {
                 r32(0.0),
             ),
             name,
+            password: String::new(),
+            text_edit: TextEdit::new(geng),
         }
     }
 
     fn play(&mut self) {
-        self.geng.window().stop_text_edit();
+        self.text_edit.stop();
         self.name = fix_name(&self.name);
         preferences::save(PLAYER_NAME_STORAGE, &self.name);
 
@@ -106,6 +206,28 @@ impl MainMenu {
             ),
         )));
     }
+
+    fn edit_username(&mut self) {
+        self.text_edit.start(
+            TextTarget::Username,
+            self.name.clone(),
+            TextEditOptions {
+                max_len: 10,
+                lowercase: true,
+            },
+        );
+    }
+
+    fn edit_password(&mut self) {
+        self.text_edit.start(
+            TextTarget::Password,
+            self.password.clone(),
+            TextEditOptions {
+                max_len: 20,
+                lowercase: false,
+            },
+        );
+    }
 }
 
 impl geng::State for MainMenu {
@@ -115,8 +237,14 @@ impl geng::State for MainMenu {
 
     fn update(&mut self, delta_time: f64) {
         // In case we come back to that state after playing the game
-        if !self.geng.window().is_editing_text() {
-            self.geng.window().start_text_edit(&self.name);
+        if self.text_edit.state.is_none() {
+            self.edit_username();
+        }
+        if let Some(state) = &self.text_edit.state {
+            match state.status {
+                TextTarget::Username => self.name = state.text.clone(),
+                TextTarget::Password => self.password = state.text.clone(),
+            }
         }
 
         let delta_time = Time::new(delta_time as f32);
@@ -152,12 +280,33 @@ impl geng::State for MainMenu {
     fn handle_event(&mut self, event: geng::Event) {
         match event {
             geng::Event::EditText(text) => {
-                self.name = text;
-                self.name = self.name.to_lowercase();
-                // self.name.retain(|c| self.assets.font.can_render(c));
-                self.name = self.name.chars().take(10).collect();
-                self.geng.window().start_text_edit(&self.name);
+                self.text_edit.update(text);
             }
+            geng::Event::KeyPress { key } => match key {
+                geng::Key::Tab => {
+                    if let Some(state) = &self.text_edit.state {
+                        match state.status {
+                            TextTarget::Username => self.edit_password(),
+                            TextTarget::Password => self.edit_username(),
+                        };
+                    }
+                }
+                geng::Key::Enter => {
+                    if let Some(client) = self.client.clone() {
+                        let creds = ctl_client::core::auth::Credentials {
+                            username: self.name.clone(),
+                            password: self.password.clone(),
+                        };
+                        let mut task = crate::task::Task::new(async move {
+                            client.register(&creds).await?;
+                            client.login(&creds).await?;
+                            anyhow::Ok(())
+                        });
+                        while task.poll().is_none() {}
+                    }
+                }
+                _ => {}
+            },
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }
@@ -209,18 +358,48 @@ impl geng::State for MainMenu {
             .draw(&geng::PixelPerfectCamera, &self.geng, screen_buffer);
 
         if !self.play_button.is_fading() {
+            let normal_color = self.options.theme.light;
+            let active_color = self.options.theme.highlight;
+
+            let get_color = |target: TextTarget| {
+                let active = self
+                    .text_edit
+                    .state
+                    .as_ref()
+                    .map_or(false, |state| state.status == target);
+                if active {
+                    active_color
+                } else {
+                    normal_color
+                }
+            };
+
             // Name
+            let color = get_color(TextTarget::Username);
             self.util_render.draw_text(
                 &self.name,
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.8).color(self.options.theme.light),
+                TextRenderOptions::new(0.8).color(color),
                 &self.camera,
                 screen_buffer,
             );
             self.util_render.draw_text(
                 "TYPE YOUR NAME",
                 vec2(0.0, -3.8).as_r32(),
-                TextRenderOptions::new(0.7).color(self.options.theme.light),
+                TextRenderOptions::new(0.7).color(color),
+                &self.camera,
+                screen_buffer,
+            );
+
+            // Password
+            let color = get_color(TextTarget::Password);
+            let password = "*".repeat(self.password.len());
+            self.util_render.draw_text(
+                format!("Password: {}", password),
+                vec2(3.0, -4.0),
+                TextRenderOptions::new(0.7)
+                    .align(vec2(0.0, 0.5))
+                    .color(color),
                 &self.camera,
                 screen_buffer,
             );
