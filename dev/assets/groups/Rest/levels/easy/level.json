@@ -45,7 +45,7 @@
       }
     },
     {
-      "beat": 2.0,
+      "beat": 1.5,
       "event": {
         "Light": {
           "light": {
@@ -56,7 +56,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -832,7 +832,7 @@
       }
     },
     {
-      "beat": 42.0,
+      "beat": 41.5,
       "event": {
         "Light": {
           "light": {
@@ -843,7 +843,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -859,7 +859,7 @@
                   "transform": {
                     "translation": [
                       5.0,
-                      -0.0
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -1518,7 +1518,7 @@
       }
     },
     {
-      "beat": 85.0,
+      "beat": 84.5,
       "event": {
         "Light": {
           "light": {
@@ -1529,7 +1529,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -1769,7 +1769,7 @@
       }
     },
     {
-      "beat": 40.0,
+      "beat": 39.5,
       "event": {
         "Light": {
           "light": {
@@ -1780,7 +1780,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -1889,7 +1889,7 @@
       }
     },
     {
-      "beat": 137.5,
+      "beat": 162.5,
       "event": {
         "Light": {
           "light": {
@@ -1905,10 +1905,10 @@
               "initial": {
                 "translation": [
                   0.0,
-                  -1.25
+                  0.625
                 ],
                 "rotation": 0.0,
-                "scale": 0.4999999
+                "scale": 0.5999999
               },
               "key_frames": []
             }
@@ -1933,7 +1933,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 2.0,
               "initial": {
                 "translation": [
                   -1.25,
@@ -2093,7 +2093,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 2.0,
               "initial": {
                 "translation": [
                   -1.25,
@@ -2145,7 +2145,7 @@
       }
     },
     {
-      "beat": 141.5,
+      "beat": 158.5,
       "event": {
         "Light": {
           "light": {
@@ -2160,11 +2160,11 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  0.0,
-                  1.25
+                  -3.125,
+                  -0.0
                 ],
                 "rotation": 0.0,
-                "scale": 0.4999999
+                "scale": 0.5999999
               },
               "key_frames": []
             }
@@ -2253,7 +2253,7 @@
       }
     },
     {
-      "beat": 36.0,
+      "beat": 35.5,
       "event": {
         "Light": {
           "light": {
@@ -2264,12 +2264,12 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
                   -5.0,
-                  -0.0
+                  0.0
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -3001,11 +3001,11 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 2.0,
               "initial": {
                 "translation": [
                   0.0,
-                  -1.25
+                  1.25
                 ],
                 "rotation": 0.0,
                 "scale": 0.4999999
@@ -3021,7 +3021,7 @@
       }
     },
     {
-      "beat": 129.5,
+      "beat": 170.5,
       "event": {
         "Light": {
           "light": {
@@ -3036,11 +3036,11 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  1.25,
-                  0.0
+                  -0.0,
+                  -0.625
                 ],
                 "rotation": 0.0,
-                "scale": 0.4999999
+                "scale": 0.5999999
               },
               "key_frames": []
             }
@@ -3053,7 +3053,7 @@
       }
     },
     {
-      "beat": 133.5,
+      "beat": 166.5,
       "event": {
         "Light": {
           "light": {
@@ -3068,11 +3068,11 @@
               "fade_out": 1.0,
               "initial": {
                 "translation": [
-                  -1.25,
+                  3.125,
                   -0.0
                 ],
                 "rotation": 0.0,
-                "scale": 0.4999999
+                "scale": 0.5999999
               },
               "key_frames": []
             }
@@ -3097,7 +3097,7 @@
             },
             "movement": {
               "fade_in": 1.0,
-              "fade_out": 1.0,
+              "fade_out": 2.0,
               "initial": {
                 "translation": [
                   0.0,
@@ -5143,134 +5143,6 @@
                   }
                 }
               ]
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 158.5,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  -3.125,
-                  -0.0
-                ],
-                "rotation": 0.0,
-                "scale": 0.5999999
-              },
-              "key_frames": []
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 162.5,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  0.0,
-                  0.625
-                ],
-                "rotation": 0.0,
-                "scale": 0.5999999
-              },
-              "key_frames": []
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 166.5,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  3.125,
-                  -0.0
-                ],
-                "rotation": 0.0,
-                "scale": 0.5999999
-              },
-              "key_frames": []
-            }
-          },
-          "telegraph": {
-            "precede_time": 1.0,
-            "speed": 1.0
-          }
-        }
-      }
-    },
-    {
-      "beat": 170.5,
-      "event": {
-        "Light": {
-          "light": {
-            "danger": false,
-            "shape": {
-              "Circle": {
-                "radius": 1.3
-              }
-            },
-            "movement": {
-              "fade_in": 1.0,
-              "fade_out": 1.0,
-              "initial": {
-                "translation": [
-                  -0.0,
-                  -0.625
-                ],
-                "rotation": 0.0,
-                "scale": 0.5999999
-              },
-              "key_frames": []
             }
           },
           "telegraph": {
