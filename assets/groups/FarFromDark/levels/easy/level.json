@@ -203,7 +203,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -5.0,
+                      -4.375,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -1823,7 +1823,7 @@
       }
     },
     {
-      "beat": 0.0,
+      "beat": -0.5,
       "event": {
         "Light": {
           "light": {
@@ -1834,7 +1834,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -2847,7 +2847,7 @@
                   "lerp_time": 2.0,
                   "transform": {
                     "translation": [
-                      2.5,
+                      1.25,
                       0.0
                     ],
                     "rotation": 0.0,
@@ -3474,7 +3474,7 @@
       }
     },
     {
-      "beat": 77.0,
+      "beat": 76.5,
       "event": {
         "Light": {
           "light": {
@@ -3485,7 +3485,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -3802,7 +3802,7 @@
       }
     },
     {
-      "beat": 154.0,
+      "beat": 153.5,
       "event": {
         "Light": {
           "light": {
@@ -3813,7 +3813,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.0,
+              "fade_in": 1.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -4337,7 +4337,7 @@
       }
     },
     {
-      "beat": 221.5,
+      "beat": 220.5,
       "event": {
         "Light": {
           "light": {
@@ -4348,7 +4348,7 @@
               }
             },
             "movement": {
-              "fade_in": 1.5,
+              "fade_in": 2.5,
               "fade_out": 1.0,
               "initial": {
                 "translation": [
@@ -4627,7 +4627,7 @@
               "initial": {
                 "translation": [
                   2.5,
-                  -0.0
+                  0.0
                 ],
                 "rotation": 0.0,
                 "scale": 1.0
@@ -4637,8 +4637,8 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      -0.0,
-                      -0.0
+                      0.0,
+                      0.0
                     ],
                     "rotation": 0.0,
                     "scale": 1.0
@@ -5393,7 +5393,7 @@
                   "lerp_time": 1.0,
                   "transform": {
                     "translation": [
-                      5.0,
+                      4.375,
                       -2.5
                     ],
                     "rotation": 0.0,
