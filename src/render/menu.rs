@@ -80,6 +80,31 @@ impl MenuRender {
         self.masked.draw(draw_parameters(), framebuffer);
 
         {
+            // Profile
+            let head = ui.profile_head.state.position;
+            let profile = ui.profile.position;
+
+            self.ui.draw_quad(head, theme.dark, framebuffer);
+            self.ui.draw_quad(profile, theme.dark, framebuffer);
+
+            // Outline
+            let width = 12.0;
+            self.ui
+                .draw_outline(head.extend_up(1.0 * width), width, theme.light, framebuffer);
+            self.ui
+                .draw_outline(profile.extend_up(width), width, theme.light, framebuffer);
+            self.ui.draw_quad(
+                head.extend_uniform(-width)
+                    .extend_down(-width)
+                    .extend_up(width * 3.0),
+                theme.dark,
+                framebuffer,
+            );
+
+            self.ui.draw_icon(&ui.profile_head, framebuffer);
+        }
+
+        {
             // Options
             let mut buffer = self.masked.start();
 

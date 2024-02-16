@@ -11,6 +11,8 @@ pub struct MenuUI {
     pub levels: Vec<LevelWidget>,
     pub options_head: TextWidget,
     pub options: OptionsWidget,
+    pub profile_head: IconWidget,
+    pub profile: WidgetState,
     pub leaderboard: LeaderboardWidget,
     pub level_config: LevelConfigWidget,
 }
@@ -33,6 +35,8 @@ impl MenuUI {
                     PaletteWidget::new("Test", Theme::test()),
                 ],
             ),
+            profile_head: IconWidget::new(&assets.sprites.head),
+            profile: WidgetState::new(),
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
         }
@@ -92,6 +96,16 @@ impl MenuUI {
         };
         let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
 
+        let (top_bar, _) = layout::cut_top_down(screen, context.font_size * 1.2);
+        let top_bar = top_bar.extend_right(-context.layout_size * 7.0);
+
+        let (top_bar, profile_head) =
+            layout::cut_left_right(top_bar, top_bar.width() - context.font_size * 1.2);
+        let top_bar = top_bar.extend_right(-context.layout_size * 3.0);
+
+        let (_top_bar, options_head) =
+            layout::cut_left_right(top_bar, top_bar.width() - context.font_size * 3.5);
+
         {
             // Options
             let width = layout_size * 50.0;
@@ -107,10 +121,7 @@ impl MenuUI {
 
             let options = options.translate(vec2(0.0, offset));
 
-            let head = Aabb2::point(screen.top_right() - vec2(7.0, 0.0) * layout_size)
-                .extend_left(context.font_size * 3.5)
-                .extend_down(context.font_size * 1.2)
-                .translate(vec2(0.0, offset));
+            let head = options_head.translate(vec2(0.0, offset));
 
             update!(self.options_head, head);
             context.update_focus(self.options_head.state.hovered);
@@ -126,6 +137,40 @@ impl MenuUI {
                 state.options_request = Some(WidgetRequest::Open);
             } else if !self.options.state.hovered && !self.options_head.state.hovered {
                 state.options_request = Some(WidgetRequest::Close);
+            }
+        }
+
+        {
+            // Profile
+            let width = layout_size * 50.0;
+            let height = layout_size * 15.0;
+
+            let profile = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
+                .extend_symmetric(vec2(width, 0.0) / 2.0)
+                .extend_up(height);
+
+            let t = state.show_profile.time.get_ratio().as_f32();
+            let t = crate::util::smoothstep(t);
+            let offset = -profile.height() * t;
+
+            let profile = profile.translate(vec2(0.0, offset));
+
+            let head = profile_head.translate(vec2(0.0, offset));
+
+            update!(self.profile_head, head);
+            context.update_focus(self.profile_head.state.hovered);
+
+            // let old_profile = state.profile.clone();
+            update!(self.profile, profile); //, &mut state.profile);
+            context.update_focus(self.profile.hovered);
+            // if state.profile != old_profile {
+            //     preferences::save(profile_STORAGE, &state.profile);
+            // }
+
+            if self.profile_head.state.hovered && state.show_profile.time.is_min() {
+                state.profile_request = Some(WidgetRequest::Open);
+            } else if !self.profile.hovered && !self.profile_head.state.hovered {
+                state.profile_request = Some(WidgetRequest::Close);
             }
         }
 

@@ -44,6 +44,8 @@ pub struct Sprites {
     pub help: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub reset: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub head: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]

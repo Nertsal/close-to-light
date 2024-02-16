@@ -55,6 +55,8 @@ pub struct MenuState {
     pub level_up: bool,
     pub show_options: ShowTime<()>,
     pub options_request: Option<WidgetRequest>,
+    pub show_profile: ShowTime<()>,
+    pub profile_request: Option<WidgetRequest>,
     pub show_level_config: ShowTime<()>,
     pub config_request: Option<WidgetRequest>,
     pub show_leaderboard: ShowTime<()>,
@@ -156,6 +158,12 @@ impl LevelMenu {
                     going_up: false,
                 },
                 options_request: None,
+                show_profile: ShowTime {
+                    data: (),
+                    time: Bounded::new_zero(r32(0.3)),
+                    going_up: false,
+                },
+                profile_request: None,
                 show_level_config: ShowTime {
                     data: (),
                     time: Bounded::new_zero(r32(0.3)),
@@ -410,6 +418,31 @@ impl LevelMenu {
         let sign = r32(if options.going_up { 1.0 } else { -1.0 });
         options.time.change(sign * delta_time);
     }
+
+    fn update_profile(&mut self, delta_time: Time) {
+        if let Some(req) = self.state.profile_request {
+            let profile = &mut self.state.show_profile;
+            match req {
+                WidgetRequest::Open => {
+                    if profile.time.is_min() {
+                        profile.going_up = true;
+                        self.state.profile_request = None;
+                    }
+                }
+                WidgetRequest::Close => profile.going_up = false,
+                WidgetRequest::Reload => {
+                    profile.going_up = false;
+                    if profile.time.is_min() {
+                        self.state.profile_request = Some(WidgetRequest::Open);
+                    }
+                }
+            }
+        }
+
+        let profile = &mut self.state.show_profile;
+        let sign = r32(if profile.going_up { 1.0 } else { -1.0 });
+        profile.time.change(sign * delta_time);
+    }
 }
 
 impl geng::State for LevelMenu {
@@ -612,6 +645,7 @@ impl geng::State for LevelMenu {
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);
         self.update_options(delta_time);
+        self.update_profile(delta_time);
         self.update_leaderboard(delta_time);
         self.update_config(delta_time);
 
