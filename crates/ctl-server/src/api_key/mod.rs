@@ -2,8 +2,6 @@ use axum::http::{request::Parts, StatusCode};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-pub use sqlx::types::Uuid;
-
 #[derive(Serialize, Deserialize)]
 pub struct StringKey(Box<str>);
 
@@ -12,14 +10,6 @@ pub struct BoardKeys {
     pub read: StringKey,
     pub submit: StringKey,
     pub admin: StringKey,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum AuthorityLevel {
-    Unauthorized,
-    Read,
-    Submit,
-    Admin,
 }
 
 impl StringKey {
@@ -39,23 +29,6 @@ impl StringKey {
             .map(char::from)
             .collect();
         Self(key.into())
-    }
-}
-
-pub struct ApiKey(pub String);
-
-#[axum::async_trait]
-impl<S> axum::extract::FromRequestParts<S> for ApiKey {
-    type Rejection = (StatusCode, &'static str);
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        match parts.headers.get("api-key") {
-            None => Err((StatusCode::BAD_REQUEST, "api key missing")),
-            Some(key) => match key.to_str() {
-                Ok(key) => Ok(Self(key.to_string())),
-                Err(_) => Err((StatusCode::BAD_REQUEST, "api key is invalid")),
-            },
-        }
     }
 }
 

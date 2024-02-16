@@ -14,13 +14,11 @@ pub fn route(router: Router) -> Router {
 }
 
 async fn level_create(
+    session: AuthSession,
     State(app): State<Arc<App>>,
-    api_key: ApiKey,
     Json(level): Json<NewLevel>,
 ) -> Result<Json<Id>> {
-    // Check permission
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Submit)?;
+    check_auth(&session, &app, AuthorityLevel::User).await?;
 
     // Check that group exists and the player has rights to add levels to it
     let group = sqlx::query("SELECT null FROM groups WHERE group_id = ?")
@@ -76,15 +74,13 @@ WHERE level_id = ?
 }
 
 async fn submit_score(
+    session: AuthSession,
     State(app): State<Arc<App>>,
     Path(level_id): Path<Id>,
-    api_key: ApiKey,
     player_key: PlayerKey,
     Json(score): Json<ScoreEntry>,
 ) -> Result<()> {
-    // Check permission
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Submit)?;
+    check_auth(&session, &app, AuthorityLevel::User).await?;
 
     // Check that the level exists
     let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")

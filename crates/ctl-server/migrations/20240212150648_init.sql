@@ -1,43 +1,33 @@
-CREATE TABLE IF NOT EXISTS keys
+CREATE TABLE admins
 (
-    key TEXT NOT NULL,
-    submit BIT,
-    admin BIT
+    user_id INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS players
-(
-    player_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    key TEXT NOT NULL,
-    email TEXT,
-    name TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS users
+CREATE TABLE users
 (
     user_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
     password TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS artists
+CREATE TABLE artists
 (
     artist_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    player_id INTEGER
+    user_id INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS scores
+CREATE TABLE scores
 (
     level_id INTEGER NOT NULL,
-    player_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
     score INTEGER NOT NULL,
     extra_info TEXT,
     FOREIGN KEY(level_id) REFERENCES levels(level_id),
-    FOREIGN KEY(player_id) REFERENCES players(player_id)
+    FOREIGN KEY(user_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE IF NOT EXISTS musics
+CREATE TABLE musics
 (
     music_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT,
@@ -46,7 +36,7 @@ CREATE TABLE IF NOT EXISTS musics
     bpm REAL
 );
 
-CREATE TABLE IF NOT EXISTS music_authors
+CREATE TABLE music_authors
 (
     artist_id INTEGER NOT NULL,
     music_id INTEGER NOT NULL,
@@ -54,16 +44,16 @@ CREATE TABLE IF NOT EXISTS music_authors
     FOREIGN KEY(music_id) REFERENCES musics(music_id)
 );
 
-CREATE TABLE IF NOT EXISTS groups
+CREATE TABLE groups
 (
     group_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     music_id INTEGER NOT NULL,
     owner_id INTEGER NOT NULL,
     FOREIGN KEY(music_id) REFERENCES musics(music_id),
-    FOREIGN KEY(owner_id) REFERENCES players(player_id)
+    FOREIGN KEY(owner_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE IF NOT EXISTS levels
+CREATE TABLE levels
 (
     level_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     hash BLOB NOT NULL,
@@ -71,10 +61,10 @@ CREATE TABLE IF NOT EXISTS levels
     name TEXT
 );
 
-CREATE TABLE IF NOT EXISTS level_authors
+CREATE TABLE level_authors
 (
-    player_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
     level_id INTEGER NOT NULL,
-    FOREIGN KEY(player_id) REFERENCES players(player_id),
+    FOREIGN KEY(user_id) REFERENCES users(user_id),
     FOREIGN KEY(level_id) REFERENCES levels(level_id)
 );

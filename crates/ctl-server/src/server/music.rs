@@ -137,13 +137,12 @@ WHERE music_id = ?
 }
 
 async fn music_create(
+    session: AuthSession,
     State(app): State<Arc<App>>,
     Query(mut music): Query<NewMusic>,
-    api_key: ApiKey,
     body: Body,
 ) -> Result<Json<Id>> {
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Admin)?;
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
 
     music.name = validate_name(music.name)?;
 
@@ -191,13 +190,12 @@ async fn music_create(
 }
 
 async fn music_update(
+    session: AuthSession,
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
-    api_key: ApiKey,
     Json(update): Json<MusicUpdate>,
 ) -> Result<()> {
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Admin)?;
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
 
     let result = sqlx::query(
         "
@@ -224,13 +222,12 @@ WHERE music_id = ?",
 }
 
 async fn add_author(
+    session: AuthSession,
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
     Query(artist): Query<IdQuery>,
-    api_key: ApiKey,
 ) -> Result<()> {
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Admin)?;
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
 
     let artist_id = artist.id;
 
@@ -267,13 +264,12 @@ async fn add_author(
 }
 
 async fn remove_author(
+    session: AuthSession,
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
     Query(artist): Query<IdQuery>,
-    api_key: ApiKey,
 ) -> Result<()> {
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Admin)?;
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
 
     let artist_id = artist.id;
 

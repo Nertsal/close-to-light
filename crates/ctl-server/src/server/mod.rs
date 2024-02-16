@@ -106,33 +106,29 @@ async fn get_root() -> &'static str {
     "Hello, world"
 }
 
-async fn get_auth(key: Option<ApiKey>, database: &DatabasePool) -> Result<AuthorityLevel> {
-    let Some(key) = key else {
-        return Ok(AuthorityLevel::Unauthorized);
-    };
-
-    let row = sqlx::query("SELECT submit, admin FROM keys WHERE key = ?")
-        .bind(key.0)
-        .fetch_optional(database)
-        .await?;
-    let Some(row) = row else {
-        return Ok(AuthorityLevel::Unauthorized);
-    };
-
-    let submit: bool = row.try_get("submit")?;
-    let admin: bool = row.try_get("admin")?;
-
-    let auth = if admin {
-        AuthorityLevel::Admin
-    } else if submit {
-        AuthorityLevel::Submit
-    } else {
-        AuthorityLevel::Read
-    };
-    Ok(auth)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum AuthorityLevel {
+    Unauthorized,
+    User,
+    Admin,
 }
 
-fn check_auth(auth: AuthorityLevel, required: AuthorityLevel) -> Result<()> {
+async fn get_auth(session: &AuthSession, app: &App) -> Result<AuthorityLevel> {
+    let Some(user) = &session.user else {
+        return Ok(AuthorityLevel::Unauthorized);
+    };
+
+    let auth = sqlx::query("SELECT null FROM admins WHERE user_id = ?")
+        .bind(user.user_id)
+        .fetch_optional(&app.database)
+        .await?;
+    match auth {
+        None => Ok(AuthorityLevel::User),
+        Some(_) => Ok(AuthorityLevel::Admin),
+    }
+}
+
+fn cmp_auth(auth: AuthorityLevel, required: AuthorityLevel) -> Result<()> {
     if let AuthorityLevel::Unauthorized = auth {
         Err(RequestError::Unathorized)
     } else if auth < required {
@@ -140,6 +136,11 @@ fn check_auth(auth: AuthorityLevel, required: AuthorityLevel) -> Result<()> {
     } else {
         Ok(())
     }
+}
+
+async fn check_auth(session: &AuthSession, app: &App, required: AuthorityLevel) -> Result<()> {
+    let auth = get_auth(session, app).await?;
+    cmp_auth(auth, required)
 }
 
 fn validate_name(name: String) -> Result<String> {
@@ -198,9 +199,9 @@ fn content_mp3() -> String {
     "audio/mpeg".to_owned()
 }
 
-fn content_wav() -> String {
-    "audio/wav".to_owned()
-}
+// fn content_wav() -> String {
+//     "audio/wav".to_owned()
+// }
 
 fn content_level() -> String {
     "application/octet-stream".to_owned()

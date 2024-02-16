@@ -71,12 +71,11 @@ JOIN players ON level_authors.player_id = players.player_id
 }
 
 async fn group_create(
+    session: AuthSession,
     State(app): State<Arc<App>>,
     Query(music): Query<IdQuery>,
-    api_key: ApiKey,
 ) -> Result<Json<Id>> {
-    let auth = get_auth(Some(api_key), &app.database).await?;
-    check_auth(auth, AuthorityLevel::Submit)?;
+    check_auth(&session, &app, AuthorityLevel::User).await?;
 
     music::music_exists(&app, music.id).await?;
 
