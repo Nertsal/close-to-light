@@ -81,18 +81,19 @@ impl MenuRender {
 
         {
             // Profile
+            let width = 12.0;
             let head = ui.profile_head.state.position;
-            let profile = ui.profile.position;
+            let profile = ui.profile.position.extend_up(width);
 
             self.ui.draw_quad(head, theme.dark, framebuffer);
-            self.ui.draw_quad(profile, theme.dark, framebuffer);
+            self.ui
+                .draw_quad(profile.extend_uniform(-width), theme.dark, framebuffer);
 
             // Outline
-            let width = 12.0;
             self.ui
                 .draw_outline(head.extend_up(1.0 * width), width, theme.light, framebuffer);
             self.ui
-                .draw_outline(profile.extend_up(width), width, theme.light, framebuffer);
+                .draw_outline(profile, width, theme.light, framebuffer);
             self.ui.draw_quad(
                 head.extend_uniform(-width)
                     .extend_down(-width)
@@ -108,14 +109,19 @@ impl MenuRender {
             // Options
             let mut buffer = self.masked.start();
 
+            let width = 12.0;
             let head = ui.options_head.state.position;
-            let options = ui.options.state.position;
+            let options = ui.options.state.position.extend_up(width);
 
             buffer.mask_quad(head);
             buffer.mask_quad(options);
 
             self.ui.draw_quad(head, theme.dark, &mut buffer.color);
-            self.ui.draw_quad(options, theme.dark, &mut buffer.color);
+            self.ui.draw_quad(
+                options.extend_uniform(-width),
+                theme.dark,
+                &mut buffer.color,
+            );
 
             {
                 // Volume
@@ -158,19 +164,14 @@ impl MenuRender {
             }
 
             // Outline
-            let width = 12.0;
             self.ui.draw_outline(
                 head.extend_up(1.0 * width),
                 width,
                 theme.light,
                 &mut buffer.color,
             );
-            self.ui.draw_outline(
-                options.extend_up(width),
-                width,
-                theme.light,
-                &mut buffer.color,
-            );
+            self.ui
+                .draw_outline(options, width, theme.light, &mut buffer.color);
             self.ui.draw_quad(
                 head.extend_uniform(-width)
                     .extend_down(-width)
