@@ -12,18 +12,8 @@ mod timeline;
 mod value;
 
 pub use self::{
-    button::ButtonWidget,
-    checkbox::CheckboxWidget,
-    group::GroupWidget,
-    icon::IconWidget,
-    leaderboard::{LeaderboardEntryWidget, LeaderboardWidget},
-    level::*,
-    level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
-    options::{OptionsWidget, PaletteChooseWidget, PaletteWidget, VolumeWidget},
-    slider::SliderWidget,
-    text::TextWidget,
-    timeline::TimelineWidget,
-    value::ValueWidget,
+    button::*, checkbox::*, group::*, icon::*, leaderboard::*, level::*, level_config::*,
+    options::*, slider::*, text::*, timeline::*, value::*,
 };
 
 use crate::prelude::Theme;

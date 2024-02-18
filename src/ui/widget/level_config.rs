@@ -1,6 +1,6 @@
 use crate::{
     prelude::{Assets, HealthConfig, LevelConfig, LevelModifiers, Modifier},
-    ui::layout,
+    ui::layout::{self, AreaOps},
 };
 
 use super::*;
@@ -47,7 +47,7 @@ impl LevelConfigWidget {
 impl Widget for LevelConfigWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
-        let main = position;
+        let mut main = position;
 
         let close = layout::align_aabb(
             vec2::splat(1.0) * context.font_size,
@@ -56,14 +56,14 @@ impl Widget for LevelConfigWidget {
         );
         self.close.update(close, context);
 
-        let main = main.extend_up(-context.layout_size * 1.0);
-        let (bar, main) = layout::cut_top_down(main, context.font_size * 1.2);
+        main.cut_top(context.layout_size * 1.0);
+        let bar = main.cut_top(context.font_size * 1.2);
 
         let bar = bar.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
 
         let tab = Aabb2::point(bar.bottom_left())
             .extend_positive(vec2(4.0 * context.font_size, bar.height()));
-        let tabs = layout::stack(tab, vec2(tab.width() + 2.0 * context.layout_size, 0.0), 2);
+        let tabs = tab.stack(vec2(tab.width() + 2.0 * context.layout_size, 0.0), 2);
 
         let mut all_tabs = tab;
         if let Some(tab) = tabs.last() {
@@ -161,7 +161,8 @@ impl LevelDifficultyWidget {
 impl Widget for LevelDifficultyWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
-        for (pos, (_i, target)) in layout::split_columns(position, self.presets.len())
+        for (pos, (_i, target)) in position
+            .split_columns(self.presets.len())
             .into_iter()
             .zip(self.presets.iter_mut().enumerate())
         {
@@ -204,7 +205,8 @@ impl LevelModsWidget {
 impl Widget for LevelModsWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
-        for (pos, (_i, target)) in layout::split_columns(position, self.mods.len())
+        for (pos, (_i, target)) in position
+            .split_columns(self.mods.len())
             .into_iter()
             .zip(self.mods.iter_mut().enumerate())
         {

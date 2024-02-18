@@ -3,7 +3,7 @@ use super::*;
 use crate::{
     leaderboard::{LeaderboardStatus, LoadedBoard},
     prelude::Assets,
-    ui::layout,
+    ui::layout::{self, AreaOps},
 };
 
 use ctl_client::core::types::PlayerInfo;
@@ -109,36 +109,36 @@ impl Widget for LeaderboardWidget {
         );
         self.close.update(close, context);
 
-        let main = main
+        let mut main = main
             .extend_symmetric(-vec2(1.0, 0.0) * context.layout_size)
             .extend_up(-context.layout_size);
 
-        let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
+        let title = main.cut_top(context.font_size * 1.2);
         self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
 
-        let (subtitle, main) = layout::cut_top_down(main, context.font_size * 1.0);
+        let subtitle = main.cut_top(context.font_size * 1.0);
         self.subtitle.update(subtitle, context);
 
-        let (status, _) = layout::cut_top_down(main, context.font_size * 1.0);
+        let status = main.clone().cut_top(context.font_size * 1.0);
         self.status.update(status, context);
 
-        let main = main.extend_right(-0.5 * context.font_size);
+        main.cut_right(0.5 * context.font_size);
 
-        let (main, highscore) = layout::cut_top_down(main, main.height() - context.font_size * 1.5);
+        let highscore = main.cut_bottom(context.font_size * 1.5);
         self.highscore.update(highscore, context);
 
-        let (main, separator) = layout::cut_top_down(main, main.height() - context.font_size * 0.1);
+        let separator = main.cut_bottom(context.font_size * 0.1);
         let separator = separator.extend_right(0.5 * context.font_size);
         self.separator.update(separator, context);
 
-        let main = main.extend_down(-0.2 * context.font_size);
+        main.cut_bottom(0.2 * context.font_size);
 
         self.rows_state.update(main, context);
         let main = main.translate(vec2(0.0, -self.scroll));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.0);
-        let rows = layout::stack(row, vec2(0.0, -context.font_size * 1.0), self.rows.len());
+        let rows = row.stack(vec2(0.0, -context.font_size * 1.0), self.rows.len());
         let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
         for (row, position) in self.rows.iter_mut().zip(rows) {
             row.update(position, context);
@@ -199,13 +199,13 @@ impl LeaderboardEntryWidget {
 
 impl Widget for LeaderboardEntryWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        let main = position;
+        let mut main = position;
 
-        let (rank, main) = layout::cut_left_right(main, context.font_size * 1.0);
+        let rank = main.cut_left(context.font_size * 1.0);
         self.rank.update(rank, context);
-        let main = main.extend_left(-context.font_size * 0.2);
+        main.cut_left(context.font_size * 0.2);
 
-        let (main, score) = layout::cut_left_right(main, main.width() - context.font_size * 5.0);
+        let score = main.cut_right(context.font_size * 5.0);
         self.score.update(score, context);
 
         let player = main;

@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{prelude::LevelMeta, ui::layout};
+use crate::{prelude::LevelMeta, ui::layout::AreaOps};
 
 use geng_utils::bounded::Bounded;
 
@@ -38,10 +38,11 @@ impl Widget for LevelWidget {
         // self.logo.update(logo, context);
 
         // let (name, author) = layout::cut_top_down(position, context.font_size);
-        let (name, author) = layout::split_top_down(position, 0.5);
+        let mut author = position;
+        let name = author.split_top(0.5);
         let margin = context.font_size * 0.2;
         // let name = name.extend_down(-margin);
-        let author = author.extend_up(-margin);
+        author.cut_top(margin);
 
         self.name.update(name, context);
         self.name.align(vec2(0.5, 0.0));

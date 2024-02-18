@@ -1,5 +1,6 @@
 use super::*;
 
+use crate::game::ui::layout::AreaOps;
 pub use crate::ui::{layout, widget::*};
 
 pub struct GameUI {
@@ -42,10 +43,10 @@ impl GameUI {
         }
 
         // Margin
-        let main = screen.extend_uniform(-layout_size * 2.0);
+        let mut main = screen.extend_uniform(-layout_size * 2.0);
 
         // Logo
-        let (_ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
+        let _ctl_logo = main.cut_top(layout_size * 4.0);
         // update!(self.ctl_logo, ctl_logo);
         let main = main.extend_up(-layout_size * 3.0);
 

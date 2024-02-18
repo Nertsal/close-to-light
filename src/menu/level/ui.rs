@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::ui::{layout, widget::*};
+use crate::ui::{layout::AreaOps, widget::*};
 
 pub struct MenuUI {
     pub screen: WidgetState,
@@ -52,7 +52,7 @@ impl MenuUI {
         geng: &Geng,
     ) -> bool {
         // Fix aspect
-        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+        let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
 
@@ -77,14 +77,14 @@ impl MenuUI {
         update!(self.screen, screen);
 
         // Margin
-        let main = screen
+        let mut main = screen
             .extend_uniform(-layout_size * 2.0)
             .extend_up(-layout_size * 2.0);
 
         // Logo
-        let (ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
+        let ctl_logo = main.cut_top(layout_size * 4.0);
         update!(self.ctl_logo, ctl_logo);
-        let main = main.extend_up(-layout_size * 3.0);
+        main.cut_top(layout_size * 3.0);
 
         let base_t = if state.level_up {
             1.0
@@ -96,22 +96,20 @@ impl MenuUI {
         };
         let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
 
-        let (top_bar, _) = layout::cut_top_down(screen, context.font_size * 1.2);
-        let top_bar = top_bar.extend_right(-context.layout_size * 7.0);
+        let mut top_bar = screen.clone().cut_top(context.font_size * 1.2);
+        top_bar.cut_right(context.layout_size * 7.0);
 
-        let (top_bar, profile_head) =
-            layout::cut_left_right(top_bar, top_bar.width() - context.font_size * 1.2);
-        let top_bar = top_bar.extend_right(-context.layout_size * 3.0);
+        let profile_head = top_bar.cut_right(context.font_size * 1.2);
+        top_bar.cut_right(context.layout_size * 3.0);
 
-        let (_top_bar, options_head) =
-            layout::cut_left_right(top_bar, top_bar.width() - context.font_size * 3.5);
+        let options_head = top_bar.cut_right(context.font_size * 3.5);
 
         {
             // Options
             let width = layout_size * 50.0;
             let height = layout_size * 15.0;
 
-            let options = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
+            let options = Aabb2::point(screen.align_pos(vec2(0.5, 1.0)))
                 .extend_symmetric(vec2(width, 0.0) / 2.0)
                 .extend_up(height);
 
@@ -145,7 +143,7 @@ impl MenuUI {
             let width = layout_size * 50.0;
             let height = layout_size * 15.0;
 
-            let profile = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
+            let profile = Aabb2::point(screen.align_pos(vec2(0.5, 1.0)))
                 .extend_symmetric(vec2(width, 0.0) / 2.0)
                 .extend_up(height);
 
@@ -235,12 +233,13 @@ impl MenuUI {
         }
 
         // Margin
-        let main = main.extend_left(-layout_size * 0.5);
+        main.cut_left(layout_size * 0.5);
 
         // Groups and levels on the left
-        let (groups, side) = layout::cut_left_right(main, context.font_size * 6.0);
-        let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
-        let (levels, _side) = layout::cut_left_right(side, context.font_size * 5.0);
+        let mut side = main;
+        let groups = side.cut_left(context.font_size * 6.0);
+        let _connections = side.cut_left(layout_size * 3.0);
+        let levels = side.cut_left(context.font_size * 5.0);
         update!(self.groups_state, groups);
         update!(self.levels_state, levels);
 
@@ -249,7 +248,7 @@ impl MenuUI {
             let slide = layout_size * 2.0;
 
             let scroll = 0.0; // TODO
-            let group = Aabb2::point(layout::aabb_pos(groups, vec2(0.0, 1.0)) + vec2(0.0, scroll))
+            let group = Aabb2::point(groups.align_pos(vec2(0.0, 1.0)) + vec2(0.0, scroll))
                 .extend_right(groups.width() - slide)
                 .extend_down(2.0 * context.font_size);
 
@@ -260,13 +259,13 @@ impl MenuUI {
 
             // Layout each group
             let mut selected = None;
-            for (static_pos, (i, entry)) in layout::stack(
-                group,
-                vec2(0.0, -group.height() - layout_size * 0.5),
-                state.groups.len(),
-            )
-            .into_iter()
-            .zip(state.groups.iter().enumerate())
+            for (static_pos, (i, entry)) in group
+                .stack(
+                    vec2(0.0, -group.height() - layout_size * 0.5),
+                    state.groups.len(),
+                )
+                .into_iter()
+                .zip(state.groups.iter().enumerate())
             {
                 let Some(group) = self.groups.get_mut(i) else {
                     // should not happen
@@ -317,10 +316,9 @@ impl MenuUI {
                 let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio().as_f32());
                 let scroll = scroll + sign * t * layout_size * 25.0;
 
-                let level =
-                    Aabb2::point(layout::aabb_pos(levels, vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                        .extend_right(levels.width() - slide)
-                        .extend_down(2.0 * context.font_size);
+                let level = Aabb2::point(levels.align_pos(vec2(0.0, 1.0)) + vec2(0.0, scroll))
+                    .extend_right(levels.width() - slide)
+                    .extend_down(2.0 * context.font_size);
 
                 // Initialize missing levels
                 for _ in 0..group.levels.len() - self.levels.len() {
@@ -329,13 +327,13 @@ impl MenuUI {
 
                 // Layout each level
                 let mut selected = None;
-                for (static_pos, (i, (_, level_meta))) in layout::stack(
-                    level,
-                    vec2(0.0, -level.height() - layout_size * 0.5),
-                    group.levels.len(),
-                )
-                .into_iter()
-                .zip(group.levels.iter().enumerate())
+                for (static_pos, (i, (_, level_meta))) in level
+                    .stack(
+                        vec2(0.0, -level.height() - layout_size * 0.5),
+                        group.levels.len(),
+                    )
+                    .into_iter()
+                    .zip(group.levels.iter().enumerate())
                 {
                     let Some(level) = self.levels.get_mut(i) else {
                         // should not happen

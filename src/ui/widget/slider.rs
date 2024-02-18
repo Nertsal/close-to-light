@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{render::util::TextRenderOptions, ui::layout};
+use crate::{render::util::TextRenderOptions, ui::layout::AreaOps};
 
 use geng_utils::bounded::Bounded;
 
@@ -35,20 +35,19 @@ impl StatefulWidget for SliderWidget {
         let mut main = position;
 
         if !self.text.text.is_empty() {
-            let (text, m) = layout::cut_left_right(main, context.font_size * 5.0);
+            let text = main.cut_left(context.font_size * 5.0);
             self.text.show();
             self.text.align(vec2(1.0, 0.5));
             self.text.update(text, context);
-            main = m;
         } else {
             self.text.hide();
         }
 
-        let (main, value) = layout::cut_left_right(main, main.width() - context.font_size * 3.0);
+        let value = main.cut_right(context.font_size * 3.0);
         self.value.text = format!("{:.precision$}", state.value(), precision = 2);
         self.value.update(value, context);
 
-        let bar = Aabb2::point(layout::aabb_pos(main, vec2(0.0, 0.5)))
+        let bar = Aabb2::point(main.align_pos(vec2(0.0, 0.5)))
             .extend_right(main.width())
             .extend_symmetric(vec2(0.0, context.font_size * 0.1) / 2.0);
         self.bar.update(bar, context);
@@ -56,7 +55,7 @@ impl StatefulWidget for SliderWidget {
         let bar_box = bar.extend_symmetric(vec2(0.0, context.font_size * 0.6) / 2.0);
         self.bar_box.update(bar_box, context);
 
-        let head = Aabb2::point(layout::aabb_pos(main, vec2(state.get_ratio(), 0.5)))
+        let head = Aabb2::point(main.align_pos(vec2(state.get_ratio(), 0.5)))
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 

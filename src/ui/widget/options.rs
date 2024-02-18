@@ -2,7 +2,7 @@ use super::*;
 
 use crate::{
     prelude::{Options, Theme, VolumeOptions},
-    ui::layout,
+    ui::layout::AreaOps,
 };
 
 pub struct OptionsWidget {
@@ -31,11 +31,7 @@ impl StatefulWidget for OptionsWidget {
         let column = Aabb2::point(main.top_left())
             .extend_right(context.layout_size * 15.0)
             .extend_down(main.height());
-        let columns = layout::stack(
-            column,
-            vec2(column.width() + context.layout_size * 5.0, 0.0),
-            2,
-        );
+        let columns = column.stack(vec2(column.width() + context.layout_size * 5.0, 0.0), 2);
 
         self.volume.update(columns[0], context, &mut state.volume);
         self.palette.update(columns[1], context, &mut state.theme);
@@ -69,16 +65,16 @@ impl StatefulWidget for VolumeWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
-        let main = position;
+        let mut main = position;
 
-        let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
+        let title = main.cut_top(context.font_size * 1.2);
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.0);
-        let rows = layout::stack(row, vec2(0.0, -row.height()), 1);
+        let rows = row.stack(vec2(0.0, -row.height()), 1);
 
         self.master.update(rows[0], context, &mut state.master);
     }
@@ -111,16 +107,15 @@ impl StatefulWidget for PaletteChooseWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
-        let main = position;
+        let mut main = position;
 
-        let (title, main) = layout::cut_top_down(main, context.font_size * 1.5);
+        let title = main.cut_top(context.font_size * 1.5);
         self.title.update(title, context);
 
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.0);
-        let rows = layout::stack(
-            row,
+        let rows = row.stack(
             vec2(0.0, -row.height() - context.layout_size * 0.5),
             self.palettes.len(),
         );
@@ -166,7 +161,8 @@ impl StatefulWidget for PaletteWidget {
 
         let main = position;
 
-        let (visual, name) = layout::split_left_right(main, 0.5);
+        let mut name = main;
+        let visual = name.split_left(0.5);
 
         let height = main.height() * 0.5;
         let visual = visual.extend_left(height * 4.0 - visual.width());
