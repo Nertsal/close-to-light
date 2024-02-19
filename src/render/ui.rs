@@ -261,7 +261,7 @@ impl UiRender {
     pub fn draw_leaderboard(
         &self,
         leaderboard: &LeaderboardWidget,
-        theme: &Theme,
+        theme: Theme,
         masked: &mut MaskedRender,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -307,7 +307,7 @@ impl UiRender {
     pub fn draw_close_button(
         &self,
         button: &ButtonWidget,
-        theme: &Theme,
+        theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let state = &button.text.state;
@@ -341,7 +341,7 @@ impl UiRender {
         text: &TextWidget,
         selected: bool,
         can_deselect: bool,
-        theme: &Theme,
+        theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let state = &text.state;
@@ -381,7 +381,7 @@ impl UiRender {
         texts: &[&TextWidget],
         width: f32,
         selected: bool,
-        theme: &Theme,
+        theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let (bg_color, fg_color) = if selected {

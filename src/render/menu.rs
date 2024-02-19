@@ -8,6 +8,7 @@ pub struct MenuRender {
     // util: UtilRender,
     masked: MaskedRender,
     ui: UiRender,
+    font_size: f32,
 }
 
 impl MenuRender {
@@ -18,15 +19,15 @@ impl MenuRender {
             // util: UtilRender::new(geng, assets),
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             ui: UiRender::new(geng, assets),
+            font_size: 1.0,
         }
     }
 
     pub fn draw_ui(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         self.masked.update_size(framebuffer.size());
+        self.font_size = framebuffer.size().y as f32 * 0.04;
 
-        let font_size = framebuffer.size().y as f32 * 0.04;
-        let camera = &geng::PixelPerfectCamera;
-        let theme = &state.options.theme;
+        let theme = state.options.theme;
 
         self.ui.draw_texture(
             ui.ctl_logo.position,
@@ -34,6 +35,18 @@ impl MenuRender {
             theme.light,
             framebuffer,
         );
+
+        self.draw_levels(ui, state, framebuffer);
+        self.draw_profile(ui, state, framebuffer);
+        self.draw_options(ui, state, framebuffer);
+
+        self.ui
+            .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+        self.draw_level_config(ui, state, framebuffer);
+    }
+
+    fn draw_levels(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
+        let theme = state.options.theme;
 
         // Clip groups and levels
         let mut mask = self.masked.start();
@@ -43,19 +56,14 @@ impl MenuRender {
 
         for (group, entry) in ui.groups.iter().zip(&state.groups) {
             if let Some(logo) = &entry.logo {
-                self.geng.draw2d().textured_quad(
-                    framebuffer,
-                    camera,
-                    group.logo.position,
-                    logo,
-                    theme.light,
-                );
+                self.ui
+                    .draw_texture(group.logo.position, logo, theme.light, framebuffer);
             }
 
             self.ui.draw_toggle_slide(
                 &group.state,
                 &[&group.name, &group.author],
-                font_size * 0.2,
+                self.font_size * 0.2,
                 group.selected_time.get_ratio() > 0.5,
                 theme,
                 &mut mask.color,
@@ -70,7 +78,7 @@ impl MenuRender {
             self.ui.draw_toggle_slide(
                 &level.state,
                 &[&level.name, &level.author],
-                font_size * 0.2,
+                self.font_size * 0.2,
                 level.selected_time.get_ratio() > 0.5,
                 theme,
                 &mut mask.color,
@@ -78,122 +86,137 @@ impl MenuRender {
         }
 
         self.masked.draw(draw_parameters(), framebuffer);
+    }
 
-        {
-            // Profile
-            let width = 12.0;
-            let head = ui.profile_head.state.position;
-            let profile = ui.profile.position.extend_up(width);
+    fn draw_profile(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let theme = state.options.theme;
+        let width = 12.0;
+        let head = ui.profile_head.state.position;
+        let profile = ui.profile.position.extend_up(width);
 
-            self.ui.draw_window(
-                profile,
-                Some(head),
-                width,
-                *theme,
-                framebuffer,
-                |_framebuffer| {},
-            );
+        self.ui.draw_window(
+            profile,
+            Some(head),
+            width,
+            theme,
+            framebuffer,
+            |_framebuffer| {},
+        );
 
-            self.ui.draw_icon(&ui.profile_head, framebuffer);
-        }
+        self.ui.draw_icon(&ui.profile_head, framebuffer);
+    }
 
-        {
-            // Options
-            let width = 12.0;
-            let head = ui.options_head.state.position;
-            let options = ui.options.state.position.extend_up(width);
+    fn draw_options(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let camera = &geng::PixelPerfectCamera;
+        let theme = state.options.theme;
 
-            self.ui.draw_window(
-                options,
-                Some(head),
-                width,
-                *theme,
-                framebuffer,
-                |framebuffer| {
-                    {
-                        // Volume
-                        let volume = &ui.options.volume;
-                        self.ui.draw_text(&volume.title, framebuffer);
-                        self.ui.draw_slider(&volume.master, framebuffer);
-                    }
+        let width = 12.0;
+        let head = ui.options_head.state.position;
+        let options = ui.options.state.position.extend_up(width);
 
-                    {
-                        // Palette
-                        let palette = &ui.options.palette;
-                        self.ui.draw_text(&palette.title, framebuffer);
-                        for palette in &palette.palettes {
-                            self.ui.draw_text(&palette.name, framebuffer);
+        self.ui.draw_window(
+            options,
+            Some(head),
+            width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                {
+                    // Volume
+                    let volume = &ui.options.volume;
+                    self.ui.draw_text(&volume.title, framebuffer);
+                    self.ui.draw_slider(&volume.master, framebuffer);
+                }
 
-                            let mut quad = |i: f32, color: Color| {
-                                let pos = palette.visual.position;
-                                let pos = Aabb2::point(pos.bottom_left())
-                                    .extend_positive(vec2::splat(pos.height()));
-                                let pos = pos.translate(vec2(i * pos.width(), 0.0));
-                                self.geng.draw2d().draw2d(
-                                    framebuffer,
-                                    camera,
-                                    &draw2d::Quad::new(pos, color),
-                                );
-                            };
-                            quad(0.0, palette.palette.dark);
-                            quad(1.0, palette.palette.light);
-                            quad(2.0, palette.palette.danger);
-                            quad(3.0, palette.palette.highlight);
+                {
+                    // Palette
+                    let palette = &ui.options.palette;
+                    self.ui.draw_text(&palette.title, framebuffer);
+                    for palette in &palette.palettes {
+                        self.ui.draw_text(&palette.name, framebuffer);
 
-                            let outline_width = font_size * 0.1;
-                            self.ui.draw_outline(
-                                palette.visual.position.extend_uniform(outline_width),
-                                outline_width,
-                                theme.light,
+                        let mut quad = |i: f32, color: Color| {
+                            let pos = palette.visual.position;
+                            let pos = Aabb2::point(pos.bottom_left())
+                                .extend_positive(vec2::splat(pos.height()));
+                            let pos = pos.translate(vec2(i * pos.width(), 0.0));
+                            self.geng.draw2d().draw2d(
                                 framebuffer,
+                                camera,
+                                &draw2d::Quad::new(pos, color),
                             );
-                        }
-                    }
-                },
-            );
+                        };
+                        quad(0.0, palette.palette.dark);
+                        quad(1.0, palette.palette.light);
+                        quad(2.0, palette.palette.danger);
+                        quad(3.0, palette.palette.highlight);
 
-            self.ui.draw_text(&ui.options_head, framebuffer);
-        }
-
-        self.ui
-            .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
-
-        {
-            // Level Config
-            self.ui.draw_window(
-                ui.level_config.state.position,
-                None,
-                font_size * 0.2,
-                *theme,
-                framebuffer,
-                |framebuffer| {
-                    self.ui
-                        .draw_close_button(&ui.level_config.close, theme, framebuffer);
-
-                    {
-                        let (tab, active) = (
-                            &ui.level_config.tab_mods,
-                            ui.level_config.mods.state.visible,
+                        let outline_width = self.font_size * 0.1;
+                        self.ui.draw_outline(
+                            palette.visual.position.extend_uniform(outline_width),
+                            outline_width,
+                            theme.light,
+                            framebuffer,
                         );
-                        self.ui
-                            .draw_toggle_button(tab, active, false, theme, framebuffer);
                     }
-                    self.ui
-                        .draw_quad(ui.level_config.separator.position, theme.light, framebuffer);
+                }
+            },
+        );
 
-                    if ui.level_config.mods.state.visible {
-                        for preset in &ui.level_config.mods.mods {
-                            self.ui.draw_toggle_button(
-                                &preset.button.text,
-                                preset.selected,
-                                true,
-                                theme,
-                                framebuffer,
-                            );
-                        }
+        self.ui.draw_text(&ui.options_head, framebuffer);
+    }
+
+    fn draw_level_config(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let theme = state.options.theme;
+
+        self.ui.draw_window(
+            ui.level_config.state.position,
+            None,
+            self.font_size * 0.2,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.ui
+                    .draw_close_button(&ui.level_config.close, theme, framebuffer);
+
+                {
+                    let (tab, active) = (
+                        &ui.level_config.tab_mods,
+                        ui.level_config.mods.state.visible,
+                    );
+                    self.ui
+                        .draw_toggle_button(tab, active, false, theme, framebuffer);
+                }
+                self.ui
+                    .draw_quad(ui.level_config.separator.position, theme.light, framebuffer);
+
+                if ui.level_config.mods.state.visible {
+                    for preset in &ui.level_config.mods.mods {
+                        self.ui.draw_toggle_button(
+                            &preset.button.text,
+                            preset.selected,
+                            true,
+                            theme,
+                            framebuffer,
+                        );
                     }
-                },
-            );
-        }
+                }
+            },
+        );
     }
 }

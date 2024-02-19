@@ -4,7 +4,7 @@ impl EditorRender {
     pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI) {
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = &editor.model.options.theme;
+        let theme = editor.model.options.theme;
 
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);

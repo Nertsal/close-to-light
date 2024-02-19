@@ -195,7 +195,7 @@ impl GameRender {
         self.masked.update_size(framebuffer.size());
 
         // let camera = &geng::PixelPerfectCamera;
-        let theme = &model.options.theme;
+        let theme = model.options.theme;
         // let font_size = framebuffer.size().y as f32 * 0.05;
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
