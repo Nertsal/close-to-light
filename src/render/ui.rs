@@ -25,6 +25,45 @@ impl UiRender {
         }
     }
 
+    pub fn draw_window(
+        &self,
+        main: Aabb2<f32>,
+        head: Option<Aabb2<f32>>,
+        outline_width: f32,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+        inner: impl FnOnce(&mut ugli::Framebuffer),
+    ) {
+        // Fill
+        if let Some(head) = head {
+            self.draw_quad(head, theme.dark, framebuffer);
+        }
+        self.draw_quad(main.extend_uniform(-outline_width), theme.dark, framebuffer);
+
+        // TODO: mask inner?
+        inner(framebuffer);
+
+        // Outline
+        if let Some(head) = head {
+            self.draw_outline(
+                head.extend_up(outline_width),
+                outline_width,
+                theme.light,
+                framebuffer,
+            );
+        }
+        self.draw_outline(main, outline_width, theme.light, framebuffer);
+        if let Some(head) = head {
+            self.draw_quad(
+                head.extend_uniform(-outline_width)
+                    .extend_down(-outline_width)
+                    .extend_up(outline_width * 3.0),
+                theme.dark,
+                framebuffer,
+            );
+        }
+    }
+
     pub fn draw_texture(
         &self,
         quad: Aabb2<f32>,
