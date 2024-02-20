@@ -24,6 +24,8 @@ struct BoardUpdate {
 }
 
 pub struct Leaderboard {
+    /// Logged in as user with a name.
+    pub user: Option<String>,
     client: Option<Arc<Nertboard>>,
     task: Option<Task<anyhow::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
@@ -33,6 +35,7 @@ pub struct Leaderboard {
 impl Clone for Leaderboard {
     fn clone(&self) -> Self {
         Self {
+            user: self.user.clone(),
             client: self.client.as_ref().map(Arc::clone),
             task: None,
             status: LeaderboardStatus::None,
@@ -87,11 +90,16 @@ impl Leaderboard {
             Arc::new(ctl_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap())
         });
         Self {
+            user: None,
             client,
             task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
         }
+    }
+
+    pub fn client(&self) -> Option<&Nertboard> {
+        self.client.as_deref()
     }
 
     /// The leaderboard needs to be polled to make progress.

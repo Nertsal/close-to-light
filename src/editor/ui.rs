@@ -101,26 +101,17 @@ impl EditorUI {
         &mut self,
         editor: &mut Editor,
         screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: Time,
-        geng: &Geng,
+        context: &mut UiContext,
     ) -> bool {
         let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
         let font_size = screen.height() * 0.03;
         let layout_size = screen.height() * 0.03;
 
-        let mut context = UiContext {
-            theme: editor.model.options.theme,
-            layout_size,
-            font_size,
-            can_focus: true,
-            cursor,
-            delta_time: delta_time.as_f32(),
-            mods: KeyModifiers::from_window(geng.window()),
-        };
+        context.font_size = font_size;
+        context.layout_size = layout_size;
 
-        self.screen.update(screen, &context);
+        self.screen.update(screen, context);
 
         {
             let max_size = screen.size() * 0.75;
@@ -132,7 +123,7 @@ impl EditorUI {
             let game_size = vec2(game_height * ratio, game_height);
 
             let game = screen.align_aabb(game_size, vec2(0.5, 0.5));
-            self.game.update(game, &context);
+            self.game.update(game, context);
         }
 
         let mut main = screen;
@@ -140,12 +131,12 @@ impl EditorUI {
         let mut top_bar = main.cut_top(font_size * 1.5);
 
         let help = top_bar.cut_left(layout_size * 3.0);
-        self.help.update(help, &mut context);
+        self.help.update(help, context);
 
         let help_text = Aabb2::point(help.bottom_right())
             .extend_right(layout_size * 12.0)
             .extend_down(font_size * HELP.lines().count() as f32);
-        self.help_text.update(help_text, &mut context);
+        self.help_text.update(help_text, context);
         context.update_focus(self.help_text.state.hovered);
         if self.help.state.hovered {
             self.help_text.show();
@@ -154,7 +145,7 @@ impl EditorUI {
                 self.help.state.position.top_left(),
                 self.help_text.state.position.bottom_right(),
             )
-            .contains(cursor.position)
+            .contains(context.cursor.position)
         {
             self.help_text.hide();
         }
@@ -164,7 +155,7 @@ impl EditorUI {
             .extend_positive(vec2(layout_size * 5.0, top_bar.height()));
         let tabs_pos = tab.stack(vec2(tab.width() + layout_size, 0.0), tabs.len());
         for (tab, pos) in tabs.into_iter().zip(tabs_pos) {
-            tab.update(pos, &mut context);
+            tab.update(pos, context);
         }
 
         if self.tab_edit.text.state.clicked {
@@ -177,8 +168,8 @@ impl EditorUI {
 
         let main = main.extend_down(-layout_size).extend_up(-layout_size * 3.0);
 
-        self.edit.update(main, &mut context, editor);
-        self.config.update(main, &mut context, editor);
+        self.edit.update(main, context, editor);
+        self.config.update(main, context, editor);
 
         context.can_focus
     }

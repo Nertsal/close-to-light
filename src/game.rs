@@ -1,7 +1,7 @@
 mod ui;
 
-use self::ui::CursorContext;
 pub use self::ui::GameUI;
+use self::ui::UiContext;
 
 use crate::{leaderboard::Leaderboard, prelude::*, render::game::GameRender};
 
@@ -17,9 +17,9 @@ pub struct Game {
     delta_time: Time,
 
     active_touch: Option<u64>,
-    cursor: CursorContext,
     ui: GameUI,
     ui_focused: bool,
+    ui_context: UiContext,
 }
 
 #[derive(Debug, Clone)]
@@ -59,16 +59,16 @@ impl Game {
             transition: None,
             render: GameRender::new(geng, assets),
 
-            model,
-            debug_mode: false,
-
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
 
             active_touch: None,
-            cursor: CursorContext::new(),
             ui: GameUI::new(assets),
             ui_focused: false,
+            ui_context: UiContext::new(geng, model.options.theme),
+
+            model,
+            debug_mode: false,
         }
     }
 }
@@ -91,14 +91,12 @@ impl geng::State for Game {
             self.ui_focused = self.ui.layout(
                 &mut self.model,
                 Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                self.cursor,
-                self.delta_time.as_f32(),
-                &self.geng,
+                &mut self.ui_context,
             );
             self.render
                 .draw_ui(&self.ui, &self.model, self.debug_mode, framebuffer);
         }
-        self.cursor.scroll = 0.0;
+        self.ui_context.frame_end();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -110,16 +108,16 @@ impl geng::State for Game {
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
-                self.cursor.scroll += delta as f32;
+                self.ui_context.cursor.scroll += delta as f32;
             }
             geng::Event::CursorMove { position } => {
-                self.cursor.position = position.as_f32();
+                self.ui_context.cursor.position = position.as_f32();
             }
             geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
                 self.active_touch = Some(touch.id);
             }
             geng::Event::TouchMove(touch) if Some(touch.id) == self.active_touch => {
-                self.cursor.position = touch.position.as_f32();
+                self.ui_context.cursor.position = touch.position.as_f32();
             }
             geng::Event::TouchEnd(touch) if Some(touch.id) == self.active_touch => {
                 self.active_touch = None;
@@ -135,6 +133,9 @@ impl geng::State for Game {
         if let Some(player) = self.model.leaderboard.loaded.player {
             self.model.player.info.id = player;
         }
+
+        self.ui_context
+            .update(self.geng.window(), delta_time.as_f32());
 
         if let Some(transition) = self.model.transition.take() {
             match transition {
@@ -177,7 +178,7 @@ impl geng::State for Game {
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as _);
 
-        let pos = self.cursor.position;
+        let pos = self.ui_context.cursor.position;
         let game_pos = geng_utils::layout::fit_aabb(
             self.render.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),

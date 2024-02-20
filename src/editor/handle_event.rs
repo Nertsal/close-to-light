@@ -204,7 +204,7 @@ impl EditorState {
             },
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
-                self.cursor.scroll += delta;
+                self.ui_context.cursor.scroll += delta;
                 if !self.ui_focused && self.ui.edit.state.visible {
                     let scroll = r32(delta.signum());
                     if ctrl {
@@ -266,7 +266,7 @@ impl EditorState {
                 }
             }
             geng::Event::CursorMove { position } => {
-                self.cursor.position = position.as_f32();
+                self.ui_context.cursor.position = position.as_f32();
                 if let Some(drag) = &mut self.drag {
                     drag.moved = true;
                 }
@@ -325,7 +325,11 @@ impl EditorState {
     }
 
     fn cursor_down(&mut self) {
-        if self.ui.game.position.contains(self.cursor.position)
+        if self
+            .ui
+            .game
+            .position
+            .contains(self.ui_context.cursor.position)
             || self.editor.render_options.hide_ui
         {
             self.game_cursor_down();
@@ -397,7 +401,7 @@ impl EditorState {
         self.end_drag();
         self.drag = Some(Drag {
             moved: false,
-            from_screen: self.cursor.position,
+            from_screen: self.ui_context.cursor.position,
             from_world: self.editor.cursor_world_pos,
             from_time: self.editor.current_beat,
             target,

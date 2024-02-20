@@ -18,27 +18,19 @@ impl GameUI {
         &mut self,
         model: &mut Model,
         screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: f32,
-        geng: &Geng,
+        context: &mut UiContext,
     ) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
 
-        let mut context = UiContext {
-            theme: model.options.theme,
-            layout_size,
-            font_size: screen.height() * 0.07,
-            can_focus: true,
-            cursor,
-            delta_time,
-            mods: KeyModifiers::from_window(geng.window()),
-        };
+        context.layout_size = layout_size;
+        context.font_size = screen.height() * 0.07;
+
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, &mut context);
+                $widget.update($position, context);
             }};
         }
 

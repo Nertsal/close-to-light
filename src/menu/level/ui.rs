@@ -12,7 +12,7 @@ pub struct MenuUI {
     pub options_head: TextWidget,
     pub options: OptionsWidget,
     pub profile_head: IconWidget,
-    pub profile: WidgetState,
+    pub profile: ProfileWidget,
     pub leaderboard: LeaderboardWidget,
     pub level_config: LevelConfigWidget,
 }
@@ -36,7 +36,7 @@ impl MenuUI {
                 ],
             ),
             profile_head: IconWidget::new(&assets.sprites.head),
-            profile: WidgetState::new(),
+            profile: ProfileWidget::new(),
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
         }
@@ -47,30 +47,22 @@ impl MenuUI {
         &mut self,
         state: &mut MenuState,
         screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: f32,
-        geng: &Geng,
+        context: &mut UiContext,
     ) -> bool {
         // Fix aspect
         let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
 
-        let mut context = UiContext {
-            theme: state.options.theme,
-            layout_size,
-            font_size: screen.height() * 0.06,
-            can_focus: true,
-            cursor,
-            delta_time,
-            mods: KeyModifiers::from_window(geng.window()),
-        };
+        context.layout_size = layout_size;
+        context.font_size = screen.height() * 0.06;
+
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, &mut context);
+                $widget.update($position, context);
             }};
             ($widget:expr, $position:expr, $state:expr) => {{
-                $widget.update($position, &mut context, $state);
+                $widget.update($position, context, $state);
             }};
         }
 
@@ -140,11 +132,12 @@ impl MenuUI {
 
         {
             // Profile
-            let width = layout_size * 50.0;
-            let height = layout_size * 15.0;
+            let width = layout_size * 15.0;
+            let height = layout_size * 17.0;
 
-            let profile = Aabb2::point(screen.align_pos(vec2(0.5, 1.0)))
-                .extend_symmetric(vec2(width, 0.0) / 2.0)
+            let profile = Aabb2::point(profile_head.top_right())
+                .extend_right(width * 0.1)
+                .extend_left(width * 0.9)
                 .extend_up(height);
 
             let t = state.show_profile.time.get_ratio().as_f32();
@@ -159,15 +152,15 @@ impl MenuUI {
             context.update_focus(self.profile_head.state.hovered);
 
             // let old_profile = state.profile.clone();
-            update!(self.profile, profile); //, &mut state.profile);
-            context.update_focus(self.profile.hovered);
+            update!(self.profile, profile, &mut state.leaderboard);
+            context.update_focus(self.profile.state.hovered);
             // if state.profile != old_profile {
             //     preferences::save(profile_STORAGE, &state.profile);
             // }
 
             if self.profile_head.state.hovered && state.show_profile.time.is_min() {
                 state.profile_request = Some(WidgetRequest::Open);
-            } else if !self.profile.hovered && !self.profile_head.state.hovered {
+            } else if !self.profile.state.hovered && !self.profile_head.state.hovered {
                 state.profile_request = Some(WidgetRequest::Close);
             }
         }
@@ -294,7 +287,7 @@ impl MenuUI {
                     0.0
                 };
                 let delta = (target * group.selected_time.max() - group.selected_time.value())
-                    .clamp_abs(delta_time);
+                    .clamp_abs(context.delta_time);
                 group.selected_time.change(delta);
             }
 
@@ -362,7 +355,7 @@ impl MenuUI {
                         0.0
                     };
                     let delta = (target * level.selected_time.max() - level.selected_time.value())
-                        .clamp_abs(delta_time);
+                        .clamp_abs(context.delta_time);
                     level.selected_time.change(delta);
                 }
 

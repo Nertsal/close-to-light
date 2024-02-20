@@ -104,7 +104,7 @@ impl MenuRender {
         let theme = state.options.theme;
         let width = 12.0;
         let head = ui.profile_head.state.position;
-        let profile = ui.profile.position.extend_up(width);
+        let profile = ui.profile.state.position.extend_up(width);
 
         self.ui.draw_window(
             profile,
@@ -112,7 +112,13 @@ impl MenuRender {
             width,
             theme,
             framebuffer,
-            |_framebuffer| {},
+            |framebuffer| {
+                self.ui.draw_text(&ui.profile.offline, framebuffer);
+                let register = &ui.profile.register;
+                if register.state.visible {}
+                let logged = &ui.profile.logged;
+                if logged.state.visible {}
+            },
         );
 
         self.ui.draw_icon(&ui.profile_head, framebuffer);

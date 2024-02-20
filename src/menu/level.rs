@@ -7,11 +7,9 @@ use super::*;
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
     render::{mask::MaskedRender, menu::MenuRender},
-    ui::widget::CursorContext,
+    ui::widget::UiContext,
     Secrets,
 };
-
-use geng::MouseButton;
 
 pub struct LevelMenu {
     geng: Geng,
@@ -29,7 +27,7 @@ pub struct LevelMenu {
 
     ui: MenuUI,
     ui_focused: bool,
-    cursor: CursorContext,
+    ui_context: UiContext,
 
     camera: Camera2d,
     state: MenuState,
@@ -134,7 +132,7 @@ impl LevelMenu {
 
             ui: MenuUI::new(assets),
             ui_focused: false,
-            cursor: CursorContext::new(),
+            ui_context: UiContext::new(geng, options.theme),
 
             camera: Camera2d {
                 center: vec2::ZERO,
@@ -211,7 +209,7 @@ impl LevelMenu {
             return;
         };
 
-        self.cursor.position = vec2::ZERO;
+        self.ui_context.cursor.position = vec2::ZERO;
         self.play_button.hover_time.set(Time::ZERO);
 
         let future = {
@@ -504,9 +502,7 @@ impl geng::State for LevelMenu {
             self.ui_focused = self.ui.layout(
                 &mut self.state,
                 Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                self.cursor,
-                self.last_delta_time.as_f32(),
-                &self.geng,
+                &mut self.ui_context,
             );
             self.render
                 .draw_ui(&self.ui, &self.state, &mut masked.color);
@@ -550,7 +546,7 @@ impl geng::State for LevelMenu {
 
             if pixelated {}
         }
-        self.cursor.scroll = 0.0;
+        self.ui_context.frame_end();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -573,10 +569,10 @@ impl geng::State for LevelMenu {
                 }
             }
             geng::Event::Wheel { delta } => {
-                self.cursor.scroll += delta as f32;
+                self.ui_context.cursor.scroll += delta as f32;
             }
             geng::Event::CursorMove { position } => {
-                self.cursor.position = position.as_f32();
+                self.ui_context.cursor.position = position.as_f32();
             }
             _ => (),
         }
@@ -591,17 +587,16 @@ impl geng::State for LevelMenu {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
 
-        self.cursor.update(geng_utils::key::is_key_pressed(
-            self.geng.window(),
-            [MouseButton::Left],
-        ));
+        self.ui_context
+            .update(self.geng.window(), delta_time.as_f32());
+        self.ui_context.theme = self.state.options.theme;
 
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
             vec2(0.5, 0.5),
         );
-        let pos = self.cursor.position - game_pos.bottom_left();
+        let pos = self.ui_context.cursor.position - game_pos.bottom_left();
         let cursor_world = self.camera.screen_to_world(game_pos.size(), pos);
 
         self.state.player.collider.position = cursor_world.as_r32();

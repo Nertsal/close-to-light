@@ -14,10 +14,8 @@ use crate::{
     leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
-    ui::widget::CursorContext,
+    ui::widget::UiContext,
 };
-
-use geng::MouseButton;
 
 pub struct EditorState {
     geng: Geng,
@@ -27,9 +25,9 @@ pub struct EditorState {
     editor: Editor,
     framebuffer_size: vec2<usize>,
     delta_time: Time,
-    cursor: CursorContext,
     ui: EditorUI,
     ui_focused: bool,
+    ui_context: UiContext,
     drag: Option<Drag>,
 }
 
@@ -137,9 +135,9 @@ impl EditorState {
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
-            cursor: CursorContext::new(),
             ui: EditorUI::new(&assets),
             ui_focused: false,
+            ui_context: UiContext::new(&geng, model.options.theme),
             drag: None,
             editor: Editor {
                 render_options: RenderOptions {
@@ -302,10 +300,8 @@ impl geng::State for EditorState {
             .music
             .set_volume(self.editor.model.options.volume.music());
 
-        self.cursor.update(geng_utils::key::is_key_pressed(
-            self.geng.window(),
-            [MouseButton::Left],
-        ));
+        self.ui_context
+            .update(self.geng.window(), delta_time.as_f32());
 
         self.update_drag();
 
@@ -360,7 +356,7 @@ impl geng::State for EditorState {
             }
         }
 
-        let pos = self.cursor.position;
+        let pos = self.ui_context.cursor.position;
         let pos = pos - self.ui.screen.position.bottom_left();
         let pos = self
             .editor
@@ -388,11 +384,9 @@ impl geng::State for EditorState {
         self.ui_focused = !self.ui.layout(
             &mut self.editor,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-            self.cursor,
-            self.delta_time,
-            &self.geng,
+            &mut self.ui_context,
         );
-        self.cursor.scroll = 0.0;
+        self.ui_context.frame_end();
         self.editor.model.camera.fov = 10.0 / self.editor.view_zoom;
         self.render.draw_editor(&self.editor, &self.ui, framebuffer);
     }

@@ -38,7 +38,7 @@ enum TextTarget {
     Password,
 }
 
-pub struct TextEdit<S> {
+struct TextEdit<S> {
     pub geng: Geng,
     pub state: Option<TextEditState<S>>,
 }
