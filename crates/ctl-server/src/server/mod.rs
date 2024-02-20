@@ -2,7 +2,7 @@ mod auth;
 mod group;
 mod level;
 mod music;
-mod player;
+mod users;
 
 #[cfg(test)]
 mod tests;
@@ -75,9 +75,9 @@ pub async fn run(port: u16, database: DatabasePool, config: AppConfig) -> color_
 
     let router = Router::new()
         .route("/", get(get_root))
-        .merge(auth::router());
+        .merge(auth::router())
+        .merge(users::router());
 
-    let router = player::route(router);
     let router = music::route(router);
     let router = group::route(router);
     let router = level::route(router);

@@ -24,7 +24,10 @@ impl Nertboard {
         Ok(Self {
             url: url.into_url()?,
             api_key,
-            client: Client::new(),
+            client: Client::builder()
+                .cookie_store(true)
+                .build()
+                .context("when building the client")?,
         })
     }
 
