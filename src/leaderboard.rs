@@ -27,7 +27,7 @@ pub struct Leaderboard {
     /// Logged in as user with a name.
     pub user: Option<String>,
     client: Option<Arc<Nertboard>>,
-    log_task: Option<Task<anyhow::Result<String>>>,
+    log_task: Option<Task<anyhow::Result<Result<String, String>>>>,
     task: Option<Task<anyhow::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
@@ -112,10 +112,7 @@ impl Leaderboard {
 
         if let Some(client) = &self.client {
             let client = Arc::clone(client);
-            let future = async move {
-                client.login(&creds).await?;
-                Ok(creds.username)
-            };
+            let future = async move { Ok(client.login(&creds).await?.map(|()| creds.username)) };
             self.log_task = Some(Task::new(future));
             self.user = None;
         }
@@ -129,9 +126,27 @@ impl Leaderboard {
         if let Some(client) = &self.client {
             let client = Arc::clone(client);
             let future = async move {
-                client.register(&creds).await?;
-                client.login(&creds).await?;
-                Ok(creds.username)
+                if let Err(err) = client.register(&creds).await? {
+                    return Ok(Err(err));
+                }
+                Ok(client.login(&creds).await?.map(|()| creds.username))
+            };
+            self.log_task = Some(Task::new(future));
+            self.user = None;
+        }
+    }
+
+    pub fn logout(&mut self) {
+        if self.log_task.is_some() {
+            return;
+        }
+
+        if let Some(client) = &self.client {
+            let client = Arc::clone(client);
+            let future = async move {
+                client.logout().await?;
+                // TODO: log out is not an error
+                Ok(Err("Logged out".to_string()))
             };
             self.log_task = Some(Task::new(future));
             self.user = None;
@@ -144,9 +159,13 @@ impl Leaderboard {
             if let Some(res) = task.poll() {
                 self.log_task = None;
                 match res {
-                    Ok(Ok(user)) => {
-                        log::debug!("Logged in as {}", user);
+                    Ok(Ok(Ok(user))) => {
+                        log::debug!("Logged in as {:?}", user);
                         self.user = Some(user);
+                    }
+                    Ok(Ok(Err(err))) => {
+                        log::error!("Failed to log in: {}", err);
+                        // TODO: notification message
                     }
                     Ok(Err(err)) | Err(err) => {
                         log::error!("Failed to log in: {:?}", err);

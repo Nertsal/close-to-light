@@ -61,24 +61,23 @@ impl StatefulWidget for ProfileWidget {
             (true, true) => (false, false, true),
         };
         if off {
-            self.offline.show()
+            self.offline.show();
+            self.offline.update(main, context);
         } else {
-            self.offline.hide()
+            self.offline.hide();
         }
         if reg {
-            self.register.show()
+            self.register.show();
+            self.register.update(main, context, state);
         } else {
-            self.register.hide()
+            self.register.hide();
         }
         if log {
-            self.logged.show()
+            self.logged.show();
+            self.logged.update(main, context, state);
         } else {
-            self.logged.hide()
+            self.logged.hide();
         }
-
-        self.offline.update(main, context);
-        self.register.update(main, context, state);
-        self.logged.update(main, context, state);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -127,11 +126,19 @@ impl StatefulWidget for LoggedWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
+        if let Some(user) = &state.user {
+            self.username.text = user.to_owned();
+        }
+
         let main = position;
 
         let rows = main.split_rows(2);
         self.username.update(rows[0], context);
         self.logout.update(rows[1], context);
+
+        if self.logout.text.state.clicked {
+            state.logout();
+        }
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
