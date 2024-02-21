@@ -22,7 +22,6 @@ use geng::prelude::*;
 const FIXED_FPS: f64 = 60.0; // TODO: upgrade to 120 i think
 
 const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
-const PLAYER_STORAGE: &str = "player";
 const OPTIONS_STORAGE: &str = "options";
 const HIGHSCORES_STORAGE: &str = "highscores";
 
@@ -56,7 +55,6 @@ pub struct Secrets {
 #[derive(Deserialize, Clone)]
 pub struct LeaderboardSecrets {
     url: String,
-    key: String,
 }
 
 fn main() {
@@ -88,7 +86,6 @@ fn main() {
             Some(Secrets {
                 leaderboard: LeaderboardSecrets {
                     url: option_env!("LEADERBOARD_URL")?.to_string(),
-                    key: option_env!("LEADERBOARD_KEY")?.to_string(),
                 },
             })
         });

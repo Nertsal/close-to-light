@@ -8,9 +8,8 @@ mod users;
 mod tests;
 
 use crate::{
-    api_key::*,
     database::{
-        auth::AuthSession,
+        auth::{AuthSession, User},
         error::{RequestError, RequestResult as Result},
         types::{DBRow, DatabasePool},
     },
@@ -21,7 +20,7 @@ use crate::{
 use std::path::PathBuf;
 
 use axum_login::AuthManagerLayerBuilder;
-use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, PlayerInfo};
+use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
 
 use axum::{
     body::Body,
@@ -136,6 +135,10 @@ fn cmp_auth(auth: AuthorityLevel, required: AuthorityLevel) -> Result<()> {
     } else {
         Ok(())
     }
+}
+
+async fn check_user(session: &AuthSession) -> Result<&User> {
+    session.user.as_ref().ok_or(RequestError::Unathorized)
 }
 
 async fn check_auth(session: &AuthSession, app: &App, required: AuthorityLevel) -> Result<()> {

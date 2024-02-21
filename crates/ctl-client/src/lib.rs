@@ -8,22 +8,20 @@ use ctl_core::{
         anyhow::{Context, Result},
         log, serde_json, DeserializeOwned, Id, MusicInfo, MusicUpdate,
     },
-    Player, ScoreEntry,
+    ScoreEntry, SubmitScore,
 };
 
 use reqwest::{Client, Response, Url};
 
 pub struct Nertboard {
     url: Url,
-    api_key: Option<String>,
     client: Client,
 }
 
 impl Nertboard {
-    pub fn new(url: impl reqwest::IntoUrl, api_key: Option<String>) -> Result<Self> {
+    pub fn new(url: impl reqwest::IntoUrl) -> Result<Self> {
         Ok(Self {
             url: url.into_url()?,
-            api_key,
             client: Client::builder()
                 .cookie_store(true)
                 .build()
@@ -31,36 +29,20 @@ impl Nertboard {
         })
     }
 
-    pub async fn create_player(&self, name: &str) -> Result<Player> {
-        let url = self.url.join("player/create/").unwrap();
-        let req = self.client.post(url).json(&name);
-        let response = req.send().await?;
-        let res = read_json(response).await?;
-        Ok(res)
-    }
-
     pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
         let url = self.url.join(&format!("levels/{}/scores/", level)).unwrap();
-        let mut req = self.client.get(url);
-        if let Some(key) = &self.api_key {
-            req = req.header("api-key", key);
-        }
+        let req = self.client.get(url);
 
         let response = req.send().await?;
         let res = read_json(response).await?;
         Ok(res)
     }
 
-    pub async fn submit_score(&self, level: Id, player: &Player, entry: &ScoreEntry) -> Result<()> {
-        let mut req = self
+    pub async fn submit_score(&self, level: Id, entry: &SubmitScore) -> Result<()> {
+        let req = self
             .client
             .post(self.url.join(&format!("levels/{}/scores/", level)).unwrap())
-            .header("player-key", &player.key);
-        if let Some(key) = &self.api_key {
-            req = req.header("api-key", key);
-        }
-
-        let req = req.json(entry);
+            .json(entry);
 
         let response = req.send().await?;
         get_body(response).await?;
@@ -80,10 +62,7 @@ impl Nertboard {
     pub async fn update_music(&self, music: Id, update: &MusicUpdate) -> Result<()> {
         let url = self.url.join(&format!("music/{}", music)).unwrap();
 
-        let mut req = self.client.patch(url).json(update);
-        if let Some(key) = &self.api_key {
-            req = req.header("api-key", key);
-        }
+        let req = self.client.patch(url).json(update);
 
         let response = req.send().await.context("when sending request")?;
         get_body(response).await?;
@@ -93,10 +72,7 @@ impl Nertboard {
     pub async fn music_author_add(&self, music: Id, artist: Id) -> Result<()> {
         let url = self.url.join(&format!("music/{}/authors", music)).unwrap();
 
-        let mut req = self.client.post(url).query(&[("id", artist)]);
-        if let Some(key) = &self.api_key {
-            req = req.header("api-key", key);
-        }
+        let req = self.client.post(url).query(&[("id", artist)]);
 
         let response = req.send().await.context("when sending request")?;
         get_body(response).await?;
@@ -106,10 +82,7 @@ impl Nertboard {
     pub async fn music_author_remove(&self, music: Id, artist: Id) -> Result<()> {
         let url = self.url.join(&format!("music/{}/authors", music)).unwrap();
 
-        let mut req = self.client.delete(url).query(&[("id", artist)]);
-        if let Some(key) = &self.api_key {
-            req = req.header("api-key", key);
-        }
+        let req = self.client.delete(url).query(&[("id", artist)]);
 
         let response = req.send().await.context("when sending request")?;
         get_body(response).await?;

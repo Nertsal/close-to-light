@@ -6,7 +6,7 @@ use crate::{
     ui::layout::{self, AreaOps},
 };
 
-use ctl_client::core::types::PlayerInfo;
+use ctl_client::core::types::UserInfo;
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
@@ -51,7 +51,7 @@ impl LeaderboardWidget {
         &mut self,
         state: &LeaderboardStatus,
         board: &LoadedBoard,
-        player: &PlayerInfo,
+        user: &UserInfo,
     ) {
         // let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
         self.rows.clear();
@@ -66,10 +66,10 @@ impl LeaderboardWidget {
                 }
             }
         }
-        self.load_scores(board, player);
+        self.load_scores(board, user);
     }
 
-    pub fn load_scores(&mut self, board: &LoadedBoard, player: &PlayerInfo) {
+    pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {
         self.rows = board
             .filtered
             .iter()
@@ -77,9 +77,9 @@ impl LeaderboardWidget {
             .map(|(rank, entry)| {
                 LeaderboardEntryWidget::new(
                     (rank + 1).to_string(),
-                    &entry.player.name,
+                    &entry.user.name,
                     entry.score,
-                    entry.player.id == player.id,
+                    entry.user.id == user.id,
                 )
             })
             .collect();
@@ -90,7 +90,7 @@ impl LeaderboardWidget {
                 self.highscore.rank.text = board
                     .my_position
                     .map_or("???".to_string(), |rank| format!("{}.", rank + 1));
-                self.highscore.player.text = player.name.to_string();
+                self.highscore.player.text = user.name.to_string();
                 self.highscore.score.text = format!("{}", score.score);
             }
         }

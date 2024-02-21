@@ -30,7 +30,7 @@ async fn group_get(
             .fetch_all(&app.database)
             .await?;
 
-    let authors: Vec<(Id, PlayerInfo)> = sqlx::query(
+    let authors: Vec<(Id, UserInfo)> = sqlx::query(
         "
 SELECT level_id, players.player_id, name
 FROM level_authors
@@ -40,7 +40,7 @@ JOIN players ON level_authors.player_id = players.player_id
     .try_map(|row: DBRow| {
         Ok((
             row.try_get("level_id")?,
-            PlayerInfo {
+            UserInfo {
                 id: row.try_get("player_id")?,
                 name: row.try_get("name")?,
             },

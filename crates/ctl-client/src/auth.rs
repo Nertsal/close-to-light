@@ -1,6 +1,6 @@
 use super::*;
 
-use ctl_core::auth::Credentials;
+use ctl_core::{auth::Credentials, types::UserInfo};
 
 impl Nertboard {
     pub async fn register(&self, creds: &Credentials) -> Result<Result<(), String>> {
@@ -16,16 +16,15 @@ impl Nertboard {
         }
     }
 
-    pub async fn login(&self, creds: &Credentials) -> Result<Result<(), String>> {
+    pub async fn login(&self, creds: &Credentials) -> Result<Result<UserInfo, String>> {
         let url = self.url.join("login")?;
         let req = self.client.post(url).form(creds);
         let response = req.send().await.context("when sending request")?;
         let status = response.status();
-        let response = get_body(response).await?;
         if status.is_server_error() || status.is_client_error() {
-            Ok(Err(response))
+            Ok(Err(get_body(response).await?))
         } else {
-            Ok(Ok(()))
+            Ok(Ok(read_json(response).await?))
         }
     }
 

@@ -1,4 +1,3 @@
-mod api_key;
 mod database;
 mod prelude;
 mod server;

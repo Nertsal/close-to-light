@@ -5,7 +5,7 @@ use crate::{
 };
 
 use ctl_client::{
-    core::{auth::Credentials, types::PlayerInfo, Player, ScoreEntry},
+    core::{auth::Credentials, types::UserInfo, ScoreEntry, SubmitScore},
     Nertboard,
 };
 use geng::prelude::*;
@@ -19,7 +19,6 @@ pub enum LeaderboardStatus {
 }
 
 struct BoardUpdate {
-    player: Option<Id>,
     scores: Vec<ScoreEntry>,
 }
 
@@ -27,7 +26,7 @@ pub struct Leaderboard {
     /// Logged in as user with a name.
     pub user: Option<String>,
     client: Option<Arc<Nertboard>>,
-    log_task: Option<Task<anyhow::Result<Result<String, String>>>>,
+    log_task: Option<Task<anyhow::Result<Result<UserInfo, String>>>>,
     task: Option<Task<anyhow::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
@@ -88,9 +87,8 @@ impl ScoreMeta {
 
 impl Leaderboard {
     pub fn new(secrets: Option<LeaderboardSecrets>) -> Self {
-        let client = secrets.map(|secrets| {
-            Arc::new(ctl_client::Nertboard::new(secrets.url, Some(secrets.key)).unwrap())
-        });
+        let client =
+            secrets.map(|secrets| Arc::new(ctl_client::Nertboard::new(secrets.url).unwrap()));
         Self {
             user: None,
             client,
@@ -112,7 +110,7 @@ impl Leaderboard {
 
         if let Some(client) = &self.client {
             let client = Arc::clone(client);
-            let future = async move { Ok(client.login(&creds).await?.map(|()| creds.username)) };
+            let future = async move { client.login(&creds).await };
             self.log_task = Some(Task::new(future));
             self.user = None;
         }
@@ -129,7 +127,7 @@ impl Leaderboard {
                 if let Err(err) = client.register(&creds).await? {
                     return Ok(Err(err));
                 }
-                Ok(client.login(&creds).await?.map(|()| creds.username))
+                client.login(&creds).await
             };
             self.log_task = Some(Task::new(future));
             self.user = None;
@@ -161,7 +159,8 @@ impl Leaderboard {
                 match res {
                     Ok(Ok(Ok(user))) => {
                         log::debug!("Logged in as {:?}", user);
-                        self.user = Some(user);
+                        self.user = Some(user.name);
+                        self.loaded.player = Some(user.id);
                     }
                     Ok(Ok(Err(err))) => {
                         log::error!("Failed to log in: {}", err);
@@ -181,7 +180,6 @@ impl Leaderboard {
                     Ok(Ok(update)) => {
                         log::debug!("Successfully loaded the leaderboard");
                         self.status = LeaderboardStatus::Done;
-                        self.loaded.player = update.player;
                         self.load_scores(update.scores);
                     }
                     Ok(Err(err)) | Err(err) => {
@@ -229,10 +227,7 @@ impl Leaderboard {
                 board
                     .fetch_scores(level)
                     .await
-                    .map(|scores| BoardUpdate {
-                        player: None,
-                        scores,
-                    })
+                    .map(|scores| BoardUpdate { scores })
                     .map_err(anyhow::Error::from)
             };
             self.task = Some(Task::new(future));
@@ -240,7 +235,7 @@ impl Leaderboard {
         }
     }
 
-    pub fn submit(&mut self, name: String, score: Option<i32>, level: Id, meta: ScoreMeta) {
+    pub fn submit(&mut self, score: Option<i32>, level: Id, meta: ScoreMeta) {
         let score = score.map(|score| SavedScore {
             level,
             score,
@@ -254,48 +249,21 @@ impl Leaderboard {
             let board = Arc::clone(board);
             let future = async move {
                 log::debug!("Submitting a score...");
-                let name = name.as_str();
-                let player =
-                    if let Some(mut player) = preferences::load::<Player>(crate::PLAYER_STORAGE) {
-                        log::debug!("Leaderboard: returning player");
-                        if player.name == name {
-                            // leaderboard.as_player(player.clone());
-                            player
-                        } else {
-                            log::debug!("Leaderboard: name has changed");
-                            player.name = name.to_owned();
-                            preferences::save(crate::PLAYER_STORAGE, &player);
-                            player.clone()
-                        }
-                    } else {
-                        log::debug!("Leaderboard: new player");
-                        let player = board.create_player(name).await.unwrap();
-                        preferences::save(crate::PLAYER_STORAGE, &player);
-                        player.clone()
-                    };
-
                 let meta_str = meta_str(&meta);
-                let score = score.map(|score| ScoreEntry {
-                    player: PlayerInfo {
-                        id: player.id,
-                        name: name.to_owned(),
-                    },
+                let score = score.map(|score| SubmitScore {
                     score: score.score,
                     extra_info: Some(meta_str),
                 });
 
                 if let Some(score) = &score {
-                    board.submit_score(level, &player, score).await.unwrap();
+                    board.submit_score(level, score).await.unwrap();
                 }
 
                 let scores = board
                     .fetch_scores(level)
                     .await
                     .map_err(anyhow::Error::from)?;
-                Ok(BoardUpdate {
-                    player: Some(player.id),
-                    scores,
-                })
+                Ok(BoardUpdate { scores })
             };
             self.task = Some(Task::new(future));
             self.status = LeaderboardStatus::Pending;
@@ -349,7 +317,7 @@ impl LoadedBoard {
 
         // Filter for the same meta
         scores.retain(|entry| {
-            !entry.player.name.is_empty()
+            !entry.user.name.is_empty()
                 && entry.extra_info.as_ref().map_or(false, |info| {
                     serde_json::from_str::<ScoreMeta>(info)
                         .map_or(false, |entry_meta| entry_meta == self.meta)
@@ -362,8 +330,8 @@ impl LoadedBoard {
             let mut i = 0;
             let mut ids_seen = HashSet::new();
             while i < scores.len() {
-                if !ids_seen.contains(&scores[i].player.id) {
-                    ids_seen.insert(scores[i].player.id);
+                if !ids_seen.contains(&scores[i].user.id) {
+                    ids_seen.insert(scores[i].user.id);
                     i += 1;
                 } else {
                     scores.remove(i);

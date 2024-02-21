@@ -23,10 +23,7 @@ impl Nertboard {
         let file = File::open(path)
             .await
             .context("when opening the music file")?;
-        let mut req = self.client.post(url).body(file_to_body(file)).query(&music);
-        if let Some(key) = &self.api_key {
-            req = req.header("api-key", key);
-        }
+        let req = self.client.post(url).body(file_to_body(file)).query(&music);
 
         let response = req.send().await.context("when sending request")?;
         let res = read_json(response).await?;

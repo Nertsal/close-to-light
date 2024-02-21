@@ -84,7 +84,7 @@ async fn register(
     Ok(())
 }
 
-async fn login(mut session: AuthSession, Form(creds): Form<Credentials>) -> Result<()> {
+async fn login(mut session: AuthSession, Form(creds): Form<Credentials>) -> Result<Json<UserInfo>> {
     let user = match session.authenticate(creds.clone()).await {
         Ok(Some(user)) => user,
         Ok(None) => {
@@ -101,7 +101,10 @@ async fn login(mut session: AuthSession, Form(creds): Form<Credentials>) -> Resu
         return Err(RequestError::Internal);
     }
 
-    Ok(())
+    Ok(Json(UserInfo {
+        id: user.user_id,
+        name: user.username,
+    }))
 }
 
 async fn logout(mut session: AuthSession) -> Result<()> {

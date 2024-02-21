@@ -42,7 +42,7 @@ impl Game {
         leaderboard: Leaderboard,
         player_name: String,
     ) -> Self {
-        let player = PlayerInfo {
+        let player = UserInfo {
             id: 0,
             name: player_name,
         };
@@ -151,12 +151,9 @@ impl geng::State for Game {
                     );
 
                     if submit_score {
-                        self.model.leaderboard.submit(
-                            player_name,
-                            score,
-                            self.model.level.level_meta.id,
-                            meta,
-                        );
+                        self.model
+                            .leaderboard
+                            .submit(score, self.model.level.level_meta.id, meta);
                     } else {
                         self.model.leaderboard.loaded.meta = meta.clone();
                         // Save highscores on lost runs only locally

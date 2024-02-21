@@ -25,11 +25,11 @@ pub struct MusicInfo {
 pub struct LevelInfo {
     pub id: Id,
     pub name: String,
-    pub authors: Vec<PlayerInfo>,
+    pub authors: Vec<UserInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlayerInfo {
+pub struct UserInfo {
     pub id: Id,
     pub name: String,
 }
