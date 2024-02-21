@@ -96,7 +96,7 @@ impl MenuUI {
 
         let options_head = top_bar.cut_right(context.font_size * 3.5);
 
-        {
+        let (options_head, options) = {
             // Options
             let width = layout_size * 50.0;
             let height = layout_size * 15.0;
@@ -109,28 +109,13 @@ impl MenuUI {
             let t = crate::util::smoothstep(t);
             let offset = -options.height() * t;
 
-            let options = options.translate(vec2(0.0, offset));
+            (
+                options_head.translate(vec2(0.0, offset)),
+                options.translate(vec2(0.0, offset)),
+            )
+        };
 
-            let head = options_head.translate(vec2(0.0, offset));
-
-            update!(self.options_head, head);
-            context.update_focus(self.options_head.state.hovered);
-
-            let old_options = state.options.clone();
-            update!(self.options, options, &mut state.options);
-            context.update_focus(self.options.state.hovered);
-            if state.options != old_options {
-                preferences::save(OPTIONS_STORAGE, &state.options);
-            }
-
-            if self.options_head.state.hovered && state.show_options.time.is_min() {
-                state.options_request = Some(WidgetRequest::Open);
-            } else if !self.options.state.hovered && !self.options_head.state.hovered {
-                state.options_request = Some(WidgetRequest::Close);
-            }
-        }
-
-        {
+        let (profile_head, profile) = {
             // Profile
             let width = layout_size * 15.0;
             let height = layout_size * 17.0;
@@ -144,26 +129,42 @@ impl MenuUI {
             let t = crate::util::smoothstep(t);
             let offset = -profile.height() * t;
 
-            let profile = profile.translate(vec2(0.0, offset));
+            (
+                profile_head.translate(vec2(0.0, offset)),
+                profile.translate(vec2(0.0, offset)),
+            )
+        };
 
-            let head = profile_head.translate(vec2(0.0, offset));
-
-            update!(self.profile_head, head);
-            context.update_focus(self.profile_head.state.hovered);
-
-            // let old_profile = state.profile.clone();
-            update!(self.profile, profile, &mut state.leaderboard);
-            context.update_focus(self.profile.state.hovered);
-            // if state.profile != old_profile {
-            //     preferences::save(profile_STORAGE, &state.profile);
-            // }
-
-            if self.profile_head.state.hovered && state.show_profile.time.is_min() {
-                state.profile_request = Some(WidgetRequest::Open);
-            } else if !self.profile.state.hovered && !self.profile_head.state.hovered {
-                state.profile_request = Some(WidgetRequest::Close);
-            }
+        // Options
+        let old_options = state.options.clone();
+        update!(self.options, options, &mut state.options);
+        context.update_focus(self.options.state.hovered);
+        if state.options != old_options {
+            preferences::save(OPTIONS_STORAGE, &state.options);
         }
+
+        if self.options_head.state.hovered && state.show_options.time.is_min() {
+            state.options_request = Some(WidgetRequest::Open);
+        } else if !self.options.state.hovered && !self.options_head.state.hovered {
+            state.options_request = Some(WidgetRequest::Close);
+        }
+
+        // Profile
+        update!(self.profile, profile, &mut state.leaderboard);
+        context.update_focus(self.profile.state.hovered);
+
+        if self.profile_head.state.hovered && state.show_profile.time.is_min() {
+            state.profile_request = Some(WidgetRequest::Open);
+        } else if !self.profile.state.hovered && !self.profile_head.state.hovered {
+            state.profile_request = Some(WidgetRequest::Close);
+        }
+
+        // Heads
+        update!(self.options_head, options_head);
+        context.update_focus(self.options_head.state.hovered);
+
+        update!(self.profile_head, profile_head);
+        context.update_focus(self.profile_head.state.hovered);
 
         {
             // Leaderboard
