@@ -5,7 +5,7 @@ use crate::{
 };
 
 use ctl_client::{
-    core::{types::PlayerInfo, Player, ScoreEntry},
+    core::{auth::Credentials, types::PlayerInfo, Player, ScoreEntry},
     Nertboard,
 };
 use geng::prelude::*;
@@ -27,6 +27,7 @@ pub struct Leaderboard {
     /// Logged in as user with a name.
     pub user: Option<String>,
     client: Option<Arc<Nertboard>>,
+    log_task: Option<Task<anyhow::Result<String>>>,
     task: Option<Task<anyhow::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
@@ -37,6 +38,7 @@ impl Clone for Leaderboard {
         Self {
             user: self.user.clone(),
             client: self.client.as_ref().map(Arc::clone),
+            log_task: None,
             task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard {
@@ -92,6 +94,7 @@ impl Leaderboard {
         Self {
             user: None,
             client,
+            log_task: None,
             task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
@@ -102,8 +105,56 @@ impl Leaderboard {
         self.client.as_deref()
     }
 
+    pub fn login(&mut self, creds: Credentials) {
+        if self.log_task.is_some() {
+            return;
+        }
+
+        if let Some(client) = &self.client {
+            let client = Arc::clone(client);
+            let future = async move {
+                client.login(&creds).await?;
+                Ok(creds.username)
+            };
+            self.log_task = Some(Task::new(future));
+            self.user = None;
+        }
+    }
+
+    pub fn register(&mut self, creds: Credentials) {
+        if self.log_task.is_some() {
+            return;
+        }
+
+        if let Some(client) = &self.client {
+            let client = Arc::clone(client);
+            let future = async move {
+                client.register(&creds).await?;
+                client.login(&creds).await?;
+                Ok(creds.username)
+            };
+            self.log_task = Some(Task::new(future));
+            self.user = None;
+        }
+    }
+
     /// The leaderboard needs to be polled to make progress.
     pub fn poll(&mut self) {
+        if let Some(task) = &mut self.log_task {
+            if let Some(res) = task.poll() {
+                self.log_task = None;
+                match res {
+                    Ok(Ok(user)) => {
+                        log::debug!("Logged in as {}", user);
+                        self.user = Some(user);
+                    }
+                    Ok(Err(err)) | Err(err) => {
+                        log::error!("Failed to log in: {:?}", err);
+                    }
+                }
+            }
+        }
+
         if let Some(task) = &mut self.task {
             if let Some(res) = task.poll() {
                 self.task = None;

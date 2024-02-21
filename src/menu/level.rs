@@ -551,6 +551,9 @@ impl geng::State for LevelMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
+            geng::Event::EditText(text) => {
+                self.ui_context.text_edit.text = text;
+            }
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {

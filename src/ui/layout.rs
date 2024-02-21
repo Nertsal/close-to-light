@@ -55,7 +55,7 @@ pub trait AreaOps {
         let row_height = self.get().height() / rows as f32;
         (0..rows)
             .map(|i| {
-                Aabb2::point(self.get().bottom_left() + vec2(0.0, row_height * i as f32))
+                Aabb2::point(self.get().top_left() - vec2(0.0, row_height * (i + 1) as f32))
                     .extend_positive(vec2(self.get().width(), row_height))
             })
             .collect()

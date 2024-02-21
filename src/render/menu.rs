@@ -114,10 +114,20 @@ impl MenuRender {
             framebuffer,
             |framebuffer| {
                 self.ui.draw_text(&ui.profile.offline, framebuffer);
+
                 let register = &ui.profile.register;
-                if register.state.visible {}
+                if register.state.visible {
+                    self.ui.draw_input(&register.username, framebuffer);
+                    self.ui.draw_input(&register.password, framebuffer);
+                    self.ui.draw_button(&register.login, framebuffer);
+                    self.ui.draw_button(&register.register, framebuffer);
+                }
+
                 let logged = &ui.profile.logged;
-                if logged.state.visible {}
+                if logged.state.visible {
+                    self.ui.draw_text(&logged.username, framebuffer);
+                    self.ui.draw_button(&logged.logout, framebuffer);
+                }
             },
         );
 

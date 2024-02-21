@@ -258,6 +258,15 @@ impl UiRender {
         self.draw_text(&widget.text, framebuffer);
     }
 
+    pub fn draw_input(&self, widget: &InputWidget, framebuffer: &mut ugli::Framebuffer) {
+        if !widget.state.visible {
+            return;
+        }
+
+        self.draw_text(&widget.name, framebuffer);
+        self.draw_text(&widget.text, framebuffer);
+    }
+
     pub fn draw_leaderboard(
         &self,
         leaderboard: &LeaderboardWidget,

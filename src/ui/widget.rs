@@ -2,6 +2,7 @@ mod button;
 mod checkbox;
 mod group;
 mod icon;
+mod input;
 mod leaderboard;
 mod level;
 mod level_config;
@@ -13,7 +14,7 @@ mod timeline;
 mod value;
 
 pub use self::{
-    button::*, checkbox::*, group::*, icon::*, leaderboard::*, level::*, level_config::*,
+    button::*, checkbox::*, group::*, icon::*, input::*, leaderboard::*, level::*, level_config::*,
     options::*, profile::*, slider::*, text::*, timeline::*, value::*,
 };
 
@@ -82,6 +83,7 @@ pub struct TextEdit {
     geng: Option<Geng>,
     /// Counter for the number of text edits.
     counter: usize,
+    pub text: String,
 }
 
 impl Debug for TextEdit {
@@ -97,6 +99,7 @@ impl TextEdit {
         Self {
             geng: Some(geng.clone()),
             counter: 0,
+            text: String::new(),
         }
     }
 
@@ -104,6 +107,7 @@ impl TextEdit {
         Self {
             geng: None,
             counter: 0,
+            text: String::new(),
         }
     }
 
@@ -115,6 +119,7 @@ impl TextEdit {
                 self.counter += 1;
             }
             geng.window().start_text_edit(text);
+            self.text = text.to_owned();
             self.counter
         } else {
             0

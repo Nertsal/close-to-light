@@ -1,6 +1,8 @@
+use ctl_client::core::auth::Credentials;
+
 use super::*;
 
-use crate::leaderboard::Leaderboard;
+use crate::{leaderboard::Leaderboard, ui::layout::AreaOps};
 
 pub struct ProfileWidget {
     pub state: WidgetState,
@@ -11,10 +13,16 @@ pub struct ProfileWidget {
 
 pub struct RegisterWidget {
     pub state: WidgetState,
+    pub username: InputWidget,
+    pub password: InputWidget,
+    pub login: ButtonWidget,
+    pub register: ButtonWidget,
 }
 
 pub struct LoggedWidget {
     pub state: WidgetState,
+    pub username: TextWidget,
+    pub logout: ButtonWidget,
 }
 
 impl ProfileWidget {
@@ -24,9 +32,15 @@ impl ProfileWidget {
             offline: TextWidget::new("Offline"),
             register: RegisterWidget {
                 state: WidgetState::new(),
+                username: InputWidget::new("Username", false),
+                password: InputWidget::new("Password", true),
+                login: ButtonWidget::new("Login"),
+                register: ButtonWidget::new("Register"),
             },
             logged: LoggedWidget {
                 state: WidgetState::new(),
+                username: TextWidget::new("<username>"),
+                logout: ButtonWidget::new("Logout"),
             },
         }
     }
@@ -80,6 +94,26 @@ impl StatefulWidget for RegisterWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+
+        let main = position;
+
+        let rows = main.split_rows(3);
+        self.username.update(rows[0], context);
+        self.password.update(rows[1], context);
+
+        let cols = rows[2].split_columns(2);
+        self.login.update(cols[0], context);
+        self.register.update(cols[1], context);
+
+        let creds = Credentials {
+            username: self.username.text.text.clone(),
+            password: self.password.text.text.clone(),
+        };
+        if self.login.text.state.clicked {
+            state.login(creds);
+        } else if self.register.text.state.clicked {
+            state.register(creds);
+        }
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -92,6 +126,12 @@ impl StatefulWidget for LoggedWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+
+        let main = position;
+
+        let rows = main.split_rows(2);
+        self.username.update(rows[0], context);
+        self.logout.update(rows[1], context);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
