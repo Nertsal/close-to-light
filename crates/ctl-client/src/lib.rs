@@ -20,12 +20,14 @@ pub struct Nertboard {
 
 impl Nertboard {
     pub fn new(url: impl reqwest::IntoUrl) -> Result<Self> {
+        let client = Client::builder();
+        #[cfg(not(target_arch = "wasm32"))]
+        let client = client.cookie_store(true); // NOTE: cookie_store does not work on wasm
+        let client = client.build().context("when building the client")?;
+
         Ok(Self {
             url: url.into_url()?,
-            client: Client::builder()
-                .cookie_store(true)
-                .build()
-                .context("when building the client")?,
+            client,
         })
     }
 
