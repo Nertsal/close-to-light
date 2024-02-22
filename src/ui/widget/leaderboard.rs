@@ -35,7 +35,7 @@ impl LeaderboardWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
-            window: UiWindow::new((), 0.3),
+            window: UiWindow::new((), 0.3).reload_skip(),
             close: ButtonWidget::new_textured("", &assets.sprites.button_close),
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),

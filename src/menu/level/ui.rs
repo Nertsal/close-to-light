@@ -143,21 +143,19 @@ impl MenuUI {
             preferences::save(OPTIONS_STORAGE, &state.options);
         }
 
-        if self.options_head.state.hovered && self.options.window.show.time.is_min() {
-            self.options.window.request = Some(WidgetRequest::Open);
-        } else if !self.options.state.hovered && !self.options_head.state.hovered {
-            self.options.window.request = Some(WidgetRequest::Close);
-        }
+        self.options.window.layout(
+            self.options_head.state.hovered,
+            !self.options.state.hovered && !self.options_head.state.hovered,
+        );
 
         // Profile
         update!(self.profile, profile, &mut state.leaderboard);
         context.update_focus(self.profile.state.hovered);
 
-        if self.profile_head.state.hovered && self.profile.window.show.time.is_min() {
-            self.profile.window.request = Some(WidgetRequest::Open);
-        } else if !self.profile.state.hovered && !self.profile_head.state.hovered {
-            self.profile.window.request = Some(WidgetRequest::Close);
-        }
+        self.profile.window.layout(
+            self.profile_head.state.hovered,
+            !self.profile.state.hovered && !self.profile_head.state.hovered,
+        );
 
         // Heads
         update!(self.options_head, options_head);
@@ -192,13 +190,11 @@ impl MenuUI {
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
 
-            if self.leaderboard.state.hovered && self.leaderboard.window.show.time.is_min() {
-                self.leaderboard.window.request = Some(WidgetRequest::Open);
-            } else if self.leaderboard.close.text.state.clicked
-                || cursor_high && !self.leaderboard.state.hovered
-            {
-                self.leaderboard.window.request = Some(WidgetRequest::Close);
-            }
+            self.leaderboard.window.layout(
+                self.leaderboard.state.hovered,
+                self.leaderboard.close.text.state.clicked
+                    || cursor_high && !self.leaderboard.state.hovered,
+            );
         }
 
         {
@@ -223,13 +219,11 @@ impl MenuUI {
                 self.leaderboard.window.request = Some(WidgetRequest::Reload);
             }
 
-            if self.level_config.state.hovered && self.level_config.window.show.time.is_min() {
-                self.level_config.window.request = Some(WidgetRequest::Open);
-            } else if self.level_config.close.text.state.clicked
-                || cursor_high && !self.level_config.state.hovered
-            {
-                self.level_config.window.request = Some(WidgetRequest::Close);
-            }
+            self.level_config.window.layout(
+                self.level_config.state.hovered,
+                self.level_config.close.text.state.clicked
+                    || cursor_high && !self.level_config.state.hovered,
+            );
         }
 
         // Margin
