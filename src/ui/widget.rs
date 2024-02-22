@@ -1,5 +1,6 @@
 mod button;
 mod checkbox;
+mod explore;
 mod group;
 mod icon;
 mod input;
@@ -14,8 +15,8 @@ mod timeline;
 mod value;
 
 pub use self::{
-    button::*, checkbox::*, group::*, icon::*, input::*, leaderboard::*, level::*, level_config::*,
-    options::*, profile::*, slider::*, text::*, timeline::*, value::*,
+    button::*, checkbox::*, explore::*, group::*, icon::*, input::*, leaderboard::*, level::*,
+    level_config::*, options::*, profile::*, slider::*, text::*, timeline::*, value::*,
 };
 
 use super::{context::*, window::*};

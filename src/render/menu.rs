@@ -41,9 +41,15 @@ impl MenuRender {
         // TODO: better ordering solution
         if ui.profile.window.show.time.is_above_min() {
             self.draw_options(ui, state, framebuffer);
+            self.draw_explore(ui, state, framebuffer);
             self.draw_profile(ui, state, framebuffer);
+        } else if ui.explore.window.show.time.is_above_min() {
+            self.draw_profile(ui, state, framebuffer);
+            self.draw_options(ui, state, framebuffer);
+            self.draw_explore(ui, state, framebuffer);
         } else {
             self.draw_profile(ui, state, framebuffer);
+            self.draw_explore(ui, state, framebuffer);
             self.draw_options(ui, state, framebuffer);
         }
 
@@ -197,6 +203,30 @@ impl MenuRender {
         );
 
         self.ui.draw_text(&ui.options_head, framebuffer);
+    }
+
+    fn draw_explore(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let theme = state.options.theme;
+
+        let width = 12.0;
+        let head = ui.explore_head.state.position;
+        let explore = ui.explore.state.position.extend_up(width);
+
+        self.ui.draw_window(
+            explore,
+            Some(head),
+            width,
+            theme,
+            framebuffer,
+            |framebuffer| {},
+        );
+
+        self.ui.draw_text(&ui.explore_head, framebuffer);
     }
 
     fn draw_level_config(

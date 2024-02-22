@@ -11,6 +11,8 @@ pub struct MenuUI {
     pub levels: Vec<LevelWidget>,
     pub options_head: TextWidget,
     pub options: OptionsWidget,
+    pub explore_head: TextWidget,
+    pub explore: ExploreWidget,
     pub profile_head: IconWidget,
     pub profile: ProfileWidget,
     pub leaderboard: LeaderboardWidget,
@@ -35,6 +37,8 @@ impl MenuUI {
                     PaletteWidget::new("Test", Theme::test()),
                 ],
             ),
+            explore_head: TextWidget::new("Levels"),
+            explore: ExploreWidget::new(),
             profile_head: IconWidget::new(&assets.sprites.head),
             profile: ProfileWidget::new(),
             leaderboard: LeaderboardWidget::new(assets),
@@ -94,6 +98,9 @@ impl MenuUI {
         let profile_head = top_bar.cut_right(context.font_size * 1.2);
         top_bar.cut_right(context.layout_size * 3.0);
 
+        let explore_head = top_bar.cut_right(context.font_size * 3.5);
+        top_bar.cut_right(context.layout_size * 3.0);
+
         let options_head = top_bar.cut_right(context.font_size * 3.5);
 
         let (options_head, options) = {
@@ -112,6 +119,25 @@ impl MenuUI {
             (
                 options_head.translate(vec2(0.0, offset)),
                 options.translate(vec2(0.0, offset)),
+            )
+        };
+
+        let (explore_head, explore) = {
+            // Explore
+            let width = layout_size * 50.0;
+            let height = layout_size * 20.0;
+
+            let explore = Aabb2::point(screen.align_pos(vec2(0.5, 1.0)))
+                .extend_symmetric(vec2(width, 0.0) / 2.0)
+                .extend_up(height);
+
+            let t = self.explore.window.show.time.get_ratio();
+            let t = crate::util::smoothstep(t);
+            let offset = -explore.height() * t;
+
+            (
+                explore_head.translate(vec2(0.0, offset)),
+                explore.translate(vec2(0.0, offset)),
             )
         };
 
@@ -148,6 +174,15 @@ impl MenuUI {
             !self.options.state.hovered && !self.options_head.state.hovered,
         );
 
+        // Explore
+        update!(self.explore, explore);
+        context.update_focus(self.explore.state.hovered);
+
+        self.explore.window.layout(
+            self.explore_head.state.hovered,
+            !self.explore.state.hovered && !self.explore_head.state.hovered,
+        );
+
         // Profile
         update!(self.profile, profile, &mut state.leaderboard);
         context.update_focus(self.profile.state.hovered);
@@ -160,6 +195,9 @@ impl MenuUI {
         // Heads
         update!(self.options_head, options_head);
         context.update_focus(self.options_head.state.hovered);
+
+        update!(self.explore_head, explore_head);
+        context.update_focus(self.explore_head.state.hovered);
 
         update!(self.profile_head, profile_head);
         context.update_focus(self.profile_head.state.hovered);
