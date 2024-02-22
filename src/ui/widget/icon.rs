@@ -22,6 +22,7 @@ impl IconWidget {
 impl Widget for IconWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        self.color = context.theme.light;
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {

@@ -166,6 +166,8 @@ impl MenuUI {
         update!(self.profile_head, profile_head);
         context.update_focus(self.profile_head.state.hovered);
 
+        let cursor_high = context.cursor.position.y > main.max.y;
+
         {
             // Leaderboard
             let width = layout_size * 22.0;
@@ -192,7 +194,9 @@ impl MenuUI {
 
             if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
                 state.leaderboard_request = Some(WidgetRequest::Open);
-            } else if self.leaderboard.close.text.state.clicked {
+            } else if self.leaderboard.close.text.state.clicked
+                || cursor_high && !self.leaderboard.state.hovered
+            {
                 state.leaderboard_request = Some(WidgetRequest::Close);
             }
         }
@@ -221,7 +225,9 @@ impl MenuUI {
 
             if self.level_config.state.hovered && state.show_level_config.time.is_min() {
                 state.config_request = Some(WidgetRequest::Open);
-            } else if self.level_config.close.text.state.clicked {
+            } else if self.level_config.close.text.state.clicked
+                || cursor_high && !self.level_config.state.hovered
+            {
                 state.config_request = Some(WidgetRequest::Close);
             }
         }
