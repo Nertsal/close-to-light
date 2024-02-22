@@ -6,6 +6,7 @@ use crate::{leaderboard::Leaderboard, ui::layout::AreaOps};
 
 pub struct ProfileWidget {
     pub state: WidgetState,
+    pub window: UiWindow<()>,
     pub offline: TextWidget,
     pub register: RegisterWidget,
     pub logged: LoggedWidget,
@@ -29,6 +30,7 @@ impl ProfileWidget {
     pub fn new() -> Self {
         Self {
             state: WidgetState::new(),
+            window: UiWindow::new((), 0.3),
             offline: TextWidget::new("Offline"),
             register: RegisterWidget {
                 state: WidgetState::new(),
@@ -51,6 +53,7 @@ impl StatefulWidget for ProfileWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+        self.window.update(context.delta_time);
 
         let margin = context.layout_size * 0.5;
         let main = position.extend_uniform(-margin);

@@ -7,6 +7,7 @@ use crate::{
 
 pub struct OptionsWidget {
     pub state: WidgetState,
+    pub window: UiWindow<()>,
     pub volume: VolumeWidget,
     pub palette: PaletteChooseWidget,
 }
@@ -15,6 +16,7 @@ impl OptionsWidget {
     pub fn new(options: Options, palettes: Vec<PaletteWidget>) -> Self {
         Self {
             state: WidgetState::new(),
+            window: UiWindow::new((), 0.3),
             volume: VolumeWidget::new(options.volume),
             palette: PaletteChooseWidget::new(palettes),
         }
@@ -26,6 +28,7 @@ impl StatefulWidget for OptionsWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+        self.window.update(context.delta_time);
 
         let main = position.extend_symmetric(vec2(-5.0, -1.0) * context.layout_size);
         let column = Aabb2::point(main.top_left())

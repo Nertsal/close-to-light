@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::ui::widget::UiContext;
+use crate::ui::UiContext;
 
 pub struct UtilRender {
     geng: Geng,

@@ -14,7 +14,7 @@ use crate::{
     leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
-    ui::widget::UiContext,
+    ui::UiContext,
 };
 
 pub struct EditorState {

@@ -84,7 +84,7 @@ impl MenuUI {
             state
                 .show_level
                 .as_ref()
-                .map_or(0.0, |show| show.time.get_ratio().as_f32())
+                .map_or(0.0, |show| show.time.get_ratio())
         };
         let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
 
@@ -105,7 +105,7 @@ impl MenuUI {
                 .extend_symmetric(vec2(width, 0.0) / 2.0)
                 .extend_up(height);
 
-            let t = state.show_options.time.get_ratio().as_f32();
+            let t = self.options.window.show.time.get_ratio();
             let t = crate::util::smoothstep(t);
             let offset = -options.height() * t;
 
@@ -125,7 +125,7 @@ impl MenuUI {
                 .extend_left(width * 0.9)
                 .extend_up(height);
 
-            let t = state.show_profile.time.get_ratio().as_f32();
+            let t = self.profile.window.show.time.get_ratio();
             let t = crate::util::smoothstep(t);
             let offset = -profile.height() * t;
 
@@ -143,20 +143,20 @@ impl MenuUI {
             preferences::save(OPTIONS_STORAGE, &state.options);
         }
 
-        if self.options_head.state.hovered && state.show_options.time.is_min() {
-            state.options_request = Some(WidgetRequest::Open);
+        if self.options_head.state.hovered && self.options.window.show.time.is_min() {
+            self.options.window.request = Some(WidgetRequest::Open);
         } else if !self.options.state.hovered && !self.options_head.state.hovered {
-            state.options_request = Some(WidgetRequest::Close);
+            self.options.window.request = Some(WidgetRequest::Close);
         }
 
         // Profile
         update!(self.profile, profile, &mut state.leaderboard);
         context.update_focus(self.profile.state.hovered);
 
-        if self.profile_head.state.hovered && state.show_profile.time.is_min() {
-            state.profile_request = Some(WidgetRequest::Open);
+        if self.profile_head.state.hovered && self.profile.window.show.time.is_min() {
+            self.profile.window.request = Some(WidgetRequest::Open);
         } else if !self.profile.state.hovered && !self.profile_head.state.hovered {
-            state.profile_request = Some(WidgetRequest::Close);
+            self.profile.window.request = Some(WidgetRequest::Close);
         }
 
         // Heads
@@ -178,7 +178,7 @@ impl MenuUI {
                     .extend_left(width)
                     .extend_down(height);
 
-            let t = state.show_leaderboard.time.get_ratio().as_f32();
+            let t = self.leaderboard.window.show.time.get_ratio();
             let t = crate::util::smoothstep(t);
             let offset = main.height() * t;
 
@@ -192,12 +192,12 @@ impl MenuUI {
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
 
-            if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
-                state.leaderboard_request = Some(WidgetRequest::Open);
+            if self.leaderboard.state.hovered && self.leaderboard.window.show.time.is_min() {
+                self.leaderboard.window.request = Some(WidgetRequest::Open);
             } else if self.leaderboard.close.text.state.clicked
                 || cursor_high && !self.leaderboard.state.hovered
             {
-                state.leaderboard_request = Some(WidgetRequest::Close);
+                self.leaderboard.window.request = Some(WidgetRequest::Close);
             }
         }
 
@@ -206,7 +206,7 @@ impl MenuUI {
             let width = layout_size * 30.0;
             let height = layout_size * 20.0;
 
-            let t = state.show_level_config.time.get_ratio().as_f32();
+            let t = self.level_config.window.show.time.get_ratio();
             let t = crate::util::smoothstep(t);
             let offset = height * t;
             let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * base_t * layout_size)
@@ -219,16 +219,16 @@ impl MenuUI {
             context.update_focus(self.level_config.state.hovered);
             let old_config = state.config.clone();
             self.level_config.update_config(&mut state.config);
-            if old_config != state.config && state.show_leaderboard.going_up {
-                state.leaderboard_request = Some(WidgetRequest::Reload);
+            if old_config != state.config && self.leaderboard.window.show.going_up {
+                self.leaderboard.window.request = Some(WidgetRequest::Reload);
             }
 
-            if self.level_config.state.hovered && state.show_level_config.time.is_min() {
-                state.config_request = Some(WidgetRequest::Open);
+            if self.level_config.state.hovered && self.level_config.window.show.time.is_min() {
+                self.level_config.window.request = Some(WidgetRequest::Open);
             } else if self.level_config.close.text.state.clicked
                 || cursor_high && !self.level_config.state.hovered
             {
-                state.config_request = Some(WidgetRequest::Close);
+                self.level_config.window.request = Some(WidgetRequest::Close);
             }
         }
 
@@ -313,7 +313,7 @@ impl MenuUI {
 
                 // Animate slide-in/out
                 let sign = if show_group.going_up { 1.0 } else { -1.0 };
-                let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio().as_f32());
+                let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio());
                 let scroll = scroll + sign * t * layout_size * 25.0;
 
                 let level = Aabb2::point(levels.align_pos(vec2(0.0, 1.0)) + vec2(0.0, scroll))

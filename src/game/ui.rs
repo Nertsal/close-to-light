@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::game::ui::layout::AreaOps;
-pub use crate::ui::{layout, widget::*};
+pub use crate::ui::{layout, widget::*, *};
 
 pub struct GameUI {
     pub leaderboard: LeaderboardWidget,

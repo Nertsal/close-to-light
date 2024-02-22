@@ -10,6 +10,7 @@ use ctl_client::core::types::UserInfo;
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
+    pub window: UiWindow<()>,
     pub close: ButtonWidget,
     pub title: TextWidget,
     pub subtitle: TextWidget,
@@ -34,6 +35,7 @@ impl LeaderboardWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
+            window: UiWindow::new((), 0.3),
             close: ButtonWidget::new_textured("", &assets.sprites.button_close),
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
@@ -100,6 +102,8 @@ impl LeaderboardWidget {
 impl Widget for LeaderboardWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        self.window.update(context.delta_time);
+
         let main = position;
 
         let close = layout::align_aabb(

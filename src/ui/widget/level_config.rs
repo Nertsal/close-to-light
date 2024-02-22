@@ -7,6 +7,7 @@ use super::*;
 
 pub struct LevelConfigWidget {
     pub state: WidgetState,
+    pub window: UiWindow<()>,
     pub close: ButtonWidget,
     pub tabs: WidgetState,
     pub tab_mods: TextWidget,
@@ -18,6 +19,7 @@ impl LevelConfigWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
+            window: UiWindow::new((), 0.3),
             close: ButtonWidget::new_textured("", &assets.sprites.button_close),
             tabs: WidgetState::new(),
             tab_mods: TextWidget::new("Modifiers"),
@@ -38,6 +40,8 @@ impl LevelConfigWidget {
 impl Widget for LevelConfigWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        self.window.update(context.delta_time);
+
         let mut main = position;
 
         let close = main

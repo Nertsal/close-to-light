@@ -39,7 +39,7 @@ impl MenuRender {
         self.draw_levels(ui, state, framebuffer);
 
         // TODO: better ordering solution
-        if state.show_profile.time.is_above_min() {
+        if ui.profile.window.show.time.is_above_min() {
             self.draw_options(ui, state, framebuffer);
             self.draw_profile(ui, state, framebuffer);
         } else {
