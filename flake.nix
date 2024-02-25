@@ -40,6 +40,8 @@
       {
         devShells.default = mkShell {
           buildInputs = libDeps ++ [
+            sqlite
+            rlwrap
             gcc
             openssl
             pkg-config
