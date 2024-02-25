@@ -1,3 +1,5 @@
+use crate::database::types::MusicRow;
+
 use super::*;
 
 use ctl_core::{
@@ -32,18 +34,9 @@ pub(super) async fn music_exists(app: &App, music_id: Id) -> Result<()> {
 }
 
 async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>> {
-    let rows: Vec<(Id, String, bool, f32)> =
-        sqlx::query("SELECT music_id, name, original, bpm FROM musics WHERE public = 1")
-            .try_map(|row: DBRow| {
-                Ok((
-                    row.try_get("music_id")?,
-                    row.try_get("name")?,
-                    row.try_get("original")?,
-                    row.try_get("bpm")?,
-                ))
-            })
-            .fetch_all(&app.database)
-            .await?;
+    let rows: Vec<MusicRow> = sqlx::query_as("SELECT * FROM musics WHERE public = 1")
+        .fetch_all(&app.database)
+        .await?;
 
     let authors: Vec<(Id, ArtistInfo)> = sqlx::query(
         "
@@ -66,18 +59,18 @@ JOIN artists ON music_authors.artist_id = artists.artist_id
 
     let music = rows
         .into_iter()
-        .map(|(id, name, original, bpm)| {
+        .map(|music| {
             let authors = authors
                 .iter()
-                .filter(|(music_id, _)| *music_id == id)
+                .filter(|(music_id, _)| *music_id == music.music_id)
                 .map(|(_, info)| info.clone())
                 .collect();
             MusicInfo {
-                id,
-                public: true,
-                original,
-                name,
-                bpm: r32(bpm),
+                id: music.music_id,
+                public: music.public,
+                original: music.original,
+                name: music.name,
+                bpm: r32(music.bpm),
                 authors,
             }
         })
@@ -90,20 +83,11 @@ pub(super) async fn music_get(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
 ) -> Result<Json<MusicInfo>> {
-    let row: Option<(String, bool, bool, f32)> =
-        sqlx::query("SELECT name, public, original, bpm FROM musics WHERE music_id = ?")
-            .bind(music_id)
-            .try_map(|row: DBRow| {
-                Ok((
-                    row.try_get("name")?,
-                    row.try_get("public")?,
-                    row.try_get("original")?,
-                    row.try_get("bpm")?,
-                ))
-            })
-            .fetch_optional(&app.database)
-            .await?;
-    let Some((music_name, public, original, bpm)) = row else {
+    let row: Option<MusicRow> = sqlx::query_as("SELECT * FROM musics WHERE music_id = ?")
+        .bind(music_id)
+        .fetch_optional(&app.database)
+        .await?;
+    let Some(music) = row else {
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
@@ -127,10 +111,10 @@ WHERE music_id = ?
 
     let music = MusicInfo {
         id: music_id,
-        public,
-        original,
-        name: music_name,
-        bpm: r32(bpm),
+        public: music.public,
+        original: music.original,
+        name: music.name,
+        bpm: r32(music.bpm),
         authors,
     };
     Ok(Json(music))
