@@ -22,3 +22,11 @@ pub struct MusicRow {
     pub bpm: f32,
     pub public: bool,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct LevelRow {
+    pub level_id: Id,
+    pub hash: String,
+    pub group_id: Id,
+    pub name: String,
+}

@@ -4,7 +4,7 @@ use super::*;
 
 use ctl_core::{
     prelude::r32,
-    types::{ArtistInfo, MusicUpdate, NewMusic},
+    types::{MusicUpdate, NewMusic},
 };
 
 const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
@@ -38,7 +38,7 @@ async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>>
         .fetch_all(&app.database)
         .await?;
 
-    let authors: Vec<(Id, ArtistInfo)> = sqlx::query(
+    let authors: Vec<(Id, UserInfo)> = sqlx::query(
         "
 SELECT music_id, artists.artist_id, name
 FROM music_authors
@@ -48,7 +48,7 @@ JOIN artists ON music_authors.artist_id = artists.artist_id
     .try_map(|row: DBRow| {
         Ok((
             row.try_get("music_id")?,
-            ArtistInfo {
+            UserInfo {
                 id: row.try_get("artist_id")?,
                 name: row.try_get("name")?,
             },
@@ -91,7 +91,7 @@ pub(super) async fn music_get(
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let authors: Vec<ArtistInfo> = sqlx::query(
+    let authors: Vec<UserInfo> = sqlx::query(
         "
 SELECT artists.artist_id, name
 FROM music_authors
@@ -101,7 +101,7 @@ WHERE music_id = ?
     )
     .bind(music_id)
     .try_map(|row: DBRow| {
-        Ok(ArtistInfo {
+        Ok(UserInfo {
             id: row.try_get("artist_id")?,
             name: row.try_get("name")?,
         })

@@ -1,16 +1,61 @@
 use super::*;
 
+use crate::database::types::LevelRow;
+
 use ctl_core::{types::NewLevel, ScoreEntry, SubmitScore};
 
 pub fn route(router: Router) -> Router {
     router
-        // .route("/level/:level_id", patch(level_update))
+        .route("/levels", get(level_list))
         .route(
             "/level/:level_id/scores",
             get(fetch_scores).post(submit_score),
         )
         .route("/level/:level_id/download", get(download))
         .route("/level/create", post(level_create))
+}
+
+// TODO: group list instead?
+async fn level_list(State(app): State<Arc<App>>) -> Result<Json<Vec<LevelInfo>>> {
+    let levels: Vec<LevelRow> = sqlx::query_as("SELECT * FROM levels")
+        .fetch_all(&app.database)
+        .await?;
+
+    let authors: Vec<(Id, UserInfo)> = sqlx::query(
+        "
+    SELECT level_id, users.user_id, username
+    FROM level_authors
+    JOIN users ON level_authors.user_id = users.user_id
+            ",
+    )
+    .try_map(|row: DBRow| {
+        Ok((
+            row.try_get("music_id")?,
+            UserInfo {
+                id: row.try_get("user_id")?,
+                name: row.try_get("username")?,
+            },
+        ))
+    })
+    .fetch_all(&app.database)
+    .await?;
+
+    let mut result = Vec::with_capacity(levels.len());
+    for level in levels {
+        let authors = authors
+            .iter()
+            .filter(|(level_id, _)| *level_id == level.level_id)
+            .map(|(_, user)| user.clone())
+            .collect();
+
+        result.push(LevelInfo {
+            id: level.level_id,
+            name: level.name,
+            authors,
+        });
+    }
+
+    Ok(Json(result))
 }
 
 async fn level_create(
