@@ -29,7 +29,7 @@ impl GameUI {
         let mut context = UiContext {
             theme: model.options.theme,
             layout_size,
-            font_size: screen.height() * 0.07,
+            font_size: screen.height() * 0.06,
             can_focus: true,
             cursor,
             delta_time,
