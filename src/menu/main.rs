@@ -105,6 +105,7 @@ impl MainMenu {
                 future,
             ),
         )));
+        self.cursor_pos = vec2::ZERO;
     }
 }
 
