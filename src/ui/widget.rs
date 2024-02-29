@@ -18,7 +18,7 @@ pub use self::{
     icon::IconWidget,
     leaderboard::{LeaderboardEntryWidget, LeaderboardWidget},
     level::*,
-    level_config::{LevelConfigWidget, LevelDifficultyWidget, LevelModsWidget},
+    level_config::{LevelConfigWidget, LevelModsWidget},
     options::{OptionsWidget, PaletteChooseWidget, PaletteWidget, VolumeWidget},
     slider::SliderWidget,
     text::TextWidget,

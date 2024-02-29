@@ -200,16 +200,11 @@ impl MenuRender {
             self.ui
                 .draw_close_button(&ui.level_config.close, theme, &mut buffer.color);
 
-            for (tab, active) in [
-                (
-                    &ui.level_config.tab_difficulty,
-                    ui.level_config.difficulty.state.visible,
-                ),
-                (
+            {
+                let (tab, active) = (
                     &ui.level_config.tab_mods,
                     ui.level_config.mods.state.visible,
-                ),
-            ] {
+                );
                 self.ui
                     .draw_toggle_button(tab, active, false, theme, &mut buffer.color);
             }
@@ -219,17 +214,6 @@ impl MenuRender {
                 &mut buffer.color,
             );
 
-            if ui.level_config.difficulty.state.visible {
-                for preset in &ui.level_config.difficulty.presets {
-                    self.ui.draw_toggle_button(
-                        &preset.button.text,
-                        preset.selected,
-                        false,
-                        theme,
-                        &mut buffer.color,
-                    );
-                }
-            }
             if ui.level_config.mods.state.visible {
                 for preset in &ui.level_config.mods.mods {
                     self.ui.draw_toggle_button(
