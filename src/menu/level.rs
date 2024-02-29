@@ -334,8 +334,9 @@ impl LevelMenu {
                         let mods = self.state.config.modifiers.clone();
                         let health = self.state.config.health.clone();
 
-                        let meta = crate::leaderboard::ScoreMeta::new(group, level, mods, health);
-                        self.state.leaderboard.change_meta(meta);
+                        let category =
+                            crate::leaderboard::ScoreCategory::new(group, level, mods, health);
+                        self.state.leaderboard.change_category(category);
                     }
                 }
             }

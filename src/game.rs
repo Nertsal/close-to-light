@@ -194,12 +194,14 @@ impl geng::State for Game {
                         self.level_name.clone(),
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
+                        self.model.score.calculated.accuracy.as_f32(),
+                        self.model.score.calculated.precision.as_f32(),
                     );
 
                     if submit_score {
                         self.model.leaderboard.submit(player_name, score, meta);
                     } else {
-                        self.model.leaderboard.loaded.meta = meta.clone();
+                        self.model.leaderboard.loaded.category = meta.category.clone();
                         // Save highscores on lost runs only locally
                         self.model.leaderboard.loaded.reload_local(Some(
                             &crate::leaderboard::SavedScore {
