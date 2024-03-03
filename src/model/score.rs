@@ -4,14 +4,14 @@ pub const DISCRETE_PERFECT: i32 = 1000;
 pub const DISCRETE_OK: i32 = 100;
 pub const DYNAMIC_SCALE: f32 = 1000.0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Score {
     pub calculated: CalculatedScore,
     pub metrics: ScoreMetrics,
 }
 
 /// Calculations based on the metrics.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CalculatedScore {
     /// Combined score used as the main metric.
     pub combined: i32,
@@ -20,14 +20,14 @@ pub struct CalculatedScore {
 }
 
 /// Raw metrics.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreMetrics {
     pub discrete: DiscreteMetrics,
     pub dynamic: DynamicMetrics,
 }
 
 /// Raw discrete metrics.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscreteMetrics {
     /// The number of times player has been in `perfect` distance to a light.
     pub perfect: usize,
@@ -36,11 +36,17 @@ pub struct DiscreteMetrics {
 }
 
 /// Raw dynamic/continuous metrics.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DynamicMetrics {
     pub distance_sum: R32,
     pub frames: usize,
     pub score: i32,
+}
+
+impl Default for Score {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Score {

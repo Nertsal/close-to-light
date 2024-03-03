@@ -185,21 +185,24 @@ impl geng::State for Game {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
                     let player_name = self.model.player.name.clone();
-                    let submit_score = submit_score && !player_name.trim().is_empty();
-                    let raw_score = self.model.score.calculated.combined;
-                    let score = submit_score.then_some(raw_score);
+                    let do_submit_score = submit_score && !player_name.trim().is_empty();
+
+                    let score = &self.model.score;
+                    let raw_score = score.calculated.combined;
+                    let submit_score = do_submit_score.then_some(raw_score);
 
                     let meta = crate::leaderboard::ScoreMeta::new(
                         self.group_name.clone(),
                         self.level_name.clone(),
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
-                        self.model.score.calculated.accuracy.as_f32(),
-                        self.model.score.calculated.precision.as_f32(),
+                        score.clone(),
                     );
 
-                    if submit_score {
-                        self.model.leaderboard.submit(player_name, score, meta);
+                    if do_submit_score {
+                        self.model
+                            .leaderboard
+                            .submit(player_name, submit_score, meta);
                     } else {
                         self.model.leaderboard.loaded.category = meta.category.clone();
                         // Save highscores on lost runs only locally

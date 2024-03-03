@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{HealthConfig, LevelModifiers},
+    prelude::{HealthConfig, LevelModifiers, Score},
     task::Task,
     LeaderboardSecrets,
 };
@@ -54,11 +54,10 @@ pub struct LoadedBoard {
 }
 
 /// Meta information saved together with the score.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreMeta {
     pub category: ScoreCategory,
-    pub accuracy: f32,
-    pub precision: f32,
+    pub score: Score,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -68,6 +67,17 @@ pub struct ScoreCategory {
     pub level: String,
     pub mods: LevelModifiers,
     pub health: HealthConfig,
+}
+
+impl Default for ScoreCategory {
+    fn default() -> Self {
+        Self::new(
+            "".to_string(),
+            "".to_string(),
+            LevelModifiers::default(),
+            HealthConfig::default(),
+        )
+    }
 }
 
 impl ScoreCategory {
@@ -88,13 +98,11 @@ impl ScoreMeta {
         level: String,
         mods: LevelModifiers,
         health: HealthConfig,
-        accuracy: f32,
-        precision: f32,
+        score: Score,
     ) -> Self {
         Self {
             category: ScoreCategory::new(group, level, mods, health),
-            accuracy,
-            precision,
+            score,
         }
     }
 }
@@ -251,8 +259,7 @@ impl LoadedBoard {
         {
             if let Some(score) = score {
                 if score.score > highscore.score && score.meta.category == highscore.meta.category {
-                    highscore.score = score.score;
-                    highscore.player = score.player.clone();
+                    *highscore = score.clone();
                     save = true;
                 }
             }

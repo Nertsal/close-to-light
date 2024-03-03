@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{Assets, HealthConfig, LevelConfig, LevelModifiers, Modifier},
+    prelude::{Assets, LevelConfig, LevelModifiers, Modifier},
     ui::layout,
 };
 

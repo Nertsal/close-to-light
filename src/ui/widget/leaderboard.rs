@@ -46,14 +46,7 @@ impl LeaderboardWidget {
                 SavedScore {
                     player: "".to_string(),
                     score: 0,
-                    meta: crate::leaderboard::ScoreMeta::new(
-                        "".to_string(),
-                        "".to_string(),
-                        crate::prelude::LevelModifiers::default(),
-                        crate::prelude::HealthConfig::default(),
-                        0.0,
-                        0.0,
-                    ),
+                    meta: crate::leaderboard::ScoreMeta::default(),
                 },
                 false,
             ),
@@ -115,8 +108,8 @@ impl LeaderboardWidget {
                 self.highscore.score.text = format!(
                     "{} ({}/{})",
                     score.score,
-                    (score.meta.accuracy * 100.0).floor() as i32,
-                    (score.meta.precision * 100.0).floor()
+                    (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
+                    (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
                 );
             }
         }
@@ -208,8 +201,8 @@ impl LeaderboardEntryWidget {
         let mut score = TextWidget::new(format!(
             "{} ({}/{})",
             score.score,
-            (score.meta.accuracy * 100.0).floor() as i32,
-            (score.meta.precision * 100.0).floor()
+            (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
+            (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
         ));
         score.align(vec2(1.0, 0.5));
 
