@@ -199,7 +199,7 @@ impl MenuUI {
         let main = main.extend_left(-layout_size * 0.5);
 
         // Groups and levels on the left
-        let (groups, side) = layout::cut_left_right(main, context.font_size * 6.0);
+        let (groups, side) = layout::cut_left_right(main, context.font_size * 7.0);
         let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
         let (levels, _side) = layout::cut_left_right(side, context.font_size * 5.0);
         update!(self.groups_state, groups);
@@ -284,7 +284,7 @@ impl MenuUI {
                         .extend_down(2.0 * context.font_size);
 
                 // Initialize missing levels
-                for _ in 0..group.levels.len() - self.levels.len() {
+                for _ in 0..group.levels.len().saturating_sub(self.levels.len()) {
                     self.levels.push(LevelWidget::new());
                 }
 
