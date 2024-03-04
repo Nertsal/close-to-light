@@ -95,17 +95,16 @@ impl MenuRender {
             {
                 // Volume
                 let volume = &ui.options.volume;
-                self.ui.draw_text_widget(&volume.title, &mut buffer.color);
-                self.ui
-                    .draw_slider_widget(&volume.master, &mut buffer.color);
+                self.ui.draw_text(&volume.title, &mut buffer.color);
+                self.ui.draw_slider(&volume.master, &mut buffer.color);
             }
 
             {
                 // Palette
                 let palette = &ui.options.palette;
-                self.ui.draw_text_widget(&palette.title, &mut buffer.color);
+                self.ui.draw_text(&palette.title, &mut buffer.color);
                 for palette in &palette.palettes {
-                    self.ui.draw_text_widget(&palette.name, &mut buffer.color);
+                    self.ui.draw_text(&palette.name, &mut buffer.color);
 
                     let mut quad = |i: f32, color: Color| {
                         let pos = palette.visual.position;
@@ -121,6 +120,7 @@ impl MenuRender {
                     quad(0.0, palette.palette.dark);
                     quad(1.0, palette.palette.light);
                     quad(2.0, palette.palette.danger);
+                    quad(3.0, palette.palette.highlight);
 
                     let outline_width = font_size * 0.1;
                     self.ui.draw_outline(
@@ -154,8 +154,7 @@ impl MenuRender {
                 &mut buffer.color,
             );
 
-            self.ui
-                .draw_text_widget(&ui.options_head, &mut buffer.color);
+            self.ui.draw_text(&ui.options_head, &mut buffer.color);
 
             self.masked.draw(draw_parameters(), framebuffer);
 
@@ -201,16 +200,11 @@ impl MenuRender {
             self.ui
                 .draw_close_button(&ui.level_config.close, theme, &mut buffer.color);
 
-            for (tab, active) in [
-                (
-                    &ui.level_config.tab_difficulty,
-                    ui.level_config.difficulty.state.visible,
-                ),
-                (
+            {
+                let (tab, active) = (
                     &ui.level_config.tab_mods,
                     ui.level_config.mods.state.visible,
-                ),
-            ] {
+                );
                 self.ui
                     .draw_toggle_button(tab, active, false, theme, &mut buffer.color);
             }
@@ -220,17 +214,6 @@ impl MenuRender {
                 &mut buffer.color,
             );
 
-            if ui.level_config.difficulty.state.visible {
-                for preset in &ui.level_config.difficulty.presets {
-                    self.ui.draw_toggle_button(
-                        &preset.button.text,
-                        preset.selected,
-                        false,
-                        theme,
-                        &mut buffer.color,
-                    );
-                }
-            }
             if ui.level_config.mods.state.visible {
                 for preset in &ui.level_config.mods.mods {
                     self.ui.draw_toggle_button(

@@ -12,6 +12,7 @@ pub const THEME: Theme = Theme {
     dark: Color::BLACK,
     light: Color::GREEN,
     danger: Color::RED,
+    highlight: Color::BLUE,
 };
 
 pub fn smooth_button(button: &HoverButton, time: Time) -> HoverButton {

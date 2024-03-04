@@ -45,7 +45,7 @@ impl MenuUI {
         screen: Aabb2<f32>,
         cursor: CursorContext,
         delta_time: f32,
-        _geng: &Geng,
+        geng: &Geng,
     ) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
@@ -59,10 +59,14 @@ impl MenuUI {
             can_focus: true,
             cursor,
             delta_time,
+            mods: KeyModifiers::from_window(geng.window()),
         };
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, &context);
+                $widget.update($position, &mut context);
+            }};
+            ($widget:expr, $position:expr, $state:expr) => {{
+                $widget.update($position, &mut context, $state);
             }};
         }
 
@@ -111,11 +115,9 @@ impl MenuUI {
             update!(self.options_head, head);
             context.update_focus(self.options_head.state.hovered);
 
-            self.options.set_options(state.options.clone());
-            update!(self.options, options);
             let old_options = state.options.clone();
+            update!(self.options, options, &mut state.options);
             context.update_focus(self.options.state.hovered);
-            self.options.update_options(&mut state.options);
             if state.options != old_options {
                 preferences::save(OPTIONS_STORAGE, &state.options);
             }
@@ -126,6 +128,8 @@ impl MenuUI {
                 state.options_request = Some(WidgetRequest::Close);
             }
         }
+
+        let cursor_high = context.cursor.position.y > main.max.y;
 
         {
             // Leaderboard
@@ -153,7 +157,9 @@ impl MenuUI {
 
             if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
                 state.leaderboard_request = Some(WidgetRequest::Open);
-            } else if self.leaderboard.close.text.state.clicked {
+            } else if self.leaderboard.close.text.state.clicked
+                || cursor_high && !self.leaderboard.state.hovered
+            {
                 state.leaderboard_request = Some(WidgetRequest::Close);
             }
         }
@@ -182,7 +188,9 @@ impl MenuUI {
 
             if self.level_config.state.hovered && state.show_level_config.time.is_min() {
                 state.config_request = Some(WidgetRequest::Open);
-            } else if self.level_config.close.text.state.clicked {
+            } else if self.level_config.close.text.state.clicked
+                || cursor_high && !self.level_config.state.hovered
+            {
                 state.config_request = Some(WidgetRequest::Close);
             }
         }
@@ -191,7 +199,7 @@ impl MenuUI {
         let main = main.extend_left(-layout_size * 0.5);
 
         // Groups and levels on the left
-        let (groups, side) = layout::cut_left_right(main, context.font_size * 6.0);
+        let (groups, side) = layout::cut_left_right(main, context.font_size * 7.0);
         let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
         let (levels, _side) = layout::cut_left_right(side, context.font_size * 5.0);
         update!(self.groups_state, groups);
@@ -276,7 +284,7 @@ impl MenuUI {
                         .extend_down(2.0 * context.font_size);
 
                 // Initialize missing levels
-                for _ in 0..group.levels.len() - self.levels.len() {
+                for _ in 0..group.levels.len().saturating_sub(self.levels.len()) {
                     self.levels.push(LevelWidget::new());
                 }
 

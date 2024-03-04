@@ -16,23 +16,15 @@ impl OptionsWidget {
         Self {
             state: WidgetState::new(),
             volume: VolumeWidget::new(options.volume),
-            palette: PaletteChooseWidget::new(options.theme, palettes),
+            palette: PaletteChooseWidget::new(palettes),
         }
-    }
-
-    pub fn set_options(&mut self, options: Options) {
-        self.volume.set_options(options.volume);
-        self.palette.set_palette(options.theme);
-    }
-
-    pub fn update_options(&self, options: &mut Options) {
-        self.volume.update_options(&mut options.volume);
-        self.palette.update_palette(&mut options.theme);
     }
 }
 
-impl Widget for OptionsWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+impl StatefulWidget for OptionsWidget {
+    type State = Options;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
         let main = position.extend_symmetric(vec2(-5.0, -1.0) * context.layout_size);
@@ -45,8 +37,8 @@ impl Widget for OptionsWidget {
             2,
         );
 
-        self.volume.update(columns[0], context);
-        self.palette.update(columns[1], context);
+        self.volume.update(columns[0], context, &mut state.volume);
+        self.palette.update(columns[1], context, &mut state.theme);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -66,23 +58,16 @@ impl VolumeWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Volume"),
-            master: SliderWidget::new("", options.master),
+            master: SliderWidget::new(""),
             options,
         }
     }
-
-    pub fn set_options(&mut self, options: VolumeOptions) {
-        self.master.update_value(options.master, 2);
-        self.options = options;
-    }
-
-    pub fn update_options(&self, options: &mut VolumeOptions) {
-        options.master.set(self.master.bounds.value());
-    }
 }
 
-impl Widget for VolumeWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+impl StatefulWidget for VolumeWidget {
+    type State = VolumeOptions;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         let main = position;
 
@@ -95,7 +80,7 @@ impl Widget for VolumeWidget {
             .extend_down(context.font_size * 1.0);
         let rows = layout::stack(row, vec2(0.0, -row.height()), 1);
 
-        self.master.update(rows[0], context);
+        self.master.update(rows[0], context, &mut state.master);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -108,31 +93,23 @@ impl Widget for VolumeWidget {
 pub struct PaletteChooseWidget {
     pub state: WidgetState,
     pub title: TextWidget,
-    pub selected: Theme,
     pub palettes: Vec<PaletteWidget>,
 }
 
 impl PaletteChooseWidget {
-    pub fn new(palette: Theme, options: Vec<PaletteWidget>) -> Self {
+    pub fn new(options: Vec<PaletteWidget>) -> Self {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Palette"),
-            selected: palette,
             palettes: options,
         }
     }
-
-    pub fn set_palette(&mut self, palette: Theme) {
-        self.selected = palette;
-    }
-
-    pub fn update_palette(&self, palette: &mut Theme) {
-        *palette = self.selected;
-    }
 }
 
-impl Widget for PaletteChooseWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+impl StatefulWidget for PaletteChooseWidget {
+    type State = Theme;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         let main = position;
 
@@ -148,9 +125,9 @@ impl Widget for PaletteChooseWidget {
             self.palettes.len(),
         );
         for (palette, pos) in self.palettes.iter_mut().zip(rows) {
-            palette.update(pos, context);
+            palette.update(pos, context, state);
             if palette.state.clicked {
-                self.selected = palette.palette;
+                *state = palette.palette;
             }
         }
     }
@@ -178,15 +155,21 @@ impl PaletteWidget {
     }
 }
 
-impl Widget for PaletteWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+impl StatefulWidget for PaletteWidget {
+    type State = Theme;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+        if self.state.clicked {
+            *state = self.palette;
+        }
+
         let main = position;
 
         let (visual, name) = layout::split_left_right(main, 0.5);
 
         let height = main.height() * 0.5;
-        let visual = visual.extend_left(height * 3.0 - visual.width());
+        let visual = visual.extend_left(height * 4.0 - visual.width());
         let visual = visual.extend_symmetric(vec2(0.0, height - visual.height()) / 2.0);
         self.visual.update(visual, context);
 

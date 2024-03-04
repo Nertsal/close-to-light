@@ -80,6 +80,7 @@ impl LightSerde {
             // lifetime: Lifetime::new_max(self.lifetime * beat_time),
             danger: self.danger,
             event_id,
+            closest_waypoint: (Time::ZERO, WaypointId::Initial),
         }
     }
 }

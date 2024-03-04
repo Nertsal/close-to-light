@@ -11,31 +11,26 @@ pub struct SliderWidget {
     pub bar_box: WidgetState,
     pub head: WidgetState,
     pub value: TextWidget,
-    pub bounds: Bounded<f32>,
     pub options: TextRenderOptions,
 }
 
 impl SliderWidget {
-    pub fn new(text: impl Into<String>, value: Bounded<f32>) -> Self {
+    pub fn new(text: impl Into<String>) -> Self {
         Self {
             text: TextWidget::new(text),
             bar: WidgetState::new(),
             bar_box: WidgetState::new(),
             head: WidgetState::new(),
             value: TextWidget::new(""),
-            bounds: value,
             options: TextRenderOptions::default(),
         }
     }
-
-    pub fn update_value(&mut self, value: Bounded<f32>, precision: usize) {
-        self.bounds = value;
-        self.value.text = format!("{:.precision$}", value.value(), precision = precision);
-    }
 }
 
-impl Widget for SliderWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+impl StatefulWidget for SliderWidget {
+    type State = Bounded<f32>;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.options.update(context);
         let mut main = position;
 
@@ -50,6 +45,7 @@ impl Widget for SliderWidget {
         }
 
         let (main, value) = layout::cut_left_right(main, main.width() - context.font_size * 3.0);
+        self.value.text = format!("{:.precision$}", state.value(), precision = 2);
         self.value.update(value, context);
 
         let bar = Aabb2::point(layout::aabb_pos(main, vec2(0.0, 0.5)))
@@ -60,7 +56,7 @@ impl Widget for SliderWidget {
         let bar_box = bar.extend_symmetric(vec2(0.0, context.font_size * 0.6) / 2.0);
         self.bar_box.update(bar_box, context);
 
-        let head = Aabb2::point(layout::aabb_pos(main, vec2(self.bounds.get_ratio(), 0.5)))
+        let head = Aabb2::point(layout::aabb_pos(main, vec2(state.get_ratio(), 0.5)))
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 
@@ -68,7 +64,7 @@ impl Widget for SliderWidget {
             let t =
                 (context.cursor.position.x - self.bar.position.min.x) / self.bar.position.width();
             let t = t.clamp(0.0, 1.0);
-            self.bounds.set_ratio(t);
+            state.set_ratio(t);
         }
     }
 

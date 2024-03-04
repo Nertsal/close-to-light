@@ -85,6 +85,10 @@ impl UiRender {
         );
     }
 
+    pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_texture(icon.state.position, &icon.texture, icon.color, framebuffer);
+    }
+
     pub fn draw_checkbox(
         &self,
         widget: &CheckboxWidget,
@@ -119,14 +123,14 @@ impl UiRender {
             camera,
             framebuffer,
         );
-        self.draw_text_widget(&widget.text, framebuffer);
+        self.draw_text(&widget.text, framebuffer);
     }
 
-    pub fn draw_text_widget(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
-        self.draw_text_widget_colored(widget, widget.options.color, framebuffer)
+    pub fn draw_text(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_text_colored(widget, widget.options.color, framebuffer)
     }
 
-    pub fn draw_text_widget_colored(
+    pub fn draw_text_colored(
         &self,
         widget: &TextWidget,
         color: Color,
@@ -145,9 +149,9 @@ impl UiRender {
         );
     }
 
-    pub fn draw_slider_widget(&self, slider: &SliderWidget, framebuffer: &mut ugli::Framebuffer) {
-        self.draw_text_widget(&slider.text, framebuffer);
-        self.draw_text_widget(&slider.value, framebuffer);
+    pub fn draw_slider(&self, slider: &SliderWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_text(&slider.text, framebuffer);
+        self.draw_text(&slider.value, framebuffer);
 
         if slider.bar.visible {
             self.geng.draw2d().quad(
@@ -176,7 +180,7 @@ impl UiRender {
         }
     }
 
-    pub fn draw_button_widget(&self, widget: &ButtonWidget, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_button(&self, widget: &ButtonWidget, framebuffer: &mut ugli::Framebuffer) {
         let state = &widget.text.state;
         if !state.visible {
             return;
@@ -212,7 +216,7 @@ impl UiRender {
                 framebuffer,
             );
         }
-        self.draw_text_widget(&widget.text, framebuffer);
+        self.draw_text(&widget.text, framebuffer);
     }
 
     pub fn draw_leaderboard(
@@ -231,27 +235,27 @@ impl UiRender {
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
         self.draw_close_button(&leaderboard.close, theme, framebuffer);
-        self.draw_text_widget(&leaderboard.title, framebuffer);
-        self.draw_text_widget(&leaderboard.subtitle, framebuffer);
-        self.draw_text_widget(&leaderboard.status, framebuffer);
+        self.draw_text(&leaderboard.title, framebuffer);
+        self.draw_text(&leaderboard.subtitle, framebuffer);
+        self.draw_text(&leaderboard.status, framebuffer);
 
         let mut buffer = masked.start();
 
         buffer.mask_quad(leaderboard.rows_state.position);
 
         for row in &leaderboard.rows {
-            self.draw_text_widget(&row.rank, &mut buffer.color);
-            self.draw_text_widget(&row.player, &mut buffer.color);
-            self.draw_text_widget(&row.score, &mut buffer.color);
+            self.draw_text(&row.rank, &mut buffer.color);
+            self.draw_text(&row.player, &mut buffer.color);
+            self.draw_text(&row.score, &mut buffer.color);
         }
 
         masked.draw(draw_parameters(), framebuffer);
 
         self.draw_quad(leaderboard.separator.position, theme.light, framebuffer);
 
-        self.draw_text_widget(&leaderboard.highscore.rank, framebuffer);
-        self.draw_text_widget(&leaderboard.highscore.player, framebuffer);
-        self.draw_text_widget(&leaderboard.highscore.score, framebuffer);
+        self.draw_text(&leaderboard.highscore.rank, framebuffer);
+        self.draw_text(&leaderboard.highscore.player, framebuffer);
+        self.draw_text(&leaderboard.highscore.score, framebuffer);
 
         self.draw_outline(
             leaderboard.state.position,
@@ -290,7 +294,7 @@ impl UiRender {
         if let Some(texture) = &button.texture {
             self.draw_texture(button.text.state.position, texture, fg_color, framebuffer);
         }
-        self.draw_text_widget(&button.text, framebuffer);
+        self.draw_text(&button.text, framebuffer);
     }
 
     pub fn draw_toggle_button(
@@ -350,10 +354,15 @@ impl UiRender {
         self.draw_quad(state.position.extend_uniform(-width), bg_color, framebuffer);
 
         for text in texts {
-            self.draw_text_widget_colored(text, fg_color, framebuffer);
-            self.draw_text_widget_colored(text, fg_color, framebuffer);
+            self.draw_text_colored(text, fg_color, framebuffer);
+            self.draw_text_colored(text, fg_color, framebuffer);
         }
 
         self.draw_outline(state.position, width, theme.light, framebuffer);
+    }
+
+    pub fn draw_value<T>(&self, value: &ValueWidget<T>, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_text(&value.text, framebuffer);
+        self.draw_text(&value.value_text, framebuffer);
     }
 }

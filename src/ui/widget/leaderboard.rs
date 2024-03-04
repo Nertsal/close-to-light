@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    leaderboard::{LeaderboardStatus, LoadedBoard},
+    leaderboard::{LeaderboardStatus, LoadedBoard, SavedScore},
     prelude::Assets,
     ui::layout,
 };
@@ -41,7 +41,15 @@ impl LeaderboardWidget {
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator: WidgetState::new(),
-            highscore: LeaderboardEntryWidget::new("", "", 0, false),
+            highscore: LeaderboardEntryWidget::new(
+                "",
+                SavedScore {
+                    player: "".to_string(),
+                    score: 0,
+                    meta: crate::leaderboard::ScoreMeta::default(),
+                },
+                false,
+            ),
         }
     }
 
@@ -72,13 +80,21 @@ impl LeaderboardWidget {
             .filtered
             .iter()
             .enumerate()
-            .map(|(rank, entry)| {
-                LeaderboardEntryWidget::new(
+            .filter_map(|(rank, entry)| {
+                let meta = entry
+                    .extra_info
+                    .as_ref()
+                    .and_then(|meta| serde_json::from_str(meta).ok())?;
+                let score = SavedScore {
+                    player: entry.player.clone(),
+                    score: entry.score,
+                    meta,
+                };
+                Some(LeaderboardEntryWidget::new(
                     (rank + 1).to_string(),
-                    &entry.player,
-                    entry.score,
+                    score,
                     entry.player == player_name,
-                )
+                ))
             })
             .collect();
         match &board.local_high {
@@ -89,14 +105,19 @@ impl LeaderboardWidget {
                     .my_position
                     .map_or("???".to_string(), |rank| format!("{}.", rank + 1));
                 self.highscore.player.text = player_name.to_string(); // score.player.clone();
-                self.highscore.score.text = format!("{}", score.score);
+                self.highscore.score.text = format!(
+                    "{} ({}/{})",
+                    score.score,
+                    (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
+                    (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
+                );
             }
         }
     }
 }
 
 impl Widget for LeaderboardWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         let main = position;
 
@@ -112,7 +133,7 @@ impl Widget for LeaderboardWidget {
             .extend_up(-context.layout_size);
 
         let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
-        self.title.update(title, &context.scale_font(1.1));
+        self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
 
         let (subtitle, main) = layout::cut_top_down(main, context.font_size * 1.0);
         self.subtitle.update(subtitle, context);
@@ -169,20 +190,20 @@ impl Widget for LeaderboardWidget {
 }
 
 impl LeaderboardEntryWidget {
-    pub fn new(
-        rank: impl Into<String>,
-        player: impl Into<String>,
-        score: i32,
-        highlight: bool,
-    ) -> Self {
+    pub fn new(rank: impl Into<String>, score: SavedScore, highlight: bool) -> Self {
         let rank = rank.into();
         let mut rank = TextWidget::new(format!("{}.", rank));
         rank.align(vec2(1.0, 0.5));
 
-        let mut player = TextWidget::new(player);
+        let mut player = TextWidget::new(&score.player);
         player.align(vec2(0.0, 0.5));
 
-        let mut score = TextWidget::new(format!("{}", score));
+        let mut score = TextWidget::new(format!(
+            "{} ({}/{})",
+            score.score,
+            (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
+            (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
+        ));
         score.align(vec2(1.0, 0.5));
 
         Self {
@@ -196,7 +217,7 @@ impl LeaderboardEntryWidget {
 }
 
 impl Widget for LeaderboardEntryWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         let main = position;
 
         let (rank, main) = layout::cut_left_right(main, context.font_size * 1.0);

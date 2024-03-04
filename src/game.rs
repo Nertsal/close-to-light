@@ -14,9 +14,12 @@ pub struct Game {
     geng: Geng,
     transition: Option<geng::state::Transition>,
     render: GameRender,
+
     model: Model,
+    debug_mode: bool,
     group_name: String,
     level_name: String,
+
     framebuffer_size: vec2<usize>,
     delta_time: Time,
 
@@ -26,13 +29,28 @@ pub struct Game {
     ui_focused: bool,
 }
 
+#[derive(Debug, Clone)]
 pub struct PlayLevel {
     pub group_name: String,
+    pub group_meta: GroupMeta,
     pub level_name: String,
+    pub level_meta: LevelMeta,
     pub config: LevelConfig,
     pub level: Level,
     pub music: Music,
     pub start_time: Time,
+}
+
+impl PlayLevel {
+    pub fn level_path(&self) -> std::path::PathBuf {
+        run_dir()
+            .join("assets")
+            .join("groups")
+            .join(&self.group_name)
+            .join("levels")
+            .join(&self.level_name)
+            .join("level.json")
+    }
 }
 
 impl Game {
@@ -47,16 +65,7 @@ impl Game {
         Self::preloaded(
             geng,
             assets,
-            Model::new(
-                assets,
-                options,
-                level.config,
-                level.level,
-                level.music,
-                leaderboard,
-                player_name,
-                level.start_time,
-            ),
+            Model::new(assets, options, level.clone(), leaderboard, player_name),
             level.group_name,
             level.level_name,
         )
@@ -73,9 +82,12 @@ impl Game {
             geng: geng.clone(),
             transition: None,
             render: GameRender::new(geng, assets),
+
             model,
+            debug_mode: false,
             group_name,
             level_name,
+
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
 
@@ -120,7 +132,8 @@ impl geng::State for Game {
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
-        self.render.draw_world(&self.model, framebuffer);
+        self.render
+            .draw_world(&self.model, self.debug_mode, framebuffer);
 
         if !fading {
             self.ui_focused = self.ui.layout(
@@ -130,7 +143,8 @@ impl geng::State for Game {
                 self.delta_time.as_f32(),
                 &self.geng,
             );
-            self.render.draw_ui(&self.ui, &self.model, framebuffer);
+            self.render
+                .draw_ui(&self.ui, &self.model, self.debug_mode, framebuffer);
         }
         self.cursor.scroll = 0.0;
     }
@@ -140,6 +154,7 @@ impl geng::State for Game {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::Escape => self.transition = Some(geng::state::Transition::Pop),
                 geng::Key::F11 => self.geng.window().toggle_fullscreen(),
+                geng::Key::F1 => self.debug_mode = !self.debug_mode,
                 _ => {}
             },
             geng::Event::Wheel { delta } => {
@@ -170,21 +185,26 @@ impl geng::State for Game {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
                     let player_name = self.model.player.name.clone();
-                    let submit_score = submit_score && !player_name.trim().is_empty();
-                    let raw_score = self.model.score.as_f32().ceil() as i32;
-                    let score = submit_score.then_some(raw_score);
+                    let do_submit_score = submit_score && !player_name.trim().is_empty();
+
+                    let score = &self.model.score;
+                    let raw_score = score.calculated.combined;
+                    let submit_score = do_submit_score.then_some(raw_score);
 
                     let meta = crate::leaderboard::ScoreMeta::new(
                         self.group_name.clone(),
                         self.level_name.clone(),
-                        self.model.config.modifiers.clone(),
-                        self.model.config.health.clone(),
+                        self.model.level.config.modifiers.clone(),
+                        self.model.level.config.health.clone(),
+                        score.clone(),
                     );
 
-                    if submit_score {
-                        self.model.leaderboard.submit(player_name, score, meta);
+                    if do_submit_score {
+                        self.model
+                            .leaderboard
+                            .submit(player_name, submit_score, meta);
                     } else {
-                        self.model.leaderboard.loaded.meta = meta.clone();
+                        self.model.leaderboard.loaded.category = meta.category.clone();
                         // Save highscores on lost runs only locally
                         self.model.leaderboard.loaded.reload_local(Some(
                             &crate::leaderboard::SavedScore {

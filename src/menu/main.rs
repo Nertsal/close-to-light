@@ -105,6 +105,7 @@ impl MainMenu {
                 future,
             ),
         )));
+        self.cursor_pos = vec2::ZERO;
     }
 }
 
@@ -137,7 +138,7 @@ impl geng::State for MainMenu {
         let hovering = self.player.collider.check(&self.play_button.base_collider);
         self.play_button.update(hovering, delta_time);
         self.player
-            .update_distance(&self.play_button.base_collider, false);
+            .update_distance_simple(&self.play_button.base_collider);
         if self.play_button.hover_time.is_max() {
             self.play_button.hover_time.set_ratio(Time::ZERO);
             self.play();

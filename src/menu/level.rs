@@ -217,14 +217,16 @@ impl LevelMenu {
             async move {
                 let manager = geng.asset_manager();
 
-                let (_, level_music, level) = load_level(manager, &level_path)
+                let (group_meta, level_meta, level_music, level) = load_level(manager, &level_path)
                     .await
                     .expect("failed to load level");
 
                 let (group_name, level_name) = crate::group_level_from_path(level_path);
                 let level = crate::game::PlayLevel {
                     group_name,
+                    group_meta,
                     level_name,
+                    level_meta,
                     config,
                     level,
                     music: level_music,
@@ -332,8 +334,9 @@ impl LevelMenu {
                         let mods = self.state.config.modifiers.clone();
                         let health = self.state.config.health.clone();
 
-                        let meta = crate::leaderboard::ScoreMeta::new(group, level, mods, health);
-                        self.state.leaderboard.change_meta(meta);
+                        let category =
+                            crate::leaderboard::ScoreCategory::new(group, level, mods, health);
+                        self.state.leaderboard.change_category(category);
                     }
                 }
             }
@@ -585,11 +588,11 @@ impl geng::State for LevelMenu {
         self.state.player.reset_distance();
         self.state
             .player
-            .update_distance(&self.exit_button.base_collider, false);
+            .update_distance_simple(&self.exit_button.base_collider);
         if self.state.show_level.is_some() {
             self.state
                 .player
-                .update_distance(&self.play_button.base_collider, false);
+                .update_distance_simple(&self.play_button.base_collider);
         }
 
         if !self.ui_focused {

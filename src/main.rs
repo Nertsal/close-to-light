@@ -82,7 +82,7 @@ fn main() {
             geng.run_state(state).await;
         } else if let Some(level_path) = opts.level {
             let mut config = model::LevelConfig::default();
-            let (_, music, level) = menu::load_level(manager, &level_path)
+            let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
                 .await
                 .expect("failed to load level");
 
@@ -93,16 +93,20 @@ fn main() {
                         .await
                         .expect("failed to load editor config");
 
-                let state = editor::EditorState::new(
-                    geng.clone(),
-                    assets,
-                    editor_config,
-                    options,
+                let (group_name, level_name) = crate::group_level_from_path(&level_path);
+                let level = game::PlayLevel {
+                    group_name,
+                    group_meta,
+                    level_name,
+                    level_meta,
                     config,
                     level,
                     music,
-                    level_path,
-                );
+                    start_time: model::Time::ZERO,
+                };
+
+                let state =
+                    editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
                 geng.run_state(state).await;
             } else {
                 // Game
@@ -110,7 +114,9 @@ fn main() {
                 config.modifiers.clean_auto = opts.clean_auto;
                 let level = game::PlayLevel {
                     group_name,
+                    group_meta,
                     level_name,
+                    level_meta,
                     config,
                     level,
                     music,

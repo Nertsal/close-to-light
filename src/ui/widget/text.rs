@@ -17,13 +17,18 @@ impl TextWidget {
         }
     }
 
+    pub fn aligned(mut self, align: vec2<f32>) -> Self {
+        self.align(align);
+        self
+    }
+
     pub fn align(&mut self, align: vec2<f32>) {
         self.options.align = align;
     }
 }
 
 impl Widget for TextWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.options.update(context);
     }

@@ -12,6 +12,7 @@ pub struct Theme {
     pub dark: Color,
     pub light: Color,
     pub danger: Color,
+    pub highlight: Color,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +50,7 @@ impl Theme {
             dark: Color::BLACK,
             light: Color::WHITE,
             danger: Color::RED,
+            highlight: Color::CYAN,
         }
     }
 
@@ -57,6 +59,7 @@ impl Theme {
             dark: Color::try_from("#2B3A67").unwrap(),
             light: Color::try_from("#FFC482").unwrap(),
             danger: Color::try_from("#D34F73").unwrap(),
+            highlight: Color::try_from("#61C9A8").unwrap(),
         }
     }
 

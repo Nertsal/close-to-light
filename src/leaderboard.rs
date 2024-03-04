@@ -1,5 +1,5 @@
 use crate::{
-    prelude::{HealthConfig, LevelModifiers},
+    prelude::{HealthConfig, LevelModifiers, Score},
     task::Task,
     LeaderboardSecrets,
 };
@@ -29,7 +29,7 @@ impl Clone for Leaderboard {
             task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard {
-                meta: self.loaded.meta.clone(),
+                category: self.loaded.category.clone(),
                 local_high: self.loaded.local_high.clone(),
                 ..LoadedBoard::new()
             },
@@ -46,7 +46,7 @@ pub struct SavedScore {
 
 #[derive(Debug)]
 pub struct LoadedBoard {
-    pub meta: ScoreMeta,
+    pub category: ScoreCategory,
     pub my_position: Option<usize>,
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
@@ -54,23 +54,55 @@ pub struct LoadedBoard {
 }
 
 /// Meta information saved together with the score.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreMeta {
-    pub version: u32,
+    pub category: ScoreCategory,
+    pub score: Score,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScoreCategory {
+    version: u32,
     pub group: String,
     pub level: String,
     pub mods: LevelModifiers,
     pub health: HealthConfig,
 }
 
-impl ScoreMeta {
+impl Default for ScoreCategory {
+    fn default() -> Self {
+        Self::new(
+            "".to_string(),
+            "".to_string(),
+            LevelModifiers::default(),
+            HealthConfig::default(),
+        )
+    }
+}
+
+impl ScoreCategory {
     pub fn new(group: String, level: String, mods: LevelModifiers, health: HealthConfig) -> Self {
         Self {
-            version: 0,
+            version: 2,
             group,
             level,
             mods,
             health,
+        }
+    }
+}
+
+impl ScoreMeta {
+    pub fn new(
+        group: String,
+        level: String,
+        mods: LevelModifiers,
+        health: HealthConfig,
+        score: Score,
+    ) -> Self {
+        Self {
+            category: ScoreCategory::new(group, level, mods, health),
+            score,
         }
     }
 }
@@ -114,9 +146,9 @@ impl Leaderboard {
         self.loaded.refresh();
     }
 
-    /// Change meta filter using the cached scores if available.
-    pub fn change_meta(&mut self, meta: ScoreMeta) {
-        self.loaded.meta = meta;
+    /// Change category filter using the cached scores if available.
+    pub fn change_category(&mut self, category: ScoreCategory) {
+        self.loaded.category = category;
         self.loaded.reload_local(None);
         match self.status {
             LeaderboardStatus::None | LeaderboardStatus::Failed => {
@@ -154,7 +186,7 @@ impl Leaderboard {
             meta: meta.clone(),
         });
 
-        self.loaded.meta = meta.clone();
+        self.loaded.category = meta.category.clone();
         self.loaded.reload_local(score.as_ref());
 
         let meta_str = meta_str(&meta);
@@ -203,7 +235,7 @@ impl Leaderboard {
 impl LoadedBoard {
     fn new() -> Self {
         Self {
-            meta: ScoreMeta::new(
+            category: ScoreCategory::new(
                 "none".to_string(),
                 "none".to_string(),
                 LevelModifiers::default(),
@@ -221,11 +253,13 @@ impl LoadedBoard {
         let mut highscores: Vec<SavedScore> =
             preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
         let mut save = false;
-        if let Some(highscore) = highscores.iter_mut().find(|s| s.meta == self.meta) {
+        if let Some(highscore) = highscores
+            .iter_mut()
+            .find(|s| s.meta.category == self.category)
+        {
             if let Some(score) = score {
-                if score.score > highscore.score && score.meta == highscore.meta {
-                    highscore.score = score.score;
-                    highscore.player = score.player.clone();
+                if score.score > highscore.score && score.meta.category == highscore.meta.category {
+                    *highscore = score.clone();
                     save = true;
                 }
             }
@@ -244,7 +278,7 @@ impl LoadedBoard {
 
     /// Refresh the filter.
     fn refresh(&mut self) {
-        log::debug!("Filtering scores with meta\n{:#?}", self.meta);
+        log::debug!("Filtering scores with meta\n{:#?}", self.category);
 
         let mut scores = self.all_scores.clone();
 
@@ -253,7 +287,7 @@ impl LoadedBoard {
             !entry.player.is_empty()
                 && entry.extra_info.as_ref().map_or(false, |info| {
                     serde_json::from_str::<ScoreMeta>(info)
-                        .map_or(false, |entry_meta| entry_meta == self.meta)
+                        .map_or(false, |entry_meta| entry_meta.category == self.category)
                 })
         });
 
