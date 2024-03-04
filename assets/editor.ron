@@ -5,6 +5,7 @@ EditorConfig(
     ),
     playback_duration: 0.5,
     scroll_slow: 0.25,
+    scroll_normal: 1.0,
     scroll_fast: 16.0,
     theme: EditorTheme(
         hover: "#9ff",
