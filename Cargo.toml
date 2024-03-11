@@ -21,6 +21,8 @@ tokio = { version = "1", features = ["rt", "macros"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 enum-iterator = "1.4.1"
 uuid = { version = "1.6.1", features = ["serde", "v4"] }
+sha2 = "0.10.8"
+data-encoding = "2.5.0"
 
 # Game
 geng = "0.17.0"
@@ -60,6 +62,8 @@ parry2d.workspace = true
 enum-iterator.workspace = true
 tokio.workspace = true
 serde.workspace = true
+sha2.workspace = true
+data-encoding.workspace = true
 
 [patch.crates-io]
 async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged

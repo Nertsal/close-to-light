@@ -81,13 +81,13 @@ impl MainMenu {
 
             async move {
                 let manager = geng.asset_manager();
-                let assets_path = run_dir().join("assets");
-                let groups_path = assets_path.join("groups");
 
-                let groups = load_groups(manager, &groups_path)
+                let local = crate::local::LevelCache::load(manager)
                     .await
-                    .expect("failed to load groups");
-                LevelMenu::new(&geng, &assets, groups, secrets, options)
+                    .expect("failed to load local data");
+                let local = Rc::new(RefCell::new(local));
+
+                LevelMenu::new(&geng, &assets, &local, secrets, options)
             }
             .boxed_local()
         };

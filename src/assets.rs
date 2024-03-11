@@ -1,10 +1,12 @@
+use crate::prelude::MusicMeta;
+
 use geng::prelude::*;
 
-/// Workaround until <https://github.com/geng-engine/geng/issues/78> is fixed.
 #[derive(geng::asset::Load)]
 pub struct MusicAssets {
     #[load(postprocess = "looping", ext = "mp3")]
     pub music: geng::Sound,
+    pub meta: MusicMeta,
 }
 
 #[derive(geng::asset::Load)]

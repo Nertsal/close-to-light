@@ -67,11 +67,12 @@ impl MenuRender {
         mask.mask_quad(ui.groups_state.position);
         mask.mask_quad(ui.levels_state.position);
 
-        for (group, entry) in ui.groups.iter().zip(&state.groups) {
-            if let Some(logo) = &entry.logo {
-                self.ui
-                    .draw_texture(group.logo.position, logo, theme.light, framebuffer);
-            }
+        for (group, entry) in ui.groups.iter().zip(&state.local.borrow().groups) {
+            // TODO: logo?
+            // if let Some(logo) = &entry.logo {
+            //     self.ui
+            //         .draw_texture(group.logo.position, logo, theme.light, framebuffer);
+            // }
 
             self.ui.draw_toggle_slide(
                 &group.state,

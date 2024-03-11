@@ -276,6 +276,8 @@ impl MenuUI {
         update!(self.levels_state, levels);
 
         {
+            let local = state.local.borrow();
+
             // Level groups
             let slide = layout_size * 2.0;
 
@@ -285,7 +287,7 @@ impl MenuUI {
                 .extend_down(2.0 * context.font_size);
 
             // Initialize missing groups
-            for _ in 0..state.groups.len() - self.groups.len() {
+            for _ in 0..(&local.groups).len() - self.groups.len() {
                 self.groups.push(GroupWidget::new());
             }
 
@@ -294,10 +296,10 @@ impl MenuUI {
             for (static_pos, (i, entry)) in group
                 .stack(
                     vec2(0.0, -group.height() - layout_size * 0.5),
-                    state.groups.len(),
+                    local.groups.len(),
                 )
                 .into_iter()
-                .zip(state.groups.iter().enumerate())
+                .zip(local.groups.iter().enumerate())
             {
                 let Some(group) = self.groups.get_mut(i) else {
                     // should not happen
@@ -331,13 +333,18 @@ impl MenuUI {
             }
 
             // Show levels for the group
+            drop(local);
             if let Some(group) = selected {
                 state.show_group(group);
             }
         }
 
         if let Some(show_group) = &state.show_group {
-            if let Some(group) = state.groups.get(show_group.data) {
+            let local = state.local.borrow();
+            let group = local.groups.get(show_group.data).cloned();
+            drop(local);
+
+            if let Some(group) = group {
                 // Levels
                 let slide = layout_size * 2.0;
 
@@ -359,7 +366,7 @@ impl MenuUI {
 
                 // Layout each level
                 let mut selected = None;
-                for (static_pos, (i, (_, level_meta))) in level
+                for (static_pos, (i, cached)) in level
                     .stack(
                         vec2(0.0, -level.height() - layout_size * 0.5),
                         group.levels.len(),
@@ -378,7 +385,7 @@ impl MenuUI {
                     let pos = static_pos.translate(vec2(t * slide, 0.0));
 
                     update!(level, pos);
-                    level.set_level(level_meta);
+                    level.set_level(&cached.meta);
 
                     if level.state.clicked {
                         selected = Some(i);

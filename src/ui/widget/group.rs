@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{menu::GroupEntry, ui::layout::AreaOps};
+use crate::{local::CachedGroup, ui::layout::AreaOps};
 
 use geng_utils::bounded::Bounded;
 
@@ -23,9 +23,11 @@ impl GroupWidget {
         }
     }
 
-    pub fn set_group(&mut self, group: &GroupEntry) {
+    pub fn set_group(&mut self, group: &CachedGroup) {
         self.name.text = group.meta.name.to_string();
-        self.author.text = format!("by {}", group.meta.music.author);
+        if let Some(music) = &group.music {
+            self.author.text = format!("by {}", music.meta.author);
+        }
     }
 }
 

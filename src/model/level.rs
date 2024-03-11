@@ -5,20 +5,25 @@ pub use self::{config::*, state::*};
 
 use super::*;
 
+// TODO: move to assets?
+
 type Name = Rc<str>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupMeta {
     pub name: Name,
-    /// Music info
-    pub music: MusicMeta,
+    /// Music ID.
+    pub music: Id,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[load(serde = "toml")]
 pub struct MusicMeta {
+    pub id: Id,
+    pub name: Name,
+    pub author: Name,
     /// Beats per minute.
     pub bpm: R32,
-    pub author: Name,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

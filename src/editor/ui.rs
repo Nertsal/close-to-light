@@ -533,14 +533,14 @@ impl StatefulWidget for EditorConfigWidget {
 
         let bpm = bar.cut_top(context.font_size);
         self.bpm
-            .update(bpm, context, &mut state.level.group_meta.music.bpm);
+            .update(bpm, context, &mut state.level.music.meta.bpm);
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
 
         let mut bar = columns[1];
         let music = bar.cut_top(context.font_size);
-        self.music.text = format!("Music: {}", state.level.group_meta.name);
+        self.music.text = format!("Music: {}", state.level.music.meta.name);
         self.music.update(music, context);
 
         let level = bar.cut_top(context.font_size);

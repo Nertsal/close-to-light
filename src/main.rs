@@ -4,6 +4,7 @@ mod command;
 mod editor;
 mod game;
 mod leaderboard;
+mod local;
 #[cfg(not(target_arch = "wasm32"))]
 mod media;
 mod menu;
@@ -99,66 +100,65 @@ fn main() {
             return;
         }
 
-        if let Some(level_path) = opts.level {
-            let mut config = model::LevelConfig::default();
-            let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
-                .await
-                .expect("failed to load level");
+        // if let Some(level_path) = opts.level {
+        //     let mut config = model::LevelConfig::default();
+        //     let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
+        //         .await
+        //         .expect("failed to load level");
 
-            if opts.edit {
-                // Editor
-                let editor_config: editor::EditorConfig =
-                    geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-                        .await
-                        .expect("failed to load editor config");
+        //     if opts.edit {
+        //         // Editor
+        //         let editor_config: editor::EditorConfig =
+        //             geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+        //                 .await
+        //                 .expect("failed to load editor config");
 
-                let level = game::PlayLevel {
-                    level_path,
-                    group_meta,
-                    level_meta,
-                    config,
-                    level,
-                    music,
-                    start_time: prelude::Time::ZERO,
-                };
+        //         let level = game::PlayLevel {
+        //             level_path,
+        //             group_meta,
+        //             level_meta,
+        //             config,
+        //             level,
+        //             music,
+        //             start_time: prelude::Time::ZERO,
+        //         };
 
-                let state =
-                    editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
-                geng.run_state(state).await;
-                return;
-            }
+        //         let state =
+        //             editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
+        //         geng.run_state(state).await;
+        //         return;
+        //     }
 
-            // Game
-            config.modifiers.clean_auto = opts.clean_auto;
-            let level = game::PlayLevel {
-                level_path,
-                group_meta,
-                level_meta,
-                config,
-                level,
-                music,
-                start_time: prelude::Time::ZERO,
-            };
-            let state = game::Game::new(
-                &geng,
-                &assets,
-                options,
-                level,
-                Leaderboard::new(None),
-                "".to_string(),
-            );
-            geng.run_state(state).await;
-        } else {
+        //     // Game
+        //     config.modifiers.clean_auto = opts.clean_auto;
+        //     let level = game::PlayLevel {
+        //         level_path,
+        //         group_meta,
+        //         level_meta,
+        //         config,
+        //         level,
+        //         music,
+        //         start_time: prelude::Time::ZERO,
+        //     };
+        //     let state = game::Game::new(
+        //         &geng,
+        //         &assets,
+        //         options,
+        //         level,
+        //         Leaderboard::new(None),
+        //         "".to_string(),
+        //     );
+        //     geng.run_state(state).await;
+        // } else
+        {
             // Main menu
             if opts.skip_intro {
-                let assets_path = run_dir().join("assets");
-                let groups_path = assets_path.join("groups");
-
-                let groups = menu::load_groups(manager, &groups_path)
+                let local = local::LevelCache::load(manager)
                     .await
-                    .expect("failed to load groups");
+                    .expect("failed to load local data");
+                let local = Rc::new(RefCell::new(local));
 
-                let state = menu::LevelMenu::new(&geng, &assets, groups, secrets, options);
+                let state = menu::LevelMenu::new(&geng, &assets, &local, secrets, options);
                 geng.run_state(state).await;
             } else {
                 let state = menu::SplashScreen::new(&geng, &assets, secrets, options);

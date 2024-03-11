@@ -7,7 +7,7 @@ mod score;
 
 pub use self::{level::*, movement::*, options::*, player::*, score::*};
 
-use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
+use crate::{game::PlayLevel, leaderboard::Leaderboard, local::CachedMusic, prelude::*};
 
 const COYOTE_TIME: f32 = 0.1;
 const BUFFER_TIME: f32 = 0.1;
@@ -60,6 +60,10 @@ impl Music {
             effect: None,
             timer: Time::ZERO,
         }
+    }
+
+    pub fn from_cache(cached: &CachedMusic) -> Self {
+        Self::new(Rc::clone(&cached.music), cached.meta.clone())
     }
 
     pub fn set_volume(&mut self, volume: f32) {

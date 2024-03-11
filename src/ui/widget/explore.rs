@@ -1,8 +1,20 @@
 use super::*;
 
+use crate::prelude::LevelMeta;
+
+use std::path::PathBuf;
+
 pub struct ExploreWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
+
+    pub editing_levels: Vec<ExploreLevelWidget>,
+}
+
+pub struct ExploreLevelWidget {
+    pub state: WidgetState,
+    pub path: PathBuf,
+    // pub meta: LevelMeta,
 }
 
 impl ExploreWidget {
@@ -10,7 +22,13 @@ impl ExploreWidget {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
+
+            editing_levels: Vec::new(),
         }
+    }
+
+    pub fn load_editing(&mut self, levels: Vec<ExploreLevelWidget>) {
+        self.editing_levels = levels;
     }
 }
 

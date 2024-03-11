@@ -6,6 +6,7 @@ use super::*;
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
+    local::{CachedGroup, CachedLevel, LevelCache},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{ShowTime, UiContext, WidgetRequest},
     Secrets,
@@ -40,7 +41,7 @@ pub struct MenuState {
     pub player: Player,
     pub options: Options,
     pub config: LevelConfig,
-    pub groups: Vec<GroupEntry>,
+    pub local: Rc<RefCell<LevelCache>>,
     /// Currently showing group.
     pub show_group: Option<ShowTime<usize>>,
     /// Switch to the group after current one finishes its animation.
@@ -83,7 +84,7 @@ impl LevelMenu {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        groups: Vec<GroupEntry>,
+        local: &Rc<RefCell<LevelCache>>,
         secrets: Option<Secrets>,
         options: Options,
     ) -> Self {
@@ -121,7 +122,7 @@ impl LevelMenu {
                 player,
                 options,
                 config: LevelConfig::default(),
-                groups,
+                local: Rc::clone(local),
                 show_group: None,
                 switch_group: None,
                 show_level: None,
@@ -143,12 +144,12 @@ impl LevelMenu {
         }
     }
 
-    fn get_active_level(&self) -> Option<std::path::PathBuf> {
+    fn get_active_level(&self) -> Option<(Rc<CachedGroup>, Rc<CachedLevel>)> {
         if let Some(group) = &self.state.show_group {
-            if let Some(group) = self.state.groups.get(group.data) {
+            if let Some(group) = self.state.local.borrow().groups.get(group.data) {
                 if let Some(level) = &self.state.show_level {
-                    if let Some((path, _)) = group.levels.get(level.data) {
-                        return Some(path.clone());
+                    if let Some(level) = group.levels.get(level.data) {
+                        return Some((Rc::clone(group), Rc::clone(level)));
                     }
                 }
             }
@@ -157,13 +158,18 @@ impl LevelMenu {
     }
 
     fn play_level(&mut self) {
-        let Some(level_path) = self.get_active_level() else {
+        let Some((group, level)) = self.get_active_level() else {
             log::error!("Trying to play a level, but there is no active level");
             return;
         };
 
         self.ui_context.cursor.position = vec2::ZERO;
         self.play_button.hover_time.set(Time::ZERO);
+
+        let Some(music) = group.music.clone() else {
+            log::error!("Music not loaded for the group: {}", group.meta.name);
+            return;
+        };
 
         let future = {
             let geng = self.geng.clone();
@@ -174,19 +180,13 @@ impl LevelMenu {
             let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
 
             async move {
-                let manager = geng.asset_manager();
-
-                let (group_meta, level_meta, level_music, level) = load_level(manager, &level_path)
-                    .await
-                    .expect("failed to load level");
-
                 let level = crate::game::PlayLevel {
-                    level_path,
-                    group_meta,
-                    level_meta,
+                    level: level.level.clone(),
+                    level_path: level.path.clone(),
+                    group_meta: group.meta.clone(),
+                    level_meta: level.meta.clone(),
                     config,
-                    level,
-                    music: level_music,
+                    music: Music::from_cache(&music),
                     start_time: Time::ZERO,
                 };
                 crate::game::Game::new(&geng, &assets, options, level, leaderboard, player_name)
