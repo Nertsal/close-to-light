@@ -89,6 +89,15 @@ impl MenuRender {
                 continue;
             }
 
+            self.ui.draw_icon(&level.sync, &mut mask.color);
+            self.ui.draw_icon(&level.edit, &mut mask.color);
+            self.ui.draw_outline(
+                level.static_state.position,
+                self.font_size * 0.2,
+                theme.light,
+                &mut mask.color,
+            );
+
             self.ui.draw_toggle_slide(
                 &level.state,
                 &[&level.name, &level.author],

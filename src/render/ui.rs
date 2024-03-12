@@ -125,6 +125,9 @@ impl UiRender {
     }
 
     pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
+        if let Some(bg) = icon.background {
+            self.draw_quad(icon.state.position, bg, framebuffer);
+        }
         self.draw_texture(icon.state.position, &icon.texture, icon.color, framebuffer);
     }
 

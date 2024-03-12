@@ -7,6 +7,7 @@ pub struct IconWidget {
     pub state: WidgetState,
     pub texture: Rc<ugli::Texture>,
     pub color: Color,
+    pub background: Option<Color>,
 }
 
 impl IconWidget {
@@ -15,6 +16,7 @@ impl IconWidget {
             state: WidgetState::new(),
             texture: texture.clone(),
             color: Color::WHITE,
+            background: None,
         }
     }
 }

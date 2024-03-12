@@ -63,7 +63,7 @@ impl LevelCache {
         }
 
         let mut groups = Vec::new();
-        for entry in std::fs::read_dir(base_path.join("levels/local"))? {
+        for entry in std::fs::read_dir(base_path.join("levels"))? {
             let entry = entry?;
             let path = entry.path();
             if !path.is_dir() {

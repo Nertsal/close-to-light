@@ -3,6 +3,7 @@ use super::*;
 use crate::ui::{layout::AreaOps, widget::*};
 
 pub struct MenuUI {
+    assets: Rc<Assets>,
     pub screen: WidgetState,
     pub ctl_logo: WidgetState,
     pub groups_state: WidgetState,
@@ -22,6 +23,7 @@ pub struct MenuUI {
 impl MenuUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
+            assets: assets.clone(),
             screen: WidgetState::new(),
             ctl_logo: default(),
             groups_state: default(),
@@ -287,7 +289,7 @@ impl MenuUI {
                 .extend_down(2.0 * context.font_size);
 
             // Initialize missing groups
-            for _ in 0..(&local.groups).len() - self.groups.len() {
+            for _ in 0..local.groups.len() - self.groups.len() {
                 self.groups.push(GroupWidget::new());
             }
 
@@ -361,7 +363,7 @@ impl MenuUI {
 
                 // Initialize missing levels
                 for _ in 0..group.levels.len() - self.levels.len() {
-                    self.levels.push(LevelWidget::new());
+                    self.levels.push(LevelWidget::new(&self.assets));
                 }
 
                 // Layout each level
@@ -384,6 +386,7 @@ impl MenuUI {
                     let t = crate::util::smoothstep(t);
                     let pos = static_pos.translate(vec2(t * slide, 0.0));
 
+                    level.static_state.update(static_pos, context);
                     update!(level, pos);
                     level.set_level(&cached.meta);
 
