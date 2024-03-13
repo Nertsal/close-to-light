@@ -64,8 +64,10 @@ impl MenuRender {
         // Clip groups and levels
         let mut mask = self.masked.start();
 
-        mask.mask_quad(ui.groups_state.position);
-        mask.mask_quad(ui.levels_state.position);
+        mask.mask_quad(Aabb2 {
+            min: ui.groups_state.position.min,
+            max: ui.levels_state.position.max,
+        });
 
         for (group, entry) in ui.groups.iter().zip(&state.local.borrow().groups) {
             // TODO: logo?
@@ -107,6 +109,23 @@ impl MenuRender {
                 &mut mask.color,
             );
         }
+
+        self.ui.draw_toggle_slide(
+            &ui.new_group.state,
+            &[&ui.new_group],
+            self.font_size * 0.2,
+            ui.new_group.state.hovered,
+            theme,
+            &mut mask.color,
+        );
+        self.ui.draw_toggle_slide(
+            &ui.new_level.state,
+            &[&ui.new_level],
+            self.font_size * 0.2,
+            ui.new_level.state.hovered,
+            theme,
+            &mut mask.color,
+        );
 
         self.masked.draw(draw_parameters(), framebuffer);
     }

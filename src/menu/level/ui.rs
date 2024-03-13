@@ -6,16 +6,22 @@ pub struct MenuUI {
     assets: Rc<Assets>,
     pub screen: WidgetState,
     pub ctl_logo: WidgetState,
+
     pub groups_state: WidgetState,
     pub groups: Vec<GroupWidget>,
+    pub new_group: TextWidget,
+
     pub levels_state: WidgetState,
     pub levels: Vec<LevelWidget>,
+    pub new_level: TextWidget,
+
     pub options_head: TextWidget,
     pub options: OptionsWidget,
     pub explore_head: TextWidget,
     pub explore: ExploreWidget,
     pub profile_head: IconWidget,
     pub profile: ProfileWidget,
+
     pub leaderboard: LeaderboardWidget,
     pub level_config: LevelConfigWidget,
 }
@@ -26,10 +32,15 @@ impl MenuUI {
             assets: assets.clone(),
             screen: WidgetState::new(),
             ctl_logo: default(),
+
             groups_state: default(),
             groups: Vec::new(),
+            new_group: TextWidget::new("+ New Level Set"),
+
             levels_state: default(),
             levels: Vec::new(),
+            new_level: TextWidget::new("+ New Difficulty"),
+
             options_head: TextWidget::new("Options"),
             options: OptionsWidget::new(
                 Options::default(),
@@ -43,6 +54,7 @@ impl MenuUI {
             explore: ExploreWidget::new(),
             profile_head: IconWidget::new(&assets.sprites.head),
             profile: ProfileWidget::new(),
+
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
         }
@@ -295,14 +307,11 @@ impl MenuUI {
 
             // Layout each group
             let mut selected = None;
-            for (static_pos, (i, entry)) in group
-                .stack(
-                    vec2(0.0, -group.height() - layout_size * 0.5),
-                    local.groups.len(),
-                )
-                .into_iter()
-                .zip(local.groups.iter().enumerate())
-            {
+            let positions = group.stack(
+                vec2(0.0, -group.height() - layout_size * 0.5),
+                local.groups.len() + 1,
+            );
+            for (&static_pos, (i, entry)) in positions.iter().zip(local.groups.iter().enumerate()) {
                 let Some(group) = self.groups.get_mut(i) else {
                     // should not happen
                     continue;
@@ -339,6 +348,12 @@ impl MenuUI {
             if let Some(group) = selected {
                 state.show_group(group);
             }
+
+            let create = positions
+                .last()
+                .unwrap()
+                .extend_symmetric(-vec2(0.1, 0.7) * layout_size);
+            self.new_group.update(create, context);
         }
 
         if let Some(show_group) = &state.show_group {
@@ -368,13 +383,12 @@ impl MenuUI {
 
                 // Layout each level
                 let mut selected = None;
-                for (static_pos, (i, cached)) in level
-                    .stack(
-                        vec2(0.0, -level.height() - layout_size * 0.5),
-                        group.levels.len(),
-                    )
-                    .into_iter()
-                    .zip(group.levels.iter().enumerate())
+                let positions = level.stack(
+                    vec2(0.0, -level.height() - layout_size * 0.5),
+                    group.levels.len() + 1,
+                );
+                for (&static_pos, (i, cached)) in
+                    positions.iter().zip(group.levels.iter().enumerate())
                 {
                     let Some(level) = self.levels.get_mut(i) else {
                         // should not happen
@@ -420,6 +434,12 @@ impl MenuUI {
                         state.show_level(Some(level));
                     }
                 }
+
+                let create = positions
+                    .last()
+                    .unwrap()
+                    .extend_symmetric(vec2(1.0, -0.7) * layout_size);
+                self.new_level.update(create, context);
             }
         }
 
