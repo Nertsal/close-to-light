@@ -126,7 +126,19 @@ impl UiRender {
 
     pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
         if let Some(bg) = icon.background {
-            self.draw_quad(icon.state.position, bg, framebuffer);
+            let texture = //if width < 5.0 {
+                &self.assets.sprites.fill_thin;
+            // } else {
+            //     &self.assets.sprites.fill
+            // };
+            self.util.draw_nine_slice(
+                icon.state.position,
+                bg,
+                texture,
+                pixel_scale(framebuffer),
+                &geng::PixelPerfectCamera,
+                framebuffer,
+            );
         }
         self.draw_texture(icon.state.position, &icon.texture, icon.color, framebuffer);
     }

@@ -43,6 +43,7 @@ impl LevelWidget {
 impl Widget for LevelWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        context.update_focus(self.state.hovered);
 
         // `static_state` assumed to be updated externally
         let mut stat = self
