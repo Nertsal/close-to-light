@@ -110,22 +110,10 @@ impl MenuRender {
             );
         }
 
-        self.ui.draw_toggle_slide(
-            &ui.new_group.state,
-            &[&ui.new_group],
-            self.font_size * 0.2,
-            ui.new_group.state.hovered,
-            theme,
-            &mut mask.color,
-        );
-        self.ui.draw_toggle_slide(
-            &ui.new_level.state,
-            &[&ui.new_level],
-            self.font_size * 0.2,
-            ui.new_level.state.hovered,
-            theme,
-            &mut mask.color,
-        );
+        self.ui
+            .draw_toggle(&ui.new_group, self.font_size * 0.2, theme, &mut mask.color);
+        self.ui
+            .draw_toggle(&ui.new_level, self.font_size * 0.2, theme, &mut mask.color);
 
         self.masked.draw(draw_parameters(), framebuffer);
     }

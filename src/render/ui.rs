@@ -399,6 +399,23 @@ impl UiRender {
         );
     }
 
+    pub fn draw_toggle(
+        &self,
+        text: &TextWidget,
+        width: f32,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.draw_toggle_slide(
+            &text.state,
+            &[text],
+            width,
+            text.state.hovered,
+            theme,
+            framebuffer,
+        )
+    }
+
     pub fn draw_toggle_slide(
         &self,
         state: &WidgetState,
