@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
-#[derive(Debug)]
 pub struct LevelCache {
+    manager: geng::asset::Manager,
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Vec<Rc<CachedGroup>>,
 }
@@ -42,14 +42,19 @@ impl Debug for CachedMusic {
 }
 
 impl LevelCache {
+    pub fn new(manager: &geng::asset::Manager) -> Self {
+        Self {
+            manager: manager.clone(),
+            music: HashMap::new(),
+            groups: Vec::new(),
+        }
+    }
+
     /// Load from the local storage.
     pub async fn load(manager: &geng::asset::Manager) -> Result<Self> {
         #[cfg(target_arch = "wasm32")]
         {
-            return Ok(Self {
-                music: HashMap::new(),
-                groups: Vec::new(),
-            });
+            return Ok(Self::new(manager));
         }
 
         log::info!("Loading local storage");
@@ -88,7 +93,63 @@ impl LevelCache {
             groups.push(Rc::new(group));
         }
 
-        Ok(Self { music, groups })
+        Ok(Self {
+            manager: manager.clone(),
+            music,
+            groups,
+        })
+    }
+
+    pub async fn load_level(
+        &mut self,
+        level_path: impl AsRef<std::path::Path>,
+    ) -> Result<(Rc<CachedGroup>, Rc<CachedLevel>)> {
+        let level_path = level_path.as_ref();
+        let (level_path, group_path) = if level_path.is_dir() {
+            (
+                level_path.join("level.json"),
+                level_path
+                    .parent()
+                    .ok_or(anyhow!("Level expected to be in a folder"))?,
+            )
+        } else {
+            // Assume path to `level.json`
+            (
+                level_path.to_path_buf(),
+                level_path
+                    .parent()
+                    .ok_or(anyhow!("Level expected to be in a folder"))?
+                    .parent()
+                    .ok_or(anyhow!("Level expected to be in a folder"))?,
+            )
+        };
+
+        // TODO: do not load all the group levels
+        let mut group = CachedGroup::load(&self.manager, &group_path).await?;
+
+        let music = match self.music.get(&group.meta.music) {
+            Some(music) => music.clone(),
+            None => {
+                let music_path =
+                    preferences::base_path().join(format!("music/{}", group.meta.music));
+                let music = Rc::new(CachedMusic::load(&self.manager, &music_path).await?);
+                self.music.insert(group.meta.music, music.clone());
+                music
+            }
+        };
+        group.music = Some(music.clone());
+
+        let group = Rc::new(group);
+        self.groups.push(group.clone());
+
+        let level = group
+            .levels
+            .iter()
+            .find(|level| level.path == level_path)
+            .ok_or(anyhow!("Specific level not found"))?
+            .clone();
+
+        Ok((group, level))
     }
 }
 

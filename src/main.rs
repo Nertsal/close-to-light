@@ -15,6 +15,7 @@ mod task;
 mod ui;
 mod util;
 
+use leaderboard::Leaderboard;
 use prelude::Options;
 
 use geng::prelude::*;
@@ -99,57 +100,58 @@ fn main() {
             return;
         }
 
-        // if let Some(level_path) = opts.level {
-        //     let mut config = model::LevelConfig::default();
-        //     let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
-        //         .await
-        //         .expect("failed to load level");
+        if let Some(level_path) = opts.level {
+            let mut config = model::LevelConfig::default();
+            let mut local = local::LevelCache::new(manager);
+            let (group, level) = local
+                .load_level(&level_path)
+                .await
+                .expect("failed to load the level");
+            let Some(music) = &group.music else {
+                log::error!("Group has no music");
+                return;
+            };
 
-        //     if opts.edit {
-        //         // Editor
-        //         let editor_config: editor::EditorConfig =
-        //             geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-        //                 .await
-        //                 .expect("failed to load editor config");
+            if opts.edit {
+                // Editor
+                let editor_config: editor::EditorConfig =
+                    geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+                        .await
+                        .expect("failed to load editor config");
 
-        //         let level = game::PlayLevel {
-        //             level_path,
-        //             group_meta,
-        //             level_meta,
-        //             config,
-        //             level,
-        //             music,
-        //             start_time: prelude::Time::ZERO,
-        //         };
+                let level = game::PlayLevel {
+                    music: model::Music::from_cache(music),
+                    group,
+                    level,
+                    config,
+                    start_time: prelude::Time::ZERO,
+                };
 
-        //         let state =
-        //             editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
-        //         geng.run_state(state).await;
-        //         return;
-        //     }
+                let state =
+                    editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
+                geng.run_state(state).await;
+                return;
+            }
 
-        //     // Game
-        //     config.modifiers.clean_auto = opts.clean_auto;
-        //     let level = game::PlayLevel {
-        //         level_path,
-        //         group_meta,
-        //         level_meta,
-        //         config,
-        //         level,
-        //         music,
-        //         start_time: prelude::Time::ZERO,
-        //     };
-        //     let state = game::Game::new(
-        //         &geng,
-        //         &assets,
-        //         options,
-        //         level,
-        //         Leaderboard::new(None),
-        //         "".to_string(),
-        //     );
-        //     geng.run_state(state).await;
-        // } else
-        {
+            // Game
+            config.modifiers.clean_auto = opts.clean_auto;
+            let level = game::PlayLevel {
+                music: model::Music::from_cache(music),
+                group,
+                level,
+                config,
+                start_time: prelude::Time::ZERO,
+            };
+            let state = game::Game::new(
+                &geng,
+                &assets,
+                options,
+                level,
+                Leaderboard::new(None),
+                "".to_string(),
+            );
+            geng.run_state(state).await;
+        } else {
             // Main menu
             if opts.skip_intro {
                 let local = local::LevelCache::load(manager)
