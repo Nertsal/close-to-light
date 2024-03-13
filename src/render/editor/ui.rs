@@ -163,7 +163,7 @@ impl EditorRender {
             } else {
                 editor.selected_light.map(|id| id.event)
             };
-            if let Some(event) = event.and_then(|i| editor.level.level.events.get(i)) {
+            if let Some(event) = event.and_then(|i| editor.level.events.get(i)) {
                 let from = event.beat;
                 if let Event::Light(event) = &event.event {
                     let from = from + event.telegraph.precede_time;

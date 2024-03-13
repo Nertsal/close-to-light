@@ -51,7 +51,7 @@ impl Model {
             _ => None,
         };
         self.level_state = LevelState::render(
-            &self.level.level,
+            &self.level.level.data,
             &self.level.config,
             self.beat_time,
             ignore_time,

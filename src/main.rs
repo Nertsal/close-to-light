@@ -15,7 +15,6 @@ mod task;
 mod ui;
 mod util;
 
-use leaderboard::Leaderboard;
 use prelude::Options;
 
 use geng::prelude::*;

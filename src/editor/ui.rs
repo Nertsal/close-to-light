@@ -339,7 +339,7 @@ impl StatefulWidget for EditorEditWidget {
             // Light
             let selected = if let Some(selected_event) = editor
                 .selected_light
-                .and_then(|i| editor.level.level.events.get_mut(i.event))
+                .and_then(|i| editor.level.events.get_mut(i.event))
             {
                 if let Event::Light(event) = &mut selected_event.event {
                     Some(&mut event.light)
@@ -405,7 +405,7 @@ impl StatefulWidget for EditorEditWidget {
         let mut waypoint = false;
         if let Some(waypoints) = &editor.level_state.waypoints {
             if let Some(selected) = waypoints.selected {
-                if let Some(event) = editor.level.level.events.get_mut(waypoints.event) {
+                if let Some(event) = editor.level.events.get_mut(waypoints.event) {
                     if let Event::Light(light) = &mut event.event {
                         if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                             // Waypoint
@@ -474,7 +474,7 @@ impl StatefulWidget for EditorEditWidget {
                 }
             }
 
-            self.timeline.auto_scale(editor.level.level.last_beat());
+            self.timeline.auto_scale(editor.level.last_beat());
         }
     }
 
@@ -533,18 +533,18 @@ impl StatefulWidget for EditorConfigWidget {
 
         let bpm = bar.cut_top(context.font_size);
         self.bpm
-            .update(bpm, context, &mut state.level.music.meta.bpm);
+            .update(bpm, context, &mut state.static_level.music.meta.bpm);
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
 
         let mut bar = columns[1];
         let music = bar.cut_top(context.font_size);
-        self.music.text = format!("Music: {}", state.level.music.meta.name);
+        self.music.text = format!("Music: {}", state.static_level.music.meta.name);
         self.music.update(music, context);
 
         let level = bar.cut_top(context.font_size);
-        self.level.text = format!("Level: {}", state.level.level_meta.name);
+        self.level.text = format!("Level: {}", state.static_level.level.meta.name);
         self.level.update(level, context);
 
         let mut bar = columns[2];

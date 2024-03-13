@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
+#[derive(Debug)]
 pub struct LevelCache {
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Vec<Rc<CachedGroup>>,
@@ -14,19 +15,30 @@ pub struct CachedMusic {
     pub music: Rc<geng::Sound>,
 }
 
+#[derive(Debug)]
 pub struct CachedGroup {
     pub meta: GroupMeta,
     pub music: Option<Rc<CachedMusic>>,
     pub levels: Vec<Rc<CachedLevel>>,
 }
 
+#[derive(Debug)]
 pub struct CachedLevel {
     pub path: PathBuf,
     pub meta: LevelMeta,
     // TODO: Rc
-    pub level: Level,
+    pub data: Level,
     /// Hash code of the level.
     pub hash: String,
+}
+
+impl Debug for CachedMusic {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CachedMusic")
+            .field("metal", &self.meta)
+            .field("music", &"<data>")
+            .finish()
+    }
 }
 
 impl LevelCache {
@@ -159,7 +171,7 @@ impl CachedLevel {
         Ok(Self {
             path: path.to_path_buf(),
             meta,
-            level,
+            data: level,
             hash,
         })
     }

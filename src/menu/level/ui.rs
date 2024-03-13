@@ -406,6 +406,12 @@ impl MenuUI {
                     let delta = (target * level.selected_time.max() - level.selected_time.value())
                         .clamp_abs(context.delta_time);
                     level.selected_time.change(delta);
+
+                    // Buttons
+                    if level.sync.state.clicked {
+                    } else if level.edit.state.clicked {
+                        state.edit_level(i);
+                    }
                 }
 
                 // Show level

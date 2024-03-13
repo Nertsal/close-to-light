@@ -12,6 +12,7 @@ pub use self::{
 use crate::{
     game::PlayLevel,
     leaderboard::Leaderboard,
+    local::CachedLevel,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
     ui::UiContext,
@@ -78,7 +79,10 @@ pub struct Editor {
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
 
-    pub level: PlayLevel,
+    /// Static (initial) version of the level.
+    pub static_level: PlayLevel,
+    /// Current state of the level.
+    pub level: Level,
 
     /// Simulation model.
     pub model: Model,
@@ -88,6 +92,8 @@ pub struct Editor {
     pub real_time: Time,
     pub selected_light: Option<LightId>,
 
+    /// State that will be saved in the undo stack.
+    /// (Not every operation gets saved)
     pub buffer_state: Level,
     pub buffer_label: HistoryLabel,
     pub undo_stack: Vec<Level>,
@@ -130,7 +136,7 @@ impl EditorState {
         level: PlayLevel,
     ) -> Self {
         let model = Model::empty(&assets, options, level.clone());
-        Self {
+        let mut state = Self {
             transition: None,
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
@@ -159,17 +165,20 @@ impl EditorState {
                 visualize_beat: true,
                 dynamic_segment: None,
                 snap_to_grid: true,
-                buffer_state: level.level.clone(),
+                buffer_state: level.level.data.clone(),
                 buffer_label: HistoryLabel::default(),
                 undo_stack: Vec::new(),
                 redo_stack: Vec::new(),
                 config,
                 model,
-                level,
+                level: level.level.data.clone(),
+                static_level: level,
             },
             geng,
             assets,
-        }
+        };
+        state.editor.render_lights(state.editor.visualize_beat);
+        state
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
@@ -179,9 +188,16 @@ impl EditorState {
     /// Start playing the game from the current time.
     fn play_game(&mut self) {
         let level = crate::game::PlayLevel {
-            start_time: self.editor.current_beat * self.editor.level.music.beat_time(), // TODO: nonlinear time
-            ..self.editor.level.clone()
+            start_time: self.editor.current_beat * self.editor.static_level.music.beat_time(), // TODO: nonlinear time
+            level: Rc::new(CachedLevel {
+                path: std::path::PathBuf::new(), // Level is not saved - no path
+                meta: self.editor.static_level.level.meta.clone(),
+                data: self.editor.level.clone(),
+                hash: String::new(), // TODO: maybe recalculate hash?
+            }),
+            ..self.editor.static_level.clone()
         };
+
         self.transition = Some(geng::state::Transition::Push(Box::new(
             crate::game::Game::new(
                 &self.geng,
@@ -207,9 +223,9 @@ impl EditorState {
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
                 if let Some(mut level) = self.editor.undo_stack.pop() {
-                    std::mem::swap(&mut level, &mut self.editor.level.level);
+                    std::mem::swap(&mut level, &mut self.editor.level);
                     self.editor.redo_stack.push(level);
-                    self.editor.buffer_state = self.editor.level.level.clone();
+                    self.editor.buffer_state = self.editor.level.clone();
                     self.editor.buffer_label = HistoryLabel::default();
                 }
             }
@@ -229,9 +245,9 @@ impl EditorState {
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
                 if let Some(mut level) = self.editor.redo_stack.pop() {
-                    std::mem::swap(&mut level, &mut self.editor.level.level);
+                    std::mem::swap(&mut level, &mut self.editor.level);
                     self.editor.undo_stack.push(level);
-                    self.editor.buffer_state = self.editor.level.level.clone();
+                    self.editor.buffer_state = self.editor.level.clone();
                     self.editor.buffer_label = HistoryLabel::default();
                 }
             }
@@ -240,7 +256,7 @@ impl EditorState {
 
     fn save_state(&mut self, label: HistoryLabel) {
         if self.editor.buffer_label.should_merge(&label)
-            || self.editor.level.level == self.editor.buffer_state
+            || self.editor.level == self.editor.buffer_state
         {
             // State did not change or changes should be merged
             return;
@@ -255,7 +271,7 @@ impl EditorState {
 
         // Push the change
         self.editor.buffer_label = label;
-        let mut state = self.editor.level.level.clone();
+        let mut state = self.editor.level.clone();
         std::mem::swap(&mut state, &mut self.editor.buffer_state);
 
         self.editor.undo_stack.push(state);
@@ -264,18 +280,23 @@ impl EditorState {
     }
 
     fn save(&mut self) {
-        let path = &self.editor.level.level_path;
+        let path = &self.editor.static_level.level.path;
         let result = (|| -> anyhow::Result<()> {
             // TODO: switch back to ron
             // https://github.com/geng-engine/geng/issues/71
-            let level = serde_json::to_string_pretty(&self.editor.level.level)?;
+            let level = serde_json::to_string_pretty(&self.editor.level)?;
             let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
             write!(writer, "{}", level)?;
             Ok(())
         })();
         match result {
             Ok(()) => {
-                self.editor.model.level = self.editor.level.clone();
+                self.editor.model.level.level = Rc::new(CachedLevel {
+                    path: std::path::PathBuf::new(), // Level is not saved - no path
+                    meta: self.editor.static_level.level.meta.clone(),
+                    data: self.editor.level.clone(),
+                    hash: String::new(), // TODO: maybe recalculate hash?
+                });
                 log::info!("Saved the level successfully");
             }
             Err(err) => {
@@ -296,7 +317,7 @@ impl geng::State for EditorState {
         self.editor.real_time += delta_time;
 
         self.editor
-            .level
+            .static_level
             .music
             .set_volume(self.editor.model.options.volume.music());
 
@@ -305,16 +326,16 @@ impl geng::State for EditorState {
 
         self.update_drag();
 
-        if self.editor.level.music.timer > Time::ZERO {
-            self.editor.level.music.timer -= delta_time;
-            if self.editor.level.music.timer <= Time::ZERO {
-                self.editor.level.music.stop();
+        if self.editor.static_level.music.timer > Time::ZERO {
+            self.editor.static_level.music.timer -= delta_time;
+            if self.editor.static_level.music.timer <= Time::ZERO {
+                self.editor.static_level.music.stop();
             }
         }
 
         if let Some(waypoints) = &self.editor.level_state.waypoints {
             if let Some(waypoint) = waypoints.selected {
-                if let Some(event) = self.editor.level.level.events.get(waypoints.event) {
+                if let Some(event) = self.editor.level.events.get(waypoints.event) {
                     if let Event::Light(light) = &event.event {
                         // Set current time to align with the selected waypoint
                         if let Some(time) = light.light.movement.get_time(waypoint) {
@@ -333,14 +354,14 @@ impl geng::State for EditorState {
                 // Stopped scrolling
                 // Play some music
                 self.editor
-                    .level
+                    .static_level
                     .music
                     .play_from(time::Duration::from_secs_f64(
-                        (self.editor.current_beat * self.editor.level.music.beat_time()).as_f32()
-                            as f64,
+                        (self.editor.current_beat * self.editor.static_level.music.beat_time())
+                            .as_f32() as f64,
                     ));
-                self.editor.level.music.timer =
-                    self.editor.level.music.beat_time() * self.editor.config.playback_duration;
+                self.editor.static_level.music.timer = self.editor.static_level.music.beat_time()
+                    * self.editor.config.playback_duration;
             }
             self.editor.was_scrolling_time = false;
         }
@@ -348,9 +369,11 @@ impl geng::State for EditorState {
         self.editor.scrolling_time = false;
 
         if let State::Playing { .. } = self.editor.state {
-            self.editor.current_beat = self.editor.real_time / self.editor.level.music.beat_time();
+            self.editor.current_beat =
+                self.editor.real_time / self.editor.static_level.music.beat_time();
         } else if let Some(replay) = &mut self.editor.dynamic_segment {
-            replay.current_beat += replay.speed * delta_time / self.editor.level.music.beat_time();
+            replay.current_beat +=
+                replay.speed * delta_time / self.editor.static_level.music.beat_time();
             if replay.current_beat > replay.end_beat {
                 replay.current_beat = replay.start_beat;
             }
@@ -397,7 +420,7 @@ impl Editor {
     fn palette_swap(&mut self) {
         // Remove any already existing palette swap event at current time
         let mut ids = Vec::new();
-        for (i, event) in self.level.level.events.iter().enumerate() {
+        for (i, event) in self.level.events.iter().enumerate() {
             if event.beat == self.current_beat {
                 if let Event::PaletteSwap = event.event {
                     ids.push(i);
@@ -409,12 +432,12 @@ impl Editor {
 
         // Remove events
         for i in ids.into_iter().rev() {
-            self.level.level.events.swap_remove(i);
+            self.level.events.swap_remove(i);
         }
 
         if add {
             // Add a new palette swap event
-            self.level.level.events.push(TimedEvent {
+            self.level.events.push(TimedEvent {
                 beat: self.current_beat,
                 event: Event::PaletteSwap,
             });
@@ -455,7 +478,7 @@ impl Editor {
     fn scroll_time(&mut self, delta: Time) {
         let margin = r32(10.0);
         let min = Time::ZERO;
-        let max = margin + self.level.level.last_beat();
+        let max = margin + self.level.last_beat();
         let target = (self.current_beat + delta).clamp(min, max);
 
         // Align with quarter beats
@@ -474,7 +497,7 @@ impl Editor {
                 if let Some(replay) = &self.dynamic_segment {
                     Some(replay.current_beat)
                 } else {
-                    Some(time + (self.real_time / self.level.music.beat_time()).fract())
+                    Some(time + (self.real_time / self.static_level.music.beat_time()).fract())
                 }
             } else {
                 None
@@ -482,12 +505,10 @@ impl Editor {
             (Some(time), dynamic)
         };
 
-        let static_level = static_time.map(|time| {
-            LevelState::render(&self.level.level, &self.model.level.config, time, None)
-        });
-        let dynamic_level = dynamic_time.map(|time| {
-            LevelState::render(&self.level.level, &self.model.level.config, time, None)
-        });
+        let static_level = static_time
+            .map(|time| LevelState::render(&self.level, &self.model.level.config, time, None));
+        let dynamic_level = dynamic_time
+            .map(|time| LevelState::render(&self.level, &self.model.level.config, time, None));
 
         // if let State::Movement {
         //     start_beat, light, ..
@@ -519,7 +540,7 @@ impl Editor {
         let mut waypoints = None;
         if let State::Waypoints { event, state } = &self.state {
             let event_id = *event;
-            if let Some(event) = self.level.level.events.get(event_id) {
+            if let Some(event) = self.level.events.get(event_id) {
                 let event_time = event.beat;
                 if let Event::Light(event) = &event.event {
                     // If some waypoints overlap, render the temporaly closest one

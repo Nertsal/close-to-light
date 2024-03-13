@@ -3,7 +3,12 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{leaderboard::Leaderboard, prelude::*, render::game::GameRender};
+use crate::{
+    leaderboard::Leaderboard,
+    local::{CachedGroup, CachedLevel},
+    prelude::*,
+    render::game::GameRender,
+};
 
 pub struct Game {
     geng: Geng,
@@ -24,11 +29,9 @@ pub struct Game {
 
 #[derive(Debug, Clone)]
 pub struct PlayLevel {
-    pub level_path: std::path::PathBuf,
-    pub group_meta: GroupMeta,
-    pub level_meta: LevelMeta,
+    pub group: Rc<CachedGroup>,
+    pub level: Rc<CachedLevel>,
     pub config: LevelConfig,
-    pub level: Level,
     pub music: Music,
     pub start_time: Time,
 }
@@ -153,13 +156,13 @@ impl geng::State for Game {
                     if submit_score {
                         self.model
                             .leaderboard
-                            .submit(score, self.model.level.level_meta.id, meta);
+                            .submit(score, self.model.level.level.meta.id, meta);
                     } else {
                         self.model.leaderboard.loaded.meta = meta.clone();
                         // Save highscores on lost runs only locally
                         self.model.leaderboard.loaded.reload_local(Some(
                             &crate::leaderboard::SavedScore {
-                                level: self.model.level.level_meta.id,
+                                level: self.model.level.level.meta.id,
                                 score: raw_score,
                                 meta,
                             },
