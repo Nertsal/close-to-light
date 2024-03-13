@@ -79,6 +79,11 @@ pub struct Editor {
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
 
+    /// Whether to exit the game on the next frame.
+    pub exit: bool,
+    /// Whether to save the game on the next frame.
+    pub save: bool,
+
     /// Static (initial) version of the level.
     pub static_level: PlayLevel,
     /// Current state of the level.
@@ -152,6 +157,10 @@ impl EditorState {
                 },
                 grid_size: r32(10.0) / config.grid.height,
                 cursor_world_pos: vec2::ZERO,
+
+                exit: false,
+                save: false,
+
                 level_state: EditorLevelState::default(),
                 current_beat: Time::ZERO,
                 real_time: Time::ZERO,
@@ -394,6 +403,13 @@ impl geng::State for EditorState {
         };
 
         self.editor.render_lights(self.editor.visualize_beat);
+
+        if std::mem::take(&mut self.editor.save) {
+            self.save();
+        }
+        if std::mem::take(&mut self.editor.exit) {
+            self.transition = Some(geng::state::Transition::Pop);
+        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -416,6 +432,17 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
+    /// Exit the editor.
+    fn exit(&mut self) {
+        // TODO: check unsaved changes
+        self.exit = true;
+    }
+
+    /// Save the level.
+    fn save(&mut self) {
+        self.save = true;
+    }
+
     /// Swap the palette at current time.
     fn palette_swap(&mut self) {
         // Remove any already existing palette swap event at current time

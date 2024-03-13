@@ -51,6 +51,8 @@ impl EditorRender {
             framebuffer,
         );
 
+        self.ui.draw_button(&ui.exit, framebuffer);
+
         if ui.help_text.state.visible {
             let width = font_size * 0.1;
             let pos = Aabb2::from_corners(
@@ -62,6 +64,9 @@ impl EditorRender {
         }
         self.ui.draw_icon(&ui.help, framebuffer);
         self.ui.draw_text(&ui.help_text, framebuffer);
+
+        self.ui.draw_text(&ui.unsaved, framebuffer);
+        self.ui.draw_button(&ui.save, framebuffer);
     }
 
     fn draw_tab_config(&mut self, _editor: &Editor, ui: &EditorConfigWidget) {

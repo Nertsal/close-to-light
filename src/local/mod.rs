@@ -169,7 +169,7 @@ impl CachedLevel {
         };
 
         Ok(Self {
-            path: path.to_path_buf(),
+            path: level_path.to_path_buf(),
             meta,
             data: level,
             hash,

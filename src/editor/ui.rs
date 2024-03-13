@@ -16,9 +16,13 @@ pub struct EditorUI {
     pub screen: WidgetState,
     pub game: WidgetState,
 
+    pub exit: ButtonWidget,
     pub help: IconWidget,
     pub tab_edit: ButtonWidget,
     pub tab_config: ButtonWidget,
+
+    pub unsaved: TextWidget,
+    pub save: ButtonWidget,
 
     pub help_text: TextWidget,
     pub edit: EditorEditWidget,
@@ -83,9 +87,13 @@ impl EditorUI {
             screen: default(),
             game: default(),
 
+            exit: ButtonWidget::new("Exit"),
             help: IconWidget::new(&assets.sprites.help),
             tab_edit: ButtonWidget::new("Edit"),
             tab_config: ButtonWidget::new("Config"),
+
+            unsaved: TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)),
+            save: ButtonWidget::new("Save"),
 
             help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
             edit: EditorEditWidget::new(),
@@ -130,6 +138,12 @@ impl EditorUI {
 
         let mut top_bar = main.cut_top(font_size * 1.5);
 
+        let exit = top_bar.cut_left(layout_size * 5.0);
+        self.exit.update(exit, context);
+        if self.exit.text.state.clicked {
+            editor.exit();
+        }
+
         let help = top_bar.cut_left(layout_size * 3.0);
         self.help.update(help, context);
 
@@ -164,6 +178,20 @@ impl EditorUI {
         } else if self.tab_config.text.state.clicked {
             self.edit.hide();
             self.config.show();
+        }
+
+        let save = top_bar.cut_right(layout_size * 5.0);
+        self.save.update(save, context);
+        if self.save.text.state.clicked {
+            editor.save();
+        }
+
+        let unsaved = top_bar.cut_right(layout_size * 10.0);
+        if editor.model.level.level.data != editor.level {
+            self.unsaved.show();
+            self.unsaved.update(unsaved, context);
+        } else {
+            self.unsaved.hide();
         }
 
         let main = main.extend_down(-layout_size).extend_up(-layout_size * 3.0);
