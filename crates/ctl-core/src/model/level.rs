@@ -49,6 +49,10 @@ pub struct Telegraph {
 }
 
 impl Level {
+    pub fn new() -> Self {
+        Self { events: Vec::new() }
+    }
+
     /// Calculate the last beat when anything happens.
     pub fn last_beat(&self) -> Time {
         self.events

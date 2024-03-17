@@ -6,7 +6,7 @@ use super::*;
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
-    local::{CachedGroup, CachedLevel, LevelCache},
+    local::{CachedGroup, CachedLevel, CachedMusic, LevelCache},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{ShowTime, UiContext, WidgetRequest},
     Secrets,
@@ -86,6 +86,29 @@ impl MenuState {
             self.edit_level = Some((group.data, level));
         }
     }
+
+    fn new_group(&mut self) {
+        self.switch_group = None; // Deselect group
+        let mut local = self.local.borrow_mut();
+        // TODO: maybe ui to configure early
+        local.new_group(GroupMeta {
+            name: "New Group".into(),
+            music: 0, // NOTE: 0 is unitialized
+        });
+    }
+
+    fn new_level(&mut self) {
+        if let Some(show) = &self.show_group {
+            let group = show.data;
+            let mut local = self.local.borrow_mut();
+            let meta = LevelMeta {
+                id: 0,
+                name: "New Difficulty".into(),
+                author: "<author>".into(),
+            };
+            local.new_level(group, meta);
+        }
+    }
 }
 
 impl LevelMenu {
@@ -153,32 +176,24 @@ impl LevelMenu {
         }
     }
 
-    fn get_active_level(&self) -> Option<(Rc<CachedGroup>, Rc<CachedLevel>)> {
-        if let Some(group) = &self.state.show_group {
-            if let Some(group) = self.state.local.borrow().groups.get(group.data) {
-                if let Some(level) = &self.state.show_level {
-                    if let Some(level) = group.levels.get(level.data) {
-                        return Some((Rc::clone(group), Rc::clone(level)));
-                    }
-                }
-            }
-        }
-        None
+    fn get_active_level(&self) -> Option<(Rc<CachedMusic>, Rc<CachedLevel>)> {
+        let local = self.state.local.borrow();
+        let group = self.state.show_group.as_ref()?;
+        let group = local.groups.get(group.data)?;
+        let music = group.music.as_ref()?;
+        let level = self.state.show_level.as_ref()?;
+        let level = group.levels.get(level.data)?;
+        Some((Rc::clone(music), Rc::clone(level)))
     }
 
     fn play_level(&mut self) {
-        let Some((group, level)) = self.get_active_level() else {
+        let Some((music, level)) = self.get_active_level() else {
             log::error!("Trying to play a level, but there is no active level");
             return;
         };
 
         self.ui_context.cursor.position = vec2::ZERO;
         self.play_button.hover_time.set(Time::ZERO);
-
-        let Some(music) = group.music.clone() else {
-            log::error!("Music not loaded for the group: {}", group.meta.name);
-            return;
-        };
 
         let future = {
             let geng = self.geng.clone();
@@ -194,7 +209,6 @@ impl LevelMenu {
                     config,
                     music: Music::from_cache(&music),
                     start_time: Time::ZERO,
-                    group,
                 };
                 crate::game::Game::new(&geng, &assets, options, level, leaderboard, player_name)
             }
@@ -511,44 +525,43 @@ impl geng::State for LevelMenu {
         self.update_active_level(delta_time);
         self.update_leaderboard();
 
-        if let Some((group, level)) = self.state.edit_level.take().and_then(|(group, level)| {
+        if let Some((music, level)) = self.state.edit_level.take().and_then(|(group, level)| {
             let local = self.state.local.borrow();
             local.groups.get(group).and_then(|group| {
-                group
-                    .levels
-                    .get(level)
-                    .map(|level| (group.clone(), level.clone()))
+                group.music.as_ref().and_then(|music| {
+                    group
+                        .levels
+                        .get(level)
+                        .map(|level| (music.clone(), level.clone()))
+                })
             })
         }) {
-            if let Some(music) = &group.music {
-                let geng = self.geng.clone();
-                let assets = self.assets.clone();
-                let manager = self.geng.asset_manager().clone();
-                let assets_path = run_dir().join("assets");
-                let options = self.state.options.clone();
-                let level = crate::game::PlayLevel {
-                    music: Music::from_cache(music),
-                    group,
-                    level,
-                    config: self.state.config.clone(),
-                    start_time: Time::ZERO,
-                };
-                let future = async move {
-                    let config: crate::editor::EditorConfig =
-                        geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
-                            .await
-                            .expect("failed to load editor config");
+            let geng = self.geng.clone();
+            let assets = self.assets.clone();
+            let manager = self.geng.asset_manager().clone();
+            let assets_path = run_dir().join("assets");
+            let options = self.state.options.clone();
+            let level = crate::game::PlayLevel {
+                music: Music::from_cache(&music),
+                level,
+                config: self.state.config.clone(),
+                start_time: Time::ZERO,
+            };
+            let future = async move {
+                let config: crate::editor::EditorConfig =
+                    geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
+                        .await
+                        .expect("failed to load editor config");
 
-                    crate::editor::EditorState::new(geng, assets, config, options, level)
-                };
-                let state = geng::LoadingScreen::new(
-                    &self.geng,
-                    geng::EmptyLoadingScreen::new(&self.geng),
-                    future,
-                );
+                crate::editor::EditorState::new(geng, assets, config, options, level)
+            };
+            let state = geng::LoadingScreen::new(
+                &self.geng,
+                geng::EmptyLoadingScreen::new(&self.geng),
+                future,
+            );
 
-                self.transition = Some(geng::state::Transition::Push(Box::new(state)));
-            }
+            self.transition = Some(geng::state::Transition::Push(Box::new(state)));
         }
 
         self.last_delta_time = delta_time;

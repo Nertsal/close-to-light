@@ -7,7 +7,7 @@ use anyhow::Result;
 pub struct LevelCache {
     manager: geng::asset::Manager,
     pub music: HashMap<Id, Rc<CachedMusic>>,
-    pub groups: Vec<Rc<CachedGroup>>,
+    pub groups: Vec<CachedGroup>,
 }
 
 pub struct CachedMusic {
@@ -90,7 +90,7 @@ impl LevelCache {
 
             let mut group = CachedGroup::load(manager, &path).await?;
             group.music = music.get(&group.meta.music).cloned();
-            groups.push(Rc::new(group));
+            groups.push(group);
         }
 
         Ok(Self {
@@ -103,7 +103,7 @@ impl LevelCache {
     pub async fn load_level(
         &mut self,
         level_path: impl AsRef<std::path::Path>,
-    ) -> Result<(Rc<CachedGroup>, Rc<CachedLevel>)> {
+    ) -> Result<(Rc<CachedMusic>, Rc<CachedLevel>)> {
         let level_path = level_path.as_ref();
         let (level_path, group_path) = if level_path.is_dir() {
             (
@@ -137,10 +137,7 @@ impl LevelCache {
                 music
             }
         };
-        group.music = Some(music.clone());
-
-        let group = Rc::new(group);
-        self.groups.push(group.clone());
+        group.music = Some(Rc::clone(&music));
 
         let level = group
             .levels
@@ -149,7 +146,25 @@ impl LevelCache {
             .ok_or(anyhow!("Specific level not found"))?
             .clone();
 
-        Ok((group, level))
+        self.groups.push(group);
+
+        Ok((music, level))
+    }
+
+    pub fn new_group(&mut self, meta: GroupMeta) {
+        let music = meta.music;
+        let mut group = CachedGroup::new(meta);
+        group.music = self.music.get(&music).cloned();
+        self.groups.push(group);
+        // TODO: write to fs
+    }
+
+    pub fn new_level(&mut self, group: usize, meta: LevelMeta) {
+        if let Some(group) = self.groups.get_mut(group) {
+            let level = CachedLevel::new(meta);
+            group.levels.push(Rc::new(level));
+            // TODO: write to fs
+        }
     }
 }
 
@@ -176,6 +191,14 @@ impl CachedMusic {
 }
 
 impl CachedGroup {
+    pub fn new(meta: GroupMeta) -> Self {
+        Self {
+            meta,
+            music: None,
+            levels: Vec::new(),
+        }
+    }
+
     pub async fn load(manager: &geng::asset::Manager, path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
 
@@ -203,6 +226,15 @@ impl CachedGroup {
 }
 
 impl CachedLevel {
+    pub fn new(meta: LevelMeta) -> Self {
+        Self {
+            path: PathBuf::new(), // TODO
+            meta,
+            data: Level::new(),
+            hash: String::new(),
+        }
+    }
+
     pub async fn load(_manager: &geng::asset::Manager, path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
 

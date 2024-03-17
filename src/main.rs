@@ -103,14 +103,10 @@ fn main() {
         if let Some(level_path) = opts.level {
             let mut config = model::LevelConfig::default();
             let mut local = local::LevelCache::new(manager);
-            let (group, level) = local
+            let (music, level) = local
                 .load_level(&level_path)
                 .await
                 .expect("failed to load the level");
-            let Some(music) = &group.music else {
-                log::error!("Group has no music");
-                return;
-            };
 
             if opts.edit {
                 // Editor
@@ -120,8 +116,7 @@ fn main() {
                         .expect("failed to load editor config");
 
                 let level = game::PlayLevel {
-                    music: model::Music::from_cache(music),
-                    group,
+                    music: model::Music::from_cache(&music),
                     level,
                     config,
                     start_time: prelude::Time::ZERO,
@@ -136,8 +131,7 @@ fn main() {
             // Game
             config.modifiers.clean_auto = opts.clean_auto;
             let level = game::PlayLevel {
-                music: model::Music::from_cache(music),
-                group,
+                music: model::Music::from_cache(&music),
                 level,
                 config,
                 start_time: prelude::Time::ZERO,

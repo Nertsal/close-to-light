@@ -354,13 +354,21 @@ impl MenuUI {
                 .unwrap()
                 .extend_symmetric(-vec2(0.1, 0.7) * layout_size);
             self.new_group.update(create, context);
+            if self.new_group.state.clicked {
+                state.new_group();
+            }
         }
 
         if let Some(show_group) = &state.show_group {
-            let local = state.local.borrow();
-            let group = local.groups.get(show_group.data).cloned();
-            drop(local);
+            enum Action {
+                Edit(usize),
+                Show(usize),
+                New,
+            }
+            let mut action = None;
 
+            let local = state.local.borrow();
+            let group = local.groups.get(show_group.data);
             if let Some(group) = group {
                 // Levels
                 let slide = layout_size * 2.0;
@@ -424,14 +432,14 @@ impl MenuUI {
                     // Buttons
                     if level.sync.state.clicked {
                     } else if level.edit.state.clicked {
-                        state.edit_level(i);
+                        action = Some(Action::Edit(i));
                     }
                 }
 
                 // Show level
                 if let Some(level) = selected {
                     if state.show_group.as_ref().is_some_and(|show| show.going_up) {
-                        state.show_level(Some(level));
+                        action = Some(Action::Show(level));
                     }
                 }
 
@@ -440,6 +448,18 @@ impl MenuUI {
                     .unwrap()
                     .extend_symmetric(vec2(1.0, -0.7) * layout_size);
                 self.new_level.update(create, context);
+                if self.new_level.state.clicked {
+                    action = Some(Action::New);
+                }
+            }
+
+            drop(local);
+            if let Some(action) = action {
+                match action {
+                    Action::Edit(level) => state.edit_level(level),
+                    Action::Show(level) => state.show_level(Some(level)),
+                    Action::New => state.new_level(),
+                }
             }
         }
 

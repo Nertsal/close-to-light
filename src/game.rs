@@ -3,12 +3,7 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{
-    leaderboard::Leaderboard,
-    local::{CachedGroup, CachedLevel},
-    prelude::*,
-    render::game::GameRender,
-};
+use crate::{leaderboard::Leaderboard, local::CachedLevel, prelude::*, render::game::GameRender};
 
 pub struct Game {
     geng: Geng,
@@ -29,7 +24,6 @@ pub struct Game {
 
 #[derive(Debug, Clone)]
 pub struct PlayLevel {
-    pub group: Rc<CachedGroup>,
     pub level: Rc<CachedLevel>,
     pub config: LevelConfig,
     pub music: Music,
