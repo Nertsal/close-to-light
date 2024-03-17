@@ -240,7 +240,17 @@ impl MenuRender {
             width,
             theme,
             framebuffer,
-            |framebuffer| {},
+            |framebuffer| {
+                for (tab, active) in [
+                    (&ui.explore.tab_music, ui.explore.music.state.visible),
+                    (&ui.explore.tab_levels, ui.explore.levels.state.visible),
+                ] {
+                    self.ui
+                        .draw_toggle_button(tab, active, false, theme, framebuffer);
+                }
+                self.ui
+                    .draw_quad(ui.explore.separator.position, theme.light, framebuffer);
+            },
         );
 
         self.ui.draw_text(&ui.explore_head, framebuffer);

@@ -6,7 +6,7 @@ use super::*;
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
-    local::{CachedGroup, CachedLevel, CachedMusic, LevelCache},
+    local::{CachedLevel, CachedMusic, LevelCache},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{ShowTime, UiContext, WidgetRequest},
     Secrets,
@@ -526,6 +526,7 @@ impl geng::State for LevelMenu {
         self.update_leaderboard();
 
         if let Some((music, level)) = self.state.edit_level.take().and_then(|(group, level)| {
+            // TODO: warn if smth wrong
             let local = self.state.local.borrow();
             local.groups.get(group).and_then(|group| {
                 group.music.as_ref().and_then(|music| {

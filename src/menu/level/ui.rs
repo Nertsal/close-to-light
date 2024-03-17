@@ -50,7 +50,7 @@ impl MenuUI {
                     PaletteWidget::new("Test", Theme::test()),
                 ],
             ),
-            explore_head: TextWidget::new("Levels"),
+            explore_head: TextWidget::new("Browse"),
             explore: ExploreWidget::new(),
             profile_head: IconWidget::new(&assets.sprites.head),
             profile: ProfileWidget::new(),
@@ -385,7 +385,7 @@ impl MenuUI {
                     .extend_down(2.0 * context.font_size);
 
                 // Initialize missing levels
-                for _ in 0..group.levels.len() - self.levels.len() {
+                for _ in 0..group.levels.len().saturating_sub(self.levels.len()) {
                     self.levels.push(LevelWidget::new(&self.assets));
                 }
 
