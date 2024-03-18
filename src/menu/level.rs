@@ -9,7 +9,6 @@ use crate::{
     local::{CachedLevel, CachedMusic, LevelCache},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{ShowTime, UiContext, WidgetRequest},
-    Secrets,
 };
 
 pub struct LevelMenu {
@@ -120,7 +119,7 @@ impl LevelMenu {
         );
         player.info.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
 
-        let leaderboard = Leaderboard::new(client);
+        let leaderboard = Leaderboard::new(geng, client);
 
         Self {
             geng: geng.clone(),
@@ -136,7 +135,7 @@ impl LevelMenu {
             last_delta_time: Time::ONE,
             time: Time::ZERO,
 
-            ui: MenuUI::new(assets, leaderboard.client.as_ref()),
+            ui: MenuUI::new(assets),
             ui_focused: false,
             ui_context: UiContext::new(geng, options.theme),
 
@@ -521,6 +520,8 @@ impl geng::State for LevelMenu {
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);
         self.update_leaderboard();
+
+        self.state.local.borrow_mut().poll();
 
         if let Some((music, level)) = self.state.edit_level.take().and_then(|(group, level)| {
             // TODO: warn if smth wrong

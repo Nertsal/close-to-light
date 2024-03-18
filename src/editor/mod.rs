@@ -140,7 +140,7 @@ impl EditorState {
         options: Options,
         level: PlayLevel,
     ) -> Self {
-        let model = Model::empty(&assets, options, level.clone());
+        let model = Model::empty(&geng, &assets, options, level.clone());
         let mut state = Self {
             transition: None,
             render: EditorRender::new(&geng, &assets),
@@ -213,7 +213,7 @@ impl EditorState {
                 &self.assets,
                 self.editor.model.options.clone(),
                 level,
-                Leaderboard::new(None),
+                Leaderboard::new(&self.geng, None),
                 String::new(),
             ),
         )));

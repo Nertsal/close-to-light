@@ -29,7 +29,7 @@ pub struct MenuUI {
 }
 
 impl MenuUI {
-    pub fn new(assets: &Rc<Assets>, client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             assets: assets.clone(),
             screen: WidgetState::new(),
@@ -53,7 +53,7 @@ impl MenuUI {
                 ],
             ),
             explore_head: TextWidget::new("Browse"),
-            explore: ExploreWidget::new(assets, client),
+            explore: ExploreWidget::new(assets),
             profile_head: IconWidget::new(&assets.sprites.head),
             profile: ProfileWidget::new(),
 
@@ -191,7 +191,7 @@ impl MenuUI {
         );
 
         // Explore
-        update!(self.explore, explore);
+        update!(self.explore, explore, &mut state.local.borrow_mut());
         context.update_focus(self.explore.state.hovered);
 
         self.explore.window.layout(

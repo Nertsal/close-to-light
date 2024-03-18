@@ -1,11 +1,8 @@
-use ctl_client::{
-    core::types::{LevelInfo, MusicInfo},
-    Nertboard,
-};
+use ctl_client::core::types::{LevelInfo, MusicInfo};
 
 use super::*;
 
-use crate::{local::LevelCache, prelude::Assets, task::Task, ui::layout::AreaOps};
+use crate::{local::LevelCache, prelude::Assets, ui::layout::AreaOps};
 
 pub struct ExploreWidget {
     pub state: WidgetState,
@@ -28,9 +25,6 @@ pub struct ExploreLevelsWidget {
 
 pub struct ExploreMusicWidget {
     assets: Rc<Assets>,
-    client: Option<Arc<Nertboard>>,
-    task: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
-
     pub state: WidgetState,
     pub status: TextWidget,
     pub scroll: f32,
@@ -53,7 +47,7 @@ pub struct MusicItemWidget {
 }
 
 impl ExploreWidget {
-    pub fn new(assets: &Rc<Assets>, client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         let mut w = Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
@@ -63,7 +57,7 @@ impl ExploreWidget {
             tab_levels: TextWidget::new("Levels"),
             separator: WidgetState::new(),
 
-            music: ExploreMusicWidget::new(assets, client),
+            music: ExploreMusicWidget::new(assets),
             levels: ExploreLevelsWidget::new(),
         };
         w.music.hide();
@@ -71,10 +65,13 @@ impl ExploreWidget {
     }
 }
 
-impl Widget for ExploreWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+impl StatefulWidget for ExploreWidget {
+    type State = LevelCache;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
+        self.music.load(&state.music_list);
 
         let mut main = position;
         main.cut_top(context.layout_size * 1.0);
@@ -114,7 +111,7 @@ impl Widget for ExploreWidget {
         }
 
         if self.tab_music.state.clicked {
-            self.music.load_music();
+            state.tasks.fetch_music();
             self.music.show();
             self.levels.hide();
         } else if self.tab_levels.state.clicked {
@@ -163,12 +160,9 @@ impl Widget for ExploreLevelsWidget {
 }
 
 impl ExploreMusicWidget {
-    pub fn new(assets: &Rc<Assets>, client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             assets: assets.clone(),
-            client: client.cloned(),
-            task: None,
-
             state: WidgetState::new(),
             status: TextWidget::new("Offline"),
             scroll: 0.0,
@@ -178,24 +172,7 @@ impl ExploreMusicWidget {
         }
     }
 
-    fn poll(&mut self) {
-        if let Some(task) = &mut self.task {
-            if let Some(res) = task.poll() {
-                match res {
-                    Ok(Ok(music)) => {
-                        self.task = None;
-                        self.load(music);
-                    }
-                    _ => {
-                        // TODO
-                        // self.status = "Failed";
-                    }
-                }
-            }
-        }
-    }
-
-    fn load(&mut self, music: Vec<MusicInfo>) {
+    fn load(&mut self, music: &[MusicInfo]) {
         if music.is_empty() {
             self.status.text = "Nothing found :(".into();
         } else {
@@ -203,7 +180,7 @@ impl ExploreMusicWidget {
         }
 
         self.items = music
-            .into_iter()
+            .iter()
             .map(|info| MusicItemWidget {
                 state: WidgetState::new(),
                 download: IconWidget::new(&self.assets.sprites.download),
@@ -215,33 +192,14 @@ impl ExploreMusicWidget {
                     )
                     .collect::<String>(),
                 ),
-                info,
+                info: info.clone(),
             })
             .collect();
-    }
-
-    fn load_music(&mut self) {
-        if self.task.is_some() {
-            return;
-        }
-
-        if let Some(client) = self.client.clone() {
-            let future = async move {
-                let music = client.get_music_list().await?;
-                Ok(music)
-            };
-            self.task = Some(Task::new(future));
-
-            self.items.clear();
-            self.status.text = "Loading...".into();
-            self.status.show();
-        }
     }
 }
 
 impl Widget for ExploreMusicWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.poll();
         self.state.update(position, context);
 
         let main = position;

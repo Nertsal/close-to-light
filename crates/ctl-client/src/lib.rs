@@ -62,6 +62,15 @@ impl Nertboard {
         Ok(res)
     }
 
+    pub async fn get_music_info(&self, music: Id) -> Result<MusicInfo> {
+        let url = self.url.join(&format!("music/{}", music)).unwrap();
+        let req = self.client.get(url);
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
+    }
+
     pub async fn download_music(&self, music: Id) -> Result<Bytes> {
         let url = self.url.join(&format!("music/{}/download", music)).unwrap();
         let req = self.client.get(url);

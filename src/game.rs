@@ -46,7 +46,7 @@ impl Game {
         Self::preloaded(
             geng,
             assets,
-            Model::new(assets, options, level.clone(), leaderboard, player),
+            Model::new(geng, assets, options, level.clone(), leaderboard, player),
         )
     }
 

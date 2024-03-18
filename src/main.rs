@@ -144,7 +144,7 @@ fn main() {
                 &assets,
                 options,
                 level,
-                Leaderboard::new(None),
+                Leaderboard::new(&geng, None),
                 "".to_string(),
             );
             geng.run_state(state).await;

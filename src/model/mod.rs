@@ -163,6 +163,7 @@ pub struct Rhythm {
 
 pub struct Model {
     pub transition: Option<Transition>,
+    pub geng: Geng,
     pub assets: Rc<Assets>,
     pub leaderboard: Leaderboard,
 
@@ -196,6 +197,7 @@ pub struct Model {
 
 impl Model {
     pub fn new(
+        geng: &Geng,
         assets: &Rc<Assets>,
         options: Options,
         level: PlayLevel,
@@ -203,7 +205,7 @@ impl Model {
         player: UserInfo,
     ) -> Self {
         let start_time = level.start_time;
-        let mut model = Self::empty(assets, options, level);
+        let mut model = Self::empty(geng, assets, options, level);
         model.player.info = player;
         model.leaderboard = leaderboard;
 
@@ -211,11 +213,12 @@ impl Model {
         model
     }
 
-    pub fn empty(assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
+    pub fn empty(geng: &Geng, assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
         Self {
             transition: None,
+            geng: geng.clone(),
             assets: assets.clone(),
-            leaderboard: Leaderboard::new(None),
+            leaderboard: Leaderboard::new(geng, None),
 
             high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
             camera: Camera2d {

@@ -108,7 +108,7 @@ impl Command {
                             log::info!("Music uploaded successfully, id: {}", music_id);
                             anyhow::Ok(())
                         };
-                        execute_task(future)??;
+                        execute_task(&geng, future)?;
                     }
                     MusicCommand::Update {
                         id,
@@ -135,7 +135,7 @@ impl Command {
                             log::info!("Music updated successfully");
                             anyhow::Ok(())
                         };
-                        execute_task(future)??;
+                        execute_task(&geng, future)?;
                     }
                     MusicCommand::Author(author) => match author.command {
                         MusicAuthorCommand::Add { music, artist } => {
@@ -149,7 +149,7 @@ impl Command {
                                     .context("when adding artist as author")?;
                                 anyhow::Ok(())
                             };
-                            execute_task(future)??;
+                            execute_task(&geng, future)?;
                         }
                         MusicAuthorCommand::Remove { music, artist } => {
                             log::info!("Removing artist {} as author of music {}", artist, music);
@@ -162,7 +162,7 @@ impl Command {
                                     .context("when adding artist as author")?;
                                 anyhow::Ok(())
                             };
-                            execute_task(future)??;
+                            execute_task(&geng, future)?;
                         }
                     },
                 }
@@ -173,13 +173,12 @@ impl Command {
     }
 }
 
-fn execute_task<T: Send + Sync + 'static>(
-    future: impl Future<Output = T> + Send + Sync + 'static,
-) -> Result<T> {
-    let mut task = task::Task::new(future);
+fn execute_task<T: 'static>(geng: &Geng, future: impl Future<Output = T> + 'static) -> T {
+    let mut task = task::Task::new(geng, future);
     loop {
-        if let Some(res) = task.poll() {
-            return res.context("when executing a task");
+        match task.poll() {
+            Err(t) => task = t,
+            Ok(res) => return res,
         }
     }
 }

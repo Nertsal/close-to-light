@@ -193,6 +193,7 @@ impl Model {
         log::info!("Restarting...");
         self.save_highscore();
         *self = Self::new(
+            &self.geng,
             &self.assets,
             self.options.clone(),
             self.level.clone(),

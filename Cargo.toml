@@ -28,6 +28,7 @@ data-encoding = "2.5.0"
 geng = "0.18"
 geng-utils = "0.3.0"
 parry2d = "0.13.5"
+async-executor = "1.8.0"
 
 # Server
 axum = { version = "0.7.2", features = ["multipart"] }
@@ -65,6 +66,7 @@ tokio-util.workspace = true
 serde.workspace = true
 sha2.workspace = true
 data-encoding.workspace = true
+async-executor.workspace = true
 
 [patch.crates-io]
 async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged

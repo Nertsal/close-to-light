@@ -4,21 +4,23 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use ctl_client::Nertboard;
-use tokio_util::bytes::Bytes;
 
 pub struct LevelCache {
     geng: Geng,
-    tasks: CacheTasks,
+    pub tasks: CacheTasks,
+
+    /// List of downloadable music.
+    pub music_list: Vec<MusicInfo>,
 
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Vec<CachedGroup>,
 }
 
-struct CacheTasks {
+pub struct CacheTasks {
     geng: Geng,
     client: Option<Arc<Nertboard>>,
     fetch_music: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
-    download_music: Option<Task<anyhow::Result<(MusicInfo, Bytes)>>>,
+    download_music: Option<Task<anyhow::Result<CachedMusic>>>,
 }
 
 #[derive(Debug)]
@@ -74,18 +76,28 @@ impl CacheTasks {
         }
     }
 
-    pub fn poll(&mut self) -> Option<CacheAction> {
-        if let Some(task) = &mut self.fetch_music {
-            if let Some(result) = task.poll() {
-                self.fetch_music = None;
-                if let Ok(Ok(music)) = result {
-                    return Some(CacheAction::MusicList(music));
-                }
+    pub fn fetch_music(&mut self) {
+        if self.fetch_music.is_none() {
+            if let Some(client) = self.client.clone() {
+                let future = async move {
+                    let music = client.get_music_list().await?;
+                    Ok(music)
+                };
+                self.fetch_music = Some(Task::new(&self.geng, future));
             }
-        } else if let Some(task) = &mut self.download_music {
-            if let Some(result) = task.poll() {
-                self.download_music = None;
-                if let Ok(Ok((meta, bytes))) = result {
+        }
+    }
+
+    pub fn download_music(&mut self, music_id: Id) {
+        if self.download_music.is_none() {
+            if let Some(client) = self.client.clone() {
+                let geng = self.geng.clone();
+                let future = async move {
+                    let meta = client.get_music_info(music_id).await?;
+                    let bytes = client.download_music(music_id).await?;
+
+                    let music = Rc::new(geng.audio().decode(bytes.to_vec()).await?);
+
                     #[cfg(not(target_arch = "wasm32"))]
                     {
                         let bytes = bytes.clone();
@@ -98,9 +110,9 @@ impl CacheTasks {
                             // let mut file = std::fs::File::create(&music_path.join("music.mp3"))?;
                             // let mut cursor = std::io::Cursor::new(bytes);
                             // std::io::copy(&mut cursor, &mut file)?;
-                            std::fs::write(&music_path.join("music.mp3"), bytes)?;
+                            std::fs::write(music_path.join("music.mp3"), bytes)?;
                             std::fs::write(
-                                &music_path.join("meta.toml"),
+                                music_path.join("meta.toml"),
                                 toml::to_string_pretty(&meta)?,
                             )?;
 
@@ -111,11 +123,30 @@ impl CacheTasks {
                         }
                     }
 
-                    todo!();
-                    // self.geng.audio().decode_bytes()
-                    // let music = Rc::new(geng::Sound::from_memory(bytes));
-                    // let music = CachedMusic { meta, music };
-                    // return Some(CacheAction::Music(music));
+                    let music = CachedMusic { meta, music };
+                    Ok(music)
+                };
+                self.download_music = Some(Task::new(&self.geng, future));
+            }
+        }
+    }
+
+    fn poll(&mut self) -> Option<CacheAction> {
+        if let Some(task) = self.fetch_music.take() {
+            match task.poll() {
+                Err(task) => self.fetch_music = Some(task),
+                Ok(result) => {
+                    if let Ok(music) = result {
+                        return Some(CacheAction::MusicList(music));
+                    }
+                }
+            }
+        } else if let Some(task) = self.download_music.take() {
+            match task.poll() {
+                Err(task) => self.download_music = Some(task),
+                Ok(Err(_)) => {}
+                Ok(Ok(music)) => {
+                    return Some(CacheAction::Music(music));
                 }
             }
         }
@@ -129,6 +160,8 @@ impl LevelCache {
         Self {
             geng: geng.clone(),
             tasks: CacheTasks::new(geng, client),
+
+            music_list: Vec::new(),
 
             music: HashMap::new(),
             groups: Vec::new(),
@@ -306,7 +339,7 @@ impl LevelCache {
     pub fn poll(&mut self) {
         if let Some(action) = self.tasks.poll() {
             match action {
-                CacheAction::MusicList(_) => todo!(),
+                CacheAction::MusicList(music) => self.music_list = music,
                 CacheAction::Music(music) => {
                     self.music.insert(music.meta.id, Rc::new(music));
                 }

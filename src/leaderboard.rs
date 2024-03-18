@@ -23,6 +23,7 @@ struct BoardUpdate {
 }
 
 pub struct Leaderboard {
+    geng: Geng,
     /// Logged in as user with a name.
     pub user: Option<String>,
     pub client: Option<Arc<Nertboard>>,
@@ -35,6 +36,7 @@ pub struct Leaderboard {
 impl Clone for Leaderboard {
     fn clone(&self) -> Self {
         Self {
+            geng: self.geng.clone(),
             user: self.user.clone(),
             client: self.client.as_ref().map(Arc::clone),
             log_task: None,
@@ -86,8 +88,9 @@ impl ScoreMeta {
 }
 
 impl Leaderboard {
-    pub fn new(client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(geng: &Geng, client: Option<&Arc<Nertboard>>) -> Self {
         Self {
+            geng: geng.clone(),
             user: None,
             client: client.cloned(),
             log_task: None,
@@ -109,7 +112,7 @@ impl Leaderboard {
         if let Some(client) = &self.client {
             let client = Arc::clone(client);
             let future = async move { client.login(&creds).await };
-            self.log_task = Some(Task::new(future));
+            self.log_task = Some(Task::new(&self.geng, future));
             self.user = None;
         }
     }
@@ -127,7 +130,7 @@ impl Leaderboard {
                 }
                 client.login(&creds).await
             };
-            self.log_task = Some(Task::new(future));
+            self.log_task = Some(Task::new(&self.geng, future));
             self.user = None;
         }
     }
@@ -144,47 +147,49 @@ impl Leaderboard {
                 // TODO: log out is not an error
                 Ok(Err("Logged out".to_string()))
             };
-            self.log_task = Some(Task::new(future));
+            self.log_task = Some(Task::new(&self.geng, future));
             self.user = None;
         }
     }
 
     /// The leaderboard needs to be polled to make progress.
     pub fn poll(&mut self) {
-        if let Some(task) = &mut self.log_task {
-            if let Some(res) = task.poll() {
-                self.log_task = None;
-                match res {
-                    Ok(Ok(Ok(user))) => {
-                        log::debug!("Logged in as {:?}", user);
-                        self.user = Some(user.name);
-                        self.loaded.player = Some(user.id);
-                    }
-                    Ok(Ok(Err(err))) => {
-                        log::error!("Failed to log in: {}", err);
-                        // TODO: notification message
-                    }
-                    Ok(Err(err)) | Err(err) => {
-                        log::error!("Failed to log in: {:?}", err);
+        if let Some(task) = self.log_task.take() {
+            match task.poll() {
+                Err(task) => self.log_task = Some(task),
+                Ok(res) => {
+                    match res {
+                        Ok(Ok(user)) => {
+                            log::debug!("Logged in as {:?}", user);
+                            self.user = Some(user.name);
+                            self.loaded.player = Some(user.id);
+                        }
+                        Ok(Err(err)) => {
+                            log::error!("Failed to log in: {}", err);
+                            // TODO: notification message
+                        }
+                        Err(err) => {
+                            log::error!("Failed to log in: {:?}", err);
+                        }
                     }
                 }
             }
         }
 
-        if let Some(task) = &mut self.task {
-            if let Some(res) = task.poll() {
-                self.task = None;
-                match res {
-                    Ok(Ok(update)) => {
+        if let Some(task) = self.task.take() {
+            match task.poll() {
+                Err(task) => self.task = Some(task),
+                Ok(res) => match res {
+                    Ok(update) => {
                         log::debug!("Successfully loaded the leaderboard");
                         self.status = LeaderboardStatus::Done;
                         self.load_scores(update.scores);
                     }
-                    Ok(Err(err)) | Err(err) => {
+                    Err(err) => {
                         log::error!("Loading leaderboard failed: {:?}", err);
                         self.status = LeaderboardStatus::Failed;
                     }
-                }
+                },
             }
         }
     }
@@ -228,7 +233,7 @@ impl Leaderboard {
                     .map(|scores| BoardUpdate { scores })
                     .map_err(anyhow::Error::from)
             };
-            self.task = Some(Task::new(future));
+            self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
         }
     }
@@ -263,7 +268,7 @@ impl Leaderboard {
                     .map_err(anyhow::Error::from)?;
                 Ok(BoardUpdate { scores })
             };
-            self.task = Some(Task::new(future));
+            self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
         }
     }
