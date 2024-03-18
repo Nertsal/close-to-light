@@ -1,5 +1,7 @@
 use super::*;
 
+use ctl_client::Nertboard;
+
 use crate::ui::{layout::AreaOps, widget::*};
 
 pub struct MenuUI {
@@ -27,7 +29,7 @@ pub struct MenuUI {
 }
 
 impl MenuUI {
-    pub fn new(assets: &Rc<Assets>) -> Self {
+    pub fn new(assets: &Rc<Assets>, client: Option<&Arc<Nertboard>>) -> Self {
         Self {
             assets: assets.clone(),
             screen: WidgetState::new(),
@@ -51,7 +53,7 @@ impl MenuUI {
                 ],
             ),
             explore_head: TextWidget::new("Browse"),
-            explore: ExploreWidget::new(),
+            explore: ExploreWidget::new(client),
             profile_head: IconWidget::new(&assets.sprites.head),
             profile: ProfileWidget::new(),
 

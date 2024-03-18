@@ -1,3 +1,5 @@
+use geng::prelude::ugli::DrawParameters;
+
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::menu::{MenuState, MenuUI};
@@ -241,15 +243,38 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
+                let ui = &ui.explore;
+
                 for (tab, active) in [
-                    (&ui.explore.tab_music, ui.explore.music.state.visible),
-                    (&ui.explore.tab_levels, ui.explore.levels.state.visible),
+                    (&ui.tab_music, ui.music.state.visible),
+                    (&ui.tab_levels, ui.levels.state.visible),
                 ] {
                     self.ui
                         .draw_toggle_button(tab, active, false, theme, framebuffer);
                 }
                 self.ui
-                    .draw_quad(ui.explore.separator.position, theme.light, framebuffer);
+                    .draw_quad(ui.separator.position, theme.light, framebuffer);
+
+                let mut mask = self.masked.start();
+
+                if ui.music.state.visible {
+                    mask.mask_quad(ui.music.items_state.position);
+                    self.ui.draw_text(&ui.music.status, &mut mask.color);
+                    for item in &ui.music.items {
+                        self.ui.draw_text(&item.name, &mut mask.color);
+                        self.ui.draw_text(&item.author, &mut mask.color);
+                        self.ui.draw_outline(
+                            item.state.position,
+                            self.font_size * 0.2,
+                            theme.light,
+                            &mut mask.color,
+                        );
+                    }
+                } else if ui.levels.state.visible {
+                    mask.mask_quad(ui.levels.items_state.position);
+                }
+
+                self.masked.draw(draw_parameters(), framebuffer);
             },
         );
 

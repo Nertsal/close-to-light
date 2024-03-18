@@ -125,6 +125,8 @@ impl LevelMenu {
         );
         player.info.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
 
+        let leaderboard = Leaderboard::new(secrets.map(|s| s.leaderboard));
+
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
@@ -139,7 +141,7 @@ impl LevelMenu {
             last_delta_time: Time::ONE,
             time: Time::ZERO,
 
-            ui: MenuUI::new(assets),
+            ui: MenuUI::new(assets, leaderboard.client.as_ref()),
             ui_focused: false,
             ui_context: UiContext::new(geng, options.theme),
 
@@ -149,7 +151,7 @@ impl LevelMenu {
                 fov: 10.0,
             },
             state: MenuState {
-                leaderboard: Leaderboard::new(secrets.map(|s| s.leaderboard)),
+                leaderboard,
                 player,
                 options,
                 config: LevelConfig::default(),

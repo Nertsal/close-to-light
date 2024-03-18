@@ -25,7 +25,7 @@ struct BoardUpdate {
 pub struct Leaderboard {
     /// Logged in as user with a name.
     pub user: Option<String>,
-    client: Option<Arc<Nertboard>>,
+    pub client: Option<Arc<Nertboard>>,
     log_task: Option<Task<anyhow::Result<Result<UserInfo, String>>>>,
     task: Option<Task<anyhow::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
