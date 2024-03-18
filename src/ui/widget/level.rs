@@ -1,10 +1,8 @@
 use super::*;
 
-use crate::{
-    prelude::{Assets, LevelMeta},
-    ui::layout::AreaOps,
-};
+use crate::{prelude::Assets, ui::layout::AreaOps};
 
+use ctl_client::core::types::LevelInfo;
 use geng_utils::bounded::Bounded;
 
 pub struct LevelWidget {
@@ -34,9 +32,9 @@ impl LevelWidget {
         }
     }
 
-    pub fn set_level(&mut self, meta: &LevelMeta) {
+    pub fn set_level(&mut self, meta: &LevelInfo) {
         self.name.text = meta.name.to_string();
-        self.author.text = format!("by {}", meta.author);
+        self.author.text = format!("by {}", meta.authors());
     }
 }
 

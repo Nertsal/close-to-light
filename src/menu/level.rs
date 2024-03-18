@@ -57,8 +57,7 @@ pub struct MenuState {
 }
 
 pub struct GroupEntry {
-    pub meta: GroupMeta,
-    pub levels: Vec<(std::path::PathBuf, LevelMeta)>,
+    pub meta: GroupInfo,
     pub logo: Option<ugli::Texture>,
 }
 
@@ -67,7 +66,6 @@ impl Debug for GroupEntry {
         f.debug_struct("GroupEntry")
             .field("meta", &self.meta)
             .field("logo", &self.logo.as_ref().map(|_| "<logo>"))
-            .field("levels", &self.levels)
             .finish()
     }
 }
@@ -91,20 +89,17 @@ impl MenuState {
         self.switch_group = None; // Deselect group
         let mut local = self.local.borrow_mut();
         // TODO: maybe ui to configure early
-        local.new_group(GroupMeta {
-            name: "New Group".into(),
-            music: 0, // NOTE: 0 is unitialized
-        });
+        local.new_group(0);
     }
 
     fn new_level(&mut self) {
         if let Some(show) = &self.show_group {
             let group = show.data;
             let mut local = self.local.borrow_mut();
-            let meta = LevelMeta {
+            let meta = LevelInfo {
                 id: 0,
                 name: "New Difficulty".into(),
-                author: "<author>".into(),
+                authors: Vec::new(),
             };
             local.new_level(group, meta);
         }

@@ -1,4 +1,4 @@
-use geng::prelude::batbox::prelude::*;
+use geng::prelude::*;
 
 pub type Id = u32;
 pub type Time = R32;
@@ -11,7 +11,8 @@ pub struct GroupInfo {
     pub levels: Vec<LevelInfo>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[load(serde = "toml")]
 pub struct MusicInfo {
     pub id: Id,
     pub public: bool,
@@ -21,11 +22,45 @@ pub struct MusicInfo {
     pub authors: Vec<UserInfo>,
 }
 
+impl Default for MusicInfo {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            public: false,
+            original: false,
+            name: "<name>".into(),
+            bpm: r32(60.0),
+            authors: Vec::new(),
+        }
+    }
+}
+
+impl MusicInfo {
+    /// Returns the duration (in seconds) of a single beat.
+    pub fn beat_time(&self) -> Time {
+        r32(60.0) / self.bpm
+    }
+
+    /// Return the list of authors in a readable string format.
+    pub fn authors(&self) -> String {
+        let authors = self.authors.iter().map(|author| author.name.as_str());
+        itertools::Itertools::intersperse(authors, ", ").collect()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LevelInfo {
     pub id: Id,
     pub name: String,
     pub authors: Vec<UserInfo>,
+}
+
+impl LevelInfo {
+    /// Return the list of authors in a readable string format.
+    pub fn authors(&self) -> String {
+        let authors = self.authors.iter().map(|author| author.name.as_str());
+        itertools::Itertools::intersperse(authors, ", ").collect()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

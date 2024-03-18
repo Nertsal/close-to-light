@@ -1,8 +1,11 @@
-use ctl_client::{core::types::MusicInfo, Nertboard};
+use ctl_client::{
+    core::types::{LevelInfo, MusicInfo},
+    Nertboard,
+};
 
 use super::*;
 
-use crate::{prelude::LevelMeta, task::Task, ui::layout::AreaOps};
+use crate::{task::Task, ui::layout::AreaOps};
 
 pub struct ExploreWidget {
     pub state: WidgetState,
@@ -37,7 +40,7 @@ pub struct ExploreMusicWidget {
 
 pub struct LevelItemWidget {
     pub state: WidgetState,
-    pub meta: LevelMeta,
+    pub meta: LevelInfo,
 }
 
 pub struct MusicItemWidget {

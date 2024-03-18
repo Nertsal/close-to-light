@@ -19,7 +19,7 @@ pub enum GameEvent {
 }
 
 pub struct Music {
-    pub meta: MusicMeta,
+    pub meta: MusicInfo,
     sound: Rc<geng::Sound>,
     effect: Option<geng::SoundEffect>,
     volume: f64,
@@ -51,7 +51,7 @@ impl Clone for Music {
 }
 
 impl Music {
-    pub fn new(sound: Rc<geng::Sound>, meta: MusicMeta) -> Self {
+    pub fn new(sound: Rc<geng::Sound>, meta: MusicInfo) -> Self {
         Self {
             meta,
             sound,

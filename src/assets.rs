@@ -1,12 +1,11 @@
-use crate::prelude::MusicMeta;
-
+use ctl_client::core::types::MusicInfo;
 use geng::prelude::*;
 
 #[derive(geng::asset::Load)]
 pub struct MusicAssets {
     #[load(postprocess = "looping", ext = "mp3")]
     pub music: geng::Sound,
-    pub meta: MusicMeta,
+    pub meta: MusicInfo,
 }
 
 #[derive(geng::asset::Load)]

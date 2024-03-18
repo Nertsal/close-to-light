@@ -11,13 +11,13 @@ pub struct LevelCache {
 }
 
 pub struct CachedMusic {
-    pub meta: MusicMeta,
+    pub meta: MusicInfo,
     pub music: Rc<geng::Sound>,
 }
 
 #[derive(Debug)]
 pub struct CachedGroup {
-    pub meta: GroupMeta,
+    pub meta: GroupInfo,
     pub music: Option<Rc<CachedMusic>>,
     pub levels: Vec<Rc<CachedLevel>>,
 }
@@ -25,9 +25,8 @@ pub struct CachedGroup {
 #[derive(Debug)]
 pub struct CachedLevel {
     pub path: PathBuf,
-    pub meta: LevelMeta,
-    // TODO: Rc
-    pub data: Level,
+    pub meta: LevelInfo, // TODO: maybe Rc to reduce String allocations
+    pub data: Level,     // TODO: Rc
     /// Hash code of the level.
     pub hash: String,
 }
@@ -89,7 +88,7 @@ impl LevelCache {
             }
 
             let mut group = CachedGroup::load(manager, &path).await?;
-            group.music = music.get(&group.meta.music).cloned();
+            group.music = music.get(&group.meta.music.id).cloned();
             groups.push(group);
         }
 
@@ -127,13 +126,13 @@ impl LevelCache {
         // TODO: do not load all the group levels
         let mut group = CachedGroup::load(&self.manager, &group_path).await?;
 
-        let music = match self.music.get(&group.meta.music) {
+        let music = match self.music.get(&group.meta.music.id) {
             Some(music) => music.clone(),
             None => {
                 let music_path =
-                    preferences::base_path().join(format!("music/{}", group.meta.music));
+                    preferences::base_path().join(format!("music/{}", group.meta.music.id));
                 let music = Rc::new(CachedMusic::load(&self.manager, &music_path).await?);
-                self.music.insert(group.meta.music, music.clone());
+                self.music.insert(group.meta.music.id, music.clone());
                 music
             }
         };
@@ -151,15 +150,21 @@ impl LevelCache {
         Ok((music, level))
     }
 
-    pub fn new_group(&mut self, meta: GroupMeta) {
-        let music = meta.music;
-        let mut group = CachedGroup::new(meta);
-        group.music = self.music.get(&music).cloned();
+    pub fn new_group(&mut self, music_id: Id) {
+        let music = self.music.get(&music_id).cloned();
+        let mut group = CachedGroup::new(GroupInfo {
+            id: 0,
+            music: music
+                .as_ref()
+                .map_or(MusicInfo::default(), |m| m.meta.clone()),
+            levels: Vec::new(),
+        });
+        group.music = music;
         self.groups.push(group);
         // TODO: write to fs
     }
 
-    pub fn new_level(&mut self, group: usize, meta: LevelMeta) {
+    pub fn new_level(&mut self, group: usize, meta: LevelInfo) {
         if let Some(group) = self.groups.get_mut(group) {
             let level = CachedLevel::new(meta);
             group.levels.push(Rc::new(level));
@@ -173,7 +178,7 @@ impl CachedMusic {
         let path = path.as_ref();
 
         let meta_path = path.join("meta.toml");
-        let meta: MusicMeta = file::load_detect(&meta_path).await?;
+        let meta: MusicInfo = file::load_detect(&meta_path).await?;
 
         let file_path = path.join("music.mp3");
         let file: geng::Sound = geng::asset::Load::load(
@@ -191,7 +196,7 @@ impl CachedMusic {
 }
 
 impl CachedGroup {
-    pub fn new(meta: GroupMeta) -> Self {
+    pub fn new(meta: GroupInfo) -> Self {
         Self {
             meta,
             music: None,
@@ -203,7 +208,7 @@ impl CachedGroup {
         let path = path.as_ref();
 
         let meta_path = path.join("meta.toml");
-        let meta: GroupMeta = file::load_detect(&meta_path).await?;
+        let meta: GroupInfo = file::load_detect(&meta_path).await?;
 
         let mut levels = Vec::new();
         for entry in std::fs::read_dir(path)? {
@@ -226,7 +231,7 @@ impl CachedGroup {
 }
 
 impl CachedLevel {
-    pub fn new(meta: LevelMeta) -> Self {
+    pub fn new(meta: LevelInfo) -> Self {
         Self {
             path: PathBuf::new(), // TODO
             meta,
@@ -239,7 +244,7 @@ impl CachedLevel {
         let path = path.as_ref();
 
         let meta_path = path.join("meta.toml");
-        let meta: LevelMeta = file::load_detect(&meta_path).await?;
+        let meta: LevelInfo = file::load_detect(&meta_path).await?;
 
         let level_path = path.join("level.json");
         let level: Level = file::load_detect(&level_path).await?;
