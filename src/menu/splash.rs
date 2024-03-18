@@ -7,7 +7,7 @@ const TRANSITION_TIME: f32 = 5.0;
 pub struct SplashScreen {
     geng: Geng,
     assets: Rc<Assets>,
-    secrets: Option<Secrets>,
+    client: Option<Arc<ctl_client::Nertboard>>,
     options: Options,
     transition: Option<geng::state::Transition>,
 
@@ -20,13 +20,13 @@ impl SplashScreen {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        secrets: Option<Secrets>,
+        client: Option<&Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            secrets,
+            client: client.cloned(),
             options,
             transition: None,
 
@@ -88,7 +88,7 @@ trigger seizures for people with photosensitive epilepsy
             self.transition = Some(geng::state::Transition::Switch(Box::new(MainMenu::new(
                 &self.geng,
                 &self.assets,
-                self.secrets.take(),
+                self.client.take(),
                 self.options.clone(),
             ))));
         }

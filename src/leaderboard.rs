@@ -86,12 +86,10 @@ impl ScoreMeta {
 }
 
 impl Leaderboard {
-    pub fn new(secrets: Option<LeaderboardSecrets>) -> Self {
-        let client =
-            secrets.map(|secrets| Arc::new(ctl_client::Nertboard::new(secrets.url).unwrap()));
+    pub fn new(client: Option<&Arc<Nertboard>>) -> Self {
         Self {
             user: None,
-            client,
+            client: client.cloned(),
             log_task: None,
             task: None,
             status: LeaderboardStatus::None,

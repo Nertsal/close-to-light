@@ -1,5 +1,3 @@
-use geng::prelude::ugli::DrawParameters;
-
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::menu::{MenuState, MenuUI};
@@ -71,7 +69,7 @@ impl MenuRender {
             max: ui.levels_state.position.max,
         });
 
-        for (group, entry) in ui.groups.iter().zip(&state.local.borrow().groups) {
+        for (group, _entry) in ui.groups.iter().zip(&state.local.borrow().groups) {
             // TODO: logo?
             // if let Some(logo) = &entry.logo {
             //     self.ui
@@ -261,6 +259,7 @@ impl MenuRender {
                     mask.mask_quad(ui.music.items_state.position);
                     self.ui.draw_text(&ui.music.status, &mut mask.color);
                     for item in &ui.music.items {
+                        self.ui.draw_icon(&item.download, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(

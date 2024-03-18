@@ -12,6 +12,7 @@ use ctl_core::{
 };
 
 use reqwest::{Client, Response, Url};
+use tokio_util::bytes::Bytes;
 
 pub struct Nertboard {
     url: Url,
@@ -59,6 +60,14 @@ impl Nertboard {
         let response = req.send().await.context("when sending request")?;
         let res = read_json(response).await?;
         Ok(res)
+    }
+
+    pub async fn download_music(&self, music: Id) -> Result<Bytes> {
+        let url = self.url.join(&format!("music/{}/download", music)).unwrap();
+        let req = self.client.get(url);
+
+        let response = req.send().await?;
+        Ok(response.bytes().await?)
     }
 
     pub async fn update_music(&self, music: Id, update: &MusicUpdate) -> Result<()> {

@@ -1,13 +1,30 @@
-use crate::prelude::*;
+use crate::{prelude::*, task::Task};
 
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
+use ctl_client::Nertboard;
+use tokio_util::bytes::Bytes;
 
 pub struct LevelCache {
-    manager: geng::asset::Manager,
+    geng: Geng,
+    tasks: CacheTasks,
+
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Vec<CachedGroup>,
+}
+
+struct CacheTasks {
+    geng: Geng,
+    client: Option<Arc<Nertboard>>,
+    fetch_music: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
+    download_music: Option<Task<anyhow::Result<(MusicInfo, Bytes)>>>,
+}
+
+#[derive(Debug)]
+enum CacheAction {
+    MusicList(Vec<MusicInfo>),
+    Music(CachedMusic),
 }
 
 pub struct CachedMusic {
@@ -47,22 +64,84 @@ impl Debug for CachedMusic {
     }
 }
 
-impl LevelCache {
-    pub fn new(manager: &geng::asset::Manager) -> Self {
+impl CacheTasks {
+    pub fn new(geng: &Geng, client: Option<&Arc<Nertboard>>) -> Self {
         Self {
-            manager: manager.clone(),
+            geng: geng.clone(),
+            client: client.cloned(),
+            fetch_music: None,
+            download_music: None,
+        }
+    }
+
+    pub fn poll(&mut self) -> Option<CacheAction> {
+        if let Some(task) = &mut self.fetch_music {
+            if let Some(result) = task.poll() {
+                self.fetch_music = None;
+                if let Ok(Ok(music)) = result {
+                    return Some(CacheAction::MusicList(music));
+                }
+            }
+        } else if let Some(task) = &mut self.download_music {
+            if let Some(result) = task.poll() {
+                self.download_music = None;
+                if let Ok(Ok((meta, bytes))) = result {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        let bytes = bytes.clone();
+                        let save = || -> Result<()> {
+                            // Write to fs
+                            let music_path =
+                                preferences::base_path().join(format!("music/{}", meta.id));
+                            std::fs::create_dir_all(&music_path)?;
+
+                            // let mut file = std::fs::File::create(&music_path.join("music.mp3"))?;
+                            // let mut cursor = std::io::Cursor::new(bytes);
+                            // std::io::copy(&mut cursor, &mut file)?;
+                            std::fs::write(&music_path.join("music.mp3"), bytes)?;
+                            std::fs::write(
+                                &music_path.join("meta.toml"),
+                                toml::to_string_pretty(&meta)?,
+                            )?;
+
+                            Ok(())
+                        };
+                        if let Err(err) = save() {
+                            log::error!("Failed to save music locally: {:?}", err);
+                        }
+                    }
+
+                    todo!();
+                    // self.geng.audio().decode_bytes()
+                    // let music = Rc::new(geng::Sound::from_memory(bytes));
+                    // let music = CachedMusic { meta, music };
+                    // return Some(CacheAction::Music(music));
+                }
+            }
+        }
+
+        None
+    }
+}
+
+impl LevelCache {
+    pub fn new(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Self {
+        Self {
+            geng: geng.clone(),
+            tasks: CacheTasks::new(geng, client),
+
             music: HashMap::new(),
             groups: Vec::new(),
         }
     }
 
     /// Load from the local storage.
-    pub async fn load(manager: &geng::asset::Manager) -> Result<Self> {
+    pub async fn load(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Result<Self> {
         // TODO: report failures but continue working
 
         #[cfg(target_arch = "wasm32")]
         {
-            return Ok(Self::new(manager));
+            return Ok(Self::new(client, geng));
         }
 
         log::info!("Loading local storage");
@@ -87,11 +166,7 @@ impl LevelCache {
         //     music.insert(id, Rc::new(m));
         // }
 
-        let mut local = Self {
-            manager: manager.clone(),
-            music: HashMap::new(),
-            groups: Vec::new(),
-        };
+        let mut local = Self::new(client, geng);
 
         for entry in std::fs::read_dir(base_path.join("levels"))? {
             let entry = entry?;
@@ -134,7 +209,7 @@ impl LevelCache {
         // TODO: do not load all the group levels
         self.load_group_all(&group_path).await?;
 
-        // If `load_group_empty` succedes, the group is pushed to the end
+        // If `load_group_all` succedes, the group is pushed to the end
         let group = self.groups.last().unwrap();
 
         let music = group
@@ -163,7 +238,7 @@ impl LevelCache {
             Some(music) => Some(music.clone()),
             None => {
                 let music_path = preferences::base_path().join(format!("music/{}", meta.music));
-                CachedMusic::load(&self.manager, &music_path)
+                CachedMusic::load(self.geng.asset_manager(), &music_path)
                     .await
                     .ok()
                     .map(|music| {
@@ -201,7 +276,7 @@ impl LevelCache {
                 continue;
             }
 
-            let level = CachedLevel::load(&self.manager, &path).await?;
+            let level = CachedLevel::load(self.geng.asset_manager(), &path).await?;
             levels.push(Rc::new(level));
         }
 
@@ -225,6 +300,17 @@ impl LevelCache {
             let level = CachedLevel::new(meta);
             group.levels.push(Rc::new(level));
             // TODO: write to fs
+        }
+    }
+
+    pub fn poll(&mut self) {
+        if let Some(action) = self.tasks.poll() {
+            match action {
+                CacheAction::MusicList(_) => todo!(),
+                CacheAction::Music(music) => {
+                    self.music.insert(music.meta.id, Rc::new(music));
+                }
+            }
         }
     }
 }

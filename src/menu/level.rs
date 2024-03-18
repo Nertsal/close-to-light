@@ -111,7 +111,7 @@ impl LevelMenu {
         geng: &Geng,
         assets: &Rc<Assets>,
         local: &Rc<RefCell<LevelCache>>,
-        secrets: Option<Secrets>,
+        client: Option<&Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
         let mut player = Player::new(
@@ -120,7 +120,7 @@ impl LevelMenu {
         );
         player.info.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
 
-        let leaderboard = Leaderboard::new(secrets.map(|s| s.leaderboard));
+        let leaderboard = Leaderboard::new(client);
 
         Self {
             geng: geng.clone(),

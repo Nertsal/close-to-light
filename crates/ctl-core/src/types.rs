@@ -6,6 +6,8 @@ pub type Coord = R32;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GroupInfo {
+    /// Id `0` for local groups.
+    #[serde(default)]
     pub id: Id,
     pub music: MusicInfo,
     pub levels: Vec<LevelInfo>,
@@ -14,6 +16,8 @@ pub struct GroupInfo {
 #[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[load(serde = "toml")]
 pub struct MusicInfo {
+    /// Id `0` for local music.
+    #[serde(default)]
     pub id: Id,
     pub public: bool,
     pub original: bool,
@@ -50,6 +54,8 @@ impl MusicInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LevelInfo {
+    /// Id `0` for local levels.
+    #[serde(default)]
     pub id: Id,
     pub name: String,
     pub authors: Vec<UserInfo>,

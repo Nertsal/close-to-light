@@ -5,7 +5,7 @@ use ctl_client::{
 
 use super::*;
 
-use crate::{task::Task, ui::layout::AreaOps};
+use crate::{local::LevelCache, prelude::Assets, task::Task, ui::layout::AreaOps};
 
 pub struct ExploreWidget {
     pub state: WidgetState,
@@ -27,6 +27,7 @@ pub struct ExploreLevelsWidget {
 }
 
 pub struct ExploreMusicWidget {
+    assets: Rc<Assets>,
     client: Option<Arc<Nertboard>>,
     task: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
 
@@ -45,13 +46,14 @@ pub struct LevelItemWidget {
 
 pub struct MusicItemWidget {
     pub state: WidgetState,
+    pub download: IconWidget,
     pub info: MusicInfo,
     pub name: TextWidget,
     pub author: TextWidget,
 }
 
 impl ExploreWidget {
-    pub fn new(client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(assets: &Rc<Assets>, client: Option<&Arc<Nertboard>>) -> Self {
         let mut w = Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
@@ -61,7 +63,7 @@ impl ExploreWidget {
             tab_levels: TextWidget::new("Levels"),
             separator: WidgetState::new(),
 
-            music: ExploreMusicWidget::new(client),
+            music: ExploreMusicWidget::new(assets, client),
             levels: ExploreLevelsWidget::new(),
         };
         w.music.hide();
@@ -161,8 +163,9 @@ impl Widget for ExploreLevelsWidget {
 }
 
 impl ExploreMusicWidget {
-    pub fn new(client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(assets: &Rc<Assets>, client: Option<&Arc<Nertboard>>) -> Self {
         Self {
+            assets: assets.clone(),
             client: client.cloned(),
             task: None,
 
@@ -203,6 +206,7 @@ impl ExploreMusicWidget {
             .into_iter()
             .map(|info| MusicItemWidget {
                 state: WidgetState::new(),
+                download: IconWidget::new(&self.assets.sprites.download),
                 name: TextWidget::new(&info.name),
                 author: TextWidget::new(
                     itertools::Itertools::intersperse(
@@ -298,7 +302,20 @@ impl Widget for MusicItemWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
-        let main = position.extend_uniform(-context.font_size * 0.25);
+        let mut main = position.extend_uniform(-context.font_size * 0.2);
+
+        let icons = main.cut_left(context.font_size);
+        let rows = icons.split_rows(2);
+
+        self.download.update(rows[1], context);
+        self.download.background = None;
+        if self.download.state.hovered {
+            self.download.color = context.theme.dark;
+            self.download.background = Some(context.theme.light);
+        }
+        if self.download.state.clicked {}
+
+        main.cut_left(context.layout_size);
 
         let mut author = main;
         let name = author.split_top(0.5);

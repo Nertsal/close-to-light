@@ -53,7 +53,7 @@ impl MenuUI {
                 ],
             ),
             explore_head: TextWidget::new("Browse"),
-            explore: ExploreWidget::new(client),
+            explore: ExploreWidget::new(assets, client),
             profile_head: IconWidget::new(&assets.sprites.head),
             profile: ProfileWidget::new(),
 

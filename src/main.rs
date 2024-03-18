@@ -90,6 +90,9 @@ fn main() {
                 },
             })
         });
+        let client = secrets
+            .as_ref()
+            .map(|secrets| Arc::new(ctl_client::Nertboard::new(&secrets.leaderboard.url).unwrap()));
 
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(command) = opts.command {
@@ -102,7 +105,7 @@ fn main() {
 
         if let Some(level_path) = opts.level {
             let mut config = model::LevelConfig::default();
-            let mut local = local::LevelCache::new(manager);
+            let mut local = local::LevelCache::new(client.as_ref(), &geng);
             let (music, level) = local
                 .load_level(&level_path)
                 .await
@@ -148,15 +151,15 @@ fn main() {
         } else {
             // Main menu
             if opts.skip_intro {
-                let local = local::LevelCache::load(manager)
+                let local = local::LevelCache::load(client.as_ref(), &geng)
                     .await
                     .expect("failed to load local data");
                 let local = Rc::new(RefCell::new(local));
 
-                let state = menu::LevelMenu::new(&geng, &assets, &local, secrets, options);
+                let state = menu::LevelMenu::new(&geng, &assets, &local, client.as_ref(), options);
                 geng.run_state(state).await;
             } else {
-                let state = menu::SplashScreen::new(&geng, &assets, secrets, options);
+                let state = menu::SplashScreen::new(&geng, &assets, client.as_ref(), options);
                 geng.run_state(state).await;
             }
         }

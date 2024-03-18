@@ -8,7 +8,7 @@ use crate::{
 pub struct MainMenu {
     geng: Geng,
     assets: Rc<Assets>,
-    secrets: Option<Secrets>,
+    client: Option<Arc<ctl_client::Nertboard>>,
     options: Options,
     transition: Option<geng::state::Transition>,
 
@@ -32,14 +32,14 @@ impl MainMenu {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        secrets: Option<Secrets>,
+        client: Option<Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
             transition: None,
-            secrets,
+            client,
             options,
 
             dither: DitherRender::new(geng, assets),
@@ -76,18 +76,18 @@ impl MainMenu {
         let future = {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
-            let secrets = self.secrets.clone();
+            let client = self.client.clone();
             let options = self.options.clone();
 
             async move {
                 let manager = geng.asset_manager();
 
-                let local = crate::local::LevelCache::load(manager)
+                let local = crate::local::LevelCache::load(client.as_ref(), &geng)
                     .await
                     .expect("failed to load local data");
                 let local = Rc::new(RefCell::new(local));
 
-                LevelMenu::new(&geng, &assets, &local, secrets, options)
+                LevelMenu::new(&geng, &assets, &local, client.as_ref(), options)
             }
             .boxed_local()
         };
