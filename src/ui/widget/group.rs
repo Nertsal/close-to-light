@@ -24,7 +24,11 @@ impl GroupWidget {
     }
 
     pub fn set_group(&mut self, group: &CachedGroup) {
-        self.name.text = group.meta.music.name.to_string();
+        let name = group
+            .music
+            .as_ref()
+            .map_or("<name>".into(), |music| music.meta.name.clone());
+        self.name.text = name;
         if let Some(music) = &group.music {
             self.author.text = format!("by {}", music.meta.authors());
         }

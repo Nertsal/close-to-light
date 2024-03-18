@@ -17,9 +17,16 @@ pub struct CachedMusic {
 
 #[derive(Debug)]
 pub struct CachedGroup {
-    pub meta: GroupInfo,
+    pub path: PathBuf,
+    pub meta: GroupMeta,
     pub music: Option<Rc<CachedMusic>>,
     pub levels: Vec<Rc<CachedLevel>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GroupMeta {
+    pub id: Id,
+    pub music: Id,
 }
 
 #[derive(Debug)]
@@ -51,6 +58,8 @@ impl LevelCache {
 
     /// Load from the local storage.
     pub async fn load(manager: &geng::asset::Manager) -> Result<Self> {
+        // TODO: report failures but continue working
+
         #[cfg(target_arch = "wasm32")]
         {
             return Ok(Self::new(manager));
@@ -59,26 +68,31 @@ impl LevelCache {
         log::info!("Loading local storage");
         let base_path = preferences::base_path();
 
-        let mut music = HashMap::new();
-        for entry in std::fs::read_dir(base_path.join("music"))? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                log::error!("Unexpected file in music dir: {:?}", path);
-                continue;
-            }
+        // let mut music = HashMap::new();
+        // for entry in std::fs::read_dir(base_path.join("music"))? {
+        //     let entry = entry?;
+        //     let path = entry.path();
+        //     if !path.is_dir() {
+        //         log::error!("Unexpected file in music dir: {:?}", path);
+        //         continue;
+        //     }
 
-            let id: Id = entry
-                .file_name()
-                .to_str()
-                .ok_or(anyhow!("Directory name is not valid UTF-8"))?
-                .parse()?;
+        //     let id: Id = entry
+        //         .file_name()
+        //         .to_str()
+        //         .ok_or(anyhow!("Directory name is not valid UTF-8"))?
+        //         .parse()?;
 
-            let m = CachedMusic::load(manager, &path).await?;
-            music.insert(id, Rc::new(m));
-        }
+        //     let m = CachedMusic::load(manager, &path).await?;
+        //     music.insert(id, Rc::new(m));
+        // }
 
-        let mut groups = Vec::new();
+        let mut local = Self {
+            manager: manager.clone(),
+            music: HashMap::new(),
+            groups: Vec::new(),
+        };
+
         for entry in std::fs::read_dir(base_path.join("levels"))? {
             let entry = entry?;
             let path = entry.path();
@@ -87,16 +101,10 @@ impl LevelCache {
                 continue;
             }
 
-            let mut group = CachedGroup::load(manager, &path).await?;
-            group.music = music.get(&group.meta.music.id).cloned();
-            groups.push(group);
+            local.load_group_all(&path).await?;
         }
 
-        Ok(Self {
-            manager: manager.clone(),
-            music,
-            groups,
-        })
+        Ok(local)
     }
 
     pub async fn load_level(
@@ -124,19 +132,15 @@ impl LevelCache {
         };
 
         // TODO: do not load all the group levels
-        let mut group = CachedGroup::load(&self.manager, &group_path).await?;
+        self.load_group_all(&group_path).await?;
 
-        let music = match self.music.get(&group.meta.music.id) {
-            Some(music) => music.clone(),
-            None => {
-                let music_path =
-                    preferences::base_path().join(format!("music/{}", group.meta.music.id));
-                let music = Rc::new(CachedMusic::load(&self.manager, &music_path).await?);
-                self.music.insert(group.meta.music.id, music.clone());
-                music
-            }
-        };
-        group.music = Some(Rc::clone(&music));
+        // If `load_group_empty` succedes, the group is pushed to the end
+        let group = self.groups.last().unwrap();
+
+        let music = group
+            .music
+            .clone()
+            .ok_or(anyhow!("Group music not found"))?;
 
         let level = group
             .levels
@@ -145,19 +149,71 @@ impl LevelCache {
             .ok_or(anyhow!("Specific level not found"))?
             .clone();
 
+        Ok((music, level))
+    }
+
+    /// Load the group info at the given path without loading the levels.
+    async fn load_group_empty(&mut self, path: impl AsRef<std::path::Path>) -> Result<()> {
+        let group_path = path.as_ref().to_path_buf();
+
+        let meta_path = group_path.join("meta.toml");
+        let meta: GroupMeta = file::load_detect(&meta_path).await?;
+
+        let music = match self.music.get(&meta.music) {
+            Some(music) => Some(music.clone()),
+            None => {
+                let music_path = preferences::base_path().join(format!("music/{}", meta.music));
+                CachedMusic::load(&self.manager, &music_path)
+                    .await
+                    .ok()
+                    .map(|music| {
+                        let music = Rc::new(music);
+                        self.music.insert(meta.music, music.clone());
+                        music
+                    })
+            }
+        };
+
+        let group = CachedGroup {
+            path: group_path,
+            meta,
+            music,
+            levels: Vec::new(),
+        };
         self.groups.push(group);
 
-        Ok((music, level))
+        Ok(())
+    }
+
+    /// Load the group and all levels from it.
+    async fn load_group_all(&mut self, path: impl AsRef<std::path::Path>) -> Result<()> {
+        let group_path = path.as_ref();
+        self.load_group_empty(group_path).await?;
+
+        // If `load_group_empty` succedes, the group is pushed to the end
+        let group = self.groups.last_mut().unwrap();
+
+        let mut levels = Vec::new();
+        for entry in std::fs::read_dir(path)? {
+            let entry = entry?;
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+
+            let level = CachedLevel::load(&self.manager, &path).await?;
+            levels.push(Rc::new(level));
+        }
+
+        group.levels.extend(levels);
+        Ok(())
     }
 
     pub fn new_group(&mut self, music_id: Id) {
         let music = self.music.get(&music_id).cloned();
-        let mut group = CachedGroup::new(GroupInfo {
+        let mut group = CachedGroup::new(GroupMeta {
             id: 0,
-            music: music
-                .as_ref()
-                .map_or(MusicInfo::default(), |m| m.meta.clone()),
-            levels: Vec::new(),
+            music: music_id,
         });
         group.music = music;
         self.groups.push(group);
@@ -196,37 +252,13 @@ impl CachedMusic {
 }
 
 impl CachedGroup {
-    pub fn new(meta: GroupInfo) -> Self {
+    pub fn new(meta: GroupMeta) -> Self {
         Self {
+            path: PathBuf::new(), // TODO
             meta,
             music: None,
             levels: Vec::new(),
         }
-    }
-
-    pub async fn load(manager: &geng::asset::Manager, path: impl AsRef<Path>) -> Result<Self> {
-        let path = path.as_ref();
-
-        let meta_path = path.join("meta.toml");
-        let meta: GroupInfo = file::load_detect(&meta_path).await?;
-
-        let mut levels = Vec::new();
-        for entry in std::fs::read_dir(path)? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
-
-            let level = CachedLevel::load(manager, &path).await?;
-            levels.push(Rc::new(level));
-        }
-
-        Ok(Self {
-            meta,
-            music: None,
-            levels,
-        })
     }
 }
 
