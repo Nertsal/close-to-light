@@ -84,7 +84,7 @@ fn dither_pattern(texture: &mut ugli::Texture) {
 }
 
 fn looping(sfx: &mut geng::Sound) {
-    sfx.set_looped(true)
+    sfx.looped = true;
 }
 
 fn pixel(texture: &mut ugli::Texture) {

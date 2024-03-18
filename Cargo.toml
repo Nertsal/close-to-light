@@ -25,7 +25,7 @@ sha2 = "0.10.8"
 data-encoding = "2.5.0"
 
 # Game
-geng = "0.17.2"
+geng = "0.18"
 geng-utils = "0.3.0"
 parry2d = "0.13.5"
 
@@ -68,3 +68,4 @@ data-encoding.workspace = true
 
 [patch.crates-io]
 async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
+geng = { git = "https://github.com/geng-engine/geng", rev = "38a550f6389d8b2720fefd2f42b5fb58fba106c2" }

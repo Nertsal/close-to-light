@@ -22,7 +22,7 @@ pub struct Music {
     pub meta: MusicInfo,
     sound: Rc<geng::Sound>,
     effect: Option<geng::SoundEffect>,
-    volume: f64,
+    volume: f32,
     /// Stop the music after the timer runs out.
     pub timer: Time,
 }
@@ -66,7 +66,6 @@ impl Music {
     }
 
     pub fn set_volume(&mut self, volume: f32) {
-        let volume = f64::from(volume);
         let volume = volume.clamp(0.0, 1.0);
         self.volume = volume;
         if let Some(effect) = &mut self.effect {

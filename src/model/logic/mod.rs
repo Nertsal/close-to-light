@@ -34,13 +34,13 @@ impl Model {
             if let Some(music) = &mut self.level.music.effect {
                 let t = 1.0 - self.switch_time.as_f32() / 2.0;
                 let speed = (t - 0.1).max(0.5);
-                music.set_speed(speed as f64);
+                music.set_speed(speed);
 
                 let volume = t;
                 if volume < 0.0 {
                     self.level.music.stop();
                 } else {
-                    music.set_volume(volume as f64);
+                    music.set_volume(volume);
                 }
             }
         }
