@@ -1,9 +1,83 @@
+use crate::database::types::LevelRow;
+
 use super::*;
 
 pub fn route(router: Router) -> Router {
     router
+        .route("/groups", get(group_list))
         .route("/group/:group_id", get(group_get))
         .route("/group/create", post(group_create))
+}
+
+// TODO: filter, sort, limit, pages
+async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>> {
+    let music = super::music::music_list(State(app.clone())).await?.0;
+
+    #[derive(sqlx::FromRow)]
+    struct LevelGroupRow {
+        music_id: Id,
+        owner_id: Id,
+        #[sqlx(flatten)]
+        level: LevelRow,
+    }
+
+    let levels: Vec<LevelGroupRow> =
+        sqlx::query_as("SELECT * FROM levels JOIN groups ON levels.group_id = groups.group_id")
+            .fetch_all(&app.database)
+            .await?;
+
+    let authors: Vec<(Id, UserInfo)> = sqlx::query(
+        "
+    SELECT level_id, users.user_id, username
+    FROM level_authors
+    JOIN users ON level_authors.user_id = users.user_id
+            ",
+    )
+    .try_map(|row: DBRow| {
+        Ok((
+            row.try_get("music_id")?,
+            UserInfo {
+                id: row.try_get("user_id")?,
+                name: row.try_get("username")?,
+            },
+        ))
+    })
+    .fetch_all(&app.database)
+    .await?;
+
+    let mut groups = Vec::<GroupInfo>::new();
+    for level_row in levels {
+        let authors = authors
+            .iter()
+            .filter(|(level_id, _)| *level_id == level_row.level.level_id)
+            .map(|(_, user)| user.clone())
+            .collect();
+
+        let level_info = LevelInfo {
+            id: level_row.level.level_id,
+            name: level_row.level.name,
+            authors,
+        };
+
+        let group_i = groups
+            .iter()
+            .position(|g| g.id == level_row.level.group_id)
+            .unwrap_or_else(|| {
+                groups.push(GroupInfo {
+                    id: level_row.level.group_id,
+                    music: music
+                        .iter()
+                        .find(|music| music.id == level_row.music_id)
+                        .cloned()
+                        .unwrap_or_default(), // Default should never be reached TODO: warning or smth
+                    levels: Vec::new(),
+                });
+                groups.len() - 1
+            });
+        groups[group_i].levels.push(level_info);
+    }
+
+    Ok(Json(groups))
 }
 
 async fn group_get(

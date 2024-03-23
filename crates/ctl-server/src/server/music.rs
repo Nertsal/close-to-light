@@ -33,7 +33,8 @@ pub(super) async fn music_exists(app: &App, music_id: Id) -> Result<()> {
     Ok(())
 }
 
-async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>> {
+// TODO: filter, sort, limit, pages
+pub(super) async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>> {
     let rows: Vec<MusicRow> = sqlx::query_as("SELECT * FROM musics WHERE public = 1")
         .fetch_all(&app.database)
         .await?;

@@ -1,4 +1,4 @@
-use ctl_client::core::types::{LevelInfo, MusicInfo};
+use ctl_client::core::types::{GroupInfo, LevelInfo, MusicInfo};
 
 use super::*;
 
@@ -22,7 +22,11 @@ pub struct ExploreWidget {
 }
 
 pub struct ExploreLevelsWidget {
+    assets: Rc<Assets>,
     pub state: WidgetState,
+    pub status: TextWidget,
+    pub scroll: f32,
+    pub target_scroll: f32,
     pub items_state: WidgetState,
     pub items: Vec<LevelItemWidget>,
 }
@@ -39,7 +43,10 @@ pub struct ExploreMusicWidget {
 
 pub struct LevelItemWidget {
     pub state: WidgetState,
-    pub meta: LevelInfo,
+    pub download: IconWidget,
+    pub info: GroupInfo,
+    pub name: TextWidget,
+    pub author: TextWidget,
 }
 
 pub struct MusicItemWidget {
@@ -63,7 +70,7 @@ impl ExploreWidget {
             separator: WidgetState::new(),
 
             music: ExploreMusicWidget::new(assets),
-            levels: ExploreLevelsWidget::new(),
+            levels: ExploreLevelsWidget::new(assets),
         };
         w.music.hide();
         w
@@ -77,6 +84,7 @@ impl StatefulWidget for ExploreWidget {
         self.state.update(position, context);
         self.window.update(context.delta_time);
         self.music.load(&state.music_list);
+        self.levels.load(&state.group_list);
 
         let mut main = position;
         main.cut_top(context.layout_size * 1.0);
@@ -120,13 +128,14 @@ impl StatefulWidget for ExploreWidget {
             self.music.show();
             self.levels.hide();
         } else if self.tab_levels.state.clicked {
+            state.fetch_groups();
             self.music.hide();
             self.levels.show();
         }
 
         let main = main.extend_uniform(-context.font_size * 0.5);
         self.music.update(main, context, state);
-        self.levels.update(main, context);
+        self.levels.update(main, context, state);
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -142,18 +151,91 @@ impl StatefulWidget for ExploreWidget {
 }
 
 impl ExploreLevelsWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
+            assets: assets.clone(),
             state: WidgetState::new(),
+            status: TextWidget::new("Offline"),
+            scroll: 0.0,
+            target_scroll: 0.0,
             items_state: WidgetState::new(),
             items: Vec::new(),
         }
     }
+
+    fn load(&mut self, groups: &CacheState<Vec<GroupInfo>>) {
+        self.items.clear();
+        self.status.show();
+        match groups {
+            CacheState::Offline => self.status.text = "Offline :(".into(),
+            CacheState::Loading => self.status.text = "Loading...".into(),
+            CacheState::Loaded(groups) => {
+                if groups.is_empty() {
+                    self.status.text = "Empty :(".into();
+                } else {
+                    self.status.hide();
+                    self.items = groups
+                        .iter()
+                        .map(|info| LevelItemWidget {
+                            state: WidgetState::new(),
+                            download: IconWidget::new(&self.assets.sprites.download),
+                            name: TextWidget::new(&info.music.name),
+                            author: TextWidget::new(
+                                "", // itertools::Itertools::intersperse(
+                                   //     info.authors.iter().map(|user| user.name.as_str()),
+                                   //     ",",
+                                   // )
+                                   // .collect::<String>(),
+                            ),
+                            info: info.clone(),
+                        })
+                        .collect();
+                }
+            }
+        }
+    }
 }
 
-impl Widget for ExploreLevelsWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+impl StatefulWidget for ExploreLevelsWidget {
+    type State = LevelCache;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+
+        let main = position;
+
+        self.items_state.update(main, context);
+        self.status.update(main, context);
+
+        let main = main.translate(vec2(0.0, -self.scroll));
+        let row = Aabb2::point(main.top_left())
+            .extend_right(main.width())
+            .extend_down(context.font_size * 2.0);
+        let rows = row.stack(
+            vec2(0.0, -row.height() - context.layout_size * 1.0),
+            self.items.len(),
+        );
+        let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
+        for (row, position) in self.items.iter_mut().zip(rows) {
+            row.update(position, context, state);
+        }
+
+        // TODO: extract to a function or smth
+        {
+            self.target_scroll += context.cursor.scroll;
+            let overflow_up = self.target_scroll;
+            let max_scroll = (height - main.height()).max(0.0);
+            let overflow_down = -max_scroll - self.target_scroll;
+            let overflow = if overflow_up > 0.0 {
+                overflow_up
+            } else if overflow_down > 0.0 {
+                -overflow_down
+            } else {
+                0.0
+            };
+            self.target_scroll -= overflow * (context.delta_time / 0.2).min(1.0);
+            self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
+        }
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
@@ -261,9 +343,45 @@ impl StatefulWidget for ExploreMusicWidget {
     }
 }
 
-impl Widget for LevelItemWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+impl StatefulWidget for LevelItemWidget {
+    type State = LevelCache;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
+
+        let mut main = position.extend_uniform(-context.font_size * 0.2);
+
+        let icons = main.cut_left(context.font_size);
+        let rows = icons.split_rows(2);
+
+        if !state.music.contains_key(&self.info.id) {
+            // Not downloaded
+            self.download.show();
+            self.download.update(rows[1], context);
+            self.download.background = None;
+            if self.download.state.hovered {
+                self.download.color = context.theme.dark;
+                self.download.background = Some(context.theme.light);
+            }
+            if self.download.state.clicked {
+                state.download_group(self.info.id);
+            }
+        } else {
+            self.download.hide();
+        }
+
+        main.cut_left(context.layout_size);
+
+        let mut author = main;
+        let name = author.split_top(0.5);
+        let margin = context.font_size * 0.2;
+        author.cut_top(margin);
+
+        self.name.update(name, context);
+        self.name.align(vec2(0.0, 0.0));
+
+        self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
+        self.author.align(vec2(0.0, 1.0));
     }
 
     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {

@@ -12,6 +12,8 @@ pub struct LevelCache {
 
     /// List of downloadable music.
     pub music_list: CacheState<Vec<MusicInfo>>,
+    /// List of downloadable level groups.
+    pub group_list: CacheState<Vec<GroupInfo>>,
 
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Vec<CachedGroup>,
@@ -25,8 +27,12 @@ pub enum CacheState<T> {
 
 pub struct CacheTasks {
     client: Option<Arc<Nertboard>>,
+
     fetch_music: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
     download_music: Option<Task<anyhow::Result<CachedMusic>>>,
+
+    fetch_groups: Option<Task<anyhow::Result<Vec<GroupInfo>>>>,
+    download_group: Option<Task<anyhow::Result<CachedGroup>>>,
 }
 
 #[derive(Debug)]
@@ -76,8 +82,12 @@ impl CacheTasks {
     pub fn new(client: Option<&Arc<Nertboard>>) -> Self {
         Self {
             client: client.cloned(),
+
             fetch_music: None,
             download_music: None,
+
+            fetch_groups: None,
+            download_group: None,
         }
     }
 
@@ -113,6 +123,7 @@ impl LevelCache {
             playing_music: None,
 
             music_list: CacheState::Offline,
+            group_list: CacheState::Offline,
 
             music: HashMap::new(),
             groups: Vec::new(),
@@ -293,12 +304,70 @@ impl LevelCache {
         }
     }
 
+    pub fn fetch_groups(&mut self) {
+        if self.tasks.fetch_groups.is_none() {
+            if let Some(client) = self.tasks.client.clone() {
+                let future = async move {
+                    let groups = client.get_group_list().await?;
+                    Ok(groups)
+                };
+                self.tasks.fetch_groups = Some(Task::new(&self.geng, future));
+                self.group_list = CacheState::Loading;
+            }
+        }
+    }
+
+    pub fn download_group(&mut self, group_id: Id) {
+        if self.tasks.download_group.is_none() {
+            if let Some(client) = self.tasks.client.clone() {
+                // TODO
+                // let geng = self.geng.clone();
+                // let future = async move {
+                //     // let meta = client.get_group_info(group_id).await?;
+                //     // let bytes = client.download_level(group_id).await?;
+
+                //     // log::debug!("Decoding downloaded music bytes");
+                //     // let music = Rc::new(geng.audio().decode(bytes.to_vec()).await?);
+
+                //     // #[cfg(not(target_arch = "wasm32"))]
+                //     // {
+                //     //     let bytes = bytes.clone();
+                //     //     let save = || -> Result<()> {
+                //     //         // Write to fs
+                //     //         let music_path =
+                //     //             preferences::base_path().join(format!("music/{}", meta.id));
+                //     //         std::fs::create_dir_all(&music_path)?;
+
+                //     //         // let mut file = std::fs::File::create(&music_path.join("music.mp3"))?;
+                //     //         // let mut cursor = std::io::Cursor::new(bytes);
+                //     //         // std::io::copy(&mut cursor, &mut file)?;
+                //     //         std::fs::write(music_path.join("music.mp3"), bytes)?;
+                //     //         std::fs::write(
+                //     //             music_path.join("meta.toml"),
+                //     //             toml::to_string_pretty(&meta)?,
+                //     //         )?;
+
+                //     //         log::info!("Music saved successfully");
+                //     //         Ok(())
+                //     //     };
+                //     //     if let Err(err) = save() {
+                //     //         log::error!("Failed to save music locally: {:?}", err);
+                //     //     }
+                //     // }
+
+                //     let group = CachedGroup {};
+                //     Ok(group)
+                // };
+                // self.tasks.download_group = Some(Task::new(&self.geng, future));
+            }
+        }
+    }
+
     pub fn fetch_music(&mut self) {
         if self.tasks.fetch_music.is_none() {
             if let Some(client) = self.tasks.client.clone() {
                 let future = async move {
                     let music = client.get_music_list().await?;
-                    // let music = vec![MusicInfo::default()];
                     Ok(music)
                 };
                 self.tasks.fetch_music = Some(Task::new(&self.geng, future));
