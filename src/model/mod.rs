@@ -80,6 +80,14 @@ impl Music {
         self.timer = Time::ZERO;
     }
 
+    pub fn play(&mut self) {
+        self.stop();
+        let mut effect = self.sound.effect();
+        effect.set_volume(self.volume);
+        effect.play();
+        self.effect = Some(effect);
+    }
+
     pub fn play_from(&mut self, time: time::Duration) {
         self.stop();
         let mut effect = self.sound.effect();

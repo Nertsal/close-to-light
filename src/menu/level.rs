@@ -471,6 +471,10 @@ impl geng::State for LevelMenu {
             .update(self.geng.window(), delta_time.as_f32());
         self.ui_context.theme = self.state.options.theme;
 
+        if let Some(music) = &mut self.state.local.borrow_mut().playing_music {
+            music.set_volume(self.state.options.volume.music());
+        }
+
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),

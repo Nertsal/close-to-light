@@ -260,6 +260,7 @@ impl MenuRender {
                     self.ui.draw_text(&ui.music.status, &mut mask.color);
                     for item in &ui.music.items {
                         self.ui.draw_icon(&item.download, &mut mask.color);
+                        self.ui.draw_icon(&item.play, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(

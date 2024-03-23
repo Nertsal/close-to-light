@@ -8,6 +8,7 @@ use ctl_client::Nertboard;
 pub struct LevelCache {
     geng: Geng,
     tasks: CacheTasks,
+    pub playing_music: Option<Music>,
 
     /// List of downloadable music.
     pub music_list: CacheState<Vec<MusicInfo>>,
@@ -109,6 +110,7 @@ impl LevelCache {
         Self {
             geng: geng.clone(),
             tasks: CacheTasks::new(client),
+            playing_music: None,
 
             music_list: CacheState::Offline,
 
@@ -302,6 +304,14 @@ impl LevelCache {
                 self.tasks.fetch_music = Some(Task::new(&self.geng, future));
                 self.music_list = CacheState::Loading;
             }
+        }
+    }
+
+    pub fn play_music(&mut self, music_id: Id) {
+        if let Some(music) = self.music.get(&music_id) {
+            let mut music = Music::from_cache(music);
+            music.play();
+            self.playing_music = Some(music);
         }
     }
 

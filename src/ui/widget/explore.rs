@@ -45,6 +45,7 @@ pub struct LevelItemWidget {
 pub struct MusicItemWidget {
     pub state: WidgetState,
     pub download: IconWidget,
+    pub play: IconWidget,
     pub info: MusicInfo,
     pub name: TextWidget,
     pub author: TextWidget,
@@ -192,6 +193,7 @@ impl ExploreMusicWidget {
                         .map(|info| MusicItemWidget {
                             state: WidgetState::new(),
                             download: IconWidget::new(&self.assets.sprites.download),
+                            play: IconWidget::new(&self.assets.sprites.button_next),
                             name: TextWidget::new(&info.name),
                             author: TextWidget::new(
                                 itertools::Itertools::intersperse(
@@ -283,6 +285,8 @@ impl StatefulWidget for MusicItemWidget {
         if !state.music.contains_key(&self.info.id) {
             // Not downloaded
             self.download.show();
+            self.play.hide();
+
             self.download.update(rows[1], context);
             self.download.background = None;
             if self.download.state.hovered {
@@ -294,6 +298,17 @@ impl StatefulWidget for MusicItemWidget {
             }
         } else {
             self.download.hide();
+            self.play.show();
+
+            self.play.update(rows[1], context);
+            self.play.background = None;
+            if self.play.state.hovered {
+                self.play.color = context.theme.dark;
+                self.play.background = Some(context.theme.light);
+            }
+            if self.play.state.clicked {
+                state.play_music(self.info.id);
+            }
         }
 
         main.cut_left(context.layout_size);

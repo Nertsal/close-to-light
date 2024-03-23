@@ -1,7 +1,5 @@
 use super::*;
 
-use ctl_client::Nertboard;
-
 use crate::ui::{layout::AreaOps, widget::*};
 
 pub struct MenuUI {
