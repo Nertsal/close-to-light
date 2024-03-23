@@ -2,7 +2,11 @@ use ctl_client::core::types::{LevelInfo, MusicInfo};
 
 use super::*;
 
-use crate::{local::LevelCache, prelude::Assets, ui::layout::AreaOps};
+use crate::{
+    local::{CacheState, LevelCache},
+    prelude::Assets,
+    ui::layout::AreaOps,
+};
 
 pub struct ExploreWidget {
     pub state: WidgetState,
@@ -111,7 +115,7 @@ impl StatefulWidget for ExploreWidget {
         }
 
         if self.tab_music.state.clicked {
-            state.tasks.fetch_music();
+            state.fetch_music();
             self.music.show();
             self.levels.hide();
         } else if self.tab_levels.state.clicked {
@@ -172,29 +176,36 @@ impl ExploreMusicWidget {
         }
     }
 
-    fn load(&mut self, music: &[MusicInfo]) {
-        if music.is_empty() {
-            self.status.text = "Nothing found :(".into();
-        } else {
-            self.status.hide();
+    fn load(&mut self, music: &CacheState<Vec<MusicInfo>>) {
+        self.items.clear();
+        self.status.show();
+        match music {
+            CacheState::Offline => self.status.text = "Offline :(".into(),
+            CacheState::Loading => self.status.text = "Loading...".into(),
+            CacheState::Loaded(music) => {
+                if music.is_empty() {
+                    self.status.text = "Empty :(".into();
+                } else {
+                    self.status.hide();
+                    self.items = music
+                        .iter()
+                        .map(|info| MusicItemWidget {
+                            state: WidgetState::new(),
+                            download: IconWidget::new(&self.assets.sprites.download),
+                            name: TextWidget::new(&info.name),
+                            author: TextWidget::new(
+                                itertools::Itertools::intersperse(
+                                    info.authors.iter().map(|user| user.name.as_str()),
+                                    ",",
+                                )
+                                .collect::<String>(),
+                            ),
+                            info: info.clone(),
+                        })
+                        .collect();
+                }
+            }
         }
-
-        self.items = music
-            .iter()
-            .map(|info| MusicItemWidget {
-                state: WidgetState::new(),
-                download: IconWidget::new(&self.assets.sprites.download),
-                name: TextWidget::new(&info.name),
-                author: TextWidget::new(
-                    itertools::Itertools::intersperse(
-                        info.authors.iter().map(|user| user.name.as_str()),
-                        ",",
-                    )
-                    .collect::<String>(),
-                ),
-                info: info.clone(),
-            })
-            .collect();
     }
 }
 

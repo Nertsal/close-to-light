@@ -98,17 +98,13 @@ impl Command {
                         };
                         log::info!("Uploading music from {:?}: {:?}", path, music);
 
-                        let future = async move {
-                            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                                .context("Client initialization failed")?;
-                            let music_id = client
-                                .upload_music(&path, &music)
-                                .await
-                                .context("failed to upload music")?;
-                            log::info!("Music uploaded successfully, id: {}", music_id);
-                            anyhow::Ok(())
-                        };
-                        execute_task(&geng, future)?;
+                        let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
+                            .context("Client initialization failed")?;
+                        let music_id = client
+                            .upload_music(&path, &music)
+                            .await
+                            .context("failed to upload music")?;
+                        log::info!("Music uploaded successfully, id: {}", music_id);
                     }
                     MusicCommand::Update {
                         id,
@@ -125,44 +121,34 @@ impl Command {
                         };
                         log::info!("Updating music {}: {:#?}", id, update);
 
-                        let future = async move {
-                            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                                .context("Client initialization failed")?;
-                            client
-                                .update_music(id, &update)
-                                .await
-                                .context("failed to update music")?;
-                            log::info!("Music updated successfully");
-                            anyhow::Ok(())
-                        };
-                        execute_task(&geng, future)?;
+                        log::info!("starting");
+                        let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
+                            .context("Client initialization failed")?;
+                        log::info!("client setup");
+                        client
+                            .update_music(id, &update)
+                            .await
+                            .context("failed to update music")?;
+                        log::info!("Music updated successfully");
                     }
                     MusicCommand::Author(author) => match author.command {
                         MusicAuthorCommand::Add { music, artist } => {
                             log::info!("Adding artist {} as author of music {}", artist, music);
-                            let future = async move {
-                                let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                                    .context("Client initialization failed")?;
-                                client
-                                    .music_author_add(music, artist)
-                                    .await
-                                    .context("when adding artist as author")?;
-                                anyhow::Ok(())
-                            };
-                            execute_task(&geng, future)?;
+                            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
+                                .context("Client initialization failed")?;
+                            client
+                                .music_author_add(music, artist)
+                                .await
+                                .context("when adding artist as author")?;
                         }
                         MusicAuthorCommand::Remove { music, artist } => {
                             log::info!("Removing artist {} as author of music {}", artist, music);
-                            let future = async move {
-                                let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                                    .context("Client initialization failed")?;
-                                client
-                                    .music_author_remove(music, artist)
-                                    .await
-                                    .context("when adding artist as author")?;
-                                anyhow::Ok(())
-                            };
-                            execute_task(&geng, future)?;
+                            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
+                                .context("Client initialization failed")?;
+                            client
+                                .music_author_remove(music, artist)
+                                .await
+                                .context("when adding artist as author")?;
                         }
                     },
                 }
@@ -170,15 +156,5 @@ impl Command {
         }
 
         Ok(())
-    }
-}
-
-fn execute_task<T: 'static>(geng: &Geng, future: impl Future<Output = T> + 'static) -> T {
-    let mut task = task::Task::new(geng, future);
-    loop {
-        match task.poll() {
-            Err(t) => task = t,
-            Ok(res) => return res,
-        }
     }
 }

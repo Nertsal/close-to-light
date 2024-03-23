@@ -59,6 +59,16 @@ pub struct LeaderboardSecrets {
 }
 
 fn main() {
+    #[cfg(target_arch = "wasm32")]
+    let mut builder = tokio::runtime::Builder::new_current_thread();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let mut builder = tokio::runtime::Builder::new_multi_thread();
+
+    builder.enable_all().build().unwrap().block_on(async_main());
+}
+
+async fn async_main() {
     logger::init();
     geng::setup_panic_handler();
 

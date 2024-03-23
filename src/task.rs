@@ -14,6 +14,7 @@ impl<T: 'static> Task<T> {
     }
 
     pub fn poll(self) -> Result<T, Self> {
+        // Ok(geng::prelude::futures::executor::block_on(self.inner))
         if !self.inner.is_finished() {
             return Err(self);
         }

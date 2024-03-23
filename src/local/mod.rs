@@ -7,13 +7,19 @@ use ctl_client::Nertboard;
 
 pub struct LevelCache {
     geng: Geng,
-    pub tasks: CacheTasks,
+    tasks: CacheTasks,
 
     /// List of downloadable music.
-    pub music_list: Vec<MusicInfo>,
+    pub music_list: CacheState<Vec<MusicInfo>>,
 
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Vec<CachedGroup>,
+}
+
+pub enum CacheState<T> {
+    Offline,
+    Loading,
+    Loaded(T),
 }
 
 pub struct CacheTasks {
@@ -76,61 +82,6 @@ impl CacheTasks {
         }
     }
 
-    pub fn fetch_music(&mut self) {
-        if self.fetch_music.is_none() {
-            if let Some(client) = self.client.clone() {
-                let future = async move {
-                    let music = client.get_music_list().await?;
-                    Ok(music)
-                };
-                self.fetch_music = Some(Task::new(&self.geng, future));
-            }
-        }
-    }
-
-    pub fn download_music(&mut self, music_id: Id) {
-        if self.download_music.is_none() {
-            if let Some(client) = self.client.clone() {
-                let geng = self.geng.clone();
-                let future = async move {
-                    let meta = client.get_music_info(music_id).await?;
-                    let bytes = client.download_music(music_id).await?;
-
-                    let music = Rc::new(geng.audio().decode(bytes.to_vec()).await?);
-
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        let bytes = bytes.clone();
-                        let save = || -> Result<()> {
-                            // Write to fs
-                            let music_path =
-                                preferences::base_path().join(format!("music/{}", meta.id));
-                            std::fs::create_dir_all(&music_path)?;
-
-                            // let mut file = std::fs::File::create(&music_path.join("music.mp3"))?;
-                            // let mut cursor = std::io::Cursor::new(bytes);
-                            // std::io::copy(&mut cursor, &mut file)?;
-                            std::fs::write(music_path.join("music.mp3"), bytes)?;
-                            std::fs::write(
-                                music_path.join("meta.toml"),
-                                toml::to_string_pretty(&meta)?,
-                            )?;
-
-                            Ok(())
-                        };
-                        if let Err(err) = save() {
-                            log::error!("Failed to save music locally: {:?}", err);
-                        }
-                    }
-
-                    let music = CachedMusic { meta, music };
-                    Ok(music)
-                };
-                self.download_music = Some(Task::new(&self.geng, future));
-            }
-        }
-    }
-
     fn poll(&mut self) -> Option<CacheAction> {
         if let Some(task) = self.fetch_music.take() {
             match task.poll() {
@@ -161,7 +112,7 @@ impl LevelCache {
             geng: geng.clone(),
             tasks: CacheTasks::new(geng, client),
 
-            music_list: Vec::new(),
+            music_list: CacheState::Offline,
 
             music: HashMap::new(),
             groups: Vec::new(),
@@ -336,10 +287,67 @@ impl LevelCache {
         }
     }
 
+    pub fn fetch_music(&mut self) {
+        if self.tasks.fetch_music.is_none() {
+            if let Some(client) = self.tasks.client.clone() {
+                let future = async move {
+                    let music = client.get_music_list().await?;
+                    // let music = vec![MusicInfo::default()];
+                    Ok(music)
+                };
+                self.tasks.fetch_music = Some(Task::new(&self.geng, future));
+                self.music_list = CacheState::Loading;
+            }
+        }
+    }
+
+    pub fn download_music(&mut self, music_id: Id) {
+        if self.tasks.download_music.is_none() {
+            if let Some(client) = self.tasks.client.clone() {
+                let geng = self.geng.clone();
+                let future = async move {
+                    let meta = client.get_music_info(music_id).await?;
+                    let bytes = client.download_music(music_id).await?;
+
+                    let music = Rc::new(geng.audio().decode(bytes.to_vec()).await?);
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        let bytes = bytes.clone();
+                        let save = || -> Result<()> {
+                            // Write to fs
+                            let music_path =
+                                preferences::base_path().join(format!("music/{}", meta.id));
+                            std::fs::create_dir_all(&music_path)?;
+
+                            // let mut file = std::fs::File::create(&music_path.join("music.mp3"))?;
+                            // let mut cursor = std::io::Cursor::new(bytes);
+                            // std::io::copy(&mut cursor, &mut file)?;
+                            std::fs::write(music_path.join("music.mp3"), bytes)?;
+                            std::fs::write(
+                                music_path.join("meta.toml"),
+                                toml::to_string_pretty(&meta)?,
+                            )?;
+
+                            Ok(())
+                        };
+                        if let Err(err) = save() {
+                            log::error!("Failed to save music locally: {:?}", err);
+                        }
+                    }
+
+                    let music = CachedMusic { meta, music };
+                    Ok(music)
+                };
+                self.tasks.download_music = Some(Task::new(&self.geng, future));
+            }
+        }
+    }
+
     pub fn poll(&mut self) {
         if let Some(action) = self.tasks.poll() {
             match action {
-                CacheAction::MusicList(music) => self.music_list = music,
+                CacheAction::MusicList(music) => self.music_list = CacheState::Loaded(music),
                 CacheAction::Music(music) => {
                     self.music.insert(music.meta.id, Rc::new(music));
                 }
