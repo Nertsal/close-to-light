@@ -124,7 +124,7 @@ impl StatefulWidget for ExploreWidget {
         }
 
         let main = main.extend_uniform(-context.font_size * 0.5);
-        self.music.update(main, context);
+        self.music.update(main, context, state);
         self.levels.update(main, context);
     }
 
@@ -209,8 +209,10 @@ impl ExploreMusicWidget {
     }
 }
 
-impl Widget for ExploreMusicWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+impl StatefulWidget for ExploreMusicWidget {
+    type State = LevelCache;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
         let main = position;
@@ -228,7 +230,7 @@ impl Widget for ExploreMusicWidget {
         );
         let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
         for (row, position) in self.items.iter_mut().zip(rows) {
-            row.update(position, context);
+            row.update(position, context, state);
         }
 
         // TODO: extract to a function or smth
@@ -267,8 +269,10 @@ impl Widget for LevelItemWidget {
     }
 }
 
-impl Widget for MusicItemWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+impl StatefulWidget for MusicItemWidget {
+    type State = LevelCache;
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
         let mut main = position.extend_uniform(-context.font_size * 0.2);
@@ -276,13 +280,21 @@ impl Widget for MusicItemWidget {
         let icons = main.cut_left(context.font_size);
         let rows = icons.split_rows(2);
 
-        self.download.update(rows[1], context);
-        self.download.background = None;
-        if self.download.state.hovered {
-            self.download.color = context.theme.dark;
-            self.download.background = Some(context.theme.light);
+        if !state.music.contains_key(&self.info.id) {
+            // Not downloaded
+            self.download.show();
+            self.download.update(rows[1], context);
+            self.download.background = None;
+            if self.download.state.hovered {
+                self.download.color = context.theme.dark;
+                self.download.background = Some(context.theme.light);
+            }
+            if self.download.state.clicked {
+                state.download_music(self.info.id);
+            }
+        } else {
+            self.download.hide();
         }
-        if self.download.state.clicked {}
 
         main.cut_left(context.layout_size);
 

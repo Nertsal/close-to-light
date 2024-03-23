@@ -270,17 +270,20 @@ async fn download(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
 ) -> Result<impl IntoResponse> {
-    let music_row = sqlx::query("SELECT file_path FROM musics WHERE music_id = ?")
+    let id: Option<Id> = sqlx::query("SELECT music_id FROM musics WHERE music_id = ?")
         .bind(music_id)
+        .try_map(|row: DBRow| row.try_get("music_id"))
         .fetch_optional(&app.database)
         .await?;
 
-    let Some(row) = music_row else {
+    let Some(music_id) = id else {
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let file_path: String = row.try_get("file_path")?;
-    let file_path = PathBuf::from(file_path);
+    // Check path
+    let dir_path = app.config.groups_path.join("music");
+    std::fs::create_dir_all(&dir_path)?;
+    let path = dir_path.join(music_id.to_string());
 
-    send_file(file_path, content_mp3()).await
+    send_file(path, content_mp3()).await
 }

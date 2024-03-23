@@ -23,7 +23,6 @@ pub enum CacheState<T> {
 }
 
 pub struct CacheTasks {
-    geng: Geng,
     client: Option<Arc<Nertboard>>,
     fetch_music: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
     download_music: Option<Task<anyhow::Result<CachedMusic>>>,
@@ -73,9 +72,8 @@ impl Debug for CachedMusic {
 }
 
 impl CacheTasks {
-    pub fn new(geng: &Geng, client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(client: Option<&Arc<Nertboard>>) -> Self {
         Self {
-            geng: geng.clone(),
             client: client.cloned(),
             fetch_music: None,
             download_music: None,
@@ -110,7 +108,7 @@ impl LevelCache {
     pub fn new(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Self {
         Self {
             geng: geng.clone(),
-            tasks: CacheTasks::new(geng, client),
+            tasks: CacheTasks::new(client),
 
             music_list: CacheState::Offline,
 
@@ -130,40 +128,46 @@ impl LevelCache {
 
         log::info!("Loading local storage");
         let base_path = preferences::base_path();
-
-        // let mut music = HashMap::new();
-        // for entry in std::fs::read_dir(base_path.join("music"))? {
-        //     let entry = entry?;
-        //     let path = entry.path();
-        //     if !path.is_dir() {
-        //         log::error!("Unexpected file in music dir: {:?}", path);
-        //         continue;
-        //     }
-
-        //     let id: Id = entry
-        //         .file_name()
-        //         .to_str()
-        //         .ok_or(anyhow!("Directory name is not valid UTF-8"))?
-        //         .parse()?;
-
-        //     let m = CachedMusic::load(manager, &path).await?;
-        //     music.insert(id, Rc::new(m));
-        // }
+        std::fs::create_dir_all(&base_path)?;
 
         let mut local = Self::new(client, geng);
 
-        for entry in std::fs::read_dir(base_path.join("levels"))? {
+        for entry in std::fs::read_dir(base_path.join("music"))? {
             let entry = entry?;
             let path = entry.path();
             if !path.is_dir() {
-                log::error!("Unexpected file in levels dir: {:?}", path);
+                log::error!("Unexpected file in music dir: {:?}", path);
                 continue;
             }
 
-            local.load_group_all(&path).await?;
+            local.load_music(&path).await?;
+        }
+
+        let levels_path = base_path.join("levels");
+        if levels_path.exists() {
+            for entry in std::fs::read_dir(levels_path)? {
+                let entry = entry?;
+                let path = entry.path();
+                if !path.is_dir() {
+                    log::error!("Unexpected file in levels dir: {:?}", path);
+                    continue;
+                }
+
+                local.load_group_all(&path).await?;
+            }
         }
 
         Ok(local)
+    }
+
+    pub async fn load_music(
+        &mut self,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<Rc<CachedMusic>> {
+        let path = path.as_ref();
+        let music = Rc::new(CachedMusic::load(self.geng.asset_manager(), path).await?);
+        self.music.insert(music.meta.id, Rc::clone(&music));
+        Ok(music)
     }
 
     pub async fn load_level(
@@ -309,6 +313,7 @@ impl LevelCache {
                     let meta = client.get_music_info(music_id).await?;
                     let bytes = client.download_music(music_id).await?;
 
+                    log::debug!("Decoding downloaded music bytes");
                     let music = Rc::new(geng.audio().decode(bytes.to_vec()).await?);
 
                     #[cfg(not(target_arch = "wasm32"))]
@@ -329,6 +334,7 @@ impl LevelCache {
                                 toml::to_string_pretty(&meta)?,
                             )?;
 
+                            log::info!("Music saved successfully");
                             Ok(())
                         };
                         if let Err(err) = save() {
