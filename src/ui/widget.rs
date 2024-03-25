@@ -10,13 +10,14 @@ mod level_config;
 mod options;
 mod profile;
 mod slider;
+mod sync;
 mod text;
 mod timeline;
 mod value;
 
 pub use self::{
     button::*, checkbox::*, explore::*, group::*, icon::*, input::*, leaderboard::*, level::*,
-    level_config::*, options::*, profile::*, slider::*, text::*, timeline::*, value::*,
+    level_config::*, options::*, profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
 };
 
 use super::{context::*, window::*};

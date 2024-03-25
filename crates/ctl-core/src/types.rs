@@ -59,6 +59,7 @@ pub struct LevelInfo {
     pub id: Id,
     pub name: String,
     pub authors: Vec<UserInfo>,
+    pub hash: String,
 }
 
 impl LevelInfo {

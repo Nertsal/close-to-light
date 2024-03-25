@@ -98,6 +98,7 @@ impl MenuState {
             let meta = LevelInfo {
                 id: 0,
                 name: "New Difficulty".into(),
+                hash: String::new(),
                 authors: Vec::new(),
             };
             local.new_level(group, meta);

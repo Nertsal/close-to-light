@@ -15,6 +15,8 @@ pub struct MenuUI {
     pub levels: Vec<LevelWidget>,
     pub new_level: TextWidget,
 
+    pub sync: Option<SyncWidget>,
+
     pub options_head: TextWidget,
     pub options: OptionsWidget,
     pub explore_head: TextWidget,
@@ -40,6 +42,8 @@ impl MenuUI {
             levels_state: default(),
             levels: Vec::new(),
             new_level: TextWidget::new("+ New Difficulty"),
+
+            sync: None,
 
             options_head: TextWidget::new("Options"),
             options: OptionsWidget::new(

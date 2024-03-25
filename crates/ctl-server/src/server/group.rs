@@ -56,6 +56,7 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
         let level_info = LevelInfo {
             id: level_row.level.level_id,
             name: level_row.level.name,
+            hash: level_row.level.hash,
             authors,
         };
 
@@ -97,12 +98,10 @@ async fn group_get(
         .await?
         .0;
 
-    let level_rows: Vec<(Id, String)> =
-        sqlx::query("SELECT level_id, name FROM levels WHERE group_id = ?")
-            .bind(group_id)
-            .try_map(|row: DBRow| Ok((row.try_get("level_id")?, row.try_get("name")?)))
-            .fetch_all(&app.database)
-            .await?;
+    let level_rows: Vec<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE group_id = ?")
+        .bind(group_id)
+        .fetch_all(&app.database)
+        .await?;
 
     let authors: Vec<(Id, UserInfo)> = sqlx::query(
         "
@@ -124,15 +123,16 @@ JOIN players ON level_authors.player_id = players.player_id
     .await?;
 
     let mut levels = Vec::new();
-    for (level_id, level_name) in level_rows {
+    for level in level_rows {
         let authors = authors
             .iter()
-            .filter(|(id, _)| *id == level_id)
+            .filter(|(id, _)| *id == level.level_id)
             .map(|(_, player)| player.clone())
             .collect();
         levels.push(LevelInfo {
-            id: level_id,
-            name: level_name,
+            id: level.level_id,
+            name: level.name,
+            hash: level.hash,
             authors,
         });
     }

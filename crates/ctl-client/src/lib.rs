@@ -2,7 +2,7 @@ mod auth;
 #[cfg(not(target_arch = "wasm32"))]
 mod native;
 
-use core::types::GroupInfo;
+use core::types::{GroupInfo, LevelInfo};
 
 pub use ctl_core as core;
 use ctl_core::{
@@ -35,7 +35,7 @@ impl Nertboard {
     }
 
     pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
-        let url = self.url.join(&format!("levels/{}/scores/", level)).unwrap();
+        let url = self.url.join(&format!("level/{}/scores/", level)).unwrap();
         let req = self.client.get(url);
 
         let response = req.send().await?;
@@ -46,13 +46,22 @@ impl Nertboard {
     pub async fn submit_score(&self, level: Id, entry: &SubmitScore) -> Result<()> {
         let req = self
             .client
-            .post(self.url.join(&format!("levels/{}/scores/", level)).unwrap())
+            .post(self.url.join(&format!("level/{}/scores/", level)).unwrap())
             .json(entry);
 
         let response = req.send().await?;
         get_body(response).await?;
         // TODO: check returned error
         Ok(())
+    }
+
+    pub async fn get_level_info(&self, level: Id) -> Result<LevelInfo> {
+        let url = self.url.join(&format!("level/{}", level)).unwrap();
+        let req = self.client.get(url);
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
     }
 
     pub async fn get_group_list(&self) -> Result<Vec<GroupInfo>> {

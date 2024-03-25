@@ -130,6 +130,10 @@ impl LevelCache {
         }
     }
 
+    pub fn client(&self) -> Option<&Arc<Nertboard>> {
+        self.tasks.client.as_ref()
+    }
+
     /// Load from the local storage.
     pub async fn load(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Result<Self> {
         // TODO: report failures but continue working

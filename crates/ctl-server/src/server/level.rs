@@ -7,6 +7,7 @@ use ctl_core::{types::NewLevel, ScoreEntry, SubmitScore};
 pub fn route(router: Router) -> Router {
     router
         .route("/levels", get(level_list))
+        .route("/level/:level_id", get(level_get))
         .route(
             "/level/:level_id/scores",
             get(fetch_scores).post(submit_score),
@@ -51,11 +52,45 @@ async fn level_list(State(app): State<Arc<App>>) -> Result<Json<Vec<LevelInfo>>>
         result.push(LevelInfo {
             id: level.level_id,
             name: level.name,
+            hash: level.hash,
             authors,
         });
     }
 
     Ok(Json(result))
+}
+
+async fn level_get(
+    State(app): State<Arc<App>>,
+    Path(level_id): Path<Id>,
+) -> Result<Json<LevelInfo>> {
+    let level: LevelRow = sqlx::query_as("SELECT * FROM levels WHERE level_id = ?")
+        .bind(level_id)
+        .fetch_one(&app.database)
+        .await?;
+
+    let authors: Vec<UserInfo> = sqlx::query(
+        "
+SELECT players.player_id, name
+FROM level_authors
+JOIN players ON level_authors.player_id = players.player_id
+        ",
+    )
+    .try_map(|row: DBRow| {
+        Ok(UserInfo {
+            id: row.try_get("player_id")?,
+            name: row.try_get("name")?,
+        })
+    })
+    .fetch_all(&app.database)
+    .await?;
+
+    Ok(Json(LevelInfo {
+        id: level_id,
+        name: level.name,
+        hash: level.hash,
+        authors,
+    }))
 }
 
 async fn level_create(
