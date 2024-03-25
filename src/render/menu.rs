@@ -69,6 +69,7 @@ impl MenuRender {
                 state.options.theme,
                 framebuffer,
                 |framebuffer| {
+                    self.ui.draw_icon(&sync.close.icon, framebuffer);
                     self.ui.draw_text(&sync.title, framebuffer);
                     self.ui.draw_text(&sync.status, framebuffer);
                 },

@@ -107,6 +107,10 @@ impl MenuUI {
             let pos = Aabb2::point(screen.center()).extend_symmetric(size / 2.0);
             sync.update(pos, context, &mut state.local.borrow_mut());
             context.update_focus(sync.state.hovered);
+            if !sync.window.show.going_up && sync.window.show.time.is_min() {
+                // Close window
+                self.sync = None;
+            }
         }
 
         let base_t = if state.level_up {

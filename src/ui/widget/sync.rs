@@ -15,6 +15,8 @@ pub struct SyncWidget {
     reload: bool,
 
     pub state: WidgetState,
+    pub window: UiWindow<()>,
+    pub close: IconButtonWidget,
     pub title: TextWidget,
     pub status: TextWidget,
 
@@ -29,6 +31,8 @@ impl SyncWidget {
             reload: true,
 
             state: WidgetState::new(),
+            window: UiWindow::new((), 0.3),
+            close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             title: TextWidget::new("Synchronizing level"),
             status: TextWidget::new("Loading..."),
 
@@ -79,9 +83,16 @@ impl StatefulWidget for SyncWidget {
             }
         }
 
+        self.window.layout(true, self.close.state.clicked);
+        self.window.update(context.delta_time);
         self.state.update(position, context);
 
-        let mut main = position;
+        let mut main = position.extend_uniform(-context.font_size * 0.2);
+
+        let close = main.align_aabb(vec2::splat(2.0) * context.layout_size, vec2(1.0, 1.0));
+        self.close.update(close, context);
+
+        main.cut_top(context.layout_size);
 
         let title = main.cut_top(context.font_size);
         self.title.update(title, context);
