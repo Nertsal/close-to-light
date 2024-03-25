@@ -6,6 +6,8 @@ use ctl_client::core::types::LevelInfo;
 use geng_utils::bounded::Bounded;
 
 pub struct LevelWidget {
+    pub info: LevelInfo,
+
     pub state: WidgetState,
 
     pub static_state: WidgetState,
@@ -20,6 +22,8 @@ pub struct LevelWidget {
 impl LevelWidget {
     pub fn new(assets: &Assets) -> Self {
         Self {
+            info: LevelInfo::default(),
+
             state: WidgetState::new(),
 
             static_state: WidgetState::new(),
@@ -33,6 +37,7 @@ impl LevelWidget {
     }
 
     pub fn set_level(&mut self, meta: &LevelInfo) {
+        self.info = meta.clone();
         self.name.text = meta.name.to_string();
         self.author.text = format!("by {}", meta.authors());
     }
@@ -55,6 +60,7 @@ impl Widget for LevelWidget {
         stat.cut_right(stat.width() - stat.height() / 2.0);
         let rows = stat.split_rows(2);
 
+        // TODO: move behavior to a widget
         self.sync.update(rows[0], context);
         self.sync.background = None;
         if self.sync.state.hovered {

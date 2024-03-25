@@ -56,6 +56,24 @@ impl MenuRender {
         self.ui
             .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
         self.draw_level_config(ui, state, framebuffer);
+
+        self.draw_sync(ui, state, framebuffer);
+    }
+
+    fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
+        if let Some(sync) = &ui.sync {
+            self.ui.draw_window(
+                sync.state.position,
+                None,
+                self.font_size * 0.2,
+                state.options.theme,
+                framebuffer,
+                |framebuffer| {
+                    self.ui.draw_text(&sync.title, framebuffer);
+                    self.ui.draw_text(&sync.status, framebuffer);
+                },
+            );
+        }
     }
 
     fn draw_levels(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {

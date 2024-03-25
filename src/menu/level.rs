@@ -136,7 +136,7 @@ impl LevelMenu {
             last_delta_time: Time::ONE,
             time: Time::ZERO,
 
-            ui: MenuUI::new(assets),
+            ui: MenuUI::new(geng, assets),
             ui_focused: false,
             ui_context: UiContext::new(geng, options.theme),
 

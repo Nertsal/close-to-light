@@ -57,6 +57,26 @@ pub trait StatefulWidget {
     }
 }
 
+pub trait LifetimeWidget {
+    /// The external state that the widget operates on.
+    type State<'a>
+    where
+        Self: 'a;
+
+    /// Update position and related properties.
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: Self::State<'_>);
+    /// Get a mutable reference to the root state.
+    fn state_mut(&mut self) -> &mut WidgetState;
+    /// Make the widget visible.
+    fn show(&mut self) {
+        self.state_mut().show()
+    }
+    /// Hide the widget and disable interactions.
+    fn hide(&mut self) {
+        self.state_mut().hide()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct WidgetState {
     pub position: Aabb2<f32>,

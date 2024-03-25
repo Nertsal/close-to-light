@@ -52,7 +52,7 @@ impl MusicInfo {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LevelInfo {
     /// Id `0` for local levels.
     #[serde(default)]

@@ -4,6 +4,7 @@ use crate::{
     local::{CachedLevel, LevelCache},
     prelude::Assets,
     task::Task,
+    ui::layout::AreaOps,
 };
 
 use ctl_client::core::types::LevelInfo;
@@ -14,6 +15,8 @@ pub struct SyncWidget {
     reload: bool,
 
     pub state: WidgetState,
+    pub title: TextWidget,
+    pub status: TextWidget,
 
     task_level_info: Option<Task<anyhow::Result<LevelInfo>>>,
 }
@@ -26,6 +29,8 @@ impl SyncWidget {
             reload: true,
 
             state: WidgetState::new(),
+            title: TextWidget::new("Synchronizing level"),
+            status: TextWidget::new("Loading..."),
 
             task_level_info: None,
         }
@@ -61,14 +66,14 @@ impl StatefulWidget for SyncWidget {
                     if let Ok(level) = level {
                         if level.hash != self.cached_level.hash {
                             // Local level version is probably outdated (or invalid)
-                            log::debug!("Local level version is probably outdated (or invalid)");
+                            self.status.text = "Local level version is outdated or changed".into();
                         } else {
                             // Everything's fine
-                            log::debug!("Level is up to date");
+                            self.status.text = "Level is up to date".into();
                         }
                     } else {
                         // Level is unknown to the server - probably created by the user
-                        log::debug!("Level unknown");
+                        self.status.text = "Level unknown to the server".into();
                     }
                 }
             }
@@ -77,5 +82,11 @@ impl StatefulWidget for SyncWidget {
         self.state.update(position, context);
 
         let mut main = position;
+
+        let title = main.cut_top(context.font_size);
+        self.title.update(title, context);
+
+        let status = main.cut_top(context.font_size);
+        self.status.update(status, context);
     }
 }

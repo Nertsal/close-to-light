@@ -3,6 +3,7 @@ use super::*;
 use crate::ui::{layout::AreaOps, widget::*};
 
 pub struct MenuUI {
+    geng: Geng,
     assets: Rc<Assets>,
     pub screen: WidgetState,
     pub ctl_logo: WidgetState,
@@ -29,8 +30,9 @@ pub struct MenuUI {
 }
 
 impl MenuUI {
-    pub fn new(assets: &Rc<Assets>) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
+            geng: geng.clone(),
             assets: assets.clone(),
             screen: WidgetState::new(),
             ctl_logo: default(),
@@ -99,6 +101,13 @@ impl MenuUI {
         let ctl_logo = main.cut_top(layout_size * 4.0);
         update!(self.ctl_logo, ctl_logo);
         main.cut_top(layout_size * 3.0);
+
+        if let Some(sync) = &mut self.sync {
+            let size = vec2(15.0, 17.0) * layout_size;
+            let pos = Aabb2::point(screen.center()).extend_symmetric(size / 2.0);
+            sync.update(pos, context, &mut state.local.borrow_mut());
+            context.update_focus(sync.state.hovered);
+        }
 
         let base_t = if state.level_up {
             1.0
@@ -365,6 +374,7 @@ impl MenuUI {
 
         if let Some(show_group) = &state.show_group {
             enum Action {
+                Sync(Rc<CachedLevel>),
                 Edit(usize),
                 Show(usize),
                 New,
@@ -435,6 +445,7 @@ impl MenuUI {
 
                     // Buttons
                     if level.sync.state.clicked {
+                        action = Some(Action::Sync(cached.clone()));
                     } else if level.edit.state.clicked {
                         action = Some(Action::Edit(i));
                     }
@@ -460,6 +471,9 @@ impl MenuUI {
             drop(local);
             if let Some(action) = action {
                 match action {
+                    Action::Sync(level) => {
+                        self.sync = Some(SyncWidget::new(&self.geng, &self.assets, &level));
+                    }
                     Action::Edit(level) => state.edit_level(level),
                     Action::Show(level) => state.show_level(Some(level)),
                     Action::New => state.new_level(),
