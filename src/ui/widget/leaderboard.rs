@@ -11,7 +11,7 @@ use ctl_client::core::types::UserInfo;
 pub struct LeaderboardWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
-    pub close: ButtonWidget,
+    pub close: IconButtonWidget,
     pub title: TextWidget,
     pub subtitle: TextWidget,
     pub status: TextWidget,
@@ -36,7 +36,7 @@ impl LeaderboardWidget {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3).reload_skip(),
-            close: ButtonWidget::new_textured("", &assets.sprites.button_close),
+            close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
             status: TextWidget::new(""),

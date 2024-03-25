@@ -109,8 +109,8 @@ impl MenuRender {
                 continue;
             }
 
-            self.ui.draw_icon(&level.sync, &mut mask.color);
-            self.ui.draw_icon(&level.edit, &mut mask.color);
+            self.ui.draw_icon(&level.sync.icon, &mut mask.color);
+            self.ui.draw_icon(&level.edit.icon, &mut mask.color);
             self.ui.draw_outline(
                 level.static_state.position,
                 self.font_size * 0.2,
@@ -277,8 +277,8 @@ impl MenuRender {
                     mask.mask_quad(ui.music.items_state.position);
                     self.ui.draw_text(&ui.music.status, &mut mask.color);
                     for item in &ui.music.items {
-                        self.ui.draw_icon(&item.download, &mut mask.color);
-                        self.ui.draw_icon(&item.play, &mut mask.color);
+                        self.ui.draw_icon(&item.download.icon, &mut mask.color);
+                        self.ui.draw_icon(&item.play.icon, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(
@@ -314,8 +314,7 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                self.ui
-                    .draw_close_button(&ui.level_config.close, theme, framebuffer);
+                self.ui.draw_icon(&ui.level_config.close.icon, framebuffer);
 
                 {
                     let (tab, active) = (

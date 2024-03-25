@@ -257,7 +257,7 @@ impl MenuUI {
 
             self.leaderboard.window.layout(
                 self.leaderboard.state.hovered,
-                self.leaderboard.close.text.state.clicked
+                self.leaderboard.close.state.clicked
                     || cursor_high && !self.leaderboard.state.hovered,
             );
         }
@@ -286,7 +286,7 @@ impl MenuUI {
 
             self.level_config.window.layout(
                 self.level_config.state.hovered,
-                self.level_config.close.text.state.clicked
+                self.level_config.close.state.clicked
                     || cursor_high && !self.level_config.state.hovered,
             );
         }

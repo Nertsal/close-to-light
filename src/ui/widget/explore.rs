@@ -43,7 +43,7 @@ pub struct ExploreMusicWidget {
 
 pub struct LevelItemWidget {
     pub state: WidgetState,
-    pub download: IconWidget,
+    pub download: IconButtonWidget,
     pub info: GroupInfo,
     pub name: TextWidget,
     pub author: TextWidget,
@@ -51,8 +51,8 @@ pub struct LevelItemWidget {
 
 pub struct MusicItemWidget {
     pub state: WidgetState,
-    pub download: IconWidget,
-    pub play: IconWidget,
+    pub download: IconButtonWidget,
+    pub play: IconButtonWidget,
     pub info: MusicInfo,
     pub name: TextWidget,
     pub author: TextWidget,
@@ -171,7 +171,7 @@ impl ExploreLevelsWidget {
                         .iter()
                         .map(|info| LevelItemWidget {
                             state: WidgetState::new(),
-                            download: IconWidget::new(&self.assets.sprites.download),
+                            download: IconButtonWidget::new_normal(&self.assets.sprites.download),
                             name: TextWidget::new(&info.music.name),
                             author: TextWidget::new(
                                 "", // itertools::Itertools::intersperse(
@@ -264,8 +264,8 @@ impl ExploreMusicWidget {
                         .iter()
                         .map(|info| MusicItemWidget {
                             state: WidgetState::new(),
-                            download: IconWidget::new(&self.assets.sprites.download),
-                            play: IconWidget::new(&self.assets.sprites.button_next),
+                            download: IconButtonWidget::new_normal(&self.assets.sprites.download),
+                            play: IconButtonWidget::new_normal(&self.assets.sprites.button_next),
                             name: TextWidget::new(&info.name),
                             author: TextWidget::new(
                                 itertools::Itertools::intersperse(
@@ -349,11 +349,6 @@ impl StatefulWidget for LevelItemWidget {
             // Not downloaded
             self.download.show();
             self.download.update(rows[1], context);
-            self.download.background = None;
-            if self.download.state.hovered {
-                self.download.color = context.theme.dark;
-                self.download.background = Some(context.theme.light);
-            }
             if self.download.state.clicked {
                 state.download_group(self.info.id);
             }
@@ -397,11 +392,6 @@ impl StatefulWidget for MusicItemWidget {
             self.play.hide();
 
             self.download.update(rows[1], context);
-            self.download.background = None;
-            if self.download.state.hovered {
-                self.download.color = context.theme.dark;
-                self.download.background = Some(context.theme.light);
-            }
             if self.download.state.clicked {
                 state.download_music(self.info.id);
             }
@@ -410,11 +400,6 @@ impl StatefulWidget for MusicItemWidget {
             self.play.show();
 
             self.play.update(rows[1], context);
-            self.play.background = None;
-            if self.play.state.hovered {
-                self.play.color = context.theme.dark;
-                self.play.background = Some(context.theme.light);
-            }
             if self.play.state.clicked {
                 state.play_music(self.info.id);
             }

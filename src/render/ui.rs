@@ -125,20 +125,32 @@ impl UiRender {
     }
 
     pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
-        if let Some(bg) = icon.background {
-            let texture = //if width < 5.0 {
-                &self.assets.sprites.fill_thin;
-            // } else {
-            //     &self.assets.sprites.fill
-            // };
-            self.util.draw_nine_slice(
-                icon.state.position,
-                bg,
-                texture,
-                pixel_scale(framebuffer),
-                &geng::PixelPerfectCamera,
-                framebuffer,
-            );
+        if let Some(bg) = &icon.background {
+            match bg.kind {
+                IconBackgroundKind::NineSlice => {
+                    let texture = //if width < 5.0 {
+                        &self.assets.sprites.fill_thin;
+                    // } else {
+                    //     &self.assets.sprites.fill
+                    // };
+                    self.util.draw_nine_slice(
+                        icon.state.position,
+                        bg.color,
+                        texture,
+                        pixel_scale(framebuffer),
+                        &geng::PixelPerfectCamera,
+                        framebuffer,
+                    );
+                }
+                IconBackgroundKind::Circle => {
+                    self.draw_texture(
+                        icon.state.position,
+                        &self.assets.sprites.circle,
+                        bg.color,
+                        framebuffer,
+                    );
+                }
+            }
         }
         self.draw_texture(icon.state.position, &icon.texture, icon.color, framebuffer);
     }
@@ -297,7 +309,7 @@ impl UiRender {
             camera,
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
-        self.draw_close_button(&leaderboard.close, theme, framebuffer);
+        self.draw_icon(&leaderboard.close.icon, framebuffer);
         self.draw_text(&leaderboard.title, framebuffer);
         self.draw_text(&leaderboard.subtitle, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);

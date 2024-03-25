@@ -7,7 +7,19 @@ pub struct IconWidget {
     pub state: WidgetState,
     pub texture: Rc<ugli::Texture>,
     pub color: Color,
-    pub background: Option<Color>,
+    pub background: Option<IconBackground>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IconBackground {
+    pub color: Color,
+    pub kind: IconBackgroundKind,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum IconBackgroundKind {
+    NineSlice,
+    Circle,
 }
 
 impl IconWidget {

@@ -11,8 +11,8 @@ pub struct LevelWidget {
     pub state: WidgetState,
 
     pub static_state: WidgetState,
-    pub sync: IconWidget,
-    pub edit: IconWidget,
+    pub sync: IconButtonWidget,
+    pub edit: IconButtonWidget,
 
     pub name: TextWidget,
     pub author: TextWidget,
@@ -27,8 +27,8 @@ impl LevelWidget {
             state: WidgetState::new(),
 
             static_state: WidgetState::new(),
-            sync: IconWidget::new(&assets.sprites.reset),
-            edit: IconWidget::new(&assets.sprites.edit),
+            sync: IconButtonWidget::new_normal(&assets.sprites.reset),
+            edit: IconButtonWidget::new_normal(&assets.sprites.edit),
 
             name: TextWidget::new("<level name>"),
             author: TextWidget::new("by <author>"),
@@ -60,20 +60,8 @@ impl Widget for LevelWidget {
         stat.cut_right(stat.width() - stat.height() / 2.0);
         let rows = stat.split_rows(2);
 
-        // TODO: move behavior to a widget
         self.sync.update(rows[0], context);
-        self.sync.background = None;
-        if self.sync.state.hovered {
-            self.sync.color = context.theme.dark;
-            self.sync.background = Some(context.theme.light);
-        }
-
         self.edit.update(rows[1], context);
-        self.edit.background = None;
-        if self.edit.state.hovered {
-            self.edit.color = context.theme.dark;
-            self.edit.background = Some(context.theme.light);
-        }
 
         let mut author = position;
         let name = author.split_top(0.5);
