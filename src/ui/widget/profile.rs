@@ -51,6 +51,10 @@ impl ProfileWidget {
 impl StatefulWidget for ProfileWidget {
     type State = Leaderboard;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
@@ -82,17 +86,14 @@ impl StatefulWidget for ProfileWidget {
             self.logged.hide();
         }
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.offline.walk_states_mut(f);
-        self.register.walk_states_mut(f);
-        self.logged.walk_states_mut(f);
-    }
 }
 
 impl StatefulWidget for RegisterWidget {
     type State = Leaderboard;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
@@ -117,14 +118,14 @@ impl StatefulWidget for RegisterWidget {
             state.register(creds);
         }
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-    }
 }
 
 impl StatefulWidget for LoggedWidget {
     type State = Leaderboard;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
@@ -142,9 +143,5 @@ impl StatefulWidget for LoggedWidget {
         if self.logout.text.state.clicked {
             state.logout();
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }

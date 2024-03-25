@@ -35,6 +35,10 @@ impl SyncWidget {
 impl StatefulWidget for SyncWidget {
     type State = LevelCache;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         if std::mem::take(&mut self.reload) && self.task_level_info.is_none() {
             if let Some(client) = state.client().cloned() {
@@ -73,9 +77,5 @@ impl StatefulWidget for SyncWidget {
         self.state.update(position, context);
 
         let mut main = position;
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }

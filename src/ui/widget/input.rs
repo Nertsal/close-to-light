@@ -25,6 +25,10 @@ impl InputWidget {
 }
 
 impl Widget for InputWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
@@ -57,11 +61,5 @@ impl Widget for InputWidget {
         self.text.update(main, context);
 
         context.theme.light = old_color;
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.name.walk_states_mut(f);
-        self.text.walk_states_mut(f);
     }
 }

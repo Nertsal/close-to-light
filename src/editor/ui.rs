@@ -245,6 +245,10 @@ impl EditorEditWidget {
 impl StatefulWidget for EditorEditWidget {
     type State = Editor;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         let editor = state;
         let mut main = position;
@@ -505,10 +509,6 @@ impl StatefulWidget for EditorEditWidget {
             self.timeline.auto_scale(editor.level.last_beat());
         }
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-    }
 }
 
 impl EditorConfigWidget {
@@ -538,6 +538,10 @@ impl EditorConfigWidget {
 
 impl StatefulWidget for EditorConfigWidget {
     type State = Editor;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
@@ -590,9 +594,5 @@ impl StatefulWidget for EditorConfigWidget {
         let alt_scroll = bar.cut_top(context.font_size);
         self.alt_scroll
             .update(alt_scroll, context, &mut state.config.scroll_fast);
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }

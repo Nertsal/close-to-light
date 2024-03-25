@@ -80,6 +80,10 @@ impl ExploreWidget {
 impl StatefulWidget for ExploreWidget {
     type State = LevelCache;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
@@ -137,17 +141,6 @@ impl StatefulWidget for ExploreWidget {
         self.music.update(main, context, state);
         self.levels.update(main, context, state);
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-
-        self.tabs.walk_states_mut(f);
-        self.tab_music.walk_states_mut(f);
-        self.tab_levels.walk_states_mut(f);
-
-        self.music.walk_states_mut(f);
-        self.levels.walk_states_mut(f);
-    }
 }
 
 impl ExploreLevelsWidget {
@@ -199,6 +192,10 @@ impl ExploreLevelsWidget {
 impl StatefulWidget for ExploreLevelsWidget {
     type State = LevelCache;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
@@ -235,13 +232,6 @@ impl StatefulWidget for ExploreLevelsWidget {
             };
             self.target_scroll -= overflow * (context.delta_time / 0.2).min(1.0);
             self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
-        }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        for w in &mut self.items {
-            w.walk_states_mut(f);
         }
     }
 }
@@ -296,6 +286,10 @@ impl ExploreMusicWidget {
 impl StatefulWidget for ExploreMusicWidget {
     type State = LevelCache;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
@@ -334,17 +328,14 @@ impl StatefulWidget for ExploreMusicWidget {
             self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
         }
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        for w in &mut self.items {
-            w.walk_states_mut(f);
-        }
-    }
 }
 
 impl StatefulWidget for LevelItemWidget {
     type State = LevelCache;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
@@ -383,14 +374,14 @@ impl StatefulWidget for LevelItemWidget {
         self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.0, 1.0));
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-    }
 }
 
 impl StatefulWidget for MusicItemWidget {
     type State = LevelCache;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
@@ -441,9 +432,5 @@ impl StatefulWidget for MusicItemWidget {
 
         self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.0, 1.0));
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }

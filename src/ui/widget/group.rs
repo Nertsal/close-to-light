@@ -36,6 +36,10 @@ impl GroupWidget {
 }
 
 impl Widget for GroupWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
@@ -55,12 +59,5 @@ impl Widget for GroupWidget {
 
         self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.5, 1.0));
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.logo.walk_states_mut(f);
-        self.name.walk_states_mut(f);
-        self.author.walk_states_mut(f);
     }
 }

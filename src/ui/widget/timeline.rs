@@ -157,17 +157,13 @@ impl TimelineWidget {
 }
 
 impl Widget for TimelineWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.context = context.clone();
         self.reload();
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.current_beat.walk_states_mut(f);
-        self.left.walk_states_mut(f);
-        self.right.walk_states_mut(f);
-        self.replay.walk_states_mut(f);
     }
 }

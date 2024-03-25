@@ -26,6 +26,10 @@ impl OptionsWidget {
 impl StatefulWidget for OptionsWidget {
     type State = Options;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
@@ -38,10 +42,6 @@ impl StatefulWidget for OptionsWidget {
 
         self.volume.update(columns[0], context, &mut state.volume);
         self.palette.update(columns[1], context, &mut state.theme);
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }
 
@@ -66,6 +66,10 @@ impl VolumeWidget {
 impl StatefulWidget for VolumeWidget {
     type State = VolumeOptions;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         let mut main = position;
@@ -80,12 +84,6 @@ impl StatefulWidget for VolumeWidget {
         let rows = row.stack(vec2(0.0, -row.height()), 1);
 
         self.master.update(rows[0], context, &mut state.master);
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.title.walk_states_mut(f);
-        self.master.walk_states_mut(f);
     }
 }
 
@@ -108,6 +106,10 @@ impl PaletteChooseWidget {
 impl StatefulWidget for PaletteChooseWidget {
     type State = Theme;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         let mut main = position;
@@ -128,10 +130,6 @@ impl StatefulWidget for PaletteChooseWidget {
                 *state = palette.palette;
             }
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }
 
@@ -156,6 +154,10 @@ impl PaletteWidget {
 impl StatefulWidget for PaletteWidget {
     type State = Theme;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         if self.state.clicked {
@@ -175,11 +177,5 @@ impl StatefulWidget for PaletteWidget {
         let name = name.extend_left(-context.font_size * 0.2);
         self.name.align(vec2(0.0, 0.5));
         self.name.update(name, context);
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.visual.walk_states_mut(f);
-        self.name.walk_states_mut(f);
     }
 }

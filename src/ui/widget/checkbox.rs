@@ -1,6 +1,7 @@
 use super::*;
 
 #[derive(Debug, Default)]
+
 pub struct CheckboxWidget {
     pub state: WidgetState,
     pub text: TextWidget,
@@ -18,6 +19,10 @@ impl CheckboxWidget {
 }
 
 impl Widget for CheckboxWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
@@ -29,10 +34,5 @@ impl Widget for CheckboxWidget {
         let text_pos = position.extend_left(-check_size * 1.1 - context.font_size * 0.2);
         self.text.align(vec2(0.0, 0.5));
         self.text.update(text_pos, context);
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.check.walk_states_mut(f);
-        self.text.walk_states_mut(f);
     }
 }

@@ -38,6 +38,10 @@ impl LevelConfigWidget {
 }
 
 impl Widget for LevelConfigWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
@@ -80,12 +84,6 @@ impl Widget for LevelConfigWidget {
         let main = main.extend_uniform(-context.font_size * 0.5);
         self.mods.update(main, context);
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.tab_mods.walk_states_mut(f);
-        self.mods.walk_states_mut(f);
-    }
 }
 
 pub struct PresetWidget<T> {
@@ -105,12 +103,12 @@ impl<T> PresetWidget<T> {
 }
 
 impl<T> Widget for PresetWidget<T> {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.button.update(position, context);
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.button.text.state
     }
 
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.button.walk_states_mut(f);
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.button.update(position, context);
     }
 }
 
@@ -133,6 +131,10 @@ impl LevelModsWidget {
 }
 
 impl Widget for LevelModsWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         for (pos, (_i, target)) in position
@@ -153,13 +155,6 @@ impl Widget for LevelModsWidget {
                 *value = !*value;
             }
             target.selected = *value;
-        }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        for preset in &mut self.mods {
-            preset.walk_states_mut(f);
         }
     }
 }

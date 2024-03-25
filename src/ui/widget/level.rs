@@ -39,6 +39,10 @@ impl LevelWidget {
 }
 
 impl Widget for LevelWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         context.update_focus(self.state.hovered);
@@ -75,16 +79,5 @@ impl Widget for LevelWidget {
 
         self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.5, 1.0));
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-
-        self.static_state.walk_states_mut(f);
-        self.sync.walk_states_mut(f);
-        self.edit.walk_states_mut(f);
-
-        self.name.walk_states_mut(f);
-        self.author.walk_states_mut(f);
     }
 }

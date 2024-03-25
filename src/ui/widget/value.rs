@@ -32,6 +32,10 @@ impl<T: Num + Copy> ValueWidget<T> {
 impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
     type State = T;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut T) {
         self.value.set(*state);
         self.state.update(position, context);
@@ -66,11 +70,5 @@ impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
         self.value_text.update(position, context);
 
         *state = self.value.value();
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.text.walk_states_mut(f);
-        self.value_text.walk_states_mut(f);
     }
 }

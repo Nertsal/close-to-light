@@ -23,11 +23,11 @@ impl ButtonWidget {
 }
 
 impl Widget for ButtonWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.text.update(position, context);
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.text.state
     }
 
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.text.walk_states_mut(f);
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.text.update(position, context);
     }
 }

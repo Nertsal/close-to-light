@@ -5,6 +5,7 @@ use crate::{render::util::TextRenderOptions, ui::layout::AreaOps};
 use geng_utils::bounded::Bounded;
 
 pub struct SliderWidget {
+    pub state: WidgetState,
     pub text: TextWidget,
     pub bar: WidgetState,
     /// Hitbox
@@ -17,6 +18,7 @@ pub struct SliderWidget {
 impl SliderWidget {
     pub fn new(text: impl Into<String>) -> Self {
         Self {
+            state: WidgetState::new(),
             text: TextWidget::new(text),
             bar: WidgetState::new(),
             bar_box: WidgetState::new(),
@@ -30,7 +32,13 @@ impl SliderWidget {
 impl StatefulWidget for SliderWidget {
     type State = Bounded<f32>;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        self.state.update(position, context);
+
         self.options.update(context);
         let mut main = position;
 
@@ -65,12 +73,5 @@ impl StatefulWidget for SliderWidget {
             let t = t.clamp(0.0, 1.0);
             state.set_ratio(t);
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.text.walk_states_mut(f);
-        self.bar.walk_states_mut(f);
-        self.head.walk_states_mut(f);
-        self.value.walk_states_mut(f);
     }
 }

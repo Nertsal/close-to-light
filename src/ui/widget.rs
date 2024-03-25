@@ -27,15 +27,15 @@ use geng::prelude::*;
 pub trait Widget {
     /// Update position and related properties.
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext);
-    /// Apply a function to all states contained in the widget.
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
+    /// Get a mutable reference to the root state.
+    fn state_mut(&mut self) -> &mut WidgetState;
     /// Make the widget visible.
     fn show(&mut self) {
-        self.walk_states_mut(&WidgetState::show)
+        self.state_mut().show()
     }
     /// Hide the widget and disable interactions.
     fn hide(&mut self) {
-        self.walk_states_mut(&WidgetState::hide)
+        self.state_mut().hide()
     }
 }
 
@@ -45,29 +45,17 @@ pub trait StatefulWidget {
 
     /// Update position and related properties.
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State);
-    /// Apply a function to all states contained in the widget.
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
+    /// Get a mutable reference to the root state.
+    fn state_mut(&mut self) -> &mut WidgetState;
     /// Make the widget visible.
     fn show(&mut self) {
-        self.walk_states_mut(&WidgetState::show)
+        self.state_mut().show()
     }
     /// Hide the widget and disable interactions.
     fn hide(&mut self) {
-        self.walk_states_mut(&WidgetState::hide)
+        self.state_mut().hide()
     }
 }
-
-// impl<T: Widget> StatefulWidget for T {
-//     type State = ();
-
-//     fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Self::State) {
-//         self.update(position, context)
-//     }
-
-//     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-//         self.walk_states_mut(f)
-//     }
-// }
 
 #[derive(Debug, Clone)]
 pub struct WidgetState {
@@ -100,11 +88,6 @@ impl WidgetState {
             self.pressed = false;
             self.clicked = false;
         }
-    }
-
-    /// For compatibility with [Widget::walk_states_mut].
-    pub fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        f(self)
     }
 
     pub fn show(&mut self) {

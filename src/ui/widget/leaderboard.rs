@@ -100,6 +100,10 @@ impl LeaderboardWidget {
 }
 
 impl Widget for LeaderboardWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
@@ -163,15 +167,6 @@ impl Widget for LeaderboardWidget {
 
         self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.title.walk_states_mut(f);
-        self.subtitle.walk_states_mut(f);
-        for row in &mut self.rows {
-            row.walk_states_mut(f);
-        }
-    }
 }
 
 impl LeaderboardEntryWidget {
@@ -202,6 +197,10 @@ impl LeaderboardEntryWidget {
 }
 
 impl Widget for LeaderboardEntryWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         let mut main = position;
 
@@ -219,12 +218,5 @@ impl Widget for LeaderboardEntryWidget {
         } else {
             context.theme.light
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.rank.walk_states_mut(f);
-        self.player.walk_states_mut(f);
-        self.score.walk_states_mut(f);
     }
 }
