@@ -21,7 +21,11 @@ impl KeyModifiers {
 
 #[derive(Debug, Clone, Copy)]
 pub struct CursorContext {
+    /// Position set outside of the update, synchronized in the update.
+    next_position: vec2<f32>,
     pub position: vec2<f32>,
+    /// Cursor position last frame.
+    pub last_position: vec2<f32>,
     pub down: bool,
     /// Was the cursor down last frame.
     pub was_down: bool,
@@ -31,14 +35,31 @@ pub struct CursorContext {
 impl CursorContext {
     pub fn new() -> Self {
         Self {
+            next_position: vec2::ZERO,
             position: vec2::ZERO,
+            last_position: vec2::ZERO,
             down: false,
             was_down: false,
             scroll: 0.0,
         }
     }
 
+    pub fn cursor_move(&mut self, pos: vec2<f32>) {
+        self.next_position = pos;
+    }
+
+    pub fn reset(&mut self) {
+        *self = Self::new();
+    }
+
+    /// Returns the delta the cursor has travelled since last frame.
+    pub fn delta(&self) -> vec2<f32> {
+        self.position - self.last_position
+    }
+
     pub fn update(&mut self, is_down: bool) {
+        self.last_position = self.position;
+        self.position = self.next_position;
         self.was_down = self.down;
         self.down = is_down;
     }

@@ -16,6 +16,8 @@ pub struct SyncWidget {
 
     pub state: WidgetState,
     pub window: UiWindow<()>,
+    /// Position that can be dragged to move the widget.
+    pub hold: WidgetState,
     pub close: IconButtonWidget,
     pub title: TextWidget,
     pub status: TextWidget,
@@ -32,6 +34,7 @@ impl SyncWidget {
 
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
+            hold: WidgetState::new(),
             close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             title: TextWidget::new("Synchronizing level"),
             status: TextWidget::new("Loading..."),
@@ -86,6 +89,10 @@ impl StatefulWidget for SyncWidget {
         self.window.layout(true, self.close.state.clicked);
         self.window.update(context.delta_time);
         self.state.update(position, context);
+
+        let mut hold = position.extend_symmetric(-vec2(5.0, 0.0) * context.layout_size / 2.0);
+        let hold = hold.cut_top(context.layout_size);
+        self.hold.update(hold, context);
 
         let mut main = position.extend_uniform(-context.font_size * 0.2);
 

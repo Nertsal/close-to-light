@@ -17,6 +17,7 @@ pub struct MenuUI {
     pub new_level: TextWidget,
 
     pub sync: Option<SyncWidget>,
+    pub sync_offset: vec2<f32>,
 
     pub options_head: TextWidget,
     pub options: OptionsWidget,
@@ -46,6 +47,7 @@ impl MenuUI {
             new_level: TextWidget::new("+ New Difficulty"),
 
             sync: None,
+            sync_offset: vec2::ZERO,
 
             options_head: TextWidget::new("Options"),
             options: OptionsWidget::new(
@@ -104,12 +106,16 @@ impl MenuUI {
 
         if let Some(sync) = &mut self.sync {
             let size = vec2(15.0, 17.0) * layout_size;
-            let pos = Aabb2::point(screen.center()).extend_symmetric(size / 2.0);
+            let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
             sync.update(pos, context, &mut state.local.borrow_mut());
             context.update_focus(sync.state.hovered);
             if !sync.window.show.going_up && sync.window.show.time.is_min() {
                 // Close window
                 self.sync = None;
+                self.sync_offset = vec2::ZERO;
+            } else if sync.hold.pressed {
+                // Drag window
+                self.sync_offset += context.cursor.delta();
             }
         }
 

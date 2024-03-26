@@ -69,6 +69,11 @@ impl MenuRender {
                 state.options.theme,
                 framebuffer,
                 |framebuffer| {
+                    let hold = sync.hold.position;
+                    let hold = hold.extend_up(self.font_size * 0.2 - hold.height());
+                    self.ui
+                        .draw_quad(hold, state.options.theme.light, framebuffer);
+
                     self.ui.draw_icon(&sync.close.icon, framebuffer);
                     self.ui.draw_text(&sync.title, framebuffer);
                     self.ui.draw_text(&sync.status, framebuffer);

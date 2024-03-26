@@ -263,7 +263,7 @@ impl EditorState {
                 }
             }
             geng::Event::CursorMove { position } => {
-                self.ui_context.cursor.position = position.as_f32();
+                self.ui_context.cursor.cursor_move(position.as_f32());
                 if let Some(drag) = &mut self.drag {
                     drag.moved = true;
                 }

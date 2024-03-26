@@ -189,7 +189,7 @@ impl LevelMenu {
             return;
         };
 
-        self.ui_context.cursor.position = vec2::ZERO;
+        self.ui_context.cursor.reset();
         self.play_button.hover_time.set(Time::ZERO);
 
         let future = {
@@ -453,7 +453,7 @@ impl geng::State for LevelMenu {
                 self.ui_context.cursor.scroll += delta as f32;
             }
             geng::Event::CursorMove { position } => {
-                self.ui_context.cursor.position = position.as_f32();
+                self.ui_context.cursor.cursor_move(position.as_f32());
             }
             _ => (),
         }
