@@ -113,9 +113,6 @@ impl MenuUI {
                 // Close window
                 self.sync = None;
                 self.sync_offset = vec2::ZERO;
-            } else if sync.hold.pressed {
-                // Drag window
-                self.sync_offset += context.cursor.delta();
             }
         }
 

@@ -15,6 +15,8 @@ pub struct SyncWidget {
     reload: bool,
 
     pub state: WidgetState,
+    pub offset: vec2<f32>,
+
     pub window: UiWindow<()>,
     /// Position that can be dragged to move the widget.
     pub hold: WidgetState,
@@ -33,6 +35,8 @@ impl SyncWidget {
             reload: true,
 
             state: WidgetState::new(),
+            offset: vec2::ZERO,
+
             window: UiWindow::new((), 0.3),
             hold: WidgetState::new(),
             close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
@@ -86,6 +90,8 @@ impl StatefulWidget for SyncWidget {
             }
         }
 
+        let position = position.translate(self.offset);
+
         self.window.layout(true, self.close.state.clicked);
         self.window.update(context.delta_time);
         self.state.update(position, context);
@@ -93,6 +99,11 @@ impl StatefulWidget for SyncWidget {
         let mut hold = position.extend_symmetric(-vec2(5.0, 0.0) * context.layout_size / 2.0);
         let hold = hold.cut_top(context.layout_size);
         self.hold.update(hold, context);
+
+        if self.hold.pressed {
+            // Drag window
+            self.offset += context.cursor.delta();
+        }
 
         let mut main = position.extend_uniform(-context.font_size * 0.2);
 

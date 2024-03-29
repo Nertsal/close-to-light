@@ -1,6 +1,9 @@
 use super::{mask::MaskedRender, ui::UiRender, *};
 
-use crate::menu::{MenuState, MenuUI};
+use crate::{
+    menu::{MenuState, MenuUI},
+    ui::layout::AreaOps,
+};
 
 pub struct MenuRender {
     geng: Geng,
@@ -62,8 +65,15 @@ impl MenuRender {
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         if let Some(sync) = &ui.sync {
+            let t = sync.window.show.time.get_ratio();
+
+            let window = sync.state.position;
+            let min_height = self.font_size * 2.0;
+            let height = (t * window.height()).max(min_height);
+
+            let window = window.with_height(height, 1.0);
             self.ui.draw_window(
-                sync.state.position,
+                window,
                 None,
                 self.font_size * 0.2,
                 state.options.theme,
