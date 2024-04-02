@@ -1,16 +1,17 @@
 use super::*;
 
 use crate::{
-    local::{CachedLevel, LevelCache},
+    local::{CachedGroup, CachedLevel, LevelCache},
     prelude::Assets,
     task::Task,
     ui::layout::AreaOps,
 };
 
-use ctl_client::core::types::LevelInfo;
+use ctl_client::core::types::{Id, LevelInfo, NewLevel};
 
 pub struct SyncWidget {
     geng: Geng,
+    cached_group: Id,
     cached_level: Rc<CachedLevel>,
     reload: bool,
 
@@ -23,14 +24,17 @@ pub struct SyncWidget {
     pub close: IconButtonWidget,
     pub title: TextWidget,
     pub status: TextWidget,
+    pub upload: TextWidget,
 
     task_level_info: Option<Task<anyhow::Result<LevelInfo>>>,
+    task_level_upload: Option<Task<anyhow::Result<()>>>,
 }
 
 impl SyncWidget {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, level: &Rc<CachedLevel>) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, group: Id, level: &Rc<CachedLevel>) -> Self {
         Self {
             geng: geng.clone(),
+            cached_group: group,
             cached_level: level.clone(),
             reload: true,
 
@@ -41,9 +45,11 @@ impl SyncWidget {
             hold: WidgetState::new(),
             close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             title: TextWidget::new("Synchronizing level"),
-            status: TextWidget::new("Loading..."),
+            status: TextWidget::new("Offline"),
+            upload: TextWidget::new("Upload to the server"),
 
             task_level_info: None,
+            task_level_upload: None,
         }
     }
 }
@@ -78,13 +84,19 @@ impl StatefulWidget for SyncWidget {
                         if level.hash != self.cached_level.hash {
                             // Local level version is probably outdated (or invalid)
                             self.status.text = "Local level version is outdated or changed".into();
+
+                            // TODO: Check the author
+                            // if current user is the author - upload new version ; discard changes
+                            // if current user is not author - download new version
                         } else {
                             // Everything's fine
                             self.status.text = "Level is up to date".into();
                         }
                     } else {
+                        // TODO: match error type, e.g. server does not respond, level id is 0
                         // Level is unknown to the server - probably created by the user
                         self.status.text = "Level unknown to the server".into();
+                        self.upload.show();
                     }
                 }
             }
@@ -117,5 +129,38 @@ impl StatefulWidget for SyncWidget {
 
         let status = main.cut_top(context.font_size);
         self.status.update(status, context);
+
+        main.cut_top(context.layout_size * 5.0);
+
+        let upload = main.cut_top(context.font_size * 1.5);
+        self.upload.update(upload, context);
+        if self.upload.state.clicked {
+            if self.cached_group == 0 {
+                // Create a group
+                // TODO
+            }
+            if self.cached_level.meta.id == 0 {
+                // Create new level
+                if let Some(client) = state.client().cloned() {
+                    let group = self.cached_group;
+                    let level = Rc::clone(&self.cached_level);
+                    let future = async move {
+                        client
+                            .upload_level(
+                                NewLevel {
+                                    name: level.meta.name.clone(),
+                                    group,
+                                },
+                                &level.data,
+                            )
+                            .await?;
+                        Ok(())
+                    };
+                    self.task_level_upload = Some(Task::new(&self.geng, future));
+                }
+            } else {
+                // TODO: upload new version
+            }
+        }
     }
 }

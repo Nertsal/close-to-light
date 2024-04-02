@@ -26,6 +26,8 @@ pub enum RequestError {
     NoSuchMusic(Id),
     #[error("Level {0} not found")]
     NoSuchLevel(Id),
+    #[error("Such a level already exists")]
+    LevelAlreadyExists,
     #[error("Server error")]
     FileNotFound(String),
     #[error("Database error")]
@@ -49,6 +51,7 @@ impl RequestError {
             RequestError::NoSuchMusic(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchGroup(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchLevel(_) => StatusCode::NOT_FOUND,
+            RequestError::LevelAlreadyExists => StatusCode::CONFLICT,
             RequestError::Sql(_) => StatusCode::INTERNAL_SERVER_ERROR,
             RequestError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }

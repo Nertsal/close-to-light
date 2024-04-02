@@ -105,7 +105,7 @@ impl MenuUI {
         main.cut_top(layout_size * 3.0);
 
         if let Some(sync) = &mut self.sync {
-            let size = vec2(15.0, 17.0) * layout_size;
+            let size = vec2(20.0, 17.0) * layout_size;
             let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
             sync.update(pos, context, &mut state.local.borrow_mut());
             context.update_focus(sync.state.hovered);
@@ -473,17 +473,19 @@ impl MenuUI {
                 if self.new_level.state.clicked {
                     action = Some(Action::New);
                 }
-            }
 
-            drop(local);
-            if let Some(action) = action {
-                match action {
-                    Action::Sync(level) => {
-                        self.sync = Some(SyncWidget::new(&self.geng, &self.assets, &level));
+                let group = group.meta.id;
+                drop(local);
+                if let Some(action) = action {
+                    match action {
+                        Action::Sync(level) => {
+                            self.sync =
+                                Some(SyncWidget::new(&self.geng, &self.assets, group, &level));
+                        }
+                        Action::Edit(level) => state.edit_level(level),
+                        Action::Show(level) => state.show_level(Some(level)),
+                        Action::New => state.new_level(),
                     }
-                    Action::Edit(level) => state.edit_level(level),
-                    Action::Show(level) => state.show_level(Some(level)),
-                    Action::New => state.new_level(),
                 }
             }
         }

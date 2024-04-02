@@ -87,6 +87,14 @@ impl MenuRender {
                     self.ui.draw_icon(&sync.close.icon, framebuffer);
                     self.ui.draw_text(&sync.title, framebuffer);
                     self.ui.draw_text(&sync.status, framebuffer);
+
+                    self.ui.draw_toggle_button(
+                        &sync.upload,
+                        sync.upload.state.pressed,
+                        false,
+                        state.options.theme,
+                        framebuffer,
+                    );
                 },
             );
         }

@@ -1,8 +1,10 @@
 use super::*;
 
-use crate::database::types::LevelRow;
+use crate::database::types::{GroupRow, LevelRow};
 
 use ctl_core::{types::NewLevel, ScoreEntry, SubmitScore};
+
+const LEVEL_SIZE_LIMIT: usize = 1 * 1024 * 1024; // 1 MB
 
 pub fn route(router: Router) -> Router {
     router
@@ -96,20 +98,82 @@ JOIN players ON level_authors.player_id = players.player_id
 async fn level_create(
     session: AuthSession,
     State(app): State<Arc<App>>,
-    Json(level): Json<NewLevel>,
+    Query(level): Query<NewLevel>,
+    body: Body,
 ) -> Result<Json<Id>> {
-    check_auth(&session, &app, AuthorityLevel::User).await?;
+    let user = check_user(&session).await?;
 
-    // Check that group exists and the player has rights to add levels to it
-    let group = sqlx::query("SELECT null FROM groups WHERE group_id = ?")
+    // Check that group exists
+    let group: Option<GroupRow> = sqlx::query_as("SELECT * FROM groups WHERE group_id = ?")
         .bind(level.group)
         .fetch_optional(&app.database)
         .await?;
-    if group.is_none() {
+    let Some(group) = group else {
         return Err(RequestError::NoSuchGroup(level.group));
+    };
+
+    // Check if the player has rights to add levels to the group
+    if user.user_id != group.owner_id {
+        return Err(RequestError::Forbidden);
     }
 
-    let level_id = todo!();
+    let data = axum::body::to_bytes(body, LEVEL_SIZE_LIMIT)
+        .await
+        .expect("not bytes idk");
+
+    // Calculate level hash
+    let hash = {
+        use data_encoding::HEXLOWER;
+        use sha2::{Digest, Sha256};
+
+        let mut hasher = Sha256::new();
+        hasher.update(&data);
+        HEXLOWER.encode(hasher.finalize().as_ref())
+    };
+
+    // Check if such a level already exists
+    let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
+        .bind(&hash)
+        .fetch_optional(&app.database)
+        .await?;
+    if conflict.is_some() {
+        return Err(RequestError::LevelAlreadyExists);
+    }
+
+    // Validate level contents
+    // TODO
+
+    // Commit to database
+    let level_id: Id = sqlx::query(
+        "INSERT INTO levels (name, group_id, hash) VALUES (?, ?, ?, ?) RETURNING level_id",
+    )
+    .bind(&level.name)
+    .bind(level.group)
+    .bind(&hash)
+    .try_map(|row: DBRow| row.try_get("level_id"))
+    .fetch_one(&app.database)
+    .await?;
+    debug!("New level committed to the database");
+
+    // Check path
+    let dir_path = app.config.groups_path.join("levels");
+    std::fs::create_dir_all(&dir_path)?;
+    let path = dir_path.join(level_id.to_string());
+    debug!("Saving level file at {:?}", path);
+
+    // let Some(music_path) = path.to_str() else {
+    //     error!("Music path is not valid unicode");
+    //     return Err(RequestError::Internal);
+    // };
+
+    if path.exists() {
+        error!("Duplicate level ID generated: {}", level_id);
+        return Err(RequestError::Internal);
+    }
+
+    // Write to file
+    std::fs::write(path, data)?;
+    debug!("Saved level file successfully");
 
     Ok(Json(level_id))
 }

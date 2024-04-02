@@ -24,6 +24,13 @@ pub struct MusicRow {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct GroupRow {
+    pub group_id: Id,
+    pub music_id: Id,
+    pub owner_id: Id,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct LevelRow {
     pub level_id: Id,
     pub hash: String,

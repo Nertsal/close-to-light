@@ -148,6 +148,7 @@ async fn music_create(
     .try_map(|row: DBRow| row.try_get("music_id"))
     .fetch_one(&app.database)
     .await?;
+    debug!("New music committed to the database");
 
     // Check path
     let dir_path = app.config.groups_path.join("music");
@@ -168,8 +169,6 @@ async fn music_create(
     // Write file to path
     std::fs::write(&path, data)?;
     debug!("Saved music file successfully");
-
-    debug!("New music committed to the database");
 
     Ok(Json(music_id))
 }
