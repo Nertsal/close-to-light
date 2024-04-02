@@ -8,11 +8,15 @@ use crate::{
 };
 
 use ctl_client::core::types::{Id, LevelInfo, NewLevel};
+use generational_arena::Index;
 
 pub struct SyncWidget {
     geng: Geng,
     cached_group: Id,
+    cached_group_index: Index,
+    cached_music: Option<Id>,
     cached_level: Rc<CachedLevel>,
+    cached_level_index: usize,
     reload: bool,
 
     pub state: WidgetState,
@@ -27,15 +31,26 @@ pub struct SyncWidget {
     pub upload: TextWidget,
 
     task_level_info: Option<Task<anyhow::Result<LevelInfo>>>,
-    task_level_upload: Option<Task<anyhow::Result<()>>>,
+    /// Returns group and level index and the new group and level id.
+    task_level_upload: Option<Task<anyhow::Result<(Index, usize, Id, Id)>>>,
 }
 
 impl SyncWidget {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, group: Id, level: &Rc<CachedLevel>) -> Self {
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        group: &CachedGroup,
+        group_index: Index,
+        level: &Rc<CachedLevel>,
+        level_index: usize,
+    ) -> Self {
         Self {
             geng: geng.clone(),
-            cached_group: group,
+            cached_group: group.meta.id,
+            cached_group_index: group_index,
+            cached_music: group.music.as_ref().map(|music| music.meta.id),
             cached_level: level.clone(),
+            cached_level_index: level_index,
             reload: true,
 
             state: WidgetState::new(),
@@ -101,6 +116,18 @@ impl StatefulWidget for SyncWidget {
                 }
             }
         }
+        if let Some(task) = self.task_level_upload.take() {
+            match task.poll() {
+                Err(task) => self.task_level_upload = Some(task),
+                Ok(Err(err)) => {
+                    // TODO
+                    log::error!("Failed to upload the level: {:?}", err);
+                }
+                Ok(Ok((group_index, level_index, group, level))) => {
+                    state.synchronize(group_index, level_index, group, level);
+                }
+            }
+        }
 
         let position = position.translate(self.offset);
 
@@ -135,31 +162,35 @@ impl StatefulWidget for SyncWidget {
         let upload = main.cut_top(context.font_size * 1.5);
         self.upload.update(upload, context);
         if self.upload.state.clicked {
-            if self.cached_group == 0 {
-                // Create a group
-                // TODO
-            }
-            if self.cached_level.meta.id == 0 {
-                // Create new level
-                if let Some(client) = state.client().cloned() {
-                    let group = self.cached_group;
-                    let level = Rc::clone(&self.cached_level);
-                    let future = async move {
-                        client
-                            .upload_level(
-                                NewLevel {
-                                    name: level.meta.name.clone(),
-                                    group,
-                                },
-                                &level.data,
-                            )
-                            .await?;
-                        Ok(())
-                    };
-                    self.task_level_upload = Some(Task::new(&self.geng, future));
+            if let Some(music) = self.cached_music {
+                if self.cached_level.meta.id == 0 {
+                    // Create new level
+                    if let Some(client) = state.client().cloned() {
+                        let mut group = self.cached_group;
+                        let group_index = self.cached_group_index;
+                        let level_index = self.cached_level_index;
+                        let level = Rc::clone(&self.cached_level);
+                        let future = async move {
+                            if group == 0 {
+                                // Create group
+                                group = client.create_group(music).await?;
+                            }
+                            let level_id = client
+                                .upload_level(
+                                    NewLevel {
+                                        name: level.meta.name.clone(),
+                                        group,
+                                    },
+                                    &level.data,
+                                )
+                                .await?;
+                            Ok((group_index, level_index, group, level_id))
+                        };
+                        self.task_level_upload = Some(Task::new(&self.geng, future));
+                    }
+                } else {
+                    // TODO: upload new version
                 }
-            } else {
-                // TODO: upload new version
             }
         }
     }

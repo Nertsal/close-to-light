@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use ctl_client::Nertboard;
+use generational_arena::Index;
 
 pub struct LevelCache {
     geng: Geng,
@@ -16,7 +17,7 @@ pub struct LevelCache {
     pub group_list: CacheState<Vec<GroupInfo>>,
 
     pub music: HashMap<Id, Rc<CachedMusic>>,
-    pub groups: Vec<CachedGroup>,
+    pub groups: Arena<CachedGroup>,
 }
 
 pub enum CacheState<T> {
@@ -60,7 +61,7 @@ pub struct GroupMeta {
     pub music: Id,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CachedLevel {
     pub path: PathBuf,
     pub meta: LevelInfo, // TODO: maybe Rc to reduce String allocations
@@ -126,7 +127,7 @@ impl LevelCache {
             group_list: CacheState::Offline,
 
             music: HashMap::new(),
-            groups: Vec::new(),
+            groups: Arena::new(),
         }
     }
 
@@ -215,7 +216,7 @@ impl LevelCache {
         self.load_group_all(&group_path).await?;
 
         // If `load_group_all` succedes, the group is pushed to the end
-        let group = self.groups.last().unwrap();
+        let (_, group) = self.groups.iter().last().unwrap();
 
         let music = group
             .music
@@ -260,7 +261,7 @@ impl LevelCache {
             music,
             levels: Vec::new(),
         };
-        self.groups.push(group);
+        self.groups.insert(group);
 
         Ok(())
     }
@@ -271,7 +272,7 @@ impl LevelCache {
         self.load_group_empty(group_path).await?;
 
         // If `load_group_empty` succedes, the group is pushed to the end
-        let group = self.groups.last_mut().unwrap();
+        let (_, group) = self.groups.iter_mut().last().unwrap();
 
         let mut levels = Vec::new();
         for entry in std::fs::read_dir(path)? {
@@ -296,11 +297,11 @@ impl LevelCache {
             music: music_id,
         });
         group.music = music;
-        self.groups.push(group);
+        self.groups.insert(group);
         // TODO: write to fs
     }
 
-    pub fn new_level(&mut self, group: usize, meta: LevelInfo) {
+    pub fn new_level(&mut self, group: Index, meta: LevelInfo) {
         if let Some(group) = self.groups.get_mut(group) {
             let level = CachedLevel::new(meta);
             group.levels.push(Rc::new(level));
@@ -440,6 +441,24 @@ impl LevelCache {
                 CacheAction::Music(music) => {
                     self.music.insert(music.meta.id, Rc::new(music));
                 }
+            }
+        }
+    }
+
+    pub fn synchronize(
+        &mut self,
+        group_index: Index,
+        level_index: usize,
+        group_id: Id,
+        level_id: Id,
+    ) {
+        if let Some(group) = self.groups.get_mut(group_index) {
+            group.meta.id = group_id;
+            if let Some(level) = group.levels.get_mut(level_index) {
+                let mut new_level: CachedLevel = (**level).clone();
+                new_level.meta.id = level_id;
+                *level = Rc::new(new_level);
+                // TODO: write to fs
             }
         }
     }

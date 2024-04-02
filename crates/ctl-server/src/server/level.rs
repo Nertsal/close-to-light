@@ -4,7 +4,7 @@ use crate::database::types::{GroupRow, LevelRow};
 
 use ctl_core::{types::NewLevel, ScoreEntry, SubmitScore};
 
-const LEVEL_SIZE_LIMIT: usize = 1 * 1024 * 1024; // 1 MB
+const LEVEL_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 
 pub fn route(router: Router) -> Router {
     router
@@ -73,14 +73,14 @@ async fn level_get(
 
     let authors: Vec<UserInfo> = sqlx::query(
         "
-SELECT players.player_id, name
+SELECT users.user_id, username
 FROM level_authors
-JOIN players ON level_authors.player_id = players.player_id
+JOIN users ON level_authors.user_id = users.user_id
         ",
     )
     .try_map(|row: DBRow| {
         Ok(UserInfo {
-            id: row.try_get("player_id")?,
+            id: row.try_get("user_id")?,
             name: row.try_get("name")?,
         })
     })
@@ -145,7 +145,7 @@ async fn level_create(
 
     // Commit to database
     let level_id: Id = sqlx::query(
-        "INSERT INTO levels (name, group_id, hash) VALUES (?, ?, ?, ?) RETURNING level_id",
+        "INSERT INTO levels (name, group_id, hash) VALUES (?, ?, ?) RETURNING level_id",
     )
     .bind(&level.name)
     .bind(level.group)

@@ -86,6 +86,15 @@ impl Nertboard {
         Ok(res)
     }
 
+    pub async fn create_group(&self, music: Id) -> Result<Id> {
+        let url = self.url.join("group/create").unwrap();
+        let req = self.client.post(url).query(&[("id", music)]);
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
+    }
+
     pub async fn get_music_list(&self) -> Result<Vec<MusicInfo>> {
         let url = self.url.join("music").unwrap();
         let req = self.client.get(url);

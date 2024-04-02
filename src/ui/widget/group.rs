@@ -2,9 +2,11 @@ use super::*;
 
 use crate::{local::CachedGroup, ui::layout::AreaOps};
 
+use generational_arena::Index;
 use geng_utils::bounded::Bounded;
 
 pub struct GroupWidget {
+    pub group: Index,
     pub state: WidgetState,
     pub logo: WidgetState,
     pub name: TextWidget,
@@ -15,6 +17,7 @@ pub struct GroupWidget {
 impl GroupWidget {
     pub fn new() -> Self {
         Self {
+            group: Index::from_raw_parts(0, 0),
             state: WidgetState::new(),
             logo: WidgetState::new(),
             name: TextWidget::new("<level name>"),
@@ -23,7 +26,8 @@ impl GroupWidget {
         }
     }
 
-    pub fn set_group(&mut self, group: &CachedGroup) {
+    pub fn set_group(&mut self, group: &CachedGroup, index: Index) {
+        self.group = index;
         let name = group
             .music
             .as_ref()

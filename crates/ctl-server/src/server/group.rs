@@ -149,17 +149,17 @@ async fn group_create(
     State(app): State<Arc<App>>,
     Query(music): Query<IdQuery>,
 ) -> Result<Json<Id>> {
-    check_auth(&session, &app, AuthorityLevel::User).await?;
+    let user = check_user(&session).await?;
 
     music::music_exists(&app, music.id).await?;
 
-    let group_id: Id = todo!();
-    // sqlx::query("INSERT INTO groups (music_id, owner_id) VALUES (?, ?) RETURNING group_id")
-    //     .bind(music.id)
-    //     .bind(player_id)
-    //     .try_map(|row: DBRow| row.try_get("group_id"))
-    //     .fetch_one(&app.database)
-    //     .await?;
+    let group_id: Id =
+        sqlx::query("INSERT INTO groups (music_id, owner_id) VALUES (?, ?) RETURNING group_id")
+            .bind(music.id)
+            .bind(user.user_id)
+            .try_map(|row: DBRow| row.try_get("group_id"))
+            .fetch_one(&app.database)
+            .await?;
 
     Ok(Json(group_id))
 }

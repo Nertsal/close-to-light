@@ -52,7 +52,7 @@ pub struct MenuState {
     /// Whether the level configuration and leaderboard screen should be up right now.
     pub level_up: bool,
     /// Whether to open a (group, level) in the editor.
-    pub edit_level: Option<(usize, usize)>,
+    pub edit_level: Option<(Index, usize)>,
 }
 
 pub struct GroupEntry {
@@ -78,10 +78,8 @@ impl MenuState {
         self.switch_level = level;
     }
 
-    fn edit_level(&mut self, level: usize) {
-        if let Some(group) = &self.show_group {
-            self.edit_level = Some((group.data, level));
-        }
+    fn edit_level(&mut self, group: Index, level: usize) {
+        self.edit_level = Some((group, level));
     }
 
     fn new_group(&mut self) {
@@ -91,18 +89,15 @@ impl MenuState {
         local.new_group(0);
     }
 
-    fn new_level(&mut self) {
-        if let Some(show) = &self.show_group {
-            let group = show.data;
-            let mut local = self.local.borrow_mut();
-            let meta = LevelInfo {
-                id: 0,
-                name: "New Difficulty".into(),
-                hash: String::new(),
-                authors: Vec::new(),
-            };
-            local.new_level(group, meta);
-        }
+    fn new_level(&mut self, group: Index) {
+        let mut local = self.local.borrow_mut();
+        let meta = LevelInfo {
+            id: 0,
+            name: "New Difficulty".into(),
+            hash: String::new(),
+            authors: Vec::new(),
+        };
+        local.new_level(group, meta);
     }
 }
 
@@ -175,11 +170,16 @@ impl LevelMenu {
 
     fn get_active_level(&self) -> Option<(Rc<CachedMusic>, Rc<CachedLevel>)> {
         let local = self.state.local.borrow();
+
         let group = self.state.show_group.as_ref()?;
-        let group = local.groups.get(group.data)?;
+        let group = self.ui.groups.get(group.data)?.group;
+        let group = local.groups.get(group)?;
+
         let music = group.music.as_ref()?;
+
         let level = self.state.show_level.as_ref()?;
         let level = group.levels.get(level.data)?;
+
         Some((Rc::clone(music), Rc::clone(level)))
     }
 

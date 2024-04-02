@@ -67,6 +67,7 @@ serde.workspace = true
 sha2.workspace = true
 data-encoding.workspace = true
 async-executor.workspace = true
+generational-arena = "0.2.9"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
