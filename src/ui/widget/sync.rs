@@ -98,7 +98,7 @@ impl StatefulWidget for SyncWidget {
                     if let Ok(level) = level {
                         if level.hash != self.cached_level.hash {
                             // Local level version is probably outdated (or invalid)
-                            self.status.text = "Local level version is outdated or changed".into();
+                            self.status.text = "Local version is outdated or changed".into();
 
                             // TODO: Check the author
                             // if current user is the author - upload new version ; discard changes
@@ -124,7 +124,11 @@ impl StatefulWidget for SyncWidget {
                     log::error!("Failed to upload the level: {:?}", err);
                 }
                 Ok(Ok((group_index, level_index, group, level))) => {
-                    state.synchronize(group_index, level_index, group, level);
+                    if let Some(level) = state.synchronize(group_index, level_index, group, level) {
+                        self.cached_group = group;
+                        self.cached_level = level;
+                        self.reload = true;
+                    }
                 }
             }
         }

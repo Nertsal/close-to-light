@@ -451,7 +451,7 @@ impl LevelCache {
         level_index: usize,
         group_id: Id,
         level_id: Id,
-    ) {
+    ) -> Option<Rc<CachedLevel>> {
         if let Some(group) = self.groups.get_mut(group_index) {
             group.meta.id = group_id;
             if let Some(level) = group.levels.get_mut(level_index) {
@@ -459,8 +459,10 @@ impl LevelCache {
                 new_level.meta.id = level_id;
                 *level = Rc::new(new_level);
                 // TODO: write to fs
+                return Some(Rc::clone(level));
             }
         }
+        None
     }
 }
 

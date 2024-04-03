@@ -81,7 +81,7 @@ JOIN users ON level_authors.user_id = users.user_id
     .try_map(|row: DBRow| {
         Ok(UserInfo {
             id: row.try_get("user_id")?,
-            name: row.try_get("name")?,
+            name: row.try_get("username")?,
         })
     })
     .fetch_all(&app.database)
@@ -154,6 +154,13 @@ async fn level_create(
     .fetch_one(&app.database)
     .await?;
     debug!("New level committed to the database");
+
+    // Add user as author
+    sqlx::query("INSERT INTO level_authors (user_id, level_id) VALUES (?, ?)")
+        .bind(user.user_id)
+        .bind(level_id)
+        .execute(&app.database)
+        .await?;
 
     // Check path
     let dir_path = app.config.groups_path.join("levels");
