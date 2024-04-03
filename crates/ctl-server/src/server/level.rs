@@ -260,17 +260,19 @@ async fn download(
     State(app): State<Arc<App>>,
     Path(level_id): Path<Id>,
 ) -> Result<impl IntoResponse> {
-    let level_row = sqlx::query("SELECT file_path FROM levels WHERE level_id = ?")
+    let level_row = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
         .bind(level_id)
         .fetch_optional(&app.database)
         .await?;
 
-    let Some(row) = level_row else {
+    if level_row.is_none() {
         return Err(RequestError::NoSuchLevel(level_id));
-    };
+    }
 
-    let file_path: String = row.try_get("file_path")?;
-    let file_path = PathBuf::from(file_path);
-
+    let file_path = app
+        .config
+        .groups_path
+        .join("levels")
+        .join(level_id.to_string());
     send_file(file_path, content_level()).await
 }

@@ -5,6 +5,8 @@ use crate::task::Task;
 use ctl_client::Nertboard;
 use generational_arena::Index;
 
+type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
+
 pub struct LevelCache {
     geng: Geng,
     tasks: CacheTasks,
@@ -28,11 +30,11 @@ pub enum CacheState<T> {
 pub struct CacheTasks {
     client: Option<Arc<Nertboard>>,
 
-    fetch_music: Option<Task<anyhow::Result<Vec<MusicInfo>>>>,
-    download_music: Option<Task<anyhow::Result<CachedMusic>>>,
+    fetch_music: TaskRes<Vec<MusicInfo>>,
+    download_music: TaskRes<CachedMusic>,
 
-    fetch_groups: Option<Task<anyhow::Result<Vec<GroupInfo>>>>,
-    download_group: Option<Task<anyhow::Result<CachedGroup>>>,
+    fetch_groups: TaskRes<Vec<GroupInfo>>,
+    download_group: TaskRes<CachedGroup>,
 }
 
 #[derive(Debug)]
@@ -40,6 +42,7 @@ enum CacheAction {
     MusicList(Vec<MusicInfo>),
     Music(CachedMusic),
     GroupList(Vec<GroupInfo>),
+    Group(CachedGroup),
 }
 
 impl CacheTasks {
@@ -80,6 +83,14 @@ impl CacheTasks {
                 Ok(Err(_)) => {}
                 Ok(Ok(music)) => {
                     return Some(CacheAction::Music(music));
+                }
+            }
+        } else if let Some(task) = self.download_group.take() {
+            match task.poll() {
+                Err(task) => self.download_group = Some(task),
+                Ok(Err(_)) => {}
+                Ok(Ok(group)) => {
+                    return Some(CacheAction::Group(group));
                 }
             }
         }
@@ -319,45 +330,84 @@ impl LevelCache {
     pub fn download_group(&mut self, group_id: Id) {
         if self.tasks.download_group.is_none() {
             if let Some(client) = self.tasks.client.clone() {
-                // TODO
-                // let geng = self.geng.clone();
-                // let future = async move {
-                //     // let meta = client.get_group_info(group_id).await?;
-                //     // let bytes = client.download_level(group_id).await?;
+                let geng = self.geng.clone();
+                let music_list = self.music.clone();
 
-                //     // log::debug!("Decoding downloaded music bytes");
-                //     // let music = Rc::new(geng.audio().decode(bytes.to_vec()).await?);
+                let future = async move {
+                    let info = client.get_group_info(group_id).await?;
 
-                //     // #[cfg(not(target_arch = "wasm32"))]
-                //     // {
-                //     //     let bytes = bytes.clone();
-                //     //     let save = || -> Result<()> {
-                //     //         // Write to fs
-                //     //         let music_path =
-                //     //             fs::music_path(meta.id);
-                //     //         std::fs::create_dir_all(&music_path)?;
+                    // Music
+                    let music = match music_list.get(&info.music.id) {
+                        Some(music) => Rc::clone(music),
+                        None => {
+                            // Music is not local so we need to download it
+                            let meta = client.get_music_info(info.music.id).await?;
+                            let bytes = client.download_music(info.music.id).await?.to_vec();
 
-                //     //         // let mut file = std::fs::File::create(&music_path.join("music.mp3"))?;
-                //     //         // let mut cursor = std::io::Cursor::new(bytes);
-                //     //         // std::io::copy(&mut cursor, &mut file)?;
-                //     //         std::fs::write(music_path.join("music.mp3"), bytes)?;
-                //     //         std::fs::write(
-                //     //             music_path.join("meta.toml"),
-                //     //             toml::to_string_pretty(&meta)?,
-                //     //         )?;
+                            log::debug!("Decoding downloaded music bytes");
+                            let music = Rc::new(geng.audio().decode(bytes.clone()).await?);
 
-                //     //         log::info!("Music saved successfully");
-                //     //         Ok(())
-                //     //     };
-                //     //     if let Err(err) = save() {
-                //     //         log::error!("Failed to save music locally: {:?}", err);
-                //     //     }
-                //     // }
+                            #[cfg(not(target_arch = "wasm32"))]
+                            {
+                                // Write to fs
+                                if let Err(err) = fs::download_music(info.music.id, bytes, &meta) {
+                                    log::error!("Failed to save music locally: {:?}", err);
+                                } else {
+                                    log::info!("Music saved successfully");
+                                }
+                            }
 
-                //     let group = CachedGroup {};
-                //     Ok(group)
-                // };
-                // self.tasks.download_group = Some(Task::new(&self.geng, future));
+                            Rc::new(CachedMusic { meta, music })
+                        }
+                    };
+
+                    // Levels
+                    let group_path = fs::generate_group_path(info.id);
+                    let meta = GroupMeta {
+                        id: info.id,
+                        music: info.music.id,
+                    };
+                    let mut levels = Vec::new();
+
+                    for info in info.levels {
+                        let bytes = client.download_level(info.id).await?.to_vec();
+
+                        let hash = {
+                            use data_encoding::HEXLOWER;
+                            use sha2::{Digest, Sha256};
+
+                            let mut hasher = Sha256::new();
+                            hasher.update(&bytes);
+                            HEXLOWER.encode(hasher.finalize().as_ref())
+                        };
+
+                        let level: Level = bincode::deserialize(&bytes)?;
+                        levels.push(Rc::new(CachedLevel {
+                            path: fs::generate_level_path(&group_path, info.id),
+                            meta: info,
+                            data: level,
+                            hash,
+                        }));
+                    }
+
+                    let group = CachedGroup {
+                        path: group_path,
+                        meta,
+                        music: Some(music),
+                        levels,
+                    };
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        // Write to fs
+                        if let Err(err) = fs::save_group(&group) {
+                            log::error!("Failed to save group locally: {:?}", err);
+                        }
+                    }
+
+                    Ok(group)
+                };
+                self.tasks.download_group = Some(Task::new(&self.geng, future));
             }
         }
     }
@@ -420,6 +470,12 @@ impl LevelCache {
                     self.music.insert(music.meta.id, Rc::new(music));
                 }
                 CacheAction::GroupList(groups) => self.group_list = CacheState::Loaded(groups),
+                CacheAction::Group(group) => {
+                    if let Some(music) = &group.music {
+                        self.music.insert(music.meta.id, Rc::clone(music));
+                    }
+                    self.groups.insert(group);
+                }
             }
         }
     }

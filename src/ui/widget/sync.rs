@@ -170,6 +170,7 @@ impl StatefulWidget for SyncWidget {
         if self.upload.state.clicked {
             if let Some(music) = self.cached_music {
                 if self.cached_level.meta.id == 0 {
+                    // TODO: or server responded 404 meaning local state is desynced
                     // Create new level
                     if let Some(client) = state.client().cloned() {
                         let mut group = self.cached_group;

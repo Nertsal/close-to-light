@@ -17,8 +17,6 @@ use crate::{
     AppConfig,
 };
 
-use std::path::PathBuf;
-
 use axum_login::AuthManagerLayerBuilder;
 use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
 

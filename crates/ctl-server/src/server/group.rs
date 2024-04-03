@@ -85,7 +85,7 @@ async fn group_get(
     State(app): State<Arc<App>>,
     Path(group_id): Path<Id>,
 ) -> Result<Json<GroupInfo>> {
-    let music_id: Option<Id> = sqlx::query("SELECT music_id WHERE group_id = ?")
+    let music_id: Option<Id> = sqlx::query("SELECT music_id FROM groups WHERE group_id = ?")
         .bind(group_id)
         .try_map(|row: DBRow| row.try_get("music_id"))
         .fetch_optional(&app.database)
@@ -105,17 +105,17 @@ async fn group_get(
 
     let authors: Vec<(Id, UserInfo)> = sqlx::query(
         "
-SELECT level_id, players.player_id, name
+SELECT level_id, users.user_id, username
 FROM level_authors
-JOIN players ON level_authors.player_id = players.player_id
+JOIN users ON level_authors.user_id = users.user_id
         ",
     )
     .try_map(|row: DBRow| {
         Ok((
             row.try_get("level_id")?,
             UserInfo {
-                id: row.try_get("player_id")?,
-                name: row.try_get("name")?,
+                id: row.try_get("user_id")?,
+                name: row.try_get("username")?,
             },
         ))
     })

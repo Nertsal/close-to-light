@@ -37,6 +37,16 @@ impl Nertboard {
         })
     }
 
+    /// Helper function to send simple get requests expecting json response.
+    async fn get_json<T: DeserializeOwned>(&self, url: &str) -> Result<T> {
+        let url = self.url.join(url).unwrap();
+        let req = self.client.get(url);
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
+    }
+
     pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
         let url = self.url.join(&format!("level/{}/scores/", level)).unwrap();
         let req = self.client.get(url);
@@ -78,12 +88,11 @@ impl Nertboard {
     }
 
     pub async fn get_group_list(&self) -> Result<Vec<GroupInfo>> {
-        let url = self.url.join("groups").unwrap();
-        let req = self.client.get(url);
+        self.get_json("groups").await
+    }
 
-        let response = req.send().await.context("when sending request")?;
-        let res = read_json(response).await?;
-        Ok(res)
+    pub async fn get_group_info(&self, group: Id) -> Result<GroupInfo> {
+        self.get_json(&format!("group/{}", group)).await
     }
 
     pub async fn create_group(&self, music: Id) -> Result<Id> {
@@ -96,25 +105,23 @@ impl Nertboard {
     }
 
     pub async fn get_music_list(&self) -> Result<Vec<MusicInfo>> {
-        let url = self.url.join("music").unwrap();
-        let req = self.client.get(url);
-
-        let response = req.send().await.context("when sending request")?;
-        let res = read_json(response).await?;
-        Ok(res)
+        self.get_json("music").await
     }
 
     pub async fn get_music_info(&self, music: Id) -> Result<MusicInfo> {
-        let url = self.url.join(&format!("music/{}", music)).unwrap();
-        let req = self.client.get(url);
-
-        let response = req.send().await.context("when sending request")?;
-        let res = read_json(response).await?;
-        Ok(res)
+        self.get_json(&format!("music/{}", music)).await
     }
 
     pub async fn download_music(&self, music: Id) -> Result<Bytes> {
         let url = self.url.join(&format!("music/{}/download", music)).unwrap();
+        let req = self.client.get(url);
+
+        let response = req.send().await?;
+        Ok(response.bytes().await?)
+    }
+
+    pub async fn download_level(&self, level: Id) -> Result<Bytes> {
+        let url = self.url.join(&format!("level/{}/download", level)).unwrap();
         let req = self.client.get(url);
 
         let response = req.send().await?;
