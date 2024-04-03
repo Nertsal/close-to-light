@@ -133,9 +133,9 @@ impl LevelCache {
             local.load_music(&path).await?;
         }
 
-        let levels_path = fs::all_levels_path();
-        if levels_path.exists() {
-            for entry in std::fs::read_dir(levels_path)? {
+        let groups_path = fs::all_groups_path();
+        if groups_path.exists() {
+            for entry in std::fs::read_dir(groups_path)? {
                 let entry = entry?;
                 let path = entry.path();
                 if !path.is_dir() {
@@ -167,18 +167,19 @@ impl LevelCache {
         let level_path = level_path.as_ref();
         let (level_path, group_path) = if level_path.is_dir() {
             (
-                level_path.join("level.json"), // TODO: move to fs
+                level_path,
                 level_path
                     .parent()
                     .ok_or(anyhow!("Level expected to be in a folder"))?,
             )
         } else {
             // Assume path to `level.json`
+            let level_path = level_path
+                .parent()
+                .ok_or(anyhow!("Level expected to be in a folder"))?;
             (
-                level_path.to_path_buf(),
+                level_path,
                 level_path
-                    .parent()
-                    .ok_or(anyhow!("Level expected to be in a folder"))?
                     .parent()
                     .ok_or(anyhow!("Level expected to be in a folder"))?,
             )
@@ -269,15 +270,36 @@ impl LevelCache {
             music: music_id,
         });
         group.music = music;
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // Write to fs
+            group.path = fs::generate_group_path(0);
+            if let Err(err) = fs::save_group(&group) {
+                log::error!("Failed to save group: {:?}", err);
+            }
+        }
+
         self.groups.insert(group);
-        // TODO: write to fs
     }
 
     pub fn new_level(&mut self, group: Index, meta: LevelInfo) {
+        if meta.id != 0 {
+            log::error!("Trying to create a new level with non-zero id");
+            return;
+        }
+
         if let Some(group) = self.groups.get_mut(group) {
-            let level = CachedLevel::new(meta);
+            let mut level = CachedLevel::new(meta);
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                // Write to fs
+                level.path = fs::generate_level_path(&group.path, 0);
+                if let Err(err) = fs::save_level(&level) {
+                    log::error!("Failed to save level locally: {:?}", err);
+                }
+            }
             group.levels.push(Rc::new(level));
-            // TODO: write to fs
         }
     }
 
@@ -413,9 +435,26 @@ impl LevelCache {
             group.meta.id = group_id;
             if let Some(level) = group.levels.get_mut(level_index) {
                 let mut new_level: CachedLevel = (**level).clone();
+
+                #[cfg(not(target_arch = "wasm32"))]
+                let old_path = new_level.path.clone();
+
                 new_level.meta.id = level_id;
+                new_level.path = fs::generate_level_path(&group.path, level_id);
+
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    // Write to fs
+                    if let Err(err) = fs::save_level(&new_level) {
+                        log::error!("Failed to save the level: {:?}", err);
+                    } else {
+                        // Remove the level from the old path
+                        log::debug!("Deleting the old level folder: {:?}", old_path);
+                        let _ = std::fs::remove_dir_all(old_path);
+                    }
+                }
+
                 *level = Rc::new(new_level);
-                // TODO: write to fs
                 return Some(Rc::clone(level));
             }
         }

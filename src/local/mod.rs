@@ -30,6 +30,7 @@ pub struct GroupMeta {
 
 #[derive(Debug, Clone)]
 pub struct CachedLevel {
+    /// Path to the folder containing the level data files.
     pub path: PathBuf,
     pub meta: LevelInfo, // TODO: maybe Rc to reduce String allocations
     pub data: Level,     // TODO: Rc
