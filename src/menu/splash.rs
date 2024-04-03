@@ -1,7 +1,5 @@
 use super::*;
 
-use crate::Secrets;
-
 const TRANSITION_TIME: f32 = 5.0;
 
 pub struct SplashScreen {

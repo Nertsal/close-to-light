@@ -16,7 +16,7 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
     #[derive(sqlx::FromRow)]
     struct LevelGroupRow {
         music_id: Id,
-        owner_id: Id,
+        // owner_id: Id,
         #[sqlx(flatten)]
         level: LevelRow,
     }

@@ -10,6 +10,8 @@ use crate::{
 use ctl_client::core::types::{Id, LevelInfo, NewLevel};
 use generational_arena::Index;
 
+type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
+
 pub struct SyncWidget {
     geng: Geng,
     cached_group: Id,
@@ -30,9 +32,9 @@ pub struct SyncWidget {
     pub status: TextWidget,
     pub upload: TextWidget,
 
-    task_level_info: Option<Task<anyhow::Result<LevelInfo>>>,
+    task_level_info: TaskRes<LevelInfo>,
     /// Returns group and level index and the new group and level id.
-    task_level_upload: Option<Task<anyhow::Result<(Index, usize, Id, Id)>>>,
+    task_level_upload: TaskRes<(Index, usize, Id, Id)>,
 }
 
 impl SyncWidget {

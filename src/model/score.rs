@@ -1,7 +1,5 @@
 use super::*;
 
-const SCORE_VERSION: &str = "v0.1";
-
 pub const DISCRETE_PERFECT: i32 = 1000;
 pub const DISCRETE_OK: i32 = 100;
 pub const DYNAMIC_SCALE: f32 = 1000.0;

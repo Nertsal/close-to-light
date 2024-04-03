@@ -12,14 +12,12 @@ pub enum RequestError {
     Forbidden,
     #[error("Invalid credentials")]
     InvalidCredentials,
-    #[error("Player key is invalid")]
-    InvalidPlayer,
     #[error("Invalid name {0}")]
     InvalidName(String),
     #[error("Level data is invalid")]
     InvalidLevel,
-    #[error("Player {0} not found")]
-    NoSuchPlayer(Id),
+    // #[error("User {0} not found")]
+    // NoSuchUser(Id),
     #[error("Artist {0} not found")]
     NoSuchArtist(Id),
     #[error("Group {0} not found")]
@@ -45,11 +43,10 @@ impl RequestError {
             RequestError::Unathorized => StatusCode::UNAUTHORIZED,
             RequestError::Forbidden => StatusCode::FORBIDDEN,
             RequestError::InvalidCredentials => StatusCode::UNAUTHORIZED,
-            RequestError::InvalidPlayer => StatusCode::FORBIDDEN,
             RequestError::InvalidName(_) => StatusCode::BAD_REQUEST,
             RequestError::InvalidLevel => StatusCode::BAD_REQUEST,
             RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
-            RequestError::NoSuchPlayer(_) => StatusCode::NOT_FOUND,
+            // RequestError::NoSuchUser(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchArtist(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchMusic(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchGroup(_) => StatusCode::NOT_FOUND,

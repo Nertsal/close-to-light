@@ -1,7 +1,6 @@
 use crate::{
     prelude::{HealthConfig, Id, LevelModifiers},
     task::Task,
-    LeaderboardSecrets,
 };
 
 use ctl_client::{

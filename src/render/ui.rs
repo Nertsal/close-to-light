@@ -260,28 +260,13 @@ impl UiRender {
         } else {
             options.color
         };
-        if let Some(texture) = &widget.texture {
-            let target = geng_utils::layout::fit_aabb(
-                texture.size().as_f32(),
-                widget.text.state.position,
-                vec2(0.5, 0.5),
-            );
-            self.geng.draw2d().textured_quad(
-                framebuffer,
-                &geng::PixelPerfectCamera,
-                target,
-                texture,
-                color,
-            );
-        } else {
-            self.util.draw_outline(
-                &Collider::aabb(widget.text.state.position.map(r32)),
-                options.size * 0.2,
-                color,
-                &geng::PixelPerfectCamera,
-                framebuffer,
-            );
-        }
+        self.util.draw_outline(
+            &Collider::aabb(widget.text.state.position.map(r32)),
+            options.size * 0.2,
+            color,
+            &geng::PixelPerfectCamera,
+            framebuffer,
+        );
         self.draw_text(&widget.text, framebuffer);
     }
 
@@ -338,38 +323,6 @@ impl UiRender {
             theme.light,
             framebuffer,
         );
-    }
-
-    pub fn draw_close_button(
-        &self,
-        button: &ButtonWidget,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let state = &button.text.state;
-        if !state.visible {
-            return;
-        }
-
-        let (bg_color, fg_color) = if state.hovered {
-            (theme.danger, theme.dark)
-        } else {
-            (theme.light, theme.danger)
-        };
-
-        if state.hovered {
-            self.draw_texture(
-                button.text.state.position,
-                &self.assets.sprites.circle,
-                bg_color,
-                framebuffer,
-            );
-        }
-
-        if let Some(texture) = &button.texture {
-            self.draw_texture(button.text.state.position, texture, fg_color, framebuffer);
-        }
-        self.draw_text(&button.text, framebuffer);
     }
 
     pub fn draw_toggle_button(

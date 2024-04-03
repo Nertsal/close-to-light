@@ -96,14 +96,14 @@ impl Default for PlayerConfig {
 }
 
 impl HealthConfig {
-    pub fn preset_easy() -> Self {
-        Self {
-            max: r32(1.0),
-            dark_decrease_rate: r32(0.3),
-            danger_decrease_rate: r32(0.5),
-            restore_rate: r32(0.5),
-        }
-    }
+    // pub fn preset_easy() -> Self {
+    //     Self {
+    //         max: r32(1.0),
+    //         dark_decrease_rate: r32(0.3),
+    //         danger_decrease_rate: r32(0.5),
+    //         restore_rate: r32(0.5),
+    //     }
+    // }
 
     pub fn preset_normal() -> Self {
         Self {
@@ -114,14 +114,14 @@ impl HealthConfig {
         }
     }
 
-    pub fn preset_hard() -> Self {
-        Self {
-            max: r32(1.0),
-            dark_decrease_rate: r32(1.0),
-            danger_decrease_rate: r32(2.0),
-            restore_rate: r32(0.25),
-        }
-    }
+    // pub fn preset_hard() -> Self {
+    //     Self {
+    //         max: r32(1.0),
+    //         dark_decrease_rate: r32(1.0),
+    //         danger_decrease_rate: r32(2.0),
+    //         restore_rate: r32(0.25),
+    //     }
+    // }
 }
 
 impl Default for HealthConfig {

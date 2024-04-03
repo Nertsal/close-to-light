@@ -1,9 +1,6 @@
 use super::*;
 
-use crate::{
-    render::{ui::UiRender, THEME},
-    Secrets,
-};
+use crate::render::{ui::UiRender, THEME};
 
 pub struct MainMenu {
     geng: Geng,
@@ -80,7 +77,7 @@ impl MainMenu {
             let options = self.options.clone();
 
             async move {
-                let manager = geng.asset_manager();
+                // let manager = geng.asset_manager();
 
                 let local = crate::local::LevelCache::load(client.as_ref(), &geng)
                     .await
