@@ -19,6 +19,7 @@ pub struct ExploreWidget {
 
     pub music: ExploreMusicWidget,
     pub levels: ExploreLevelsWidget,
+    first_load: bool,
 }
 
 pub struct ExploreLevelsWidget {
@@ -71,6 +72,8 @@ impl ExploreWidget {
 
             music: ExploreMusicWidget::new(assets),
             levels: ExploreLevelsWidget::new(assets),
+
+            first_load: true,
         };
         w.music.hide();
         w
@@ -131,7 +134,11 @@ impl StatefulWidget for ExploreWidget {
             state.fetch_music();
             self.music.show();
             self.levels.hide();
-        } else if self.tab_levels.state.clicked {
+        } else if self.tab_levels.state.clicked
+            || self.levels.state.visible
+                && self.window.show.going_up
+                && std::mem::take(&mut self.first_load)
+        {
             state.fetch_groups();
             self.music.hide();
             self.levels.show();

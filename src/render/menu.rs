@@ -314,6 +314,19 @@ impl MenuRender {
                     }
                 } else if ui.levels.state.visible {
                     mask.mask_quad(ui.levels.items_state.position);
+                    self.ui.draw_text(&ui.levels.status, &mut mask.color);
+                    for item in &ui.levels.items {
+                        self.ui.draw_icon(&item.download.icon, &mut mask.color);
+                        // self.ui.draw_icon(&item.play.icon, &mut mask.color);
+                        self.ui.draw_text(&item.name, &mut mask.color);
+                        self.ui.draw_text(&item.author, &mut mask.color);
+                        self.ui.draw_outline(
+                            item.state.position,
+                            self.font_size * 0.2,
+                            theme.light,
+                            &mut mask.color,
+                        );
+                    }
                 }
 
                 self.masked.draw(draw_parameters(), framebuffer);

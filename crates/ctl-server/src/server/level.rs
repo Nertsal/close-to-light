@@ -33,7 +33,7 @@ async fn level_list(State(app): State<Arc<App>>) -> Result<Json<Vec<LevelInfo>>>
     )
     .try_map(|row: DBRow| {
         Ok((
-            row.try_get("music_id")?,
+            row.try_get("level_id")?,
             UserInfo {
                 id: row.try_get("user_id")?,
                 name: row.try_get("username")?,

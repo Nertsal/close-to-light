@@ -40,6 +40,7 @@ pub struct CacheTasks {
 enum CacheAction {
     MusicList(Vec<MusicInfo>),
     Music(CachedMusic),
+    GroupList(Vec<GroupInfo>),
 }
 
 pub struct CachedMusic {
@@ -99,6 +100,15 @@ impl CacheTasks {
                 Ok(result) => {
                     if let Ok(music) = result {
                         return Some(CacheAction::MusicList(music));
+                    }
+                }
+            }
+        } else if let Some(task) = self.fetch_groups.take() {
+            match task.poll() {
+                Err(task) => self.fetch_groups = Some(task),
+                Ok(result) => {
+                    if let Ok(groups) = result {
+                        return Some(CacheAction::GroupList(groups));
                     }
                 }
             }
@@ -441,6 +451,7 @@ impl LevelCache {
                 CacheAction::Music(music) => {
                     self.music.insert(music.meta.id, Rc::new(music));
                 }
+                CacheAction::GroupList(groups) => self.group_list = CacheState::Loaded(groups),
             }
         }
     }
