@@ -2,7 +2,7 @@ use super::*;
 
 use crate::database::types::{GroupRow, LevelRow};
 
-use ctl_core::{types::NewLevel, ScoreEntry, SubmitScore};
+use ctl_core::{model::Level, types::NewLevel, ScoreEntry, SubmitScore};
 
 const LEVEL_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 
@@ -141,6 +141,8 @@ async fn level_create(
     }
 
     // Validate level contents
+    let _parsed_level: Level =
+        bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
     // TODO
 
     // Commit to database

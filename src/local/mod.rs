@@ -523,15 +523,19 @@ impl CachedLevel {
             use sha2::{Digest, Sha256};
 
             let mut hasher = Sha256::new();
-            let mut reader = std::io::BufReader::new(std::fs::File::open(&level_path)?);
-            let mut buffer = [0; 1024];
-            loop {
-                let count = reader.read(&mut buffer)?;
-                if count == 0 {
-                    break;
-                }
-                hasher.update(&buffer[..count]);
-            }
+
+            // let mut reader = std::io::BufReader::new(std::fs::File::open(&level_path)?);
+            // let mut buffer = [0; 1024];
+            // loop {
+            //     let count = reader.read(&mut buffer)?;
+            //     if count == 0 {
+            //         break;
+            //     }
+            //     hasher.update(&buffer[..count]);
+            // }
+
+            hasher.update(&bincode::serialize(&level)?);
+
             HEXLOWER.encode(hasher.finalize().as_ref())
         };
 

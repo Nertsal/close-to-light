@@ -69,7 +69,7 @@ impl Nertboard {
 
     pub async fn upload_level(&self, query: NewLevel, level: &Level) -> Result<Id> {
         let url = self.url.join("level/create").unwrap();
-        let body = serde_json::to_vec(level)?;
+        let body = bincode::serialize(level)?;
         let req = self.client.post(url).query(&query).body(body);
 
         let response = req.send().await.context("when sending request")?;

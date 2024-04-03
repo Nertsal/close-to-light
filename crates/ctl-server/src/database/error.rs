@@ -16,6 +16,8 @@ pub enum RequestError {
     InvalidPlayer,
     #[error("Invalid name {0}")]
     InvalidName(String),
+    #[error("Level data is invalid")]
+    InvalidLevel,
     #[error("Player {0} not found")]
     NoSuchPlayer(Id),
     #[error("Artist {0} not found")]
@@ -45,6 +47,7 @@ impl RequestError {
             RequestError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             RequestError::InvalidPlayer => StatusCode::FORBIDDEN,
             RequestError::InvalidName(_) => StatusCode::BAD_REQUEST,
+            RequestError::InvalidLevel => StatusCode::BAD_REQUEST,
             RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchPlayer(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchArtist(_) => StatusCode::NOT_FOUND,

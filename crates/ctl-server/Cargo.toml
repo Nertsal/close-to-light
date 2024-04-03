@@ -28,6 +28,7 @@ dotenv.workspace = true
 clap.workspace = true
 thiserror.workspace = true
 serde.workspace = true
+bincode.workspace = true
 rand.workspace = true
 color-eyre.workspace = true
 
