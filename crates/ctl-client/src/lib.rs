@@ -4,7 +4,7 @@ mod native;
 
 use core::{
     model::Level,
-    types::{GroupInfo, LevelInfo, NewLevel},
+    types::{GroupInfo, LevelInfo, NewArtist, NewLevel},
 };
 
 pub use ctl_core as core;
@@ -156,6 +156,16 @@ impl Nertboard {
         let response = req.send().await.context("when sending request")?;
         get_body(response).await?;
         Ok(())
+    }
+
+    pub async fn create_artist(&self, artist: NewArtist) -> Result<Id> {
+        let url = self.url.join("artists").unwrap();
+
+        let req = self.client.post(url).form(&artist);
+
+        let response = req.send().await.context("when sending request")?;
+        let res = read_json(response).await?;
+        Ok(res)
     }
 }
 

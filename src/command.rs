@@ -4,7 +4,10 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use assets::Assets;
-use ctl_client::{core::types::Id, Nertboard};
+use ctl_client::{
+    core::types::{Id, NewArtist},
+    Nertboard,
+};
 
 #[derive(clap::Subcommand)]
 pub enum Command {
@@ -13,12 +16,19 @@ pub enum Command {
         text: String,
     },
     Music(MusicArgs),
+    Artist(ArtistArgs),
 }
 
 #[derive(clap::Args)]
 pub struct MusicArgs {
     #[command(subcommand)]
     pub command: MusicCommand,
+}
+
+#[derive(clap::Args)]
+pub struct ArtistArgs {
+    #[command(subcommand)]
+    pub command: ArtistCommand,
 }
 
 #[derive(clap::Subcommand)]
@@ -67,6 +77,15 @@ pub enum MusicAuthorCommand {
         music: Id,
         #[clap(long)]
         artist: Id,
+    },
+}
+
+#[derive(clap::Subcommand)]
+pub enum ArtistCommand {
+    Create {
+        name: String,
+        #[clap(long)]
+        user: Option<Id>,
     },
 }
 
@@ -150,6 +169,18 @@ impl Command {
                                 .context("when adding artist as author")?;
                         }
                     },
+                }
+            }
+            Command::Artist(artist) => {
+                let client = client.expect("Cannot update artists without secrets");
+                match artist.command {
+                    ArtistCommand::Create { name, user } => {
+                        log::info!("Creating a new artist {} (user: {:?})", name, user);
+                        client
+                            .create_artist(NewArtist { name, user })
+                            .await
+                            .context("when creating a new artist")?;
+                    }
                 }
             }
         }

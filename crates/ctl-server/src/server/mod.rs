@@ -1,3 +1,4 @@
+mod artists;
 mod auth;
 mod group;
 mod level;
@@ -73,7 +74,8 @@ pub async fn run(port: u16, database: DatabasePool, config: AppConfig) -> color_
     let router = Router::new()
         .route("/", get(get_root))
         .merge(auth::router())
-        .merge(users::router());
+        .merge(users::router())
+        .merge(artists::router());
 
     let router = music::route(router);
     let router = group::route(router);

@@ -109,3 +109,9 @@ pub struct NewLevel {
 pub struct LevelUpdate {
     pub name: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewArtist {
+    pub name: String,
+    pub user: Option<Id>,
+}
