@@ -4,7 +4,7 @@ use super::*;
 
 use ctl_core::{
     prelude::r32,
-    types::{MusicUpdate, NewMusic},
+    types::{ArtistInfo, MusicUpdate, NewMusic},
 };
 
 const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
@@ -39,9 +39,9 @@ pub(super) async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<M
         .fetch_all(&app.database)
         .await?;
 
-    let authors: Vec<(Id, UserInfo)> = sqlx::query(
+    let authors: Vec<(Id, ArtistInfo)> = sqlx::query(
         "
-SELECT music_id, artists.artist_id, name
+SELECT music_id, artists.artist_id, name, user_id
 FROM music_authors
 JOIN artists ON music_authors.artist_id = artists.artist_id
         ",
@@ -49,9 +49,10 @@ JOIN artists ON music_authors.artist_id = artists.artist_id
     .try_map(|row: DBRow| {
         Ok((
             row.try_get("music_id")?,
-            UserInfo {
+            ArtistInfo {
                 id: row.try_get("artist_id")?,
                 name: row.try_get("name")?,
+                user: row.try_get("user_id")?,
             },
         ))
     })
@@ -92,9 +93,9 @@ pub(super) async fn music_get(
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let authors: Vec<UserInfo> = sqlx::query(
+    let authors: Vec<ArtistInfo> = sqlx::query(
         "
-SELECT artists.artist_id, name
+SELECT artists.artist_id, name, user_id
 FROM music_authors
 JOIN artists ON music_authors.artist_id = artists.artist_id
 WHERE music_id = ?
@@ -102,9 +103,10 @@ WHERE music_id = ?
     )
     .bind(music_id)
     .try_map(|row: DBRow| {
-        Ok(UserInfo {
+        Ok(ArtistInfo {
             id: row.try_get("artist_id")?,
             name: row.try_get("name")?,
+            user: row.try_get("user_id")?,
         })
     })
     .fetch_all(&app.database)

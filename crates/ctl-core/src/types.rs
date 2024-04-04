@@ -23,7 +23,7 @@ pub struct MusicInfo {
     pub original: bool,
     pub name: String,
     pub bpm: R32,
-    pub authors: Vec<UserInfo>,
+    pub authors: Vec<ArtistInfo>,
 }
 
 impl Default for MusicInfo {
@@ -75,6 +75,13 @@ impl LevelInfo {
 pub struct UserInfo {
     pub id: Id,
     pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ArtistInfo {
+    pub id: Id,
+    pub name: String,
+    pub user: Option<Id>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
