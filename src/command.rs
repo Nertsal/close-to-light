@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use assets::Assets;
-use ctl_client::core::types::Id;
+use ctl_client::{core::types::Id, Nertboard};
 
 #[derive(clap::Subcommand)]
 pub enum Command {
@@ -77,13 +77,22 @@ impl Command {
         assets: Rc<Assets>,
         secrets: Option<Secrets>,
     ) -> Result<()> {
+        let client = if let Some(secrets) = &secrets {
+            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
+                .context("Client initialization failed")?;
+            login(&client).await?;
+            Some(client)
+        } else {
+            None
+        };
+
         match self {
             Command::Text { text } => {
                 let state = media::MediaState::new(&geng, &assets).with_text(text);
                 geng.run_state(state).await;
             }
             Command::Music(music) => {
-                let secrets = secrets.expect("Cannot update music without secrets");
+                let client = client.expect("Cannot update music without secrets");
                 match music.command {
                     MusicCommand::Upload {
                         path,
@@ -98,8 +107,6 @@ impl Command {
                         };
                         log::info!("Uploading music from {:?}: {:?}", path, music);
 
-                        let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                            .context("Client initialization failed")?;
                         let music_id = client
                             .upload_music(&path, &music)
                             .await
@@ -121,10 +128,6 @@ impl Command {
                         };
                         log::info!("Updating music {}: {:#?}", id, update);
 
-                        log::info!("starting");
-                        let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                            .context("Client initialization failed")?;
-                        log::info!("client setup");
                         client
                             .update_music(id, &update)
                             .await
@@ -134,8 +137,6 @@ impl Command {
                     MusicCommand::Author(author) => match author.command {
                         MusicAuthorCommand::Add { music, artist } => {
                             log::info!("Adding artist {} as author of music {}", artist, music);
-                            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                                .context("Client initialization failed")?;
                             client
                                 .music_author_add(music, artist)
                                 .await
@@ -143,8 +144,6 @@ impl Command {
                         }
                         MusicAuthorCommand::Remove { music, artist } => {
                             log::info!("Removing artist {} as author of music {}", artist, music);
-                            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                                .context("Client initialization failed")?;
                             client
                                 .music_author_remove(music, artist)
                                 .await
@@ -157,4 +156,31 @@ impl Command {
 
         Ok(())
     }
+}
+
+async fn login(client: &Nertboard) -> Result<()> {
+    let stdin = std::io::stdin();
+
+    println!("Logging in...");
+
+    println!("Username:");
+    let mut username = String::new();
+    stdin.read_line(&mut username)?;
+    username.pop(); // Pop new line
+    if username.is_empty() {
+        // Skip login
+        return Ok(());
+    }
+
+    println!("Password:");
+    let mut password = String::new();
+    stdin.read_line(&mut password)?;
+    password.pop(); // Pop new line
+
+    client
+        .login(&ctl_client::core::auth::Credentials { username, password })
+        .await?
+        .map_err(|err| anyhow!(err))?;
+
+    Ok(())
 }
