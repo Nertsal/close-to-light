@@ -40,6 +40,7 @@ impl Widget for InputWidget {
             .edit_id
             .map_or(false, |id| context.text_edit.is_active(id))
         {
+            self.raw = context.text_edit.text.clone();
             self.text.text = if self.hide_input {
                 "*".repeat(context.text_edit.text.len())
             } else {

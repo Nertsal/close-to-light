@@ -109,8 +109,8 @@ impl StatefulWidget for RegisterWidget {
         self.register.update(cols[1], context);
 
         let creds = Credentials {
-            username: self.username.text.text.clone(),
-            password: self.password.text.text.clone(),
+            username: self.username.raw.clone(),
+            password: self.password.raw.clone(),
         };
         if self.login.text.state.clicked {
             state.login(creds);
