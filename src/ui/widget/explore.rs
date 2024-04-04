@@ -1,4 +1,4 @@
-use ctl_client::core::types::{GroupInfo, LevelInfo, MusicInfo};
+use ctl_client::core::types::{GroupInfo, MusicInfo};
 
 use super::*;
 
