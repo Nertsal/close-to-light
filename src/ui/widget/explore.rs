@@ -383,15 +383,25 @@ impl StatefulWidget for LevelItemWidget {
         let icons = main.cut_left(context.font_size);
         let rows = icons.split_rows(2);
 
-        if !state.music.contains_key(&self.info.id) {
+        if !state
+            .groups
+            .iter()
+            .any(|(_, group)| group.meta.id == self.info.id)
+        {
             // Not downloaded
             self.download.show();
+            self.play.hide();
             self.download.update(rows[1], context);
             if self.download.state.clicked {
                 state.download_group(self.info.id);
             }
         } else {
             self.download.hide();
+            self.play.show();
+            self.play.update(rows[1], context);
+            if self.play.state.clicked {
+                // TODO: goto group
+            }
         }
 
         main.cut_left(context.layout_size);
