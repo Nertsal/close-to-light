@@ -45,6 +45,7 @@ pub struct ExploreMusicWidget {
 pub struct LevelItemWidget {
     pub state: WidgetState,
     pub download: IconButtonWidget,
+    pub play: IconButtonWidget,
     pub info: GroupInfo,
     pub name: TextWidget,
     pub author: TextWidget,
@@ -88,6 +89,10 @@ impl StatefulWidget for ExploreWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        // TODO: better
+        if !self.state.visible {
+            return;
+        }
         self.state.update(position, context);
         self.window.update(context.delta_time);
         self.music.load(&state.music_list);
@@ -176,18 +181,32 @@ impl ExploreLevelsWidget {
                     self.status.hide();
                     self.items = groups
                         .iter()
-                        .map(|info| LevelItemWidget {
-                            state: WidgetState::new(),
-                            download: IconButtonWidget::new_normal(&self.assets.sprites.download),
-                            name: TextWidget::new(&info.music.name),
-                            author: TextWidget::new(
-                                "", // itertools::Itertools::intersperse(
-                                   //     info.authors.iter().map(|user| user.name.as_str()),
-                                   //     ",",
-                                   // )
-                                   // .collect::<String>(),
-                            ),
-                            info: info.clone(),
+                        .map(|info| {
+                            let mut authors: Vec<&str> = info
+                                .levels
+                                .iter()
+                                .flat_map(|level| {
+                                    level.authors.iter().map(|user| user.name.as_str())
+                                })
+                                .collect();
+                            authors.sort();
+                            authors.dedup();
+
+                            LevelItemWidget {
+                                state: WidgetState::new(),
+                                download: IconButtonWidget::new_normal(
+                                    &self.assets.sprites.download,
+                                ),
+                                play: IconButtonWidget::new_normal(
+                                    &self.assets.sprites.button_next,
+                                ),
+                                name: TextWidget::new(&info.music.name),
+                                author: TextWidget::new(
+                                    itertools::Itertools::intersperse(authors.into_iter(), ",")
+                                        .collect::<String>(),
+                                ),
+                                info: info.clone(),
+                            }
                         })
                         .collect();
                 }
@@ -204,6 +223,10 @@ impl StatefulWidget for ExploreLevelsWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        // TODO: better
+        if !self.state.visible {
+            return;
+        }
         self.state.update(position, context);
 
         let main = position;
@@ -298,6 +321,10 @@ impl StatefulWidget for ExploreMusicWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        // TODO: better
+        if !self.state.visible {
+            return;
+        }
         self.state.update(position, context);
 
         let main = position;
@@ -345,6 +372,10 @@ impl StatefulWidget for LevelItemWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        // TODO: better
+        if !self.state.visible {
+            return;
+        }
         self.state.update(position, context);
 
         let mut main = position.extend_uniform(-context.font_size * 0.2);
@@ -386,6 +417,10 @@ impl StatefulWidget for MusicItemWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        // TODO: better
+        if !self.state.visible {
+            return;
+        }
         self.state.update(position, context);
 
         let mut main = position.extend_uniform(-context.font_size * 0.2);

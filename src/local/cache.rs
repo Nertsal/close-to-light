@@ -328,6 +328,16 @@ impl LevelCache {
     }
 
     pub fn download_group(&mut self, group_id: Id) {
+        if self
+            .groups
+            .iter()
+            .any(|(_, group)| group.meta.id == group_id)
+        {
+            // Already downloaded
+            // TODO: check version
+            return;
+        }
+
         if self.tasks.download_group.is_none() {
             if let Some(client) = self.tasks.client.clone() {
                 let geng = self.geng.clone();
