@@ -144,8 +144,14 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
                 start_time: prelude::Time::ZERO,
             };
 
-            let state =
-                editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
+            let state = editor::EditorState::new(
+                geng.clone(),
+                assets,
+                &Rc::new(RefCell::new(local)),
+                editor_config,
+                options,
+                level,
+            );
             geng.run_state(state).await;
             return Ok(());
         }

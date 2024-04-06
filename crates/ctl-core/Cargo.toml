@@ -11,3 +11,6 @@ geng-utils.workspace = true
 serde.workspace = true
 parry2d.workspace = true
 uuid.workspace = true
+
+data-encoding.workspace = true
+sha2.workspace = true

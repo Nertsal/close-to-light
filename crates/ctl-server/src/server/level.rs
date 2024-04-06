@@ -122,14 +122,7 @@ async fn level_create(
         .expect("not bytes idk");
 
     // Calculate level hash
-    let hash = {
-        use data_encoding::HEXLOWER;
-        use sha2::{Digest, Sha256};
-
-        let mut hasher = Sha256::new();
-        hasher.update(&data);
-        HEXLOWER.encode(hasher.finalize().as_ref())
-    };
+    let hash = ctl_core::util::calculate_hash(&data);
 
     // Check if such a level already exists
     let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")

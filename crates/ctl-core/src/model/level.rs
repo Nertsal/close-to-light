@@ -61,6 +61,11 @@ impl Level {
             .max()
             .unwrap_or(Time::ZERO)
     }
+
+    pub fn calculate_hash(&self) -> String {
+        let bytes = bincode::serialize(self).expect("level should be serializable");
+        crate::util::calculate_hash(&bytes)
+    }
 }
 
 impl TimedEvent {

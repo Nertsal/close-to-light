@@ -1519,10 +1519,12 @@ dependencies = [
 name = "ctl-core"
 version = "0.1.0"
 dependencies = [
+ "data-encoding",
  "geng",
  "geng-utils",
  "parry2d",
  "serde",
+ "sha2",
  "uuid",
 ]
 

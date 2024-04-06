@@ -385,14 +385,7 @@ impl LevelCache {
                     for info in info.levels {
                         let bytes = client.download_level(info.id).await?.to_vec();
 
-                        let hash = {
-                            use data_encoding::HEXLOWER;
-                            use sha2::{Digest, Sha256};
-
-                            let mut hasher = Sha256::new();
-                            hasher.update(&bytes);
-                            HEXLOWER.encode(hasher.finalize().as_ref())
-                        };
+                        let hash = ctl_client::core::util::calculate_hash(&bytes);
 
                         let level: Level = bincode::deserialize(&bytes)?;
                         levels.push(Rc::new(CachedLevel {
@@ -528,5 +521,22 @@ impl LevelCache {
             }
         }
         None
+    }
+
+    pub fn update_level(&mut self, level_id: Id, level: Level) -> Option<Rc<CachedLevel>> {
+        // let cached = self.groups.get(group_id)?.levels.get(level_id)?;
+        let cached = self.groups.iter_mut().find_map(|(_, group)| {
+            group
+                .levels
+                .iter_mut()
+                .find(|level| level.meta.id == level_id)
+        })?;
+        let mut new_level: CachedLevel = (**cached).clone();
+        new_level.hash = level.calculate_hash();
+        new_level.data = level;
+
+        let level = Rc::new(new_level);
+        *cached = Rc::clone(&level);
+        Some(level)
     }
 }

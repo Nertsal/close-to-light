@@ -542,6 +542,7 @@ impl geng::State for LevelMenu {
         }) {
             let geng = self.geng.clone();
             let assets = self.assets.clone();
+            let local = self.state.local.clone();
             let manager = self.geng.asset_manager().clone();
             let assets_path = run_dir().join("assets");
             let options = self.state.options.clone();
@@ -557,7 +558,7 @@ impl geng::State for LevelMenu {
                         .await
                         .expect("failed to load editor config");
 
-                crate::editor::EditorState::new(geng, assets, config, options, level)
+                crate::editor::EditorState::new(geng, assets, &local, config, options, level)
             };
             let state = geng::LoadingScreen::new(
                 &self.geng,

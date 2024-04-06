@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod model;
 pub mod types;
+pub mod util;
 
 pub mod prelude {
     pub use crate::{model::*, types::*};

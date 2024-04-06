@@ -12,7 +12,7 @@ pub use self::{
 use crate::{
     game::PlayLevel,
     leaderboard::Leaderboard,
-    local::CachedLevel,
+    local::{CachedLevel, LevelCache},
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
     ui::UiContext,
@@ -75,6 +75,7 @@ impl HistoryLabel {
 }
 
 pub struct Editor {
+    pub local: Rc<RefCell<LevelCache>>,
     pub config: EditorConfig,
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
@@ -136,6 +137,7 @@ impl EditorState {
     pub fn new(
         geng: Geng,
         assets: Rc<Assets>,
+        local: &Rc<RefCell<LevelCache>>,
         config: EditorConfig,
         options: Options,
         level: PlayLevel,
@@ -151,6 +153,7 @@ impl EditorState {
             ui_context: UiContext::new(&geng, model.options.theme),
             drag: None,
             editor: Editor {
+                local: local.clone(),
                 render_options: RenderOptions {
                     show_grid: true,
                     hide_ui: false,
@@ -300,13 +303,15 @@ impl EditorState {
         })();
         match result {
             Ok(()) => {
-                self.editor.model.level.level = Rc::new(CachedLevel {
-                    path: std::path::PathBuf::new(), // Level is not saved - no path
-                    meta: self.editor.static_level.level.meta.clone(),
-                    data: self.editor.level.clone(),
-                    hash: String::new(), // TODO: maybe recalculate hash?
-                });
-                log::info!("Saved the level successfully");
+                if let Some(cached) = self.editor.local.borrow_mut().update_level(
+                    self.editor.static_level.level.meta.id,
+                    self.editor.level.clone(),
+                ) {
+                    self.editor.model.level.level = cached;
+                    log::info!("Saved the level successfully");
+                } else {
+                    log::error!("Failed to update the level cache");
+                }
             }
             Err(err) => {
                 log::error!("Failed to save the level at {:?}: {:?}", path, err);
