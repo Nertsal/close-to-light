@@ -39,6 +39,21 @@ impl Default for MusicInfo {
     }
 }
 
+impl GroupInfo {
+    /// Return the list of map authors in a readable string format.
+    pub fn mappers(&self) -> String {
+        let mut authors: Vec<&str> = self
+            .levels
+            .iter()
+            .flat_map(|level| level.authors.iter().map(|user| user.name.as_str()))
+            .collect();
+        authors.sort();
+        authors.dedup();
+
+        itertools::Itertools::intersperse(authors.into_iter(), ",").collect::<String>()
+    }
+}
+
 impl MusicInfo {
     /// Returns the duration (in seconds) of a single beat.
     pub fn beat_time(&self) -> Time {

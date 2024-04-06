@@ -182,15 +182,8 @@ impl ExploreLevelsWidget {
                     self.items = groups
                         .iter()
                         .map(|info| {
-                            let mut authors: Vec<&str> = info
-                                .levels
-                                .iter()
-                                .flat_map(|level| {
-                                    level.authors.iter().map(|user| user.name.as_str())
-                                })
-                                .collect();
-                            authors.sort();
-                            authors.dedup();
+                            let artists = info.music.authors();
+                            let authors = info.mappers();
 
                             LevelItemWidget {
                                 state: WidgetState::new(),
@@ -201,10 +194,10 @@ impl ExploreLevelsWidget {
                                     &self.assets.sprites.button_next,
                                 ),
                                 name: TextWidget::new(&info.music.name),
-                                author: TextWidget::new(
-                                    itertools::Itertools::intersperse(authors.into_iter(), ",")
-                                        .collect::<String>(),
-                                ),
+                                author: TextWidget::new(format!(
+                                    "by {} mapped by {}",
+                                    artists, authors
+                                )),
                                 info: info.clone(),
                             }
                         })
