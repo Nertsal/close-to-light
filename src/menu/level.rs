@@ -435,7 +435,9 @@ impl geng::State for LevelMenu {
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {
-                if self.ui.options.window.show.time.is_max() {
+                if let Some(sync) = &mut self.ui.sync {
+                    sync.window.request = Some(WidgetRequest::Close);
+                } else if self.ui.options.window.show.time.is_max() {
                     self.ui.options.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.leaderboard.window.show.time.is_max() {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
