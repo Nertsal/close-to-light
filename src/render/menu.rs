@@ -10,6 +10,7 @@ pub struct MenuRender {
     assets: Rc<Assets>,
     // util: UtilRender,
     masked: MaskedRender,
+    masked2: MaskedRender, // TODO: have just one somehow maybe
     ui: UiRender,
     font_size: f32,
 }
@@ -21,6 +22,7 @@ impl MenuRender {
             assets: assets.clone(),
             // util: UtilRender::new(geng, assets),
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
+            masked2: MaskedRender::new(geng, assets, vec2(1, 1)),
             ui: UiRender::new(geng, assets),
             font_size: 1.0,
         }
@@ -28,6 +30,7 @@ impl MenuRender {
 
     pub fn draw_ui(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         self.masked.update_size(framebuffer.size());
+        self.masked2.update_size(framebuffer.size());
         self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let theme = state.options.theme;
@@ -73,6 +76,7 @@ impl MenuRender {
 
             let window = window.with_height(height, 1.0);
             self.ui.draw_window(
+                &mut self.masked,
                 window,
                 None,
                 self.font_size * 0.2,
@@ -172,6 +176,7 @@ impl MenuRender {
         let profile = ui.profile.state.position.extend_up(width);
 
         self.ui.draw_window(
+            &mut self.masked,
             profile,
             Some(head),
             width,
@@ -213,6 +218,7 @@ impl MenuRender {
         let options = ui.options.state.position.extend_up(width);
 
         self.ui.draw_window(
+            &mut self.masked,
             options,
             Some(head),
             width,
@@ -277,6 +283,7 @@ impl MenuRender {
         let explore = ui.explore.state.position.extend_up(width);
 
         self.ui.draw_window(
+            &mut self.masked,
             explore,
             Some(head),
             width,
@@ -295,7 +302,7 @@ impl MenuRender {
                 self.ui
                     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
-                let mut mask = self.masked.start();
+                let mut mask = self.masked2.start();
 
                 if ui.music.state.visible {
                     mask.mask_quad(ui.music.items_state.position);
@@ -329,7 +336,7 @@ impl MenuRender {
                     }
                 }
 
-                self.masked.draw(draw_parameters(), framebuffer);
+                self.masked2.draw(draw_parameters(), framebuffer);
             },
         );
 
@@ -345,6 +352,7 @@ impl MenuRender {
         let theme = state.options.theme;
 
         self.ui.draw_window(
+            &mut self.masked,
             ui.level_config.state.position,
             None,
             self.font_size * 0.2,

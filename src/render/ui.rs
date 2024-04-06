@@ -27,6 +27,7 @@ impl UiRender {
 
     pub fn draw_window(
         &self,
+        masked: &mut MaskedRender,
         main: Aabb2<f32>,
         head: Option<Aabb2<f32>>,
         outline_width: f32,
@@ -34,14 +35,21 @@ impl UiRender {
         framebuffer: &mut ugli::Framebuffer,
         inner: impl FnOnce(&mut ugli::Framebuffer),
     ) {
+        // let size = main.size().map(|x| x.abs().ceil() as usize);
+        // let mut texture = ugli::Texture::new_with(self.geng.ugli(), size, |_| theme.dark);
+
+        let mut mask = masked.start();
+
         // Fill
         if let Some(head) = head {
             self.draw_quad(head, theme.dark, framebuffer);
+            mask.mask_quad(head);
         }
+        mask.mask_quad(main);
         self.draw_quad(main.extend_uniform(-outline_width), theme.dark, framebuffer);
 
-        // TODO: mask inner?
-        inner(framebuffer);
+        inner(&mut mask.color);
+        masked.draw(draw_parameters(), framebuffer);
 
         // Outline
         if let Some(head) = head {
