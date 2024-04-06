@@ -289,7 +289,7 @@ impl EditorState {
     }
 
     fn save(&mut self) {
-        let path = &self.editor.static_level.level.path;
+        let path = &self.editor.static_level.level.path.join("level.json");
         let result = (|| -> anyhow::Result<()> {
             // TODO: switch back to ron
             // https://github.com/geng-engine/geng/issues/71
