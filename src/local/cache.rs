@@ -133,15 +133,18 @@ impl LevelCache {
 
         let mut local = Self::new(client, geng);
 
-        for entry in std::fs::read_dir(fs::all_music_path())? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                log::error!("Unexpected file in music dir: {:?}", path);
-                continue;
-            }
+        let music_path = fs::all_music_path();
+        if music_path.exists() {
+            for entry in std::fs::read_dir(music_path)? {
+                let entry = entry?;
+                let path = entry.path();
+                if !path.is_dir() {
+                    log::error!("Unexpected file in music dir: {:?}", path);
+                    continue;
+                }
 
-            local.load_music(&path).await?;
+                local.load_music(&path).await?;
+            }
         }
 
         let groups_path = fs::all_groups_path();
