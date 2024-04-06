@@ -81,97 +81,107 @@ async fn async_main() {
     options.with_cli(&opts.geng);
 
     Geng::run_with(&options, move |geng| async move {
-        let manager = geng.asset_manager();
-        let assets_path = run_dir().join("assets");
-
-        let assets = assets::Assets::load(manager).await.unwrap();
-        let assets = Rc::new(assets);
-
-        let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
-
-        let secrets: Option<Secrets> =
-            geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
-                .await
-                .ok();
-        let secrets = secrets.or_else(|| {
-            Some(Secrets {
-                leaderboard: LeaderboardSecrets {
-                    url: option_env!("LEADERBOARD_URL")?.to_string(),
-                },
-            })
-        });
-        let client = secrets
-            .as_ref()
-            .map(|secrets| Arc::new(ctl_client::Nertboard::new(&secrets.leaderboard.url).unwrap()));
-
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(command) = opts.command {
-            command
-                .execute(geng, assets, secrets)
-                .await
-                .expect("failed to execute the command");
-            return;
+        if let Err(err) = geng_main(opts, geng).await {
+            log::error!("{:?}", err);
         }
+    });
+}
 
-        if let Some(level_path) = opts.level {
-            let mut config = model::LevelConfig::default();
-            let mut local = local::LevelCache::new(client.as_ref(), &geng);
-            let (music, level) = local
-                .load_level(&level_path)
-                .await
-                .expect("failed to load the level");
+async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
+    let manager = geng.asset_manager();
+    let assets_path = run_dir().join("assets");
 
-            if opts.edit {
-                // Editor
-                let editor_config: editor::EditorConfig =
-                    geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-                        .await
-                        .expect("failed to load editor config");
+    let assets = assets::Assets::load(manager).await?;
+    let assets = Rc::new(assets);
 
-                let level = game::PlayLevel {
-                    music: model::Music::from_cache(&music),
-                    level,
-                    config,
-                    start_time: prelude::Time::ZERO,
-                };
+    let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
-                let state =
-                    editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
-                geng.run_state(state).await;
-                return;
-            }
+    let secrets: Option<Secrets> =
+        geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+            .await
+            .ok();
+    let secrets = secrets.or_else(|| {
+        Some(Secrets {
+            leaderboard: LeaderboardSecrets {
+                url: option_env!("LEADERBOARD_URL")?.to_string(),
+            },
+        })
+    });
+    let client = secrets
+        .as_ref()
+        .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
+        .transpose()?
+        .map(Arc::new);
 
-            // Game
-            config.modifiers.clean_auto = opts.clean_auto;
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(command) = opts.command {
+        command
+            .execute(geng, assets, secrets)
+            .await
+            .context("failed to execute the command")?;
+        return Ok(());
+    }
+
+    if let Some(level_path) = opts.level {
+        let mut config = model::LevelConfig::default();
+        let mut local = local::LevelCache::new(client.as_ref(), &geng);
+        let (music, level) = local
+            .load_level(&level_path)
+            .await
+            .context("failed to load the level")?;
+
+        if opts.edit {
+            // Editor
+            let editor_config: editor::EditorConfig =
+                geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+                    .await
+                    .context("failed to load editor config")?;
+
             let level = game::PlayLevel {
                 music: model::Music::from_cache(&music),
                 level,
                 config,
                 start_time: prelude::Time::ZERO,
             };
-            let state = game::Game::new(
-                &geng,
-                &assets,
-                options,
-                level,
-                Leaderboard::new(&geng, None),
-                "".to_string(),
-            );
+
+            let state =
+                editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
+            geng.run_state(state).await;
+            return Ok(());
+        }
+
+        // Game
+        config.modifiers.clean_auto = opts.clean_auto;
+        let level = game::PlayLevel {
+            music: model::Music::from_cache(&music),
+            level,
+            config,
+            start_time: prelude::Time::ZERO,
+        };
+        let state = game::Game::new(
+            &geng,
+            &assets,
+            options,
+            level,
+            Leaderboard::new(&geng, None),
+            "".to_string(),
+        );
+        geng.run_state(state).await;
+    } else {
+        // Main menu
+        if opts.skip_intro {
+            let local = local::LevelCache::load(client.as_ref(), &geng)
+                .await
+                .context("failed to load local data")?;
+            let local = Rc::new(RefCell::new(local));
+
+            let state = menu::LevelMenu::new(&geng, &assets, &local, client.as_ref(), options);
             geng.run_state(state).await;
         } else {
-            // Main menu
-            if opts.skip_intro {
-                let local = local::LevelCache::load(client.as_ref(), &geng)
-                    .await
-                    .expect("failed to load local data");
-                let local = Rc::new(RefCell::new(local));
-
-                let state = menu::LevelMenu::new(&geng, &assets, &local, client.as_ref(), options);
-                geng.run_state(state).await;
-            } else {
-                let state = menu::SplashScreen::new(&geng, &assets, client.as_ref(), options);
-                geng.run_state(state).await;
-            }
+            let state = menu::SplashScreen::new(&geng, &assets, client.as_ref(), options);
+            geng.run_state(state).await;
         }
-    });
+    }
+
+    Ok(())
 }
