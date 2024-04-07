@@ -550,4 +550,16 @@ impl LevelCache {
 
         Some(level)
     }
+
+    pub fn delete_group(&mut self, group: Index) {
+        if let Some(group) = self.groups.remove(group) {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                log::debug!("Deleting the group folder: {:?}", group.path);
+                if let Err(err) = std::fs::remove_dir_all(&group.path) {
+                    log::error!("Failed to delete group: {:?}", err);
+                }
+            }
+        }
+    }
 }

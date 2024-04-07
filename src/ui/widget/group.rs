@@ -1,6 +1,10 @@
 use super::*;
 
-use crate::{local::CachedGroup, ui::layout::AreaOps};
+use crate::{
+    local::{CachedGroup, LevelCache},
+    prelude::Assets,
+    ui::layout::AreaOps,
+};
 
 use generational_arena::Index;
 use geng_utils::bounded::Bounded;
@@ -8,20 +12,26 @@ use geng_utils::bounded::Bounded;
 pub struct GroupWidget {
     pub group: Index,
     pub state: WidgetState,
-    pub logo: WidgetState,
+
+    pub static_state: WidgetState,
+    pub delete: IconButtonWidget,
     pub name: TextWidget,
     pub author: TextWidget,
+
     pub selected_time: Bounded<f32>,
 }
 
 impl GroupWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             group: Index::from_raw_parts(0, 0),
             state: WidgetState::new(),
-            logo: WidgetState::new(),
+
+            static_state: WidgetState::new(),
+            delete: IconButtonWidget::new_danger(&assets.sprites.trash),
             name: TextWidget::new("<level name>"),
             author: TextWidget::new("by <author>"),
+
             selected_time: Bounded::new_zero(0.2),
         }
     }
@@ -39,23 +49,32 @@ impl GroupWidget {
     }
 }
 
-impl Widget for GroupWidget {
+impl StatefulWidget for GroupWidget {
+    type State = LevelCache;
+
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
-        // let logo_size = position.height();
-        // let (logo, position) = layout::cut_left_right(position, logo_size);
-        // self.logo.update(logo, context);
+        let mut stat = self
+            .static_state
+            .position
+            .extend_uniform(-context.font_size * 0.15);
+        stat.cut_right(stat.width() - stat.height() / 2.0);
+        let rows = stat.split_rows(2);
 
-        // let (name, author) = layout::cut_top_down(position, context.font_size);
+        self.delete.update(rows[1], context);
+        if self.delete.state.clicked {
+            // TODO: confirmation window
+            state.delete_group(self.group);
+        }
+
         let mut author = position;
         let name = author.split_top(0.5);
         let margin = context.font_size * 0.2;
-        // let name = name.extend_down(-margin);
         author.cut_top(margin);
 
         self.name.update(name, context);

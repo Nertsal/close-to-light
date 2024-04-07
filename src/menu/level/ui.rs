@@ -321,7 +321,7 @@ impl MenuUI {
             .collect();
 
         {
-            let local = state.local.borrow();
+            let mut local = state.local.borrow_mut();
 
             // Level groups
             let slide = layout_size * 2.0;
@@ -332,8 +332,8 @@ impl MenuUI {
                 .extend_down(2.0 * context.font_size);
 
             // Initialize missing groups
-            for _ in 0..local.groups.len() - self.groups.len() {
-                self.groups.push(GroupWidget::new());
+            for _ in 0..local.groups.len().saturating_sub(self.groups.len()) {
+                self.groups.push(GroupWidget::new(&self.assets));
             }
 
             // Layout each group
@@ -342,12 +342,7 @@ impl MenuUI {
                 vec2(0.0, -group.height() - layout_size * 0.5),
                 local.groups.len() + 1,
             );
-            for (&static_pos, (i, (index, entry))) in positions.iter().zip(
-                group_ids
-                    .iter()
-                    .map(|&i| (i, local.groups.get(i).unwrap()))
-                    .enumerate(),
-            ) {
+            for (&static_pos, (i, &index)) in positions.iter().zip(group_ids.iter().enumerate()) {
                 let Some(group) = self.groups.get_mut(i) else {
                     // should not happen
                     continue;
@@ -358,8 +353,11 @@ impl MenuUI {
                 let t = crate::util::smoothstep(t);
                 let pos = static_pos.translate(vec2(t * slide, 0.0));
 
-                update!(group, pos);
-                group.set_group(entry, index);
+                group.static_state.update(static_pos, context);
+                update!(group, pos, &mut local);
+                if let Some(entry) = local.groups.get(index) {
+                    group.set_group(entry, index);
+                }
 
                 if group.state.clicked {
                     selected = Some(i);
@@ -406,96 +404,106 @@ impl MenuUI {
 
             let local = state.local.borrow();
 
-            if let Some(&group_index) = group_ids.get(show_group.data) {
-                let group = local.groups.get(group_index);
-                if let Some(group) = group {
-                    // Levels
-                    let slide = layout_size * 2.0;
+            let group_index = group_ids.get(show_group.data);
+            let group = group_index.and_then(|&group_index| local.groups.get(group_index));
+            if group.is_none() {
+                // Group got deleted
+                state.switch_group = None;
+            }
 
-                    let scroll = 0.0; // TODO
+            // Levels
+            let levels_count = group.map(|group| group.levels.len()).unwrap_or(0);
+            let slide = layout_size * 2.0;
 
-                    // Animate slide-in/out
-                    let sign = if show_group.going_up { 1.0 } else { -1.0 };
-                    let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio());
-                    let scroll = scroll + sign * t * layout_size * 25.0;
+            let scroll = 0.0; // TODO
 
-                    let level = Aabb2::point(levels.align_pos(vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                        .extend_right(levels.width() - slide)
-                        .extend_down(2.0 * context.font_size);
+            // Animate slide-in/out
+            let sign = if show_group.going_up { 1.0 } else { -1.0 };
+            let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio());
+            let scroll = scroll + sign * t * layout_size * 25.0;
 
-                    // Initialize missing levels
-                    for _ in 0..group.levels.len().saturating_sub(self.levels.len()) {
-                        self.levels.push(LevelWidget::new(&self.assets));
+            let level = Aabb2::point(levels.align_pos(vec2(0.0, 1.0)) + vec2(0.0, scroll))
+                .extend_right(levels.width() - slide)
+                .extend_down(2.0 * context.font_size);
+
+            // Initialize missing levels
+            for _ in 0..levels_count.saturating_sub(self.levels.len()) {
+                self.levels.push(LevelWidget::new(&self.assets));
+            }
+            if show_group.going_up && !show_group.time.is_max() && levels_count < self.levels.len()
+            {
+                // Delete extra levels
+                self.levels.drain(levels_count..);
+            }
+
+            // Layout each level
+            let mut selected = None;
+            let positions = level.stack(
+                vec2(0.0, -level.height() - layout_size * 0.5),
+                self.levels.len() + 1,
+            );
+            for (&static_pos, (i, level)) in
+                positions.iter().zip(self.levels.iter_mut().enumerate())
+            {
+                // Animate
+                let t = level.selected_time.get_ratio();
+                let t = crate::util::smoothstep(t);
+                let pos = static_pos.translate(vec2(t * slide, 0.0));
+
+                level.static_state.update(static_pos, context);
+                update!(level, pos);
+                if let Some(cached) = group.and_then(|group| group.levels.get(i)) {
+                    level.set_level(&cached.meta);
+                }
+
+                if level.state.clicked {
+                    selected = Some(i);
+                }
+
+                let target = if state.switch_level == Some(i) {
+                    1.0
+                } else if level.state.hovered
+                    || context.can_focus && static_pos.contains(context.cursor.position)
+                {
+                    0.5
+                } else {
+                    0.0
+                };
+                let delta = (target * level.selected_time.max() - level.selected_time.value())
+                    .clamp_abs(context.delta_time);
+                level.selected_time.change(delta);
+
+                // Buttons
+                if level.sync.state.clicked {
+                    if let Some(cached) = group.and_then(|group| group.levels.get(i)) {
+                        action = Some(Action::Sync(cached.clone(), i));
                     }
+                } else if level.edit.state.clicked {
+                    action = Some(Action::Edit(i));
+                }
+            }
 
-                    // Layout each level
-                    let mut selected = None;
-                    let positions = level.stack(
-                        vec2(0.0, -level.height() - layout_size * 0.5),
-                        group.levels.len() + 1,
-                    );
-                    for (&static_pos, (i, cached)) in
-                        positions.iter().zip(group.levels.iter().enumerate())
-                    {
-                        let Some(level) = self.levels.get_mut(i) else {
-                            // should not happen
-                            continue;
-                        };
+            // Show level
+            if let Some(level) = selected {
+                if state.show_group.as_ref().is_some_and(|show| show.going_up) {
+                    action = Some(Action::Show(level));
+                }
+            }
 
-                        // Animate
-                        let t = level.selected_time.get_ratio();
-                        let t = crate::util::smoothstep(t);
-                        let pos = static_pos.translate(vec2(t * slide, 0.0));
+            let create = positions
+                .last()
+                .unwrap()
+                .extend_symmetric(vec2(1.0, -0.7) * layout_size);
+            self.new_level.update(create, context);
+            if self.new_level.state.clicked {
+                action = Some(Action::New);
+            }
 
-                        level.static_state.update(static_pos, context);
-                        update!(level, pos);
-                        level.set_level(&cached.meta);
-
-                        if level.state.clicked {
-                            selected = Some(i);
-                        }
-
-                        let target = if state.switch_level == Some(i) {
-                            1.0
-                        } else if level.state.hovered
-                            || context.can_focus && static_pos.contains(context.cursor.position)
-                        {
-                            0.5
-                        } else {
-                            0.0
-                        };
-                        let delta = (target * level.selected_time.max()
-                            - level.selected_time.value())
-                        .clamp_abs(context.delta_time);
-                        level.selected_time.change(delta);
-
-                        // Buttons
-                        if level.sync.state.clicked {
-                            action = Some(Action::Sync(cached.clone(), i));
-                        } else if level.edit.state.clicked {
-                            action = Some(Action::Edit(i));
-                        }
-                    }
-
-                    // Show level
-                    if let Some(level) = selected {
-                        if state.show_group.as_ref().is_some_and(|show| show.going_up) {
-                            action = Some(Action::Show(level));
-                        }
-                    }
-
-                    let create = positions
-                        .last()
-                        .unwrap()
-                        .extend_symmetric(vec2(1.0, -0.7) * layout_size);
-                    self.new_level.update(create, context);
-                    if self.new_level.state.clicked {
-                        action = Some(Action::New);
-                    }
-
-                    if let Some(action) = action {
-                        match action {
-                            Action::Sync(level, level_index) => {
+            if let Some(&group_index) = group_index {
+                if let Some(action) = action {
+                    match action {
+                        Action::Sync(level, level_index) => {
+                            if let Some(group) = group {
                                 self.sync = Some(SyncWidget::new(
                                     &self.geng,
                                     &self.assets,
@@ -505,18 +513,18 @@ impl MenuUI {
                                     level_index,
                                 ));
                             }
-                            Action::Edit(level) => {
-                                drop(local);
-                                state.edit_level(group_index, level);
-                            }
-                            Action::Show(level) => {
-                                drop(local);
-                                state.show_level(Some(level));
-                            }
-                            Action::New => {
-                                drop(local);
-                                state.new_level(group_index);
-                            }
+                        }
+                        Action::Edit(level) => {
+                            drop(local);
+                            state.edit_level(group_index, level);
+                        }
+                        Action::Show(level) => {
+                            drop(local);
+                            state.show_level(Some(level));
+                        }
+                        Action::New => {
+                            drop(local);
+                            state.new_level(group_index);
                         }
                     }
                 }

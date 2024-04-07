@@ -129,6 +129,14 @@ impl MenuRender {
             //         .draw_texture(group.logo.position, logo, theme.light, framebuffer);
             // }
 
+            self.ui.draw_icon(&group.delete.icon, &mut mask.color);
+            self.ui.draw_outline(
+                group.static_state.position,
+                self.font_size * 0.2,
+                theme.light,
+                &mut mask.color,
+            );
+
             self.ui.draw_toggle_slide(
                 &group.state,
                 &[&group.name, &group.author],

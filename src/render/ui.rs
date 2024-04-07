@@ -25,6 +25,7 @@ impl UiRender {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_window(
         &self,
         masked: &mut MaskedRender,

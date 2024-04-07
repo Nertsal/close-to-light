@@ -54,6 +54,10 @@ impl IconButtonWidget {
         Self::new(texture, ThemeColor::Light, IconBackgroundKind::NineSlice)
     }
 
+    pub fn new_danger(texture: &Rc<ugli::Texture>) -> Self {
+        Self::new(texture, ThemeColor::Danger, IconBackgroundKind::NineSlice)
+    }
+
     pub fn new_close_button(texture: &Rc<ugli::Texture>) -> Self {
         Self::new(texture, ThemeColor::Danger, IconBackgroundKind::Circle)
     }
