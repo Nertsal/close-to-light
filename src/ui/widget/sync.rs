@@ -197,34 +197,32 @@ impl StatefulWidget for SyncWidget {
         self.upload.update(upload, context);
         if self.upload.state.clicked {
             if let Some(music) = self.cached_music {
-                if self.cached_level.meta.id == 0 {
-                    // TODO: or server responded 404 meaning local state is desynced
-                    // Create new level
-                    if let Some(client) = state.client().cloned() {
-                        let mut group = self.cached_group;
-                        let group_index = self.cached_group_index;
-                        let level_index = self.cached_level_index;
-                        let level = Rc::clone(&self.cached_level);
-                        let future = async move {
-                            if group == 0 {
-                                // Create group
-                                group = client.create_group(music).await?;
-                            }
-                            let level_id = client
-                                .upload_level(
-                                    NewLevel {
-                                        name: level.meta.name.clone(),
-                                        group,
-                                    },
-                                    &level.data,
-                                )
-                                .await?;
-                            Ok((group_index, level_index, group, level_id))
-                        };
-                        self.task_level_upload = Some(Task::new(&self.geng, future));
-                    }
-                } else {
-                    // TODO: upload new version
+                // TODO: or server responded 404 meaning local state is desynced
+                // Create new level or upload new version
+                if let Some(client) = state.client().cloned() {
+                    let mut group = self.cached_group;
+                    let group_index = self.cached_group_index;
+                    let level_index = self.cached_level_index;
+                    let level_id = self.cached_level.meta.id;
+                    let level = Rc::clone(&self.cached_level);
+                    let future = async move {
+                        if group == 0 {
+                            // Create group
+                            group = client.create_group(music).await?;
+                        }
+                        let level_id = client
+                            .upload_level(
+                                NewLevel {
+                                    level_id: (level_id != 0).then_some(level_id),
+                                    name: level.meta.name.clone(),
+                                    group,
+                                },
+                                &level.data,
+                            )
+                            .await?;
+                        Ok((group_index, level_index, group, level_id))
+                    };
+                    self.task_level_upload = Some(Task::new(&self.geng, future));
                 }
             }
         }

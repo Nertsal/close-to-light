@@ -97,6 +97,7 @@ WHERE level_id = ?
     }))
 }
 
+/// Create a new level or upload a new version of an existing one.
 async fn level_create(
     session: AuthSession,
     State(app): State<Arc<App>>,
@@ -140,24 +141,36 @@ async fn level_create(
         bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
     // TODO
 
-    // Commit to database
-    let level_id: Id = sqlx::query(
-        "INSERT INTO levels (name, group_id, hash) VALUES (?, ?, ?) RETURNING level_id",
-    )
-    .bind(&level.name)
-    .bind(level.group)
-    .bind(&hash)
-    .try_map(|row: DBRow| row.try_get("level_id"))
-    .fetch_one(&app.database)
-    .await?;
-    debug!("New level committed to the database");
+    let level_id = if let Some(level_id) = level.level_id {
+        sqlx::query("UPDATE levels SET hash = ? WHERE level_id = ?")
+            .bind(&hash)
+            .bind(level_id)
+            .execute(&app.database)
+            .await?;
 
-    // Add user as author
-    sqlx::query("INSERT INTO level_authors (user_id, level_id) VALUES (?, ?)")
-        .bind(user.user_id)
-        .bind(level_id)
-        .execute(&app.database)
+        level_id
+    } else {
+        // Commit to database
+        let level_id: Id = sqlx::query(
+            "INSERT INTO levels (name, group_id, hash) VALUES (?, ?, ?) RETURNING level_id",
+        )
+        .bind(&level.name)
+        .bind(level.group)
+        .bind(&hash)
+        .try_map(|row: DBRow| row.try_get("level_id"))
+        .fetch_one(&app.database)
         .await?;
+        debug!("New level committed to the database");
+
+        // Add user as author
+        sqlx::query("INSERT INTO level_authors (user_id, level_id) VALUES (?, ?)")
+            .bind(user.user_id)
+            .bind(level_id)
+            .execute(&app.database)
+            .await?;
+
+        level_id
+    };
 
     // Check path
     let dir_path = app.config.groups_path.join("levels");
@@ -170,7 +183,7 @@ async fn level_create(
     //     return Err(RequestError::Internal);
     // };
 
-    if path.exists() {
+    if level.level_id.is_none() && path.exists() {
         error!("Duplicate level ID generated: {}", level_id);
         return Err(RequestError::Internal);
     }

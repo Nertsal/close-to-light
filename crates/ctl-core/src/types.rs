@@ -116,6 +116,8 @@ pub struct MusicUpdate {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewLevel {
+    /// If set, updates an existing level instead of creating a new one.
+    pub level_id: Option<Id>,
     pub name: String,
     pub group: Id,
 }
