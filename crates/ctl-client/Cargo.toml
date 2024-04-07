@@ -8,6 +8,8 @@ edition.workspace = true
 [dependencies]
 ctl-core.workspace = true
 reqwest.workspace = true
+url.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
 bincode.workspace = true
+thiserror.workspace = true

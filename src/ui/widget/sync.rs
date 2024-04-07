@@ -7,13 +7,16 @@ use crate::{
     ui::layout::AreaOps,
 };
 
-use ctl_client::core::{
-    model::Level,
-    types::{Id, LevelInfo, NewLevel},
+use ctl_client::{
+    core::{
+        model::Level,
+        types::{Id, LevelInfo, NewLevel},
+    },
+    ClientError,
 };
 use generational_arena::Index;
 
-type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
+type TaskRes<T> = Option<Task<ctl_client::Result<T>>>;
 
 pub struct SyncWidget {
     geng: Geng,
@@ -91,14 +94,15 @@ impl StatefulWidget for SyncWidget {
         if std::mem::take(&mut self.reload) && self.task_level_info.is_none() {
             if let Some(client) = state.client().cloned() {
                 let level_id = self.cached_level.meta.id;
-                let future = async move {
-                    if level_id == 0 {
-                        return Err(anyhow!("Level is local"));
-                    }
-                    let level = client.get_level_info(level_id).await?;
-                    Ok(level)
-                };
-                self.task_level_info = Some(Task::new(&self.geng, future));
+                if level_id == 0 {
+                    self.status.text = "Level is local".into();
+                    self.response.hide();
+                    self.upload.show();
+                    self.discard.hide();
+                } else {
+                    let future = async move { client.get_level_info(level_id).await };
+                    self.task_level_info = Some(Task::new(&self.geng, future));
+                }
             }
         }
 
@@ -106,18 +110,25 @@ impl StatefulWidget for SyncWidget {
             match task.poll() {
                 Err(task) => self.task_level_info = Some(task),
                 Ok(Err(err)) => {
-                    // TODO: match error type, e.g. server does not respond, level id is 0
-                    // Level is unknown to the server - probably created by the user
-                    self.status.text = "Unknown to the server".into();
-                    self.response.text = format!("{}", err);
-                    self.upload.show();
-                    self.discard.hide();
+                    if let ClientError::NotFound = err {
+                        // Level is unknown to the server - probably created by the user
+                        self.status.text = "Unknown to the server".into();
+                        self.response.hide();
+                        self.upload.show();
+                        self.discard.hide();
+                    } else {
+                        self.status.text = "Failed".into();
+                        self.response.show();
+                        self.response.text = format!("{}", err);
+                        self.upload.show();
+                        self.discard.hide();
+                    }
                 }
                 Ok(Ok(level)) => {
                     if level.hash != self.cached_level.hash {
                         // Local level version is probably outdated (or invalid)
                         self.status.text = "Outdated or changed".into();
-                        self.response.text = "".into();
+                        self.response.hide();
 
                         // TODO: Check the author
                         // if current user is the author - upload new version ; discard changes
@@ -128,7 +139,7 @@ impl StatefulWidget for SyncWidget {
                     } else {
                         // Everything's fine
                         self.status.text = "Up to date".into();
-                        self.response.text = "".into();
+                        self.response.hide();
                         self.upload.hide();
                         self.discard.hide();
                     }
@@ -141,6 +152,8 @@ impl StatefulWidget for SyncWidget {
                 Ok(Err(err)) => {
                     // TODO
                     log::error!("Failed to upload the level: {:?}", err);
+                    self.status.text = "".into();
+                    self.response.show();
                     self.response.text = format!("{}", err);
                 }
                 Ok(Ok((group_index, level_index, group, level))) => {
@@ -158,6 +171,7 @@ impl StatefulWidget for SyncWidget {
                 Ok(Err(err)) => {
                     // TODO
                     log::error!("Failed to download the level: {:?}", err);
+                    self.response.show();
                     self.response.text = format!("{}", err);
                 }
                 Ok(Ok(level)) => {
@@ -220,6 +234,9 @@ impl StatefulWidget for SyncWidget {
                             // Create group
                             group = client.create_group(music).await?;
                         }
+                        // TODO: it could happen that a level has a local non-zero id
+                        // but is not present on the server.
+                        // In that case, upload will fail with "Not found"
                         let level_id = client
                             .upload_level(
                                 NewLevel {
@@ -234,6 +251,8 @@ impl StatefulWidget for SyncWidget {
                     };
                     self.task_level_upload = Some(Task::new(&self.geng, future));
                 }
+            } else {
+                // TODO: notify the user that no music is selected for the level
             }
         }
 

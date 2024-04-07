@@ -20,12 +20,10 @@ impl Nertboard {
         let path = path.as_ref();
         let url = self.url.join("music/create").unwrap();
 
-        let file = File::open(path)
-            .await
-            .context("when opening the music file")?;
+        let file = File::open(path).await?;
         let req = self.client.post(url).body(file_to_body(file)).query(&music);
 
-        let response = req.send().await.context("when sending request")?;
+        let response = req.send().await?;
         let res = read_json(response).await?;
         Ok(res)
     }

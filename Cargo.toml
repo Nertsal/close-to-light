@@ -51,6 +51,7 @@ dotenv = "0.15.0"
 
 # Client
 reqwest = { version = "0.11.23", features = ["json", "multipart", "cookies"] }
+url = "2.5.0"
 
 [package]
 name = "close-to-light"

@@ -26,8 +26,8 @@ pub struct Leaderboard {
     /// Logged in as user with a name.
     pub user: Option<String>,
     pub client: Option<Arc<Nertboard>>,
-    log_task: Option<Task<anyhow::Result<Result<UserInfo, String>>>>,
-    task: Option<Task<anyhow::Result<BoardUpdate>>>,
+    log_task: Option<Task<ctl_client::Result<Result<UserInfo, String>>>>,
+    task: Option<Task<ctl_client::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -230,7 +230,6 @@ impl Leaderboard {
                     .fetch_scores(level)
                     .await
                     .map(|scores| BoardUpdate { scores })
-                    .map_err(anyhow::Error::from)
             };
             self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
@@ -261,10 +260,7 @@ impl Leaderboard {
                     board.submit_score(level, score).await.unwrap();
                 }
 
-                let scores = board
-                    .fetch_scores(level)
-                    .await
-                    .map_err(anyhow::Error::from)?;
+                let scores = board.fetch_scores(level).await?;
                 Ok(BoardUpdate { scores })
             };
             self.task = Some(Task::new(&self.geng, future));

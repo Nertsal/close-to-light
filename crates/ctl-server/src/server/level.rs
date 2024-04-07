@@ -66,10 +66,14 @@ async fn level_get(
     State(app): State<Arc<App>>,
     Path(level_id): Path<Id>,
 ) -> Result<Json<LevelInfo>> {
-    let level: LevelRow = sqlx::query_as("SELECT * FROM levels WHERE level_id = ?")
+    let level: Option<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE level_id = ?")
         .bind(level_id)
-        .fetch_one(&app.database)
+        .fetch_optional(&app.database)
         .await?;
+
+    let Some(level) = level else {
+        return Err(RequestError::NoSuchLevel(level_id));
+    };
 
     let authors: Vec<UserInfo> = sqlx::query(
         "
