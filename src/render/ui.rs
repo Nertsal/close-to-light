@@ -400,6 +400,10 @@ impl UiRender {
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !state.visible {
+            return;
+        }
+
         let (bg_color, fg_color) = if selected {
             (theme.light, theme.dark)
         } else {
