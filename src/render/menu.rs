@@ -99,6 +99,13 @@ impl MenuRender {
                         state.options.theme,
                         framebuffer,
                     );
+                    self.ui.draw_toggle_button(
+                        &sync.discard,
+                        sync.discard.state.pressed,
+                        false,
+                        state.options.theme,
+                        framebuffer,
+                    );
                 },
             );
         }

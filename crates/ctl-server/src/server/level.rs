@@ -76,8 +76,10 @@ async fn level_get(
 SELECT users.user_id, username
 FROM level_authors
 JOIN users ON level_authors.user_id = users.user_id
+WHERE level_id = ?
         ",
     )
+    .bind(level_id)
     .try_map(|row: DBRow| {
         Ok(UserInfo {
             id: row.try_get("user_id")?,

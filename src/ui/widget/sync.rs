@@ -7,7 +7,10 @@ use crate::{
     ui::layout::AreaOps,
 };
 
-use ctl_client::core::types::{Id, LevelInfo, NewLevel};
+use ctl_client::core::{
+    model::Level,
+    types::{Id, LevelInfo, NewLevel},
+};
 use generational_arena::Index;
 
 type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
@@ -31,10 +34,12 @@ pub struct SyncWidget {
     pub title: TextWidget,
     pub status: TextWidget,
     pub upload: TextWidget,
+    pub discard: TextWidget,
 
     task_level_info: TaskRes<LevelInfo>,
     /// Returns group and level index and the new group and level id.
     task_level_upload: TaskRes<(Index, usize, Id, Id)>,
+    task_level_download: TaskRes<Level>,
 }
 
 impl SyncWidget {
@@ -64,9 +69,11 @@ impl SyncWidget {
             title: TextWidget::new("Synchronizing level"),
             status: TextWidget::new("Offline"),
             upload: TextWidget::new("Upload to the server"),
+            discard: TextWidget::new("Discard changes"),
 
             task_level_info: None,
             task_level_upload: None,
+            task_level_download: None,
         }
     }
 }
@@ -100,20 +107,26 @@ impl StatefulWidget for SyncWidget {
                     if let Ok(level) = level {
                         if level.hash != self.cached_level.hash {
                             // Local level version is probably outdated (or invalid)
-                            self.status.text = "Local version is outdated or changed".into();
+                            self.status.text = "Outdated or changed".into();
 
                             // TODO: Check the author
                             // if current user is the author - upload new version ; discard changes
                             // if current user is not author - download new version
+
+                            self.upload.show();
+                            self.discard.show();
                         } else {
                             // Everything's fine
-                            self.status.text = "Level is up to date".into();
+                            self.status.text = "Up to date".into();
+                            self.upload.hide();
+                            self.discard.hide();
                         }
                     } else {
                         // TODO: match error type, e.g. server does not respond, level id is 0
                         // Level is unknown to the server - probably created by the user
-                        self.status.text = "Level unknown to the server".into();
+                        self.status.text = "Unknown to the server".into();
                         self.upload.show();
+                        self.discard.hide();
                     }
                 }
             }
@@ -128,6 +141,21 @@ impl StatefulWidget for SyncWidget {
                 Ok(Ok((group_index, level_index, group, level))) => {
                     if let Some(level) = state.synchronize(group_index, level_index, group, level) {
                         self.cached_group = group;
+                        self.cached_level = level;
+                        self.reload = true;
+                    }
+                }
+            }
+        }
+        if let Some(task) = self.task_level_download.take() {
+            match task.poll() {
+                Err(task) => self.task_level_download = Some(task),
+                Ok(Err(err)) => {
+                    // TODO
+                    log::error!("Failed to download the level: {:?}", err);
+                }
+                Ok(Ok(level)) => {
+                    if let Some(level) = state.update_level(self.cached_level.meta.id, level) {
                         self.cached_level = level;
                         self.reload = true;
                     }
@@ -198,6 +226,20 @@ impl StatefulWidget for SyncWidget {
                 } else {
                     // TODO: upload new version
                 }
+            }
+        }
+
+        let discard = main.cut_top(context.font_size * 1.5);
+        self.discard.update(discard, context);
+        if self.discard.state.clicked && self.cached_level.meta.id != 0 {
+            if let Some(client) = state.client().cloned() {
+                let level_id = self.cached_level.meta.id;
+                let future = async move {
+                    let bytes = client.download_level(level_id).await?;
+                    let level: Level = bincode::deserialize(&bytes)?;
+                    Ok(level)
+                };
+                self.task_level_download = Some(Task::new(&self.geng, future));
             }
         }
     }

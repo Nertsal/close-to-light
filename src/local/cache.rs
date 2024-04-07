@@ -537,6 +537,17 @@ impl LevelCache {
 
         let level = Rc::new(new_level);
         *cached = Rc::clone(&level);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // Write to fs
+            if let Err(err) = fs::save_level(&level) {
+                log::error!("Failed to save the level: {:?}", err);
+            } else {
+                log::debug!("Successfully saved the level at: {:?}", level.path);
+            }
+        }
+
         Some(level)
     }
 }
