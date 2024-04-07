@@ -35,6 +35,7 @@ pub struct SyncWidget {
     pub status: TextWidget,
     pub upload: TextWidget,
     pub discard: TextWidget,
+    pub response: TextWidget,
 
     task_level_info: TaskRes<LevelInfo>,
     /// Returns group and level index and the new group and level id.
@@ -70,6 +71,7 @@ impl SyncWidget {
             status: TextWidget::new("Offline"),
             upload: TextWidget::new("Upload to the server"),
             discard: TextWidget::new("Discard changes"),
+            response: TextWidget::new(""),
 
             task_level_info: None,
             task_level_upload: None,
@@ -103,29 +105,31 @@ impl StatefulWidget for SyncWidget {
         if let Some(task) = self.task_level_info.take() {
             match task.poll() {
                 Err(task) => self.task_level_info = Some(task),
-                Ok(level) => {
-                    if let Ok(level) = level {
-                        if level.hash != self.cached_level.hash {
-                            // Local level version is probably outdated (or invalid)
-                            self.status.text = "Outdated or changed".into();
+                Ok(Err(err)) => {
+                    // TODO: match error type, e.g. server does not respond, level id is 0
+                    // Level is unknown to the server - probably created by the user
+                    self.status.text = "Unknown to the server".into();
+                    self.response.text = format!("{}", err);
+                    self.upload.show();
+                    self.discard.hide();
+                }
+                Ok(Ok(level)) => {
+                    if level.hash != self.cached_level.hash {
+                        // Local level version is probably outdated (or invalid)
+                        self.status.text = "Outdated or changed".into();
+                        self.response.text = "".into();
 
-                            // TODO: Check the author
-                            // if current user is the author - upload new version ; discard changes
-                            // if current user is not author - download new version
+                        // TODO: Check the author
+                        // if current user is the author - upload new version ; discard changes
+                        // if current user is not author - download new version
 
-                            self.upload.show();
-                            self.discard.show();
-                        } else {
-                            // Everything's fine
-                            self.status.text = "Up to date".into();
-                            self.upload.hide();
-                            self.discard.hide();
-                        }
-                    } else {
-                        // TODO: match error type, e.g. server does not respond, level id is 0
-                        // Level is unknown to the server - probably created by the user
-                        self.status.text = "Unknown to the server".into();
                         self.upload.show();
+                        self.discard.show();
+                    } else {
+                        // Everything's fine
+                        self.status.text = "Up to date".into();
+                        self.response.text = "".into();
+                        self.upload.hide();
                         self.discard.hide();
                     }
                 }
@@ -137,6 +141,7 @@ impl StatefulWidget for SyncWidget {
                 Ok(Err(err)) => {
                     // TODO
                     log::error!("Failed to upload the level: {:?}", err);
+                    self.response.text = format!("{}", err);
                 }
                 Ok(Ok((group_index, level_index, group, level))) => {
                     if let Some(level) = state.synchronize(group_index, level_index, group, level) {
@@ -153,6 +158,7 @@ impl StatefulWidget for SyncWidget {
                 Ok(Err(err)) => {
                     // TODO
                     log::error!("Failed to download the level: {:?}", err);
+                    self.response.text = format!("{}", err);
                 }
                 Ok(Ok(level)) => {
                     if let Some(level) = state.update_level(self.cached_level.meta.id, level) {
@@ -191,9 +197,13 @@ impl StatefulWidget for SyncWidget {
         let status = main.cut_top(context.font_size);
         self.status.update(status, context);
 
-        main.cut_top(context.layout_size * 5.0);
+        main.cut_top(context.layout_size * 1.0);
 
-        let upload = main.cut_top(context.font_size * 1.5);
+        let button_size = vec2(main.width() * 0.75, context.font_size * 1.3);
+
+        let upload = main
+            .cut_top(context.font_size * 1.5)
+            .align_aabb(button_size, vec2::splat(0.5));
         self.upload.update(upload, context);
         if self.upload.state.clicked {
             if let Some(music) = self.cached_music {
@@ -227,7 +237,9 @@ impl StatefulWidget for SyncWidget {
             }
         }
 
-        let discard = main.cut_top(context.font_size * 1.5);
+        let discard = main
+            .cut_top(context.font_size * 1.5)
+            .align_aabb(button_size, vec2::splat(0.5));
         self.discard.update(discard, context);
         if self.discard.state.clicked && self.cached_level.meta.id != 0 {
             if let Some(client) = state.client().cloned() {
@@ -240,5 +252,11 @@ impl StatefulWidget for SyncWidget {
                 self.task_level_download = Some(Task::new(&self.geng, future));
             }
         }
+
+        main.cut_top(context.layout_size * 1.0);
+
+        let response = main.cut_top(context.font_size);
+        self.response.update(response, context);
+        self.response.options.color = context.theme.danger;
     }
 }

@@ -92,20 +92,20 @@ impl MenuRender {
                     self.ui.draw_text(&sync.title, framebuffer);
                     self.ui.draw_text(&sync.status, framebuffer);
 
-                    self.ui.draw_toggle_button(
+                    self.ui.draw_toggle(
                         &sync.upload,
-                        sync.upload.state.pressed,
-                        false,
+                        self.font_size * 0.2,
                         state.options.theme,
                         framebuffer,
                     );
-                    self.ui.draw_toggle_button(
+                    self.ui.draw_toggle(
                         &sync.discard,
-                        sync.discard.state.pressed,
-                        false,
+                        self.font_size * 0.2,
                         state.options.theme,
                         framebuffer,
                     );
+
+                    self.ui.draw_text(&sync.response, framebuffer);
                 },
             );
         }

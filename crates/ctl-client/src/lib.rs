@@ -10,7 +10,7 @@ use core::{
 pub use ctl_core as core;
 use ctl_core::{
     prelude::{
-        anyhow::{Context, Result},
+        anyhow::{anyhow, Context, Result},
         log, serde_json, DeserializeOwned, Id, MusicInfo, MusicUpdate,
     },
     ScoreEntry, SubmitScore,
@@ -171,6 +171,7 @@ impl Nertboard {
 
 async fn get_body(response: Response) -> Result<String> {
     log::debug!("Response: {:?}", response);
+    let response = error_for_status(response).await?;
     let body = response
         .text()
         .await
@@ -180,7 +181,21 @@ async fn get_body(response: Response) -> Result<String> {
 }
 
 async fn read_json<T: DeserializeOwned>(response: Response) -> Result<T> {
+    let response = error_for_status(response).await?;
     let body = get_body(response).await?;
     let value = serde_json::from_str(&body).context("when parsing response as json")?;
     Ok(value)
+}
+
+async fn error_for_status(response: Response) -> Result<Response> {
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
+        let body = response
+            .text()
+            .await
+            .context("when reading response body")?;
+        Err(anyhow!(body))
+    } else {
+        Ok(response)
+    }
 }

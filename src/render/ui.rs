@@ -372,6 +372,7 @@ impl UiRender {
         );
     }
 
+    // TODO: more general name
     pub fn draw_toggle(
         &self,
         text: &TextWidget,
@@ -389,6 +390,7 @@ impl UiRender {
         )
     }
 
+    // TODO: more general name
     pub fn draw_toggle_slide(
         &self,
         state: &WidgetState,
