@@ -142,11 +142,14 @@ async fn level_create(
     // TODO
 
     let level_id = if let Some(level_id) = level.level_id {
-        sqlx::query("UPDATE levels SET hash = ? WHERE level_id = ?")
+        let res = sqlx::query("UPDATE levels SET hash = ? WHERE level_id = ?")
             .bind(&hash)
             .bind(level_id)
             .execute(&app.database)
             .await?;
+        if res.rows_affected() == 0 {
+            return Err(RequestError::NoSuchLevel(level_id));
+        }
 
         level_id
     } else {
