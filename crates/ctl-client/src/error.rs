@@ -25,9 +25,11 @@ pub enum ClientError {
 
 impl From<reqwest::Error> for ClientError {
     fn from(value: reqwest::Error) -> Self {
+        #[cfg(not(target_arch = "wasm32"))] // TODO: figure out what's up
         if value.is_connect() {
-            Self::Connection
-        } else if let Some(StatusCode::NOT_FOUND) = value.status() {
+            return Self::Connection;
+        }
+        if let Some(StatusCode::NOT_FOUND) = value.status() {
             Self::NotFound
         } else {
             Self::Reqwest(value)
