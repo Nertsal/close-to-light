@@ -98,7 +98,7 @@ impl StatefulWidget for SyncWidget {
                     self.status.text = "Level is local".into();
                     self.response.hide();
                     self.upload.show();
-                    self.discard.hide();
+                    self.discard.show();
                 } else {
                     let future = async move { client.get_level_info(level_id).await };
                     self.task_level_info = Some(Task::new(&self.geng, future));
@@ -115,12 +115,12 @@ impl StatefulWidget for SyncWidget {
                         self.status.text = "Unknown to the server".into();
                         self.response.hide();
                         self.upload.show();
-                        self.discard.hide();
+                        self.discard.show();
                     } else {
                         self.status.text = "Failed".into();
                         self.response.show();
                         self.response.text = format!("{}", err);
-                        self.upload.show();
+                        self.upload.hide();
                         self.discard.hide();
                     }
                 }
@@ -169,10 +169,14 @@ impl StatefulWidget for SyncWidget {
             match task.poll() {
                 Err(task) => self.task_level_download = Some(task),
                 Ok(Err(err)) => {
-                    // TODO
-                    log::error!("Failed to download the level: {:?}", err);
-                    self.response.show();
-                    self.response.text = format!("{}", err);
+                    if let ClientError::NotFound = err {
+                        log::error!("Requested level not found");
+                        // TODO: delete local
+                    } else {
+                        log::error!("Failed to download the level: {:?}", err);
+                        self.response.show();
+                        self.response.text = format!("{}", err);
+                    }
                 }
                 Ok(Ok(level)) => {
                     if let Some(level) = state.update_level(self.cached_level.meta.id, level) {
@@ -260,8 +264,12 @@ impl StatefulWidget for SyncWidget {
             .cut_top(context.font_size * 1.5)
             .align_aabb(button_size, vec2::splat(0.5));
         self.discard.update(discard, context);
-        if self.discard.state.clicked && self.cached_level.meta.id != 0 {
-            if let Some(client) = state.client().cloned() {
+        if self.discard.state.clicked {
+            if self.cached_level.meta.id == 0 {
+                // Delete
+                state.delete_level(self.cached_group_index, self.cached_level_index);
+                self.window.request = Some(WidgetRequest::Close);
+            } else if let Some(client) = state.client().cloned() {
                 let level_id = self.cached_level.meta.id;
                 let future = async move {
                     let bytes = client.download_level(level_id).await?;

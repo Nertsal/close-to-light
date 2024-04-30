@@ -430,8 +430,7 @@ impl MenuUI {
             for _ in 0..levels_count.saturating_sub(self.levels.len()) {
                 self.levels.push(LevelWidget::new(&self.assets));
             }
-            if show_group.going_up && !show_group.time.is_max() && levels_count < self.levels.len()
-            {
+            if levels_count < self.levels.len() {
                 // Delete extra levels
                 self.levels.drain(levels_count..);
             }

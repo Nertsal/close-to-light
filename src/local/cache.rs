@@ -562,4 +562,19 @@ impl LevelCache {
             }
         }
     }
+
+    pub fn delete_level(&mut self, group: Index, level: usize) {
+        if let Some(group) = self.groups.get_mut(group) {
+            if level < group.levels.len() {
+                let level = group.levels.remove(level);
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    log::debug!("Deleting the level folder: {:?}", level.path);
+                    if let Err(err) = std::fs::remove_dir_all(&level.path) {
+                        log::error!("Failed to delete level: {:?}", err);
+                    }
+                }
+            }
+        }
+    }
 }
