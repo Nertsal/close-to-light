@@ -172,7 +172,7 @@ impl LevelMenu {
         let local = self.state.local.borrow();
 
         let group = self.state.show_group.as_ref()?;
-        let group = self.ui.groups.get(group.data)?.group;
+        let group = self.ui.level_select.groups.get(group.data)?.group;
         let group = local.groups.get(group)?;
 
         let music = group.music.as_ref()?;
@@ -437,8 +437,8 @@ impl geng::State for LevelMenu {
             } => {
                 if let Some(sync) = &mut self.ui.sync {
                     sync.window.request = Some(WidgetRequest::Close);
-                } else if self.ui.options.window.show.time.is_max() {
-                    self.ui.options.window.request = Some(WidgetRequest::Close);
+                } else if self.ui.panels.options.window.show.time.is_max() {
+                    self.ui.panels.options.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.leaderboard.window.show.time.is_max() {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.level_config.window.show.time.is_max() {

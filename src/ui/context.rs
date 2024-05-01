@@ -68,6 +68,7 @@ impl CursorContext {
 #[derive(Debug, Clone)]
 pub struct UiContext {
     pub theme: Theme,
+    pub screen: Aabb2<f32>,
     pub layout_size: f32,
     pub font_size: f32,
     /// Whether the widget can use the cursor position to get focus.
@@ -148,6 +149,7 @@ impl UiContext {
     pub fn new(geng: &Geng, theme: Theme) -> Self {
         Self {
             theme,
+            screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,
             font_size: 1.0,
             can_focus: true,

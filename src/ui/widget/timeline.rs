@@ -28,6 +28,7 @@ impl TimelineWidget {
         Self {
             context: UiContext {
                 theme: Theme::default(),
+                screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
                 layout_size: 1.0,
                 font_size: 1.0,
                 can_focus: true,

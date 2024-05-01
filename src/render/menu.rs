@@ -45,11 +45,11 @@ impl MenuRender {
         self.draw_levels(ui, state, framebuffer);
 
         // TODO: better ordering solution
-        if ui.profile.window.show.time.is_above_min() {
+        if ui.panels.profile.window.show.time.is_above_min() {
             self.draw_options(ui, state, framebuffer);
             self.draw_explore(ui, state, framebuffer);
             self.draw_profile(ui, state, framebuffer);
-        } else if ui.explore.window.show.time.is_above_min() {
+        } else if ui.panels.explore.window.show.time.is_above_min() {
             self.draw_profile(ui, state, framebuffer);
             self.draw_options(ui, state, framebuffer);
             self.draw_explore(ui, state, framebuffer);
@@ -112,6 +112,7 @@ impl MenuRender {
     }
 
     fn draw_levels(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
+        let ui = &ui.level_select;
         let theme = state.options.theme;
 
         // Clip groups and levels
@@ -185,6 +186,7 @@ impl MenuRender {
         state: &MenuState,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let ui = &ui.panels;
         let theme = state.options.theme;
         let width = 12.0;
         let head = ui.profile_head.state.position;
@@ -225,6 +227,7 @@ impl MenuRender {
         state: &MenuState,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let ui = &ui.panels;
         let camera = &geng::PixelPerfectCamera;
         let theme = state.options.theme;
 
@@ -291,6 +294,7 @@ impl MenuRender {
         state: &MenuState,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let ui = &ui.panels;
         let theme = state.options.theme;
 
         let width = 12.0;
