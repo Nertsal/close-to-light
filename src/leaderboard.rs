@@ -257,7 +257,7 @@ impl Leaderboard {
                 });
 
                 if let Some(score) = &score {
-                    board.submit_score(level, score).await.unwrap();
+                    board.submit_score(level, score).await?;
                 }
 
                 let scores = board.fetch_scores(level).await?;
