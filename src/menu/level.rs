@@ -92,6 +92,14 @@ impl MenuState {
         });
     }
 
+    fn select_level(&mut self, level: usize) {
+        self.selected_level = Some(ShowTime {
+            data: level,
+            time: Bounded::new_zero(0.5),
+            going_up: true,
+        });
+    }
+
     fn show_group(&mut self, group: usize) {
         self.switch_group = Some(group);
     }

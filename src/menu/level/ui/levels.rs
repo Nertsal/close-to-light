@@ -135,9 +135,13 @@ impl LevelSelectUI {
                 }
             }
 
-            self.grid_music(main, state, context);
-            self.grid_groups(main, state, context);
-            // self.grid_levels(main, state, context);
+            if self.tab_music.selected {
+                self.grid_music(main, state, context);
+            } else if self.tab_groups.selected {
+                self.grid_groups(main, state, context);
+            } else if self.tab_levels.selected {
+                self.grid_levels(main, state, context);
+            }
         }
 
         let mut sync = None;
@@ -473,6 +477,66 @@ impl LevelSelectUI {
                 widget.update(pos, context);
                 if widget.state.clicked {
                     state.select_group(widget.data);
+                    tab = Some(LevelSelectTab::Difficulty);
+                }
+            }
+            if let Some(tab) = tab {
+                self.select_tab(tab);
+            }
+        }
+    }
+
+    fn grid_levels(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
+        let local = state.local.borrow();
+        let levels: Vec<_> = state
+            .selected_group
+            .as_ref()
+            .and_then(|group| local.groups.get(group.data))
+            .map(|group| group.levels.iter().sorted_by_key(|level| level.meta.id))
+            .into_iter()
+            .flatten()
+            .collect();
+
+        // Synchronize vec length
+        if self.grid_levels.len() > levels.len() {
+            self.grid_levels.drain(levels.len()..);
+        } else {
+            for _ in 0..levels.len().saturating_sub(self.grid_levels.len()) {
+                self.grid_levels.push(ItemWidget::new("", 0));
+            }
+        }
+
+        // Synchronize data
+        for (widget, (levels_id, cache)) in
+            self.grid_levels.iter_mut().zip(levels.iter().enumerate())
+        {
+            widget.data = levels_id;
+            widget.text.text = cache.meta.name.clone();
+        }
+
+        drop(local);
+
+        // Layout
+        let columns = 3;
+        let rows = self.grid_levels.len() / columns + 1;
+        let spacing = vec2(1.0, 2.0) * context.layout_size;
+        let item_size = vec2(
+            (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
+            1.3 * context.font_size,
+        );
+        for row in 0..rows {
+            let top_left =
+                Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
+                    .extend_right(item_size.x)
+                    .extend_down(item_size.y);
+            let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
+            let i = columns * row;
+            let range = (i + 3).min(self.grid_levels.len());
+            let mut tab = None;
+            for (widget, pos) in self.grid_levels[i..range].iter_mut().zip(layout) {
+                widget.update(pos, context);
+                if widget.state.clicked {
+                    state.select_level(widget.data);
                     tab = Some(LevelSelectTab::Difficulty);
                 }
             }
