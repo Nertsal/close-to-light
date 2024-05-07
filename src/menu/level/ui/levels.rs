@@ -1,9 +1,8 @@
 use super::*;
 
 pub struct LevelSelectUI {
-    geng: Geng,
-    assets: Rc<Assets>,
-
+    // geng: Geng,
+    // assets: Rc<Assets>,
     pub tab_music: ToggleWidget,
     pub tab_groups: ToggleWidget,
     pub tab_levels: ToggleWidget,
@@ -11,14 +10,6 @@ pub struct LevelSelectUI {
     pub grid_music: Vec<ItemWidget<Id>>,
     pub grid_groups: Vec<ItemWidget<Index>>,
     pub grid_levels: Vec<ItemWidget<usize>>,
-
-    pub groups_state: WidgetState,
-    pub groups: Vec<GroupWidget>,
-    pub new_group: TextWidget,
-
-    pub levels_state: WidgetState,
-    pub levels: Vec<LevelWidget>,
-    pub new_level: TextWidget,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -29,11 +20,10 @@ pub enum LevelSelectTab {
 }
 
 impl LevelSelectUI {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(_geng: &Geng, _assets: &Rc<Assets>) -> Self {
         let mut ui = Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-
+            // geng: geng.clone(),
+            // assets: assets.clone(),
             tab_music: ToggleWidget::new("Music"),
             tab_groups: ToggleWidget::new("Group"),
             tab_levels: ToggleWidget::new("Difficulty"),
@@ -41,14 +31,6 @@ impl LevelSelectUI {
             grid_music: Vec::new(),
             grid_groups: Vec::new(),
             grid_levels: Vec::new(),
-
-            groups_state: default(),
-            groups: Vec::new(),
-            new_group: TextWidget::new("+ New Level Set"),
-
-            levels_state: default(),
-            levels: Vec::new(),
-            new_level: TextWidget::new("+ New Difficulty"),
         };
         ui.tab_music.selected = true;
         ui.tab_groups.hide();
@@ -87,7 +69,21 @@ impl LevelSelectUI {
         let bar = main.cut_top(context.font_size * 1.2);
         main.cut_top(context.layout_size * 1.0);
 
-        // Tabs
+        self.tabs(bar, context);
+
+        if self.tab_music.selected {
+            self.grid_music(main, state, context);
+        } else if self.tab_groups.selected {
+            self.grid_groups(main, state, context);
+        } else if self.tab_levels.selected {
+            self.grid_levels(main, state, context);
+        }
+
+        // TODO sync
+        None
+    }
+
+    fn tabs(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
         let buttons: Vec<_> = [
             Some(&mut self.tab_music),
             self.tab_groups
@@ -106,8 +102,8 @@ impl LevelSelectUI {
         .collect();
 
         let spacing = 1.0 * context.layout_size;
-        let button_size = vec2(7.0 * context.layout_size, bar.height());
-        let button = Aabb2::point(bar.center()).extend_symmetric(button_size / 2.0);
+        let button_size = vec2(7.0 * context.layout_size, main.height());
+        let button = Aabb2::point(main.center()).extend_symmetric(button_size / 2.0);
         let buttons_layout = button.stack_aligned(
             vec2(button_size.x + spacing, 0.0),
             buttons.len(),
@@ -131,17 +127,6 @@ impl LevelSelectUI {
                 }
             }
         }
-
-        if self.tab_music.selected {
-            self.grid_music(main, state, context);
-        } else if self.tab_groups.selected {
-            self.grid_groups(main, state, context);
-        } else if self.tab_levels.selected {
-            self.grid_levels(main, state, context);
-        }
-
-        // TODO sync
-        None
     }
 
     fn grid_music(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
