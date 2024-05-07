@@ -66,6 +66,16 @@ impl Display for Modifier {
     }
 }
 
+impl LevelModifiers {
+    pub fn get_mut(&mut self, modifier: Modifier) -> &mut bool {
+        match modifier {
+            Modifier::NoFail => &mut self.nofail,
+            Modifier::Sudden => &mut self.sudden,
+            Modifier::Hidden => &mut self.hidden,
+        }
+    }
+}
+
 #[allow(clippy::derivable_impls)]
 impl Default for LevelModifiers {
     fn default() -> Self {

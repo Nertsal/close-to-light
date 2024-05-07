@@ -42,6 +42,7 @@ impl MenuRender {
 
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
+        self.draw_modifiers(ui, state, framebuffer);
 
         // // TODO: better ordering solution
         // if ui.panels.profile.window.show.time.is_above_min() {
@@ -218,6 +219,44 @@ impl MenuRender {
             .draw_text_colored(&ui.difficulty, theme.highlight, framebuffer);
         self.ui
             .draw_text_colored(&ui.mappers, theme.highlight, framebuffer);
+    }
+
+    fn draw_modifiers(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let ui = &ui.modifiers;
+        let theme = state.options.theme;
+        let width = self.font_size * 0.2;
+
+        if !ui.body.visible {
+            self.ui
+                .draw_outline(ui.head.state.position, width, theme.danger, framebuffer);
+            self.ui
+                .draw_text_colored(&ui.head, theme.danger, framebuffer);
+        } else {
+            let theme = Theme {
+                light: theme.danger,
+                ..theme
+            };
+            self.ui.draw_window(
+                &mut self.masked,
+                ui.body.position,
+                Some(ui.head.state.position),
+                width,
+                theme,
+                framebuffer,
+                |framebuffer| {
+                    for (modifier, _) in &ui.mods {
+                        self.ui.draw_toggle_widget(modifier, theme, framebuffer);
+                    }
+                },
+            );
+            self.ui
+                .draw_text_colored(&ui.head, theme.danger, framebuffer);
+        }
     }
 
     fn draw_profile(

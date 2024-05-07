@@ -177,7 +177,7 @@ impl LevelMenu {
             ),
             play_button: HoverButton::new(
                 Collider {
-                    position: vec2(4.9, -1.0).as_r32(),
+                    position: vec2(4.9, -0.5).as_r32(),
                     rotation: Angle::ZERO,
                     shape: Shape::Circle { radius: r32(0.8) },
                 },
@@ -389,16 +389,16 @@ impl geng::State for LevelMenu {
 
         let fading = self.exit_button.is_fading() || self.play_button.is_fading();
 
-        if !fading || self.exit_button.is_fading() {
-            let button = crate::render::smooth_button(&self.exit_button, self.time);
-            self.util.draw_button(
-                &button,
-                "EXIT",
-                &crate::render::THEME,
-                &self.camera,
-                &mut dither_buffer,
-            );
-        }
+        // if !fading || self.exit_button.is_fading() {
+        //     let button = crate::render::smooth_button(&self.exit_button, self.time);
+        //     self.util.draw_button(
+        //         &button,
+        //         "EXIT",
+        //         &crate::render::THEME,
+        //         &self.camera,
+        //         &mut dither_buffer,
+        //     );
+        // }
 
         if !fading || self.play_button.is_fading() {
             let play_time = r32(self

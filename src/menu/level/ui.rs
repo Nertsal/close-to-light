@@ -1,8 +1,9 @@
 mod level;
+mod modifiers;
 mod panels;
 mod select;
 
-pub use self::{level::*, panels::*, select::*};
+pub use self::{level::*, modifiers::*, panels::*, select::*};
 
 use super::*;
 
@@ -22,6 +23,8 @@ pub struct MenuUI {
 
     pub level_select: LevelSelectUI,
     pub play_level: PlayLevelWidget,
+    pub modifiers: ModifiersWidget,
+
     pub panels: PanelsUI,
 
     pub leaderboard: LeaderboardWidget,
@@ -42,6 +45,8 @@ impl MenuUI {
 
             level_select: LevelSelectUI::new(geng, assets),
             play_level: PlayLevelWidget::new(),
+            modifiers: ModifiersWidget::new(),
+
             panels: PanelsUI::new(assets),
 
             leaderboard: LeaderboardWidget::new(assets),
@@ -86,6 +91,7 @@ impl MenuUI {
         right.cut_top(3.5 * layout_size);
         right.cut_bottom(2.0 * layout_size);
         self.play_level.update(right, state, context);
+        self.modifiers.update(right, state, context);
 
         // // Margin
         // let mut main = screen

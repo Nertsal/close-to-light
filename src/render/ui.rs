@@ -98,14 +98,8 @@ impl UiRender {
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        // self.util.draw_outline(
-        //     &Collider::aabb(quad.map(r32)),
-        //     width,
-        //     color,
-        //     &geng::PixelPerfectCamera,
-        //     framebuffer,
-        // );
-        let texture = if width < 5.0 {
+        let scale = pixel_scale(framebuffer);
+        let texture = if width < 4.0 * scale {
             &self.assets.sprites.border_thin
         } else {
             &self.assets.sprites.border
@@ -114,7 +108,7 @@ impl UiRender {
             quad,
             color,
             texture,
-            pixel_scale(framebuffer),
+            scale,
             &geng::PixelPerfectCamera,
             framebuffer,
         );
