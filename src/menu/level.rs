@@ -43,7 +43,7 @@ pub struct MenuState {
     pub local: Rc<RefCell<LevelCache>>,
 
     pub selected_music: Option<ShowTime<Id>>,
-    pub selected_group: Option<ShowTime<Id>>,
+    pub selected_group: Option<ShowTime<Index>>,
     pub selected_level: Option<ShowTime<usize>>,
 
     /// Currently showing group.
@@ -79,6 +79,14 @@ impl MenuState {
     fn select_music(&mut self, music: Id) {
         self.selected_music = Some(ShowTime {
             data: music,
+            time: Bounded::new_zero(0.5),
+            going_up: true,
+        });
+    }
+
+    fn select_group(&mut self, group: Index) {
+        self.selected_group = Some(ShowTime {
+            data: group,
             time: Bounded::new_zero(0.5),
             going_up: true,
         });

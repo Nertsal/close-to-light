@@ -46,3 +46,18 @@ impl Debug for CachedMusic {
             .finish()
     }
 }
+
+impl CachedGroup {
+    /// Return the list of map authors in a readable string format.
+    pub fn mappers(&self) -> String {
+        let mut authors: Vec<&str> = self
+            .levels
+            .iter()
+            .flat_map(|level| level.meta.authors.iter().map(|user| user.name.as_str()))
+            .collect();
+        authors.sort();
+        authors.dedup();
+
+        itertools::Itertools::intersperse(authors.into_iter(), ",").collect::<String>()
+    }
+}

@@ -123,23 +123,17 @@ impl MenuRender {
         if ui.tab_music.selected {
             for music in &ui.grid_music {
                 let selected = state.selected_music.as_ref().map(|m| m.data) == Some(music.data);
-                let (bg_color, fg_color, out_color) = if selected {
-                    (theme.light, theme.dark, theme.light)
-                } else if music.state.hovered {
-                    (theme.light, theme.dark, theme.dark)
-                } else {
-                    (theme.dark, theme.light, theme.light)
-                };
-                let outline_width = self.font_size * 0.1;
-                self.ui.draw_quad(
-                    music.state.position.extend_uniform(-outline_width),
-                    bg_color,
-                    framebuffer,
-                );
-                self.ui
-                    .draw_text_colored(&music.text, fg_color, framebuffer);
-                self.ui
-                    .draw_outline(music.state.position, outline_width, out_color, framebuffer);
+                self.draw_item_widget(music, selected, theme, framebuffer);
+            }
+        } else if ui.tab_groups.selected {
+            for group in &ui.grid_groups {
+                let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.data);
+                self.draw_item_widget(group, selected, theme, framebuffer);
+            }
+        } else if ui.tab_levels.selected {
+            for level in &ui.grid_levels {
+                let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.data);
+                self.draw_item_widget(level, selected, theme, framebuffer);
             }
         }
 
@@ -432,5 +426,30 @@ impl MenuRender {
                 }
             },
         );
+    }
+
+    fn draw_item_widget<T>(
+        &self,
+        item: &crate::menu::ItemWidget<T>,
+        selected: bool,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let (bg_color, fg_color, out_color) = if selected {
+            (theme.light, theme.dark, theme.light)
+        } else if item.state.hovered {
+            (theme.light, theme.dark, theme.dark)
+        } else {
+            (theme.dark, theme.light, theme.light)
+        };
+        let outline_width = self.font_size * 0.1;
+        self.ui.draw_quad(
+            item.state.position.extend_uniform(-outline_width),
+            bg_color,
+            framebuffer,
+        );
+        self.ui.draw_text_colored(&item.text, fg_color, framebuffer);
+        self.ui
+            .draw_outline(item.state.position, outline_width, out_color, framebuffer);
     }
 }

@@ -169,6 +169,7 @@ impl LevelCache {
         path: impl AsRef<std::path::Path>,
     ) -> Result<Rc<CachedMusic>> {
         let path = path.as_ref();
+        log::debug!("loading music at {:?}", path);
         let music = Rc::new(CachedMusic::load(self.geng.asset_manager(), path).await?);
         self.music.insert(music.meta.id, Rc::clone(&music));
         Ok(music)
@@ -256,13 +257,14 @@ impl LevelCache {
     /// Load the group and all levels from it.
     async fn load_group_all(&mut self, path: impl AsRef<std::path::Path>) -> Result<()> {
         let group_path = path.as_ref();
+        log::debug!("loading music at {:?}", group_path);
         self.load_group_empty(group_path).await?;
 
         // If `load_group_empty` succedes, the group is pushed to the end
         let (_, group) = self.groups.iter_mut().last().unwrap();
 
         let mut levels = Vec::new();
-        for entry in std::fs::read_dir(path)? {
+        for entry in std::fs::read_dir(group_path)? {
             let entry = entry?;
             let path = entry.path();
             if !path.is_dir() {
