@@ -21,6 +21,13 @@ pub struct LevelSelectUI {
     pub new_level: TextWidget,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum LevelSelectTab {
+    Music,
+    Group,
+    Difficulty,
+}
+
 impl LevelSelectUI {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let mut ui = Self {
@@ -47,6 +54,26 @@ impl LevelSelectUI {
         ui.tab_groups.hide();
         ui.tab_levels.hide();
         ui
+    }
+
+    pub fn select_tab(&mut self, tab: LevelSelectTab) {
+        for button in [
+            &mut self.tab_music,
+            &mut self.tab_groups,
+            &mut self.tab_levels,
+        ] {
+            if !button.text.state.clicked {
+                button.selected = false;
+            }
+        }
+
+        let tab = match tab {
+            LevelSelectTab::Music => &mut self.tab_music,
+            LevelSelectTab::Group => &mut self.tab_groups,
+            LevelSelectTab::Difficulty => &mut self.tab_levels,
+        };
+        tab.show();
+        tab.selected = true;
     }
 
     pub fn update(
@@ -80,9 +107,14 @@ impl LevelSelectUI {
             .flatten()
             .collect();
 
+            let spacing = 1.0 * context.layout_size;
             let button_size = vec2(7.0 * context.layout_size, bar.height());
             let button = Aabb2::point(bar.center()).extend_symmetric(button_size / 2.0);
-            let buttons_layout = button.stack_aligned(button_size, buttons.len(), vec2(0.5, 0.5));
+            let buttons_layout = button.stack_aligned(
+                vec2(button_size.x + spacing, 0.0),
+                buttons.len(),
+                vec2(0.5, 0.5),
+            );
             let mut deselect = false;
             for (button, pos) in buttons.into_iter().zip(buttons_layout) {
                 button.update(pos, context);
@@ -121,6 +153,8 @@ impl LevelSelectUI {
                 widget.text.text = cache.meta.name.clone();
             }
 
+            drop(local);
+
             // Layout
             let columns = 3;
             let rows = self.grid_music.len() / columns + 1;
@@ -137,8 +171,16 @@ impl LevelSelectUI {
                 let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
                 let i = columns * row;
                 let range = (i + 3).min(self.grid_music.len());
+                let mut tab = None;
                 for (widget, pos) in self.grid_music[i..range].iter_mut().zip(layout) {
                     widget.update(pos, context);
+                    if widget.state.clicked {
+                        state.select_music(widget.data);
+                        tab = Some(LevelSelectTab::Group);
+                    }
+                }
+                if let Some(tab) = tab {
+                    self.select_tab(tab);
                 }
             }
         }

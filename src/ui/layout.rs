@@ -87,7 +87,7 @@ pub trait AreaOps {
             total.max.y = total.max.y.max(last.max.y);
         }
         for pos in &mut cells {
-            *pos = pos.translate(total.size() * align - self.get().size() * align);
+            *pos = pos.translate(self.get().size() * align - total.size() * align);
         }
         cells
     }

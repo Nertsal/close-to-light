@@ -76,6 +76,14 @@ impl Debug for GroupEntry {
 }
 
 impl MenuState {
+    fn select_music(&mut self, music: Id) {
+        self.selected_music = Some(ShowTime {
+            data: music,
+            time: Bounded::new_zero(0.5),
+            going_up: true,
+        });
+    }
+
     fn show_group(&mut self, group: usize) {
         self.switch_group = Some(group);
     }
