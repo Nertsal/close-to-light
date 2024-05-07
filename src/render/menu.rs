@@ -35,35 +35,33 @@ impl MenuRender {
 
         let theme = state.options.theme;
 
-        self.ui.draw_texture(
-            ui.ctl_logo.position,
-            &self.assets.sprites.title,
-            theme.light,
-            framebuffer,
-        );
+        self.ui.draw_icon(&ui.ctl_logo, framebuffer);
+
+        self.ui
+            .draw_quad(ui.separator.position, theme.light, framebuffer);
 
         self.draw_levels(ui, state, framebuffer);
 
-        // TODO: better ordering solution
-        if ui.panels.profile.window.show.time.is_above_min() {
-            self.draw_options(ui, state, framebuffer);
-            self.draw_explore(ui, state, framebuffer);
-            self.draw_profile(ui, state, framebuffer);
-        } else if ui.panels.explore.window.show.time.is_above_min() {
-            self.draw_profile(ui, state, framebuffer);
-            self.draw_options(ui, state, framebuffer);
-            self.draw_explore(ui, state, framebuffer);
-        } else {
-            self.draw_profile(ui, state, framebuffer);
-            self.draw_explore(ui, state, framebuffer);
-            self.draw_options(ui, state, framebuffer);
-        }
+        // // TODO: better ordering solution
+        // if ui.panels.profile.window.show.time.is_above_min() {
+        //     self.draw_options(ui, state, framebuffer);
+        //     self.draw_explore(ui, state, framebuffer);
+        //     self.draw_profile(ui, state, framebuffer);
+        // } else if ui.panels.explore.window.show.time.is_above_min() {
+        //     self.draw_profile(ui, state, framebuffer);
+        //     self.draw_options(ui, state, framebuffer);
+        //     self.draw_explore(ui, state, framebuffer);
+        // } else {
+        //     self.draw_profile(ui, state, framebuffer);
+        //     self.draw_explore(ui, state, framebuffer);
+        //     self.draw_options(ui, state, framebuffer);
+        // }
 
-        self.ui
-            .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
-        self.draw_level_config(ui, state, framebuffer);
+        // self.ui
+        //     .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+        // self.draw_level_config(ui, state, framebuffer);
 
-        self.draw_sync(ui, state, framebuffer);
+        // self.draw_sync(ui, state, framebuffer);
     }
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
@@ -115,69 +113,99 @@ impl MenuRender {
         let ui = &ui.level_select;
         let theme = state.options.theme;
 
-        // Clip groups and levels
-        let mut mask = self.masked.start();
+        self.ui
+            .draw_toggle_widget(&ui.tab_music, theme, framebuffer);
+        self.ui
+            .draw_toggle_widget(&ui.tab_groups, theme, framebuffer);
+        self.ui
+            .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
 
-        mask.mask_quad(Aabb2 {
-            min: ui.groups_state.position.min,
-            max: ui.levels_state.position.max,
-        });
-
-        for (group, _entry) in ui.groups.iter().zip(&state.local.borrow().groups) {
-            // TODO: logo?
-            // if let Some(logo) = &entry.logo {
-            //     self.ui
-            //         .draw_texture(group.logo.position, logo, theme.light, framebuffer);
-            // }
-
-            self.ui.draw_icon(&group.delete.icon, &mut mask.color);
-            self.ui.draw_outline(
-                group.static_state.position,
-                self.font_size * 0.2,
-                theme.light,
-                &mut mask.color,
-            );
-
-            self.ui.draw_toggle_slide(
-                &group.state,
-                &[&group.name, &group.author],
-                self.font_size * 0.2,
-                group.selected_time.get_ratio() > 0.5,
-                theme,
-                &mut mask.color,
-            );
-        }
-
-        for level in &ui.levels {
-            if !level.state.visible {
-                continue;
+        if ui.tab_music.selected {
+            for music in &ui.grid_music {
+                let selected = state.selected_music.as_ref().map(|m| m.data) == Some(music.data);
+                let (bg_color, fg_color, out_color) = if selected {
+                    (theme.light, theme.dark, theme.light)
+                } else if music.state.hovered {
+                    (theme.light, theme.dark, theme.dark)
+                } else {
+                    (theme.dark, theme.light, theme.light)
+                };
+                let outline_width = self.font_size * 0.1;
+                self.ui.draw_quad(
+                    music.state.position.extend_uniform(-outline_width),
+                    bg_color,
+                    framebuffer,
+                );
+                self.ui
+                    .draw_text_colored(&music.text, fg_color, framebuffer);
+                self.ui
+                    .draw_outline(music.state.position, outline_width, out_color, framebuffer);
             }
-
-            self.ui.draw_icon(&level.sync.icon, &mut mask.color);
-            self.ui.draw_icon(&level.edit.icon, &mut mask.color);
-            self.ui.draw_outline(
-                level.static_state.position,
-                self.font_size * 0.2,
-                theme.light,
-                &mut mask.color,
-            );
-
-            self.ui.draw_toggle_slide(
-                &level.state,
-                &[&level.name, &level.author],
-                self.font_size * 0.2,
-                level.selected_time.get_ratio() > 0.5,
-                theme,
-                &mut mask.color,
-            );
         }
 
-        self.ui
-            .draw_toggle(&ui.new_group, self.font_size * 0.2, theme, &mut mask.color);
-        self.ui
-            .draw_toggle(&ui.new_level, self.font_size * 0.2, theme, &mut mask.color);
+        // // Clip groups and levels
+        // let mut mask = self.masked.start();
 
-        self.masked.draw(draw_parameters(), framebuffer);
+        // mask.mask_quad(Aabb2 {
+        //     min: ui.groups_state.position.min,
+        //     max: ui.levels_state.position.max,
+        // });
+
+        // for (group, _entry) in ui.sets.iter().zip(&state.local.borrow().groups) {
+        //     // TODO: logo?
+        //     // if let Some(logo) = &entry.logo {
+        //     //     self.ui
+        //     //         .draw_texture(group.logo.position, logo, theme.light, framebuffer);
+        //     // }
+
+        //     self.ui.draw_icon(&group.delete.icon, &mut mask.color);
+        //     self.ui.draw_outline(
+        //         group.static_state.position,
+        //         self.font_size * 0.2,
+        //         theme.light,
+        //         &mut mask.color,
+        //     );
+
+        //     self.ui.draw_toggle_slide(
+        //         &group.state,
+        //         &[&group.name, &group.author],
+        //         self.font_size * 0.2,
+        //         group.selected_time.get_ratio() > 0.5,
+        //         theme,
+        //         &mut mask.color,
+        //     );
+        // }
+
+        // for level in &ui.difficulties {
+        //     if !level.state.visible {
+        //         continue;
+        //     }
+
+        //     self.ui.draw_icon(&level.sync.icon, &mut mask.color);
+        //     self.ui.draw_icon(&level.edit.icon, &mut mask.color);
+        //     self.ui.draw_outline(
+        //         level.static_state.position,
+        //         self.font_size * 0.2,
+        //         theme.light,
+        //         &mut mask.color,
+        //     );
+
+        //     self.ui.draw_toggle_slide(
+        //         &level.state,
+        //         &[&level.name, &level.author],
+        //         self.font_size * 0.2,
+        //         level.selected_time.get_ratio() > 0.5,
+        //         theme,
+        //         &mut mask.color,
+        //     );
+        // }
+
+        // self.ui
+        //     .draw_toggle(&ui.new_group, self.font_size * 0.2, theme, &mut mask.color);
+        // self.ui
+        //     .draw_toggle(&ui.new_level, self.font_size * 0.2, theme, &mut mask.color);
+
+        // self.masked.draw(draw_parameters(), framebuffer);
     }
 
     fn draw_profile(

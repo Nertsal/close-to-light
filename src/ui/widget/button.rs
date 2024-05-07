@@ -84,3 +84,45 @@ impl Widget for IconButtonWidget {
         }
     }
 }
+
+#[derive(Clone, Default)]
+pub struct ToggleWidget {
+    pub text: TextWidget,
+    pub selected: bool,
+    pub can_deselect: bool,
+}
+
+impl ToggleWidget {
+    pub fn new(text: impl Into<String>) -> Self {
+        Self {
+            text: TextWidget::new(text),
+            selected: false,
+            can_deselect: false,
+        }
+    }
+
+    pub fn new_deselectable(text: impl Into<String>) -> Self {
+        Self {
+            text: TextWidget::new(text),
+            selected: false,
+            can_deselect: true,
+        }
+    }
+}
+
+impl Widget for ToggleWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.text.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.text.update(position, context);
+        if self.text.state.clicked {
+            if self.can_deselect {
+                self.selected = !self.selected;
+            } else {
+                self.selected = true;
+            }
+        }
+    }
+}

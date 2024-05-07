@@ -13,7 +13,8 @@ pub struct MenuUI {
     // geng: Geng,
     // assets: Rc<Assets>,
     pub screen: WidgetState,
-    pub ctl_logo: WidgetState,
+    pub ctl_logo: IconWidget,
+    pub separator: WidgetState,
 
     pub sync: Option<SyncWidget>,
     pub sync_offset: vec2<f32>,
@@ -31,7 +32,8 @@ impl MenuUI {
             // geng: geng.clone(),
             // assets: assets.clone(),
             screen: WidgetState::new(),
-            ctl_logo: default(),
+            ctl_logo: IconWidget::new(&assets.sprites.title),
+            separator: WidgetState::new(),
 
             sync: None,
             sync_offset: vec2::ZERO,
@@ -55,123 +57,128 @@ impl MenuUI {
         let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
+        let font_size = screen.height() * 0.06;
 
         context.screen = screen;
         context.layout_size = layout_size;
-        context.font_size = screen.height() * 0.06;
+        context.font_size = font_size;
 
-        macro_rules! update {
-            ($widget:expr, $position:expr) => {{
-                $widget.update($position, context);
-            }};
-            ($widget:expr, $position:expr, $state:expr) => {{
-                $widget.update($position, context, $state);
-            }};
-        }
+        self.screen.update(screen, context);
 
-        update!(self.screen, screen);
+        let mut right = self.screen.position;
+        let left = right.split_left(0.55);
 
-        // Margin
-        let mut main = screen
-            .extend_uniform(-layout_size * 2.0)
-            .extend_up(-layout_size * 2.0);
+        let separator = Aabb2::point(vec2(right.min.x, right.center().y))
+            .extend_symmetric(vec2(0.1 * layout_size, screen.height() - 10.0 * layout_size) / 2.0);
+        self.separator.update(separator, context);
 
-        // Logo
-        let ctl_logo = main.cut_top(layout_size * 4.0);
-        update!(self.ctl_logo, ctl_logo);
-        main.cut_top(layout_size * 3.0);
+        let mut left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
+        let logo = left.cut_top(2.5 * layout_size);
+        self.ctl_logo.update(logo, context);
 
-        if let Some(sync) = &mut self.sync {
-            let size = vec2(20.0, 17.0) * layout_size;
-            let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
-            sync.update(pos, context, &mut state.local.borrow_mut());
-            context.update_focus(sync.state.hovered);
-            if !sync.window.show.going_up && sync.window.show.time.is_min() {
-                // Close window
-                self.sync = None;
-                self.sync_offset = vec2::ZERO;
-            }
-        }
+        self.level_select.update(left, state, context);
 
-        let base_t = if state.level_up {
-            1.0
-        } else {
-            state
-                .show_level
-                .as_ref()
-                .map_or(0.0, |show| show.time.get_ratio())
-        };
-        let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
+        // // Margin
+        // let mut main = screen
+        //     .extend_uniform(-layout_size * 2.0)
+        //     .extend_up(-layout_size * 2.0);
 
-        self.panels.update(state, context);
+        // // Logo
+        // let ctl_logo = main.cut_top(layout_size * 4.0);
+        // self.ctl_logo.update(ctl_logo, context);
+        // main.cut_top(layout_size * 3.0);
 
-        let cursor_high = context.cursor.position.y > main.max.y;
+        // if let Some(sync) = &mut self.sync {
+        //     let size = vec2(20.0, 17.0) * layout_size;
+        //     let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
+        //     sync.update(pos, context, &mut state.local.borrow_mut());
+        //     context.update_focus(sync.state.hovered);
+        //     if !sync.window.show.going_up && sync.window.show.time.is_min() {
+        //         // Close window
+        //         self.sync = None;
+        //         self.sync_offset = vec2::ZERO;
+        //     }
+        // }
 
-        {
-            // Leaderboard
-            let width = layout_size * 22.0;
-            let height = main.height() + layout_size * 2.0;
+        // let base_t = if state.level_up {
+        //     1.0
+        // } else {
+        //     state
+        //         .show_level
+        //         .as_ref()
+        //         .map_or(0.0, |show| show.time.get_ratio())
+        // };
+        // let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
 
-            let leaderboard =
-                Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * base_t * layout_size)
-                    .extend_left(width)
-                    .extend_down(height);
+        // self.panels.update(state, context);
 
-            let t = self.leaderboard.window.show.time.get_ratio();
-            let t = crate::util::smoothstep(t);
-            let offset = main.height() * t;
+        // let cursor_high = context.cursor.position.y > main.max.y;
 
-            let leaderboard = leaderboard.translate(vec2(0.0, offset));
+        // {
+        //     // Leaderboard
+        //     let width = layout_size * 22.0;
+        //     let height = main.height() + layout_size * 2.0;
 
-            self.leaderboard.update_state(
-                &state.leaderboard.status,
-                &state.leaderboard.loaded,
-                &state.player.info,
-            );
-            update!(self.leaderboard, leaderboard);
-            context.update_focus(self.leaderboard.state.hovered);
+        //     let leaderboard =
+        //         Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * base_t * layout_size)
+        //             .extend_left(width)
+        //             .extend_down(height);
 
-            self.leaderboard.window.layout(
-                self.leaderboard.state.hovered,
-                self.leaderboard.close.state.clicked
-                    || cursor_high && !self.leaderboard.state.hovered,
-            );
-        }
+        //     let t = self.leaderboard.window.show.time.get_ratio();
+        //     let t = crate::util::smoothstep(t);
+        //     let offset = main.height() * t;
 
-        {
-            // Mods
-            let width = layout_size * 30.0;
-            let height = layout_size * 20.0;
+        //     let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
-            let t = self.level_config.window.show.time.get_ratio();
-            let t = crate::util::smoothstep(t);
-            let offset = height * t;
-            let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * base_t * layout_size)
-                .extend_right(width)
-                .extend_down(height)
-                .translate(vec2(0.0, offset));
+        //     self.leaderboard.update_state(
+        //         &state.leaderboard.status,
+        //         &state.leaderboard.loaded,
+        //         &state.player.info,
+        //     );
+        //     update!(self.leaderboard, leaderboard);
+        //     context.update_focus(self.leaderboard.state.hovered);
 
-            self.level_config.set_config(&state.config);
-            update!(self.level_config, config);
-            context.update_focus(self.level_config.state.hovered);
-            let old_config = state.config.clone();
-            self.level_config.update_config(&mut state.config);
-            if old_config != state.config && self.leaderboard.window.show.going_up {
-                self.leaderboard.window.request = Some(WidgetRequest::Reload);
-            }
+        //     self.leaderboard.window.layout(
+        //         self.leaderboard.state.hovered,
+        //         self.leaderboard.close.state.clicked
+        //             || cursor_high && !self.leaderboard.state.hovered,
+        //     );
+        // }
 
-            self.level_config.window.layout(
-                self.level_config.state.hovered,
-                self.level_config.close.state.clicked
-                    || cursor_high && !self.level_config.state.hovered,
-            );
-        }
+        // {
+        //     // Mods
+        //     let width = layout_size * 30.0;
+        //     let height = layout_size * 20.0;
 
-        // Margin
-        main.cut_left(layout_size * 0.5);
-        if let Some(sync) = self.level_select.update(main, state, context) {
-            self.sync = Some(sync);
-        }
+        //     let t = self.level_config.window.show.time.get_ratio();
+        //     let t = crate::util::smoothstep(t);
+        //     let offset = height * t;
+        //     let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * base_t * layout_size)
+        //         .extend_right(width)
+        //         .extend_down(height)
+        //         .translate(vec2(0.0, offset));
+
+        //     self.level_config.set_config(&state.config);
+        //     update!(self.level_config, config);
+        //     context.update_focus(self.level_config.state.hovered);
+        //     let old_config = state.config.clone();
+        //     self.level_config.update_config(&mut state.config);
+        //     if old_config != state.config && self.leaderboard.window.show.going_up {
+        //         self.leaderboard.window.request = Some(WidgetRequest::Reload);
+        //     }
+
+        //     self.level_config.window.layout(
+        //         self.level_config.state.hovered,
+        //         self.level_config.close.state.clicked
+        //             || cursor_high && !self.level_config.state.hovered,
+        //     );
+        // }
+
+        // // Margin
+        // main.cut_left(layout_size * 0.5);
+        // if let Some(sync) = self.level_select.update(main, state, context) {
+        //     self.sync = Some(sync);
+        // }
 
         !context.can_focus
     }

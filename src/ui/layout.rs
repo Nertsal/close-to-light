@@ -77,6 +77,21 @@ pub trait AreaOps {
             .collect()
     }
 
+    fn stack_aligned(&self, offset: vec2<f32>, cells: usize, align: vec2<f32>) -> Vec<Area> {
+        let mut cells = self.stack(offset, cells);
+        let mut total = self.get();
+        if let Some(last) = cells.last() {
+            total.min.x = total.min.x.min(last.min.x);
+            total.min.y = total.min.y.min(last.min.y);
+            total.max.x = total.max.x.max(last.max.x);
+            total.max.y = total.max.y.max(last.max.y);
+        }
+        for pos in &mut cells {
+            *pos = pos.translate(total.size() * align - self.get().size() * align);
+        }
+        cells
+    }
+
     fn with_width(&self, width: f32, align: f32) -> Area {
         align_aabb(
             vec2(width, self.get().height()),

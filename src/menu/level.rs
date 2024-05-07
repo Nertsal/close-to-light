@@ -41,6 +41,11 @@ pub struct MenuState {
     pub options: Options,
     pub config: LevelConfig,
     pub local: Rc<RefCell<LevelCache>>,
+
+    pub selected_music: Option<ShowTime<Id>>,
+    pub selected_group: Option<ShowTime<Id>>,
+    pub selected_level: Option<ShowTime<usize>>,
+
     /// Currently showing group.
     pub show_group: Option<ShowTime<usize>>,
     /// Switch to the group after current one finishes its animation.
@@ -51,6 +56,7 @@ pub struct MenuState {
     pub switch_level: Option<usize>,
     /// Whether the level configuration and leaderboard screen should be up right now.
     pub level_up: bool,
+
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, usize)>,
 }
@@ -146,11 +152,17 @@ impl LevelMenu {
                 options,
                 config: LevelConfig::default(),
                 local: Rc::clone(local),
+
+                selected_music: None,
+                selected_group: None,
+                selected_level: None,
+
                 show_group: None,
                 switch_group: None,
                 show_level: None,
                 switch_level: None,
                 level_up: false,
+
                 edit_level: None,
             },
             exit_button: HoverButton::new(

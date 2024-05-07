@@ -4,6 +4,14 @@ pub struct LevelSelectUI {
     geng: Geng,
     assets: Rc<Assets>,
 
+    pub tab_music: ToggleWidget,
+    pub tab_groups: ToggleWidget,
+    pub tab_levels: ToggleWidget,
+
+    pub grid_music: Vec<ItemWidget<Id>>,
+    pub grid_groups: Vec<ItemWidget<Id>>,
+    pub grid_levels: Vec<ItemWidget<usize>>,
+
     pub groups_state: WidgetState,
     pub groups: Vec<GroupWidget>,
     pub new_group: TextWidget,
@@ -15,9 +23,17 @@ pub struct LevelSelectUI {
 
 impl LevelSelectUI {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        Self {
+        let mut ui = Self {
             geng: geng.clone(),
             assets: assets.clone(),
+
+            tab_music: ToggleWidget::new("Music"),
+            tab_groups: ToggleWidget::new("Group"),
+            tab_levels: ToggleWidget::new("Difficulty"),
+
+            grid_music: Vec::new(),
+            grid_groups: Vec::new(),
+            grid_levels: Vec::new(),
 
             groups_state: default(),
             groups: Vec::new(),
@@ -26,7 +42,11 @@ impl LevelSelectUI {
             levels_state: default(),
             levels: Vec::new(),
             new_level: TextWidget::new("+ New Difficulty"),
-        }
+        };
+        ui.tab_music.selected = true;
+        ui.tab_groups.hide();
+        ui.tab_levels.hide();
+        ui
     }
 
     pub fn update(
@@ -36,6 +56,92 @@ impl LevelSelectUI {
         context: &mut UiContext,
     ) -> Option<SyncWidget> {
         let layout_size = context.layout_size;
+
+        {
+            let mut main = main;
+            main.cut_top(context.layout_size * 1.5);
+            let bar = main.cut_top(context.font_size * 1.2);
+            main.cut_top(context.layout_size * 1.0);
+
+            let buttons: Vec<_> = [
+                Some(&mut self.tab_music),
+                self.tab_groups
+                    .text
+                    .state
+                    .visible
+                    .then_some(&mut self.tab_groups),
+                self.tab_levels
+                    .text
+                    .state
+                    .visible
+                    .then_some(&mut self.tab_levels),
+            ]
+            .into_iter()
+            .flatten()
+            .collect();
+
+            let button_size = vec2(7.0 * context.layout_size, bar.height());
+            let button = Aabb2::point(bar.center()).extend_symmetric(button_size / 2.0);
+            let buttons_layout = button.stack_aligned(button_size, buttons.len(), vec2(0.5, 0.5));
+            let mut deselect = false;
+            for (button, pos) in buttons.into_iter().zip(buttons_layout) {
+                button.update(pos, context);
+                if button.text.state.clicked {
+                    deselect = true;
+                }
+            }
+            if deselect {
+                for button in [
+                    &mut self.tab_music,
+                    &mut self.tab_groups,
+                    &mut self.tab_levels,
+                ] {
+                    if !button.text.state.clicked {
+                        button.selected = false;
+                    }
+                }
+            }
+
+            // Music grid
+            let local = state.local.borrow();
+            let music: Vec<_> = local.music.iter().sorted_by_key(|(&k, _)| k).collect();
+
+            // Synchronize vec length
+            if self.grid_music.len() > music.len() {
+                self.grid_music.drain(music.len()..);
+            } else {
+                for _ in 0..music.len().saturating_sub(self.grid_music.len()) {
+                    self.grid_music.push(ItemWidget::new("", 0));
+                }
+            }
+
+            // Synchronize data
+            for (widget, (&music_id, cache)) in self.grid_music.iter_mut().zip(&music) {
+                widget.data = music_id;
+                widget.text.text = cache.meta.name.clone();
+            }
+
+            // Layout
+            let columns = 3;
+            let rows = self.grid_music.len() / columns + 1;
+            let spacing = vec2(1.0, 2.0) * context.layout_size;
+            let item_size = vec2(
+                (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
+                1.3 * context.font_size,
+            );
+            for row in 0..rows {
+                let top_left =
+                    Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
+                        .extend_right(item_size.x)
+                        .extend_down(item_size.y);
+                let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
+                let i = columns * row;
+                let range = (i + 3).min(self.grid_music.len());
+                for (widget, pos) in self.grid_music[i..range].iter_mut().zip(layout) {
+                    widget.update(pos, context);
+                }
+            }
+        }
 
         let mut sync = None;
 
@@ -267,5 +373,32 @@ impl LevelSelectUI {
         }
 
         sync
+    }
+}
+
+pub struct ItemWidget<T> {
+    pub state: WidgetState,
+    pub text: TextWidget,
+    pub data: T,
+}
+
+impl<T> ItemWidget<T> {
+    pub fn new(text: impl Into<String>, data: T) -> Self {
+        Self {
+            state: WidgetState::new(),
+            text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
+            data,
+        }
+    }
+}
+
+impl<T> Widget for ItemWidget<T> {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.state.update(position, context);
+        self.text.update(position, &mut context.scale_font(0.9));
     }
 }

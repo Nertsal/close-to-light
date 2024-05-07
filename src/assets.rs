@@ -23,11 +23,11 @@ pub struct Fonts {
 
 #[derive(geng::asset::Load)]
 pub struct Sprites {
-    #[load(postprocess = "pixel")]
-    pub title: ugli::Texture,
-    #[load(postprocess = "pixel")]
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub title: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
     pub linear_gradient: ugli::Texture,
-    #[load(postprocess = "pixel")]
+    #[load(options(filter = "ugli::Filter::Nearest"))]
     pub radial_gradient: ugli::Texture,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub button_next: Rc<ugli::Texture>,
@@ -87,10 +87,6 @@ fn dither_pattern(texture: &mut ugli::Texture) {
 
 fn looping(sfx: &mut geng::Sound) {
     sfx.looped = true;
-}
-
-fn pixel(texture: &mut ugli::Texture) {
-    texture.set_filter(ugli::Filter::Nearest);
 }
 
 impl Assets {
