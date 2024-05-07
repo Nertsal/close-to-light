@@ -41,6 +41,7 @@ impl MenuRender {
             .draw_quad(ui.separator.position, theme.light, framebuffer);
 
         self.draw_levels(ui, state, framebuffer);
+        self.draw_play_level(ui, state, framebuffer);
 
         // // TODO: better ordering solution
         // if ui.panels.profile.window.show.time.is_above_min() {
@@ -200,6 +201,23 @@ impl MenuRender {
         //     .draw_toggle(&ui.new_level, self.font_size * 0.2, theme, &mut mask.color);
 
         // self.masked.draw(draw_parameters(), framebuffer);
+    }
+
+    fn draw_play_level(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let ui = &ui.play_level;
+        let theme = state.options.theme;
+
+        self.ui.draw_text(&ui.music, framebuffer);
+        self.ui.draw_text(&ui.music_author, framebuffer);
+        self.ui
+            .draw_text_colored(&ui.difficulty, theme.highlight, framebuffer);
+        self.ui
+            .draw_text_colored(&ui.mappers, theme.highlight, framebuffer);
     }
 
     fn draw_profile(

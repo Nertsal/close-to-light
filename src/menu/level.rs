@@ -177,7 +177,7 @@ impl LevelMenu {
             ),
             play_button: HoverButton::new(
                 Collider {
-                    position: vec2(6.0, 0.0).as_r32(),
+                    position: vec2(4.9, -1.0).as_r32(),
                     rotation: Angle::ZERO,
                     shape: Shape::Circle { radius: r32(0.8) },
                 },

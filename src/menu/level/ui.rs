@@ -1,7 +1,8 @@
-mod levels;
+mod level;
 mod panels;
+mod select;
 
-pub use self::{levels::*, panels::*};
+pub use self::{level::*, panels::*, select::*};
 
 use super::*;
 
@@ -20,6 +21,7 @@ pub struct MenuUI {
     pub sync_offset: vec2<f32>,
 
     pub level_select: LevelSelectUI,
+    pub play_level: PlayLevelWidget,
     pub panels: PanelsUI,
 
     pub leaderboard: LeaderboardWidget,
@@ -39,6 +41,7 @@ impl MenuUI {
             sync_offset: vec2::ZERO,
 
             level_select: LevelSelectUI::new(geng, assets),
+            play_level: PlayLevelWidget::new(),
             panels: PanelsUI::new(assets),
 
             leaderboard: LeaderboardWidget::new(assets),
@@ -77,6 +80,12 @@ impl MenuUI {
         self.ctl_logo.update(logo, context);
 
         self.level_select.update(left, state, context);
+
+        right.cut_left(5.0 * layout_size);
+        right.cut_right(5.0 * layout_size);
+        right.cut_top(3.5 * layout_size);
+        right.cut_bottom(2.0 * layout_size);
+        self.play_level.update(right, state, context);
 
         // // Margin
         // let mut main = screen
