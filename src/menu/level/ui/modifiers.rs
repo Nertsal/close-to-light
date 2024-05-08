@@ -1,6 +1,7 @@
 use super::*;
 
 pub struct ModifiersWidget {
+    pub slide: Bounded<f32>,
     pub head: TextWidget,
     pub body: WidgetState,
     pub mods: Vec<(ToggleWidget, Modifier)>,
@@ -9,6 +10,7 @@ pub struct ModifiersWidget {
 impl ModifiersWidget {
     pub fn new() -> Self {
         Self {
+            slide: Bounded::new_zero(0.25),
             head: TextWidget::new("Modifiers"),
             body: WidgetState::new(),
             mods: enum_iterator::all::<Modifier>()
@@ -27,13 +29,26 @@ impl ModifiersWidget {
         let head = main.align_aabb(head_size, vec2(0.5, 0.0));
         self.head.update(head, context);
 
+        let t = crate::util::smoothstep(self.slide.get_ratio());
         let body_size = vec2(15.0 * context.layout_size, 2.0 * context.font_size);
         let body = main
             .align_aabb(body_size, vec2(0.5, 0.0))
             .translate(vec2(0.0, head.height()));
-        self.body.update(body, context);
+        if body.height() * t <= 1.0 {
+            self.body.hide();
+        } else {
+            self.body.show();
+            let body = body.with_height(body.height() * t, 0.0);
+            self.body.update(body, context);
+        }
 
-        if self.body.visible {
+        if self.head.state.hovered || self.body.hovered {
+            self.slide.change(context.delta_time);
+        } else {
+            self.slide.change(-context.delta_time);
+        }
+
+        if self.body.visible && body_size.y > 20.0 {
             let main = body.extend_uniform(-1.0 * context.layout_size);
             let columns = self.mods.len();
             let spacing = 1.0 * context.layout_size;

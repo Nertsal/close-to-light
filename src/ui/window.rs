@@ -9,6 +9,16 @@ pub struct ShowTime<T> {
     pub going_up: bool,
 }
 
+impl<T> ShowTime<T> {
+    pub fn new(time: f32, data: T) -> Self {
+        Self {
+            data,
+            time: Bounded::new_zero(time),
+            going_up: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum WidgetRequest {
     Open,

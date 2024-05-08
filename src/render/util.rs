@@ -99,6 +99,7 @@ impl UtilRender {
         };
 
         let size = mid.min * texture.size().as_f32() * scale;
+        let size = vec2(size.x.min(pos.width()), size.y.min(pos.height()));
 
         let tl = Aabb2::from_corners(mid.top_left(), whole.top_left());
         let tm = Aabb2::from_corners(mid.top_left(), vec2(mid.max.x, whole.max.y));
