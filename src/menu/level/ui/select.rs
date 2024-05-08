@@ -6,6 +6,7 @@ pub struct LevelSelectUI {
     pub tab_music: ToggleWidget,
     pub tab_groups: ToggleWidget,
     pub tab_levels: ToggleWidget,
+    pub separator: WidgetState,
 
     pub grid_music: Vec<ItemWidget<Id>>,
     pub grid_groups: Vec<ItemWidget<Index>>,
@@ -27,6 +28,7 @@ impl LevelSelectUI {
             tab_music: ToggleWidget::new("Music"),
             tab_groups: ToggleWidget::new("Group"),
             tab_levels: ToggleWidget::new("Difficulty"),
+            separator: WidgetState::new(),
 
             grid_music: Vec::new(),
             grid_groups: Vec::new(),
@@ -84,6 +86,10 @@ impl LevelSelectUI {
     }
 
     fn tabs(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
+        let sep_size = vec2(main.width() * 0.9, 0.3 * context.layout_size);
+        let sep = main.align_aabb(sep_size, vec2(0.5, 0.0));
+        self.separator.update(sep, context);
+
         let buttons: Vec<_> = [
             Some(&mut self.tab_music),
             self.tab_groups
@@ -104,11 +110,14 @@ impl LevelSelectUI {
         let spacing = 1.0 * context.layout_size;
         let button_size = vec2(7.0 * context.layout_size, main.height());
         let button = Aabb2::point(main.center()).extend_symmetric(button_size / 2.0);
+
+        let all_buttons = 3;
         let buttons_layout = button.stack_aligned(
             vec2(button_size.x + spacing, 0.0),
-            buttons.len(),
+            all_buttons,
             vec2(0.5, 0.5),
         );
+
         let mut deselect = false;
         for (button, pos) in buttons.into_iter().zip(buttons_layout) {
             button.update(pos, context);

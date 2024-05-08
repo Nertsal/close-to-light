@@ -139,6 +139,9 @@ impl MenuRender {
             }
         }
 
+        self.ui
+            .draw_quad(ui.separator.position, theme.light, framebuffer);
+
         // // Clip groups and levels
         // let mut mask = self.masked.start();
 
