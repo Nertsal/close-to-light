@@ -50,11 +50,11 @@ impl ModifiersWidget {
 
         let t = crate::util::smoothstep(self.body_slide.get_ratio());
 
-        let mut body_height = 2.0 * context.font_size;
+        let mut body_height = 2.0 * context.font_size + 0.1 * context.layout_size;
         if self.description_lerp.current() > 0.0 {
             body_height += self.description_lerp.current();
         }
-        let body_size = vec2(15.0 * context.layout_size, body_height);
+        let body_size = vec2(17.0 * context.layout_size, body_height);
         let body = main
             .align_aabb(body_size, vec2(0.5, 0.0))
             .translate(vec2(0.0, head.height()));
