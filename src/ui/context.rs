@@ -65,8 +65,9 @@ impl CursorContext {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct UiContext {
+    pub font: Rc<geng::Font>,
     pub theme: Theme,
     pub screen: Aabb2<f32>,
     pub layout_size: f32,
@@ -148,6 +149,7 @@ impl TextEdit {
 impl UiContext {
     pub fn new(geng: &Geng, theme: Theme) -> Self {
         Self {
+            font: geng.default_font().clone(),
             theme,
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,

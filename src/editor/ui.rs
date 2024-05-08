@@ -82,7 +82,7 @@ pub struct EditorEditWidget {
 }
 
 impl EditorUI {
-    pub fn new(assets: &Assets) -> Self {
+    pub fn new(geng: &Geng, assets: &Assets) -> Self {
         Self {
             screen: default(),
             game: default(),
@@ -96,7 +96,7 @@ impl EditorUI {
             save: ButtonWidget::new("Save"),
 
             help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
-            edit: EditorEditWidget::new(),
+            edit: EditorEditWidget::new(geng),
             config: {
                 let mut w = EditorConfigWidget::new();
                 w.hide();
@@ -204,7 +204,7 @@ impl EditorUI {
 }
 
 impl EditorEditWidget {
-    pub fn new() -> Self {
+    pub fn new(geng: &Geng) -> Self {
         Self {
             state: WidgetState::new(),
 
@@ -237,7 +237,7 @@ impl EditorEditWidget {
             waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
             current_beat: default(),
-            timeline: TimelineWidget::new(),
+            timeline: TimelineWidget::new(geng),
         }
     }
 }

@@ -148,7 +148,7 @@ impl EditorState {
             render: EditorRender::new(&geng, &assets),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
-            ui: EditorUI::new(&assets),
+            ui: EditorUI::new(&geng, &assets),
             ui_focused: false,
             ui_context: UiContext::new(&geng, model.options.theme),
             drag: None,

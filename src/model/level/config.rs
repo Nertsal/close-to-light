@@ -56,6 +56,16 @@ pub enum Modifier {
     Hidden,
 }
 
+impl Modifier {
+    pub fn description(&self) -> &'static str {
+        match self {
+            Modifier::NoFail => "you can't fail",
+            Modifier::Sudden => "you don't see the lights' next move",
+            Modifier::Hidden => "the lights are hidden but they are still there",
+        }
+    }
+}
+
 impl Display for Modifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

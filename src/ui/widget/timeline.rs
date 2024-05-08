@@ -2,7 +2,6 @@ use super::*;
 
 use crate::prelude::*;
 
-#[derive(Debug)]
 pub struct TimelineWidget {
     context: UiContext,
     pub state: WidgetState,
@@ -24,9 +23,10 @@ pub struct TimelineWidget {
 }
 
 impl TimelineWidget {
-    pub fn new() -> Self {
+    pub fn new(geng: &Geng) -> Self {
         Self {
             context: UiContext {
+                font: geng.default_font().clone(),
                 theme: Theme::default(),
                 screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
                 layout_size: 1.0,
