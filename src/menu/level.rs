@@ -77,15 +77,25 @@ impl Debug for GroupEntry {
 impl MenuState {
     fn select_music(&mut self, music: Id) {
         self.switch_music = Some(music);
-        // self.selected_music = Some(ShowTime {
-        //     data: music,
-        //     time: Bounded::new_zero(0.5),
-        //     going_up: true,
-        // });
+        if self
+            .selected_music
+            .as_ref()
+            .map_or(true, |selected| selected.data != music)
+        {
+            self.switch_group = None;
+            self.switch_level = None;
+        }
     }
 
     fn select_group(&mut self, group: Index) {
         self.switch_group = Some(group);
+        if self
+            .selected_group
+            .as_ref()
+            .map_or(true, |selected| selected.data != group)
+        {
+            self.switch_level = None;
+        }
     }
 
     fn select_level(&mut self, level: usize) {
@@ -262,6 +272,7 @@ impl LevelMenu {
                     // Remove
                     self.state.selected_music = None;
                     self.ui.level_select.tab_groups.hide();
+                    self.ui.level_select.tab_levels.hide();
                 }
             }
         } else if let Some(music) = self.state.switch_music {
@@ -302,6 +313,7 @@ impl LevelMenu {
                 if current_group.time.is_min() {
                     // Remove
                     self.state.selected_group = None;
+                    self.state.selected_level = None;
                     self.ui.level_select.tab_levels.hide();
                 }
             }
