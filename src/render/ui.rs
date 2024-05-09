@@ -354,7 +354,7 @@ impl UiRender {
             0.0
         };
         let pos = state.position.extend_uniform(-shrink);
-        self.draw_quad(pos.extend_uniform(-width / 2.0), bg_color, framebuffer);
+        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
         if state.hovered || selected {
             self.draw_outline(pos, width, theme.light, framebuffer);
         }

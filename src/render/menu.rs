@@ -7,7 +7,7 @@ use crate::{
 
 pub struct MenuRender {
     geng: Geng,
-    assets: Rc<Assets>,
+    // assets: Rc<Assets>,
     // util: UtilRender,
     masked: MaskedRender,
     masked2: MaskedRender, // TODO: have just one somehow maybe
@@ -19,7 +19,7 @@ impl MenuRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
+            // assets: assets.clone(),
             // util: UtilRender::new(geng, assets),
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             masked2: MaskedRender::new(geng, assets, vec2(1, 1)),
