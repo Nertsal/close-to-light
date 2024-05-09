@@ -128,6 +128,15 @@ impl UiRender {
     }
 
     pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_icon_colored(icon, Color::WHITE, framebuffer);
+    }
+
+    pub fn draw_icon_colored(
+        &self,
+        icon: &IconWidget,
+        color: Rgba<f32>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         if let Some(bg) = &icon.background {
             match bg.kind {
                 IconBackgroundKind::NineSlice => {
@@ -138,7 +147,7 @@ impl UiRender {
                     // };
                     self.util.draw_nine_slice(
                         icon.state.position,
-                        bg.color,
+                        bg.color * color,
                         texture,
                         pixel_scale(framebuffer),
                         &geng::PixelPerfectCamera,
@@ -149,13 +158,18 @@ impl UiRender {
                     self.draw_texture(
                         icon.state.position,
                         &self.assets.sprites.circle,
-                        bg.color,
+                        bg.color * color,
                         framebuffer,
                     );
                 }
             }
         }
-        self.draw_texture(icon.state.position, &icon.texture, icon.color, framebuffer);
+        self.draw_texture(
+            icon.state.position,
+            &icon.texture,
+            icon.color * color,
+            framebuffer,
+        );
     }
 
     pub fn draw_checkbox(

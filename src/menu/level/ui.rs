@@ -18,6 +18,8 @@ pub struct MenuUI {
     pub ctl_logo: IconWidget,
     pub separator: WidgetState,
 
+    pub options: OptionsButtonWidget,
+
     pub sync: Option<SyncWidget>,
     pub sync_offset: vec2<f32>,
 
@@ -39,6 +41,8 @@ impl MenuUI {
             screen: WidgetState::new(),
             ctl_logo: IconWidget::new(&assets.sprites.title),
             separator: WidgetState::new(),
+
+            options: OptionsButtonWidget::new(assets, 0.25),
 
             sync: None,
             sync_offset: vec2::ZERO,
@@ -85,6 +89,9 @@ impl MenuUI {
         self.ctl_logo.update(logo, context);
 
         self.level_select.update(left, state, context);
+
+        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
+        self.options.update(options, context, state);
 
         right.cut_left(5.0 * layout_size);
         right.cut_right(5.0 * layout_size);

@@ -1,9 +1,71 @@
 use super::*;
 
 use crate::{
-    prelude::{Options, Theme, VolumeOptions},
+    menu::MenuState,
+    prelude::{Assets, Options, Theme, VolumeOptions},
     ui::layout::AreaOps,
 };
+
+use geng_utils::bounded::Bounded;
+
+pub struct OptionsButtonWidget {
+    pub state: WidgetState,
+    pub open_time: Bounded<f32>,
+    pub button: IconWidget,
+    pub options: OptionsWidget,
+}
+
+impl OptionsButtonWidget {
+    pub fn new(assets: &Rc<Assets>, time: f32) -> Self {
+        Self {
+            state: WidgetState::new(),
+            open_time: Bounded::new_zero(time),
+            button: IconWidget::new(&assets.sprites.settings),
+            options: OptionsWidget::new(
+                Options::default(),
+                vec![
+                    // TODO: custom
+                    PaletteWidget::new("Classic", Theme::classic()),
+                    PaletteWidget::new("Test", Theme::test()),
+                ],
+            ),
+        }
+    }
+}
+
+impl StatefulWidget for OptionsButtonWidget {
+    type State = MenuState;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        self.state.update(position, context);
+
+        let button_size = vec2::splat(1.0 * context.font_size);
+        let button = position.align_aabb(button_size, vec2(1.0, 1.0));
+        self.button.update(button, context);
+
+        if self.button.state.hovered || self.options.state.hovered {
+            self.open_time.change(context.delta_time);
+            self.options.show();
+        } else {
+            self.open_time.change(-context.delta_time);
+            if self.open_time.is_min() {
+                self.options.hide();
+            }
+        }
+
+        if self.options.state.visible {
+            let max_size = vec2(15.0, 25.0) * context.layout_size;
+            let min_size = button_size;
+            let options_size = min_size + (max_size - min_size) * self.open_time.get_ratio();
+            let options = position.align_aabb(options_size, vec2(1.0, 1.0));
+            self.options.update(options, context, &mut state.options);
+        }
+    }
+}
 
 pub struct OptionsWidget {
     pub state: WidgetState,
@@ -34,14 +96,11 @@ impl StatefulWidget for OptionsWidget {
         self.state.update(position, context);
         self.window.update(context.delta_time);
 
-        let main = position.extend_symmetric(vec2(-5.0, -1.0) * context.layout_size);
-        let column = Aabb2::point(main.top_left())
-            .extend_right(context.layout_size * 15.0)
-            .extend_down(main.height());
-        let columns = column.stack(vec2(column.width() + context.layout_size * 5.0, 0.0), 2);
-
-        self.volume.update(columns[0], context, &mut state.volume);
-        self.palette.update(columns[1], context, &mut state.theme);
+        let mut main = position.extend_symmetric(vec2(-1.0, -1.0) * context.layout_size);
+        let volume = main.cut_top(5.0 * context.layout_size);
+        self.volume.update(volume, context, &mut state.volume);
+        let palette = main.cut_top(6.0 * context.layout_size);
+        self.palette.update(palette, context, &mut state.theme);
     }
 }
 

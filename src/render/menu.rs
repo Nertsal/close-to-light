@@ -43,6 +43,7 @@ impl MenuRender {
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
         self.draw_modifiers(ui, state, framebuffer);
+        self.draw_options(ui, state, framebuffer);
 
         // // TODO: better ordering solution
         // if ui.panels.profile.window.show.time.is_above_min() {
@@ -314,65 +315,75 @@ impl MenuRender {
         state: &MenuState,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let ui = &ui.panels;
+        let ui = &ui.options;
         let camera = &geng::PixelPerfectCamera;
         let theme = state.options.theme;
 
         let width = 12.0;
-        let head = ui.options_head.state.position;
         let options = ui.options.state.position.extend_up(width);
 
-        self.ui.draw_window(
-            &mut self.masked,
-            options,
-            Some(head),
-            width,
-            theme,
-            framebuffer,
-            |framebuffer| {
-                {
-                    // Volume
-                    let volume = &ui.options.volume;
-                    self.ui.draw_text(&volume.title, framebuffer);
-                    self.ui.draw_slider(&volume.master, framebuffer);
-                }
-
-                {
-                    // Palette
-                    let palette = &ui.options.palette;
-                    self.ui.draw_text(&palette.title, framebuffer);
-                    for palette in &palette.palettes {
-                        self.ui.draw_text(&palette.name, framebuffer);
-
-                        let mut quad = |i: f32, color: Color| {
-                            let pos = palette.visual.position;
-                            let pos = Aabb2::point(pos.bottom_left())
-                                .extend_positive(vec2::splat(pos.height()));
-                            let pos = pos.translate(vec2(i * pos.width(), 0.0));
-                            self.geng.draw2d().draw2d(
-                                framebuffer,
-                                camera,
-                                &draw2d::Quad::new(pos, color),
-                            );
-                        };
-                        quad(0.0, palette.palette.dark);
-                        quad(1.0, palette.palette.light);
-                        quad(2.0, palette.palette.danger);
-                        quad(3.0, palette.palette.highlight);
-
-                        let outline_width = self.font_size * 0.1;
-                        self.ui.draw_outline(
-                            palette.visual.position.extend_uniform(outline_width),
-                            outline_width,
-                            theme.light,
-                            framebuffer,
-                        );
+        if ui.open_time.is_above_min() {
+            self.ui.draw_window(
+                &mut self.masked,
+                options,
+                None,
+                width,
+                theme,
+                framebuffer,
+                |framebuffer| {
+                    {
+                        // Volume
+                        let volume = &ui.options.volume;
+                        self.ui.draw_text(&volume.title, framebuffer);
+                        self.ui.draw_slider(&volume.master, framebuffer);
                     }
-                }
-            },
-        );
 
-        self.ui.draw_text(&ui.options_head, framebuffer);
+                    {
+                        // Palette
+                        let palette = &ui.options.palette;
+                        self.ui.draw_text(&palette.title, framebuffer);
+                        for palette in &palette.palettes {
+                            self.ui.draw_text(&palette.name, framebuffer);
+
+                            let mut quad = |i: f32, color: Color| {
+                                let pos = palette.visual.position;
+                                let pos = Aabb2::point(pos.bottom_left())
+                                    .extend_positive(vec2::splat(pos.height()));
+                                let pos = pos.translate(vec2(i * pos.width(), 0.0));
+                                self.geng.draw2d().draw2d(
+                                    framebuffer,
+                                    camera,
+                                    &draw2d::Quad::new(pos, color),
+                                );
+                            };
+                            quad(0.0, palette.palette.dark);
+                            quad(1.0, palette.palette.light);
+                            quad(2.0, palette.palette.danger);
+                            quad(3.0, palette.palette.highlight);
+
+                            let outline_width = self.font_size * 0.1;
+                            self.ui.draw_outline(
+                                palette.visual.position.extend_uniform(outline_width),
+                                outline_width,
+                                theme.light,
+                                framebuffer,
+                            );
+                        }
+                    }
+                },
+            );
+        }
+
+        let transparency = crate::util::smoothstep(1.0 - ui.open_time.get_ratio());
+        let mut color = Color::WHITE;
+        color.a = transparency;
+        self.ui.draw_icon_colored(&ui.button, color, framebuffer);
+        self.ui.draw_outline(
+            ui.button.state.position,
+            self.font_size * 0.1,
+            color,
+            framebuffer,
+        );
     }
 
     fn draw_explore(
