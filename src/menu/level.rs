@@ -273,6 +273,7 @@ impl LevelMenu {
                     self.state.selected_music = None;
                     self.ui.level_select.tab_groups.hide();
                     self.ui.level_select.tab_levels.hide();
+                    self.ui.level_select.select_tab(LevelSelectTab::Music);
                 }
             }
         } else if let Some(music) = self.state.switch_music {
@@ -315,6 +316,7 @@ impl LevelMenu {
                     self.state.selected_group = None;
                     self.state.selected_level = None;
                     self.ui.level_select.tab_levels.hide();
+                    self.ui.level_select.select_tab(LevelSelectTab::Group);
                 }
             }
         } else if let Some(group) = self.state.switch_group {
@@ -510,6 +512,7 @@ impl geng::State for LevelMenu {
                     self.ui.level_config.window.request = Some(WidgetRequest::Close);
                 } else if self.state.switch_level.take().is_some()
                     || self.state.switch_group.take().is_some()
+                    || self.state.switch_music.take().is_some()
                 {
                 } else {
                     // Go to main menu
