@@ -78,4 +78,4 @@ tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 
 [patch.crates-io]
 async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
-geng = { git = "https://github.com/geng-engine/geng", rev = "103bb24681e75d2483c1fe1084897dd6d0bc56fe" }
+geng = { git = "https://github.com/geng-engine/geng", rev = "38a550f6389d8b2720fefd2f42b5fb58fba106c2" }
