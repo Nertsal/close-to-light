@@ -3,8 +3,7 @@ use super::*;
 use crate::render::{ui::UiRender, THEME};
 
 pub struct MainMenu {
-    geng: Geng,
-    assets: Rc<Assets>,
+    context: Context,
     client: Option<Arc<ctl_client::Nertboard>>,
     options: Options,
     transition: Option<geng::state::Transition>,
@@ -27,21 +26,14 @@ pub struct MainMenu {
 
 impl MainMenu {
     pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
+        context: Context,
         client: Option<Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
         Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-            transition: None,
-            client,
-            options,
-
-            dither: DitherRender::new(geng, assets),
-            util_render: UtilRender::new(geng, assets),
-            ui_render: UiRender::new(geng, assets),
+            dither: DitherRender::new(&context.geng, &context.assets),
+            util_render: UtilRender::new(&context.geng, &context.assets),
+            ui_render: UiRender::new(&context.geng, &context.assets),
 
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
@@ -66,32 +58,33 @@ impl MainMenu {
                 Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
                 r32(0.0),
             ),
+
+            context,
+            transition: None,
+            client,
+            options,
         }
     }
 
     fn play(&mut self) {
         let future = {
-            let geng = self.geng.clone();
-            let assets = self.assets.clone();
+            let context = self.context.clone();
             let client = self.client.clone();
             let options = self.options.clone();
 
             async move {
-                // let manager = geng.asset_manager();
-
-                let local = crate::local::LevelCache::load(client.as_ref(), &geng)
+                let local = crate::local::LevelCache::load(client.as_ref(), &context.geng)
                     .await
                     .expect("failed to load local data");
                 let local = Rc::new(RefCell::new(local));
-
-                LevelMenu::new(&geng, &assets, &local, client.as_ref(), options)
+                LevelMenu::new(context, &local, client.as_ref(), options)
             }
             .boxed_local()
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(
             geng::LoadingScreen::new(
-                &self.geng,
-                geng::EmptyLoadingScreen::new(&self.geng),
+                &self.context.geng,
+                geng::EmptyLoadingScreen::new(&self.context.geng),
                 future,
             ),
         )));
@@ -169,7 +162,7 @@ impl geng::State for MainMenu {
             {
                 self.ui_render.draw_texture(
                     Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
-                    &self.assets.sprites.title,
+                    &self.context.assets.sprites.title,
                     THEME.light,
                     &mut framebuffer,
                 );
@@ -184,6 +177,6 @@ impl geng::State for MainMenu {
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.geng, screen_buffer);
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, screen_buffer);
     }
 }

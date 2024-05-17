@@ -12,8 +12,7 @@ use crate::{
 };
 
 pub struct LevelMenu {
-    geng: Geng,
-    assets: Rc<Assets>,
+    context: Context,
     transition: Option<geng::state::Transition>,
 
     render: MenuRender,
@@ -127,8 +126,7 @@ impl MenuState {
 
 impl LevelMenu {
     pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
+        context: Context,
         local: &Rc<RefCell<LevelCache>>,
         client: Option<&Arc<ctl_client::Nertboard>>,
         options: Options,
@@ -139,25 +137,21 @@ impl LevelMenu {
         );
         player.info.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
 
-        let leaderboard = Leaderboard::new(geng, client);
+        let leaderboard = Leaderboard::new(&context.geng, client);
 
         Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-            transition: None,
-
-            render: MenuRender::new(geng, assets),
-            util: UtilRender::new(geng, assets),
-            dither: DitherRender::new(geng, assets),
-            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
+            render: MenuRender::new(&context.geng, &context.assets),
+            util: UtilRender::new(&context.geng, &context.assets),
+            dither: DitherRender::new(&context.geng, &context.assets),
+            masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: Time::ONE,
             time: Time::ZERO,
 
-            ui: MenuUI::new(geng, assets),
+            ui: MenuUI::new(&context.geng, &context.assets),
             ui_focused: false,
-            ui_context: UiContext::new(geng, options.theme),
+            ui_context: UiContext::new(&context.geng, options.theme),
 
             camera: Camera2d {
                 center: vec2::ZERO,
@@ -193,6 +187,9 @@ impl LevelMenu {
                 },
                 1.5,
             ),
+
+            context,
+            transition: None,
         }
     }
 
@@ -216,12 +213,12 @@ impl LevelMenu {
             return;
         };
 
+        self.context.music.stop();
         self.ui_context.cursor.reset();
         self.play_button.hover_time.set(Time::ZERO);
 
         let future = {
-            let geng = self.geng.clone();
-            let assets = self.assets.clone();
+            let context = self.context.clone();
             let leaderboard = self.state.leaderboard.clone();
             let options = self.state.options.clone();
             let config = self.state.config.clone();
@@ -231,16 +228,16 @@ impl LevelMenu {
                 let level = crate::game::PlayLevel {
                     level: level.clone(),
                     config,
-                    music: Music::from_cache(&music),
+                    music,
                     start_time: Time::ZERO,
                 };
-                crate::game::Game::new(&geng, &assets, options, level, leaderboard, player_name)
+                crate::game::Game::new(context, options, level, leaderboard, player_name)
             }
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(
             geng::LoadingScreen::new(
-                &self.geng,
-                geng::EmptyLoadingScreen::new(&self.geng),
+                &self.context.geng,
+                geng::EmptyLoadingScreen::new(&self.context.geng),
                 future,
             ),
         )));
@@ -344,10 +341,6 @@ impl LevelMenu {
                 } else {
                     current_level.time.change(delta_time);
                     current_level.going_up = true;
-
-                    // if current_level.time.is_max() {
-                    //     self.state.level_up = true;
-                    // }
                 }
             } else {
                 // self.state.level_up = false;
@@ -439,7 +432,7 @@ impl geng::State for LevelMenu {
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), framebuffer)
-            .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
 
         if !fading {
             let mut masked = self.masked.start();
@@ -478,7 +471,7 @@ impl geng::State for LevelMenu {
 
                 geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
                     .fit_screen(vec2(0.5, 0.5), framebuffer)
-                    .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
+                    .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
             } else {
                 self.masked.draw(
                     ugli::DrawParameters {
@@ -539,11 +532,26 @@ impl geng::State for LevelMenu {
         self.time += delta_time;
 
         self.ui_context
-            .update(self.geng.window(), delta_time.as_f32());
+            .update(self.context.geng.window(), delta_time.as_f32());
         self.ui_context.theme = self.state.options.theme;
 
-        if let Some(music) = &mut self.state.local.borrow_mut().playing_music {
-            music.set_volume(self.state.options.volume.music());
+        // Music volume
+        let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
+            .min(show_ratio(&self.state.selected_music).unwrap_or(0.0));
+        self.context
+            .music
+            .set_volume(self.state.options.volume.music() * t);
+
+        // Playing music
+        if let Some(active) = self
+            .state
+            .selected_music
+            .as_ref()
+            .and_then(|music| self.state.local.borrow().music.get(&music.data).cloned())
+        {
+            self.context.music.switch(&active); // TODO: rng start
+        } else {
+            self.context.music.stop();
         }
 
         let game_pos = geng_utils::layout::fit_aabb(
@@ -611,14 +619,13 @@ impl geng::State for LevelMenu {
                 })
             })
         }) {
-            let geng = self.geng.clone();
-            let assets = self.assets.clone();
+            let context = self.context.clone();
             let local = self.state.local.clone();
-            let manager = self.geng.asset_manager().clone();
+            let manager = self.context.geng.asset_manager().clone();
             let assets_path = run_dir().join("assets");
             let options = self.state.options.clone();
             let level = crate::game::PlayLevel {
-                music: Music::from_cache(&music),
+                music,
                 level,
                 config: self.state.config.clone(),
                 start_time: Time::ZERO,
@@ -629,11 +636,11 @@ impl geng::State for LevelMenu {
                         .await
                         .expect("failed to load editor config");
 
-                crate::editor::EditorState::new(geng, assets, &local, config, options, level)
+                crate::editor::EditorState::new(context, &local, config, options, level)
             };
             let state = geng::LoadingScreen::new(
-                &self.geng,
-                geng::EmptyLoadingScreen::new(&self.geng),
+                &self.context.geng,
+                geng::EmptyLoadingScreen::new(&self.context.geng),
                 future,
             );
 
@@ -642,4 +649,8 @@ impl geng::State for LevelMenu {
 
         self.last_delta_time = delta_time;
     }
+}
+
+fn show_ratio<T>(show: &Option<ShowTime<T>>) -> Option<f32> {
+    show.as_ref().map(|show| show.time.get_ratio())
 }

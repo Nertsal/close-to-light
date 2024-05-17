@@ -3,8 +3,7 @@ use super::*;
 const TRANSITION_TIME: f32 = 5.0;
 
 pub struct SplashScreen {
-    geng: Geng,
-    assets: Rc<Assets>,
+    context: Context,
     client: Option<Arc<ctl_client::Nertboard>>,
     options: Options,
     transition: Option<geng::state::Transition>,
@@ -16,21 +15,19 @@ pub struct SplashScreen {
 
 impl SplashScreen {
     pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
+        context: Context,
         client: Option<&Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
         Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
+            util: UtilRender::new(&context.geng, &context.assets),
+
+            time: Time::ZERO,
+
+            context,
             client: client.cloned(),
             options,
             transition: None,
-
-            util: UtilRender::new(geng, assets),
-
-            time: Time::ZERO,
         }
     }
 }
@@ -84,8 +81,7 @@ trigger seizures for people with photosensitive epilepsy
 
         if self.time.as_f32() > TRANSITION_TIME {
             self.transition = Some(geng::state::Transition::Switch(Box::new(MainMenu::new(
-                &self.geng,
-                &self.assets,
+                self.context.clone(),
                 self.client.take(),
                 self.options.clone(),
             ))));

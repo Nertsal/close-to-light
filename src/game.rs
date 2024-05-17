@@ -3,10 +3,15 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{leaderboard::Leaderboard, local::CachedLevel, prelude::*, render::game::GameRender};
+use crate::{
+    leaderboard::Leaderboard,
+    local::{CachedLevel, CachedMusic},
+    prelude::*,
+    render::game::GameRender,
+};
 
 pub struct Game {
-    geng: Geng,
+    context: Context,
     transition: Option<geng::state::Transition>,
     render: GameRender,
 
@@ -26,14 +31,13 @@ pub struct Game {
 pub struct PlayLevel {
     pub level: Rc<CachedLevel>,
     pub config: LevelConfig,
-    pub music: Music,
+    pub music: Rc<CachedMusic>,
     pub start_time: Time,
 }
 
 impl Game {
     pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
+        context: Context,
         options: Options,
         level: PlayLevel,
         leaderboard: Leaderboard,
@@ -44,28 +48,27 @@ impl Game {
             name: player_name,
         };
         Self::preloaded(
-            geng,
-            assets,
-            Model::new(geng, assets, options, level.clone(), leaderboard, player),
+            context.clone(),
+            Model::new(context, options, level.clone(), leaderboard, player),
         )
     }
 
-    fn preloaded(geng: &Geng, assets: &Rc<Assets>, model: Model) -> Self {
+    fn preloaded(context: Context, model: Model) -> Self {
         Self {
-            geng: geng.clone(),
-            transition: None,
-            render: GameRender::new(geng, assets),
-
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
 
             active_touch: None,
-            ui: GameUI::new(assets),
+            ui: GameUI::new(&context.assets),
             ui_focused: false,
-            ui_context: UiContext::new(geng, model.options.theme),
+            ui_context: UiContext::new(&context.geng, model.options.theme),
 
             model,
             debug_mode: false,
+
+            transition: None,
+            render: GameRender::new(&context.geng, &context.assets),
+            context,
         }
     }
 }
@@ -100,7 +103,7 @@ impl geng::State for Game {
         match event {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::Escape => self.transition = Some(geng::state::Transition::Pop),
-                geng::Key::F11 => self.geng.window().toggle_fullscreen(),
+                geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
                 geng::Key::F1 => self.debug_mode = !self.debug_mode,
                 _ => {}
             },
@@ -132,7 +135,7 @@ impl geng::State for Game {
         }
 
         self.ui_context
-            .update(self.geng.window(), delta_time.as_f32());
+            .update(self.context.geng.window(), delta_time.as_f32());
 
         if let Some(transition) = self.model.transition.take() {
             match transition {

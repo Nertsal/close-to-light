@@ -6,7 +6,7 @@ impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
         log::info!("Starting at the requested time {:.2}...", target_time);
-        self.beat_time = target_time / self.level.music.beat_time();
+        self.beat_time = target_time / self.level.music.meta.beat_time();
         self.player.health.set_ratio(Time::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
@@ -15,7 +15,7 @@ impl Model {
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
-        self.level.music.set_volume(self.options.volume.music());
+        self.context.music.set_volume(self.options.volume.music());
 
         self.update_rhythm(delta_time);
 
@@ -24,24 +24,22 @@ impl Model {
 
         if let State::Starting { .. } = self.state {
         } else {
-            self.beat_time += delta_time / self.level.music.beat_time();
+            self.beat_time += delta_time / self.level.music.meta.beat_time();
         }
 
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
         if let State::Lost { .. } = self.state {
-            if let Some(music) = &mut self.level.music.effect {
-                let t = 1.0 - self.switch_time.as_f32() / 2.0;
-                let speed = (t - 0.1).max(0.5);
-                music.set_speed(speed);
+            let t = 1.0 - self.switch_time.as_f32() / 2.0;
+            let speed = (t - 0.1).max(0.5);
+            self.context.music.set_speed(speed);
 
-                let volume = t;
-                if volume < 0.0 {
-                    self.level.music.stop();
-                } else {
-                    music.set_volume(volume);
-                }
+            let volume = t;
+            if volume < 0.0 {
+                self.context.music.stop();
+            } else {
+                self.context.music.set_volume(volume);
             }
         }
 
@@ -193,8 +191,7 @@ impl Model {
         log::info!("Restarting...");
         self.save_highscore();
         *self = Self::new(
-            &self.geng,
-            &self.assets,
+            self.context.clone(),
             self.options.clone(),
             self.level.clone(),
             self.leaderboard.clone(),
@@ -204,15 +201,16 @@ impl Model {
 
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
-        self.level.music.play_from(time::Duration::from_secs_f64(
-            music_start_time.as_f32() as f64
-        ));
+        self.context.music.play_from(
+            &self.level.music,
+            time::Duration::from_secs_f64(music_start_time.as_f32() as f64),
+        );
     }
 
     pub fn finish(&mut self) {
         self.save_highscore();
         self.state = State::Finished;
-        self.level.music.stop();
+        self.context.music.stop();
         self.switch_time = Time::ZERO;
         self.get_leaderboard(true);
     }

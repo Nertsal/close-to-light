@@ -1,6 +1,7 @@
 mod assets;
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
+mod context;
 mod editor;
 mod game;
 mod leaderboard;
@@ -94,6 +95,8 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     let assets = assets::Assets::load(manager).await?;
     let assets = Rc::new(assets);
 
+    let context = context::Context::new(&geng, &assets);
+
     let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
     let secrets: Option<Secrets> =
@@ -138,15 +141,14 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
                     .context("failed to load editor config")?;
 
             let level = game::PlayLevel {
-                music: model::Music::from_cache(&music),
+                music,
                 level,
                 config,
                 start_time: prelude::Time::ZERO,
             };
 
             let state = editor::EditorState::new(
-                geng.clone(),
-                assets,
+                context,
                 &Rc::new(RefCell::new(local)),
                 editor_config,
                 options,
@@ -159,14 +161,13 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
         // Game
         config.modifiers.clean_auto = opts.clean_auto;
         let level = game::PlayLevel {
-            music: model::Music::from_cache(&music),
+            music,
             level,
             config,
             start_time: prelude::Time::ZERO,
         };
         let state = game::Game::new(
-            &geng,
-            &assets,
+            context,
             options,
             level,
             Leaderboard::new(&geng, None),
@@ -181,10 +182,10 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
                 .context("failed to load local data")?;
             let local = Rc::new(RefCell::new(local));
 
-            let state = menu::LevelMenu::new(&geng, &assets, &local, client.as_ref(), options);
+            let state = menu::LevelMenu::new(context, &local, client.as_ref(), options);
             geng.run_state(state).await;
         } else {
-            let state = menu::SplashScreen::new(&geng, &assets, client.as_ref(), options);
+            let state = menu::SplashScreen::new(context, client.as_ref(), options);
             geng.run_state(state).await;
         }
     }

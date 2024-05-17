@@ -6,7 +6,7 @@ mod score;
 
 pub use self::{level::*, options::*, player::*, score::*};
 
-use crate::{game::PlayLevel, leaderboard::Leaderboard, local::CachedMusic, prelude::*};
+use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
 const COYOTE_TIME: f32 = 0.1;
 const BUFFER_TIME: f32 = 0.1;
@@ -16,89 +16,6 @@ pub type Lifetime = Bounded<Time>;
 #[derive(Debug, Clone)]
 pub enum GameEvent {
     Rhythm { perfect: bool },
-}
-
-pub struct Music {
-    pub meta: MusicInfo,
-    sound: Rc<geng::Sound>,
-    effect: Option<geng::SoundEffect>,
-    volume: f32,
-    /// Stop the music after the timer runs out.
-    pub timer: Time,
-}
-
-impl Drop for Music {
-    fn drop(&mut self) {
-        self.stop();
-    }
-}
-
-impl Debug for Music {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Music")
-            .field("meta", &self.meta)
-            // .field("effect", &self.effect)
-            .field("volume", &self.volume)
-            .field("timer", &self.timer)
-            .finish()
-    }
-}
-
-impl Clone for Music {
-    fn clone(&self) -> Self {
-        Self::new(self.sound.clone(), self.meta.clone())
-    }
-}
-
-impl Music {
-    pub fn new(sound: Rc<geng::Sound>, meta: MusicInfo) -> Self {
-        Self {
-            meta,
-            sound,
-            volume: 0.5,
-            effect: None,
-            timer: Time::ZERO,
-        }
-    }
-
-    pub fn from_cache(cached: &CachedMusic) -> Self {
-        Self::new(Rc::clone(&cached.music), cached.meta.clone())
-    }
-
-    pub fn set_volume(&mut self, volume: f32) {
-        let volume = volume.clamp(0.0, 1.0);
-        self.volume = volume;
-        if let Some(effect) = &mut self.effect {
-            effect.set_volume(volume);
-        }
-    }
-
-    pub fn stop(&mut self) {
-        if let Some(mut effect) = self.effect.take() {
-            effect.stop();
-        }
-        self.timer = Time::ZERO;
-    }
-
-    pub fn play(&mut self) {
-        self.stop();
-        let mut effect = self.sound.effect();
-        effect.set_volume(self.volume);
-        effect.play();
-        self.effect = Some(effect);
-    }
-
-    pub fn play_from(&mut self, time: time::Duration) {
-        self.stop();
-        let mut effect = self.sound.effect();
-        effect.set_volume(self.volume);
-        effect.play_from(time);
-        self.effect = Some(effect);
-    }
-
-    pub fn beat_time(&self) -> Time {
-        self.meta.beat_time()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -170,9 +87,8 @@ pub struct Rhythm {
 }
 
 pub struct Model {
+    pub context: Context,
     pub transition: Option<Transition>,
-    pub geng: Geng,
-    pub assets: Rc<Assets>,
     pub leaderboard: Leaderboard,
 
     pub high_score: i32,
@@ -205,15 +121,14 @@ pub struct Model {
 
 impl Model {
     pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
+        context: Context,
         options: Options,
         level: PlayLevel,
         leaderboard: Leaderboard,
         player: UserInfo,
     ) -> Self {
         let start_time = level.start_time;
-        let mut model = Self::empty(geng, assets, options, level);
+        let mut model = Self::empty(context, options, level);
         model.player.info = player;
         model.leaderboard = leaderboard;
 
@@ -221,12 +136,11 @@ impl Model {
         model
     }
 
-    pub fn empty(geng: &Geng, assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
+    pub fn empty(context: Context, options: Options, level: PlayLevel) -> Self {
         Self {
             transition: None,
-            geng: geng.clone(),
-            assets: assets.clone(),
-            leaderboard: Leaderboard::new(geng, None),
+            leaderboard: Leaderboard::new(&context.geng, None),
+            context,
 
             high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
             camera: Camera2d {

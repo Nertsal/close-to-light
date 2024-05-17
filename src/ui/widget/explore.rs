@@ -445,9 +445,9 @@ impl StatefulWidget for MusicItemWidget {
             self.play.show();
 
             self.play.update(rows[1], context);
-            if self.play.state.clicked {
-                state.play_music(self.info.id);
-            }
+            // if self.play.state.clicked {
+            //     state.play_music(self.info.id);
+            // }
         }
 
         main.cut_left(context.layout_size);

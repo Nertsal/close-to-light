@@ -2,9 +2,10 @@ use super::*;
 
 impl EditorState {
     pub fn handle_event(&mut self, event: geng::Event) {
-        let ctrl = self.geng.window().is_key_pressed(geng::Key::ControlLeft);
-        let shift = self.geng.window().is_key_pressed(geng::Key::ShiftLeft);
-        let alt = self.geng.window().is_key_pressed(geng::Key::AltLeft);
+        let window = self.context.geng.window();
+        let ctrl = window.is_key_pressed(geng::Key::ControlLeft);
+        let shift = window.is_key_pressed(geng::Key::ShiftLeft);
+        let alt = window.is_key_pressed(geng::Key::AltLeft);
 
         let scroll_speed = if shift {
             self.editor.config.scroll_slow
@@ -165,21 +166,19 @@ impl EditorState {
                     {
                         self.editor.current_beat = *start_beat;
                         self.editor.state = *old_state.clone();
-                        self.editor.static_level.music.stop();
+                        self.context.music.stop();
                     } else {
                         self.editor.state = State::Playing {
                             start_beat: self.editor.current_beat,
                             old_state: Box::new(self.editor.state.clone()),
                         };
                         // TODO: future proof in case level beat time is not constant
-                        self.editor.real_time =
-                            self.editor.current_beat * self.editor.static_level.music.beat_time();
-                        self.editor
-                            .static_level
-                            .music
-                            .play_from(time::Duration::from_secs_f64(
-                                self.editor.real_time.as_f32() as f64,
-                            ));
+                        self.editor.real_time = self.editor.current_beat
+                            * self.editor.static_level.music.meta.beat_time();
+                        self.context.music.play_from(
+                            &self.editor.static_level.music,
+                            time::Duration::from_secs_f64(self.editor.real_time.as_f32() as f64),
+                        );
                     }
                 }
                 geng::Key::Digit1 => self.handle_digit(1),
@@ -196,7 +195,7 @@ impl EditorState {
                     self.editor.render_options.hide_ui = !self.editor.render_options.hide_ui
                 }
                 geng::Key::F5 => self.play_game(),
-                geng::Key::F11 => self.geng.window().toggle_fullscreen(),
+                geng::Key::F11 => window.toggle_fullscreen(),
                 _ => {}
             },
             geng::Event::Wheel { delta } => {

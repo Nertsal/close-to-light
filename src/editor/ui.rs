@@ -564,8 +564,8 @@ impl StatefulWidget for EditorConfigWidget {
         self.timing.update(timing, context);
 
         let bpm = bar.cut_top(context.font_size);
-        self.bpm
-            .update(bpm, context, &mut state.static_level.music.meta.bpm);
+        let mut bpm_value = state.static_level.music.meta.bpm;
+        self.bpm.update(bpm, context, &mut bpm_value); // TODO: remove
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
