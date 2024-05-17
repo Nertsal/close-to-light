@@ -375,7 +375,7 @@ impl MenuRender {
         }
 
         let transparency = crate::util::smoothstep(1.0 - ui.open_time.get_ratio());
-        let mut color = Color::WHITE;
+        let mut color = theme.light;
         color.a = transparency;
         self.ui.draw_icon_colored(&ui.button, color, framebuffer);
         self.ui.draw_outline(
