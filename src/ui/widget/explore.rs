@@ -95,6 +95,10 @@ impl StatefulWidget for ExploreWidget {
         }
         self.state.update(position, context);
         self.window.update(context.delta_time);
+        if self.window.show.time.is_min() {
+            self.hide();
+        }
+
         self.music.load(&state.inner.borrow().music_list);
         self.levels.load(&state.inner.borrow().group_list);
 

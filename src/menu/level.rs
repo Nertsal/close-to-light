@@ -150,7 +150,7 @@ impl LevelMenu {
             last_delta_time: Time::ONE,
             time: Time::ZERO,
 
-            ui: MenuUI::new(&context.geng, &context.assets),
+            ui: MenuUI::new(context.clone()),
             ui_focused: false,
             ui_context: UiContext::new(&context.geng, options.theme),
 
@@ -498,8 +498,10 @@ impl geng::State for LevelMenu {
             } => {
                 if let Some(sync) = &mut self.ui.sync {
                     sync.window.request = Some(WidgetRequest::Close);
-                } else if self.ui.panels.options.window.show.time.is_max() {
-                    self.ui.panels.options.window.request = Some(WidgetRequest::Close);
+                } else if self.ui.explore.window.show.time.is_max() {
+                    self.ui.explore.window.request = Some(WidgetRequest::Close);
+                // } else if self.ui.panels.options.window.show.time.is_max() {
+                //     self.ui.panels.options.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.leaderboard.window.show.time.is_max() {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.level_config.window.show.time.is_max() {

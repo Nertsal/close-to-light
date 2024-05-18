@@ -44,6 +44,7 @@ impl MenuRender {
         self.draw_play_level(ui, state, framebuffer);
         self.draw_modifiers(ui, state, framebuffer);
         self.draw_options(ui, state, framebuffer);
+        self.draw_explore(ui, state, framebuffer);
 
         // // TODO: better ordering solution
         // if ui.panels.profile.window.show.time.is_above_min() {
@@ -124,19 +125,21 @@ impl MenuRender {
             .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
 
         if ui.tab_music.selected {
+            self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
             for music in &ui.grid_music {
                 let selected = state.selected_music.as_ref().map(|m| m.data) == Some(music.data);
-                self.draw_item_widget(music, selected, theme, framebuffer);
+                self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
             }
         } else if ui.tab_groups.selected {
+            self.draw_item_widget(&ui.add_group, false, 0.5, theme, framebuffer);
             for group in &ui.grid_groups {
                 let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.data);
-                self.draw_item_widget(group, selected, theme, framebuffer);
+                self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
             }
         } else if ui.tab_levels.selected {
             for level in &ui.grid_levels {
                 let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.data);
-                self.draw_item_widget(level, selected, theme, framebuffer);
+                self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
             }
         }
 
@@ -268,46 +271,46 @@ impl MenuRender {
         }
     }
 
-    fn draw_profile(
-        &mut self,
-        ui: &MenuUI,
-        state: &MenuState,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let ui = &ui.panels;
-        let theme = state.options.theme;
-        let width = 12.0;
-        let head = ui.profile_head.state.position;
-        let profile = ui.profile.state.position.extend_up(width);
+    // fn draw_profile(
+    //     &mut self,
+    //     ui: &MenuUI,
+    //     state: &MenuState,
+    //     framebuffer: &mut ugli::Framebuffer,
+    // ) {
+    //     let ui = &ui.panels;
+    //     let theme = state.options.theme;
+    //     let width = 12.0;
+    //     let head = ui.profile_head.state.position;
+    //     let profile = ui.profile.state.position.extend_up(width);
 
-        self.ui.draw_window(
-            &mut self.masked,
-            profile,
-            Some(head),
-            width,
-            theme,
-            framebuffer,
-            |framebuffer| {
-                self.ui.draw_text(&ui.profile.offline, framebuffer);
+    //     self.ui.draw_window(
+    //         &mut self.masked,
+    //         profile,
+    //         Some(head),
+    //         width,
+    //         theme,
+    //         framebuffer,
+    //         |framebuffer| {
+    //             self.ui.draw_text(&ui.profile.offline, framebuffer);
 
-                let register = &ui.profile.register;
-                if register.state.visible {
-                    self.ui.draw_input(&register.username, framebuffer);
-                    self.ui.draw_input(&register.password, framebuffer);
-                    self.ui.draw_button(&register.login, framebuffer);
-                    self.ui.draw_button(&register.register, framebuffer);
-                }
+    //             let register = &ui.profile.register;
+    //             if register.state.visible {
+    //                 self.ui.draw_input(&register.username, framebuffer);
+    //                 self.ui.draw_input(&register.password, framebuffer);
+    //                 self.ui.draw_button(&register.login, framebuffer);
+    //                 self.ui.draw_button(&register.register, framebuffer);
+    //             }
 
-                let logged = &ui.profile.logged;
-                if logged.state.visible {
-                    self.ui.draw_text(&logged.username, framebuffer);
-                    self.ui.draw_button(&logged.logout, framebuffer);
-                }
-            },
-        );
+    //             let logged = &ui.profile.logged;
+    //             if logged.state.visible {
+    //                 self.ui.draw_text(&logged.username, framebuffer);
+    //                 self.ui.draw_button(&logged.logout, framebuffer);
+    //             }
+    //         },
+    //     );
 
-        self.ui.draw_icon(&ui.profile_head, framebuffer);
-    }
+    //     self.ui.draw_icon(&ui.profile_head, framebuffer);
+    // }
 
     fn draw_options(
         &mut self,
@@ -392,23 +395,26 @@ impl MenuRender {
         state: &MenuState,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let ui = &ui.panels;
+        let ui = &ui.explore;
+        if !ui.state.visible {
+            return;
+        };
+
         let theme = state.options.theme;
 
         let width = 12.0;
-        let head = ui.explore_head.state.position;
-        let explore = ui.explore.state.position.extend_up(width);
+        // let head = ui.explore_head.state.position;
+        let explore = ui.state.position; //.extend_up(width);
 
         self.ui.draw_window(
             &mut self.masked,
             explore,
-            Some(head),
+            // Some(head),
+            None,
             width,
             theme,
             framebuffer,
             |framebuffer| {
-                let ui = &ui.explore;
-
                 for (tab, active) in [
                     (&ui.tab_music, ui.music.state.visible),
                     (&ui.tab_levels, ui.levels.state.visible),
@@ -457,7 +463,7 @@ impl MenuRender {
             },
         );
 
-        self.ui.draw_text(&ui.explore_head, framebuffer);
+        // self.ui.draw_text(&ui.explore_head, framebuffer);
     }
 
     fn draw_level_config(
@@ -504,28 +510,29 @@ impl MenuRender {
         );
     }
 
-    fn draw_item_widget<T>(
+    fn draw_item_widget(
         &self,
-        item: &crate::menu::ItemWidget<T>,
+        text: &crate::ui::widget::TextWidget,
         selected: bool,
+        width: f32,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let (bg_color, fg_color, out_color) = if selected {
             (theme.light, theme.dark, theme.light)
-        } else if item.state.hovered {
+        } else if text.state.hovered {
             (theme.light, theme.dark, theme.dark)
         } else {
             (theme.dark, theme.light, theme.light)
         };
-        let outline_width = self.font_size * 0.1;
+        let outline_width = self.font_size * 0.2 * width;
         self.ui.draw_quad(
-            item.state.position.extend_uniform(-outline_width),
+            text.state.position.extend_uniform(-outline_width),
             bg_color,
             framebuffer,
         );
-        self.ui.draw_text_colored(&item.text, fg_color, framebuffer);
+        self.ui.draw_text_colored(text, fg_color, framebuffer);
         self.ui
-            .draw_outline(item.state.position, outline_width, out_color, framebuffer);
+            .draw_outline(text.state.position, outline_width, out_color, framebuffer);
     }
 }

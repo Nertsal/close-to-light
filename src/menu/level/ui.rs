@@ -3,7 +3,7 @@ mod modifiers;
 mod panels;
 mod select;
 
-pub use self::{level::*, modifiers::*, panels::*, select::*};
+pub use self::{level::*, modifiers::*, select::*};
 
 use super::*;
 
@@ -12,8 +12,7 @@ use crate::ui::{layout::AreaOps, widget::*};
 use itertools::Itertools;
 
 pub struct MenuUI {
-    // geng: Geng,
-    // assets: Rc<Assets>,
+    context: Context,
     pub screen: WidgetState,
     pub ctl_logo: IconWidget,
     pub separator: WidgetState,
@@ -27,17 +26,22 @@ pub struct MenuUI {
     pub play_level: PlayLevelWidget,
     pub modifiers: ModifiersWidget,
 
-    pub panels: PanelsUI,
+    // pub panels: PanelsUI,
+    pub explore: ExploreWidget,
 
     pub leaderboard: LeaderboardWidget,
     pub level_config: LevelConfigWidget,
 }
 
 impl MenuUI {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
+        let geng = &context.geng;
+        let assets = &context.assets;
+
+        let mut explore = ExploreWidget::new(assets);
+        explore.hide();
+
         Self {
-            // geng: geng.clone(),
-            // assets: assets.clone(),
             screen: WidgetState::new(),
             ctl_logo: IconWidget::new(&assets.sprites.title),
             separator: WidgetState::new(),
@@ -51,11 +55,19 @@ impl MenuUI {
             play_level: PlayLevelWidget::new(),
             modifiers: ModifiersWidget::new(),
 
-            panels: PanelsUI::new(assets),
+            // panels: PanelsUI::new(assets),
+            explore,
 
             leaderboard: LeaderboardWidget::new(assets),
             level_config: LevelConfigWidget::new(assets),
+
+            context,
         }
+    }
+
+    fn explore(&mut self) {
+        self.explore.window.request = Some(WidgetRequest::Open);
+        self.explore.show();
     }
 
     /// Layout all the ui elements and return whether any of them is focused.
@@ -88,7 +100,22 @@ impl MenuUI {
         let logo = left.cut_top(2.5 * layout_size);
         self.ctl_logo.update(logo, context);
 
+        if self.explore.state.visible {
+            let size = vec2(50.0, 30.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+            self.explore
+                .update(window, context, &mut self.context.local.clone());
+
+            // NOTE: Everything below `explore` cannot get focused
+            context.can_focus = false;
+        }
+
         self.level_select.update(left, state, context);
+        if self.level_select.add_music.state.clicked {
+            self.explore();
+        } else if self.level_select.add_group.state.clicked {
+            self.explore(); // TODO: with music filter
+        }
 
         let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
         self.options.update(options, context, state);

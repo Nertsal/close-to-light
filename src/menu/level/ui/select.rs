@@ -8,7 +8,9 @@ pub struct LevelSelectUI {
     pub tab_levels: ToggleWidget,
     pub separator: WidgetState,
 
+    pub add_music: TextWidget,
     pub grid_music: Vec<ItemWidget<Id>>,
+    pub add_group: TextWidget,
     pub grid_groups: Vec<ItemWidget<Index>>,
     pub grid_levels: Vec<ItemWidget<usize>>,
 }
@@ -30,7 +32,9 @@ impl LevelSelectUI {
             tab_levels: ToggleWidget::new("Difficulty"),
             separator: WidgetState::new(),
 
+            add_music: TextWidget::new("+"),
             grid_music: Vec::new(),
+            add_group: TextWidget::new("+"),
             grid_groups: Vec::new(),
             grid_levels: Vec::new(),
         };
@@ -171,7 +175,7 @@ impl LevelSelectUI {
         let rows = self.grid_music.len() / columns + 1;
         let spacing = vec2(1.0, 2.0) * context.layout_size;
         let item_size = vec2(
-            (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
+            (main.width() - spacing.x * columns as f32) / columns as f32,
             1.3 * context.font_size,
         );
         for row in 0..rows {
@@ -180,10 +184,25 @@ impl LevelSelectUI {
                     .extend_right(item_size.x)
                     .extend_down(item_size.y);
             let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
+
+            let mut row_items = 3;
+            let mut skip = 0;
+            if row == 0 {
+                skip = 1;
+                let pos = layout[0];
+                self.add_music
+                    .update(pos.extend_symmetric(-pos.size() * 0.1), context);
+            }
+            row_items -= skip;
+
             let i = columns * row;
-            let range = (i + 3).min(self.grid_music.len());
+            let range = (i + row_items).min(self.grid_music.len());
+
             let mut tab = None;
-            for (widget, pos) in self.grid_music[i..range].iter_mut().zip(layout) {
+            for (widget, pos) in self.grid_music[i..range]
+                .iter_mut()
+                .zip(layout.into_iter().skip(skip))
+            {
                 widget.update(pos, context);
                 if widget.state.clicked {
                     state.select_music(widget.data);
@@ -230,7 +249,7 @@ impl LevelSelectUI {
         let rows = self.grid_groups.len() / columns + 1;
         let spacing = vec2(1.0, 2.0) * context.layout_size;
         let item_size = vec2(
-            (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
+            (main.width() - spacing.x * columns as f32) / columns as f32,
             1.3 * context.font_size,
         );
         for row in 0..rows {
@@ -239,10 +258,25 @@ impl LevelSelectUI {
                     .extend_right(item_size.x)
                     .extend_down(item_size.y);
             let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
+
+            let mut row_items = 3;
+            let mut skip = 0;
+            if row == 0 {
+                skip = 1;
+                let pos = layout[0];
+                self.add_group
+                    .update(pos.extend_symmetric(-pos.size() * 0.1), context);
+            }
+            row_items -= skip;
+
             let i = columns * row;
-            let range = (i + 3).min(self.grid_groups.len());
+            let range = (i + row_items).min(self.grid_groups.len());
+
             let mut tab = None;
-            for (widget, pos) in self.grid_groups[i..range].iter_mut().zip(layout) {
+            for (widget, pos) in self.grid_groups[i..range]
+                .iter_mut()
+                .zip(layout.into_iter().skip(skip))
+            {
                 widget.update(pos, context);
                 if widget.state.clicked {
                     state.select_group(widget.data);

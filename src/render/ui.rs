@@ -99,7 +99,9 @@ impl UiRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let scale = pixel_scale(framebuffer);
-        let (texture, real_width) = if width < 4.0 * scale {
+        let (texture, real_width) = if width < 2.0 * scale {
+            (&self.assets.sprites.border_thinner, 1.0 * scale)
+        } else if width < 4.0 * scale {
             (&self.assets.sprites.border_thin, 2.0 * scale)
         } else {
             (&self.assets.sprites.border, 4.0 * scale)
