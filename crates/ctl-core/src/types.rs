@@ -3,6 +3,7 @@ use geng::prelude::*;
 pub type Id = u32;
 pub type Time = R32;
 pub type Coord = R32;
+pub type Name = Arc<str>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GroupInfo {
@@ -21,7 +22,7 @@ pub struct MusicInfo {
     pub id: Id,
     pub public: bool,
     pub original: bool,
-    pub name: String,
+    pub name: Name,
     pub bpm: R32,
     pub authors: Vec<ArtistInfo>,
 }
@@ -45,7 +46,7 @@ impl GroupInfo {
         let mut authors: Vec<&str> = self
             .levels
             .iter()
-            .flat_map(|level| level.authors.iter().map(|user| user.name.as_str()))
+            .flat_map(|level| level.authors.iter().map(|user| user.name.as_ref()))
             .collect();
         authors.sort();
         authors.dedup();
@@ -62,26 +63,37 @@ impl MusicInfo {
 
     /// Return the list of authors in a readable string format.
     pub fn authors(&self) -> String {
-        let authors = self.authors.iter().map(|author| author.name.as_str());
+        let authors = self.authors.iter().map(|author| author.name.as_ref());
         itertools::Itertools::intersperse(authors, ", ").collect()
     }
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LevelInfo {
     /// Id `0` for local levels.
     #[serde(default)]
     pub id: Id,
-    pub name: String,
+    pub name: Name,
     pub authors: Vec<UserInfo>,
     #[serde(default)] // TODO: remove
     pub hash: String,
 }
 
+impl Default for LevelInfo {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            name: "<level>".into(),
+            authors: Vec::new(),
+            hash: "".into(),
+        }
+    }
+}
+
 impl LevelInfo {
     /// Return the list of authors in a readable string format.
     pub fn authors(&self) -> String {
-        let authors = self.authors.iter().map(|author| author.name.as_str());
+        let authors = self.authors.iter().map(|author| author.name.as_ref());
         itertools::Itertools::intersperse(authors, ", ").collect()
     }
 }
@@ -89,13 +101,13 @@ impl LevelInfo {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserInfo {
     pub id: Id,
-    pub name: String,
+    pub name: Name,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ArtistInfo {
     pub id: Id,
-    pub name: String,
+    pub name: Name,
     pub user: Option<Id>,
 }
 

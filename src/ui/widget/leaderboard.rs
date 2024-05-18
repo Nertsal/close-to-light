@@ -6,7 +6,7 @@ use crate::{
     ui::layout::{self, AreaOps},
 };
 
-use ctl_client::core::types::UserInfo;
+use ctl_client::core::types::{Name, UserInfo};
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
@@ -57,14 +57,14 @@ impl LeaderboardWidget {
     ) {
         // let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
         self.rows.clear();
-        self.status.text = "".to_string();
+        self.status.text = "".into();
         match state {
-            LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".to_string(),
-            LeaderboardStatus::Pending => self.status.text = "LOADING...".to_string(),
-            LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".to_string(),
+            LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".into(),
+            LeaderboardStatus::Pending => self.status.text = "LOADING...".into(),
+            LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".into(),
             LeaderboardStatus::Done => {
                 if board.filtered.is_empty() {
-                    self.status.text = "EMPTY :(".to_string();
+                    self.status.text = "EMPTY :(".into();
                 }
             }
         }
@@ -79,7 +79,7 @@ impl LeaderboardWidget {
             .map(|(rank, entry)| {
                 LeaderboardEntryWidget::new(
                     (rank + 1).to_string(),
-                    &entry.user.name,
+                    entry.user.name.clone(),
                     entry.score,
                     entry.user.id == user.id,
                 )
@@ -91,9 +91,9 @@ impl LeaderboardWidget {
                 self.highscore.show();
                 self.highscore.rank.text = board
                     .my_position
-                    .map_or("???".to_string(), |rank| format!("{}.", rank + 1));
-                self.highscore.player.text = user.name.to_string();
-                self.highscore.score.text = format!("{}", score.score);
+                    .map_or("???".into(), |rank| format!("{}.", rank + 1).into());
+                self.highscore.player.text = user.name.clone();
+                self.highscore.score.text = format!("{}", score.score).into();
             }
         }
     }
@@ -171,8 +171,8 @@ impl Widget for LeaderboardWidget {
 
 impl LeaderboardEntryWidget {
     pub fn new(
-        rank: impl Into<String>,
-        player: impl Into<String>,
+        rank: impl Into<Name>,
+        player: impl Into<Name>,
         score: i32,
         highlight: bool,
     ) -> Self {

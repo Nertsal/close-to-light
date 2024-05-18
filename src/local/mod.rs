@@ -53,7 +53,7 @@ impl CachedGroup {
         let mut authors: Vec<&str> = self
             .levels
             .iter()
-            .flat_map(|level| level.meta.authors.iter().map(|user| user.name.as_str()))
+            .flat_map(|level| level.meta.authors.iter().map(|user| user.name.as_ref()))
             .collect();
         authors.sort();
         authors.dedup();

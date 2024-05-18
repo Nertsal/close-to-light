@@ -4,7 +4,11 @@ use crate::{
 };
 
 use ctl_client::{
-    core::{auth::Credentials, types::UserInfo, ScoreEntry, SubmitScore},
+    core::{
+        auth::Credentials,
+        types::{Name, UserInfo},
+        ScoreEntry, SubmitScore,
+    },
     Nertboard,
 };
 use geng::prelude::*;
@@ -24,7 +28,7 @@ struct BoardUpdate {
 pub struct Leaderboard {
     geng: Geng,
     /// Logged in as user with a name.
-    pub user: Option<String>,
+    pub user: Option<Name>,
     pub client: Option<Arc<Nertboard>>,
     log_task: Option<Task<ctl_client::Result<Result<UserInfo, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
@@ -160,7 +164,7 @@ impl Leaderboard {
                     match res {
                         Ok(Ok(user)) => {
                             log::debug!("Logged in as {:?}", user);
-                            self.user = Some(user.name);
+                            self.user = Some(user.name.clone());
                             self.loaded.player = Some(user.id);
                         }
                         Ok(Err(err)) => {

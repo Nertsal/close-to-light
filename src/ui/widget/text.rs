@@ -2,15 +2,27 @@ use super::*;
 
 use crate::render::util::TextRenderOptions;
 
-#[derive(Debug, Clone, Default)]
+use ctl_client::core::types::Name;
+
+#[derive(Debug, Clone)]
 pub struct TextWidget {
     pub state: WidgetState,
-    pub text: String,
+    pub text: Name,
     pub options: TextRenderOptions,
 }
 
+impl Default for TextWidget {
+    fn default() -> Self {
+        Self {
+            state: default(),
+            text: "<text>".into(),
+            options: default(),
+        }
+    }
+}
+
 impl TextWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
             text: text.into(),
             ..default()

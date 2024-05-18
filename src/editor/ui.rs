@@ -473,7 +473,7 @@ impl StatefulWidget for EditorEditWidget {
         {
             let current_beat = bottom_bar.cut_top(font_size * 1.5);
             update!(self.current_beat, current_beat);
-            self.current_beat.text = format!("Beat: {:.2}", editor.current_beat);
+            self.current_beat.text = format!("Beat: {:.2}", editor.current_beat).into();
 
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
@@ -572,11 +572,11 @@ impl StatefulWidget for EditorConfigWidget {
 
         let mut bar = columns[1];
         let music = bar.cut_top(context.font_size);
-        self.music.text = format!("Music: {}", state.static_level.music.meta.name);
+        self.music.text = format!("Music: {}", state.static_level.music.meta.name).into();
         self.music.update(music, context);
 
         let level = bar.cut_top(context.font_size);
-        self.level.text = format!("Level: {}", state.static_level.level.meta.name);
+        self.level.text = format!("Level: {}", state.static_level.level.meta.name).into();
         self.level.update(level, context);
 
         let mut bar = columns[2];

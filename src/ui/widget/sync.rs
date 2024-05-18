@@ -119,7 +119,7 @@ impl StatefulWidget for SyncWidget {
                     } else {
                         self.status.text = "Failed".into();
                         self.response.show();
-                        self.response.text = format!("{}", err);
+                        self.response.text = format!("{}", err).into();
                         self.upload.hide();
                         self.discard.hide();
                     }
@@ -154,7 +154,7 @@ impl StatefulWidget for SyncWidget {
                     log::error!("Failed to upload the level: {:?}", err);
                     self.status.text = "".into();
                     self.response.show();
-                    self.response.text = format!("{}", err);
+                    self.response.text = format!("{}", err).into();
                 }
                 Ok(Ok((group_index, level_index, group, level))) => {
                     if let Some(level) = state.synchronize(group_index, level_index, group, level) {
@@ -175,7 +175,7 @@ impl StatefulWidget for SyncWidget {
                     } else {
                         log::error!("Failed to download the level: {:?}", err);
                         self.response.show();
-                        self.response.text = format!("{}", err);
+                        self.response.text = format!("{}", err).into();
                     }
                 }
                 Ok(Ok(level)) => {
@@ -245,7 +245,7 @@ impl StatefulWidget for SyncWidget {
                             .upload_level(
                                 NewLevel {
                                     level_id: (level_id != 0).then_some(level_id),
-                                    name: level.meta.name.clone(),
+                                    name: level.meta.name.to_string(),
                                     group,
                                 },
                                 &level.data,

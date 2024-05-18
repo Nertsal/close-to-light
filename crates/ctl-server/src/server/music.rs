@@ -51,7 +51,7 @@ JOIN artists ON music_authors.artist_id = artists.artist_id
             row.try_get("music_id")?,
             ArtistInfo {
                 id: row.try_get("artist_id")?,
-                name: row.try_get("name")?,
+                name: row.try_get::<String, _>("name")?.into(),
                 user: row.try_get("user_id")?,
             },
         ))
@@ -71,7 +71,7 @@ JOIN artists ON music_authors.artist_id = artists.artist_id
                 id: music.music_id,
                 public: music.public,
                 original: music.original,
-                name: music.name,
+                name: music.name.into(),
                 bpm: r32(music.bpm),
                 authors,
             }
@@ -105,7 +105,7 @@ WHERE music_id = ?
     .try_map(|row: DBRow| {
         Ok(ArtistInfo {
             id: row.try_get("artist_id")?,
-            name: row.try_get("name")?,
+            name: row.try_get::<String, _>("name")?.into(),
             user: row.try_get("user_id")?,
         })
     })
@@ -116,7 +116,7 @@ WHERE music_id = ?
         id: music_id,
         public: music.public,
         original: music.original,
-        name: music.name,
+        name: music.name.into(),
         bpm: r32(music.bpm),
         authors,
     };

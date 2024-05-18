@@ -32,7 +32,7 @@ impl PlayLevelWidget {
         if let Some(show) = &state.selected_music {
             if let Some(music) = local.get_music(show.data) {
                 self.music.text = music.meta.name.clone();
-                self.music_author.text = music.meta.authors();
+                self.music_author.text = music.meta.authors().into();
 
                 let t = crate::util::smoothstep(1.0 - show.time.get_ratio());
                 let slide = vec2(context.screen.max.x - music_pos.min.x, 0.0) * t;
@@ -48,7 +48,7 @@ impl PlayLevelWidget {
             if let Some(show) = &state.selected_level {
                 if let Some(level) = local.get_level(group.data, show.data) {
                     self.difficulty.text = level.meta.name.clone();
-                    self.mappers.text = level.meta.authors();
+                    self.mappers.text = level.meta.authors().into();
 
                     let t = crate::util::smoothstep(1.0 - show.time.get_ratio());
                     let slide = vec2(context.screen.max.x - difficulty_pos.min.x, 0.0) * t;

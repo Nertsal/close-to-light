@@ -2,6 +2,7 @@ use super::*;
 
 use crate::{render::util::TextRenderOptions, ui::layout::AreaOps};
 
+use ctl_client::core::types::Name;
 use geng_utils::bounded::Bounded;
 
 pub struct SliderWidget {
@@ -16,7 +17,7 @@ pub struct SliderWidget {
 }
 
 impl SliderWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
             state: WidgetState::new(),
             text: TextWidget::new(text),
@@ -52,7 +53,7 @@ impl StatefulWidget for SliderWidget {
         }
 
         let value = main.cut_right(context.font_size * 3.0);
-        self.value.text = format!("{:.precision$}", state.value(), precision = 2);
+        self.value.text = format!("{:.precision$}", state.value(), precision = 2).into();
         self.value.update(value, context);
 
         let bar = Aabb2::point(main.align_pos(vec2(0.0, 0.5)))

@@ -1,9 +1,11 @@
+use super::*;
+
 use crate::{
     prelude::{Assets, LevelConfig, LevelModifiers, Modifier},
     ui::layout::{self, AreaOps},
 };
 
-use super::*;
+use ctl_client::core::types::Name;
 
 pub struct LevelConfigWidget {
     pub state: WidgetState,
@@ -93,7 +95,7 @@ pub struct PresetWidget<T> {
 }
 
 impl<T> PresetWidget<T> {
-    pub fn new(name: impl Into<String>, preset: T) -> Self {
+    pub fn new(name: impl Into<Name>, preset: T) -> Self {
         Self {
             button: ButtonWidget::new(name),
             preset,

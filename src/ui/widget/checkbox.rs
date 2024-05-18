@@ -1,7 +1,8 @@
 use super::*;
 
-#[derive(Debug, Default)]
+use ctl_client::core::types::Name;
 
+#[derive(Debug, Default)]
 pub struct CheckboxWidget {
     pub state: WidgetState,
     pub text: TextWidget,
@@ -10,7 +11,7 @@ pub struct CheckboxWidget {
 }
 
 impl CheckboxWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
             text: TextWidget::new(text),
             ..default()

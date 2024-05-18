@@ -1,6 +1,8 @@
+use super::*;
+
 use crate::prelude::ThemeColor;
 
-use super::*;
+use ctl_client::core::types::Name;
 
 #[derive(Clone, Default)]
 pub struct ButtonWidget {
@@ -8,7 +10,7 @@ pub struct ButtonWidget {
 }
 
 impl ButtonWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
             text: TextWidget::new(text),
         }
@@ -93,7 +95,7 @@ pub struct ToggleWidget {
 }
 
 impl ToggleWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
             text: TextWidget::new(text),
             selected: false,
@@ -101,7 +103,7 @@ impl ToggleWidget {
         }
     }
 
-    pub fn new_deselectable(text: impl Into<String>) -> Self {
+    pub fn new_deselectable(text: impl Into<Name>) -> Self {
         Self {
             text: TextWidget::new(text),
             selected: false,

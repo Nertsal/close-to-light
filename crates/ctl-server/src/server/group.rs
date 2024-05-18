@@ -38,7 +38,7 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
             row.try_get("level_id")?,
             UserInfo {
                 id: row.try_get("user_id")?,
-                name: row.try_get("username")?,
+                name: row.try_get::<String, _>("username")?.into(),
             },
         ))
     })
@@ -55,7 +55,7 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
 
         let level_info = LevelInfo {
             id: level_row.level.level_id,
-            name: level_row.level.name,
+            name: level_row.level.name.into(),
             hash: level_row.level.hash,
             authors,
         };
@@ -115,7 +115,7 @@ JOIN users ON level_authors.user_id = users.user_id
             row.try_get("level_id")?,
             UserInfo {
                 id: row.try_get("user_id")?,
-                name: row.try_get("username")?,
+                name: row.try_get::<String, _>("username")?.into(),
             },
         ))
     })
@@ -131,7 +131,7 @@ JOIN users ON level_authors.user_id = users.user_id
             .collect();
         levels.push(LevelInfo {
             id: level.level_id,
-            name: level.name,
+            name: level.name.into(),
             hash: level.hash,
             authors,
         });

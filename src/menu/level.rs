@@ -134,7 +134,9 @@ impl LevelMenu {
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
             r32(0.0),
         );
-        player.info.name = preferences::load(crate::PLAYER_NAME_STORAGE).unwrap_or_default();
+        player.info.name = preferences::load::<String>(crate::PLAYER_NAME_STORAGE)
+            .unwrap_or_default()
+            .into();
 
         let leaderboard = Leaderboard::new(&context.geng, client);
 

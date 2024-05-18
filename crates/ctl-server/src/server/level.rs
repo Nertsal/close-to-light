@@ -36,7 +36,7 @@ async fn level_list(State(app): State<Arc<App>>) -> Result<Json<Vec<LevelInfo>>>
             row.try_get("level_id")?,
             UserInfo {
                 id: row.try_get("user_id")?,
-                name: row.try_get("username")?,
+                name: row.try_get::<String, _>("username")?.into(),
             },
         ))
     })
@@ -53,7 +53,7 @@ async fn level_list(State(app): State<Arc<App>>) -> Result<Json<Vec<LevelInfo>>>
 
         result.push(LevelInfo {
             id: level.level_id,
-            name: level.name,
+            name: level.name.into(),
             hash: level.hash,
             authors,
         });
@@ -87,7 +87,7 @@ WHERE level_id = ?
     .try_map(|row: DBRow| {
         Ok(UserInfo {
             id: row.try_get("user_id")?,
-            name: row.try_get("username")?,
+            name: row.try_get::<String, _>("username")?.into(),
         })
     })
     .fetch_all(&app.database)
@@ -95,7 +95,7 @@ WHERE level_id = ?
 
     Ok(Json(LevelInfo {
         id: level_id,
-        name: level.name,
+        name: level.name.into(),
         hash: level.hash,
         authors,
     }))
@@ -229,7 +229,7 @@ WHERE level_id = ?
         Ok(ScoreEntry {
             user: UserInfo {
                 id: row.try_get("user_id")?,
-                name: row.try_get("username")?,
+                name: row.try_get::<String, _>("username")?.into(),
             },
             score: row.try_get("score")?,
             extra_info: row.try_get("extra_info")?,

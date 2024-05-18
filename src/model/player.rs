@@ -42,7 +42,7 @@ impl Player {
         Self {
             info: UserInfo {
                 id: 0,
-                name: String::from("anonymous"),
+                name: "anonymous".into(),
             },
             shake: vec2::ZERO,
             collider,

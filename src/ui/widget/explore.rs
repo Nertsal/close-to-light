@@ -193,7 +193,7 @@ impl ExploreLevelsWidget {
                                 play: IconButtonWidget::new_normal(
                                     &self.assets.sprites.button_next,
                                 ),
-                                name: TextWidget::new(&info.music.name),
+                                name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
                                     "by {} mapped by {}",
                                     artists, authors
@@ -289,10 +289,10 @@ impl ExploreMusicWidget {
                             state: WidgetState::new(),
                             download: IconButtonWidget::new_normal(&self.assets.sprites.download),
                             play: IconButtonWidget::new_normal(&self.assets.sprites.button_next),
-                            name: TextWidget::new(&info.name),
+                            name: TextWidget::new(info.name.clone()),
                             author: TextWidget::new(
                                 itertools::Itertools::intersperse(
-                                    info.authors.iter().map(|user| user.name.as_str()),
+                                    info.authors.iter().map(|user| user.name.as_ref()),
                                     ",",
                                 )
                                 .collect::<String>(),

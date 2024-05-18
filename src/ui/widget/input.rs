@@ -1,6 +1,8 @@
+use super::*;
+
 use crate::ui::layout::AreaOps;
 
-use super::*;
+use ctl_client::core::types::Name;
 
 pub struct InputWidget {
     pub state: WidgetState,
@@ -12,7 +14,7 @@ pub struct InputWidget {
 }
 
 impl InputWidget {
-    pub fn new(name: impl Into<String>, hide_input: bool) -> Self {
+    pub fn new(name: impl Into<Name>, hide_input: bool) -> Self {
         Self {
             state: WidgetState::new(),
             name: TextWidget::new(name).aligned(vec2(0.0, 0.5)),
@@ -42,9 +44,9 @@ impl Widget for InputWidget {
         {
             self.raw = context.text_edit.text.clone();
             self.text.text = if self.hide_input {
-                "*".repeat(context.text_edit.text.len())
+                "*".repeat(context.text_edit.text.len()).into()
             } else {
-                context.text_edit.text.clone()
+                context.text_edit.text.clone().into()
             };
             context.theme.highlight
         } else {

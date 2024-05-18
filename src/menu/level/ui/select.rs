@@ -220,7 +220,7 @@ impl LevelSelectUI {
         // Synchronize data
         for (widget, &(groups_id, cache)) in self.grid_groups.iter_mut().zip(&groups) {
             widget.data = groups_id;
-            widget.text.text = cache.mappers();
+            widget.text.text = cache.mappers().into();
         }
 
         drop(local);
@@ -329,7 +329,7 @@ pub struct ItemWidget<T> {
 }
 
 impl<T> ItemWidget<T> {
-    pub fn new(text: impl Into<String>, data: T) -> Self {
+    pub fn new(text: impl Into<Name>, data: T) -> Self {
         Self {
             state: WidgetState::new(),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),

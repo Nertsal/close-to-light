@@ -6,6 +6,7 @@ use crate::{
     ui::layout::AreaOps,
 };
 
+use ctl_client::core::types::Name;
 use geng_utils::bounded::Bounded;
 
 pub struct OptionsButtonWidget {
@@ -200,7 +201,7 @@ pub struct PaletteWidget {
 }
 
 impl PaletteWidget {
-    pub fn new(name: impl Into<String>, palette: Theme) -> Self {
+    pub fn new(name: impl Into<Name>, palette: Theme) -> Self {
         Self {
             state: WidgetState::new(),
             visual: WidgetState::new(),

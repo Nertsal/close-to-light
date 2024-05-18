@@ -103,7 +103,7 @@ async fn login(mut session: AuthSession, Form(creds): Form<Credentials>) -> Resu
 
     Ok(Json(UserInfo {
         id: user.user_id,
-        name: user.username,
+        name: user.username.into(),
     }))
 }
 
