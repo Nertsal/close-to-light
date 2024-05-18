@@ -12,7 +12,7 @@ pub use self::{
 use crate::{
     game::PlayLevel,
     leaderboard::Leaderboard,
-    local::{CachedLevel, LevelCache},
+    local::CachedLevel,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
     ui::UiContext,
@@ -74,7 +74,7 @@ impl HistoryLabel {
 }
 
 pub struct Editor {
-    pub local: Rc<RefCell<LevelCache>>,
+    pub context: Context,
     pub config: EditorConfig,
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
@@ -134,13 +134,7 @@ pub struct Replay {
 }
 
 impl EditorState {
-    pub fn new(
-        context: Context,
-        local: &Rc<RefCell<LevelCache>>,
-        config: EditorConfig,
-        options: Options,
-        level: PlayLevel,
-    ) -> Self {
+    pub fn new(context: Context, config: EditorConfig, options: Options, level: PlayLevel) -> Self {
         let model = Model::empty(context.clone(), options, level.clone());
         let mut state = Self {
             transition: None,
@@ -152,7 +146,7 @@ impl EditorState {
             ui_context: UiContext::new(&context.geng, model.options.theme),
             drag: None,
             editor: Editor {
-                local: local.clone(),
+                context: context.clone(),
                 render_options: RenderOptions {
                     show_grid: true,
                     hide_ui: false,
@@ -301,7 +295,7 @@ impl EditorState {
         })();
         match result {
             Ok(()) => {
-                if let Some(cached) = self.editor.local.borrow_mut().update_level(
+                if let Some(cached) = self.editor.context.local.update_level(
                     self.editor.static_level.level.meta.id,
                     self.editor.level.clone(),
                 ) {

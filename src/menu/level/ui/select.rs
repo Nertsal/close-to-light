@@ -139,8 +139,15 @@ impl LevelSelectUI {
     }
 
     fn grid_music(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
-        let local = state.local.borrow();
-        let music: Vec<_> = local.music.iter().sorted_by_key(|(&k, _)| k).collect();
+        let local = state.context.local.clone();
+        let music: Vec<_> = local
+            .inner
+            .borrow()
+            .music
+            .iter()
+            .sorted_by_key(|(&k, _)| k)
+            .map(|(&id, music)| (id, music.clone()))
+            .collect();
 
         // Synchronize vec length
         if self.grid_music.len() > music.len() {
@@ -152,8 +159,8 @@ impl LevelSelectUI {
         }
 
         // Synchronize data
-        for (widget, (&music_id, cache)) in self.grid_music.iter_mut().zip(&music) {
-            widget.data = music_id;
+        for (widget, (music_id, cache)) in self.grid_music.iter_mut().zip(&music) {
+            widget.data = *music_id;
             widget.text.text = cache.meta.name.clone();
         }
 
@@ -190,7 +197,7 @@ impl LevelSelectUI {
     }
 
     fn grid_groups(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
-        let local = state.local.borrow();
+        let local = state.context.local.inner.borrow();
         let groups: Vec<_> = local
             .groups
             .iter()
@@ -249,12 +256,18 @@ impl LevelSelectUI {
     }
 
     fn grid_levels(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
-        let local = state.local.borrow();
+        let local = state.context.local.inner.borrow();
         let levels: Vec<_> = state
             .selected_group
             .as_ref()
             .and_then(|group| local.groups.get(group.data))
-            .map(|group| group.levels.iter().sorted_by_key(|level| level.meta.id))
+            .map(|group| {
+                group
+                    .levels
+                    .iter()
+                    .sorted_by_key(|level| level.meta.id)
+                    .cloned()
+            })
             .into_iter()
             .flatten()
             .collect();

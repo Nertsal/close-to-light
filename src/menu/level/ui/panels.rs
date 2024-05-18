@@ -116,7 +116,7 @@ impl PanelsUI {
 
         // Explore
         self.explore
-            .update(explore, context, &mut state.local.borrow_mut());
+            .update(explore, context, &mut state.context.local.clone());
         context.update_focus(self.explore.state.hovered);
 
         self.explore.window.layout(

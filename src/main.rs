@@ -95,8 +95,6 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     let assets = assets::Assets::load(manager).await?;
     let assets = Rc::new(assets);
 
-    let context = context::Context::new(&geng, &assets);
-
     let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
     let secrets: Option<Secrets> =
@@ -116,6 +114,10 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
         .transpose()?
         .map(Arc::new);
 
+    let context = context::Context::new(&geng, &assets, client.as_ref())
+        .await
+        .expect("failed to initialize context");
+
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(command) = opts.command {
         command
@@ -127,8 +129,8 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
 
     if let Some(level_path) = opts.level {
         let mut config = model::LevelConfig::default();
-        let mut local = local::LevelCache::new(client.as_ref(), &geng);
-        let (music, level) = local
+        let (music, level) = context
+            .local
             .load_level(&level_path)
             .await
             .context("failed to load the level")?;
@@ -147,13 +149,7 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
                 start_time: prelude::Time::ZERO,
             };
 
-            let state = editor::EditorState::new(
-                context,
-                &Rc::new(RefCell::new(local)),
-                editor_config,
-                options,
-                level,
-            );
+            let state = editor::EditorState::new(context, editor_config, options, level);
             geng.run_state(state).await;
             return Ok(());
         }
@@ -177,12 +173,7 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     } else {
         // Main menu
         if opts.skip_intro {
-            let local = local::LevelCache::load(client.as_ref(), &geng)
-                .await
-                .context("failed to load local data")?;
-            let local = Rc::new(RefCell::new(local));
-
-            let state = menu::LevelMenu::new(context, &local, client.as_ref(), options);
+            let state = menu::LevelMenu::new(context, client.as_ref(), options);
             geng.run_state(state).await;
         } else {
             let state = menu::SplashScreen::new(context, client.as_ref(), options);

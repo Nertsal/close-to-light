@@ -82,7 +82,7 @@ impl ExploreWidget {
 }
 
 impl StatefulWidget for ExploreWidget {
-    type State = LevelCache;
+    type State = Rc<LevelCache>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -95,8 +95,8 @@ impl StatefulWidget for ExploreWidget {
         }
         self.state.update(position, context);
         self.window.update(context.delta_time);
-        self.music.load(&state.music_list);
-        self.levels.load(&state.group_list);
+        self.music.load(&state.inner.borrow().music_list);
+        self.levels.load(&state.inner.borrow().group_list);
 
         let mut main = position;
         main.cut_top(context.layout_size * 1.0);
@@ -209,7 +209,7 @@ impl ExploreLevelsWidget {
 }
 
 impl StatefulWidget for ExploreLevelsWidget {
-    type State = LevelCache;
+    type State = Rc<LevelCache>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -307,7 +307,7 @@ impl ExploreMusicWidget {
 }
 
 impl StatefulWidget for ExploreMusicWidget {
-    type State = LevelCache;
+    type State = Rc<LevelCache>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -358,7 +358,7 @@ impl StatefulWidget for ExploreMusicWidget {
 }
 
 impl StatefulWidget for LevelItemWidget {
-    type State = LevelCache;
+    type State = Rc<LevelCache>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -377,6 +377,8 @@ impl StatefulWidget for LevelItemWidget {
         let rows = icons.split_rows(2);
 
         if !state
+            .inner
+            .borrow()
             .groups
             .iter()
             .any(|(_, group)| group.meta.id == self.info.id)
@@ -413,7 +415,7 @@ impl StatefulWidget for LevelItemWidget {
 }
 
 impl StatefulWidget for MusicItemWidget {
-    type State = LevelCache;
+    type State = Rc<LevelCache>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -431,7 +433,7 @@ impl StatefulWidget for MusicItemWidget {
         let icons = main.cut_left(context.font_size);
         let rows = icons.split_rows(2);
 
-        if !state.music.contains_key(&self.info.id) {
+        if state.get_music(self.info.id).is_none() {
             // Not downloaded
             self.download.show();
             self.play.hide();

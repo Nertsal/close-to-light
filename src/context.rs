@@ -1,11 +1,12 @@
 use crate::{
-    local::CachedMusic,
+    local::{CachedMusic, LevelCache},
     prelude::{Assets, Time},
 };
 
 use std::{cell::RefCell, rc::Rc};
 
-use ctl_client::core::types::MusicInfo;
+use anyhow::Result;
+use ctl_client::{core::types::MusicInfo, Nertboard};
 use geng::prelude::{time::Duration, *};
 
 #[derive(Clone)]
@@ -13,15 +14,21 @@ pub struct Context {
     pub geng: Geng,
     pub assets: Rc<Assets>,
     pub music: Rc<MusicManager>,
+    pub local: Rc<LevelCache>,
 }
 
 impl Context {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        Self {
+    pub async fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        client: Option<&Arc<Nertboard>>,
+    ) -> Result<Self> {
+        Ok(Self {
             geng: geng.clone(),
             assets: assets.clone(),
             music: Rc::new(MusicManager::new()),
-        }
+            local: Rc::new(LevelCache::load(client, geng).await?),
+        })
     }
 }
 

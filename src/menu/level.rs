@@ -6,7 +6,7 @@ use super::*;
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
-    local::{CachedLevel, CachedMusic, LevelCache},
+    local::{CachedLevel, CachedMusic},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{widget::Widget, ShowTime, UiContext, WidgetRequest},
 };
@@ -35,11 +35,11 @@ pub struct LevelMenu {
 }
 
 pub struct MenuState {
+    pub context: Context,
     pub leaderboard: Leaderboard,
     pub player: Player,
     pub options: Options,
     pub config: LevelConfig,
-    pub local: Rc<RefCell<LevelCache>>,
 
     /// Currently showing music.
     pub selected_music: Option<ShowTime<Id>>,
@@ -107,13 +107,13 @@ impl MenuState {
 
     fn new_group(&mut self) {
         self.switch_group = None; // Deselect group
-        let mut local = self.local.borrow_mut();
+        let local = &self.context.local;
         // TODO: maybe ui to configure early
         local.new_group(0);
     }
 
     fn new_level(&mut self, group: Index) {
-        let mut local = self.local.borrow_mut();
+        let local = &self.context.local;
         let meta = LevelInfo {
             id: 0,
             name: "New Difficulty".into(),
@@ -127,7 +127,6 @@ impl MenuState {
 impl LevelMenu {
     pub fn new(
         context: Context,
-        local: &Rc<RefCell<LevelCache>>,
         client: Option<&Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
@@ -159,11 +158,11 @@ impl LevelMenu {
                 fov: 10.0,
             },
             state: MenuState {
+                context: context.clone(),
                 leaderboard,
                 player,
                 options,
                 config: LevelConfig::default(),
-                local: Rc::clone(local),
 
                 selected_music: None,
                 selected_group: None,
@@ -194,7 +193,7 @@ impl LevelMenu {
     }
 
     fn get_active_level(&self) -> Option<(Rc<CachedMusic>, Rc<CachedLevel>)> {
-        let local = self.state.local.borrow();
+        let local = self.context.local.inner.borrow();
 
         let group = self.state.selected_group.as_ref()?;
         let group = local.groups.get(group.data)?;
@@ -547,7 +546,7 @@ impl geng::State for LevelMenu {
             .state
             .selected_music
             .as_ref()
-            .and_then(|music| self.state.local.borrow().music.get(&music.data).cloned())
+            .and_then(|music| self.state.context.local.get_music(music.data))
         {
             self.context.music.switch(&active); // TODO: rng start
         } else {
@@ -605,11 +604,11 @@ impl geng::State for LevelMenu {
         self.update_active_level(delta_time);
         self.update_leaderboard();
 
-        self.state.local.borrow_mut().poll();
+        self.context.local.poll();
 
         if let Some((music, level)) = self.state.edit_level.take().and_then(|(group, level)| {
             // TODO: warn if smth wrong
-            let local = self.state.local.borrow();
+            let local = self.state.context.local.inner.borrow();
             local.groups.get(group).and_then(|group| {
                 group.music.as_ref().and_then(|music| {
                     group
@@ -620,7 +619,6 @@ impl geng::State for LevelMenu {
             })
         }) {
             let context = self.context.clone();
-            let local = self.state.local.clone();
             let manager = self.context.geng.asset_manager().clone();
             let assets_path = run_dir().join("assets");
             let options = self.state.options.clone();
@@ -636,7 +634,7 @@ impl geng::State for LevelMenu {
                         .await
                         .expect("failed to load editor config");
 
-                crate::editor::EditorState::new(context, &local, config, options, level)
+                crate::editor::EditorState::new(context, config, options, level)
             };
             let state = geng::LoadingScreen::new(
                 &self.context.geng,

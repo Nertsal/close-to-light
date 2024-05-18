@@ -9,6 +9,10 @@ type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
 
 pub struct LevelCache {
     geng: Geng,
+    pub inner: RefCell<LevelCacheImpl>,
+}
+
+pub struct LevelCacheImpl {
     tasks: CacheTasks,
 
     /// List of downloadable music.
@@ -100,8 +104,7 @@ impl CacheTasks {
 
 impl LevelCache {
     pub fn new(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Self {
-        Self {
-            geng: geng.clone(),
+        let inner = LevelCacheImpl {
             tasks: CacheTasks::new(client),
 
             music_list: CacheState::Offline,
@@ -109,11 +112,16 @@ impl LevelCache {
 
             music: HashMap::new(),
             groups: Arena::new(),
+        };
+        Self {
+            geng: geng.clone(),
+            inner: RefCell::new(inner),
         }
     }
 
-    pub fn client(&self) -> Option<&Arc<Nertboard>> {
-        self.tasks.client.as_ref()
+    pub fn client(&self) -> Option<Arc<Nertboard>> {
+        let inner = self.inner.borrow();
+        inner.tasks.client.as_ref().cloned()
     }
 
     /// Load from the local storage.
@@ -131,7 +139,7 @@ impl LevelCache {
         let base_path = fs::base_path();
         std::fs::create_dir_all(&base_path)?;
 
-        let mut local = Self::new(client, geng);
+        let local = Self::new(client, geng);
 
         let music_path = fs::all_music_path();
         if music_path.exists() {
@@ -149,7 +157,7 @@ impl LevelCache {
                 .collect();
             let music_loaders = paths.iter().map(|path| local.load_music(path));
             let music = future::join_all(music_loaders).await;
-            local.music.extend(
+            local.inner.borrow_mut().music.extend(
                 music
                     .into_iter()
                     .flatten()
@@ -173,17 +181,33 @@ impl LevelCache {
                 .collect();
             let group_loaders = paths.iter().map(|path| local.load_group_all(path));
             let groups = future::join_all(group_loaders).await;
+
+            let mut inner = local.inner.borrow_mut();
             for (music, group) in groups.into_iter().flatten() {
                 if let Some(music) = music {
-                    local.music.insert(music.meta.id, music);
+                    inner.music.insert(music.meta.id, music);
                 }
-                local.groups.insert(group);
+                inner.groups.insert(group);
             }
         }
 
         log::debug!("Loaded cache in {:.2}s", timer.tick().as_secs_f64());
 
         Ok(local)
+    }
+
+    pub fn get_music(&self, music_id: Id) -> Option<Rc<CachedMusic>> {
+        let inner = self.inner.borrow();
+        inner.music.get(&music_id).cloned()
+    }
+
+    pub fn get_level(&self, group: Index, level: usize) -> Option<Rc<CachedLevel>> {
+        let inner = self.inner.borrow();
+        inner
+            .groups
+            .get(group)
+            .and_then(|group| group.levels.get(level))
+            .cloned()
     }
 
     pub async fn load_music(&self, path: impl AsRef<std::path::Path>) -> Result<Rc<CachedMusic>> {
@@ -194,7 +218,7 @@ impl LevelCache {
     }
 
     pub async fn load_level(
-        &mut self,
+        &self,
         level_path: impl AsRef<std::path::Path>,
     ) -> Result<(Rc<CachedMusic>, Rc<CachedLevel>)> {
         let level_path = level_path.as_ref();
@@ -222,7 +246,8 @@ impl LevelCache {
         self.load_group_all(&group_path).await?;
 
         // If `load_group_all` succedes, the group is pushed to the end
-        let (_, group) = self.groups.iter().last().unwrap();
+        let inner = self.inner.borrow();
+        let (_, group) = inner.groups.iter().last().unwrap();
 
         let music = group
             .music
@@ -249,8 +274,8 @@ impl LevelCache {
         let meta_path = group_path.join("meta.toml"); // TODO: move to fs
         let meta: GroupMeta = file::load_detect(&meta_path).await?;
 
-        let music = match self.music.get(&meta.music) {
-            Some(music) => Some(music.clone()),
+        let music = match self.get_music(meta.music) {
+            Some(music) => Some(music),
             None => {
                 let music_path = fs::music_path(meta.music);
                 self.load_music(&music_path).await.ok()
@@ -292,8 +317,10 @@ impl LevelCache {
         Ok((music, group))
     }
 
-    pub fn new_group(&mut self, music_id: Id) {
-        let music = self.music.get(&music_id).cloned();
+    pub fn new_group(&self, music_id: Id) {
+        let mut inner = self.inner.borrow_mut();
+
+        let music = inner.music.get(&music_id).cloned();
         let mut group = CachedGroup::new(GroupMeta {
             id: 0,
             music: music_id,
@@ -309,16 +336,17 @@ impl LevelCache {
             }
         }
 
-        self.groups.insert(group);
+        inner.groups.insert(group);
     }
 
-    pub fn new_level(&mut self, group: Index, meta: LevelInfo) {
+    pub fn new_level(&self, group: Index, meta: LevelInfo) {
         if meta.id != 0 {
             log::error!("Trying to create a new level with non-zero id");
             return;
         }
 
-        if let Some(group) = self.groups.get_mut(group) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(group) = inner.groups.get_mut(group) {
             let mut level = CachedLevel::new(meta);
             #[cfg(not(target_arch = "wasm32"))]
             {
@@ -332,21 +360,23 @@ impl LevelCache {
         }
     }
 
-    pub fn fetch_groups(&mut self) {
-        if self.tasks.fetch_groups.is_none() {
-            if let Some(client) = self.tasks.client.clone() {
+    pub fn fetch_groups(&self) {
+        let mut inner = self.inner.borrow_mut();
+        if inner.tasks.fetch_groups.is_none() {
+            if let Some(client) = inner.tasks.client.clone() {
                 let future = async move {
                     let groups = client.get_group_list().await?;
                     Ok(groups)
                 };
-                self.tasks.fetch_groups = Some(Task::new(&self.geng, future));
-                self.group_list = CacheState::Loading;
+                inner.tasks.fetch_groups = Some(Task::new(&self.geng, future));
+                inner.group_list = CacheState::Loading;
             }
         }
     }
 
-    pub fn download_group(&mut self, group_id: Id) {
-        if self
+    pub fn download_group(&self, group_id: Id) {
+        let mut inner = self.inner.borrow_mut();
+        if inner
             .groups
             .iter()
             .any(|(_, group)| group.meta.id == group_id)
@@ -356,10 +386,10 @@ impl LevelCache {
             return;
         }
 
-        if self.tasks.download_group.is_none() {
-            if let Some(client) = self.tasks.client.clone() {
+        if inner.tasks.download_group.is_none() {
+            if let Some(client) = inner.tasks.client.clone() {
                 let geng = self.geng.clone();
-                let music_list = self.music.clone();
+                let music_list = inner.music.clone();
 
                 let future = async move {
                     let info = client.get_group_info(group_id).await?;
@@ -428,27 +458,29 @@ impl LevelCache {
 
                     Ok(group)
                 };
-                self.tasks.download_group = Some(Task::new(&self.geng, future));
+                inner.tasks.download_group = Some(Task::new(&self.geng, future));
             }
         }
     }
 
-    pub fn fetch_music(&mut self) {
-        if self.tasks.fetch_music.is_none() {
-            if let Some(client) = self.tasks.client.clone() {
+    pub fn fetch_music(&self) {
+        let mut inner = self.inner.borrow_mut();
+        if inner.tasks.fetch_music.is_none() {
+            if let Some(client) = inner.tasks.client.clone() {
                 let future = async move {
                     let music = client.get_music_list().await?;
                     Ok(music)
                 };
-                self.tasks.fetch_music = Some(Task::new(&self.geng, future));
-                self.music_list = CacheState::Loading;
+                inner.tasks.fetch_music = Some(Task::new(&self.geng, future));
+                inner.music_list = CacheState::Loading;
             }
         }
     }
 
-    pub fn download_music(&mut self, music_id: Id) {
-        if self.tasks.download_music.is_none() {
-            if let Some(client) = self.tasks.client.clone() {
+    pub fn download_music(&self, music_id: Id) {
+        let mut inner = self.inner.borrow_mut();
+        if inner.tasks.download_music.is_none() {
+            if let Some(client) = inner.tasks.client.clone() {
                 let geng = self.geng.clone();
                 let future = async move {
                     let meta = client.get_music_info(music_id).await?;
@@ -470,37 +502,39 @@ impl LevelCache {
                     let music = CachedMusic { meta, music };
                     Ok(music)
                 };
-                self.tasks.download_music = Some(Task::new(&self.geng, future));
+                inner.tasks.download_music = Some(Task::new(&self.geng, future));
             }
         }
     }
 
-    pub fn poll(&mut self) {
-        if let Some(action) = self.tasks.poll() {
+    pub fn poll(&self) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(action) = inner.tasks.poll() {
             match action {
-                CacheAction::MusicList(music) => self.music_list = CacheState::Loaded(music),
+                CacheAction::MusicList(music) => inner.music_list = CacheState::Loaded(music),
                 CacheAction::Music(music) => {
-                    self.music.insert(music.meta.id, Rc::new(music));
+                    inner.music.insert(music.meta.id, Rc::new(music));
                 }
-                CacheAction::GroupList(groups) => self.group_list = CacheState::Loaded(groups),
+                CacheAction::GroupList(groups) => inner.group_list = CacheState::Loaded(groups),
                 CacheAction::Group(group) => {
                     if let Some(music) = &group.music {
-                        self.music.insert(music.meta.id, Rc::clone(music));
+                        inner.music.insert(music.meta.id, Rc::clone(music));
                     }
-                    self.groups.insert(group);
+                    inner.groups.insert(group);
                 }
             }
         }
     }
 
     pub fn synchronize(
-        &mut self,
+        &self,
         group_index: Index,
         level_index: usize,
         group_id: Id,
         level_id: Id,
     ) -> Option<Rc<CachedLevel>> {
-        if let Some(group) = self.groups.get_mut(group_index) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(group) = inner.groups.get_mut(group_index) {
             group.meta.id = group_id;
             if let Some(level) = group.levels.get_mut(level_index) {
                 let mut new_level: CachedLevel = (**level).clone();
@@ -530,9 +564,9 @@ impl LevelCache {
         None
     }
 
-    pub fn update_level(&mut self, level_id: Id, level: Level) -> Option<Rc<CachedLevel>> {
-        // let cached = self.groups.get(group_id)?.levels.get(level_id)?;
-        let cached = self.groups.iter_mut().find_map(|(_, group)| {
+    pub fn update_level(&self, level_id: Id, level: Level) -> Option<Rc<CachedLevel>> {
+        let mut inner = self.inner.borrow_mut();
+        let cached = inner.groups.iter_mut().find_map(|(_, group)| {
             group
                 .levels
                 .iter_mut()
@@ -558,8 +592,9 @@ impl LevelCache {
         Some(level)
     }
 
-    pub fn delete_group(&mut self, group: Index) {
-        if let Some(group) = self.groups.remove(group) {
+    pub fn delete_group(&self, group: Index) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(group) = inner.groups.remove(group) {
             #[cfg(not(target_arch = "wasm32"))]
             {
                 log::debug!("Deleting the group folder: {:?}", group.path);
@@ -570,8 +605,9 @@ impl LevelCache {
         }
     }
 
-    pub fn delete_level(&mut self, group: Index, level: usize) {
-        if let Some(group) = self.groups.get_mut(group) {
+    pub fn delete_level(&self, group: Index, level: usize) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(group) = inner.groups.get_mut(group) {
             if level < group.levels.len() {
                 let level = group.levels.remove(level);
                 #[cfg(not(target_arch = "wasm32"))]

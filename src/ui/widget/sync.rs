@@ -92,7 +92,7 @@ impl StatefulWidget for SyncWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         if std::mem::take(&mut self.reload) && self.task_level_info.is_none() {
-            if let Some(client) = state.client().cloned() {
+            if let Some(client) = state.client() {
                 let level_id = self.cached_level.meta.id;
                 if level_id == 0 {
                     self.status.text = "Level is local".into();
@@ -227,7 +227,7 @@ impl StatefulWidget for SyncWidget {
             if let Some(music) = self.cached_music {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
-                if let Some(client) = state.client().cloned() {
+                if let Some(client) = state.client() {
                     let mut group = self.cached_group;
                     let group_index = self.cached_group_index;
                     let level_index = self.cached_level_index;
@@ -269,7 +269,7 @@ impl StatefulWidget for SyncWidget {
                 // Delete
                 state.delete_level(self.cached_group_index, self.cached_level_index);
                 self.window.request = Some(WidgetRequest::Close);
-            } else if let Some(client) = state.client().cloned() {
+            } else if let Some(client) = state.client() {
                 let level_id = self.cached_level.meta.id;
                 let future = async move {
                     let bytes = client.download_level(level_id).await?;

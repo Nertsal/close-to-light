@@ -67,27 +67,11 @@ impl MainMenu {
     }
 
     fn play(&mut self) {
-        let future = {
-            let context = self.context.clone();
-            let client = self.client.clone();
-            let options = self.options.clone();
-
-            async move {
-                let local = crate::local::LevelCache::load(client.as_ref(), &context.geng)
-                    .await
-                    .expect("failed to load local data");
-                let local = Rc::new(RefCell::new(local));
-                LevelMenu::new(context, &local, client.as_ref(), options)
-            }
-            .boxed_local()
-        };
-        self.transition = Some(geng::state::Transition::Push(Box::new(
-            geng::LoadingScreen::new(
-                &self.context.geng,
-                geng::EmptyLoadingScreen::new(&self.context.geng),
-                future,
-            ),
-        )));
+        let context = self.context.clone();
+        let client = self.client.clone();
+        let options = self.options.clone();
+        let state = LevelMenu::new(context, client.as_ref(), options);
+        self.transition = Some(geng::state::Transition::Push(Box::new(state)));
     }
 }
 

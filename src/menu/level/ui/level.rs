@@ -28,9 +28,9 @@ impl PlayLevelWidget {
         let font_factor = 1.3; // Scaling factor to fit better in the designated area
 
         // Sync data and dynamic layout
-        let local = state.local.borrow();
+        let local = &state.context.local;
         if let Some(show) = &state.selected_music {
-            if let Some(music) = local.music.get(&show.data) {
+            if let Some(music) = local.get_music(show.data) {
                 self.music.text = music.meta.name.clone();
                 self.music_author.text = music.meta.authors();
 
@@ -44,13 +44,9 @@ impl PlayLevelWidget {
                 self.music_author.options.size = music_author_pos.height() * font_factor;
             }
         }
-        if let Some(group) = state
-            .selected_group
-            .as_ref()
-            .and_then(|group| local.groups.get(group.data))
-        {
+        if let Some(group) = &state.selected_group {
             if let Some(show) = &state.selected_level {
-                if let Some(level) = group.levels.get(show.data) {
+                if let Some(level) = local.get_level(group.data, show.data) {
                     self.difficulty.text = level.meta.name.clone();
                     self.mappers.text = level.meta.authors();
 
