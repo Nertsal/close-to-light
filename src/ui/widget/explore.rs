@@ -15,6 +15,7 @@ pub struct ExploreWidget {
     pub tabs: WidgetState,
     pub tab_music: TextWidget,
     pub tab_levels: TextWidget,
+    pub close: IconButtonWidget,
     pub separator: WidgetState,
 
     pub music: ExploreMusicWidget,
@@ -69,6 +70,7 @@ impl ExploreWidget {
             tabs: WidgetState::new(),
             tab_music: TextWidget::new("Music"),
             tab_levels: TextWidget::new("Levels"),
+            close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             separator: WidgetState::new(),
 
             music: ExploreMusicWidget::new(assets),
@@ -107,6 +109,13 @@ impl StatefulWidget for ExploreWidget {
         let bar = main.cut_top(context.font_size * 1.2);
 
         let bar = bar.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
+
+        let close = vec2::splat(2.0) * context.layout_size;
+        let close = bar.align_aabb(close, vec2(1.0, 1.0));
+        self.close.update(close, context);
+        if self.close.state.clicked {
+            self.window.request = Some(WidgetRequest::Close);
+        }
 
         // TODO: extract to a function or smth
         {
