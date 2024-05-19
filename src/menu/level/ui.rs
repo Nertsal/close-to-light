@@ -103,8 +103,16 @@ impl MenuUI {
         if self.explore.state.visible {
             let size = vec2(50.0, 30.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
-            self.explore
-                .update(window, context, &mut self.context.local.clone());
+
+            let slide_t = 1.0 - self.explore.window.show.time.get_ratio();
+            let slide_t = crate::util::smoothstep(slide_t);
+            let slide = vec2(0.0, screen.min.y - window.max.y) * slide_t;
+
+            self.explore.update(
+                window.translate(slide),
+                context,
+                &mut self.context.local.clone(),
+            );
 
             // NOTE: Everything below `explore` cannot get focused
             context.can_focus = false;
