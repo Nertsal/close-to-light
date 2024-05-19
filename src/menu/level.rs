@@ -538,23 +538,30 @@ impl geng::State for LevelMenu {
             .update(self.context.geng.window(), delta_time.as_f32());
         self.ui_context.theme = self.state.options.theme;
 
-        // Music volume
-        let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
-            .min(show_ratio(&self.state.selected_music).unwrap_or(0.0));
-        self.context
-            .music
-            .set_volume(self.state.options.volume.music() * t);
-
-        // Playing music
-        if let Some(active) = self
-            .state
-            .selected_music
-            .as_ref()
-            .and_then(|music| self.state.context.local.get_music(music.data))
-        {
-            self.context.music.switch(&active); // TODO: rng start
+        if self.ui.explore.state.visible {
+            let t = self.ui.explore.window.show.time.get_ratio();
+            self.context
+                .music
+                .set_volume(self.state.options.volume.music() * t);
         } else {
-            self.context.music.stop();
+            // Music volume
+            let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
+                .min(show_ratio(&self.state.selected_music).unwrap_or(0.0));
+            self.context
+                .music
+                .set_volume(self.state.options.volume.music() * t);
+
+            // Playing music
+            if let Some(active) = self
+                .state
+                .selected_music
+                .as_ref()
+                .and_then(|music| self.state.context.local.get_music(music.data))
+            {
+                self.context.music.switch(&active); // TODO: rng start
+            } else {
+                self.context.music.stop();
+            }
         }
 
         let game_pos = geng_utils::layout::fit_aabb(

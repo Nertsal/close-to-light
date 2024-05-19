@@ -434,6 +434,7 @@ impl MenuRender {
                     for item in &ui.music.items {
                         self.ui.draw_icon(&item.download.icon, &mut mask.color);
                         self.ui.draw_icon(&item.play.icon, &mut mask.color);
+                        self.ui.draw_icon(&item.goto.icon, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(
@@ -448,7 +449,7 @@ impl MenuRender {
                     self.ui.draw_text(&ui.levels.status, &mut mask.color);
                     for item in &ui.levels.items {
                         self.ui.draw_icon(&item.download.icon, &mut mask.color);
-                        self.ui.draw_icon(&item.play.icon, &mut mask.color);
+                        self.ui.draw_icon(&item.goto.icon, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(

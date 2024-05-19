@@ -8,6 +8,19 @@ use crate::{
     ui::layout::AreaOps,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub enum ExploreAction {
+    PlayMusic(Id),
+    GotoMusic(Id),
+    GotoGroup(Id),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ExploreTab {
+    Music,
+    Group,
+}
+
 pub struct ExploreWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
@@ -46,7 +59,7 @@ pub struct ExploreMusicWidget {
 pub struct LevelItemWidget {
     pub state: WidgetState,
     pub download: IconButtonWidget,
-    pub play: IconButtonWidget,
+    pub goto: IconButtonWidget,
     pub info: GroupInfo,
     pub name: TextWidget,
     pub author: TextWidget,
@@ -56,6 +69,7 @@ pub struct MusicItemWidget {
     pub state: WidgetState,
     pub download: IconButtonWidget,
     pub play: IconButtonWidget,
+    pub goto: IconButtonWidget,
     pub info: MusicInfo,
     pub name: TextWidget,
     pub author: TextWidget,
@@ -81,10 +95,20 @@ impl ExploreWidget {
         w.music.hide();
         w
     }
+
+    pub fn select_tab(&mut self, tab: ExploreTab) {
+        self.music.hide();
+        self.levels.hide();
+
+        match tab {
+            ExploreTab::Music => self.music.show(),
+            ExploreTab::Group => self.levels.show(),
+        }
+    }
 }
 
 impl StatefulWidget for ExploreWidget {
-    type State = (Rc<LevelCache>, Option<Id>);
+    type State = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -94,12 +118,18 @@ impl StatefulWidget for ExploreWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, goto_group): &mut Self::State,
+        (state, action): &mut Self::State,
     ) {
         // TODO: better
         if !self.state.visible {
             return;
         }
+
+        if std::mem::take(&mut self.first_load) {
+            state.fetch_music();
+            state.fetch_groups();
+        }
+
         self.state.update(position, context);
         self.window.update(context.delta_time);
         if self.window.show.time.is_min() {
@@ -154,28 +184,16 @@ impl StatefulWidget for ExploreWidget {
         }
 
         if self.tab_music.state.clicked {
-            state.fetch_music();
-            self.music.show();
-            self.levels.hide();
-        } else if self.tab_levels.state.clicked
-            || self.levels.state.visible
-                && self.window.show.going_up
-                && std::mem::take(&mut self.first_load)
-        {
-            state.fetch_groups();
-            self.music.hide();
-            self.levels.show();
+            self.select_tab(ExploreTab::Music);
+        } else if self.tab_levels.state.clicked {
+            self.select_tab(ExploreTab::Group);
         }
 
         let main = main.extend_uniform(-context.font_size * 0.5);
-        self.music.update(main, context, state);
-        {
-            let mut state = (state.clone(), None);
-            self.levels.update(main, context, &mut state);
-            if let Some(group) = state.1 {
-                *goto_group = Some(group);
-            }
-        }
+        let mut state = (state.clone(), None);
+        self.music.update(main, context, &mut state);
+        self.levels.update(main, context, &mut state);
+        *action = state.1;
     }
 }
 
@@ -214,7 +232,7 @@ impl ExploreLevelsWidget {
                                 download: IconButtonWidget::new_normal(
                                     &self.assets.sprites.download,
                                 ),
-                                play: IconButtonWidget::new_normal(&self.assets.sprites.goto),
+                                goto: IconButtonWidget::new_normal(&self.assets.sprites.goto),
                                 name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
                                     "by {} mapped by {}",
@@ -231,7 +249,7 @@ impl ExploreLevelsWidget {
 }
 
 impl StatefulWidget for ExploreLevelsWidget {
-    type State = (Rc<LevelCache>, Option<Id>);
+    type State = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -241,7 +259,7 @@ impl StatefulWidget for ExploreLevelsWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, goto_group): &mut Self::State,
+        (state, action): &mut Self::State,
     ) {
         // TODO: better
         if !self.state.visible {
@@ -265,11 +283,10 @@ impl StatefulWidget for ExploreLevelsWidget {
         let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
 
         for (row, position) in self.items.iter_mut().zip(rows) {
-            let goto = false;
-            let mut state = (state.clone(), goto);
+            let mut state = (state.clone(), None);
             row.update(position, context, &mut state);
-            if state.1 {
-                *goto_group = Some(row.info.id);
+            if let Some(act) = state.1 {
+                *action = Some(act);
             }
         }
 
@@ -322,6 +339,7 @@ impl ExploreMusicWidget {
                             state: WidgetState::new(),
                             download: IconButtonWidget::new_normal(&self.assets.sprites.download),
                             play: IconButtonWidget::new_normal(&self.assets.sprites.button_next),
+                            goto: IconButtonWidget::new_normal(&self.assets.sprites.goto),
                             name: TextWidget::new(info.name.clone()),
                             author: TextWidget::new(
                                 itertools::Itertools::intersperse(
@@ -340,7 +358,7 @@ impl ExploreMusicWidget {
 }
 
 impl StatefulWidget for ExploreMusicWidget {
-    type State = Rc<LevelCache>;
+    type State = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -391,7 +409,7 @@ impl StatefulWidget for ExploreMusicWidget {
 }
 
 impl StatefulWidget for LevelItemWidget {
-    type State = (Rc<LevelCache>, bool);
+    type State = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -401,7 +419,7 @@ impl StatefulWidget for LevelItemWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, goto): &mut Self::State,
+        (state, action): &mut Self::State,
     ) {
         // TODO: better
         if !self.state.visible {
@@ -423,17 +441,17 @@ impl StatefulWidget for LevelItemWidget {
         {
             // Not downloaded
             self.download.show();
-            self.play.hide();
+            self.goto.hide();
             self.download.update(rows[1], context);
             if self.download.state.clicked {
                 state.download_group(self.info.id);
             }
         } else {
             self.download.hide();
-            self.play.show();
-            self.play.update(rows[1], context);
-            if self.play.state.clicked {
-                *goto = true;
+            self.goto.show();
+            self.goto.update(rows[1], context);
+            if self.goto.state.clicked {
+                *action = Some(ExploreAction::GotoGroup(self.info.id));
             }
         }
 
@@ -453,13 +471,18 @@ impl StatefulWidget for LevelItemWidget {
 }
 
 impl StatefulWidget for MusicItemWidget {
-    type State = Rc<LevelCache>;
+    type State = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, action): &mut Self::State,
+    ) {
         // TODO: better
         if !self.state.visible {
             return;
@@ -475,6 +498,7 @@ impl StatefulWidget for MusicItemWidget {
             // Not downloaded
             self.download.show();
             self.play.hide();
+            self.goto.hide();
 
             self.download.update(rows[1], context);
             if self.download.state.clicked {
@@ -483,11 +507,15 @@ impl StatefulWidget for MusicItemWidget {
         } else {
             self.download.hide();
             self.play.show();
+            self.goto.show();
 
-            self.play.update(rows[1], context);
-            // if self.play.state.clicked {
-            //     state.play_music(self.info.id);
-            // }
+            self.play.update(rows[0], context);
+            self.goto.update(rows[1], context);
+            if self.play.state.clicked {
+                *action = Some(ExploreAction::PlayMusic(self.info.id));
+            } else if self.goto.state.clicked {
+                *action = Some(ExploreAction::GotoMusic(self.info.id));
+            }
         }
 
         main.cut_left(context.layout_size);
