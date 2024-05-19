@@ -58,6 +58,8 @@ pub struct Sprites {
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub download: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub goto: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
     pub trash: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub settings: Rc<ugli::Texture>,

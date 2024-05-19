@@ -57,8 +57,15 @@ impl LevelSelectUI {
 
         let tab = match tab {
             LevelSelectTab::Music => &mut self.tab_music,
-            LevelSelectTab::Group => &mut self.tab_groups,
-            LevelSelectTab::Difficulty => &mut self.tab_levels,
+            LevelSelectTab::Group => {
+                self.tab_music.show();
+                &mut self.tab_groups
+            }
+            LevelSelectTab::Difficulty => {
+                self.tab_music.show();
+                self.tab_groups.show();
+                &mut self.tab_levels
+            }
         };
         tab.show();
         tab.selected = true;

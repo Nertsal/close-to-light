@@ -1,6 +1,5 @@
 mod level;
 mod modifiers;
-mod panels;
 mod select;
 
 pub use self::{level::*, modifiers::*, select::*};
@@ -108,11 +107,25 @@ impl MenuUI {
             let slide_t = crate::util::smoothstep(slide_t);
             let slide = vec2(0.0, screen.min.y - window.max.y) * slide_t;
 
-            self.explore.update(
-                window.translate(slide),
-                context,
-                &mut self.context.local.clone(),
-            );
+            let mut temp_state = (self.context.local.clone(), None);
+            self.explore
+                .update(window.translate(slide), context, &mut temp_state);
+            if let Some(goto_group) = temp_state.1 {
+                if let Some((index, group)) = self
+                    .context
+                    .local
+                    .inner
+                    .borrow()
+                    .groups
+                    .iter()
+                    .find(|(_, group)| group.meta.id == goto_group)
+                {
+                    self.explore.window.request = Some(WidgetRequest::Close);
+                    self.level_select.select_tab(LevelSelectTab::Difficulty);
+                    state.switch_music = Some(group.meta.music);
+                    state.switch_group = Some(index);
+                }
+            }
 
             // NOTE: Everything below `explore` cannot get focused
             context.can_focus = false;

@@ -1,4 +1,4 @@
-use ctl_client::core::types::{GroupInfo, MusicInfo};
+use ctl_client::core::types::{GroupInfo, Id, MusicInfo};
 
 use super::*;
 
@@ -84,13 +84,18 @@ impl ExploreWidget {
 }
 
 impl StatefulWidget for ExploreWidget {
-    type State = Rc<LevelCache>;
+    type State = (Rc<LevelCache>, Option<Id>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, goto_group): &mut Self::State,
+    ) {
         // TODO: better
         if !self.state.visible {
             return;
@@ -164,7 +169,13 @@ impl StatefulWidget for ExploreWidget {
 
         let main = main.extend_uniform(-context.font_size * 0.5);
         self.music.update(main, context, state);
-        self.levels.update(main, context, state);
+        {
+            let mut state = (state.clone(), None);
+            self.levels.update(main, context, &mut state);
+            if let Some(group) = state.1 {
+                *goto_group = Some(group);
+            }
+        }
     }
 }
 
@@ -203,9 +214,7 @@ impl ExploreLevelsWidget {
                                 download: IconButtonWidget::new_normal(
                                     &self.assets.sprites.download,
                                 ),
-                                play: IconButtonWidget::new_normal(
-                                    &self.assets.sprites.button_next,
-                                ),
+                                play: IconButtonWidget::new_normal(&self.assets.sprites.goto),
                                 name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
                                     "by {} mapped by {}",
@@ -222,13 +231,18 @@ impl ExploreLevelsWidget {
 }
 
 impl StatefulWidget for ExploreLevelsWidget {
-    type State = Rc<LevelCache>;
+    type State = (Rc<LevelCache>, Option<Id>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, goto_group): &mut Self::State,
+    ) {
         // TODO: better
         if !self.state.visible {
             return;
@@ -249,8 +263,14 @@ impl StatefulWidget for ExploreLevelsWidget {
             self.items.len(),
         );
         let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
+
         for (row, position) in self.items.iter_mut().zip(rows) {
-            row.update(position, context, state);
+            let goto = false;
+            let mut state = (state.clone(), goto);
+            row.update(position, context, &mut state);
+            if state.1 {
+                *goto_group = Some(row.info.id);
+            }
         }
 
         // TODO: extract to a function or smth
@@ -371,13 +391,18 @@ impl StatefulWidget for ExploreMusicWidget {
 }
 
 impl StatefulWidget for LevelItemWidget {
-    type State = Rc<LevelCache>;
+    type State = (Rc<LevelCache>, bool);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, goto): &mut Self::State,
+    ) {
         // TODO: better
         if !self.state.visible {
             return;
@@ -408,7 +433,7 @@ impl StatefulWidget for LevelItemWidget {
             self.play.show();
             self.play.update(rows[1], context);
             if self.play.state.clicked {
-                // TODO: goto group
+                *goto = true;
             }
         }
 
