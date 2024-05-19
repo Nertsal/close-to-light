@@ -3,6 +3,7 @@ use super::*;
 use crate::util::Lerp;
 
 pub struct ModifiersWidget {
+    t: f32,
     pub body_slide: Bounded<f32>,
     pub head: TextWidget,
     pub body: WidgetState,
@@ -15,6 +16,7 @@ pub struct ModifiersWidget {
 impl ModifiersWidget {
     pub fn new() -> Self {
         Self {
+            t: 0.0,
             body_slide: Bounded::new_zero(0.25),
             head: TextWidget::new("Modifiers"),
             body: WidgetState::new(),
@@ -37,10 +39,14 @@ impl ModifiersWidget {
         let head = main.align_aabb(head_size, vec2(0.5, 0.0));
 
         // Slide in when a level is selected
-        let t = state
-            .selected_level
-            .as_ref()
-            .map_or(0.0, |show| show.time.get_ratio());
+        let t = state.selected_level.as_ref().map_or(0.0, |show| {
+            let mut t = show.time.get_ratio();
+            if state.switch_level.is_some() {
+                t = t.max(self.t);
+            }
+            t
+        });
+        self.t = t;
         let t = crate::util::smoothstep(t);
         let slide = vec2(0.0, context.screen.min.y - head.max.y);
         let main = main.translate(slide * (1.0 - t));
