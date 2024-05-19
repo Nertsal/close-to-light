@@ -22,7 +22,7 @@ pub struct CachedGroup {
     pub levels: Vec<Rc<CachedLevel>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GroupMeta {
     pub id: Id,
     pub music: Id,

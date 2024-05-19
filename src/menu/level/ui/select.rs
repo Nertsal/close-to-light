@@ -1,18 +1,27 @@
+use crate::ui::UiWindow;
+
 use super::*;
 
 pub struct LevelSelectUI {
     // geng: Geng,
-    // assets: Rc<Assets>,
+    assets: Rc<Assets>,
     pub tab_music: ToggleWidget,
     pub tab_groups: ToggleWidget,
     pub tab_levels: ToggleWidget,
     pub separator: WidgetState,
 
     pub add_music: TextWidget,
-    pub grid_music: Vec<ItemWidget<Id>>,
+    pub grid_music: Vec<ItemMusicWidget>,
     pub add_group: TextWidget,
-    pub grid_groups: Vec<ItemWidget<Index>>,
-    pub grid_levels: Vec<ItemWidget<usize>>,
+    pub grid_groups: Vec<ItemGroupWidget>,
+    pub grid_levels: Vec<ItemLevelWidget>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum LevelSelectAction {
+    SyncLevel(Id),
+    EditLevel(Index, usize),
+    DeleteLevel(Id),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -23,10 +32,10 @@ pub enum LevelSelectTab {
 }
 
 impl LevelSelectUI {
-    pub fn new(_geng: &Geng, _assets: &Rc<Assets>) -> Self {
+    pub fn new(_geng: &Geng, assets: &Rc<Assets>) -> Self {
         let mut ui = Self {
             // geng: geng.clone(),
-            // assets: assets.clone(),
+            assets: assets.clone(),
             tab_music: ToggleWidget::new("Music"),
             tab_groups: ToggleWidget::new("Group"),
             tab_levels: ToggleWidget::new("Difficulty"),
@@ -76,7 +85,7 @@ impl LevelSelectUI {
         main: Aabb2<f32>,
         state: &mut MenuState,
         context: &mut UiContext,
-    ) -> Option<SyncWidget> {
+    ) -> Option<LevelSelectAction> {
         let mut main = main;
         main.cut_top(context.layout_size * 1.5);
         let bar = main.cut_top(context.font_size * 1.2);
@@ -84,16 +93,18 @@ impl LevelSelectUI {
 
         self.tabs(bar, context);
 
+        let mut action = None;
         if self.tab_music.selected {
             self.grid_music(main, state, context);
         } else if self.tab_groups.selected {
-            self.grid_groups(main, state, context);
+            let act = self.grid_groups(main, state, context);
+            action = action.or(act);
         } else if self.tab_levels.selected {
-            self.grid_levels(main, state, context);
+            let act = self.grid_levels(main, state, context);
+            action = action.or(act);
         }
 
-        // TODO sync
-        None
+        action
     }
 
     fn tabs(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
@@ -157,21 +168,22 @@ impl LevelSelectUI {
             .music
             .iter()
             .sorted_by_key(|(&k, _)| k)
-            .map(|(&id, music)| (id, music.clone()))
+            .map(|(_, music)| music.clone())
             .collect();
 
         // Synchronize vec length
         if self.grid_music.len() > music.len() {
             self.grid_music.drain(music.len()..);
-        } else {
+        } else if let Some(cached) = music.first() {
             for _ in 0..music.len().saturating_sub(self.grid_music.len()) {
-                self.grid_music.push(ItemWidget::new("", 0));
+                self.grid_music
+                    .push(ItemMusicWidget::new("", cached.clone()));
             }
         }
 
         // Synchronize data
-        for (widget, (music_id, cache)) in self.grid_music.iter_mut().zip(&music) {
-            widget.data = *music_id;
+        for (widget, cache) in self.grid_music.iter_mut().zip(&music) {
+            widget.music = cache.clone();
             widget.text.text = cache.meta.name.clone();
         }
 
@@ -212,7 +224,7 @@ impl LevelSelectUI {
             {
                 widget.update(pos, context);
                 if widget.state.clicked {
-                    state.select_music(widget.data);
+                    state.select_music(widget.music.meta.id);
                     tab = Some(LevelSelectTab::Group);
                 }
             }
@@ -222,7 +234,12 @@ impl LevelSelectUI {
         }
     }
 
-    fn grid_groups(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
+    fn grid_groups(
+        &mut self,
+        main: Aabb2<f32>,
+        state: &mut MenuState,
+        context: &mut UiContext,
+    ) -> Option<LevelSelectAction> {
         let local = state.context.local.inner.borrow();
         let groups: Vec<_> = local
             .groups
@@ -239,13 +256,13 @@ impl LevelSelectUI {
         } else {
             for _ in 0..groups.len().saturating_sub(self.grid_groups.len()) {
                 self.grid_groups
-                    .push(ItemWidget::new("", Index::from_raw_parts(0, 0)));
+                    .push(ItemGroupWidget::new("", Index::from_raw_parts(0, 0)));
             }
         }
 
         // Synchronize data
         for (widget, &(groups_id, cache)) in self.grid_groups.iter_mut().zip(&groups) {
-            widget.data = groups_id;
+            widget.index = groups_id;
             widget.text.text = cache.mappers().into();
         }
 
@@ -286,7 +303,7 @@ impl LevelSelectUI {
             {
                 widget.update(pos, context);
                 if widget.state.clicked {
-                    state.select_group(widget.data);
+                    state.select_group(widget.index);
                     tab = Some(LevelSelectTab::Difficulty);
                 }
             }
@@ -294,14 +311,20 @@ impl LevelSelectUI {
                 self.select_tab(tab);
             }
         }
+
+        None
     }
 
-    fn grid_levels(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
+    fn grid_levels(
+        &mut self,
+        main: Aabb2<f32>,
+        state: &mut MenuState,
+        context: &mut UiContext,
+    ) -> Option<LevelSelectAction> {
         let local = state.context.local.inner.borrow();
-        let levels: Vec<_> = state
-            .selected_group
-            .as_ref()
-            .and_then(|group| local.groups.get(group.data))
+        let group_idx = state.selected_group.as_ref().map(|group| group.data);
+        let levels: Vec<_> = group_idx
+            .and_then(|group| local.groups.get(group))
             .map(|group| {
                 group
                     .levels
@@ -316,9 +339,15 @@ impl LevelSelectUI {
         // Synchronize vec length
         if self.grid_levels.len() > levels.len() {
             self.grid_levels.drain(levels.len()..);
-        } else {
+        } else if let Some(cached) = levels.first() {
             for _ in 0..levels.len().saturating_sub(self.grid_levels.len()) {
-                self.grid_levels.push(ItemWidget::new("", 0));
+                self.grid_levels.push(ItemLevelWidget::new(
+                    &self.assets,
+                    "",
+                    Index::from_raw_parts(0, 0),
+                    0,
+                    cached.clone(),
+                ));
             }
         }
 
@@ -326,7 +355,9 @@ impl LevelSelectUI {
         for (widget, (levels_id, cache)) in
             self.grid_levels.iter_mut().zip(levels.iter().enumerate())
         {
-            widget.data = levels_id;
+            widget.index = levels_id;
+            widget.group = group_idx.unwrap();
+            widget.level = cache.clone();
             widget.text.text = cache.meta.name.clone();
         }
 
@@ -340,6 +371,8 @@ impl LevelSelectUI {
             (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
             1.3 * context.font_size,
         );
+
+        let mut action = None;
         for row in 0..rows {
             let top_left =
                 Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
@@ -350,9 +383,10 @@ impl LevelSelectUI {
             let range = (i + 3).min(self.grid_levels.len());
             let mut tab = None;
             for (widget, pos) in self.grid_levels[i..range].iter_mut().zip(layout) {
-                widget.update(pos, context);
+                let act = widget.update(pos, context);
+                action = action.or(act);
                 if widget.state.clicked {
-                    state.select_level(widget.data);
+                    state.select_level(widget.index);
                     tab = Some(LevelSelectTab::Difficulty);
                 }
             }
@@ -360,32 +394,155 @@ impl LevelSelectUI {
                 self.select_tab(tab);
             }
         }
+
+        action
     }
 }
 
-pub struct ItemWidget<T> {
+pub struct ItemMusicWidget {
     pub state: WidgetState,
     pub text: TextWidget,
-    pub data: T,
+    pub music: Rc<CachedMusic>,
 }
 
-impl<T> ItemWidget<T> {
-    pub fn new(text: impl Into<Name>, data: T) -> Self {
+impl ItemMusicWidget {
+    pub fn new(text: impl Into<Name>, music: Rc<CachedMusic>) -> Self {
         Self {
             state: WidgetState::new(),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
-            data,
+            music,
         }
-    }
-}
-
-impl<T> Widget for ItemWidget<T> {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.text.update(position, &mut context.scale_font(0.9));
+    }
+}
+
+pub struct ItemGroupWidget {
+    pub state: WidgetState,
+    pub text: TextWidget,
+    pub index: Index,
+}
+
+impl ItemGroupWidget {
+    pub fn new(text: impl Into<Name>, index: Index) -> Self {
+        Self {
+            state: WidgetState::new(),
+            text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
+            index,
+        }
+    }
+
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+    ) -> Option<LevelSelectAction> {
+        self.state.update(position, context);
+        self.text.update(position, &mut context.scale_font(0.9));
+        None
+    }
+}
+
+pub struct ItemLevelWidget {
+    pub state: WidgetState,
+    pub text: TextWidget,
+    pub group: Index,
+    pub index: usize,
+    pub level: Rc<CachedLevel>,
+    pub menu: ItemMenuWidget,
+}
+
+impl ItemLevelWidget {
+    pub fn new(
+        assets: &Rc<Assets>,
+        text: impl Into<Name>,
+        group: Index,
+        index: usize,
+        level: Rc<CachedLevel>,
+    ) -> Self {
+        Self {
+            state: WidgetState::new(),
+            text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
+            group,
+            index,
+            level,
+            menu: ItemMenuWidget::new(assets),
+        }
+    }
+
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+    ) -> Option<LevelSelectAction> {
+        if self.state.right_clicked {
+            self.menu.window.request = Some(WidgetRequest::Open);
+            self.menu.show();
+        } else if !self.state.hovered && !self.menu.state.hovered {
+            self.menu.window.request = Some(WidgetRequest::Close);
+        }
+        self.menu.window.update(context.delta_time);
+        if self.menu.window.show.time.is_min() {
+            self.menu.hide();
+        }
+        self.menu.update(position, context);
+        if self.menu.state.hovered {
+            context.can_focus = false;
+        }
+
+        self.state.update(position, context);
+        self.text.update(position, &mut context.scale_font(0.9));
+
+        let mut action = None;
+        if self.menu.edit.state.clicked {
+            action = Some(LevelSelectAction::EditLevel(self.group, self.index));
+        } else if self.menu.sync.state.clicked {
+            action = Some(LevelSelectAction::SyncLevel(self.level.meta.id));
+        } else if self.menu.delete.state.clicked {
+            action = Some(LevelSelectAction::DeleteLevel(self.level.meta.id));
+        }
+        action
+    }
+}
+
+pub struct ItemMenuWidget {
+    pub window: UiWindow<()>,
+    pub state: WidgetState,
+    pub sync: IconButtonWidget,
+    pub edit: IconButtonWidget,
+    pub delete: IconButtonWidget,
+}
+
+impl ItemMenuWidget {
+    pub fn new(assets: &Rc<Assets>) -> Self {
+        Self {
+            window: UiWindow::new((), 0.15),
+            state: WidgetState::new(),
+            sync: IconButtonWidget::new_normal(&assets.sprites.reset),
+            edit: IconButtonWidget::new_normal(&assets.sprites.edit),
+            delete: IconButtonWidget::new_danger(&assets.sprites.trash),
+        }
+    }
+}
+
+impl Widget for ItemMenuWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        let position = position.translate(vec2(context.layout_size, -position.height()));
+        let size = vec2(3.0, 1.0) * 2.0 * context.layout_size;
+        let position = position.align_aabb(size, vec2(0.0, 1.0));
+
+        self.state.update(position, context);
+        let columns = [&mut self.sync, &mut self.edit, &mut self.delete];
+        let positions = position.split_columns(columns.len());
+        for (widget, pos) in columns.into_iter().zip(positions) {
+            widget.update(pos, context);
+        }
     }
 }

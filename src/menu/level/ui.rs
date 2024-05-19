@@ -153,8 +153,28 @@ impl MenuUI {
             context.can_focus = false;
         }
 
-        self.level_select.update(left, state, context);
-        if self.level_select.add_music.state.clicked {
+        let action = self.level_select.update(left, state, context);
+        if let Some(action) = action {
+            match action {
+                LevelSelectAction::SyncLevel(_level) => {
+                    // TODO
+                    // self.sync = SyncWidget::new(
+                    //     &self.context.geng,
+                    //     &self.context.assets,
+                    //     group,
+                    //     group_index,
+                    //     level,
+                    //     level_index,
+                    // );
+                }
+                LevelSelectAction::EditLevel(group, level) => {
+                    state.edit_level(group, level);
+                }
+                LevelSelectAction::DeleteLevel(_level) => {
+                    // TODO
+                }
+            }
+        } else if self.level_select.add_music.state.clicked {
             self.explore_music();
         } else if self.level_select.add_group.state.clicked {
             self.explore_groups();
@@ -187,7 +207,7 @@ impl MenuUI {
         // if let Some(sync) = &mut self.sync {
         //     let size = vec2(20.0, 17.0) * layout_size;
         //     let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
-        //     sync.update(pos, context, &mut state.local.borrow_mut());
+        //     sync.update(pos, context, &mut self.context.local.borrow_mut());
         //     context.update_focus(sync.state.hovered);
         //     if !sync.window.show.going_up && sync.window.show.time.is_min() {
         //         // Close window

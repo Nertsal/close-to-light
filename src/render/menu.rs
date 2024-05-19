@@ -127,19 +127,21 @@ impl MenuRender {
         if ui.tab_music.selected {
             self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
             for music in &ui.grid_music {
-                let selected = state.selected_music.as_ref().map(|m| m.data) == Some(music.data);
+                let selected =
+                    state.selected_music.as_ref().map(|m| m.data) == Some(music.music.meta.id);
                 self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
             }
         } else if ui.tab_groups.selected {
             self.draw_item_widget(&ui.add_group, false, 0.5, theme, framebuffer);
             for group in &ui.grid_groups {
-                let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.data);
+                let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.index);
                 self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
             }
         } else if ui.tab_levels.selected {
             for level in &ui.grid_levels {
-                let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.data);
+                let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.index);
                 self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
+                self.draw_item_menu(&level.menu, theme, framebuffer);
             }
         }
 
@@ -513,7 +515,7 @@ impl MenuRender {
     }
 
     fn draw_item_widget(
-        &self,
+        &mut self,
         text: &crate::ui::widget::TextWidget,
         selected: bool,
         width: f32,
@@ -536,5 +538,39 @@ impl MenuRender {
         self.ui.draw_text_colored(text, fg_color, framebuffer);
         self.ui
             .draw_outline(text.state.position, outline_width, out_color, framebuffer);
+    }
+
+    fn draw_item_menu(
+        &mut self,
+        menu: &crate::menu::ItemMenuWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        if !menu.state.visible {
+            return;
+        }
+
+        let position = menu.state.position;
+        let t = menu.window.show.time.get_ratio();
+        let t = crate::util::smoothstep(t);
+        let position = position.extend_down(-position.height() * (1.0 - t));
+        if position.height() < 1.0 {
+            return;
+        }
+
+        let outline_width = self.font_size * 0.2;
+        self.ui.draw_window(
+            &mut self.masked,
+            position,
+            None,
+            outline_width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.ui.draw_icon(&menu.sync.icon, framebuffer);
+                self.ui.draw_icon(&menu.edit.icon, framebuffer);
+                self.ui.draw_icon(&menu.delete.icon, framebuffer);
+            },
+        );
     }
 }

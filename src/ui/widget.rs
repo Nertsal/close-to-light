@@ -61,10 +61,14 @@ pub struct WidgetState {
     /// Whether to show the widget.
     pub visible: bool,
     pub hovered: bool,
-    /// Whether user has clicked on the widget since last frame.
+    /// Whether user has left clicked on the widget since last frame.
     pub clicked: bool,
-    /// Whether user is holding the mouse button down on the widget.
+    /// Whether user is holding the left mouse button down on the widget.
     pub pressed: bool,
+    /// Whether user has right clicked on the widget since last frame.
+    pub right_clicked: bool,
+    /// Whether user is holding the right mouse button down on the widget.
+    pub right_pressed: bool,
 }
 
 impl WidgetState {
@@ -81,10 +85,17 @@ impl WidgetState {
             self.pressed =
                 context.cursor.down && (was_pressed || self.hovered && !context.cursor.was_down);
             self.clicked = !was_pressed && self.pressed;
+
+            let was_pressed = self.right_pressed;
+            self.right_pressed = context.cursor.right_down
+                && (was_pressed || self.hovered && !context.cursor.was_right_down);
+            self.right_clicked = !was_pressed && self.right_pressed;
         } else {
             self.hovered = false;
             self.pressed = false;
             self.clicked = false;
+            self.right_pressed = false;
+            self.right_clicked = false;
         }
     }
 
@@ -97,6 +108,8 @@ impl WidgetState {
         self.hovered = false;
         self.pressed = false;
         self.clicked = false;
+        self.right_pressed = false;
+        self.right_clicked = false;
     }
 }
 
@@ -108,6 +121,8 @@ impl Default for WidgetState {
             hovered: false,
             clicked: false,
             pressed: false,
+            right_clicked: false,
+            right_pressed: false,
         }
     }
 }

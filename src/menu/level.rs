@@ -384,7 +384,11 @@ impl LevelMenu {
 
 impl geng::State for LevelMenu {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take()
+        let transition = self.transition.take();
+        if transition.is_some() {
+            self.context.music.stop();
+        }
+        transition
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {

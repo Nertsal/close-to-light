@@ -27,8 +27,11 @@ pub struct CursorContext {
     /// Cursor position last frame.
     pub last_position: vec2<f32>,
     pub down: bool,
+    pub right_down: bool,
     /// Was the cursor down last frame.
     pub was_down: bool,
+    /// Was the right cursor down last frame.
+    pub was_right_down: bool,
     pub scroll: f32,
 }
 
@@ -39,7 +42,9 @@ impl CursorContext {
             position: vec2::ZERO,
             last_position: vec2::ZERO,
             down: false,
+            right_down: false,
             was_down: false,
+            was_right_down: false,
             scroll: 0.0,
         }
     }
@@ -57,11 +62,13 @@ impl CursorContext {
         self.position - self.last_position
     }
 
-    pub fn update(&mut self, is_down: bool) {
+    pub fn update(&mut self, is_down: bool, right_down: bool) {
         self.last_position = self.position;
         self.position = self.next_position;
         self.was_down = self.down;
+        self.was_right_down = self.right_down;
         self.down = is_down;
+        self.right_down = right_down;
     }
 }
 
@@ -179,10 +186,10 @@ impl UiContext {
     /// Updates input values.
     pub fn update(&mut self, window: &geng::Window, delta_time: f32) {
         self.delta_time = delta_time;
-        self.cursor.update(geng_utils::key::is_key_pressed(
-            window,
-            [geng::MouseButton::Left],
-        ));
+        self.cursor.update(
+            geng_utils::key::is_key_pressed(window, [geng::MouseButton::Left]),
+            geng_utils::key::is_key_pressed(window, [geng::MouseButton::Right]),
+        );
         self.mods = KeyModifiers::from_window(window);
     }
 
