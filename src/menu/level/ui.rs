@@ -156,22 +156,26 @@ impl MenuUI {
         let action = self.level_select.update(left, state, context);
         if let Some(action) = action {
             match action {
-                LevelSelectAction::SyncLevel(_level) => {
-                    // TODO
-                    // self.sync = SyncWidget::new(
-                    //     &self.context.geng,
-                    //     &self.context.assets,
-                    //     group,
-                    //     group_index,
-                    //     level,
-                    //     level_index,
-                    // );
+                LevelSelectAction::SyncLevel(group_index, level_index) => {
+                    let local = self.context.local.inner.borrow();
+                    if let Some(group) = local.groups.get(group_index) {
+                        if let Some(level) = group.levels.get(level_index) {
+                            self.sync = Some(SyncWidget::new(
+                                &self.context.geng,
+                                &self.context.assets,
+                                group,
+                                group_index,
+                                level,
+                                level_index,
+                            ));
+                        }
+                    }
                 }
                 LevelSelectAction::EditLevel(group, level) => {
                     state.edit_level(group, level);
                 }
-                LevelSelectAction::DeleteLevel(_level) => {
-                    // TODO
+                LevelSelectAction::DeleteLevel(group, level) => {
+                    self.context.local.delete_level(group, level);
                 }
             }
         } else if self.level_select.add_music.state.clicked {
@@ -194,27 +198,17 @@ impl MenuUI {
         self.play_level.update(right, state, context);
         self.modifiers.update(right, state, context);
 
-        // // Margin
-        // let mut main = screen
-        //     .extend_uniform(-layout_size * 2.0)
-        //     .extend_up(-layout_size * 2.0);
-
-        // // Logo
-        // let ctl_logo = main.cut_top(layout_size * 4.0);
-        // self.ctl_logo.update(ctl_logo, context);
-        // main.cut_top(layout_size * 3.0);
-
-        // if let Some(sync) = &mut self.sync {
-        //     let size = vec2(20.0, 17.0) * layout_size;
-        //     let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
-        //     sync.update(pos, context, &mut self.context.local.borrow_mut());
-        //     context.update_focus(sync.state.hovered);
-        //     if !sync.window.show.going_up && sync.window.show.time.is_min() {
-        //         // Close window
-        //         self.sync = None;
-        //         self.sync_offset = vec2::ZERO;
-        //     }
-        // }
+        if let Some(sync) = &mut self.sync {
+            let size = vec2(20.0, 17.0) * layout_size;
+            let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
+            sync.update(pos, context, &mut self.context.local.clone());
+            context.update_focus(sync.state.hovered);
+            if !sync.window.show.going_up && sync.window.show.time.is_min() {
+                // Close window
+                self.sync = None;
+                self.sync_offset = vec2::ZERO;
+            }
+        }
 
         // let base_t = if state.level_up {
         //     1.0

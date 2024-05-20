@@ -84,7 +84,7 @@ impl SyncWidget {
 }
 
 impl StatefulWidget for SyncWidget {
-    type State = LevelCache;
+    type State = Rc<LevelCache>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state

@@ -65,52 +65,51 @@ impl MenuRender {
         //     .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
         // self.draw_level_config(ui, state, framebuffer);
 
-        // self.draw_sync(ui, state, framebuffer);
+        self.draw_sync(ui, state, framebuffer);
     }
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
-        if let Some(sync) = &ui.sync {
-            let t = sync.window.show.time.get_ratio();
+        let Some(sync) = &ui.sync else { return };
+        let t = sync.window.show.time.get_ratio();
 
-            let window = sync.state.position;
-            let min_height = self.font_size * 2.0;
-            let height = (t * window.height()).max(min_height);
+        let window = sync.state.position;
+        let min_height = self.font_size * 2.0;
+        let height = (t * window.height()).max(min_height);
 
-            let window = window.with_height(height, 1.0);
-            self.ui.draw_window(
-                &mut self.masked,
-                window,
-                None,
-                self.font_size * 0.2,
-                state.options.theme,
-                framebuffer,
-                |framebuffer| {
-                    let hold = sync.hold.position;
-                    let hold = hold.extend_up(self.font_size * 0.2 - hold.height());
-                    self.ui
-                        .draw_quad(hold, state.options.theme.light, framebuffer);
+        let window = window.with_height(height, 1.0);
+        self.ui.draw_window(
+            &mut self.masked,
+            window,
+            None,
+            self.font_size * 0.2,
+            state.options.theme,
+            framebuffer,
+            |framebuffer| {
+                let hold = sync.hold.position;
+                let hold = hold.extend_up(self.font_size * 0.2 - hold.height());
+                self.ui
+                    .draw_quad(hold, state.options.theme.light, framebuffer);
 
-                    self.ui.draw_icon(&sync.close.icon, framebuffer);
-                    self.ui.draw_text(&sync.title, framebuffer);
-                    self.ui.draw_text(&sync.status, framebuffer);
+                self.ui.draw_icon(&sync.close.icon, framebuffer);
+                self.ui.draw_text(&sync.title, framebuffer);
+                self.ui.draw_text(&sync.status, framebuffer);
 
-                    self.ui.draw_toggle(
-                        &sync.upload,
-                        self.font_size * 0.2,
-                        state.options.theme,
-                        framebuffer,
-                    );
-                    self.ui.draw_toggle(
-                        &sync.discard,
-                        self.font_size * 0.2,
-                        state.options.theme,
-                        framebuffer,
-                    );
+                self.ui.draw_toggle(
+                    &sync.upload,
+                    self.font_size * 0.2,
+                    state.options.theme,
+                    framebuffer,
+                );
+                self.ui.draw_toggle(
+                    &sync.discard,
+                    self.font_size * 0.2,
+                    state.options.theme,
+                    framebuffer,
+                );
 
-                    self.ui.draw_text(&sync.response, framebuffer);
-                },
-            );
-        }
+                self.ui.draw_text(&sync.response, framebuffer);
+            },
+        );
     }
 
     fn draw_levels(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {

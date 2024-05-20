@@ -19,9 +19,9 @@ pub struct LevelSelectUI {
 
 #[derive(Debug, Clone, Copy)]
 pub enum LevelSelectAction {
-    SyncLevel(Id),
+    SyncLevel(Index, usize),
     EditLevel(Index, usize),
-    DeleteLevel(Id),
+    DeleteLevel(Index, usize),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -500,9 +500,9 @@ impl ItemLevelWidget {
         if self.menu.edit.state.clicked {
             action = Some(LevelSelectAction::EditLevel(self.group, self.index));
         } else if self.menu.sync.state.clicked {
-            action = Some(LevelSelectAction::SyncLevel(self.level.meta.id));
+            action = Some(LevelSelectAction::SyncLevel(self.group, self.index));
         } else if self.menu.delete.state.clicked {
-            action = Some(LevelSelectAction::DeleteLevel(self.level.meta.id));
+            action = Some(LevelSelectAction::DeleteLevel(self.group, self.index));
         }
         action
     }
