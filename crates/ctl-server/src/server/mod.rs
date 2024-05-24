@@ -27,8 +27,9 @@ use axum::{
     http::header,
     response::IntoResponse,
     routing::{get, post},
-    Form, Json,
+    Extension, Form, Json,
 };
+use reqwest::Client;
 use serde::Deserialize;
 use sqlx::Row;
 use time::Duration;
@@ -91,6 +92,10 @@ pub async fn run(
     let router = group::route(router);
     let router = level::route(router);
 
+    let client = Client::builder()
+        .build()
+        .wrap_err("failed to build the http client")?;
+
     let router = router
         .layer(TraceLayer::new_for_http())
         .layer(
@@ -99,6 +104,7 @@ pub async fn run(
                 .allow_headers(tower_http::cors::Any),
         )
         .layer(auth_layer)
+        .layer(Extension(client))
         .with_state(app);
 
     let listener = tokio::net::TcpListener::bind(addr)

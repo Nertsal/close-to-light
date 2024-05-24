@@ -31,13 +31,13 @@ struct User {
 async fn auth_discord(
     State(app): State<Arc<App>>,
     Query(query): Query<CodeQuery>,
+    Extension(client): Extension<Client>,
 ) -> Result<String> {
-    let code = query.code;
+    let user = discord_oauth(&app, &client, query.code).await?;
+    discord_login(&app, user).await
+}
 
-    let client = reqwest::Client::builder()
-        .build()
-        .expect("failed to build the http client");
-
+async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User> {
     let token: color_eyre::Result<AccessTokenResponse> = async {
         let body = format!(
             "grant_type=authorization_code&code={}&redirect_uri={}",
@@ -86,6 +86,10 @@ async fn auth_discord(
         }
     };
 
+    Ok(user)
+}
+
+async fn discord_login(app: &App, user: User) -> Result<String> {
     let username = user.display_name.unwrap_or(user.username);
 
     Ok(format!(
