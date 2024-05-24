@@ -15,7 +15,7 @@ use crate::{
         types::{DBRow, DatabasePool},
     },
     prelude::*,
-    AppConfig,
+    AppConfig, AppSecrets,
 };
 
 use axum_login::AuthManagerLayerBuilder;
@@ -45,13 +45,23 @@ struct IdQuery {
 struct App {
     database: DatabasePool,
     config: AppConfig,
+    secrets: AppSecrets,
 }
 
-pub async fn run(port: u16, database: DatabasePool, config: AppConfig) -> color_eyre::Result<()> {
+pub async fn run(
+    port: u16,
+    database: DatabasePool,
+    config: AppConfig,
+    secrets: AppSecrets,
+) -> color_eyre::Result<()> {
     let addr = format!("0.0.0.0:{}", port);
     info!("Starting the server on {}", addr);
 
-    let app = Arc::new(App { database, config });
+    let app = Arc::new(App {
+        database,
+        config,
+        secrets,
+    });
 
     // Session layer
     let session_store = SqliteStore::new(app.database.clone());
