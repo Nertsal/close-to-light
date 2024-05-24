@@ -10,6 +10,7 @@ pub fn router() -> Router {
 #[derive(Deserialize)]
 struct CodeQuery {
     code: String,
+    state: String,
 }
 
 #[derive(Deserialize)]
@@ -34,7 +35,18 @@ async fn auth_discord(
     Extension(client): Extension<Client>,
 ) -> Result<String> {
     let user = discord_oauth(&app, &client, query.code).await?;
-    discord_login(&app, user).await
+    let user_id = discord_login(&app, user).await?;
+
+    register_login_state(&app, user_id, query.state).await?;
+
+    let user: UserRow = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
+        .bind(user_id)
+        .fetch_one(&app.database)
+        .await?;
+    Ok(format!(
+        "Logged in as {}, you can close this page and go back to the game",
+        user.username
+    ))
 }
 
 async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User> {
@@ -89,11 +101,34 @@ async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User>
     Ok(user)
 }
 
-async fn discord_login(app: &App, user: User) -> Result<String> {
-    let username = user.display_name.unwrap_or(user.username);
+async fn discord_login(app: &App, user: User) -> Result<Id> {
+    // Check for a user with that discord account linked
+    let user_id: Option<Id> = sqlx::query("SELECT user_id FROM user_accounts WHERE discord = ?")
+        .bind(&user.id)
+        .try_map(|row: DBRow| row.try_get("user_id"))
+        .fetch_optional(&app.database)
+        .await?;
 
-    Ok(format!(
-        "Logged in as {}, you can close this page and go back to the game",
-        username
-    ))
+    if let Some(user_id) = user_id {
+        // Log in as the user
+        return Ok(user_id);
+    }
+
+    // Register a new user
+    let username = user.display_name.unwrap_or(user.username);
+    let user_id = super::register_user(app, username.clone(), None, true)
+        .await
+        .map_err(|_| RequestError::InvalidCredentials)?; // TODO: better error
+    link_discord(app, user_id, user.id).await?;
+
+    Ok(user_id)
+}
+
+async fn link_discord(app: &App, user_id: Id, discord_id: String) -> Result<()> {
+    sqlx::query("INSERT INTO user_accounts (user_id, discord) VALUES (?, ?)")
+        .bind(user_id)
+        .bind(&discord_id)
+        .execute(&app.database)
+        .await?;
+    Ok(())
 }

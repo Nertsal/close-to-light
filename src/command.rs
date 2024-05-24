@@ -189,29 +189,30 @@ impl Command {
     }
 }
 
-async fn login(client: &Nertboard) -> Result<()> {
-    let stdin = std::io::stdin();
+async fn login(_client: &Nertboard) -> Result<()> {
+    // let stdin = std::io::stdin();
 
-    println!("Logging in...");
+    // println!("Logging in...");
 
-    println!("Username:");
-    let mut username = String::new();
-    stdin.read_line(&mut username)?;
-    username.pop(); // Pop new line
-    if username.is_empty() {
-        // Skip login
-        return Ok(());
-    }
+    // println!("Username:");
+    // let mut username = String::new();
+    // stdin.read_line(&mut username)?;
+    // username.pop(); // Pop new line
+    // if username.is_empty() {
+    //     // Skip login
+    //     return Ok(());
+    // }
 
-    println!("Password:");
-    let mut password = String::new();
-    stdin.read_line(&mut password)?;
-    password.pop(); // Pop new line
+    // println!("Password:");
+    // let mut password = String::new();
+    // stdin.read_line(&mut password)?;
+    // password.pop(); // Pop new line
 
-    client
-        .login(&ctl_client::core::auth::Credentials { username, password })
-        .await?
-        .map_err(|err| anyhow!(err))?;
+    // client
+    //     .login(&ctl_client::core::auth::Credentials { username, password })
+    //     .await?
+    //     .map_err(|err| anyhow!(err))?;
 
-    Ok(())
+    // Ok(())
+    todo!()
 }

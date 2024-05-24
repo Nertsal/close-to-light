@@ -272,47 +272,6 @@ impl MenuRender {
         }
     }
 
-    // fn draw_profile(
-    //     &mut self,
-    //     ui: &MenuUI,
-    //     state: &MenuState,
-    //     framebuffer: &mut ugli::Framebuffer,
-    // ) {
-    //     let ui = &ui.panels;
-    //     let theme = state.options.theme;
-    //     let width = 12.0;
-    //     let head = ui.profile_head.state.position;
-    //     let profile = ui.profile.state.position.extend_up(width);
-
-    //     self.ui.draw_window(
-    //         &mut self.masked,
-    //         profile,
-    //         Some(head),
-    //         width,
-    //         theme,
-    //         framebuffer,
-    //         |framebuffer| {
-    //             self.ui.draw_text(&ui.profile.offline, framebuffer);
-
-    //             let register = &ui.profile.register;
-    //             if register.state.visible {
-    //                 self.ui.draw_input(&register.username, framebuffer);
-    //                 self.ui.draw_input(&register.password, framebuffer);
-    //                 self.ui.draw_button(&register.login, framebuffer);
-    //                 self.ui.draw_button(&register.register, framebuffer);
-    //             }
-
-    //             let logged = &ui.profile.logged;
-    //             if logged.state.visible {
-    //                 self.ui.draw_text(&logged.username, framebuffer);
-    //                 self.ui.draw_button(&logged.logout, framebuffer);
-    //             }
-    //         },
-    //     );
-
-    //     self.ui.draw_icon(&ui.profile_head, framebuffer);
-    // }
-
     fn draw_options(
         &mut self,
         ui: &MenuUI,
@@ -335,6 +294,34 @@ impl MenuRender {
                 theme,
                 framebuffer,
                 |framebuffer| {
+                    {
+                        // Profile
+                        let ui = &ui.options.profile;
+                        self.ui.draw_text(&ui.offline, framebuffer);
+
+                        let register = &ui.register;
+                        if register.state.visible {
+                            // self.ui.draw_input(&register.username, framebuffer);
+                            // self.ui.draw_input(&register.password, framebuffer);
+                            // self.ui.draw_button(&register.login, framebuffer);
+                            // self.ui.draw_button(&register.register, framebuffer);
+                            self.ui.draw_text(&register.login_with, framebuffer);
+                            self.ui.draw_icon(&register.discord.icon, framebuffer);
+                        }
+
+                        let logged = &ui.logged;
+                        if logged.state.visible {
+                            self.ui.draw_text(&logged.username, framebuffer);
+                            self.ui.draw_toggle_button(
+                                &logged.logout,
+                                false,
+                                false,
+                                theme,
+                                framebuffer,
+                            );
+                        }
+                    }
+
                     {
                         // Volume
                         let volume = &ui.options.volume;

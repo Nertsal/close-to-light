@@ -1,7 +1,7 @@
 use super::{types::DatabasePool, *};
 
 use axum_login::{AuthUser, AuthnBackend, UserId};
-use ctl_core::auth::Credentials;
+use ctl_core::{auth::Credentials, types::UserInfo};
 use sqlx::FromRow;
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
@@ -9,7 +9,7 @@ pub struct User {
     pub user_id: Id,
     pub username: String,
     /// Password hash.
-    password: String,
+    password: Option<String>,
 }
 
 impl std::fmt::Debug for User {
@@ -19,6 +19,15 @@ impl std::fmt::Debug for User {
             .field("name", &self.username)
             .field("password", &"[redacted]")
             .finish()
+    }
+}
+
+impl From<User> for UserInfo {
+    fn from(val: User) -> Self {
+        Self {
+            id: val.user_id,
+            name: val.username.into(),
+        }
     }
 }
 
@@ -32,7 +41,7 @@ impl AuthUser for User {
     fn session_auth_hash(&self) -> &[u8] {
         // Password hash is session auth hash
         // so changing password invalidates session
-        self.password.as_bytes()
+        self.password.as_ref().map_or(&[], |pass| pass.as_bytes())
     }
 }
 
@@ -65,9 +74,11 @@ impl AuthnBackend for Backend {
             .await?;
 
         Ok(user.filter(|user| {
-            password_auth::verify_password(creds.password, &user.password)
-                .ok()
-                .is_some()
+            user.password.as_ref().map_or(true, |pass| {
+                password_auth::verify_password(creds.password, pass)
+                    .ok()
+                    .is_some()
+            })
         }))
     }
 

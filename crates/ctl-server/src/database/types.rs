@@ -1,11 +1,27 @@
 use super::*;
 
+use ctl_core::types::UserInfo;
 use sqlx::FromRow;
 
 pub type DatabasePool = sqlx::SqlitePool; // TODO: behind a trait?
 pub type DBRow = sqlx::sqlite::SqliteRow;
 
 pub type Score = i32;
+
+#[derive(FromRow)]
+pub struct UserRow {
+    pub user_id: Id,
+    pub username: String,
+}
+
+impl From<UserRow> for UserInfo {
+    fn from(val: UserRow) -> Self {
+        Self {
+            id: val.user_id,
+            name: val.username.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreRecord {

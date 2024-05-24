@@ -23,6 +23,7 @@ impl OptionsButtonWidget {
             open_time: Bounded::new_zero(time),
             button: IconWidget::new(&assets.sprites.settings),
             options: OptionsWidget::new(
+                assets,
                 Options::default(),
                 vec![
                     // TODO: custom
@@ -63,7 +64,7 @@ impl StatefulWidget for OptionsButtonWidget {
             let min_size = button_size;
             let options_size = min_size + (max_size - min_size) * self.open_time.get_ratio();
             let options = position.align_aabb(options_size, vec2(1.0, 1.0));
-            self.options.update(options, context, &mut state.options);
+            self.options.update(options, context, state);
         }
     }
 }
@@ -71,15 +72,17 @@ impl StatefulWidget for OptionsButtonWidget {
 pub struct OptionsWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
+    pub profile: ProfileWidget,
     pub volume: VolumeWidget,
     pub palette: PaletteChooseWidget,
 }
 
 impl OptionsWidget {
-    pub fn new(options: Options, palettes: Vec<PaletteWidget>) -> Self {
+    pub fn new(assets: &Rc<Assets>, options: Options, palettes: Vec<PaletteWidget>) -> Self {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
+            profile: ProfileWidget::new(assets),
             volume: VolumeWidget::new(options.volume),
             palette: PaletteChooseWidget::new(palettes),
         }
@@ -87,7 +90,7 @@ impl OptionsWidget {
 }
 
 impl StatefulWidget for OptionsWidget {
-    type State = Options;
+    type State = MenuState;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -98,10 +101,17 @@ impl StatefulWidget for OptionsWidget {
         self.window.update(context.delta_time);
 
         let mut main = position.extend_symmetric(vec2(-1.0, -1.0) * context.layout_size);
+
+        let profile = main.cut_top(3.0 * context.font_size);
+        self.profile
+            .update(profile, context, &mut state.leaderboard);
+
         let volume = main.cut_top(5.0 * context.layout_size);
-        self.volume.update(volume, context, &mut state.volume);
+        self.volume
+            .update(volume, context, &mut state.options.volume);
         let palette = main.cut_top(6.0 * context.layout_size);
-        self.palette.update(palette, context, &mut state.theme);
+        self.palette
+            .update(palette, context, &mut state.options.theme);
     }
 }
 

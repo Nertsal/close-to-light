@@ -63,6 +63,8 @@ pub struct Sprites {
     pub trash: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub settings: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub discord: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]

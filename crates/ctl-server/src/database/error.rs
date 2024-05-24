@@ -4,6 +4,8 @@ pub type RequestResult<T, E = RequestError> = std::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RequestError {
+    #[error("Timed out")]
+    Timeout,
     #[error("Server error")]
     Internal,
     #[error("Unathorized request")]
@@ -39,6 +41,7 @@ pub enum RequestError {
 impl RequestError {
     fn status(&self) -> StatusCode {
         match self {
+            RequestError::Timeout => StatusCode::REQUEST_TIMEOUT,
             RequestError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
             RequestError::Unathorized => StatusCode::UNAUTHORIZED,
             RequestError::Forbidden => StatusCode::FORBIDDEN,

@@ -12,11 +12,13 @@ use crate::{
     database::{
         auth::{AuthSession, User},
         error::{RequestError, RequestResult as Result},
-        types::{DBRow, DatabasePool},
+        types::*,
     },
     prelude::*,
     AppConfig, AppSecrets,
 };
+
+use std::collections::BTreeMap;
 
 use axum_login::AuthManagerLayerBuilder;
 use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
@@ -33,6 +35,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use sqlx::Row;
 use time::Duration;
+use tokio::sync::RwLock;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer, SqliteStore};
 
@@ -47,6 +50,8 @@ struct App {
     database: DatabasePool,
     config: AppConfig,
     secrets: AppSecrets,
+
+    account_links: RwLock<BTreeMap<String, Id>>,
 }
 
 pub async fn run(
@@ -62,6 +67,8 @@ pub async fn run(
         database,
         config,
         secrets,
+
+        account_links: RwLock::new(BTreeMap::new()),
     });
 
     // Session layer

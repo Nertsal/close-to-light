@@ -5,13 +5,15 @@ use crate::{
 
 use ctl_client::{
     core::{
-        auth::Credentials,
+        prelude::Uuid,
         types::{Name, UserInfo},
         ScoreEntry, SubmitScore,
     },
     Nertboard,
 };
 use geng::prelude::*;
+
+const DISCORD_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fdiscord&scope=identify";
 
 #[derive(Debug)]
 pub enum LeaderboardStatus {
@@ -41,7 +43,7 @@ impl Clone for Leaderboard {
         Self {
             geng: self.geng.clone(),
             user: self.user.clone(),
-            client: self.client.as_ref().map(Arc::clone),
+            client: self.client.clone(),
             log_task: None,
             task: None,
             status: LeaderboardStatus::None,
@@ -107,20 +109,7 @@ impl Leaderboard {
         self.client.as_deref()
     }
 
-    pub fn login(&mut self, creds: Credentials) {
-        if self.log_task.is_some() {
-            return;
-        }
-
-        if let Some(client) = &self.client {
-            let client = Arc::clone(client);
-            let future = async move { client.login(&creds).await };
-            self.log_task = Some(Task::new(&self.geng, future));
-            self.user = None;
-        }
-    }
-
-    pub fn register(&mut self, creds: Credentials) {
+    pub fn login_discord(&mut self) {
         if self.log_task.is_some() {
             return;
         }
@@ -128,15 +117,48 @@ impl Leaderboard {
         if let Some(client) = &self.client {
             let client = Arc::clone(client);
             let future = async move {
-                if let Err(err) = client.register(&creds).await? {
-                    return Ok(Err(err));
+                let state = Uuid::new_v4().to_string();
+                let url = format!("{}&state={}", DISCORD_URL, state);
+                if let Err(err) = webbrowser::open(&url) {
+                    log::error!("failed to open login link: {:?}", err);
                 }
-                client.login(&creds).await
+                client.login_external(state).await
             };
             self.log_task = Some(Task::new(&self.geng, future));
             self.user = None;
         }
     }
+
+    // pub fn login(&mut self, creds: Credentials) {
+    //     if self.log_task.is_some() {
+    //         return;
+    //     }
+
+    //     if let Some(client) = &self.client {
+    //         let client = Arc::clone(client);
+    //         let future = async move { client.login(&creds).await };
+    //         self.log_task = Some(Task::new(&self.geng, future));
+    //         self.user = None;
+    //     }
+    // }
+
+    // pub fn register(&mut self, creds: Credentials) {
+    //     if self.log_task.is_some() {
+    //         return;
+    //     }
+
+    //     if let Some(client) = &self.client {
+    //         let client = Arc::clone(client);
+    //         let future = async move {
+    //             if let Err(err) = client.register(&creds).await? {
+    //                 return Ok(Err(err));
+    //             }
+    //             client.login(&creds).await
+    //         };
+    //         self.log_task = Some(Task::new(&self.geng, future));
+    //         self.user = None;
+    //     }
+    // }
 
     pub fn logout(&mut self) {
         if self.log_task.is_some() {
