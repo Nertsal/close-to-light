@@ -112,12 +112,20 @@ impl MenuRender {
                 self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
             }
         } else if ui.tab_groups.selected {
-            self.draw_item_widget(&ui.add_group, false, 0.5, theme, framebuffer);
+            self.draw_item_widget(
+                &ui.add_group.text,
+                ui.add_group.menu.state.visible,
+                0.5,
+                theme,
+                framebuffer,
+            );
+            self.draw_add_menu(&ui.add_group.menu, theme, framebuffer);
             for group in &ui.grid_groups {
                 let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.index);
                 self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
             }
         } else if ui.tab_levels.selected {
+            self.draw_item_widget(&ui.add_level, false, 0.5, theme, framebuffer);
             for level in &ui.grid_levels {
                 let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.index);
                 self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
@@ -536,6 +544,41 @@ impl MenuRender {
         self.ui.draw_text_colored(text, fg_color, framebuffer);
         self.ui
             .draw_outline(text.state.position, outline_width, out_color, framebuffer);
+    }
+
+    fn draw_add_menu(
+        &mut self,
+        menu: &crate::menu::NewMenuWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        if !menu.state.visible {
+            return;
+        }
+
+        let position = menu.state.position;
+        let t = menu.window.show.time.get_ratio();
+        let t = crate::util::smoothstep(t);
+        let position = position.extend_down(-position.height() * (1.0 - t));
+        if position.height() < 1.0 {
+            return;
+        }
+
+        let outline_width = self.font_size * 0.2;
+        self.ui.draw_window(
+            &mut self.masked,
+            position,
+            None,
+            outline_width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.ui
+                    .draw_toggle_button(&menu.create, false, false, theme, framebuffer);
+                self.ui
+                    .draw_toggle_button(&menu.browse, false, false, theme, framebuffer);
+            },
+        );
     }
 
     fn draw_item_menu(

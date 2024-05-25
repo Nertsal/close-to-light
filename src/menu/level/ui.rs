@@ -81,6 +81,14 @@ impl MenuUI {
         self.explore.show();
     }
 
+    fn create_group(&mut self) {
+        // TODO
+    }
+
+    fn create_level(&mut self) {
+        // TODO
+    }
+
     /// Layout all the ui elements and return whether any of them is focused.
     pub fn layout(
         &mut self,
@@ -184,8 +192,12 @@ impl MenuUI {
             }
         } else if self.level_select.add_music.state.clicked {
             self.explore_music();
-        } else if self.level_select.add_group.state.clicked {
+        } else if self.level_select.add_group.menu.browse.state.clicked {
             self.explore_groups();
+        } else if self.level_select.add_group.menu.create.state.clicked {
+            self.create_group();
+        } else if self.level_select.add_level.state.clicked {
+            self.create_level();
         }
 
         let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
