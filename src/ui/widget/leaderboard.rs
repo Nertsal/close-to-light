@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    leaderboard::{LeaderboardStatus, LoadedBoard},
+    leaderboard::{Leaderboard, LeaderboardStatus, LoadedBoard},
     prelude::Assets,
     ui::layout::AreaOps,
 };
@@ -51,26 +51,32 @@ impl LeaderboardWidget {
         }
     }
 
-    pub fn update_state(
-        &mut self,
-        state: &LeaderboardStatus,
-        board: &LoadedBoard,
-        user: &UserInfo,
-    ) {
+    pub fn update_state(&mut self, leaderboard: &Leaderboard) {
+        let user = &leaderboard.user.as_ref().map_or(
+            UserInfo {
+                id: 0,
+                name: "offline".into(),
+            },
+            |user| UserInfo {
+                id: user.id,
+                name: user.name.clone(),
+            },
+        );
         // let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
+
         self.rows.clear();
         self.status.text = "".into();
-        match state {
+        match leaderboard.status {
             LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".into(),
             LeaderboardStatus::Pending => self.status.text = "LOADING...".into(),
             LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".into(),
             LeaderboardStatus::Done => {
-                if board.filtered.is_empty() {
+                if leaderboard.loaded.filtered.is_empty() {
                     self.status.text = "EMPTY :(".into();
                 }
             }
         }
-        self.load_scores(board, user);
+        self.load_scores(&leaderboard.loaded, user);
     }
 
     pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {

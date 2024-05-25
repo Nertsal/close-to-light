@@ -222,11 +222,7 @@ impl MenuUI {
                 .extend_right(head_size.x)
                 .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
 
-            self.leaderboard.update_state(
-                &state.leaderboard.status,
-                &state.leaderboard.loaded,
-                &state.player.info,
-            );
+            self.leaderboard.update_state(&state.leaderboard);
             self.leaderboard.update(leaderboard, context);
             self.leaderboard_head.update(leaderboard_head, context);
             context.update_focus(self.leaderboard.state.hovered);
