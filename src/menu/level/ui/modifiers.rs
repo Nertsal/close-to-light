@@ -72,7 +72,7 @@ impl ModifiersWidget {
             self.body.update(body, context);
         }
 
-        if self.head.state.hovered || self.body.hovered {
+        if self.t > 0.0 && (self.head.state.hovered || self.body.hovered) {
             self.body_slide.change(context.delta_time);
         } else {
             self.body_slide.change(-context.delta_time);
