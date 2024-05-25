@@ -208,8 +208,13 @@ impl Leaderboard {
                             self.user = Some(user);
                         }
                         Ok(Err(err)) => {
-                            log::error!("Failed to log in: {}", err);
-                            // TODO: notification message
+                            if err == "Logged out" {
+                                log::debug!("Logged out");
+                                preferences::save(crate::PLAYER_LOGIN_STORAGE, &());
+                            } else {
+                                log::error!("Failed to log in: {}", err);
+                                // TODO: notification message
+                            }
                         }
                         Err(err) => {
                             log::error!("Failed to log in: {:?}", err);

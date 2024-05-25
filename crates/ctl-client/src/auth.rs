@@ -47,7 +47,7 @@ impl Nertboard {
         let url = self.url.join("logout")?;
         let mut req = self.client.get(url);
         if let Some(token) = token {
-            req = req.query(&["token", token]);
+            req = req.query(&[("token", token)]);
         }
         let response = req.send().await?;
         get_body(response).await?;
