@@ -169,6 +169,7 @@ impl UiContext {
         }
     }
 
+    // TODO: better
     pub fn scale_font(&self, scale: f32) -> Self {
         // TODO: cloning doesnt work for text edit
         Self {

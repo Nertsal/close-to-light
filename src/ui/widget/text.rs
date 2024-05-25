@@ -29,6 +29,11 @@ impl TextWidget {
         }
     }
 
+    pub fn rotated(mut self, rotation: Angle) -> Self {
+        self.options.rotation = rotation;
+        self
+    }
+
     pub fn aligned(mut self, align: vec2<f32>) -> Self {
         self.align(align);
         self

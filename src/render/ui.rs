@@ -54,8 +54,22 @@ impl UiRender {
 
         // Outline
         if let Some(head) = head {
+            let delta = main.center() - head.center(); // TODO: more precise
+            let dir = if delta.x.abs() > delta.y.abs() {
+                vec2(1.0, 0.0)
+            } else {
+                vec2(0.0, 1.0)
+            };
+            let mut low = 0.0;
+            let mut high = outline_width;
+            if vec2::dot(dir, delta) < 0.0 {
+                std::mem::swap(&mut low, &mut high);
+            }
             self.draw_outline(
-                head.extend_up(outline_width),
+                head.extend_left(dir.x * low)
+                    .extend_right(dir.x * high)
+                    .extend_down(dir.y * low)
+                    .extend_up(dir.y * high),
                 outline_width,
                 theme.light,
                 framebuffer,
@@ -63,10 +77,23 @@ impl UiRender {
         }
         self.draw_outline(main, outline_width, theme.light, framebuffer);
         if let Some(head) = head {
+            let delta = main.center() - head.center(); // TODO: more precise
+            let dir = if delta.x.abs() > delta.y.abs() {
+                vec2(1.0, 0.0)
+            } else {
+                vec2(0.0, 1.0)
+            };
+            let mut low = -1.0 * outline_width;
+            let mut high = 3.0 * outline_width;
+            if vec2::dot(dir, delta) < 0.0 {
+                std::mem::swap(&mut low, &mut high);
+            }
             self.draw_quad(
                 head.extend_uniform(-outline_width)
-                    .extend_down(-outline_width)
-                    .extend_up(outline_width * 3.0),
+                    .extend_left(dir.x * low)
+                    .extend_right(dir.x * high)
+                    .extend_down(dir.y * low)
+                    .extend_up(dir.y * high),
                 theme.dark,
                 framebuffer,
             );
@@ -313,7 +340,7 @@ impl UiRender {
             camera,
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
-        self.draw_icon(&leaderboard.close.icon, framebuffer);
+        // self.draw_icon(&leaderboard.close.icon, framebuffer);
         self.draw_text(&leaderboard.title, framebuffer);
         self.draw_text(&leaderboard.subtitle, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);

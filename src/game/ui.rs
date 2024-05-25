@@ -10,7 +10,7 @@ pub struct GameUI {
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
-            leaderboard: LeaderboardWidget::new(assets),
+            leaderboard: LeaderboardWidget::new(assets, true),
         }
     }
 
@@ -45,7 +45,7 @@ impl GameUI {
         if let State::Lost { .. } | State::Finished = model.state {
             // Leaderboard
             self.leaderboard.show();
-            self.leaderboard.close.hide();
+            // self.leaderboard.close.hide();
 
             let width = layout_size * 20.0;
             let height = main.height() + layout_size * 2.0;

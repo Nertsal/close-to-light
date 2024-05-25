@@ -28,6 +28,7 @@ pub struct MenuUI {
     // pub panels: PanelsUI,
     pub explore: ExploreWidget,
 
+    pub leaderboard_head: TextWidget,
     pub leaderboard: LeaderboardWidget,
     pub level_config: LevelConfigWidget,
 }
@@ -57,7 +58,10 @@ impl MenuUI {
             // panels: PanelsUI::new(assets),
             explore,
 
-            leaderboard: LeaderboardWidget::new(assets),
+            leaderboard_head: TextWidget::new("Leaderboard")
+                .rotated(Angle::from_degrees(90.0))
+                .aligned(vec2(0.5, 0.5)),
+            leaderboard: LeaderboardWidget::new(assets, true),
             level_config: LevelConfigWidget::new(assets),
 
             context,
@@ -191,6 +195,49 @@ impl MenuUI {
             preferences::save(OPTIONS_STORAGE, &state.options);
         }
 
+        {
+            // Leaderboard
+            let main = screen;
+
+            let size = vec2(layout_size * 22.0, main.height() - layout_size * 1.0);
+            let head_size = vec2(font_size, layout_size * 8.0);
+            let pos = main.align_pos(vec2(1.0, 0.5));
+
+            let base_t = state
+                .selected_level
+                .as_ref()
+                .map_or(0.0, |show| show.time.get_ratio());
+            let base_t = crate::util::smoothstep(base_t);
+
+            let hover_t = self.leaderboard.window.show.time.get_ratio();
+            let hover_t = crate::util::smoothstep(hover_t);
+
+            let slide =
+                vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + base_t * head_size.x);
+
+            let leaderboard = Aabb2::point(pos + vec2(head_size.x, 0.0) + slide)
+                .extend_right(size.x)
+                .extend_symmetric(vec2(0.0, size.y) / 2.0);
+            let leaderboard_head = Aabb2::point(pos + slide)
+                .extend_right(head_size.x)
+                .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
+
+            self.leaderboard.update_state(
+                &state.leaderboard.status,
+                &state.leaderboard.loaded,
+                &state.player.info,
+            );
+            self.leaderboard.update(leaderboard, context);
+            self.leaderboard_head.update(leaderboard_head, context);
+            context.update_focus(self.leaderboard.state.hovered);
+
+            let hover = self.leaderboard.state.hovered || self.leaderboard_head.state.hovered;
+            self.leaderboard.window.layout(
+                hover,
+                context.cursor.position.x < leaderboard.min.x && !hover,
+            );
+        }
+
         right.cut_left(5.0 * layout_size);
         right.cut_right(5.0 * layout_size);
         right.cut_top(3.5 * layout_size);
@@ -210,50 +257,7 @@ impl MenuUI {
             }
         }
 
-        // let base_t = if state.level_up {
-        //     1.0
-        // } else {
-        //     state
-        //         .show_level
-        //         .as_ref()
-        //         .map_or(0.0, |show| show.time.get_ratio())
-        // };
-        // let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
-
         // self.panels.update(state, context);
-
-        // let cursor_high = context.cursor.position.y > main.max.y;
-
-        // {
-        //     // Leaderboard
-        //     let width = layout_size * 22.0;
-        //     let height = main.height() + layout_size * 2.0;
-
-        //     let leaderboard =
-        //         Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * base_t * layout_size)
-        //             .extend_left(width)
-        //             .extend_down(height);
-
-        //     let t = self.leaderboard.window.show.time.get_ratio();
-        //     let t = crate::util::smoothstep(t);
-        //     let offset = main.height() * t;
-
-        //     let leaderboard = leaderboard.translate(vec2(0.0, offset));
-
-        //     self.leaderboard.update_state(
-        //         &state.leaderboard.status,
-        //         &state.leaderboard.loaded,
-        //         &state.player.info,
-        //     );
-        //     update!(self.leaderboard, leaderboard);
-        //     context.update_focus(self.leaderboard.state.hovered);
-
-        //     self.leaderboard.window.layout(
-        //         self.leaderboard.state.hovered,
-        //         self.leaderboard.close.state.clicked
-        //             || cursor_high && !self.leaderboard.state.hovered,
-        //     );
-        // }
 
         // {
         //     // Mods

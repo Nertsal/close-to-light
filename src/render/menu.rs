@@ -45,26 +45,7 @@ impl MenuRender {
         self.draw_modifiers(ui, state, framebuffer);
         self.draw_options(ui, state, framebuffer);
         self.draw_explore(ui, state, framebuffer);
-
-        // // TODO: better ordering solution
-        // if ui.panels.profile.window.show.time.is_above_min() {
-        //     self.draw_options(ui, state, framebuffer);
-        //     self.draw_explore(ui, state, framebuffer);
-        //     self.draw_profile(ui, state, framebuffer);
-        // } else if ui.panels.explore.window.show.time.is_above_min() {
-        //     self.draw_profile(ui, state, framebuffer);
-        //     self.draw_options(ui, state, framebuffer);
-        //     self.draw_explore(ui, state, framebuffer);
-        // } else {
-        //     self.draw_profile(ui, state, framebuffer);
-        //     self.draw_explore(ui, state, framebuffer);
-        //     self.draw_options(ui, state, framebuffer);
-        // }
-
-        // self.ui
-        //     .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
-        // self.draw_level_config(ui, state, framebuffer);
-
+        self.draw_leaderboard(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
     }
 
@@ -457,6 +438,34 @@ impl MenuRender {
         );
 
         // self.ui.draw_text(&ui.explore_head, framebuffer);
+    }
+
+    fn draw_leaderboard(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        if !ui.leaderboard.state.visible {
+            return;
+        };
+
+        let theme = state.options.theme;
+        let width = 12.0;
+
+        self.ui.draw_window(
+            &mut self.masked,
+            ui.leaderboard.state.position,
+            Some(ui.leaderboard_head.state.position),
+            width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.ui
+                    .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked2, framebuffer);
+            },
+        );
+        self.ui.draw_text(&ui.leaderboard_head, framebuffer);
     }
 
     fn draw_level_config(

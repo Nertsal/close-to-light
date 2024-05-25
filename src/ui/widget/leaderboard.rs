@@ -3,7 +3,7 @@ use super::*;
 use crate::{
     leaderboard::{LeaderboardStatus, LoadedBoard},
     prelude::Assets,
-    ui::layout::{self, AreaOps},
+    ui::layout::AreaOps,
 };
 
 use ctl_client::core::types::{Name, UserInfo};
@@ -11,7 +11,8 @@ use ctl_client::core::types::{Name, UserInfo};
 pub struct LeaderboardWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
-    pub close: IconButtonWidget,
+    // pub close: IconButtonWidget,
+    pub show_title: bool,
     pub title: TextWidget,
     pub subtitle: TextWidget,
     pub status: TextWidget,
@@ -32,11 +33,12 @@ pub struct LeaderboardEntryWidget {
 }
 
 impl LeaderboardWidget {
-    pub fn new(assets: &Rc<Assets>) -> Self {
+    pub fn new(_assets: &Rc<Assets>, show_title: bool) -> Self {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3).reload_skip(),
-            close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
+            // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
+            show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
             status: TextWidget::new(""),
@@ -110,19 +112,21 @@ impl Widget for LeaderboardWidget {
 
         let main = position;
 
-        let close = layout::align_aabb(
-            vec2::splat(1.0) * context.font_size,
-            main.extend_uniform(-0.5 * context.layout_size),
-            vec2(0.0, 1.0),
-        );
-        self.close.update(close, context);
+        // let close = layout::align_aabb(
+        //     vec2::splat(1.0) * context.font_size,
+        //     main.extend_uniform(-0.5 * context.layout_size),
+        //     vec2(0.0, 1.0),
+        // );
+        // self.close.update(close, context);
 
         let mut main = main
             .extend_symmetric(-vec2(1.0, 0.0) * context.layout_size)
             .extend_up(-context.layout_size);
 
         let title = main.cut_top(context.font_size * 1.2);
-        self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
+        if self.show_title {
+            self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
+        }
 
         let subtitle = main.cut_top(context.font_size * 1.0);
         self.subtitle.update(subtitle, context);

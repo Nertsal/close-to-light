@@ -15,6 +15,7 @@ pub struct TextRenderOptions {
     pub color: Color,
     pub hover_color: Color,
     pub press_color: Color,
+    pub rotation: Angle,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -68,6 +69,7 @@ impl Default for TextRenderOptions {
                 b: 0.5,
                 a: 1.0,
             },
+            rotation: Angle::ZERO,
         }
     }
 }
@@ -186,7 +188,8 @@ impl UtilRender {
         let position = position.map(Float::as_f32);
         let transform = mat3::translate(position.map(Float::as_f32))
             * mat3::scale_uniform(options.size * 0.6)
-            * mat3::translate(-align);
+            * mat3::translate(-align.rotate(options.rotation))
+            * mat3::rotate_around(vec2(measure.center().x, 0.0), options.rotation);
 
         let framebuffer_size = framebuffer.size();
 
