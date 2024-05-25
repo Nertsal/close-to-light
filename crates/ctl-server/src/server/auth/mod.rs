@@ -1,14 +1,19 @@
 mod discord;
 mod native;
+mod token;
 
 use super::*;
 
 use axum::http::StatusCode;
-use ctl_core::auth::{PASSWORD_MIN_LEN, USERNAME_MIN_LEN};
+use ctl_core::{
+    auth::{PASSWORD_MIN_LEN, USERNAME_MIN_LEN},
+    types::UserLogin,
+};
 
 pub fn router() -> Router {
     native::router()
         .merge(discord::router())
+        .merge(token::router())
         .route("/auth/wait", get(auth_wait))
 }
 
@@ -22,19 +27,25 @@ async fn auth_wait(
     mut session: AuthSession,
     State(app): State<Arc<App>>,
     Query(query): Query<StateQuery>,
-) -> Result<Json<UserInfo>> {
+) -> Result<Json<UserLogin>> {
     let user_id = wait_login_state(&app, &query.state).await?;
     let user: User = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
         .bind(user_id)
         .fetch_one(&app.database)
         .await?;
 
+    let token = token::generate_login_token(&app, user_id).await?;
+
     session
         .login(&user)
         .await
         .map_err(|_| RequestError::Internal)?;
 
-    Ok(Json(user.into()))
+    Ok(Json(UserLogin {
+        id: user.user_id,
+        name: user.username.into(),
+        token: token.into(),
+    }))
 }
 
 #[derive(thiserror::Error, Debug)]

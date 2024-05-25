@@ -10,5 +10,5 @@ use crate::{
         dither::DitherRender,
         util::{TextRenderOptions, UtilRender},
     },
-    OPTIONS_STORAGE, PLAYER_NAME_STORAGE,
+    OPTIONS_STORAGE,
 };

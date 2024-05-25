@@ -4,11 +4,7 @@ use crate::{
 };
 
 use ctl_client::{
-    core::{
-        prelude::Uuid,
-        types::{Name, UserInfo},
-        ScoreEntry, SubmitScore,
-    },
+    core::{prelude::Uuid, types::UserLogin, ScoreEntry, SubmitScore},
     Nertboard,
 };
 use geng::prelude::*;
@@ -30,9 +26,9 @@ struct BoardUpdate {
 pub struct Leaderboard {
     geng: Geng,
     /// Logged in as user with a name.
-    pub user: Option<Name>,
+    pub user: Option<UserLogin>,
     pub client: Option<Arc<Nertboard>>,
-    log_task: Option<Task<ctl_client::Result<Result<UserInfo, String>>>>,
+    log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
@@ -94,7 +90,7 @@ impl ScoreMeta {
 
 impl Leaderboard {
     pub fn new(geng: &Geng, client: Option<&Arc<Nertboard>>) -> Self {
-        Self {
+        let mut leaderboard = Self {
             geng: geng.clone(),
             user: None,
             client: client.cloned(),
@@ -102,7 +98,9 @@ impl Leaderboard {
             task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
-        }
+        };
+        leaderboard.relogin();
+        leaderboard
     }
 
     pub fn client(&self) -> Option<&Nertboard> {
@@ -124,6 +122,24 @@ impl Leaderboard {
                 }
                 client.login_external(state).await
             };
+            self.log_task = Some(Task::new(&self.geng, future));
+            self.user = None;
+        }
+    }
+
+    /// Attempt to login back using the saved credentials.
+    pub fn relogin(&mut self) {
+        if self.log_task.is_some() {
+            return;
+        }
+
+        let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE) else {
+            return;
+        };
+
+        if let Some(client) = &self.client {
+            let client = Arc::clone(client);
+            let future = async move { client.login_token(user.id, &user.token).await };
             self.log_task = Some(Task::new(&self.geng, future));
             self.user = None;
         }
@@ -167,8 +183,9 @@ impl Leaderboard {
 
         if let Some(client) = &self.client {
             let client = Arc::clone(client);
+            let token = self.user.as_ref().map(|user| user.token.clone());
             let future = async move {
-                client.logout().await?;
+                client.logout(token.as_deref()).await?;
                 // TODO: log out is not an error
                 Ok(Err("Logged out".to_string()))
             };
@@ -186,8 +203,9 @@ impl Leaderboard {
                     match res {
                         Ok(Ok(user)) => {
                             log::debug!("Logged in as {:?}", user);
-                            self.user = Some(user.name.clone());
+                            preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
                             self.loaded.player = Some(user.id);
+                            self.user = Some(user);
                         }
                         Ok(Err(err)) => {
                             log::error!("Failed to log in: {}", err);

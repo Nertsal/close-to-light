@@ -125,11 +125,15 @@ impl Model {
         options: Options,
         level: PlayLevel,
         leaderboard: Leaderboard,
-        player: UserInfo,
     ) -> Self {
         let start_time = level.start_time;
         let mut model = Self::empty(context, options, level);
-        model.player.info = player;
+        if let Some(player) = &leaderboard.user {
+            model.player.info = UserInfo {
+                id: player.id,
+                name: player.name.clone(),
+            };
+        }
         model.leaderboard = leaderboard;
 
         model.init(start_time);

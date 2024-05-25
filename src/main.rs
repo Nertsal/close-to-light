@@ -23,9 +23,9 @@ use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0; // TODO: upgrade to 120 i think
 
-const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
 const OPTIONS_STORAGE: &str = "options";
 const HIGHSCORES_STORAGE: &str = "highscores";
+const PLAYER_LOGIN_STORAGE: &str = "user";
 
 #[derive(clap::Parser)]
 struct Opts {
@@ -162,13 +162,7 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
             config,
             start_time: prelude::Time::ZERO,
         };
-        let state = game::Game::new(
-            context,
-            options,
-            level,
-            Leaderboard::new(&geng, None),
-            "".to_string(),
-        );
+        let state = game::Game::new(context, options, level, Leaderboard::new(&geng, None));
         geng.run_state(state).await;
     } else {
         // Main menu

@@ -105,6 +105,14 @@ pub struct UserInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UserLogin {
+    pub id: Id,
+    pub name: Name,
+    /// The token that can be used to login later.
+    pub token: Name,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ArtistInfo {
     pub id: Id,
     pub name: Name,

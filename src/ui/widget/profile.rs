@@ -152,7 +152,7 @@ impl StatefulWidget for LoggedWidget {
         self.state.update(position, context);
 
         if let Some(user) = &state.user {
-            self.username.text = user.clone();
+            self.username.text = user.name.clone();
         }
 
         let main = position;

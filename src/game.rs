@@ -41,15 +41,10 @@ impl Game {
         options: Options,
         level: PlayLevel,
         leaderboard: Leaderboard,
-        player_name: String,
     ) -> Self {
-        let player = UserInfo {
-            id: 0,
-            name: player_name.into(),
-        };
         Self::preloaded(
             context.clone(),
-            Model::new(context, options, level.clone(), leaderboard, player),
+            Model::new(context, options, level.clone(), leaderboard),
         )
     }
 

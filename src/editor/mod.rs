@@ -209,7 +209,6 @@ impl EditorState {
                 self.editor.model.options.clone(),
                 level,
                 Leaderboard::new(&self.context.geng, None),
-                String::new(),
             ),
         )));
     }

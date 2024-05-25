@@ -130,13 +130,10 @@ impl LevelMenu {
         client: Option<&Arc<ctl_client::Nertboard>>,
         options: Options,
     ) -> Self {
-        let mut player = Player::new(
+        let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
             r32(0.0),
         );
-        player.info.name = preferences::load::<String>(crate::PLAYER_NAME_STORAGE)
-            .unwrap_or_default()
-            .into();
 
         let leaderboard = Leaderboard::new(&context.geng, client);
 
@@ -223,7 +220,6 @@ impl LevelMenu {
             let leaderboard = self.state.leaderboard.clone();
             let options = self.state.options.clone();
             let config = self.state.config.clone();
-            let player_name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
 
             async move {
                 let level = crate::game::PlayLevel {
@@ -232,7 +228,7 @@ impl LevelMenu {
                     music,
                     start_time: Time::ZERO,
                 };
-                crate::game::Game::new(context, options, level, leaderboard, player_name)
+                crate::game::Game::new(context, options, level, leaderboard)
             }
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(

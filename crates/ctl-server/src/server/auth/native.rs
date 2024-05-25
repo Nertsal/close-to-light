@@ -5,10 +5,9 @@ use super::*;
 
 pub fn router() -> Router {
     Router::new()
-    // TODO
-    // .route("/register", post(register))
-    // .route("/login", post(login))
-    // .route("/logout", get(logout))
+        // .route("/register", post(register))
+        // .route("/login", post(login))
+        .route("/logout", get(logout))
 }
 
 // async fn register(
@@ -46,10 +45,31 @@ pub fn router() -> Router {
 //     }))
 // }
 
-// async fn logout(mut session: AuthSession) -> Result<()> {
-//     session.logout().await.map_err(|err| {
-//         error!("Logout failed: {:?}", err);
-//         RequestError::Internal
-//     })?;
-//     Ok(())
-// }
+#[derive(Deserialize)]
+struct TokenQuery {
+    token: Option<String>,
+}
+
+async fn logout(
+    mut session: AuthSession,
+    State(app): State<Arc<App>>,
+    Query(query): Query<TokenQuery>,
+) -> Result<()> {
+    let user = session.logout().await.map_err(|err| {
+        error!("Logout failed: {:?}", err);
+        RequestError::Internal
+    })?;
+
+    if let Some(user) = user {
+        if let Some(token) = query.token {
+            // Remove the login token from the database
+            sqlx::query("DELETE FROM user_tokens WHERE user_id = ? AND token = ?")
+                .bind(user.user_id)
+                .bind(&token)
+                .execute(&app.database)
+                .await?;
+        }
+    }
+
+    Ok(())
+}

@@ -195,7 +195,6 @@ impl Model {
             self.options.clone(),
             self.level.clone(),
             self.leaderboard.clone(),
-            self.player.info.clone(),
         );
     }
 

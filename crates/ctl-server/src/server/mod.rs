@@ -26,7 +26,7 @@ use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
 use axum::{
     body::Body,
     extract::{Path, Query, State},
-    http::header,
+    http::{header, HeaderMap},
     response::IntoResponse,
     routing::{get, post},
     Extension, Form, Json,
