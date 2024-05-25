@@ -73,6 +73,7 @@ pub struct OptionsWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
     pub profile: ProfileWidget,
+    pub separator: WidgetState,
     pub volume: VolumeWidget,
     pub palette: PaletteChooseWidget,
 }
@@ -83,6 +84,7 @@ impl OptionsWidget {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
             profile: ProfileWidget::new(assets),
+            separator: WidgetState::new(),
             volume: VolumeWidget::new(options.volume),
             palette: PaletteChooseWidget::new(palettes),
         }
@@ -105,6 +107,13 @@ impl StatefulWidget for OptionsWidget {
         let profile = main.cut_top(3.0 * context.font_size);
         self.profile
             .update(profile, context, &mut state.leaderboard);
+
+        let separator = main.cut_top(context.layout_size);
+        let separator = separator.align_aabb(
+            vec2(separator.width() * 0.9, context.layout_size * 0.1),
+            vec2(0.5, 0.5),
+        );
+        self.separator.update(separator, context);
 
         let volume = main.cut_top(5.0 * context.layout_size);
         self.volume

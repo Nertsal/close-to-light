@@ -322,6 +322,9 @@ impl MenuRender {
                         }
                     }
 
+                    self.ui
+                        .draw_quad(ui.options.separator.position, theme.light, framebuffer);
+
                     {
                         // Volume
                         let volume = &ui.options.volume;
