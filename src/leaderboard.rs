@@ -9,8 +9,6 @@ use ctl_client::{
 };
 use geng::prelude::*;
 
-const DISCORD_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fdiscord&scope=identify";
-
 #[derive(Debug)]
 pub enum LeaderboardStatus {
     None,
@@ -116,7 +114,7 @@ impl Leaderboard {
             let client = Arc::clone(client);
             let future = async move {
                 let state = Uuid::new_v4().to_string();
-                let url = format!("{}&state={}", DISCORD_URL, state);
+                let url = format!("{}&state={}", crate::DISCORD_URL, state);
                 if let Err(err) = webbrowser::open(&url) {
                     log::error!("failed to open login link: {:?}", err);
                 }

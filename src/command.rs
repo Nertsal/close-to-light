@@ -5,7 +5,10 @@ use std::path::PathBuf;
 use anyhow::Result;
 use assets::Assets;
 use ctl_client::{
-    core::types::{Id, NewArtist},
+    core::{
+        prelude::Uuid,
+        types::{Id, NewArtist, UserLogin},
+    },
     Nertboard,
 };
 
@@ -39,6 +42,8 @@ pub enum MusicCommand {
         path: PathBuf,
         #[clap(long)]
         name: String,
+        #[clap(long)]
+        romanized_name: Option<String>,
         #[clap(long)]
         original: bool,
         #[clap(long)]
@@ -116,10 +121,12 @@ impl Command {
                     MusicCommand::Upload {
                         path,
                         name,
+                        romanized_name,
                         original,
                         bpm,
                     } => {
                         let music = ctl_client::core::types::NewMusic {
+                            romanized_name: romanized_name.unwrap_or(name.clone()),
                             name,
                             original,
                             bpm,
@@ -189,30 +196,23 @@ impl Command {
     }
 }
 
-async fn login(_client: &Nertboard) -> Result<()> {
-    // let stdin = std::io::stdin();
+async fn login(client: &Nertboard) -> Result<()> {
+    let user: Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE);
 
-    // println!("Logging in...");
+    if let Some(user) = user {
+        client
+            .login_token(user.id, &user.token)
+            .await?
+            .map_err(|err| anyhow!(err))?;
+    } else {
+        let state = Uuid::new_v4().to_string();
+        webbrowser::open(&format!("{}&state={}", crate::DISCORD_URL, state))?;
+        let user = client
+            .login_external(state)
+            .await?
+            .map_err(|err| anyhow!(err))?;
+        preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
+    }
 
-    // println!("Username:");
-    // let mut username = String::new();
-    // stdin.read_line(&mut username)?;
-    // username.pop(); // Pop new line
-    // if username.is_empty() {
-    //     // Skip login
-    //     return Ok(());
-    // }
-
-    // println!("Password:");
-    // let mut password = String::new();
-    // stdin.read_line(&mut password)?;
-    // password.pop(); // Pop new line
-
-    // client
-    //     .login(&ctl_client::core::auth::Credentials { username, password })
-    //     .await?
-    //     .map_err(|err| anyhow!(err))?;
-
-    // Ok(())
-    todo!()
+    Ok(())
 }

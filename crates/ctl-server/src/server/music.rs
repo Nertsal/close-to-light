@@ -6,6 +6,7 @@ use ctl_core::{
     prelude::r32,
     types::{ArtistInfo, MusicUpdate, NewMusic},
 };
+use sqlx::FromRow;
 
 const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
 
@@ -39,23 +40,14 @@ pub(super) async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<M
         .fetch_all(&app.database)
         .await?;
 
-    let authors: Vec<(Id, ArtistInfo)> = sqlx::query(
+    let authors: Vec<(Id, ArtistRow)> = sqlx::query(
         "
 SELECT music_id, artists.artist_id, name, user_id
 FROM music_authors
 JOIN artists ON music_authors.artist_id = artists.artist_id
         ",
     )
-    .try_map(|row: DBRow| {
-        Ok((
-            row.try_get("music_id")?,
-            ArtistInfo {
-                id: row.try_get("artist_id")?,
-                name: row.try_get::<String, _>("name")?.into(),
-                user: row.try_get("user_id")?,
-            },
-        ))
-    })
+    .try_map(|row: DBRow| Ok((row.try_get("music_id")?, ArtistRow::from_row(&row)?)))
     .fetch_all(&app.database)
     .await?;
 
@@ -65,13 +57,14 @@ JOIN artists ON music_authors.artist_id = artists.artist_id
             let authors = authors
                 .iter()
                 .filter(|(music_id, _)| *music_id == music.music_id)
-                .map(|(_, info)| info.clone())
+                .map(|(_, info)| info.clone().into())
                 .collect();
             MusicInfo {
                 id: music.music_id,
                 public: music.public,
                 original: music.original,
                 name: music.name.into(),
+                romanized: music.romanized_name.into(),
                 bpm: r32(music.bpm),
                 authors,
             }
@@ -93,7 +86,7 @@ pub(super) async fn music_get(
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let authors: Vec<ArtistInfo> = sqlx::query(
+    let authors: Vec<ArtistRow> = sqlx::query_as(
         "
 SELECT artists.artist_id, name, user_id
 FROM music_authors
@@ -102,21 +95,16 @@ WHERE music_id = ?
         ",
     )
     .bind(music_id)
-    .try_map(|row: DBRow| {
-        Ok(ArtistInfo {
-            id: row.try_get("artist_id")?,
-            name: row.try_get::<String, _>("name")?.into(),
-            user: row.try_get("user_id")?,
-        })
-    })
     .fetch_all(&app.database)
     .await?;
+    let authors: Vec<ArtistInfo> = authors.into_iter().map(Into::into).collect();
 
     let music = MusicInfo {
         id: music_id,
         public: music.public,
         original: music.original,
         name: music.name.into(),
+        romanized: music.romanized_name.into(),
         bpm: r32(music.bpm),
         authors,
     };
@@ -141,9 +129,10 @@ async fn music_create(
 
     // Commit to database
     let music_id: Id = sqlx::query(
-        "INSERT INTO musics (name, public, original, bpm) VALUES (?, ?, ?, ?) RETURNING music_id",
+        "INSERT INTO musics (name, romanized_name, public, original, bpm) VALUES (?, ?, ?, ?, ?) RETURNING music_id",
     )
     .bind(music.name)
+    .bind(music.romanized_name)
     .bind(false)
     .bind(music.original)
     .bind(music.bpm)
@@ -284,7 +273,6 @@ async fn download(
 
     // Check path
     let dir_path = app.config.groups_path.join("music");
-    std::fs::create_dir_all(&dir_path)?;
     let path = dir_path.join(music_id.to_string());
 
     send_file(path, content_mp3()).await

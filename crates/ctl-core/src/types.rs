@@ -23,6 +23,7 @@ pub struct MusicInfo {
     pub public: bool,
     pub original: bool,
     pub name: Name,
+    pub romanized: Name,
     pub bpm: R32,
     pub authors: Vec<ArtistInfo>,
 }
@@ -34,6 +35,7 @@ impl Default for MusicInfo {
             public: false,
             original: false,
             name: "<name>".into(),
+            romanized: "<romanized>".into(),
             bpm: r32(60.0),
             authors: Vec::new(),
         }
@@ -116,12 +118,14 @@ pub struct UserLogin {
 pub struct ArtistInfo {
     pub id: Id,
     pub name: Name,
+    pub romanized: Name,
     pub user: Option<Id>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewMusic {
     pub name: String,
+    pub romanized_name: String,
     pub original: bool,
     pub bpm: f32,
 }

@@ -119,6 +119,7 @@ impl Nertboard {
         let req = self.client.get(url);
 
         let response = req.send().await?;
+        let response = error_for_status(response).await?;
         Ok(response.bytes().await?)
     }
 
@@ -127,6 +128,7 @@ impl Nertboard {
         let req = self.client.get(url);
 
         let response = req.send().await?;
+        let response = error_for_status(response).await?;
         Ok(response.bytes().await?)
     }
 

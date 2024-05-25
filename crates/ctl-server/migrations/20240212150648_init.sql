@@ -14,6 +14,7 @@ CREATE TABLE artists
 (
     artist_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    romanized_name TEXT NOT NULL,
     user_id INTEGER
 );
 
@@ -30,10 +31,11 @@ CREATE TABLE scores
 CREATE TABLE musics
 (
     music_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    public BIT,
-    original BIT,
-    bpm REAL
+    name TEXT NOT NULL,
+    romanized_name TEXT NOT NULL,
+    public BIT NOT NULL,
+    original BIT NOT NULL,
+    bpm REAL NOT NULL
 );
 
 CREATE TABLE music_authors

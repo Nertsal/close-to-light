@@ -27,6 +27,8 @@ const OPTIONS_STORAGE: &str = "options";
 const HIGHSCORES_STORAGE: &str = "highscores";
 const PLAYER_LOGIN_STORAGE: &str = "user";
 
+const DISCORD_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fdiscord&scope=identify";
+
 #[derive(clap::Parser)]
 struct Opts {
     #[cfg(not(target_arch = "wasm32"))]

@@ -83,16 +83,22 @@ impl CacheTasks {
         } else if let Some(task) = self.download_music.take() {
             match task.poll() {
                 Err(task) => self.download_music = Some(task),
-                Ok(Err(_)) => {}
+                Ok(Err(err)) => {
+                    log::error!("failed to download music: {:?}", err);
+                }
                 Ok(Ok(music)) => {
+                    log::debug!("downloaded music: {:?}", music);
                     return Some(CacheAction::Music(music));
                 }
             }
         } else if let Some(task) = self.download_group.take() {
             match task.poll() {
                 Err(task) => self.download_group = Some(task),
-                Ok(Err(_)) => {}
+                Ok(Err(err)) => {
+                    log::error!("failed to download group: {:?}", err);
+                }
                 Ok(Ok(group)) => {
+                    log::debug!("downloaded group: {:?}", group.meta);
                     return Some(CacheAction::Group(group));
                 }
             }
@@ -157,12 +163,15 @@ impl LevelCache {
                 .collect();
             let music_loaders = paths.iter().map(|path| local.load_music(path));
             let music = future::join_all(music_loaders).await;
-            local.inner.borrow_mut().music.extend(
+
+            let mut inner = local.inner.borrow_mut();
+            inner.music.extend(
                 music
                     .into_iter()
                     .flatten()
                     .map(|music| (music.meta.id, music)),
             );
+            log::debug!("loaded music: {:?}", inner.music);
         }
 
         let groups_path = fs::all_groups_path();
@@ -189,6 +198,7 @@ impl LevelCache {
                 }
                 inner.groups.insert(group);
             }
+            log::debug!("loaded groups: {}", inner.groups.len());
         }
 
         log::debug!("Loaded cache in {:.2}s", timer.tick().as_secs_f64());
@@ -211,10 +221,17 @@ impl LevelCache {
     }
 
     pub async fn load_music(&self, path: impl AsRef<std::path::Path>) -> Result<Rc<CachedMusic>> {
-        let path = path.as_ref();
-        log::debug!("loading music at {:?}", path);
-        let music = Rc::new(CachedMusic::load(self.geng.asset_manager(), path).await?);
-        Ok(music)
+        let res = async {
+            let path = path.as_ref();
+            log::debug!("loading music at {:?}", path);
+            let music = Rc::new(CachedMusic::load(self.geng.asset_manager(), path).await?);
+            Ok(music)
+        }
+        .await;
+        if let Err(err) = &res {
+            log::error!("failed to load music: {:?}", err);
+        }
+        res
     }
 
     pub async fn load_level(
@@ -388,6 +405,7 @@ impl LevelCache {
 
         if inner.tasks.download_group.is_none() {
             if let Some(client) = inner.tasks.client.clone() {
+                log::debug!("Downloading group {}", group_id);
                 let geng = self.geng.clone();
                 let music_list = inner.music.clone();
 
@@ -481,6 +499,7 @@ impl LevelCache {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.download_music.is_none() {
             if let Some(client) = inner.tasks.client.clone() {
+                log::debug!("Downloading music {}", music_id);
                 let geng = self.geng.clone();
                 let future = async move {
                     let meta = client.get_music_info(music_id).await?;

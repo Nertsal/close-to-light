@@ -1,6 +1,6 @@
 use super::*;
 
-use ctl_core::types::UserInfo;
+use ctl_core::types::{ArtistInfo, UserInfo};
 use sqlx::FromRow;
 
 pub type DatabasePool = sqlx::SqlitePool; // TODO: behind a trait?
@@ -31,9 +31,29 @@ pub struct ScoreRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ArtistRow {
+    pub artist_id: Id,
+    pub name: String,
+    pub romanized_name: String,
+    pub user_id: Option<Id>,
+}
+
+impl From<ArtistRow> for ArtistInfo {
+    fn from(value: ArtistRow) -> Self {
+        Self {
+            id: value.artist_id,
+            name: value.name.into(),
+            romanized: value.romanized_name.into(),
+            user: value.user_id,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct MusicRow {
     pub music_id: Id,
     pub name: String,
+    pub romanized_name: String,
     pub original: bool,
     pub bpm: f32,
     pub public: bool,
