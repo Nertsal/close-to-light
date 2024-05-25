@@ -35,7 +35,7 @@ impl Model {
             let speed = (t - 0.1).max(0.5);
             self.context.music.set_speed(speed);
 
-            let volume = t;
+            let volume = t * self.options.volume.music();
             if volume < 0.0 {
                 self.context.music.stop();
             } else {
