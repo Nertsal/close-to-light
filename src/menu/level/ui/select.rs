@@ -23,6 +23,9 @@ pub enum LevelSelectAction {
     SyncLevel(Index, usize),
     EditLevel(Index, usize),
     DeleteLevel(Index, usize),
+    SyncGroup(Index),
+    EditGroup(Index),
+    DeleteGroup(Index),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -257,8 +260,11 @@ impl LevelSelectUI {
             self.grid_groups.drain(groups.len()..);
         } else {
             for _ in 0..groups.len().saturating_sub(self.grid_groups.len()) {
-                self.grid_groups
-                    .push(ItemGroupWidget::new("", Index::from_raw_parts(0, 0)));
+                self.grid_groups.push(ItemGroupWidget::new(
+                    &self.assets,
+                    "",
+                    Index::from_raw_parts(0, 0),
+                ));
             }
         }
 
@@ -278,6 +284,8 @@ impl LevelSelectUI {
             (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
             1.3 * context.font_size,
         );
+
+        let mut action = None;
         for row in 0..rows {
             let top_left =
                 Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
@@ -303,7 +311,8 @@ impl LevelSelectUI {
                 .iter_mut()
                 .zip(layout.into_iter().skip(skip))
             {
-                widget.update(pos, context);
+                let act = widget.update(pos, context);
+                action = action.or(act);
                 if widget.state.clicked {
                     state.select_group(widget.index);
                     tab = Some(LevelSelectTab::Difficulty);
@@ -314,7 +323,7 @@ impl LevelSelectUI {
             }
         }
 
-        None
+        action
     }
 
     fn grid_levels(
@@ -481,14 +490,16 @@ impl ItemMusicWidget {
 
 pub struct ItemGroupWidget {
     pub state: WidgetState,
+    pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
 }
 
 impl ItemGroupWidget {
-    pub fn new(text: impl Into<Name>, index: Index) -> Self {
+    pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
             state: WidgetState::new(),
+            menu: ItemMenuWidget::new(assets),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             index,
         }
@@ -499,9 +510,33 @@ impl ItemGroupWidget {
         position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
+        if self.state.right_clicked {
+            self.menu.window.request = Some(WidgetRequest::Open);
+            self.menu.show();
+        } else if !self.state.hovered && !self.menu.state.hovered {
+            self.menu.window.request = Some(WidgetRequest::Close);
+        }
+        self.menu.window.update(context.delta_time);
+        if self.menu.window.show.time.is_min() {
+            self.menu.hide();
+        }
+        self.menu.update(position, context);
+        if self.menu.state.hovered {
+            context.can_focus = false;
+        }
+
         self.state.update(position, context);
         self.text.update(position, &mut context.scale_font(0.9));
-        None
+
+        let mut action = None;
+        if self.menu.edit.state.clicked {
+            action = Some(LevelSelectAction::EditGroup(self.index));
+        } else if self.menu.sync.state.clicked {
+            action = Some(LevelSelectAction::SyncGroup(self.index));
+        } else if self.menu.delete.state.clicked {
+            action = Some(LevelSelectAction::DeleteGroup(self.index));
+        }
+        action
     }
 }
 

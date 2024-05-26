@@ -181,6 +181,25 @@ impl MenuUI {
                 LevelSelectAction::DeleteLevel(group, level) => {
                     self.context.local.delete_level(group, level);
                 }
+                LevelSelectAction::SyncGroup(_group_index) => {
+                    // let local = self.context.local.inner.borrow();
+                    // if let Some(group) = local.groups.get(group_index) {
+                    //     self.sync = Some(SyncWidget::new(
+                    //         &self.context.geng,
+                    //         &self.context.assets,
+                    //         group,
+                    //         group_index,
+                    //         None,
+                    //         None,
+                    //     ));
+                    // }
+                }
+                LevelSelectAction::EditGroup(_group) => {
+                    // state.edit_group(group);
+                }
+                LevelSelectAction::DeleteGroup(group) => {
+                    self.context.local.delete_group(group);
+                }
             }
         } else if self.level_select.add_music.state.clicked {
             self.explore_music();
