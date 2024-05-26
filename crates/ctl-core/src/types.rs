@@ -6,10 +6,10 @@ pub type Coord = R32;
 pub type Name = Arc<str>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LevelSet {
+pub struct LevelSet<L = Rc<LevelFull>> {
     pub id: Id,
     pub music: Id,
-    pub levels: Vec<Rc<LevelFull>>,
+    pub levels: Vec<L>,
 }
 
 impl LevelSet {
@@ -157,12 +157,6 @@ pub struct MusicUpdate {
     pub public: Option<bool>,
     pub original: Option<bool>,
     pub bpm: Option<f32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NewGroup {
-    /// If set, updates an existing group instead of creating a new one.
-    pub group_id: Option<Id>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

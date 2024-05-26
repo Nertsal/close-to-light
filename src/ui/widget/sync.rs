@@ -8,7 +8,7 @@ use crate::{
 };
 
 use ctl_client::{
-    core::types::{GroupInfo, Id, LevelSet, NewGroup},
+    core::types::{GroupInfo, Id, LevelSet},
     ClientError,
 };
 use generational_arena::Index;
@@ -214,30 +214,17 @@ impl StatefulWidget for SyncWidget {
             .align_aabb(button_size, vec2::splat(0.5));
         self.upload.update(upload, context);
         if self.upload.state.clicked {
-            if let Some(music) = self.cached_music {
+            if self.cached_music.is_some() {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
                 if let Some(client) = state.client() {
-                    let mut group = (*self.cached_group).clone();
+                    let group = (*self.cached_group).clone();
                     let group_index = self.cached_group_index;
                     let future = async move {
-                        if group.data.id == 0 {
-                            // Create group
-                            group.data.id = client.create_group(music).await?;
-                        }
                         // TODO: it could happen that a level has a local non-zero id
                         // but is not present on the server.
                         // In that case, upload will fail with "Not found"
-
-                        let group = client
-                            .upload_group(
-                                NewGroup {
-                                    group_id: (group.data.id != 0).then_some(group.data.id),
-                                },
-                                &group.data,
-                            )
-                            .await?;
-
+                        let group = client.upload_group(&group.data).await?;
                         Ok((group_index, group))
                     };
                     self.task_group_upload = Some(Task::new(&self.geng, future));

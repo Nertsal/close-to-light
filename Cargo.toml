@@ -34,7 +34,7 @@ async-executor = "1.8.0"
 webbrowser = "1.0.1"
 
 # Server
-axum = { version = "0.7.2", features = ["multipart"] }
+axum = { version = "0.7.2", features = ["macros", "multipart"] }
 axum-login = "0.12"
 password-auth = "0.3.0"
 tower = "0.4.13"

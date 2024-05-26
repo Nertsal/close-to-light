@@ -8,7 +8,7 @@ pub use self::error::*;
 pub use ctl_core as core;
 use ctl_core::{
     prelude::{log, serde_json, DeserializeOwned, Id, MusicInfo, MusicUpdate},
-    types::{GroupInfo, LevelInfo, LevelSet, NewArtist, NewGroup},
+    types::{GroupInfo, LevelInfo, LevelSet, NewArtist},
     ScoreEntry, SubmitScore,
 };
 
@@ -75,10 +75,10 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn upload_group(&self, query: NewGroup, group: &LevelSet) -> Result<GroupInfo> {
+    pub async fn upload_group(&self, group: &LevelSet) -> Result<GroupInfo> {
         let url = self.url.join("group/create").unwrap();
         let body = bincode::serialize(group)?;
-        let req = self.client.post(url).query(&query).body(body);
+        let req = self.client.post(url).body(body);
 
         let response = req.send().await?;
         let res = read_json(response).await?;
@@ -91,15 +91,6 @@ impl Nertboard {
 
     pub async fn get_group_info(&self, group: Id) -> Result<GroupInfo> {
         self.get_json(&format!("group/{}", group)).await
-    }
-
-    pub async fn create_group(&self, music: Id) -> Result<Id> {
-        let url = self.url.join("group/create").unwrap();
-        let req = self.client.post(url).query(&[("id", music)]);
-
-        let response = req.send().await?;
-        let res = read_json(response).await?;
-        Ok(res)
     }
 
     pub async fn get_music_list(&self) -> Result<Vec<MusicInfo>> {
