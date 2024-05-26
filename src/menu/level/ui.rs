@@ -142,11 +142,11 @@ impl MenuUI {
                             .borrow()
                             .groups
                             .iter()
-                            .find(|(_, group)| group.meta.id == group_id)
+                            .find(|(_, group)| group.data.id == group_id)
                         {
                             self.explore.window.request = Some(WidgetRequest::Close);
                             self.level_select.select_tab(LevelSelectTab::Difficulty);
-                            state.switch_music = Some(group.meta.music);
+                            state.switch_music = Some(group.data.music);
                             state.switch_group = Some(index);
                         }
                     }
@@ -160,19 +160,15 @@ impl MenuUI {
         let action = self.level_select.update(left, state, context);
         if let Some(action) = action {
             match action {
-                LevelSelectAction::SyncLevel(group_index, level_index) => {
+                LevelSelectAction::SyncGroup(group_index) => {
                     let local = self.context.local.inner.borrow();
                     if let Some(group) = local.groups.get(group_index) {
-                        if let Some(level) = group.levels.get(level_index) {
-                            self.sync = Some(SyncWidget::new(
-                                &self.context.geng,
-                                &self.context.assets,
-                                group,
-                                group_index,
-                                level,
-                                level_index,
-                            ));
-                        }
+                        self.sync = Some(SyncWidget::new(
+                            &self.context.geng,
+                            &self.context.assets,
+                            group.clone(),
+                            group_index,
+                        ));
                     }
                 }
                 LevelSelectAction::EditLevel(group, level) => {
@@ -180,19 +176,6 @@ impl MenuUI {
                 }
                 LevelSelectAction::DeleteLevel(group, level) => {
                     self.context.local.delete_level(group, level);
-                }
-                LevelSelectAction::SyncGroup(_group_index) => {
-                    // let local = self.context.local.inner.borrow();
-                    // if let Some(group) = local.groups.get(group_index) {
-                    //     self.sync = Some(SyncWidget::new(
-                    //         &self.context.geng,
-                    //         &self.context.assets,
-                    //         group,
-                    //         group_index,
-                    //         None,
-                    //         None,
-                    //     ));
-                    // }
                 }
                 LevelSelectAction::EditGroup(_group) => {
                     // state.edit_group(group);
@@ -208,10 +191,6 @@ impl MenuUI {
         } else if self.level_select.add_group.menu.create.state.clicked {
             if let Some(music) = &state.selected_music {
                 state.new_group(music.data);
-            }
-        } else if self.level_select.add_level.state.clicked {
-            if let Some(group) = &state.selected_group {
-                state.new_level(group.data);
             }
         }
 

@@ -20,7 +20,6 @@ pub struct LevelSelectUI {
 
 #[derive(Debug, Clone, Copy)]
 pub enum LevelSelectAction {
-    SyncLevel(Index, usize),
     EditLevel(Index, usize),
     DeleteLevel(Index, usize),
     SyncGroup(Index),
@@ -249,9 +248,9 @@ impl LevelSelectUI {
             .groups
             .iter()
             .filter(|(_, group)| {
-                Some(group.meta.music) == state.selected_music.as_ref().map(|m| m.data)
+                Some(group.data.music) == state.selected_music.as_ref().map(|m| m.data)
             })
-            .sorted_by_key(|(_, group)| group.meta.id)
+            .sorted_by_key(|(_, group)| group.data.id)
             .collect();
 
         // Synchronize vec length
@@ -333,6 +332,7 @@ impl LevelSelectUI {
             .and_then(|group| local.groups.get(group))
             .map(|group| {
                 group
+                    .data
                     .levels
                     .iter()
                     .sorted_by_key(|level| level.meta.id)
@@ -546,7 +546,7 @@ pub struct ItemLevelWidget {
     pub text: TextWidget,
     pub group: Index,
     pub index: usize,
-    pub level: Rc<CachedLevel>,
+    pub level: Rc<LevelFull>,
     pub menu: ItemMenuWidget,
 }
 
@@ -556,7 +556,7 @@ impl ItemLevelWidget {
         text: impl Into<Name>,
         group: Index,
         index: usize,
-        level: Rc<CachedLevel>,
+        level: Rc<LevelFull>,
     ) -> Self {
         Self {
             state: WidgetState::new(),
@@ -595,7 +595,7 @@ impl ItemLevelWidget {
         if self.menu.edit.state.clicked {
             action = Some(LevelSelectAction::EditLevel(self.group, self.index));
         } else if self.menu.sync.state.clicked {
-            action = Some(LevelSelectAction::SyncLevel(self.group, self.index));
+            action = Some(LevelSelectAction::SyncGroup(self.group));
         } else if self.menu.delete.state.clicked {
             action = Some(LevelSelectAction::DeleteLevel(self.group, self.index));
         }

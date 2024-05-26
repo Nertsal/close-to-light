@@ -14,36 +14,14 @@ mod native {
         Ok(())
     }
 
-    pub fn save_level(level: &CachedLevel) -> Result<()> {
-        let path = &level.path;
-        std::fs::create_dir_all(path)?;
-
-        std::fs::write(
-            path.join("level.json"),
-            serde_json::to_vec_pretty(&level.data)?,
-        )?;
-        std::fs::write(path.join("meta.toml"), toml::to_string_pretty(&level.meta)?)?;
-
-        log::debug!(
-            "Saved level ({} - {}) successfully",
-            level.meta.id,
-            level.meta.name
-        );
-
-        Ok(())
-    }
-
     pub fn save_group(group: &CachedGroup) -> Result<()> {
         let path = &group.path;
         std::fs::create_dir_all(path)?;
 
-        std::fs::write(path.join("meta.toml"), toml::to_string_pretty(&group.meta)?)?;
+        let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+        bincode::serialize_into(writer, &group.data)?;
 
-        for level in &group.levels {
-            save_level(level)?;
-        }
-
-        log::debug!("Saved group ({}) successfully", group.meta.id);
+        log::debug!("Saved group ({}) successfully", group.data.id);
 
         Ok(())
     }
@@ -126,43 +104,12 @@ impl CachedMusic {
 }
 
 impl CachedGroup {
-    pub fn new(meta: GroupMeta) -> Self {
+    pub fn new(data: LevelSet) -> Self {
         Self {
-            path: PathBuf::new(), // TODO
-            meta,
+            path: fs::generate_group_path(data.id),
             music: None,
-            levels: Vec::new(),
+            hash: data.calculate_hash(),
+            data,
         }
-    }
-}
-
-impl CachedLevel {
-    pub fn new(meta: LevelInfo) -> Self {
-        Self {
-            path: PathBuf::new(), // TODO
-            meta,
-            data: Level::new(),
-            hash: String::new(),
-        }
-    }
-
-    pub async fn load(
-        _manager: &geng::asset::Manager,
-        level_path: impl AsRef<Path>,
-    ) -> Result<Self> {
-        let level_path = level_path.as_ref();
-
-        let meta_path = level_path.join("meta.toml");
-        let meta: LevelInfo = file::load_detect(&meta_path).await?;
-
-        let level: Level = file::load_detect(level_path.join("level.json")).await?;
-        let hash = level.calculate_hash();
-
-        Ok(Self {
-            path: level_path.to_path_buf(),
-            meta,
-            data: level,
-            hash,
-        })
     }
 }

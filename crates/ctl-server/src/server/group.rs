@@ -72,6 +72,7 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
                         .cloned()
                         .unwrap_or_default(), // Default should never be reached TODO: warning or smth
                     levels: Vec::new(),
+                    hash: String::new(), // TODO
                 });
                 groups.len() - 1
             });
@@ -85,16 +86,15 @@ async fn group_get(
     State(app): State<Arc<App>>,
     Path(group_id): Path<Id>,
 ) -> Result<Json<GroupInfo>> {
-    let music_id: Option<Id> = sqlx::query("SELECT music_id FROM groups WHERE group_id = ?")
+    let group_row: Option<GroupRow> = sqlx::query_as("SELECT * FROM groups WHERE group_id = ?")
         .bind(group_id)
-        .try_map(|row: DBRow| row.try_get("music_id"))
         .fetch_optional(&app.database)
         .await?;
-    let Some(music_id) = music_id else {
+    let Some(group_row) = group_row else {
         return Err(RequestError::NoSuchGroup(group_id));
     };
 
-    let music = music::music_get(State(app.clone()), Path(music_id))
+    let music = music::music_get(State(app.clone()), Path(group_row.music_id))
         .await?
         .0;
 
@@ -141,6 +141,7 @@ JOIN users ON level_authors.user_id = users.user_id
         id: group_id,
         music,
         levels,
+        hash: group_row.hash,
     }))
 }
 

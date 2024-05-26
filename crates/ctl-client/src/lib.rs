@@ -123,8 +123,8 @@ impl Nertboard {
         Ok(response.bytes().await?)
     }
 
-    pub async fn download_level(&self, level: Id) -> Result<Bytes> {
-        let url = self.url.join(&format!("level/{}/download", level)).unwrap();
+    pub async fn download_group(&self, group: Id) -> Result<Bytes> {
+        let url = self.url.join(&format!("group/{}/download", group)).unwrap();
         let req = self.client.get(url);
 
         let response = req.send().await?;

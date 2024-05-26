@@ -6,7 +6,7 @@ use super::*;
 
 use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus},
-    local::{CachedLevel, CachedMusic},
+    local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{widget::Widget, ShowTime, UiContext, WidgetRequest},
 };
@@ -110,17 +110,6 @@ impl MenuState {
         let local = &self.context.local;
         local.new_group(music);
     }
-
-    fn new_level(&mut self, group: Index) {
-        let local = &self.context.local;
-        let meta = LevelInfo {
-            id: 0,
-            name: "New Difficulty".into(),
-            hash: String::new(),
-            authors: Vec::new(),
-        };
-        local.new_level(group, meta);
-    }
 }
 
 impl LevelMenu {
@@ -190,22 +179,24 @@ impl LevelMenu {
         }
     }
 
-    fn get_active_level(&self) -> Option<(Rc<CachedMusic>, Rc<CachedLevel>)> {
+    fn get_active_level(&self) -> Option<(Rc<CachedMusic>, Index, usize, Rc<LevelFull>)> {
         let local = self.context.local.inner.borrow();
 
         let group = self.state.selected_group.as_ref()?;
-        let group = local.groups.get(group.data)?;
+        let group_index = group.data;
+        let group = local.groups.get(group_index)?;
 
         let music = group.music.as_ref()?;
 
         let level = self.state.selected_level.as_ref()?;
-        let level = group.levels.get(level.data)?;
+        let level_index = level.data;
+        let level = group.data.levels.get(level_index)?;
 
-        Some((Rc::clone(music), Rc::clone(level)))
+        Some((Rc::clone(music), group_index, level_index, Rc::clone(level)))
     }
 
     fn play_level(&mut self) {
-        let Some((music, level)) = self.get_active_level() else {
+        let Some((music, group_index, level_index, level)) = self.get_active_level() else {
             log::error!("Trying to play a level, but there is no active level");
             return;
         };
@@ -222,6 +213,8 @@ impl LevelMenu {
 
             async move {
                 let level = crate::game::PlayLevel {
+                    group_index,
+                    level_index,
                     level: level.clone(),
                     config,
                     music,
@@ -616,23 +609,29 @@ impl geng::State for LevelMenu {
 
         self.context.local.poll();
 
-        if let Some((music, level)) = self.state.edit_level.take().and_then(|(group, level)| {
-            // TODO: warn if smth wrong
-            let local = self.state.context.local.inner.borrow();
-            local.groups.get(group).and_then(|group| {
-                group.music.as_ref().and_then(|music| {
-                    group
-                        .levels
-                        .get(level)
-                        .map(|level| (music.clone(), level.clone()))
+        if let Some((music, group_index, level_index, level)) =
+            self.state
+                .edit_level
+                .take()
+                .and_then(|(group_index, level_index)| {
+                    // TODO: warn if smth wrong
+                    let local = self.state.context.local.inner.borrow();
+                    local.groups.get(group_index).and_then(|group| {
+                        group.music.as_ref().and_then(|music| {
+                            group.data.levels.get(level_index).map(|level| {
+                                (music.clone(), group_index, level_index, level.clone())
+                            })
+                        })
+                    })
                 })
-            })
-        }) {
+        {
             let context = self.context.clone();
             let manager = self.context.geng.asset_manager().clone();
             let assets_path = run_dir().join("assets");
             let options = self.state.options.clone();
             let level = crate::game::PlayLevel {
+                group_index,
+                level_index,
                 music,
                 level,
                 config: self.state.config.clone(),

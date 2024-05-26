@@ -21,7 +21,7 @@ pub struct LevelCacheImpl {
     pub group_list: CacheState<Vec<GroupInfo>>,
 
     pub music: HashMap<Id, Rc<CachedMusic>>,
-    pub groups: Arena<CachedGroup>,
+    pub groups: Arena<Rc<CachedGroup>>,
 }
 
 pub enum CacheState<T> {
@@ -98,7 +98,7 @@ impl CacheTasks {
                     log::error!("failed to download group: {:?}", err);
                 }
                 Ok(Ok(group)) => {
-                    log::debug!("downloaded group: {:?}", group.meta);
+                    log::debug!("downloaded group: {:?}", group.data.id);
                     return Some(CacheAction::Group(group));
                 }
             }
@@ -188,7 +188,7 @@ impl LevelCache {
                 })
                 .flatten()
                 .collect();
-            let group_loaders = paths.iter().map(|path| local.load_group_all(path));
+            let group_loaders = paths.iter().map(|path| local.load_group(path));
             let groups = future::join_all(group_loaders).await;
 
             let mut inner = local.inner.borrow_mut();
@@ -196,7 +196,7 @@ impl LevelCache {
                 if let Some(music) = music {
                     inner.music.insert(music.meta.id, music);
                 }
-                inner.groups.insert(group);
+                inner.groups.insert(Rc::new(group));
             }
             log::debug!("loaded groups: {}", inner.groups.len());
         }
@@ -211,12 +211,12 @@ impl LevelCache {
         inner.music.get(&music_id).cloned()
     }
 
-    pub fn get_level(&self, group: Index, level: usize) -> Option<Rc<CachedLevel>> {
+    pub fn get_level(&self, group: Index, level: usize) -> Option<Rc<LevelFull>> {
         let inner = self.inner.borrow();
         inner
             .groups
             .get(group)
-            .and_then(|group| group.levels.get(level))
+            .and_then(|group| group.data.levels.get(level))
             .cloned()
     }
 
@@ -234,103 +234,32 @@ impl LevelCache {
         res
     }
 
-    pub async fn load_level(
-        &self,
-        level_path: impl AsRef<std::path::Path>,
-    ) -> Result<(Rc<CachedMusic>, Rc<CachedLevel>)> {
-        let level_path = level_path.as_ref();
-        let (level_path, group_path) = if level_path.is_dir() {
-            (
-                level_path,
-                level_path
-                    .parent()
-                    .ok_or(anyhow!("Level expected to be in a folder"))?,
-            )
-        } else {
-            // Assume path to `level.json`
-            let level_path = level_path
-                .parent()
-                .ok_or(anyhow!("Level expected to be in a folder"))?;
-            (
-                level_path,
-                level_path
-                    .parent()
-                    .ok_or(anyhow!("Level expected to be in a folder"))?,
-            )
-        };
-
-        // TODO: do not load all the group levels
-        self.load_group_all(&group_path).await?;
-
-        // If `load_group_all` succedes, the group is pushed to the end
-        let inner = self.inner.borrow();
-        let (_, group) = inner.groups.iter().last().unwrap();
-
-        let music = group
-            .music
-            .clone()
-            .ok_or(anyhow!("Group music not found"))?;
-
-        let level = group
-            .levels
-            .iter()
-            .find(|level| level.path == level_path)
-            .ok_or(anyhow!("Specific level not found"))?
-            .clone();
-
-        Ok((music, level))
-    }
-
     /// Load the group info at the given path without loading the levels.
-    async fn load_group_empty(
+    async fn load_group(
         &self,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(Option<Rc<CachedMusic>>, CachedGroup)> {
         let group_path = path.as_ref().to_path_buf();
+        log::debug!("loading group at {:?}", group_path);
 
-        let meta_path = group_path.join("meta.toml"); // TODO: move to fs
-        let meta: GroupMeta = file::load_detect(&meta_path).await?;
+        let bytes = file::load_bytes(&group_path).await?;
+        let group: LevelSet = bincode::deserialize(&bytes)?;
 
-        let music = match self.get_music(meta.music) {
+        let music = match self.get_music(group.music) {
             Some(music) => Some(music),
             None => {
-                let music_path = fs::music_path(meta.music);
+                let music_path = fs::music_path(group.music);
                 self.load_music(&music_path).await.ok()
             }
         };
 
         let group = CachedGroup {
             path: group_path,
-            meta,
             music: music.clone(),
-            levels: Vec::new(),
+            hash: group.calculate_hash(),
+            data: group,
         };
 
-        Ok((music, group))
-    }
-
-    /// Load the group and all levels from it.
-    async fn load_group_all(
-        &self,
-        path: impl AsRef<std::path::Path>,
-    ) -> Result<(Option<Rc<CachedMusic>>, CachedGroup)> {
-        let group_path = path.as_ref();
-        log::debug!("loading music at {:?}", group_path);
-        let (music, mut group) = self.load_group_empty(group_path).await?;
-
-        let mut levels = Vec::new();
-        for entry in std::fs::read_dir(group_path)? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
-
-            let level = CachedLevel::load(self.geng.asset_manager(), &path).await?;
-            levels.push(Rc::new(level));
-        }
-
-        group.levels.extend(levels);
         Ok((music, group))
     }
 
@@ -338,9 +267,10 @@ impl LevelCache {
         let mut inner = self.inner.borrow_mut();
 
         let music = inner.music.get(&music_id).cloned();
-        let mut group = CachedGroup::new(GroupMeta {
+        let mut group = CachedGroup::new(LevelSet {
             id: 0,
             music: music_id,
+            levels: Vec::new(),
         });
         group.music = music;
 
@@ -353,28 +283,7 @@ impl LevelCache {
             }
         }
 
-        inner.groups.insert(group);
-    }
-
-    pub fn new_level(&self, group: Index, meta: LevelInfo) {
-        if meta.id != 0 {
-            log::error!("Trying to create a new level with non-zero id");
-            return;
-        }
-
-        let mut inner = self.inner.borrow_mut();
-        if let Some(group) = inner.groups.get_mut(group) {
-            let mut level = CachedLevel::new(meta);
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                // Write to fs
-                level.path = fs::generate_level_path(&group.path, 0);
-                if let Err(err) = fs::save_level(&level) {
-                    log::error!("Failed to save level locally: {:?}", err);
-                }
-            }
-            group.levels.push(Rc::new(level));
-        }
+        inner.groups.insert(Rc::new(group));
     }
 
     pub fn fetch_groups(&self) {
@@ -396,7 +305,7 @@ impl LevelCache {
         if inner
             .groups
             .iter()
-            .any(|(_, group)| group.meta.id == group_id)
+            .any(|(_, group)| group.data.id == group_id)
         {
             // Already downloaded
             // TODO: check version
@@ -410,15 +319,18 @@ impl LevelCache {
                 let music_list = inner.music.clone();
 
                 let future = async move {
-                    let info = client.get_group_info(group_id).await?;
+                    // Download group
+                    let bytes = client.download_group(group_id).await?.to_vec();
+                    let hash = ctl_client::core::util::calculate_hash(&bytes);
+                    let data: LevelSet = bincode::deserialize(&bytes)?;
 
-                    // Music
-                    let music = match music_list.get(&info.music.id) {
+                    // Download music
+                    let music = match music_list.get(&data.music) {
                         Some(music) => Rc::clone(music),
                         None => {
                             // Music is not local so we need to download it
-                            let meta = client.get_music_info(info.music.id).await?;
-                            let bytes = client.download_music(info.music.id).await?.to_vec();
+                            let meta = client.get_music_info(data.music).await?;
+                            let bytes = client.download_music(data.music).await?.to_vec();
 
                             log::debug!("Decoding downloaded music bytes");
                             let music = Rc::new(geng.audio().decode(bytes.clone()).await?);
@@ -426,7 +338,7 @@ impl LevelCache {
                             #[cfg(not(target_arch = "wasm32"))]
                             {
                                 // Write to fs
-                                if let Err(err) = fs::download_music(info.music.id, bytes, &meta) {
+                                if let Err(err) = fs::download_music(data.music, bytes, &meta) {
                                     log::error!("Failed to save music locally: {:?}", err);
                                 } else {
                                     log::info!("Music saved successfully");
@@ -437,33 +349,11 @@ impl LevelCache {
                         }
                     };
 
-                    // Levels
-                    let group_path = fs::generate_group_path(info.id);
-                    let meta = GroupMeta {
-                        id: info.id,
-                        music: info.music.id,
-                    };
-                    let mut levels = Vec::new();
-
-                    for info in info.levels {
-                        let bytes = client.download_level(info.id).await?.to_vec();
-
-                        let hash = ctl_client::core::util::calculate_hash(&bytes);
-
-                        let level: Level = bincode::deserialize(&bytes)?;
-                        levels.push(Rc::new(CachedLevel {
-                            path: fs::generate_level_path(&group_path, info.id),
-                            meta: info,
-                            data: level,
-                            hash,
-                        }));
-                    }
-
                     let group = CachedGroup {
-                        path: group_path,
-                        meta,
+                        path: fs::generate_group_path(data.id),
                         music: Some(music),
-                        levels,
+                        data,
+                        hash,
                     };
 
                     #[cfg(not(target_arch = "wasm32"))]
@@ -539,76 +429,82 @@ impl LevelCache {
                     if let Some(music) = &group.music {
                         inner.music.insert(music.meta.id, Rc::clone(music));
                     }
-                    inner.groups.insert(group);
+                    inner.groups.insert(Rc::new(group));
                 }
             }
         }
     }
 
-    pub fn synchronize(
-        &self,
-        group_index: Index,
-        level_index: usize,
-        group_id: Id,
-        level_id: Id,
-    ) -> Option<Rc<CachedLevel>> {
-        let mut inner = self.inner.borrow_mut();
-        if let Some(group) = inner.groups.get_mut(group_index) {
-            group.meta.id = group_id;
-            if let Some(level) = group.levels.get_mut(level_index) {
-                let mut new_level: CachedLevel = (**level).clone();
+    pub fn synchronize(&self, group_index: Index, info: GroupInfo) -> Option<Rc<CachedGroup>> {
+        let inner = self.inner.borrow();
+        let group = inner.groups.get(group_index)?;
+        let mut new_group = group.data.clone();
 
-                #[cfg(not(target_arch = "wasm32"))]
-                let old_path = new_level.path.clone();
-
-                new_level.meta.id = level_id;
-                new_level.path = fs::generate_level_path(&group.path, level_id);
-
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    // Write to fs
-                    if let Err(err) = fs::save_level(&new_level) {
-                        log::error!("Failed to save the level: {:?}", err);
-                    } else {
-                        // Remove the level from the old path
-                        log::debug!("Deleting the old level folder: {:?}", old_path);
-                        let _ = std::fs::remove_dir_all(old_path);
-                    }
-                }
-
-                *level = Rc::new(new_level);
-                return Some(Rc::clone(level));
-            }
+        if new_group.levels.len() != info.levels.len() {
+            log::error!("tried synchorinizing but groups have incompatible level counts");
+            return None;
         }
-        None
+        for (level, info) in new_group.levels.iter_mut().zip(&info.levels) {
+            let mut lvl = (**level).clone();
+            lvl.meta.id = info.id;
+            *level = Rc::new(lvl);
+        }
+        new_group.id = info.id;
+
+        drop(inner);
+
+        self.update_group(group_index, new_group)
     }
 
-    pub fn update_level(&self, level_id: Id, level: Level) -> Option<Rc<CachedLevel>> {
+    pub fn update_group(&self, group_index: Index, group: LevelSet) -> Option<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
-        let cached = inner.groups.iter_mut().find_map(|(_, group)| {
-            group
-                .levels
-                .iter_mut()
-                .find(|level| level.meta.id == level_id)
-        })?;
-        let mut new_level: CachedLevel = (**cached).clone();
-        new_level.hash = level.calculate_hash();
-        new_level.data = level;
+        let cached = inner.groups.get_mut(group_index)?;
 
-        let level = Rc::new(new_level);
-        *cached = Rc::clone(&level);
+        let mut new_group: CachedGroup = (**cached).clone();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let old_path = new_group.path.clone();
+
+        new_group.hash = group.calculate_hash();
+        new_group.data = group;
+        new_group.path = fs::generate_group_path(new_group.data.id);
+
+        let group = Rc::new(new_group);
+        *cached = Rc::clone(&group);
 
         #[cfg(not(target_arch = "wasm32"))]
         {
             // Write to fs
-            if let Err(err) = fs::save_level(&level) {
-                log::error!("Failed to save the level: {:?}", err);
-            } else {
-                log::debug!("Successfully saved the level at: {:?}", level.path);
+            if let Err(err) = fs::save_group(&group) {
+                log::error!("Failed to save the group: {:?}", err);
+            } else if old_path != group.path {
+                // Remove the level from the old path
+                log::debug!("Deleting the old group folder: {:?}", old_path);
+                let _ = std::fs::remove_dir_all(old_path);
             }
         }
 
-        Some(level)
+        Some(group)
+    }
+
+    pub fn update_level(
+        &self,
+        group_index: Index,
+        level_index: usize,
+        level: Level,
+    ) -> Option<(Rc<CachedGroup>, Rc<LevelFull>)> {
+        let inner = self.inner.borrow();
+        let mut new_group = inner.groups.get(group_index)?.data.clone();
+        let new_level = new_group.levels.get_mut(level_index)?;
+        *new_level = Rc::new(LevelFull {
+            meta: new_level.meta.clone(),
+            data: level,
+        });
+
+        drop(inner);
+        let group = self.update_group(group_index, new_group)?;
+        let level = group.data.levels.get(level_index)?.clone();
+        Some((group, level))
     }
 
     pub fn delete_group(&self, group: Index) {
@@ -624,18 +520,15 @@ impl LevelCache {
         }
     }
 
-    pub fn delete_level(&self, group: Index, level: usize) {
-        let mut inner = self.inner.borrow_mut();
-        if let Some(group) = inner.groups.get_mut(group) {
-            if level < group.levels.len() {
-                let level = group.levels.remove(level);
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    log::debug!("Deleting the level folder: {:?}", level.path);
-                    if let Err(err) = std::fs::remove_dir_all(&level.path) {
-                        log::error!("Failed to delete level: {:?}", err);
-                    }
-                }
+    pub fn delete_level(&self, group_index: Index, level: usize) {
+        let inner = self.inner.borrow();
+        if let Some(group) = inner.groups.get(group_index) {
+            let mut new_group = group.data.clone();
+            if level < new_group.levels.len() {
+                let _level = new_group.levels.remove(level);
+
+                drop(inner);
+                self.update_group(group_index, new_group);
             }
         }
     }

@@ -5,6 +5,26 @@ pub type Time = R32;
 pub type Coord = R32;
 pub type Name = Arc<str>;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LevelSet {
+    pub id: Id,
+    pub music: Id,
+    pub levels: Vec<Rc<LevelFull>>,
+}
+
+impl LevelSet {
+    pub fn calculate_hash(&self) -> String {
+        let bytes = bincode::serialize(self).expect("group should be serializable");
+        crate::util::calculate_hash(&bytes)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LevelFull {
+    pub meta: LevelInfo,
+    pub data: crate::Level,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GroupInfo {
     /// Id `0` for local groups.
@@ -12,6 +32,7 @@ pub struct GroupInfo {
     pub id: Id,
     pub music: MusicInfo,
     pub levels: Vec<LevelInfo>,
+    pub hash: String,
 }
 
 #[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -16,7 +16,7 @@ mod task;
 mod ui;
 mod util;
 
-use leaderboard::Leaderboard;
+// use leaderboard::Leaderboard;
 use prelude::Options;
 
 use geng::prelude::*;
@@ -37,9 +37,10 @@ struct Opts {
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
-    /// Play a specific level.
-    #[clap(long)]
-    level: Option<std::path::PathBuf>,
+    // TODO: reimplement
+    // /// Play a specific level.
+    // #[clap(long)]
+    // level: Option<std::path::PathBuf>,
     /// Move through the level without player input.
     #[clap(long)]
     clean_auto: bool,
@@ -92,7 +93,7 @@ async fn async_main() {
 
 async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     let manager = geng.asset_manager();
-    let assets_path = run_dir().join("assets");
+    // let assets_path = run_dir().join("assets");
 
     let assets = assets::Assets::load(manager).await?;
     let assets = Rc::new(assets);
@@ -129,53 +130,55 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(level_path) = opts.level {
-        let mut config = model::LevelConfig::default();
-        let (music, level) = context
-            .local
-            .load_level(&level_path)
-            .await
-            .context("failed to load the level")?;
+    // if let Some(level_path) = opts.level {
+    //     let mut config = model::LevelConfig::default();
+    //     let (music, level) = context
+    //         .local
+    //         .load_level(&level_path)
+    //         .await
+    //         .context("failed to load the level")?;
 
-        if opts.edit {
-            // Editor
-            let editor_config: editor::EditorConfig =
-                geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-                    .await
-                    .context("failed to load editor config")?;
+    //     if opts.edit {
+    //         // Editor
+    //         let editor_config: editor::EditorConfig =
+    //             geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+    //                 .await
+    //                 .context("failed to load editor config")?;
 
-            let level = game::PlayLevel {
-                music,
-                level,
-                config,
-                start_time: prelude::Time::ZERO,
-            };
+    //         let level = game::PlayLevel {
+    //             music,
+    //             level,
+    //             config,
+    //             start_time: prelude::Time::ZERO,
+    //         };
 
-            let state = editor::EditorState::new(context, editor_config, options, level);
-            geng.run_state(state).await;
-            return Ok(());
-        }
+    //         let state = editor::EditorState::new(context, editor_config, options, level);
+    //         geng.run_state(state).await;
+    //         return Ok(());
+    //     }
 
-        // Game
-        config.modifiers.clean_auto = opts.clean_auto;
-        let level = game::PlayLevel {
-            music,
-            level,
-            config,
-            start_time: prelude::Time::ZERO,
-        };
-        let state = game::Game::new(context, options, level, Leaderboard::new(&geng, None));
+    //     // Game
+    //     config.modifiers.clean_auto = opts.clean_auto;
+    //     let level = game::PlayLevel {
+    //         music,
+    //         level,
+    //         config,
+    //         start_time: prelude::Time::ZERO,
+    //     };
+    //     let state = game::Game::new(context, options, level, Leaderboard::new(&geng, None));
+    //     geng.run_state(state).await;
+    // } else {
+
+    // Main menu
+    if opts.skip_intro {
+        let state = menu::LevelMenu::new(context, client.as_ref(), options);
         geng.run_state(state).await;
     } else {
-        // Main menu
-        if opts.skip_intro {
-            let state = menu::LevelMenu::new(context, client.as_ref(), options);
-            geng.run_state(state).await;
-        } else {
-            let state = menu::SplashScreen::new(context, client.as_ref(), options);
-            geng.run_state(state).await;
-        }
+        let state = menu::SplashScreen::new(context, client.as_ref(), options);
+        geng.run_state(state).await;
     }
+
+    // }
 
     Ok(())
 }

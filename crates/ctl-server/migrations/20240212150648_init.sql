@@ -51,6 +51,7 @@ CREATE TABLE groups
     group_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     music_id INTEGER NOT NULL,
     owner_id INTEGER NOT NULL,
+    hash BLOB NOT NULL,
     FOREIGN KEY(music_id) REFERENCES musics(music_id),
     FOREIGN KEY(owner_id) REFERENCES users(user_id)
 );

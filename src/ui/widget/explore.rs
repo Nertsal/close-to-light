@@ -437,7 +437,7 @@ impl StatefulWidget for LevelItemWidget {
             .borrow()
             .groups
             .iter()
-            .any(|(_, group)| group.meta.id == self.info.id)
+            .any(|(_, group)| group.data.id == self.info.id)
         {
             // Not downloaded
             self.download.show();

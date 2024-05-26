@@ -64,6 +64,7 @@ pub struct GroupRow {
     pub group_id: Id,
     pub music_id: Id,
     pub owner_id: Id,
+    pub hash: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

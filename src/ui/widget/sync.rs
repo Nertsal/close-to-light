@@ -1,17 +1,14 @@
 use super::*;
 
 use crate::{
-    local::{CachedGroup, CachedLevel, LevelCache},
+    local::{CachedGroup, LevelCache},
     prelude::Assets,
     task::Task,
     ui::layout::AreaOps,
 };
 
 use ctl_client::{
-    core::{
-        model::Level,
-        types::{Id, LevelInfo, NewLevel},
-    },
+    core::types::{GroupInfo, Id, LevelSet, NewLevel},
     ClientError,
 };
 use generational_arena::Index;
@@ -20,11 +17,9 @@ type TaskRes<T> = Option<Task<ctl_client::Result<T>>>;
 
 pub struct SyncWidget {
     geng: Geng,
-    cached_group: Id,
+    cached_group: Rc<CachedGroup>,
     cached_group_index: Index,
     cached_music: Option<Id>,
-    cached_level: Rc<CachedLevel>,
-    cached_level_index: usize,
     reload: bool,
 
     pub state: WidgetState,
@@ -40,28 +35,24 @@ pub struct SyncWidget {
     pub discard: TextWidget,
     pub response: TextWidget,
 
-    task_level_info: TaskRes<LevelInfo>,
+    task_group_info: TaskRes<GroupInfo>,
     /// Returns group and level index and the new group and level id.
-    task_level_upload: TaskRes<(Index, usize, Id, Id)>,
-    task_level_download: TaskRes<Level>,
+    task_group_upload: TaskRes<(Index, GroupInfo)>,
+    task_group_download: TaskRes<LevelSet>,
 }
 
 impl SyncWidget {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        group: &CachedGroup,
+        group: Rc<CachedGroup>,
         group_index: Index,
-        level: &Rc<CachedLevel>,
-        level_index: usize,
     ) -> Self {
         Self {
             geng: geng.clone(),
-            cached_group: group.meta.id,
             cached_group_index: group_index,
             cached_music: group.music.as_ref().map(|music| music.meta.id),
-            cached_level: level.clone(),
-            cached_level_index: level_index,
+            cached_group: group,
             reload: true,
 
             state: WidgetState::new(),
@@ -76,9 +67,9 @@ impl SyncWidget {
             discard: TextWidget::new("Discard changes"),
             response: TextWidget::new(""),
 
-            task_level_info: None,
-            task_level_upload: None,
-            task_level_download: None,
+            task_group_info: None,
+            task_group_upload: None,
+            task_group_download: None,
         }
     }
 }
@@ -91,24 +82,24 @@ impl StatefulWidget for SyncWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
-        if std::mem::take(&mut self.reload) && self.task_level_info.is_none() {
+        if std::mem::take(&mut self.reload) && self.task_group_info.is_none() {
             if let Some(client) = state.client() {
-                let level_id = self.cached_level.meta.id;
-                if level_id == 0 {
+                let group_id = self.cached_group.data.id;
+                if group_id == 0 {
                     self.status.text = "Level is local".into();
                     self.response.hide();
                     self.upload.show();
                     self.discard.show();
                 } else {
-                    let future = async move { client.get_level_info(level_id).await };
-                    self.task_level_info = Some(Task::new(&self.geng, future));
+                    let future = async move { client.get_group_info(group_id).await };
+                    self.task_group_info = Some(Task::new(&self.geng, future));
                 }
             }
         }
 
-        if let Some(task) = self.task_level_info.take() {
+        if let Some(task) = self.task_group_info.take() {
             match task.poll() {
-                Err(task) => self.task_level_info = Some(task),
+                Err(task) => self.task_group_info = Some(task),
                 Ok(Err(err)) => {
                     if let ClientError::NotFound = err {
                         // Level is unknown to the server - probably created by the user
@@ -124,8 +115,8 @@ impl StatefulWidget for SyncWidget {
                         self.discard.hide();
                     }
                 }
-                Ok(Ok(level)) => {
-                    if level.hash != self.cached_level.hash {
+                Ok(Ok(group)) => {
+                    if group.hash != self.cached_group.hash {
                         // Local level version is probably outdated (or invalid)
                         self.status.text = "Outdated or changed".into();
                         self.response.hide();
@@ -146,41 +137,40 @@ impl StatefulWidget for SyncWidget {
                 }
             }
         }
-        if let Some(task) = self.task_level_upload.take() {
+        if let Some(task) = self.task_group_upload.take() {
             match task.poll() {
-                Err(task) => self.task_level_upload = Some(task),
+                Err(task) => self.task_group_upload = Some(task),
                 Ok(Err(err)) => {
                     // TODO
-                    log::error!("Failed to upload the level: {:?}", err);
+                    log::error!("Failed to upload the group: {:?}", err);
                     self.status.text = "".into();
                     self.response.show();
                     self.response.text = format!("{}", err).into();
                 }
-                Ok(Ok((group_index, level_index, group, level))) => {
-                    if let Some(level) = state.synchronize(group_index, level_index, group, level) {
+                Ok(Ok((group_index, group))) => {
+                    if let Some(group) = state.synchronize(group_index, group) {
                         self.cached_group = group;
-                        self.cached_level = level;
                         self.reload = true;
                     }
                 }
             }
         }
-        if let Some(task) = self.task_level_download.take() {
+        if let Some(task) = self.task_group_download.take() {
             match task.poll() {
-                Err(task) => self.task_level_download = Some(task),
+                Err(task) => self.task_group_download = Some(task),
                 Ok(Err(err)) => {
                     if let ClientError::NotFound = err {
-                        log::error!("Requested level not found");
+                        log::error!("Requested group not found");
                         // TODO: delete local
                     } else {
-                        log::error!("Failed to download the level: {:?}", err);
+                        log::error!("Failed to download the group: {:?}", err);
                         self.response.show();
                         self.response.text = format!("{}", err).into();
                     }
                 }
-                Ok(Ok(level)) => {
-                    if let Some(level) = state.update_level(self.cached_level.meta.id, level) {
-                        self.cached_level = level;
+                Ok(Ok(group)) => {
+                    if let Some(group) = state.update_group(self.cached_group_index, group) {
+                        self.cached_group = group;
                         self.reload = true;
                     }
                 }
@@ -228,32 +218,36 @@ impl StatefulWidget for SyncWidget {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
                 if let Some(client) = state.client() {
-                    let mut group = self.cached_group;
+                    let mut group = (*self.cached_group).clone();
                     let group_index = self.cached_group_index;
-                    let level_index = self.cached_level_index;
-                    let level_id = self.cached_level.meta.id;
-                    let level = Rc::clone(&self.cached_level);
                     let future = async move {
-                        if group == 0 {
+                        if group.data.id == 0 {
                             // Create group
-                            group = client.create_group(music).await?;
+                            group.data.id = client.create_group(music).await?;
                         }
                         // TODO: it could happen that a level has a local non-zero id
                         // but is not present on the server.
                         // In that case, upload will fail with "Not found"
-                        let level_id = client
-                            .upload_level(
-                                NewLevel {
-                                    level_id: (level_id != 0).then_some(level_id),
-                                    name: level.meta.name.to_string(),
-                                    group,
-                                },
-                                &level.data,
-                            )
-                            .await?;
-                        Ok((group_index, level_index, group, level_id))
+
+                        for level in &group.data.levels {
+                            let level_id = level.meta.id;
+                            client
+                                .upload_level(
+                                    NewLevel {
+                                        level_id: (level_id != 0).then_some(level_id),
+                                        name: level.meta.name.to_string(),
+                                        group: group.data.id,
+                                    },
+                                    &level.data,
+                                )
+                                .await?;
+                        }
+
+                        let group = client.get_group_info(group.data.id).await?;
+
+                        Ok((group_index, group))
                     };
-                    self.task_level_upload = Some(Task::new(&self.geng, future));
+                    self.task_group_upload = Some(Task::new(&self.geng, future));
                 }
             } else {
                 // TODO: notify the user that no music is selected for the level
@@ -265,18 +259,18 @@ impl StatefulWidget for SyncWidget {
             .align_aabb(button_size, vec2::splat(0.5));
         self.discard.update(discard, context);
         if self.discard.state.clicked {
-            if self.cached_level.meta.id == 0 {
+            if self.cached_group.data.id == 0 {
                 // Delete
-                state.delete_level(self.cached_group_index, self.cached_level_index);
+                state.delete_group(self.cached_group_index);
                 self.window.request = Some(WidgetRequest::Close);
             } else if let Some(client) = state.client() {
-                let level_id = self.cached_level.meta.id;
+                let group_id = self.cached_group.data.id;
                 let future = async move {
-                    let bytes = client.download_level(level_id).await?;
-                    let level: Level = bincode::deserialize(&bytes)?;
-                    Ok(level)
+                    let bytes = client.download_group(group_id).await?;
+                    let group: LevelSet = bincode::deserialize(&bytes)?;
+                    Ok(group)
                 };
-                self.task_level_download = Some(Task::new(&self.geng, future));
+                self.task_group_download = Some(Task::new(&self.geng, future));
             }
         }
 

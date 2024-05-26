@@ -14,27 +14,11 @@ pub struct CachedMusic {
     pub music: Rc<geng::Sound>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CachedGroup {
     pub path: PathBuf,
-    pub meta: GroupMeta,
     pub music: Option<Rc<CachedMusic>>,
-    pub levels: Vec<Rc<CachedLevel>>,
-}
-
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct GroupMeta {
-    pub id: Id,
-    pub music: Id,
-}
-
-#[derive(Debug, Clone)]
-pub struct CachedLevel {
-    /// Path to the folder containing the level data files.
-    pub path: PathBuf,
-    pub meta: LevelInfo, // TODO: maybe Rc to reduce String allocations
-    pub data: Level,     // TODO: Rc
-    /// Hash code of the level.
+    pub data: LevelSet,
     pub hash: String,
 }
 
@@ -51,6 +35,7 @@ impl CachedGroup {
     /// Return the list of map authors in a readable string format.
     pub fn mappers(&self) -> String {
         let mut authors: Vec<&str> = self
+            .data
             .levels
             .iter()
             .flat_map(|level| level.meta.authors.iter().map(|user| user.name.as_ref()))
