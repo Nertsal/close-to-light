@@ -14,6 +14,9 @@ use ctl_client::{
 
 #[derive(clap::Subcommand)]
 pub enum Command {
+    MigrateGroup {
+        path: PathBuf,
+    },
     /// Just display some dithered text on screen.
     Text {
         text: String,
@@ -111,6 +114,47 @@ impl Command {
         };
 
         match self {
+            // TODO remove
+            Command::MigrateGroup { path } => {
+                use ctl_client::core::types::*;
+
+                #[derive(Deserialize)]
+                struct GroupMeta {
+                    id: Id,
+                    music: Id,
+                }
+
+                let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
+                let mut levels = Vec::new();
+                for entry in path.read_dir()? {
+                    let entry = entry?;
+                    if !entry.path().is_dir() {
+                        continue;
+                    }
+
+                    let path = entry.path();
+                    let meta: LevelInfo = file::load_detect(path.join("meta.toml")).await?;
+                    let data: ctl_client::core::model::Level =
+                        file::load_detect(path.join("level.json")).await?;
+                    levels.push(Rc::new(LevelFull { meta, data }));
+                }
+                let group = LevelSet {
+                    id: meta.id,
+                    music: meta.music,
+                    levels,
+                };
+
+                let data = bincode::serialize(&group)?;
+                let path = path.with_file_name(format!(
+                    "{}.ctl",
+                    path.file_name().unwrap().to_str().unwrap()
+                ));
+                if path.exists() {
+                    log::error!("duplicate entry at {:?}", path);
+                } else {
+                    std::fs::write(path, data)?;
+                }
+            }
             Command::Text { text } => {
                 let state = media::MediaState::new(&geng, &assets).with_text(text);
                 geng.run_state(state).await;

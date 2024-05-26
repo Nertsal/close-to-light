@@ -180,8 +180,8 @@ impl LevelCache {
                 .flat_map(|entry| {
                     let entry = entry?;
                     let path = entry.path();
-                    if !path.is_dir() {
-                        log::error!("Unexpected file in levels dir: {:?}", path);
+                    if path.is_dir() {
+                        log::error!("Unexpected directory inside levels: {:?}", path);
                         return Ok(None);
                     }
                     anyhow::Ok(Some(path))
@@ -239,28 +239,36 @@ impl LevelCache {
         &self,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(Option<Rc<CachedMusic>>, CachedGroup)> {
-        let group_path = path.as_ref().to_path_buf();
-        log::debug!("loading group at {:?}", group_path);
+        let result = async {
+            let group_path = path.as_ref().to_path_buf();
+            log::debug!("loading group at {:?}", group_path);
 
-        let bytes = file::load_bytes(&group_path).await?;
-        let group: LevelSet = bincode::deserialize(&bytes)?;
+            let bytes = file::load_bytes(&group_path).await?;
+            let group: LevelSet = bincode::deserialize(&bytes)?;
 
-        let music = match self.get_music(group.music) {
-            Some(music) => Some(music),
-            None => {
-                let music_path = fs::music_path(group.music);
-                self.load_music(&music_path).await.ok()
-            }
-        };
+            let music = match self.get_music(group.music) {
+                Some(music) => Some(music),
+                None => {
+                    let music_path = fs::music_path(group.music);
+                    self.load_music(&music_path).await.ok()
+                }
+            };
 
-        let group = CachedGroup {
-            path: group_path,
-            music: music.clone(),
-            hash: group.calculate_hash(),
-            data: group,
-        };
+            let group = CachedGroup {
+                path: group_path,
+                music: music.clone(),
+                hash: group.calculate_hash(),
+                data: group,
+            };
 
-        Ok((music, group))
+            Ok((music, group))
+        }
+        .await;
+
+        if let Err(err) = &result {
+            log::error!("failed to load group: {:?}", err);
+        }
+        result
     }
 
     pub fn new_group(&self, music_id: Id) {
@@ -479,8 +487,8 @@ impl LevelCache {
                 log::error!("Failed to save the group: {:?}", err);
             } else if old_path != group.path {
                 // Remove the level from the old path
-                log::debug!("Deleting the old group folder: {:?}", old_path);
-                let _ = std::fs::remove_dir_all(old_path);
+                log::debug!("Deleting the old group: {:?}", old_path);
+                let _ = std::fs::remove_file(old_path);
             }
         }
 
@@ -512,8 +520,8 @@ impl LevelCache {
         if let Some(group) = inner.groups.remove(group) {
             #[cfg(not(target_arch = "wasm32"))]
             {
-                log::debug!("Deleting the group folder: {:?}", group.path);
-                if let Err(err) = std::fs::remove_dir_all(&group.path) {
+                log::debug!("Deleting the group: {:?}", group.path);
+                if let Err(err) = std::fs::remove_file(&group.path) {
                     log::error!("Failed to delete group: {:?}", err);
                 }
             }

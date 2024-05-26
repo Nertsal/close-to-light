@@ -16,7 +16,9 @@ mod native {
 
     pub fn save_group(group: &CachedGroup) -> Result<()> {
         let path = &group.path;
-        std::fs::create_dir_all(path)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
 
         let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
         bincode::serialize_into(writer, &group.data)?;
@@ -53,7 +55,7 @@ pub fn generate_group_path(group: Id) -> PathBuf {
         // Generate a random string until it is available
         let mut rng = rand::thread_rng();
         loop {
-            let name: String = (0..3).map(|_| rng.gen_range('a'..='z')).collect();
+            let name: String = (0..5).map(|_| rng.gen_range('a'..='z')).collect();
             let path = base_path.join(name);
             if !path.exists() {
                 return path;
@@ -61,23 +63,6 @@ pub fn generate_group_path(group: Id) -> PathBuf {
         }
     } else {
         base_path.join(format!("{}", group))
-    }
-}
-
-pub fn generate_level_path(group_path: impl AsRef<Path>, level: Id) -> PathBuf {
-    let group_path = group_path.as_ref();
-    if level == 0 {
-        // Generate a random string until it is available
-        let mut rng = rand::thread_rng();
-        loop {
-            let name: String = (0..3).map(|_| rng.gen_range('a'..='z')).collect();
-            let path = group_path.join(name);
-            if !path.exists() {
-                return path;
-            }
-        }
-    } else {
-        group_path.join(format!("{}", level))
     }
 }
 

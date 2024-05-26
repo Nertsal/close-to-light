@@ -176,7 +176,7 @@ async fn group_create(
         return Err(RequestError::LevelAlreadyExists); // TODO: not really an error if this an empty update
     }
 
-    let group_id = if parsed_group.id == 0 {
+    let group_id = if parsed_group.id != 0 {
         let id = parsed_group.id;
         update_group(&app, user, parsed_group).await?;
         id
@@ -206,7 +206,7 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
         if level.meta.id == 0 {
             // Create
             level.meta.id = sqlx::query(
-                "INSERT INTO levels (hash, group_id, name) VALUES (?) RETURNING level_id",
+                "INSERT INTO levels (hash, group_id, name) VALUES (?, ?, ?) RETURNING level_id",
             )
             .bind(&level_hash)
             .bind(group_id)
@@ -289,21 +289,22 @@ async fn new_group(
 
         // Check if such a level already exists
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(&level_hash)
+            .bind(level_hash)
             .fetch_optional(&app.database)
             .await?;
         if conflict.is_some() {
             return Err(RequestError::LevelAlreadyExists);
         }
 
-        level.meta.id =
-            sqlx::query("INSERT INTO levels (hash, group_id, name) VALUES (?) RETURNING level_id")
-                .bind(&level_hash)
-                .bind(group_id)
-                .bind(level.meta.name.as_ref())
-                .try_map(|row: DBRow| row.try_get("level_id"))
-                .fetch_one(&app.database)
-                .await?;
+        level.meta.id = sqlx::query(
+            "INSERT INTO levels (hash, group_id, name) VALUES (?, ?, ?) RETURNING level_id",
+        )
+        .bind(level_hash)
+        .bind(group_id)
+        .bind(level.meta.name.as_ref())
+        .try_map(|row: DBRow| row.try_get("level_id"))
+        .fetch_one(&app.database)
+        .await?;
     }
 
     // Check path
