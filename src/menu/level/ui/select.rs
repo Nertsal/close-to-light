@@ -177,12 +177,11 @@ impl LevelSelectUI {
             .collect();
 
         // Synchronize vec length
-        if self.grid_music.len() > music.len() {
-            self.grid_music.drain(music.len()..);
-        } else if let Some(cached) = music.first() {
-            for _ in 0..music.len().saturating_sub(self.grid_music.len()) {
-                self.grid_music
-                    .push(ItemMusicWidget::new("", cached.clone()));
+        if self.grid_music.len() != music.len() {
+            if let Some(cached) = music.first() {
+                self.grid_music = vec![ItemMusicWidget::new("", cached.clone()); music.len()];
+            } else {
+                self.grid_music.clear();
             }
         }
 
@@ -256,16 +255,12 @@ impl LevelSelectUI {
             .collect();
 
         // Synchronize vec length
-        if self.grid_groups.len() > groups.len() {
-            self.grid_groups.drain(groups.len()..);
-        } else {
-            for _ in 0..groups.len().saturating_sub(self.grid_groups.len()) {
-                self.grid_groups.push(ItemGroupWidget::new(
-                    &self.assets,
-                    "",
-                    Index::from_raw_parts(0, 0),
-                ));
-            }
+        if self.grid_groups.len() != groups.len() {
+            self.grid_groups =
+                vec![
+                    ItemGroupWidget::new(&self.assets, "", Index::from_raw_parts(0, 0),);
+                    groups.len()
+                ];
         }
 
         // Synchronize data
@@ -348,17 +343,20 @@ impl LevelSelectUI {
             .collect();
 
         // Synchronize vec length
-        if self.grid_levels.len() > levels.len() {
-            self.grid_levels.drain(levels.len()..);
-        } else if let Some(cached) = levels.first() {
-            for _ in 0..levels.len().saturating_sub(self.grid_levels.len()) {
-                self.grid_levels.push(ItemLevelWidget::new(
-                    &self.assets,
-                    "",
-                    Index::from_raw_parts(0, 0),
-                    0,
-                    cached.clone(),
-                ));
+        if self.grid_levels.len() != levels.len() {
+            if let Some(cached) = levels.first() {
+                self.grid_levels = vec![
+                    ItemLevelWidget::new(
+                        &self.assets,
+                        "",
+                        Index::from_raw_parts(0, 0),
+                        0,
+                        cached.clone(),
+                    );
+                    levels.len()
+                ];
+            } else {
+                self.grid_levels.clear();
             }
         }
 
@@ -467,6 +465,7 @@ impl Widget for AddItemWidget {
     }
 }
 
+#[derive(Clone)]
 pub struct ItemMusicWidget {
     pub state: WidgetState,
     pub text: TextWidget,
@@ -488,6 +487,7 @@ impl ItemMusicWidget {
     }
 }
 
+#[derive(Clone)]
 pub struct ItemGroupWidget {
     pub state: WidgetState,
     pub menu: ItemMenuWidget,
@@ -540,6 +540,7 @@ impl ItemGroupWidget {
     }
 }
 
+#[derive(Clone)]
 pub struct ItemLevelWidget {
     pub state: WidgetState,
     pub text: TextWidget,
@@ -648,6 +649,7 @@ impl Widget for NewMenuWidget {
     }
 }
 
+#[derive(Clone)]
 pub struct ItemMenuWidget {
     pub window: UiWindow<()>,
     pub state: WidgetState,
