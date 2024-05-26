@@ -105,11 +105,10 @@ impl MenuState {
         self.edit_level = Some((group, level));
     }
 
-    fn new_group(&mut self) {
+    fn new_group(&mut self, music: Id) {
         self.switch_group = None; // Deselect group
         let local = &self.context.local;
-        // TODO: maybe ui to configure early
-        local.new_group(0);
+        local.new_group(music);
     }
 
     fn new_level(&mut self, group: Index) {
