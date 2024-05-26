@@ -5,14 +5,10 @@ mod native;
 
 pub use self::error::*;
 
-use core::{
-    model::Level,
-    types::{GroupInfo, LevelInfo, NewArtist, NewLevel},
-};
-
 pub use ctl_core as core;
 use ctl_core::{
     prelude::{log, serde_json, DeserializeOwned, Id, MusicInfo, MusicUpdate},
+    types::{GroupInfo, LevelInfo, LevelSet, NewArtist, NewGroup},
     ScoreEntry, SubmitScore,
 };
 
@@ -79,9 +75,9 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn upload_level(&self, query: NewLevel, level: &Level) -> Result<Id> {
-        let url = self.url.join("level/create").unwrap();
-        let body = bincode::serialize(level)?;
+    pub async fn upload_group(&self, query: NewGroup, group: &LevelSet) -> Result<GroupInfo> {
+        let url = self.url.join("group/create").unwrap();
+        let body = bincode::serialize(group)?;
         let req = self.client.post(url).query(&query).body(body);
 
         let response = req.send().await?;

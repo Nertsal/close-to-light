@@ -8,7 +8,7 @@ use crate::{
 };
 
 use ctl_client::{
-    core::types::{GroupInfo, Id, LevelSet, NewLevel},
+    core::types::{GroupInfo, Id, LevelSet, NewGroup},
     ClientError,
 };
 use generational_arena::Index;
@@ -229,21 +229,14 @@ impl StatefulWidget for SyncWidget {
                         // but is not present on the server.
                         // In that case, upload will fail with "Not found"
 
-                        for level in &group.data.levels {
-                            let level_id = level.meta.id;
-                            client
-                                .upload_level(
-                                    NewLevel {
-                                        level_id: (level_id != 0).then_some(level_id),
-                                        name: level.meta.name.to_string(),
-                                        group: group.data.id,
-                                    },
-                                    &level.data,
-                                )
-                                .await?;
-                        }
-
-                        let group = client.get_group_info(group.data.id).await?;
+                        let group = client
+                            .upload_group(
+                                NewGroup {
+                                    group_id: (group.data.id != 0).then_some(group.data.id),
+                                },
+                                &group.data,
+                            )
+                            .await?;
 
                         Ok((group_index, group))
                     };

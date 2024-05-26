@@ -160,11 +160,9 @@ pub struct MusicUpdate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NewLevel {
-    /// If set, updates an existing level instead of creating a new one.
-    pub level_id: Option<Id>,
-    pub name: String,
-    pub group: Id,
+pub struct NewGroup {
+    /// If set, updates an existing group instead of creating a new one.
+    pub group_id: Option<Id>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
