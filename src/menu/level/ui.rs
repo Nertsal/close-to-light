@@ -194,13 +194,6 @@ impl MenuUI {
             }
         }
 
-        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
-        let old_options = state.options.clone();
-        self.options.update(options, context, state);
-        if state.options != old_options {
-            preferences::save(OPTIONS_STORAGE, &state.options);
-        }
-
         {
             // Leaderboard
             let main = screen;
@@ -238,7 +231,17 @@ impl MenuUI {
                 hover,
                 context.cursor.position.x < leaderboard.min.x && !hover,
             );
+
+            context.update_focus(self.leaderboard.state.hovered);
         }
+
+        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
+        let old_options = state.options.clone();
+        self.options.update(options, context, state);
+        if state.options != old_options {
+            preferences::save(OPTIONS_STORAGE, &state.options);
+        }
+        context.update_focus(self.options.state.hovered);
 
         right.cut_left(5.0 * layout_size);
         right.cut_right(5.0 * layout_size);

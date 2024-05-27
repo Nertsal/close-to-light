@@ -12,6 +12,7 @@ pub struct LeaderboardWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
     // pub close: IconButtonWidget,
+    pub reload: IconButtonWidget,
     pub show_title: bool,
     pub title: TextWidget,
     pub subtitle: TextWidget,
@@ -33,11 +34,12 @@ pub struct LeaderboardEntryWidget {
 }
 
 impl LeaderboardWidget {
-    pub fn new(_assets: &Rc<Assets>, show_title: bool) -> Self {
+    pub fn new(assets: &Rc<Assets>, show_title: bool) -> Self {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3).reload_skip(),
             // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
+            reload: IconButtonWidget::new_normal(&assets.sprites.reset),
             show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
@@ -124,6 +126,14 @@ impl Widget for LeaderboardWidget {
         //     vec2(0.0, 1.0),
         // );
         // self.close.update(close, context);
+
+        let reload = main
+            .extend_uniform(-0.5 * context.layout_size)
+            .align_aabb(vec2::splat(1.0) * context.font_size, vec2(1.0, 1.0));
+        self.reload.update(reload, context);
+        if self.reload.state.clicked {
+            self.window.request = Some(WidgetRequest::Reload);
+        }
 
         let mut main = main
             .extend_symmetric(-vec2(1.0, 0.0) * context.layout_size)
