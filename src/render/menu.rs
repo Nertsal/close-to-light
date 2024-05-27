@@ -132,6 +132,14 @@ impl MenuRender {
             self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
         } else if ui.tab_groups.selected {
             for group in &ui.grid_groups {
+                self.ui.draw_icon(&group.edited, framebuffer);
+                self.ui.draw_icon(&group.local, framebuffer);
+                self.ui.draw_outline(
+                    group.state.position,
+                    self.font_size * 0.2,
+                    theme.light,
+                    framebuffer,
+                );
                 let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.index);
                 self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
                 self.draw_item_menu(&group.menu, theme, framebuffer);

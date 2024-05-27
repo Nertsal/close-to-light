@@ -1,4 +1,4 @@
-use crate::ui::UiWindow;
+use crate::{local::CachedGroup, ui::UiWindow};
 
 use super::*;
 
@@ -261,9 +261,8 @@ impl LevelSelectUI {
         }
 
         // Synchronize data
-        for (widget, &(groups_id, cache)) in self.grid_groups.iter_mut().zip(&groups) {
-            widget.index = groups_id;
-            widget.text.text = cache.data.owner.name.clone();
+        for (widget, &(group_id, cached)) in self.grid_groups.iter_mut().zip(&groups) {
+            widget.sync(group_id, cached);
         }
 
         drop(local);
@@ -488,6 +487,9 @@ impl ItemMusicWidget {
 #[derive(Clone)]
 pub struct ItemGroupWidget {
     pub state: WidgetState,
+    pub edited: IconWidget,
+    pub local: IconWidget,
+    pub item_state: WidgetState,
     pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
@@ -497,15 +499,38 @@ impl ItemGroupWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
             state: WidgetState::new(),
+            edited: IconWidget::new(&assets.sprites.star),
+            local: IconWidget::new(&assets.sprites.local),
+            item_state: WidgetState::new(),
             menu: ItemMenuWidget::new(assets),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             index,
         }
     }
 
+    pub fn sync(&mut self, group_id: Index, cached: &CachedGroup) {
+        self.index = group_id;
+        self.text.text = cached.data.owner.name.clone();
+        if cached.data.id == 0 {
+            self.local.show();
+            self.edited.hide();
+        } else {
+            self.local.hide();
+            if cached
+                .origin_hash
+                .as_ref()
+                .map_or(false, |hash| *hash != cached.hash)
+            {
+                self.edited.show();
+            } else {
+                self.edited.hide();
+            }
+        }
+    }
+
     fn update(
         &mut self,
-        position: Aabb2<f32>,
+        mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
         if self.state.right_clicked {
@@ -524,6 +549,19 @@ impl ItemGroupWidget {
         }
 
         self.state.update(position, context);
+
+        let widgets = [&mut self.edited, &mut self.local];
+        if widgets.iter().any(|widget| widget.state.visible) {
+            let icons = position
+                .cut_left(position.height() / 2.0)
+                .extend_left(-context.font_size * 0.2)
+                .extend_symmetric(-vec2(0.0, context.font_size * 0.15));
+            let positions = icons.split_rows(widgets.len());
+            for (widget, pos) in widgets.into_iter().zip(positions) {
+                widget.update(pos, context);
+            }
+        }
+
         self.text.update(position, &mut context.scale_font(0.9));
 
         let mut action = None;

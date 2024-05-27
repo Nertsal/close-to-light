@@ -82,6 +82,7 @@ impl CachedGroup {
             path: fs::generate_group_path(data.id),
             music: None,
             hash: data.calculate_hash(),
+            origin_hash: None,
             data,
         }
     }

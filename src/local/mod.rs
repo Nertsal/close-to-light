@@ -20,6 +20,8 @@ pub struct CachedGroup {
     pub music: Option<Rc<CachedMusic>>,
     pub data: LevelSet,
     pub hash: String,
+    /// The hash of the group on the server, if uploaded.
+    pub origin_hash: Option<String>,
 }
 
 impl Debug for CachedMusic {
@@ -41,18 +43,18 @@ impl CachedMusic {
     }
 }
 
-impl CachedGroup {
-    /// Return the list of map authors in a readable string format.
-    pub fn mappers(&self) -> String {
-        let mut authors: Vec<&str> = self
-            .data
-            .levels
-            .iter()
-            .flat_map(|level| level.meta.authors.iter().map(|user| user.name.as_ref()))
-            .collect();
-        authors.sort();
-        authors.dedup();
+// impl CachedGroup {
+//     /// Return the list of map authors in a readable string format.
+//     pub fn mappers(&self) -> String {
+//         let mut authors: Vec<&str> = self
+//             .data
+//             .levels
+//             .iter()
+//             .flat_map(|level| level.meta.authors.iter().map(|user| user.name.as_ref()))
+//             .collect();
+//         authors.sort();
+//         authors.dedup();
 
-        itertools::Itertools::intersperse(authors.into_iter(), ",").collect::<String>()
-    }
-}
+//         itertools::Itertools::intersperse(authors.into_iter(), ",").collect::<String>()
+//     }
+// }

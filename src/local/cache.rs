@@ -244,6 +244,7 @@ impl LevelCache {
             log::debug!("loading group at {:?}", group_path);
 
             let bytes = file::load_bytes(&group_path).await?;
+            let hash = ctl_client::core::util::calculate_hash(&bytes);
             let group: LevelSet = bincode::deserialize(&bytes)?;
 
             let music = match self.get_music(group.music) {
@@ -254,11 +255,26 @@ impl LevelCache {
                 }
             };
 
+            let origin_hash = if group.id == 0 {
+                None
+            } else if let Some(client) = self.client() {
+                match client.get_group_info(group.id).await {
+                    Err(err) => {
+                        log::error!("failed to check group info: {:?}", err);
+                        None
+                    }
+                    Ok(info) => Some(info.hash),
+                }
+            } else {
+                None
+            };
+
             let group = CachedGroup {
                 path: group_path,
                 music: music.clone(),
-                hash: group.calculate_hash(),
+                hash,
                 data: group,
+                origin_hash,
             };
 
             Ok((music, group))
@@ -367,6 +383,7 @@ impl LevelCache {
                         path: fs::generate_group_path(data.id),
                         music: Some(music),
                         data,
+                        origin_hash: Some(hash.clone()),
                         hash,
                     };
 
@@ -468,10 +485,15 @@ impl LevelCache {
 
         drop(inner);
 
-        self.update_group(group_index, new_group)
+        self.update_group(group_index, new_group, true)
     }
 
-    pub fn update_group(&self, group_index: Index, group: LevelSet) -> Option<Rc<CachedGroup>> {
+    pub fn update_group(
+        &self,
+        group_index: Index,
+        group: LevelSet,
+        reset_origin: bool,
+    ) -> Option<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
         let cached = inner.groups.get_mut(group_index)?;
 
@@ -481,6 +503,9 @@ impl LevelCache {
         let old_path = new_group.path.clone();
 
         new_group.hash = group.calculate_hash();
+        if reset_origin {
+            new_group.origin_hash = Some(new_group.hash.clone());
+        }
         new_group.data = group;
         new_group.path = fs::generate_group_path(new_group.data.id);
 
@@ -517,7 +542,7 @@ impl LevelCache {
         });
 
         drop(inner);
-        let group = self.update_group(group_index, new_group)?;
+        let group = self.update_group(group_index, new_group, false)?;
         let level = group.data.levels.get(level_index)?.clone();
         Some((group, level))
     }
@@ -543,7 +568,7 @@ impl LevelCache {
                 let _level = new_group.levels.remove(level);
 
                 drop(inner);
-                self.update_group(group_index, new_group);
+                self.update_group(group_index, new_group, false);
             }
         }
     }

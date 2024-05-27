@@ -169,7 +169,7 @@ impl StatefulWidget for SyncWidget {
                     }
                 }
                 Ok(Ok(group)) => {
-                    if let Some(group) = state.update_group(self.cached_group_index, group) {
+                    if let Some(group) = state.update_group(self.cached_group_index, group, true) {
                         self.cached_group = group;
                         self.reload = true;
                     }

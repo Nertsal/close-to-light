@@ -166,6 +166,10 @@ impl UiRender {
         color: Rgba<f32>,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !icon.state.visible {
+            return;
+        }
+
         if let Some(bg) = &icon.background {
             match bg.kind {
                 IconBackgroundKind::NineSlice => {
