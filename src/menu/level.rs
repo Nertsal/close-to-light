@@ -30,7 +30,6 @@ pub struct LevelMenu {
 
     camera: Camera2d,
     state: MenuState,
-    exit_button: HoverButton,
     play_button: HoverButton,
 }
 
@@ -161,10 +160,6 @@ impl LevelMenu {
 
                 edit_level: None,
             },
-            exit_button: HoverButton::new(
-                Collider::new(vec2(-7.6, 3.7).as_r32(), Shape::Circle { radius: r32(0.6) }),
-                3.0,
-            ),
             play_button: HoverButton::new(
                 Collider {
                     position: vec2(4.9, -0.5).as_r32(),
@@ -387,18 +382,7 @@ impl geng::State for LevelMenu {
         self.dither.set_noise(1.0);
         let mut dither_buffer = self.dither.start();
 
-        let fading = self.exit_button.is_fading() || self.play_button.is_fading();
-
-        // if !fading || self.exit_button.is_fading() {
-        //     let button = crate::render::smooth_button(&self.exit_button, self.time);
-        //     self.util.draw_button(
-        //         &button,
-        //         "EXIT",
-        //         &crate::render::THEME,
-        //         &self.camera,
-        //         &mut dither_buffer,
-        //     );
-        // }
+        let fading = self.play_button.is_fading();
 
         if !fading || self.play_button.is_fading() {
             let play_time = r32(self
@@ -566,24 +550,10 @@ impl geng::State for LevelMenu {
 
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
-        self.state
-            .player
-            .update_distance_simple(&self.exit_button.base_collider);
         if self.state.selected_level.is_some() {
             self.state
                 .player
                 .update_distance_simple(&self.play_button.base_collider);
-        }
-
-        if !self.ui_focused {
-            let hovering = self
-                .exit_button
-                .base_collider
-                .contains(cursor_world.as_r32());
-            self.exit_button.update(hovering, delta_time);
-        }
-        if self.exit_button.hover_time.is_max() {
-            self.transition = Some(geng::state::Transition::Pop);
         }
 
         if !self.ui_focused && self.state.selected_level.is_some() {
