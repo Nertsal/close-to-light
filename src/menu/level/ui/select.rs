@@ -217,7 +217,7 @@ impl LevelSelectUI {
             }
             row_items -= skip;
 
-            let i = columns * row;
+            let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
             let range = (i + row_items).min(self.grid_music.len());
 
             let mut tab = None;
@@ -295,7 +295,7 @@ impl LevelSelectUI {
             }
             row_items -= skip;
 
-            let i = columns * row;
+            let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
             let range = (i + row_items).min(self.grid_groups.len());
 
             let mut tab = None;
@@ -397,7 +397,7 @@ impl LevelSelectUI {
             }
             row_items -= skip;
 
-            let i = columns * row;
+            let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
             let range = (i + row_items).min(self.grid_levels.len());
 
             let mut tab = None;
@@ -644,6 +644,8 @@ impl Widget for NewMenuWidget {
         for (widget, pos) in rows.into_iter().zip(positions) {
             widget.update(pos, &mut context.scale_font(0.7));
         }
+
+        context.update_focus(self.state.hovered);
     }
 }
 
@@ -684,5 +686,7 @@ impl Widget for ItemMenuWidget {
         for (widget, pos) in columns.into_iter().zip(positions) {
             widget.update(pos, context);
         }
+
+        context.update_focus(self.state.hovered);
     }
 }

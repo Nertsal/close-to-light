@@ -105,13 +105,20 @@ impl MenuRender {
             .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
 
         if ui.tab_music.selected {
-            self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
             for music in &ui.grid_music {
                 let selected =
                     state.selected_music.as_ref().map(|m| m.data) == Some(music.music.meta.id);
                 self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
             }
+
+            self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
         } else if ui.tab_groups.selected {
+            for group in &ui.grid_groups {
+                let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.index);
+                self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
+                self.draw_item_menu(&group.menu, theme, framebuffer);
+            }
+
             self.draw_item_widget(
                 &ui.add_group.text,
                 ui.add_group.menu.state.visible,
@@ -120,86 +127,18 @@ impl MenuRender {
                 framebuffer,
             );
             self.draw_add_menu(&ui.add_group.menu, theme, framebuffer);
-            for group in &ui.grid_groups {
-                let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.index);
-                self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&group.menu, theme, framebuffer);
-            }
         } else if ui.tab_levels.selected {
-            self.draw_item_widget(&ui.add_level, false, 0.5, theme, framebuffer);
             for level in &ui.grid_levels {
                 let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.index);
                 self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
                 self.draw_item_menu(&level.menu, theme, framebuffer);
             }
+
+            self.draw_item_widget(&ui.add_level, false, 0.5, theme, framebuffer);
         }
 
         self.ui
             .draw_quad(ui.separator.position, theme.light, framebuffer);
-
-        // // Clip groups and levels
-        // let mut mask = self.masked.start();
-
-        // mask.mask_quad(Aabb2 {
-        //     min: ui.groups_state.position.min,
-        //     max: ui.levels_state.position.max,
-        // });
-
-        // for (group, _entry) in ui.sets.iter().zip(&state.local.borrow().groups) {
-        //     // TODO: logo?
-        //     // if let Some(logo) = &entry.logo {
-        //     //     self.ui
-        //     //         .draw_texture(group.logo.position, logo, theme.light, framebuffer);
-        //     // }
-
-        //     self.ui.draw_icon(&group.delete.icon, &mut mask.color);
-        //     self.ui.draw_outline(
-        //         group.static_state.position,
-        //         self.font_size * 0.2,
-        //         theme.light,
-        //         &mut mask.color,
-        //     );
-
-        //     self.ui.draw_toggle_slide(
-        //         &group.state,
-        //         &[&group.name, &group.author],
-        //         self.font_size * 0.2,
-        //         group.selected_time.get_ratio() > 0.5,
-        //         theme,
-        //         &mut mask.color,
-        //     );
-        // }
-
-        // for level in &ui.difficulties {
-        //     if !level.state.visible {
-        //         continue;
-        //     }
-
-        //     self.ui.draw_icon(&level.sync.icon, &mut mask.color);
-        //     self.ui.draw_icon(&level.edit.icon, &mut mask.color);
-        //     self.ui.draw_outline(
-        //         level.static_state.position,
-        //         self.font_size * 0.2,
-        //         theme.light,
-        //         &mut mask.color,
-        //     );
-
-        //     self.ui.draw_toggle_slide(
-        //         &level.state,
-        //         &[&level.name, &level.author],
-        //         self.font_size * 0.2,
-        //         level.selected_time.get_ratio() > 0.5,
-        //         theme,
-        //         &mut mask.color,
-        //     );
-        // }
-
-        // self.ui
-        //     .draw_toggle(&ui.new_group, self.font_size * 0.2, theme, &mut mask.color);
-        // self.ui
-        //     .draw_toggle(&ui.new_level, self.font_size * 0.2, theme, &mut mask.color);
-
-        // self.masked.draw(draw_parameters(), framebuffer);
     }
 
     fn draw_play_level(
@@ -392,13 +331,11 @@ impl MenuRender {
         let theme = state.options.theme;
 
         let width = 12.0;
-        // let head = ui.explore_head.state.position;
-        let explore = ui.state.position; //.extend_up(width);
+        let explore = ui.state.position;
 
         self.ui.draw_window(
             &mut self.masked,
             explore,
-            // Some(head),
             None,
             width,
             theme,
@@ -453,8 +390,6 @@ impl MenuRender {
                 self.masked2.draw(draw_parameters(), framebuffer);
             },
         );
-
-        // self.ui.draw_text(&ui.explore_head, framebuffer);
     }
 
     fn draw_leaderboard(
@@ -483,50 +418,6 @@ impl MenuRender {
             },
         );
         self.ui.draw_text(&ui.leaderboard_head, framebuffer);
-    }
-
-    fn draw_level_config(
-        &mut self,
-        ui: &MenuUI,
-        state: &MenuState,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let theme = state.options.theme;
-
-        self.ui.draw_window(
-            &mut self.masked,
-            ui.level_config.state.position,
-            None,
-            self.font_size * 0.2,
-            theme,
-            framebuffer,
-            |framebuffer| {
-                self.ui.draw_icon(&ui.level_config.close.icon, framebuffer);
-
-                {
-                    let (tab, active) = (
-                        &ui.level_config.tab_mods,
-                        ui.level_config.mods.state.visible,
-                    );
-                    self.ui
-                        .draw_toggle_button(tab, active, false, theme, framebuffer);
-                }
-                self.ui
-                    .draw_quad(ui.level_config.separator.position, theme.light, framebuffer);
-
-                if ui.level_config.mods.state.visible {
-                    for preset in &ui.level_config.mods.mods {
-                        self.ui.draw_toggle_button(
-                            &preset.button.text,
-                            preset.selected,
-                            true,
-                            theme,
-                            framebuffer,
-                        );
-                    }
-                }
-            },
-        );
     }
 
     fn draw_item_widget(
