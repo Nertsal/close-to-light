@@ -6,14 +6,14 @@ use super::{
 
 use crate::ui::widget::*;
 
-fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
+pub fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
     framebuffer.size().y as f32 / 360.0
 }
 
 pub struct UiRender {
     geng: Geng,
-    assets: Rc<Assets>,
-    util: UtilRender,
+    pub assets: Rc<Assets>,
+    pub util: UtilRender,
 }
 
 impl UiRender {
@@ -261,28 +261,31 @@ impl UiRender {
         );
     }
 
-    pub fn draw_slider(&self, slider: &SliderWidget, framebuffer: &mut ugli::Framebuffer) {
-        self.draw_text(&slider.text, framebuffer);
-        self.draw_text(&slider.value, framebuffer);
+    pub fn draw_slider(
+        &self,
+        slider: &SliderWidget,
+        mut theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        if slider.state.hovered {
+            std::mem::swap(&mut theme.dark, &mut theme.light);
+            self.fill_quad(slider.state.position, theme.dark, framebuffer);
+        }
+
+        self.draw_text_colored(&slider.text, theme.light, framebuffer);
+        self.draw_text_colored(&slider.value, theme.light, framebuffer);
 
         if slider.bar.visible {
             self.geng.draw2d().quad(
                 framebuffer,
                 &geng::PixelPerfectCamera,
                 slider.bar.position,
-                slider.options.color,
+                theme.light,
             );
         }
 
         if slider.head.visible {
-            let options = &slider.options;
-            let color = if slider.bar_box.pressed {
-                options.press_color
-            } else if slider.bar_box.hovered {
-                options.hover_color
-            } else {
-                options.color
-            };
+            let color = theme.light;
             self.geng.draw2d().quad(
                 framebuffer,
                 &geng::PixelPerfectCamera,
@@ -476,5 +479,21 @@ impl UiRender {
     pub fn draw_value<T>(&self, value: &ValueWidget<T>, framebuffer: &mut ugli::Framebuffer) {
         self.draw_text(&value.text, framebuffer);
         self.draw_text(&value.value_text, framebuffer);
+    }
+
+    pub fn fill_quad(
+        &self,
+        position: Aabb2<f32>,
+        color: Color,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.util.draw_nine_slice(
+            position,
+            color,
+            &self.assets.sprites.fill,
+            ui::pixel_scale(framebuffer),
+            &geng::PixelPerfectCamera,
+            framebuffer,
+        );
     }
 }

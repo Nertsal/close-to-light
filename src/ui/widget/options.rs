@@ -159,8 +159,8 @@ impl StatefulWidget for VolumeWidget {
 
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
-            .extend_down(context.font_size * 1.0);
-        let rows = row.stack(vec2(0.0, -row.height()), 1);
+            .extend_down(context.font_size * 1.1);
+        let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 1);
 
         self.master.update(rows[0], context, &mut state.master);
     }
@@ -198,9 +198,9 @@ impl StatefulWidget for PaletteChooseWidget {
 
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
-            .extend_down(context.font_size * 1.0);
+            .extend_down(context.font_size * 1.2);
         let rows = row.stack(
-            vec2(0.0, -row.height() - context.layout_size * 0.5),
+            vec2(0.0, -row.height() - context.layout_size * 0.1),
             self.palettes.len(),
         );
         for (palette, pos) in self.palettes.iter_mut().zip(rows) {

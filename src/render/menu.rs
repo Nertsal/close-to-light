@@ -319,7 +319,7 @@ impl MenuRender {
                         // Volume
                         let volume = &ui.options.volume;
                         self.ui.draw_text(&volume.title, framebuffer);
-                        self.ui.draw_slider(&volume.master, framebuffer);
+                        self.ui.draw_slider(&volume.master, theme, framebuffer);
                     }
 
                     {
@@ -327,7 +327,15 @@ impl MenuRender {
                         let palette = &ui.options.palette;
                         self.ui.draw_text(&palette.title, framebuffer);
                         for palette in &palette.palettes {
-                            self.ui.draw_text(&palette.name, framebuffer);
+                            let mut theme = theme;
+                            if palette.state.hovered {
+                                std::mem::swap(&mut theme.dark, &mut theme.light);
+                                self.ui
+                                    .fill_quad(palette.state.position, theme.dark, framebuffer);
+                            }
+
+                            self.ui
+                                .draw_text_colored(&palette.name, theme.light, framebuffer);
 
                             let mut quad = |i: f32, color: Color| {
                                 let pos = palette.visual.position;

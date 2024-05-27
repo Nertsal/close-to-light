@@ -52,10 +52,11 @@ impl StatefulWidget for SliderWidget {
             self.text.hide();
         }
 
-        let value = main.cut_right(context.font_size * 3.0);
+        let value = main.cut_right(context.font_size * 2.0);
         self.value.text = format!("{:.precision$}", state.value(), precision = 2).into();
         self.value.update(value, context);
 
+        main.cut_left(context.layout_size * 0.5);
         let bar = Aabb2::point(main.align_pos(vec2(0.0, 0.5)))
             .extend_right(main.width())
             .extend_symmetric(vec2(0.0, context.font_size * 0.1) / 2.0);
