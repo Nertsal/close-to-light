@@ -524,7 +524,14 @@ impl geng::State for LevelMenu {
         self.ui_context.theme = self.state.options.theme;
 
         if self.ui.explore.state.visible {
-            let t = self.ui.explore.window.show.time.get_ratio();
+            let t = if !self.ui.explore.window.show.going_up
+                && self.context.music.current().map(|info| info.id)
+                    != self.state.selected_music.as_ref().map(|show| show.data)
+            {
+                self.ui.explore.window.show.time.get_ratio()
+            } else {
+                1.0
+            };
             self.context
                 .music
                 .set_volume(self.state.options.volume.music() * t);

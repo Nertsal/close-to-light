@@ -51,6 +51,14 @@ impl MusicManager {
         }
     }
 
+    pub fn current(&self) -> Option<MusicInfo> {
+        self.inner
+            .borrow()
+            .playing
+            .as_ref()
+            .map(|music| music.meta.clone())
+    }
+
     pub fn set_volume(&self, volume: f32) {
         let mut inner = self.inner.borrow_mut();
         inner.volume = volume;
