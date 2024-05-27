@@ -141,6 +141,10 @@ impl Command {
                 let group = LevelSet {
                     id: meta.id,
                     music: meta.music,
+                    owner: UserInfo {
+                        id: 0,
+                        name: "<unknown>".into(),
+                    },
                     levels,
                 };
 

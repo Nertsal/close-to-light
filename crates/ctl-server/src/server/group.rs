@@ -22,8 +22,8 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
 
     #[derive(sqlx::FromRow)]
     struct LevelGroupRow {
-        music_id: Id,
-        // owner_id: Id,
+        #[sqlx(flatten)]
+        group: GroupRow,
         #[sqlx(flatten)]
         level: LevelRow,
     }
@@ -54,11 +54,30 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
 
     let mut groups = Vec::<GroupInfo>::new();
     for level_row in levels {
-        let authors = authors
+        let authors: Vec<UserInfo> = authors
             .iter()
             .filter(|(level_id, _)| *level_id == level_row.level.level_id)
             .map(|(_, user)| user.clone())
             .collect();
+
+        let owner = match authors
+            .iter()
+            .find(|user| user.id == level_row.group.owner_id)
+        {
+            Some(user) => user.clone(),
+            None => {
+                sqlx::query("SELECT user_id, username FROM users WHERE user_id = ?")
+                    .bind(level_row.group.owner_id)
+                    .try_map(|row: DBRow| {
+                        Ok(UserInfo {
+                            id: row.try_get("user_id")?,
+                            name: row.try_get::<String, _>("username")?.into(),
+                        })
+                    })
+                    .fetch_one(&app.database)
+                    .await?
+            }
+        };
 
         let level_info = LevelInfo {
             id: level_row.level.level_id,
@@ -75,9 +94,10 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
                     id: level_row.level.group_id,
                     music: music
                         .iter()
-                        .find(|music| music.id == level_row.music_id)
+                        .find(|music| music.id == level_row.group.music_id)
                         .cloned()
                         .unwrap_or_default(), // Default should never be reached TODO: warning or smth
+                    owner,
                     levels: Vec::new(),
                     hash: String::new(), // TODO
                 });
@@ -129,6 +149,25 @@ JOIN users ON level_authors.user_id = users.user_id
     .fetch_all(&app.database)
     .await?;
 
+    let owner = match authors
+        .iter()
+        .find(|(_, user)| user.id == group_row.owner_id)
+    {
+        Some((_, user)) => user.clone(),
+        None => {
+            sqlx::query("SELECT user_id, username FROM users WHERE user_id = ?")
+                .bind(group_row.owner_id)
+                .try_map(|row: DBRow| {
+                    Ok(UserInfo {
+                        id: row.try_get("user_id")?,
+                        name: row.try_get::<String, _>("username")?.into(),
+                    })
+                })
+                .fetch_one(&app.database)
+                .await?
+        }
+    };
+
     let mut levels = Vec::new();
     for level in level_rows {
         let authors = authors
@@ -147,6 +186,7 @@ JOIN users ON level_authors.user_id = users.user_id
     Ok(Json(GroupInfo {
         id: group_id,
         music,
+        owner,
         levels,
         hash: group_row.hash,
     }))
@@ -199,6 +239,12 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
     if user.user_id != group.owner_id {
         return Err(RequestError::Forbidden);
     }
+
+    // Verify owner
+    parsed_group.owner = UserInfo {
+        id: user.user_id,
+        name: user.username.clone().into(),
+    };
 
     // Update levels
     for level in &mut parsed_group.levels {
@@ -268,6 +314,12 @@ async fn new_group(
 
         hashes.push(level_hash);
     }
+
+    // Verify owner
+    parsed_group.owner = UserInfo {
+        id: user.user_id,
+        name: user.username.clone().into(),
+    };
 
     // Create group
     let group_id: Id = sqlx::query(

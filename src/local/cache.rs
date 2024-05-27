@@ -278,6 +278,11 @@ impl LevelCache {
         let mut group = CachedGroup::new(LevelSet {
             id: 0,
             music: music_id,
+            // TODO: set the logged in user
+            owner: UserInfo {
+                id: 0,
+                name: "".into(),
+            },
             levels: Vec::new(),
         });
         group.music = music;
@@ -336,6 +341,7 @@ impl LevelCache {
                     let music = match music_list.get(&data.music) {
                         Some(music) => Rc::clone(music),
                         None => {
+                            log::debug!("Downloading music {}", data.music);
                             // Music is not local so we need to download it
                             let meta = client.get_music_info(data.music).await?;
                             let bytes = client.download_music(data.music).await?.to_vec();
@@ -458,6 +464,7 @@ impl LevelCache {
             *level = Rc::new(lvl);
         }
         new_group.id = info.id;
+        new_group.owner = info.owner;
 
         drop(inner);
 

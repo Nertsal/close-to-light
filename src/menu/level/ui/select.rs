@@ -265,7 +265,7 @@ impl LevelSelectUI {
         // Synchronize data
         for (widget, &(groups_id, cache)) in self.grid_groups.iter_mut().zip(&groups) {
             widget.index = groups_id;
-            widget.text.text = cache.mappers().into();
+            widget.text.text = cache.data.owner.name.clone();
         }
 
         drop(local);

@@ -9,6 +9,7 @@ pub type Name = Arc<str>;
 pub struct LevelSet<L = Rc<LevelFull>> {
     pub id: Id,
     pub music: Id,
+    pub owner: UserInfo,
     pub levels: Vec<L>,
 }
 
@@ -31,6 +32,7 @@ pub struct GroupInfo {
     #[serde(default)]
     pub id: Id,
     pub music: MusicInfo,
+    pub owner: UserInfo,
     pub levels: Vec<LevelInfo>,
     pub hash: String,
 }
