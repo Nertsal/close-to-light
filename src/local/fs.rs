@@ -72,10 +72,7 @@ impl CachedMusic {
     pub async fn load(manager: &geng::asset::Manager, path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         let assets: MusicAssets = geng::asset::Load::load(manager, path, &()).await?;
-        Ok(Self {
-            meta: assets.meta,
-            music: Rc::new(assets.music),
-        })
+        Ok(Self::new(assets.meta, assets.music))
     }
 }
 

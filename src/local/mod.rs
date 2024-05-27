@@ -31,6 +31,16 @@ impl Debug for CachedMusic {
     }
 }
 
+impl CachedMusic {
+    pub fn new(meta: MusicInfo, mut music: geng::Sound) -> Self {
+        music.looped = true;
+        Self {
+            meta,
+            music: Rc::new(music),
+        }
+    }
+}
+
 impl CachedGroup {
     /// Return the list of map authors in a readable string format.
     pub fn mappers(&self) -> String {

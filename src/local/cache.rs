@@ -341,7 +341,7 @@ impl LevelCache {
                             let bytes = client.download_music(data.music).await?.to_vec();
 
                             log::debug!("Decoding downloaded music bytes");
-                            let music = Rc::new(geng.audio().decode(bytes.clone()).await?);
+                            let music = geng.audio().decode(bytes.clone()).await?;
 
                             #[cfg(not(target_arch = "wasm32"))]
                             {
@@ -353,7 +353,7 @@ impl LevelCache {
                                 }
                             }
 
-                            Rc::new(CachedMusic { meta, music })
+                            Rc::new(CachedMusic::new(meta, music))
                         }
                     };
 
@@ -404,7 +404,7 @@ impl LevelCache {
                     let bytes = client.download_music(music_id).await?.to_vec();
 
                     log::debug!("Decoding downloaded music bytes");
-                    let music = Rc::new(geng.audio().decode(bytes.clone()).await?);
+                    let music = geng.audio().decode(bytes.clone()).await?;
 
                     #[cfg(not(target_arch = "wasm32"))]
                     {
@@ -416,7 +416,7 @@ impl LevelCache {
                         }
                     }
 
-                    let music = CachedMusic { meta, music };
+                    let music = CachedMusic::new(meta, music);
                     Ok(music)
                 };
                 inner.tasks.download_music = Some(Task::new(&self.geng, future));
