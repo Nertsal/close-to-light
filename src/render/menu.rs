@@ -140,7 +140,7 @@ impl MenuRender {
                     theme.light,
                     framebuffer,
                 );
-                let selected = state.selected_group.as_ref().map(|m| m.data) == Some(group.index);
+                let selected = state.switch_group == Some(group.index);
                 self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
                 self.draw_item_menu(&group.menu, theme, framebuffer);
             }
@@ -163,7 +163,7 @@ impl MenuRender {
                     theme.light,
                     framebuffer,
                 );
-                let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.index);
+                let selected = state.switch_level == Some(level.index);
                 self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
                 self.draw_item_menu(&level.menu, theme, framebuffer);
             }
