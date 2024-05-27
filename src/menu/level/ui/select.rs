@@ -593,6 +593,8 @@ impl ItemLevelWidget {
         index: usize,
         level: Rc<LevelFull>,
     ) -> Self {
+        let mut menu = ItemMenuWidget::new(assets);
+        menu.sync.hide();
         Self {
             state: WidgetState::new(),
             edited: IconWidget::new(&assets.sprites.star),
@@ -601,7 +603,7 @@ impl ItemLevelWidget {
             group,
             index,
             level,
-            menu: ItemMenuWidget::new(assets),
+            menu,
         }
     }
 
@@ -752,14 +754,22 @@ impl Widget for ItemMenuWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        let sync = !self.sync.state.visible;
+        let mut columns = [&mut self.delete, &mut self.edit, &mut self.sync];
+        let columns = if sync {
+            &mut columns[..2]
+        } else {
+            &mut columns[..]
+        };
+
         let position = position.translate(vec2(context.layout_size, -position.height()));
-        let size = vec2(3.0, 1.0) * 2.0 * context.layout_size;
+        let size = vec2(columns.len() as f32, 1.0) * 2.0 * context.layout_size;
         let position = position.align_aabb(size, vec2(0.0, 1.0));
 
         self.state.update(position, context);
-        let columns = [&mut self.sync, &mut self.edit, &mut self.delete];
+
         let positions = position.split_columns(columns.len());
-        for (widget, pos) in columns.into_iter().zip(positions) {
+        for (widget, pos) in columns.iter_mut().zip(positions) {
             widget.update(pos, context);
         }
 
