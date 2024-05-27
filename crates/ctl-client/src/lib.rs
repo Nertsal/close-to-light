@@ -46,7 +46,7 @@ impl Nertboard {
     }
 
     pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
-        let url = self.url.join(&format!("level/{}/scores/", level)).unwrap();
+        let url = self.url.join(&format!("level/{}/scores", level)).unwrap();
         let req = self.client.get(url);
 
         let response = req.send().await?;
@@ -57,7 +57,7 @@ impl Nertboard {
     pub async fn submit_score(&self, level: Id, entry: &SubmitScore) -> Result<()> {
         let req = self
             .client
-            .post(self.url.join(&format!("level/{}/scores/", level)).unwrap())
+            .post(self.url.join(&format!("level/{}/scores", level)).unwrap())
             .json(entry);
 
         let response = req.send().await?;

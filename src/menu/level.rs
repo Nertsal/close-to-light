@@ -350,7 +350,10 @@ impl LevelMenu {
         let health = self.state.config.health.clone();
 
         let meta = crate::leaderboard::ScoreMeta::new(mods, health);
-        self.state.leaderboard.change_meta(meta);
+        // self.state.leaderboard.change_meta(meta);
+        if let Some((_, _, _, level)) = self.get_active_level() {
+            self.state.leaderboard.submit(None, level.meta.id, meta);
+        }
     }
 
     fn update_leaderboard(&mut self) {

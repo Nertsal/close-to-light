@@ -296,7 +296,6 @@ impl Leaderboard {
         if let Some(board) = &self.client {
             let board = Arc::clone(board);
             let future = async move {
-                log::debug!("Submitting a score...");
                 let meta_str = meta_str(&meta);
                 let score = score.map(|score| SubmitScore {
                     score: score.score,
@@ -304,9 +303,11 @@ impl Leaderboard {
                 });
 
                 if let Some(score) = &score {
+                    log::debug!("Submitting a score...");
                     board.submit_score(level, score).await?;
                 }
 
+                log::debug!("Fetching scores...");
                 let scores = board.fetch_scores(level).await?;
                 Ok(BoardUpdate { scores })
             };
