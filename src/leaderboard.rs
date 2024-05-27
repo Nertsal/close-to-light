@@ -248,6 +248,10 @@ impl Leaderboard {
 
     /// Change meta filter using the cached scores if available.
     pub fn change_meta(&mut self, meta: ScoreMeta) {
+        if self.loaded.meta == meta {
+            return; // Unchanged
+        }
+
         self.loaded.meta = meta;
         self.loaded.reload_local(None);
         match self.status {

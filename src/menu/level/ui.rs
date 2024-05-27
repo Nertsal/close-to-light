@@ -202,6 +202,7 @@ impl MenuUI {
         right.cut_bottom(2.0 * layout_size);
         self.play_level.update(right, state, context);
         self.modifiers.update(right, state, context);
+        state.update_board_meta();
 
         {
             // Leaderboard
@@ -264,43 +265,6 @@ impl MenuUI {
                 self.sync_offset = vec2::ZERO;
             }
         }
-
-        // self.panels.update(state, context);
-
-        // {
-        //     // Mods
-        //     let width = layout_size * 30.0;
-        //     let height = layout_size * 20.0;
-
-        //     let t = self.level_config.window.show.time.get_ratio();
-        //     let t = crate::util::smoothstep(t);
-        //     let offset = height * t;
-        //     let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * base_t * layout_size)
-        //         .extend_right(width)
-        //         .extend_down(height)
-        //         .translate(vec2(0.0, offset));
-
-        //     self.level_config.set_config(&state.config);
-        //     update!(self.level_config, config);
-        //     context.update_focus(self.level_config.state.hovered);
-        //     let old_config = state.config.clone();
-        //     self.level_config.update_config(&mut state.config);
-        //     if old_config != state.config && self.leaderboard.window.show.going_up {
-        //         self.leaderboard.window.request = Some(WidgetRequest::Reload);
-        //     }
-
-        //     self.level_config.window.layout(
-        //         self.level_config.state.hovered,
-        //         self.level_config.close.state.clicked
-        //             || cursor_high && !self.level_config.state.hovered,
-        //     );
-        // }
-
-        // // Margin
-        // main.cut_left(layout_size * 0.5);
-        // if let Some(sync) = self.level_select.update(main, state, context) {
-        //     self.sync = Some(sync);
-        // }
 
         !context.can_focus
     }

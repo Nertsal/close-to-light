@@ -5,7 +5,7 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    leaderboard::{Leaderboard, LeaderboardStatus},
+    leaderboard::{Leaderboard, LeaderboardStatus, ScoreMeta},
     local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{widget::Widget, ShowTime, UiContext, WidgetRequest},
@@ -73,6 +73,16 @@ impl Debug for GroupEntry {
 }
 
 impl MenuState {
+    fn get_meta(&self) -> ScoreMeta {
+        let mods = self.config.modifiers.clone();
+        let health = self.config.health.clone();
+        ScoreMeta::new(mods, health)
+    }
+
+    fn update_board_meta(&mut self) {
+        self.leaderboard.change_meta(self.get_meta());
+    }
+
     fn select_music(&mut self, music: Id) {
         self.switch_music = Some(music);
         if self
@@ -346,11 +356,7 @@ impl LevelMenu {
     }
 
     fn fetch_leaderboard(&mut self) {
-        let mods = self.state.config.modifiers.clone();
-        let health = self.state.config.health.clone();
-
-        let meta = crate::leaderboard::ScoreMeta::new(mods, health);
-        // self.state.leaderboard.change_meta(meta);
+        let meta = self.state.get_meta();
         if let Some((_, _, _, level)) = self.get_active_level() {
             self.state.leaderboard.submit(None, level.meta.id, meta);
         }
