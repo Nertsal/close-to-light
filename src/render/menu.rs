@@ -42,10 +42,28 @@ impl MenuRender {
 
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
-        self.draw_modifiers(ui, state, framebuffer);
-        self.draw_options(ui, state, framebuffer);
-        self.draw_explore(ui, state, framebuffer);
+
+        // Options button
+        let transparency = crate::util::smoothstep(1.0 - ui.options.open_time.get_ratio());
+        let mut color = theme.light;
+        color.a = transparency;
+        self.ui
+            .draw_icon_colored(&ui.options.button, color, framebuffer);
+        self.ui.draw_outline(
+            ui.options.button.state.position,
+            self.font_size * 0.1,
+            color,
+            framebuffer,
+        );
+
         self.draw_leaderboard(ui, state, framebuffer);
+        self.draw_modifiers(ui, state, framebuffer);
+
+        if ui.options.open_time.is_above_min() {
+            self.draw_options(ui, state, framebuffer);
+        }
+
+        self.draw_explore(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
     }
 
@@ -214,106 +232,93 @@ impl MenuRender {
         let width = 12.0;
         let options = ui.options.state.position.extend_up(width);
 
-        if ui.open_time.is_above_min() {
-            self.ui.draw_window(
-                &mut self.masked,
-                options,
-                None,
-                width,
-                theme,
-                framebuffer,
-                |framebuffer| {
-                    {
-                        // Profile
-                        let ui = &ui.options.profile;
-                        self.ui.draw_text(&ui.offline, framebuffer);
-
-                        let register = &ui.register;
-                        if register.state.visible {
-                            // self.ui.draw_input(&register.username, framebuffer);
-                            // self.ui.draw_input(&register.password, framebuffer);
-                            // self.ui.draw_button(&register.login, framebuffer);
-                            // self.ui.draw_button(&register.register, framebuffer);
-                            self.ui.draw_text(&register.login_with, framebuffer);
-                            self.ui.draw_icon(&register.discord.icon, framebuffer);
-                        }
-
-                        let logged = &ui.logged;
-                        if logged.state.visible {
-                            self.ui.draw_text(&logged.username, framebuffer);
-                            self.ui.draw_toggle_button(
-                                &logged.logout,
-                                false,
-                                false,
-                                theme,
-                                framebuffer,
-                            );
-                        }
-                    }
-
-                    self.ui
-                        .draw_quad(ui.options.separator.position, theme.light, framebuffer);
-
-                    {
-                        // Volume
-                        let volume = &ui.options.volume;
-                        self.ui.draw_text(&volume.title, framebuffer);
-                        self.ui.draw_slider(&volume.master, theme, framebuffer);
-                    }
-
-                    {
-                        // Palette
-                        let palette = &ui.options.palette;
-                        self.ui.draw_text(&palette.title, framebuffer);
-                        for palette in &palette.palettes {
-                            let mut theme = theme;
-                            if palette.state.hovered {
-                                std::mem::swap(&mut theme.dark, &mut theme.light);
-                                self.ui
-                                    .fill_quad(palette.state.position, theme.dark, framebuffer);
-                            }
-
-                            self.ui
-                                .draw_text_colored(&palette.name, theme.light, framebuffer);
-
-                            let mut quad = |i: f32, color: Color| {
-                                let pos = palette.visual.position;
-                                let pos = Aabb2::point(pos.bottom_left())
-                                    .extend_positive(vec2::splat(pos.height()));
-                                let pos = pos.translate(vec2(i * pos.width(), 0.0));
-                                self.geng.draw2d().draw2d(
-                                    framebuffer,
-                                    camera,
-                                    &draw2d::Quad::new(pos, color),
-                                );
-                            };
-                            quad(0.0, palette.palette.dark);
-                            quad(1.0, palette.palette.light);
-                            quad(2.0, palette.palette.danger);
-                            quad(3.0, palette.palette.highlight);
-
-                            let outline_width = self.font_size * 0.1;
-                            self.ui.draw_outline(
-                                palette.visual.position.extend_uniform(outline_width),
-                                outline_width,
-                                theme.light,
-                                framebuffer,
-                            );
-                        }
-                    }
-                },
-            );
-        }
-
-        let transparency = crate::util::smoothstep(1.0 - ui.open_time.get_ratio());
-        let mut color = theme.light;
-        color.a = transparency;
-        self.ui.draw_icon_colored(&ui.button, color, framebuffer);
-        self.ui.draw_outline(
-            ui.button.state.position,
-            self.font_size * 0.1,
-            color,
+        self.ui.draw_window(
+            &mut self.masked,
+            options,
+            None,
+            width,
+            theme,
             framebuffer,
+            |framebuffer| {
+                {
+                    // Profile
+                    let ui = &ui.options.profile;
+                    self.ui.draw_text(&ui.offline, framebuffer);
+
+                    let register = &ui.register;
+                    if register.state.visible {
+                        // self.ui.draw_input(&register.username, framebuffer);
+                        // self.ui.draw_input(&register.password, framebuffer);
+                        // self.ui.draw_button(&register.login, framebuffer);
+                        // self.ui.draw_button(&register.register, framebuffer);
+                        self.ui.draw_text(&register.login_with, framebuffer);
+                        self.ui.draw_icon(&register.discord.icon, framebuffer);
+                    }
+
+                    let logged = &ui.logged;
+                    if logged.state.visible {
+                        self.ui.draw_text(&logged.username, framebuffer);
+                        self.ui.draw_toggle_button(
+                            &logged.logout,
+                            false,
+                            false,
+                            theme,
+                            framebuffer,
+                        );
+                    }
+                }
+
+                self.ui
+                    .draw_quad(ui.options.separator.position, theme.light, framebuffer);
+
+                {
+                    // Volume
+                    let volume = &ui.options.volume;
+                    self.ui.draw_text(&volume.title, framebuffer);
+                    self.ui.draw_slider(&volume.master, theme, framebuffer);
+                }
+
+                {
+                    // Palette
+                    let palette = &ui.options.palette;
+                    self.ui.draw_text(&palette.title, framebuffer);
+                    for palette in &palette.palettes {
+                        let mut theme = theme;
+                        if palette.state.hovered {
+                            std::mem::swap(&mut theme.dark, &mut theme.light);
+                            self.ui
+                                .fill_quad(palette.state.position, theme.dark, framebuffer);
+                        }
+
+                        self.ui
+                            .draw_text_colored(&palette.name, theme.light, framebuffer);
+
+                        let mut quad = |i: f32, color: Color| {
+                            let pos = palette.visual.position;
+                            let pos = Aabb2::point(pos.bottom_left())
+                                .extend_positive(vec2::splat(pos.height()));
+                            let pos = pos.translate(vec2(i * pos.width(), 0.0));
+                            self.geng.draw2d().draw2d(
+                                framebuffer,
+                                camera,
+                                &draw2d::Quad::new(pos, color),
+                            );
+                        };
+                        quad(0.0, palette.palette.dark);
+                        quad(1.0, palette.palette.light);
+                        quad(2.0, palette.palette.danger);
+                        quad(3.0, palette.palette.highlight);
+
+                        let outline_width = self.font_size * 0.1;
+                        self.ui.draw_outline(
+                            palette.visual.position.extend_uniform(outline_width),
+                            outline_width,
+                            theme.light,
+                            framebuffer,
+                        );
+                    }
+                }
+            },
         );
     }
 

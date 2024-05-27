@@ -194,11 +194,20 @@ impl MenuUI {
             }
         }
 
+        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
+
+        right.cut_left(5.0 * layout_size);
+        right.cut_right(5.0 * layout_size);
+        right.cut_top(3.5 * layout_size);
+        right.cut_bottom(2.0 * layout_size);
+        self.play_level.update(right, state, context);
+        self.modifiers.update(right, state, context);
+
         {
             // Leaderboard
             let main = screen;
 
-            let size = vec2(layout_size * 22.0, main.height() - layout_size * 1.0);
+            let size = vec2(layout_size * 22.0, main.height() - layout_size * 6.0);
             let head_size = vec2(font_size, layout_size * 8.0);
             let pos = main.align_pos(vec2(1.0, 0.5));
 
@@ -214,9 +223,11 @@ impl MenuUI {
             let slide =
                 vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + base_t * head_size.x);
 
+            let up = 0.6;
             let leaderboard = Aabb2::point(pos + vec2(head_size.x, 0.0) + slide)
                 .extend_right(size.x)
-                .extend_symmetric(vec2(0.0, size.y) / 2.0);
+                .extend_up(size.y * up)
+                .extend_down(size.y * (1.0 - up));
             let leaderboard_head = Aabb2::point(pos + slide)
                 .extend_right(head_size.x)
                 .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
@@ -235,20 +246,12 @@ impl MenuUI {
             context.update_focus(self.leaderboard.state.hovered);
         }
 
-        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
         let old_options = state.options.clone();
         self.options.update(options, context, state);
         if state.options != old_options {
             preferences::save(OPTIONS_STORAGE, &state.options);
         }
-        context.update_focus(self.options.state.hovered);
-
-        right.cut_left(5.0 * layout_size);
-        right.cut_right(5.0 * layout_size);
-        right.cut_top(3.5 * layout_size);
-        right.cut_bottom(2.0 * layout_size);
-        self.play_level.update(right, state, context);
-        self.modifiers.update(right, state, context);
+        context.update_focus(self.options.options.state.hovered);
 
         if let Some(sync) = &mut self.sync {
             let size = vec2(20.0, 17.0) * layout_size;

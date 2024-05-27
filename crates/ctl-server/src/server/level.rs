@@ -110,28 +110,38 @@ async fn fetch_scores(
         return Err(RequestError::NoSuchLevel(level_id));
     }
 
+    #[derive(sqlx::FromRow)]
+    struct ScoreRow {
+        #[sqlx(flatten)]
+        user: UserRow,
+        score: Score,
+        extra_info: Option<String>,
+    }
+
     // Fetch scores
-    let scores = sqlx::query(
+    let scores: Vec<ScoreRow> = sqlx::query_as(
         "
-SELECT username, score, extra_info
+SELECT users.user_id, username, score, extra_info
 FROM scores
 JOIN users ON scores.user_id = users.user_id
 WHERE level_id = ?
         ",
     )
     .bind(level_id)
-    .try_map(|row: DBRow| {
-        Ok(ScoreEntry {
-            user: UserInfo {
-                id: row.try_get("user_id")?,
-                name: row.try_get::<String, _>("username")?.into(),
-            },
-            score: row.try_get("score")?,
-            extra_info: row.try_get("extra_info")?,
-        })
-    })
     .fetch_all(&app.database)
     .await?;
+
+    let scores = scores
+        .into_iter()
+        .map(|score| ScoreEntry {
+            user: UserInfo {
+                id: score.user.user_id,
+                name: score.user.username.into(),
+            },
+            score: score.score,
+            extra_info: score.extra_info,
+        })
+        .collect();
 
     Ok(Json(scores))
 }

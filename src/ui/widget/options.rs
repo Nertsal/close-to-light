@@ -43,10 +43,9 @@ impl StatefulWidget for OptionsButtonWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
-        self.state.update(position, context);
-
         let button_size = vec2::splat(1.0 * context.font_size);
         let button = position.align_aabb(button_size, vec2(1.0, 1.0));
+        self.state.update(button, context);
         self.button.update(button, context);
 
         if self.button.state.hovered || self.options.state.hovered {
