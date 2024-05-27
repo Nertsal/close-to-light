@@ -13,7 +13,7 @@ pub struct LevelSet<L = Rc<LevelFull>> {
     pub levels: Vec<L>,
 }
 
-impl LevelSet {
+impl<T: Serialize> LevelSet<T> {
     pub fn calculate_hash(&self) -> String {
         let bytes = bincode::serialize(self).expect("group should be serializable");
         crate::util::calculate_hash(&bytes)

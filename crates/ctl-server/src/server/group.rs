@@ -199,7 +199,6 @@ async fn group_create(
 ) -> Result<Json<GroupInfo>> {
     let user = check_user(&session).await?;
 
-    let hash = ctl_core::util::calculate_hash(&data);
     // NOTE: Not parsing into Rc, because we cant hold it across an await point
     // also we want to mutate it
     let parsed_group: LevelSet<LevelFull> =
@@ -207,21 +206,12 @@ async fn group_create(
 
     music::music_exists(&app, parsed_group.music).await?;
 
-    // Check if such a group already exists
-    let conflict = sqlx::query("SELECT null FROM groups WHERE hash = ?")
-        .bind(&hash)
-        .fetch_optional(&app.database)
-        .await?;
-    if conflict.is_some() {
-        return Err(RequestError::LevelAlreadyExists); // TODO: not really an error if this an empty update
-    }
-
     let group_id = if parsed_group.id != 0 {
         let id = parsed_group.id;
         update_group(&app, user, parsed_group).await?;
         id
     } else {
-        new_group(&app, user, hash, parsed_group).await?
+        new_group(&app, user, parsed_group).await?
     };
 
     group_get(State(app), Path(group_id)).await
@@ -272,6 +262,16 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
         }
     }
 
+    // Disallow further mutation to make sure the hash is valid
+    let parsed_group = parsed_group;
+    let hash = parsed_group.calculate_hash();
+
+    // Update group
+    sqlx::query("UPDATE groups SET hash = ?")
+        .bind(&hash)
+        .execute(&app.database)
+        .await?;
+
     // Check path
     let dir_path = app.config.groups_path.join("levels");
     std::fs::create_dir_all(&dir_path)?;
@@ -293,12 +293,7 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
     Ok(())
 }
 
-async fn new_group(
-    app: &App,
-    user: &User,
-    hash: String,
-    mut parsed_group: LevelSet<LevelFull>,
-) -> Result<Id> {
+async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>) -> Result<Id> {
     // Check if such a level already exists
     let mut hashes = Vec::with_capacity(parsed_group.levels.len());
     for level in &mut parsed_group.levels {
@@ -327,7 +322,7 @@ async fn new_group(
     )
     .bind(parsed_group.music)
     .bind(user.user_id)
-    .bind(&hash)
+    .bind("")
     .try_map(|row: DBRow| row.try_get("group_id"))
     .fetch_one(&app.database)
     .await?;
@@ -359,6 +354,16 @@ async fn new_group(
         .await?;
     }
 
+    // Disallow further mutation to make sure the hash is valid
+    let parsed_group = parsed_group;
+    let hash = parsed_group.calculate_hash();
+
+    // Update hash
+    sqlx::query("UPDATE groups SET hash = ?")
+        .bind(&hash)
+        .execute(&app.database)
+        .await?;
+
     // Check path
     let dir_path = app.config.groups_path.join("levels");
     std::fs::create_dir_all(&dir_path)?;
@@ -377,107 +382,6 @@ async fn new_group(
 
     Ok(group_id)
 }
-
-// /// Create a new level or upload a new version of an existing one.
-// async fn level_create(
-//     session: AuthSession,
-//     State(app): State<Arc<App>>,
-//     Query(level): Query<NewLevel>,
-//     body: Body,
-// ) -> Result<Json<Id>> {
-//     let user = check_user(&session).await?;
-
-//     // Check that group exists
-//     let group: Option<GroupRow> = sqlx::query_as("SELECT * FROM groups WHERE group_id = ?")
-//         .bind(level.group)
-//         .fetch_optional(&app.database)
-//         .await?;
-//     let Some(group) = group else {
-//         return Err(RequestError::NoSuchGroup(level.group));
-//     };
-
-//     // Check if the player has rights to add levels to the group
-//     if user.user_id != group.owner_id {
-//         return Err(RequestError::Forbidden);
-//     }
-
-//     let data = axum::body::to_bytes(body, LEVEL_SIZE_LIMIT)
-//         .await
-//         .expect("not bytes idk");
-
-//     // Calculate level hash
-//     let hash = ctl_core::util::calculate_hash(&data);
-
-//     // Check if such a level already exists
-//     let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-//         .bind(&hash)
-//         .fetch_optional(&app.database)
-//         .await?;
-//     if conflict.is_some() {
-//         return Err(RequestError::LevelAlreadyExists);
-//     }
-
-//     // Validate level contents
-//     let _parsed_level: Level =
-//         bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
-//     // TODO
-
-//     let level_id = if let Some(level_id) = level.level_id {
-//         let res = sqlx::query("UPDATE levels SET hash = ? WHERE level_id = ?")
-//             .bind(&hash)
-//             .bind(level_id)
-//             .execute(&app.database)
-//             .await?;
-//         if res.rows_affected() == 0 {
-//             return Err(RequestError::NoSuchLevel(level_id));
-//         }
-
-//         level_id
-//     } else {
-//         // Commit to database
-//         let level_id: Id = sqlx::query(
-//             "INSERT INTO levels (name, group_id, hash) VALUES (?, ?, ?) RETURNING level_id",
-//         )
-//         .bind(&level.name)
-//         .bind(level.group)
-//         .bind(&hash)
-//         .try_map(|row: DBRow| row.try_get("level_id"))
-//         .fetch_one(&app.database)
-//         .await?;
-//         debug!("New level committed to the database");
-
-//         // Add user as author
-//         sqlx::query("INSERT INTO level_authors (user_id, level_id) VALUES (?, ?)")
-//             .bind(user.user_id)
-//             .bind(level_id)
-//             .execute(&app.database)
-//             .await?;
-
-//         level_id
-//     };
-
-//     // Check path
-//     let dir_path = app.config.groups_path.join("levels");
-//     std::fs::create_dir_all(&dir_path)?;
-//     let path = dir_path.join(level_id.to_string());
-//     debug!("Saving level file at {:?}", path);
-
-//     // let Some(music_path) = path.to_str() else {
-//     //     error!("Music path is not valid unicode");
-//     //     return Err(RequestError::Internal);
-//     // };
-
-//     if level.level_id.is_none() && path.exists() {
-//         error!("Duplicate level ID generated: {}", level_id);
-//         return Err(RequestError::Internal);
-//     }
-
-//     // Write to file
-//     std::fs::write(path, data)?;
-//     debug!("Saved level file successfully");
-
-//     Ok(Json(level_id))
-// }
 
 async fn download(
     State(app): State<Arc<App>>,
