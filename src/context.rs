@@ -85,7 +85,7 @@ impl MusicManager {
                 playing.effect.is_none() || playing.meta.id != music.meta.id
             })
         {
-            self.play_from(music, Duration::from_secs_f64(0.0));
+            self.play(music);
         }
     }
 
@@ -96,9 +96,13 @@ impl MusicManager {
         }
     }
 
+    pub fn play(&self, music: &CachedMusic) {
+        self.play_from(music, Duration::from_secs_f64(0.0))
+    }
+
     pub fn play_from(&self, music: &CachedMusic, time: Duration) {
         let mut inner = self.inner.borrow_mut();
-        let mut music = Music::new(music.music.clone(), music.meta.clone());
+        let mut music = Music::from_cache(music);
         music.set_volume(inner.volume);
         music.play_from(time);
         inner.playing = Some(music);
@@ -172,23 +176,11 @@ impl Music {
         self.timer = Time::ZERO;
     }
 
-    pub fn play(&mut self) {
-        self.stop();
-        let mut effect = self.sound.effect();
-        effect.set_volume(self.volume);
-        effect.play();
-        self.effect = Some(effect);
-    }
-
     pub fn play_from(&mut self, time: time::Duration) {
         self.stop();
         let mut effect = self.sound.effect();
         effect.set_volume(self.volume);
         effect.play_from(time);
         self.effect = Some(effect);
-    }
-
-    pub fn beat_time(&self) -> Time {
-        self.meta.beat_time()
     }
 }

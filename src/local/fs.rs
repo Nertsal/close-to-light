@@ -1,3 +1,5 @@
+use crate::assets::MusicAssets;
+
 use super::*;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -69,21 +71,10 @@ pub fn generate_group_path(group: Id) -> PathBuf {
 impl CachedMusic {
     pub async fn load(manager: &geng::asset::Manager, path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-
-        let meta_path = path.join("meta.toml");
-        let meta: MusicInfo = file::load_detect(&meta_path).await?;
-
-        let file_path = path.join("music.mp3");
-        let file: geng::Sound = geng::asset::Load::load(
-            manager,
-            &file_path,
-            &geng::asset::SoundOptions { looped: false },
-        )
-        .await?;
-
+        let assets: MusicAssets = geng::asset::Load::load(manager, path, &()).await?;
         Ok(Self {
-            meta,
-            music: Rc::new(file),
+            meta: assets.meta,
+            music: Rc::new(assets.music),
         })
     }
 }
