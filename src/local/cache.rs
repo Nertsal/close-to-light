@@ -211,6 +211,11 @@ impl LevelCache {
         inner.music.get(&music_id).cloned()
     }
 
+    pub fn get_group(&self, group: Index) -> Option<Rc<CachedGroup>> {
+        let inner = self.inner.borrow();
+        inner.groups.get(group).cloned()
+    }
+
     pub fn get_level(&self, group: Index, level: usize) -> Option<Rc<LevelFull>> {
         let inner = self.inner.borrow();
         inner
@@ -255,7 +260,7 @@ impl LevelCache {
                 }
             };
 
-            let origin_hash = if group.id == 0 {
+            let origin = if group.id == 0 {
                 None
             } else if let Some(client) = self.client() {
                 match client.get_group_info(group.id).await {
@@ -263,18 +268,25 @@ impl LevelCache {
                         log::error!("failed to check group info: {:?}", err);
                         None
                     }
-                    Ok(info) => Some(info.hash),
+                    Ok(info) => Some(info),
                 }
             } else {
                 None
             };
+
+            let level_hashes = group
+                .levels
+                .iter()
+                .map(|level| level.data.calculate_hash())
+                .collect();
 
             let group = CachedGroup {
                 path: group_path,
                 music: music.clone(),
                 hash,
                 data: group,
-                origin_hash,
+                origin,
+                level_hashes,
             };
 
             Ok((music, group))
@@ -349,6 +361,7 @@ impl LevelCache {
 
                 let future = async move {
                     // Download group
+                    let info = client.get_group_info(group_id).await?;
                     let bytes = client.download_group(group_id).await?.to_vec();
                     let hash = ctl_client::core::util::calculate_hash(&bytes);
                     let data: LevelSet = bincode::deserialize(&bytes)?;
@@ -379,12 +392,19 @@ impl LevelCache {
                         }
                     };
 
+                    let level_hashes = data
+                        .levels
+                        .iter()
+                        .map(|level| level.data.calculate_hash())
+                        .collect();
+
                     let group = CachedGroup {
                         path: fs::generate_group_path(data.id),
                         music: Some(music),
                         data,
-                        origin_hash: Some(hash.clone()),
+                        origin: Some(info),
                         hash,
+                        level_hashes,
                     };
 
                     #[cfg(not(target_arch = "wasm32"))]
@@ -481,18 +501,18 @@ impl LevelCache {
             *level = Rc::new(lvl);
         }
         new_group.id = info.id;
-        new_group.owner = info.owner;
+        new_group.owner = info.owner.clone();
 
         drop(inner);
 
-        self.update_group(group_index, new_group, true)
+        self.update_group(group_index, new_group, Some(info))
     }
 
     pub fn update_group(
         &self,
         group_index: Index,
         group: LevelSet,
-        reset_origin: bool,
+        reset_origin: Option<GroupInfo>,
     ) -> Option<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
         let cached = inner.groups.get_mut(group_index)?;
@@ -503,9 +523,14 @@ impl LevelCache {
         let old_path = new_group.path.clone();
 
         new_group.hash = group.calculate_hash();
-        if reset_origin {
-            new_group.origin_hash = Some(new_group.hash.clone());
+        if let Some(info) = reset_origin {
+            new_group.origin = Some(info);
         }
+        new_group.level_hashes = group
+            .levels
+            .iter()
+            .map(|level| level.data.calculate_hash())
+            .collect();
         new_group.data = group;
         new_group.path = fs::generate_group_path(new_group.data.id);
 
@@ -542,7 +567,7 @@ impl LevelCache {
         });
 
         drop(inner);
-        let group = self.update_group(group_index, new_group, false)?;
+        let group = self.update_group(group_index, new_group, None)?;
         let level = group.data.levels.get(level_index)?.clone();
         Some((group, level))
     }
@@ -568,7 +593,7 @@ impl LevelCache {
                 let _level = new_group.levels.remove(level);
 
                 drop(inner);
-                self.update_group(group_index, new_group, false);
+                self.update_group(group_index, new_group, None);
             }
         }
     }

@@ -38,7 +38,7 @@ pub struct SyncWidget {
     task_group_info: TaskRes<GroupInfo>,
     /// Returns group and level index and the new group and level id.
     task_group_upload: TaskRes<(Index, GroupInfo)>,
-    task_group_download: TaskRes<LevelSet>,
+    task_group_download: TaskRes<(LevelSet, GroupInfo)>,
 }
 
 impl SyncWidget {
@@ -168,8 +168,10 @@ impl StatefulWidget for SyncWidget {
                         self.response.text = format!("{}", err).into();
                     }
                 }
-                Ok(Ok(group)) => {
-                    if let Some(group) = state.update_group(self.cached_group_index, group, true) {
+                Ok(Ok((group, info))) => {
+                    if let Some(group) =
+                        state.update_group(self.cached_group_index, group, Some(info))
+                    {
                         self.cached_group = group;
                         self.reload = true;
                     }
@@ -246,9 +248,10 @@ impl StatefulWidget for SyncWidget {
             } else if let Some(client) = state.client() {
                 let group_id = self.cached_group.data.id;
                 let future = async move {
+                    let info = client.get_group_info(group_id).await?;
                     let bytes = client.download_group(group_id).await?;
                     let group: LevelSet = bincode::deserialize(&bytes)?;
-                    Ok(group)
+                    Ok((group, info))
                 };
                 self.task_group_download = Some(Task::new(&self.geng, future));
             }

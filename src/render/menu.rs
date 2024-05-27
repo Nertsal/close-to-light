@@ -155,6 +155,14 @@ impl MenuRender {
             self.draw_add_menu(&ui.add_group.menu, theme, framebuffer);
         } else if ui.tab_levels.selected {
             for level in &ui.grid_levels {
+                self.ui.draw_icon(&level.edited, framebuffer);
+                self.ui.draw_icon(&level.local, framebuffer);
+                self.ui.draw_outline(
+                    level.state.position,
+                    self.font_size * 0.2,
+                    theme.light,
+                    framebuffer,
+                );
                 let selected = state.selected_level.as_ref().map(|m| m.data) == Some(level.index);
                 self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
                 self.draw_item_menu(&level.menu, theme, framebuffer);

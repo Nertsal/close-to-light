@@ -20,8 +20,9 @@ pub struct CachedGroup {
     pub music: Option<Rc<CachedMusic>>,
     pub data: LevelSet,
     pub hash: String,
-    /// The hash of the group on the server, if uploaded.
-    pub origin_hash: Option<String>,
+    /// The server version the group on the server, if uploaded.
+    pub origin: Option<GroupInfo>,
+    pub level_hashes: Vec<String>,
 }
 
 impl Debug for CachedMusic {

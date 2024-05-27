@@ -78,12 +78,19 @@ impl CachedMusic {
 
 impl CachedGroup {
     pub fn new(data: LevelSet) -> Self {
+        let level_hashes = data
+            .levels
+            .iter()
+            .map(|level| level.data.calculate_hash())
+            .collect();
+
         Self {
             path: fs::generate_group_path(data.id),
             music: None,
             hash: data.calculate_hash(),
-            origin_hash: None,
+            origin: None,
             data,
+            level_hashes,
         }
     }
 }

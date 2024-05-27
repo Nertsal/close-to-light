@@ -327,14 +327,7 @@ impl LevelSelectUI {
         let group_idx = state.switch_group;
         let levels: Vec<_> = group_idx
             .and_then(|group| local.groups.get(group))
-            .map(|group| {
-                group
-                    .data
-                    .levels
-                    .iter()
-                    .sorted_by_key(|level| level.meta.id)
-                    .cloned()
-            })
+            .map(|group| group.data.levels.clone())
             .into_iter()
             .flatten()
             .collect();
@@ -357,14 +350,19 @@ impl LevelSelectUI {
             }
         }
 
+        let group_idx = group_idx?;
+        let group = state.context.local.get_group(group_idx)?;
+
         // Synchronize data
-        for (widget, (levels_id, cache)) in
+        for (widget, (level_id, cached)) in
             self.grid_levels.iter_mut().zip(levels.iter().enumerate())
         {
-            widget.index = levels_id;
-            widget.group = group_idx.unwrap();
-            widget.level = cache.clone();
-            widget.text.text = cache.meta.name.clone();
+            let origin_hash = group
+                .origin
+                .as_ref()
+                .and_then(|info| info.levels.get(level_id).map(|level| &level.hash));
+            let edited = group.level_hashes.get(level_id) != origin_hash;
+            widget.sync(group_idx, level_id, cached, edited);
         }
 
         drop(local);
@@ -489,7 +487,6 @@ pub struct ItemGroupWidget {
     pub state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
-    pub item_state: WidgetState,
     pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
@@ -501,7 +498,6 @@ impl ItemGroupWidget {
             state: WidgetState::new(),
             edited: IconWidget::new(&assets.sprites.star),
             local: IconWidget::new(&assets.sprites.local),
-            item_state: WidgetState::new(),
             menu: ItemMenuWidget::new(assets),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             index,
@@ -517,9 +513,9 @@ impl ItemGroupWidget {
         } else {
             self.local.hide();
             if cached
-                .origin_hash
+                .origin
                 .as_ref()
-                .map_or(false, |hash| *hash != cached.hash)
+                .map_or(false, |info| info.hash != cached.hash)
             {
                 self.edited.show();
             } else {
@@ -579,6 +575,8 @@ impl ItemGroupWidget {
 #[derive(Clone)]
 pub struct ItemLevelWidget {
     pub state: WidgetState,
+    pub edited: IconWidget,
+    pub local: IconWidget,
     pub text: TextWidget,
     pub group: Index,
     pub index: usize,
@@ -596,6 +594,8 @@ impl ItemLevelWidget {
     ) -> Self {
         Self {
             state: WidgetState::new(),
+            edited: IconWidget::new(&assets.sprites.star),
+            local: IconWidget::new(&assets.sprites.local),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             group,
             index,
@@ -604,9 +604,33 @@ impl ItemLevelWidget {
         }
     }
 
+    pub fn sync(
+        &mut self,
+        group_idx: Index,
+        level_index: usize,
+        cached: &Rc<LevelFull>,
+        edited: bool,
+    ) {
+        self.index = level_index;
+        self.group = group_idx;
+        self.level = cached.clone();
+        self.text.text = cached.meta.name.clone();
+        if cached.meta.id == 0 {
+            self.local.show();
+            self.edited.hide();
+        } else {
+            self.local.hide();
+            if edited {
+                self.edited.show();
+            } else {
+                self.edited.hide();
+            }
+        }
+    }
+
     fn update(
         &mut self,
-        position: Aabb2<f32>,
+        mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
         if self.state.right_clicked {
@@ -625,6 +649,19 @@ impl ItemLevelWidget {
         }
 
         self.state.update(position, context);
+
+        let widgets = [&mut self.edited, &mut self.local];
+        if widgets.iter().any(|widget| widget.state.visible) {
+            let icons = position
+                .cut_left(position.height() / 2.0)
+                .extend_left(-context.font_size * 0.2)
+                .extend_symmetric(-vec2(0.0, context.font_size * 0.15));
+            let positions = icons.split_rows(widgets.len());
+            for (widget, pos) in widgets.into_iter().zip(positions) {
+                widget.update(pos, context);
+            }
+        }
+
         self.text.update(position, &mut context.scale_font(0.9));
 
         let mut action = None;
