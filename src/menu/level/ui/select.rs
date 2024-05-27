@@ -247,9 +247,7 @@ impl LevelSelectUI {
         let groups: Vec<_> = local
             .groups
             .iter()
-            .filter(|(_, group)| {
-                Some(group.data.music) == state.selected_music.as_ref().map(|m| m.data)
-            })
+            .filter(|(_, group)| Some(group.data.music) == state.switch_music)
             .sorted_by_key(|(_, group)| group.data.id)
             .collect();
 
@@ -327,7 +325,7 @@ impl LevelSelectUI {
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
         let local = state.context.local.inner.borrow();
-        let group_idx = state.selected_group.as_ref().map(|group| group.data);
+        let group_idx = state.switch_group;
         let levels: Vec<_> = group_idx
             .and_then(|group| local.groups.get(group))
             .map(|group| {
