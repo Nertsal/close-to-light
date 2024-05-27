@@ -101,8 +101,10 @@ impl Leaderboard {
         leaderboard
     }
 
-    pub fn client(&self) -> Option<&Nertboard> {
-        self.client.as_deref()
+    pub fn is_online(&self) -> bool {
+        self.client
+            .as_ref()
+            .map_or(false, |client| client.is_online())
     }
 
     pub fn login_discord(&mut self) {

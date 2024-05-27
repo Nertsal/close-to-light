@@ -12,6 +12,8 @@ use ctl_core::{
     ScoreEntry, SubmitScore,
 };
 
+use std::sync::atomic::AtomicBool;
+
 use reqwest::{Client, Response, StatusCode, Url};
 use tokio_util::bytes::Bytes;
 
@@ -20,6 +22,7 @@ pub type Result<T, E = ClientError> = std::result::Result<T, E>;
 pub struct Nertboard {
     url: Url,
     client: Client,
+    online: AtomicBool,
 }
 
 impl Nertboard {
@@ -32,7 +35,20 @@ impl Nertboard {
         Ok(Self {
             url: url.into_url()?,
             client,
+            online: AtomicBool::new(false),
         })
+    }
+
+    /// Whether the server is currently online.
+    pub fn is_online(&self) -> bool {
+        self.online.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    fn check(&self, response: Result<Response, reqwest::Error>) -> Result<Response> {
+        let online = !matches!(&response, Err(err) if err.is_connect());
+        self.online
+            .swap(online, std::sync::atomic::Ordering::Relaxed);
+        Ok(response?)
     }
 
     /// Helper function to send simple get requests expecting json response.
@@ -40,7 +56,7 @@ impl Nertboard {
         let url = self.url.join(url).unwrap();
         let req = self.client.get(url);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -49,7 +65,7 @@ impl Nertboard {
         let url = self.url.join(&format!("level/{}/scores", level)).unwrap();
         let req = self.client.get(url);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -60,7 +76,7 @@ impl Nertboard {
             .post(self.url.join(&format!("level/{}/scores", level)).unwrap())
             .json(entry);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         get_body(response).await?;
         // TODO: check returned error
         Ok(())
@@ -70,7 +86,7 @@ impl Nertboard {
         let url = self.url.join(&format!("level/{}", level)).unwrap();
         let req = self.client.get(url);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -80,7 +96,7 @@ impl Nertboard {
         let body = bincode::serialize(group)?;
         let req = self.client.post(url).body(body);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -105,7 +121,7 @@ impl Nertboard {
         let url = self.url.join(&format!("music/{}/download", music)).unwrap();
         let req = self.client.get(url);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let response = error_for_status(response).await?;
         Ok(response.bytes().await?)
     }
@@ -114,7 +130,7 @@ impl Nertboard {
         let url = self.url.join(&format!("group/{}/download", group)).unwrap();
         let req = self.client.get(url);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let response = error_for_status(response).await?;
         Ok(response.bytes().await?)
     }
@@ -124,7 +140,7 @@ impl Nertboard {
 
         let req = self.client.patch(url).json(update);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         get_body(response).await?;
         Ok(())
     }
@@ -134,7 +150,7 @@ impl Nertboard {
 
         let req = self.client.post(url).query(&[("id", artist)]);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         get_body(response).await?;
         Ok(())
     }
@@ -144,7 +160,7 @@ impl Nertboard {
 
         let req = self.client.delete(url).query(&[("id", artist)]);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         get_body(response).await?;
         Ok(())
     }
@@ -154,7 +170,7 @@ impl Nertboard {
 
         let req = self.client.post(url).form(&artist);
 
-        let response = req.send().await?;
+        let response = self.check(req.send().await)?;
         let res = read_json(response).await?;
         Ok(res)
     }

@@ -361,7 +361,8 @@ impl LevelSelectUI {
                 .origin
                 .as_ref()
                 .and_then(|info| info.levels.get(level_id).map(|level| &level.hash));
-            let edited = group.level_hashes.get(level_id) != origin_hash;
+            let edited =
+                origin_hash.map_or(false, |hash| Some(hash) != group.level_hashes.get(level_id));
             widget.sync(group_idx, level_id, cached, edited);
         }
 

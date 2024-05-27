@@ -64,7 +64,7 @@ impl StatefulWidget for ProfileWidget {
         let margin = context.layout_size * 0.5;
         let main = position.extend_uniform(-margin);
 
-        let (off, reg, log) = match (state.client().is_some(), state.user.is_some()) {
+        let (off, reg, log) = match (state.is_online(), state.user.is_some()) {
             (false, _) => (true, false, false),
             (true, false) => (false, true, false),
             (true, true) => (false, false, true),
