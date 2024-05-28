@@ -125,6 +125,7 @@ impl Leaderboard {
                 );
                 if let Err(err) = webbrowser::open(&url) {
                     log::error!("failed to open login link: {:?}", err);
+                    return Err(ctl_client::ClientError::Connection);
                 }
                 client.login_external(state).await
             };
