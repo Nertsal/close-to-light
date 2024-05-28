@@ -2,6 +2,23 @@ use super::*;
 
 impl EditorState {
     pub fn handle_event(&mut self, event: geng::Event) {
+        match &event {
+            geng::Event::EditText(text) => {
+                self.ui_context.text_edit.text.clone_from(text);
+            }
+            geng::Event::CursorMove { position } => {
+                self.ui_context.cursor.cursor_move(position.as_f32());
+            }
+            geng::Event::Wheel { delta } => {
+                self.ui_context.cursor.scroll += *delta as f32;
+            }
+            _ => (),
+        }
+
+        if !self.ui.edit.state.visible {
+            return;
+        }
+
         let window = self.context.geng.window();
         let ctrl = window.is_key_pressed(geng::Key::ControlLeft);
         let shift = window.is_key_pressed(geng::Key::ShiftLeft);
@@ -200,7 +217,6 @@ impl EditorState {
             },
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
-                self.ui_context.cursor.scroll += delta;
                 if !self.ui_focused && self.ui.edit.state.visible {
                     let scroll = r32(delta.signum());
                     if ctrl {
@@ -261,8 +277,7 @@ impl EditorState {
                     }
                 }
             }
-            geng::Event::CursorMove { position } => {
-                self.ui_context.cursor.cursor_move(position.as_f32());
+            geng::Event::CursorMove { .. } => {
                 if let Some(drag) = &mut self.drag {
                     drag.moved = true;
                 }

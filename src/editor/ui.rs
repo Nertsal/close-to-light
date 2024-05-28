@@ -38,7 +38,10 @@ pub struct EditorConfigWidget {
     pub offset: ValueWidget<Time>,
 
     pub music: TextWidget,
-    pub level: TextWidget, // TODO: input
+    pub level: TextWidget,
+    pub level_name: InputWidget,
+    pub level_delete: ButtonWidget,
+    pub level_create: ButtonWidget,
 
     pub timeline: TextWidget,
     /// Normal time scroll.
@@ -196,8 +199,12 @@ impl EditorUI {
 
         let main = main.extend_down(-layout_size).extend_up(-layout_size * 3.0);
 
-        self.edit.update(main, context, editor);
-        self.config.update(main, context, editor);
+        if self.edit.state.visible {
+            self.edit.update(main, context, editor);
+        }
+        if self.config.state.visible {
+            self.config.update(main, context, editor);
+        }
 
         context.can_focus
     }
@@ -521,7 +528,10 @@ impl EditorConfigWidget {
             offset: ValueWidget::new("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
 
             music: TextWidget::new("Music"),
-            level: TextWidget::new("Level"),
+            level: TextWidget::new("Difficulty"),
+            level_name: InputWidget::new("Name", false),
+            level_delete: ButtonWidget::new("Delete"),
+            level_create: ButtonWidget::new("Create"),
 
             timeline: TextWidget::new("Timeline"),
             scroll_by: ValueWidget::new("Scroll by", r32(1.0), r32(0.25)..=r32(4.0), r32(0.25)),
@@ -575,9 +585,21 @@ impl StatefulWidget for EditorConfigWidget {
         self.music.text = format!("Music: {}", state.static_level.music.meta.name).into();
         self.music.update(music, context);
 
+        bar.cut_top(context.layout_size);
+
         let level = bar.cut_top(context.font_size);
-        self.level.text = format!("Level: {}", state.static_level.level.meta.name).into();
         self.level.update(level, context);
+
+        let name = bar.cut_top(context.font_size);
+        self.level_name.sync(&state.name, context);
+        self.level_name.update(name, context);
+        state.name.clone_from(&self.level_name.raw);
+
+        let delete = bar.cut_top(context.font_size);
+        self.level_delete.update(delete, context);
+
+        let create = bar.cut_top(context.font_size);
+        self.level_create.update(create, context);
 
         let mut bar = columns[2];
         let timeline = bar.cut_top(context.font_size);

@@ -83,6 +83,9 @@ impl EditorRender {
 
         self.ui.draw_text(&ui.music, framebuffer);
         self.ui.draw_text(&ui.level, framebuffer);
+        self.ui.draw_input(&ui.level_name, framebuffer);
+        self.ui.draw_button(&ui.level_delete, framebuffer);
+        self.ui.draw_button(&ui.level_create, framebuffer);
 
         self.ui.draw_text(&ui.timeline, framebuffer);
         self.ui.draw_value(&ui.scroll_by, framebuffer);

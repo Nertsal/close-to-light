@@ -24,6 +24,21 @@ impl InputWidget {
             raw: String::new(),
         }
     }
+
+    pub fn sync(&mut self, text: &str, context: &mut UiContext) {
+        if self.raw == text {
+            return;
+        }
+
+        text.clone_into(&mut self.raw);
+        self.text.text = self.raw.clone().into();
+        if self
+            .edit_id
+            .map_or(false, |id| context.text_edit.is_active(id))
+        {
+            self.edit_id = Some(context.text_edit.edit(&self.raw));
+        }
+    }
 }
 
 impl Widget for InputWidget {
@@ -42,7 +57,7 @@ impl Widget for InputWidget {
             .edit_id
             .map_or(false, |id| context.text_edit.is_active(id))
         {
-            self.raw = context.text_edit.text.clone();
+            self.raw.clone_from(&context.text_edit.text);
             self.text.text = if self.hide_input {
                 "*".repeat(context.text_edit.text.len()).into()
             } else {

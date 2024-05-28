@@ -87,6 +87,7 @@ pub struct Editor {
     pub static_level: PlayLevel,
     /// Current state of the level.
     pub level: Level,
+    pub name: String,
     pub music_timer: Time,
 
     /// Simulation model.
@@ -176,6 +177,7 @@ impl EditorState {
                 config,
                 model,
                 level: level.level.data.clone(),
+                name: level.level.meta.name.to_string(),
                 static_level: level,
                 music_timer: Time::ZERO,
             },
@@ -284,6 +286,7 @@ impl EditorState {
             self.editor.static_level.group_index,
             self.editor.static_level.level_index,
             self.editor.level.clone(),
+            self.editor.name.clone(),
         ) {
             self.editor.model.level.level = cached;
             log::info!("Saved the level successfully");

@@ -557,14 +557,15 @@ impl LevelCache {
         group_index: Index,
         level_index: usize,
         level: Level,
+        name: String,
     ) -> Option<(Rc<CachedGroup>, Rc<LevelFull>)> {
         let inner = self.inner.borrow();
         let mut new_group = inner.groups.get(group_index)?.data.clone();
         let new_level = new_group.levels.get_mut(level_index)?;
-        *new_level = Rc::new(LevelFull {
-            meta: new_level.meta.clone(),
-            data: level,
-        });
+
+        let mut meta = new_level.meta.clone();
+        meta.name = name.into();
+        *new_level = Rc::new(LevelFull { meta, data: level });
 
         drop(inner);
         let group = self.update_group(group_index, new_group, None)?;
