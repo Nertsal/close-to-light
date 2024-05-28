@@ -4,7 +4,7 @@ impl EditorRender {
     pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI) {
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = editor.model.options.theme;
+        let theme = editor.options.theme;
 
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
@@ -76,7 +76,7 @@ impl EditorRender {
 
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = editor.model.options.theme;
+        let theme = editor.options.theme;
 
         self.ui.draw_text(&ui.timing, framebuffer);
         self.ui.draw_value(&ui.bpm, framebuffer);
@@ -109,6 +109,9 @@ impl EditorRender {
         if !ui.state.visible {
             return;
         }
+        let Some(level_editor) = &editor.level_edit else {
+            return;
+        };
 
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
@@ -173,12 +176,12 @@ impl EditorRender {
             }
 
             // Light timespan
-            let event = if let State::Waypoints { event, .. } = editor.state {
+            let event = if let State::Waypoints { event, .. } = level_editor.state {
                 Some(event)
             } else {
-                editor.selected_light.map(|id| id.event)
+                level_editor.selected_light.map(|id| id.event)
             };
-            if let Some(event) = event.and_then(|i| editor.level.events.get(i)) {
+            if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
                 let from = event.beat;
                 if let Event::Light(event) = &event.event {
                     let from = from + event.telegraph.precede_time;

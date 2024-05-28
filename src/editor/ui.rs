@@ -192,7 +192,10 @@ impl EditorUI {
         }
 
         let unsaved = top_bar.cut_right(layout_size * 10.0);
-        if editor.model.level.level.data != editor.level {
+        let changed = editor.level_edit.as_ref().map_or(false, |level_editor| {
+            level_editor.model.level.level.data != level_editor.level
+        });
+        if changed {
             self.unsaved.show();
             self.unsaved.update(unsaved, context);
         } else {
@@ -260,6 +263,10 @@ impl StatefulWidget for EditorEditWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         let editor = state;
+        let Some(level_editor) = &mut editor.level_edit else {
+            return;
+        };
+
         let mut main = position;
         let font_size = context.font_size;
         let layout_size = context.layout_size;
@@ -297,21 +304,21 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.new_palette, palette);
             if self.new_palette.text.state.clicked {
-                editor.palette_swap();
+                level_editor.palette_swap();
             }
 
             let circle = bar.cut_top(button_height);
             bar.cut_top(spacing);
             update!(self.new_circle, circle);
             if self.new_circle.text.state.clicked {
-                editor.new_light_circle();
+                level_editor.new_light_circle();
             }
 
             let line = bar.cut_top(button_height);
             bar.cut_top(spacing);
             update!(self.new_line, line);
             if self.new_line.text.state.clicked {
-                editor.new_light_line();
+                level_editor.new_light_line();
             }
 
             bar.cut_top(layout_size * 1.5);
@@ -378,9 +385,9 @@ impl StatefulWidget for EditorEditWidget {
 
         {
             // Light
-            let selected = if let Some(selected_event) = editor
+            let selected = if let Some(selected_event) = level_editor
                 .selected_light
-                .and_then(|i| editor.level.events.get_mut(i.event))
+                .and_then(|i| level_editor.level.events.get_mut(i.event))
             {
                 if let Event::Light(event) = &mut selected_event.event {
                     Some(&mut event.light)
@@ -435,7 +442,7 @@ impl StatefulWidget for EditorEditWidget {
                     let waypoints = bar.cut_top(button_height);
                     update!(self.waypoint, waypoints);
                     if self.waypoint.text.state.clicked {
-                        editor.view_waypoints();
+                        level_editor.view_waypoints();
                     }
 
                     right_bar = bar.cut_top(spacing);
@@ -444,9 +451,9 @@ impl StatefulWidget for EditorEditWidget {
         }
 
         let mut waypoint = false;
-        if let Some(waypoints) = &editor.level_state.waypoints {
+        if let Some(waypoints) = &level_editor.level_state.waypoints {
             if let Some(selected) = waypoints.selected {
-                if let Some(event) = editor.level.events.get_mut(waypoints.event) {
+                if let Some(event) = level_editor.level.events.get_mut(waypoints.event) {
                     if let Event::Light(light) = &mut event.event {
                         if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                             // Waypoint
@@ -482,7 +489,7 @@ impl StatefulWidget for EditorEditWidget {
         {
             let current_beat = bottom_bar.cut_top(font_size * 1.5);
             update!(self.current_beat, current_beat);
-            self.current_beat.text = format!("Beat: {:.2}", editor.current_beat).into();
+            self.current_beat.text = format!("Beat: {:.2}", level_editor.current_beat).into();
 
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
@@ -490,13 +497,13 @@ impl StatefulWidget for EditorEditWidget {
 
             if self.timeline.state.pressed {
                 let time = self.timeline.get_cursor_time();
-                editor.scroll_time(time - editor.current_beat);
+                level_editor.scroll_time(time - level_editor.current_beat);
             }
-            let replay = editor
+            let replay = level_editor
                 .dynamic_segment
                 .as_ref()
                 .map(|replay| replay.current_beat);
-            self.timeline.update_time(editor.current_beat, replay);
+            self.timeline.update_time(level_editor.current_beat, replay);
 
             let select = context.mods.ctrl;
             if select {
@@ -505,7 +512,7 @@ impl StatefulWidget for EditorEditWidget {
                 } else if was_pressed && !self.timeline.state.pressed {
                     let (start_beat, end_beat) = self.timeline.end_selection();
                     if start_beat != end_beat {
-                        editor.dynamic_segment = Some(Replay {
+                        level_editor.dynamic_segment = Some(Replay {
                             start_beat,
                             end_beat,
                             current_beat: start_beat,
@@ -515,7 +522,7 @@ impl StatefulWidget for EditorEditWidget {
                 }
             }
 
-            self.timeline.auto_scale(editor.level.last_beat());
+            self.timeline.auto_scale(level_editor.level.last_beat());
         }
     }
 }
@@ -578,7 +585,7 @@ impl StatefulWidget for EditorConfigWidget {
         self.timing.update(timing, context);
 
         let bpm = bar.cut_top(context.font_size);
-        let mut bpm_value = state.static_level.group.music.meta.bpm;
+        let mut bpm_value = state.group.music.meta.bpm;
         self.bpm.update(bpm, context, &mut bpm_value); // TODO: remove
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
@@ -586,18 +593,25 @@ impl StatefulWidget for EditorConfigWidget {
 
         let mut bar = columns[1];
         let music = bar.cut_top(context.font_size);
-        self.music.text = format!("Music: {}", state.static_level.group.music.meta.name).into();
+        self.music.text = format!("Music: {}", state.group.music.meta.name).into();
         self.music.update(music, context);
 
         bar.cut_top(context.layout_size);
 
-        let level = bar.cut_top(context.font_size);
-        self.level.update(level, context);
+        if let Some(level_editor) = &mut state.level_edit {
+            let level = bar.cut_top(context.font_size);
+            self.level.show();
+            self.level.update(level, context);
 
-        let name = bar.cut_top(context.font_size);
-        self.level_name.sync(&state.name, context);
-        self.level_name.update(name, context);
-        state.name.clone_from(&self.level_name.raw);
+            let name = bar.cut_top(context.font_size);
+            self.level_name.sync(&level_editor.name, context);
+            self.level_name.show();
+            self.level_name.update(name, context);
+            level_editor.name.clone_from(&self.level_name.raw);
+        } else {
+            self.level.hide();
+            self.level_name.hide();
+        }
 
         let delete = bar.cut_top(context.font_size);
         self.level_delete.update(delete, context);

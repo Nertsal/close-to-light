@@ -10,7 +10,7 @@ pub use self::{
 };
 
 use crate::{
-    game::PlayLevel,
+    game::{PlayGroup, PlayLevel},
     leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
@@ -72,31 +72,18 @@ impl HistoryLabel {
     }
 }
 
-pub struct LevelEditor {}
+pub struct LevelEditor {
+    context: Context,
 
-pub struct Editor {
-    pub context: Context,
-    pub config: EditorConfig,
-    pub render_options: RenderOptions,
-    pub cursor_world_pos: vec2<Coord>,
-
-    /// Whether to exit the game on the next frame.
-    pub exit: bool,
-    /// Whether to save the game on the next frame.
-    pub save: bool,
-
-    pub level_edit: Option<LevelEditor>,
     /// Static (initial) version of the level.
     pub static_level: PlayLevel,
     /// Current state of the level.
     pub level: Level,
     pub name: String,
-    pub music_timer: Time,
 
     /// Simulation model.
     pub model: Model,
     pub level_state: EditorLevelState,
-    pub grid_size: Coord,
     pub current_beat: Time,
     pub real_time: Time,
     pub selected_light: Option<LightId>,
@@ -113,7 +100,6 @@ pub struct Editor {
     /// The scale at which the objects should be placed.
     pub place_scale: Coord,
 
-    pub view_zoom: f32,
     pub state: State,
     /// Whether the last frame was scrolled through time.
     pub was_scrolling_time: bool,
@@ -121,11 +107,31 @@ pub struct Editor {
     /// Used as a hack to not replay the music every frame.
     pub scrolling_time: bool,
 
+    /// If `Some`, specifies the segment of the level to replay dynamically.
+    pub dynamic_segment: Option<Replay>,
+}
+
+pub struct Editor {
+    pub context: Context,
+    pub options: Options,
+    pub config: EditorConfig,
+    pub render_options: RenderOptions,
+    pub cursor_world_pos: vec2<Coord>,
+
+    /// Whether to exit the game on the next frame.
+    pub exit: bool,
+    /// Whether to save the game on the next frame.
+    pub save: bool,
+
+    pub grid_size: Coord,
+    pub view_zoom: f32,
+    pub music_timer: Time,
     pub snap_to_grid: bool,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
-    /// If `Some`, specifies the segment of the level to replay dynamically.
-    pub dynamic_segment: Option<Replay>,
+
+    pub group: PlayGroup,
+    pub level_edit: Option<LevelEditor>,
 }
 
 #[derive(Debug)]
@@ -136,10 +142,38 @@ pub struct Replay {
     pub speed: Time,
 }
 
+impl LevelEditor {
+    pub fn new(context: Context, model: Model, level: PlayLevel, visualize_beat: bool) -> Self {
+        let mut editor = Self {
+            level_state: EditorLevelState::default(),
+            current_beat: Time::ZERO,
+            real_time: Time::ZERO,
+            selected_light: None,
+            place_rotation: Angle::ZERO,
+            place_scale: Coord::ONE,
+            state: State::Idle,
+            was_scrolling_time: false,
+            scrolling_time: false,
+            dynamic_segment: None,
+            buffer_state: level.level.data.clone(),
+            buffer_label: HistoryLabel::default(),
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
+            level: level.level.data.clone(),
+            name: level.level.meta.name.to_string(),
+            static_level: level,
+            model,
+            context,
+        };
+        editor.render_lights(vec2::ZERO, visualize_beat);
+        editor
+    }
+}
+
 impl EditorState {
     pub fn new(context: Context, config: EditorConfig, options: Options, level: PlayLevel) -> Self {
-        let model = Model::empty(context.clone(), options, level.clone());
-        let mut state = Self {
+        let model = Model::empty(context.clone(), options.clone(), level.clone());
+        Self {
             transition: None,
             render: EditorRender::new(&context.geng, &context.assets),
             framebuffer_size: vec2(1, 1),
@@ -154,150 +188,135 @@ impl EditorState {
                     show_grid: true,
                     hide_ui: false,
                 },
-                grid_size: r32(10.0) / config.grid.height,
                 cursor_world_pos: vec2::ZERO,
 
                 exit: false,
                 save: false,
 
-                level_edit: None,
-                level_state: EditorLevelState::default(),
-                current_beat: Time::ZERO,
-                real_time: Time::ZERO,
-                selected_light: None,
-                place_rotation: Angle::ZERO,
-                place_scale: Coord::ONE,
+                grid_size: r32(10.0) / config.grid.height,
                 view_zoom: 1.0,
-                state: State::Idle,
-                was_scrolling_time: false,
-                scrolling_time: false,
                 visualize_beat: true,
-                dynamic_segment: None,
                 snap_to_grid: true,
-                buffer_state: level.level.data.clone(),
-                buffer_label: HistoryLabel::default(),
-                undo_stack: Vec::new(),
-                redo_stack: Vec::new(),
-                config,
-                model,
-                level: level.level.data.clone(),
-                name: level.level.meta.name.to_string(),
-                static_level: level,
                 music_timer: Time::ZERO,
+
+                group: level.group.clone(),
+                level_edit: Some(LevelEditor::new(context.clone(), model, level, true)),
+                options,
+                config,
             },
             context,
-        };
-        state.editor.render_lights(state.editor.visualize_beat);
-        state
+        }
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
         (pos / self.editor.grid_size).map(Coord::round) * self.editor.grid_size
     }
 
+    fn update_level_editor(&mut self, delta_time: Time) {
+        let Some(level_editor) = &mut self.editor.level_edit else {
+            return;
+        };
+
+        self.context
+            .music
+            .set_volume(level_editor.model.options.volume.music());
+
+        level_editor.real_time += delta_time;
+
+        if self.editor.music_timer > Time::ZERO {
+            self.editor.music_timer -= delta_time;
+            if self.editor.music_timer <= Time::ZERO {
+                self.context.music.stop();
+            }
+        }
+
+        if let Some(waypoints) = &level_editor.level_state.waypoints {
+            if let Some(waypoint) = waypoints.selected {
+                if let Some(event) = level_editor.level.events.get(waypoints.event) {
+                    if let Event::Light(light) = &event.event {
+                        // Set current time to align with the selected waypoint
+                        if let Some(time) = light.light.movement.get_time(waypoint) {
+                            level_editor.current_beat =
+                                event.beat + light.telegraph.precede_time + time;
+                        }
+                    }
+                }
+            }
+        }
+
+        if level_editor.scrolling_time {
+            level_editor.was_scrolling_time = true;
+        } else {
+            if level_editor.was_scrolling_time {
+                // Stopped scrolling
+                // Play some music
+                self.context.music.play_from_beat(
+                    &level_editor.static_level.group.music,
+                    level_editor.current_beat,
+                );
+                self.editor.music_timer = level_editor.static_level.group.music.meta.beat_time()
+                    * self.editor.config.playback_duration;
+            }
+            level_editor.was_scrolling_time = false;
+        }
+
+        level_editor.scrolling_time = false;
+
+        if let State::Playing { .. } = level_editor.state {
+            level_editor.current_beat =
+                level_editor.real_time / level_editor.static_level.group.music.meta.beat_time();
+        } else if let Some(replay) = &mut level_editor.dynamic_segment {
+            replay.current_beat +=
+                replay.speed * delta_time / level_editor.static_level.group.music.meta.beat_time();
+            if replay.current_beat > replay.end_beat {
+                replay.current_beat = replay.start_beat;
+            }
+        }
+
+        level_editor.render_lights(self.editor.cursor_world_pos, self.editor.visualize_beat);
+
+        if std::mem::take(&mut self.editor.save) {
+            level_editor.save();
+        }
+
+        let pos = self.ui_context.cursor.position;
+        let pos = pos - self.ui.screen.position.bottom_left();
+        let pos = level_editor
+            .model
+            .camera
+            .screen_to_world(self.ui.screen.position.size(), pos)
+            .as_r32();
+        self.editor.cursor_world_pos = if self.editor.snap_to_grid {
+            self.snap_pos_grid(pos)
+        } else {
+            pos
+        };
+    }
+
     /// Start playing the game from the current time.
     fn play_game(&mut self) {
+        let Some(level_editor) = &self.editor.level_edit else {
+            return;
+        };
+
         let level = crate::game::PlayLevel {
-            start_time: self.editor.current_beat
-                * self.editor.static_level.group.music.meta.beat_time(), // TODO: nonlinear time
+            start_time: level_editor.current_beat
+                * level_editor.static_level.group.music.meta.beat_time(), // TODO: nonlinear time
             level: Rc::new(LevelFull {
-                meta: self.editor.static_level.level.meta.clone(),
-                data: self.editor.level.clone(),
+                meta: level_editor.static_level.level.meta.clone(),
+                data: level_editor.level.clone(),
             }),
-            ..self.editor.static_level.clone()
+            ..level_editor.static_level.clone()
         };
 
         self.transition = Some(geng::state::Transition::Push(Box::new(
             crate::game::Game::new(
                 self.context.clone(),
-                self.editor.model.options.clone(),
+                level_editor.model.options.clone(),
                 level,
                 Leaderboard::new(&self.context.geng, None),
             ),
         )));
-    }
-
-    fn undo(&mut self) {
-        match &mut self.editor.state {
-            State::Playing { .. } => {}
-            State::Movement {
-                light, redo_stack, ..
-            } => {
-                if let Some(frame) = light.light.movement.key_frames.pop_back() {
-                    redo_stack.push(frame);
-                }
-            }
-            State::Place { .. } => {}
-            State::Idle | State::Waypoints { .. } => {
-                if let Some(mut level) = self.editor.undo_stack.pop() {
-                    std::mem::swap(&mut level, &mut self.editor.level);
-                    self.editor.redo_stack.push(level);
-                    self.editor.buffer_state = self.editor.level.clone();
-                    self.editor.buffer_label = HistoryLabel::default();
-                }
-            }
-        }
-    }
-
-    fn redo(&mut self) {
-        match &mut self.editor.state {
-            State::Playing { .. } => {}
-            State::Movement {
-                light, redo_stack, ..
-            } => {
-                if let Some(frame) = redo_stack.pop() {
-                    light.light.movement.key_frames.push_back(frame);
-                }
-            }
-            State::Place { .. } => {}
-            State::Idle | State::Waypoints { .. } => {
-                if let Some(mut level) = self.editor.redo_stack.pop() {
-                    std::mem::swap(&mut level, &mut self.editor.level);
-                    self.editor.undo_stack.push(level);
-                    self.editor.buffer_state = self.editor.level.clone();
-                    self.editor.buffer_label = HistoryLabel::default();
-                }
-            }
-        }
-    }
-
-    fn save_state(&mut self, label: HistoryLabel) {
-        if self.editor.buffer_label.should_merge(&label)
-            || self.editor.level == self.editor.buffer_state
-        {
-            // State did not change or changes should be merged
-            return;
-        }
-
-        // if let Some(level) = self.editor.undo_stack.last() {
-        //     if level == &self.editor.level {
-        //         // State did not change - ignore
-        //         return;
-        //     }
-        // }
-
-        // Push the change
-        self.editor.buffer_label = label;
-        let mut state = self.editor.level.clone();
-        std::mem::swap(&mut state, &mut self.editor.buffer_state);
-
-        self.editor.undo_stack.push(state);
-        // TODO: limit capacity
-        self.editor.redo_stack.clear();
-    }
-
-    fn save(&mut self) {
-        if let Some((_, cached)) = self.editor.context.local.update_level(
-            self.editor.static_level.group.group_index,
-            self.editor.static_level.level_index,
-            self.editor.level.clone(),
-            self.editor.name.clone(),
-        ) {
-            self.editor.model.level.level = cached;
-            log::info!("Saved the level successfully");
-        } else {
-            log::error!("Failed to update the level cache");
-        }
     }
 }
 
@@ -309,86 +328,14 @@ impl geng::State for EditorState {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.delta_time = delta_time;
-        self.editor.real_time += delta_time;
-
-        self.context
-            .music
-            .set_volume(self.editor.model.options.volume.music());
 
         self.ui_context
             .update(self.context.geng.window(), delta_time.as_f32());
 
         self.update_drag();
 
-        if self.editor.music_timer > Time::ZERO {
-            self.editor.music_timer -= delta_time;
-            if self.editor.music_timer <= Time::ZERO {
-                self.context.music.stop();
-            }
-        }
+        self.update_level_editor(delta_time);
 
-        if let Some(waypoints) = &self.editor.level_state.waypoints {
-            if let Some(waypoint) = waypoints.selected {
-                if let Some(event) = self.editor.level.events.get(waypoints.event) {
-                    if let Event::Light(light) = &event.event {
-                        // Set current time to align with the selected waypoint
-                        if let Some(time) = light.light.movement.get_time(waypoint) {
-                            self.editor.current_beat =
-                                event.beat + light.telegraph.precede_time + time;
-                        }
-                    }
-                }
-            }
-        }
-
-        if self.editor.scrolling_time {
-            self.editor.was_scrolling_time = true;
-        } else {
-            if self.editor.was_scrolling_time {
-                // Stopped scrolling
-                // Play some music
-                self.context.music.play_from_beat(
-                    &self.editor.static_level.group.music,
-                    self.editor.current_beat,
-                );
-                self.editor.music_timer = self.editor.static_level.group.music.meta.beat_time()
-                    * self.editor.config.playback_duration;
-            }
-            self.editor.was_scrolling_time = false;
-        }
-
-        self.editor.scrolling_time = false;
-
-        if let State::Playing { .. } = self.editor.state {
-            self.editor.current_beat =
-                self.editor.real_time / self.editor.static_level.group.music.meta.beat_time();
-        } else if let Some(replay) = &mut self.editor.dynamic_segment {
-            replay.current_beat +=
-                replay.speed * delta_time / self.editor.static_level.group.music.meta.beat_time();
-            if replay.current_beat > replay.end_beat {
-                replay.current_beat = replay.start_beat;
-            }
-        }
-
-        let pos = self.ui_context.cursor.position;
-        let pos = pos - self.ui.screen.position.bottom_left();
-        let pos = self
-            .editor
-            .model
-            .camera
-            .screen_to_world(self.ui.screen.position.size(), pos)
-            .as_r32();
-        self.editor.cursor_world_pos = if self.editor.snap_to_grid {
-            self.snap_pos_grid(pos)
-        } else {
-            pos
-        };
-
-        self.editor.render_lights(self.editor.visualize_beat);
-
-        if std::mem::take(&mut self.editor.save) {
-            self.save();
-        }
         if std::mem::take(&mut self.editor.exit) {
             self.transition = Some(geng::state::Transition::Pop);
         }
@@ -408,7 +355,10 @@ impl geng::State for EditorState {
             &mut self.ui_context,
         );
         self.ui_context.frame_end();
-        self.editor.model.camera.fov = 10.0 / self.editor.view_zoom;
+
+        if let Some(level_editor) = &mut self.editor.level_edit {
+            level_editor.model.camera.fov = 10.0 / self.editor.view_zoom;
+        }
         self.render.draw_editor(&self.editor, &self.ui, framebuffer);
     }
 }
@@ -423,6 +373,89 @@ impl Editor {
     /// Save the level.
     fn save(&mut self) {
         self.save = true;
+    }
+}
+
+impl LevelEditor {
+    fn save(&mut self) {
+        if let Some((_, cached)) = self.context.local.update_level(
+            self.static_level.group.group_index,
+            self.static_level.level_index,
+            self.level.clone(),
+            self.name.clone(),
+        ) {
+            self.model.level.level = cached;
+            log::info!("Saved the level successfully");
+        } else {
+            log::error!("Failed to update the level cache");
+        }
+    }
+
+    fn undo(&mut self) {
+        match &mut self.state {
+            State::Playing { .. } => {}
+            State::Movement {
+                light, redo_stack, ..
+            } => {
+                if let Some(frame) = light.light.movement.key_frames.pop_back() {
+                    redo_stack.push(frame);
+                }
+            }
+            State::Place { .. } => {}
+            State::Idle | State::Waypoints { .. } => {
+                if let Some(mut level) = self.undo_stack.pop() {
+                    std::mem::swap(&mut level, &mut self.level);
+                    self.redo_stack.push(level);
+                    self.buffer_state = self.level.clone();
+                    self.buffer_label = HistoryLabel::default();
+                }
+            }
+        }
+    }
+
+    fn redo(&mut self) {
+        match &mut self.state {
+            State::Playing { .. } => {}
+            State::Movement {
+                light, redo_stack, ..
+            } => {
+                if let Some(frame) = redo_stack.pop() {
+                    light.light.movement.key_frames.push_back(frame);
+                }
+            }
+            State::Place { .. } => {}
+            State::Idle | State::Waypoints { .. } => {
+                if let Some(mut level) = self.redo_stack.pop() {
+                    std::mem::swap(&mut level, &mut self.level);
+                    self.undo_stack.push(level);
+                    self.buffer_state = self.level.clone();
+                    self.buffer_label = HistoryLabel::default();
+                }
+            }
+        }
+    }
+
+    fn save_state(&mut self, label: HistoryLabel) {
+        if self.buffer_label.should_merge(&label) || self.level == self.buffer_state {
+            // State did not change or changes should be merged
+            return;
+        }
+
+        // if let Some(level) = self.editor.undo_stack.last() {
+        //     if level == &self.editor.level {
+        //         // State did not change - ignore
+        //         return;
+        //     }
+        // }
+
+        // Push the change
+        self.buffer_label = label;
+        let mut state = self.level.clone();
+        std::mem::swap(&mut state, &mut self.buffer_state);
+
+        self.undo_stack.push(state);
+        // TODO: limit capacity
+        self.redo_stack.clear();
     }
 
     /// Swap the palette at current time.
@@ -496,7 +529,7 @@ impl Editor {
         self.scrolling_time = true;
     }
 
-    pub fn render_lights(&mut self, visualize_beat: bool) {
+    pub fn render_lights(&mut self, cursor_world_pos: vec2<Coord>, visualize_beat: bool) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
             (None, Some(self.current_beat))
@@ -545,7 +578,7 @@ impl Editor {
                 hovered_light = level
                     .lights
                     .iter()
-                    .position(|light| light.collider.contains(self.cursor_world_pos));
+                    .position(|light| light.collider.contains(cursor_world_pos));
             }
         }
 
@@ -608,7 +641,7 @@ impl Editor {
                                     visible: true,
                                     original: None,
                                     collider: base_collider.transformed(Transform {
-                                        translation: self.cursor_world_pos,
+                                        translation: cursor_world_pos,
                                         rotation: self.place_rotation,
                                         scale: self.place_scale,
                                     }),
@@ -621,7 +654,7 @@ impl Editor {
                     let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
 
                     let hovered = points.iter().position(|point| {
-                        point.visible && point.collider.contains(self.cursor_world_pos)
+                        point.visible && point.collider.contains(cursor_world_pos)
                     });
 
                     waypoints = Some(Waypoints {
