@@ -45,7 +45,8 @@ impl Nertboard {
     }
 
     fn check(&self, response: Result<Response, reqwest::Error>) -> Result<Response> {
-        let online = !matches!(&response, Err(err) if err.is_connect());
+        // let online = !matches!(&response, Err(err) if err.is_connect()); // TODO: fix web
+        let online = response.is_ok();
         self.online
             .swap(online, std::sync::atomic::Ordering::Relaxed);
         Ok(response?)

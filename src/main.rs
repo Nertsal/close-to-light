@@ -73,7 +73,9 @@ fn main() {
 }
 
 async fn async_main() {
-    logger::init();
+    let mut builder = logger::builder();
+    builder.filter_level(log::LevelFilter::Debug);
+    logger::init_with(builder).expect("failed to initialize logger");
     geng::setup_panic_handler();
 
     let opts: Opts = batbox::cli::parse();
