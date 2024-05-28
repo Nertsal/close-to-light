@@ -23,12 +23,17 @@ pub struct Game {
 }
 
 #[derive(Debug, Clone)]
-pub struct PlayLevel {
+pub struct PlayGroup {
     pub group_index: Index,
+    pub music: Rc<CachedMusic>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlayLevel {
+    pub group: PlayGroup,
     pub level_index: usize,
     pub level: Rc<LevelFull>,
     pub config: LevelConfig,
-    pub music: Rc<CachedMusic>,
     pub start_time: Time,
 }
 

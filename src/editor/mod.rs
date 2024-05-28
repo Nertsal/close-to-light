@@ -72,6 +72,8 @@ impl HistoryLabel {
     }
 }
 
+pub struct LevelEditor {}
+
 pub struct Editor {
     pub context: Context,
     pub config: EditorConfig,
@@ -83,6 +85,7 @@ pub struct Editor {
     /// Whether to save the game on the next frame.
     pub save: bool,
 
+    pub level_edit: Option<LevelEditor>,
     /// Static (initial) version of the level.
     pub static_level: PlayLevel,
     /// Current state of the level.
@@ -157,6 +160,7 @@ impl EditorState {
                 exit: false,
                 save: false,
 
+                level_edit: None,
                 level_state: EditorLevelState::default(),
                 current_beat: Time::ZERO,
                 real_time: Time::ZERO,
@@ -194,7 +198,8 @@ impl EditorState {
     /// Start playing the game from the current time.
     fn play_game(&mut self) {
         let level = crate::game::PlayLevel {
-            start_time: self.editor.current_beat * self.editor.static_level.music.meta.beat_time(), // TODO: nonlinear time
+            start_time: self.editor.current_beat
+                * self.editor.static_level.group.music.meta.beat_time(), // TODO: nonlinear time
             level: Rc::new(LevelFull {
                 meta: self.editor.static_level.level.meta.clone(),
                 data: self.editor.level.clone(),
@@ -283,7 +288,7 @@ impl EditorState {
 
     fn save(&mut self) {
         if let Some((_, cached)) = self.editor.context.local.update_level(
-            self.editor.static_level.group_index,
+            self.editor.static_level.group.group_index,
             self.editor.static_level.level_index,
             self.editor.level.clone(),
             self.editor.name.clone(),
@@ -342,10 +347,11 @@ impl geng::State for EditorState {
             if self.editor.was_scrolling_time {
                 // Stopped scrolling
                 // Play some music
-                self.context
-                    .music
-                    .play_from_beat(&self.editor.static_level.music, self.editor.current_beat);
-                self.editor.music_timer = self.editor.static_level.music.meta.beat_time()
+                self.context.music.play_from_beat(
+                    &self.editor.static_level.group.music,
+                    self.editor.current_beat,
+                );
+                self.editor.music_timer = self.editor.static_level.group.music.meta.beat_time()
                     * self.editor.config.playback_duration;
             }
             self.editor.was_scrolling_time = false;
@@ -355,10 +361,10 @@ impl geng::State for EditorState {
 
         if let State::Playing { .. } = self.editor.state {
             self.editor.current_beat =
-                self.editor.real_time / self.editor.static_level.music.meta.beat_time();
+                self.editor.real_time / self.editor.static_level.group.music.meta.beat_time();
         } else if let Some(replay) = &mut self.editor.dynamic_segment {
             replay.current_beat +=
-                replay.speed * delta_time / self.editor.static_level.music.meta.beat_time();
+                replay.speed * delta_time / self.editor.static_level.group.music.meta.beat_time();
             if replay.current_beat > replay.end_beat {
                 replay.current_beat = replay.start_beat;
             }
@@ -500,7 +506,10 @@ impl Editor {
                 if let Some(replay) = &self.dynamic_segment {
                     Some(replay.current_beat)
                 } else {
-                    Some(time + (self.real_time / self.static_level.music.meta.beat_time()).fract())
+                    Some(
+                        time + (self.real_time / self.static_level.group.music.meta.beat_time())
+                            .fract(),
+                    )
                 }
             } else {
                 None

@@ -6,7 +6,7 @@ impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
         log::info!("Starting at the requested time {:.2}...", target_time);
-        self.beat_time = target_time / self.level.music.meta.beat_time();
+        self.beat_time = target_time / self.level.group.music.meta.beat_time();
         self.player.health.set_ratio(Time::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
@@ -24,7 +24,7 @@ impl Model {
 
         if let State::Starting { .. } = self.state {
         } else {
-            self.beat_time += delta_time / self.level.music.meta.beat_time();
+            self.beat_time += delta_time / self.level.group.music.meta.beat_time();
         }
 
         self.real_time += delta_time;
@@ -201,7 +201,7 @@ impl Model {
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
         self.context.music.play_from(
-            &self.level.music,
+            &self.level.group.music,
             time::Duration::from_secs_f64(music_start_time.as_f32() as f64),
         );
     }

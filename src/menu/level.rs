@@ -5,6 +5,7 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
+    game::PlayGroup,
     leaderboard::{Leaderboard, LeaderboardStatus, ScoreMeta},
     local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
@@ -218,11 +219,10 @@ impl LevelMenu {
 
             async move {
                 let level = crate::game::PlayLevel {
-                    group_index,
+                    group: PlayGroup { group_index, music },
                     level_index,
                     level: level.clone(),
                     config,
-                    music,
                     start_time: Time::ZERO,
                 };
                 crate::game::Game::new(context, options, level, leaderboard)
@@ -616,9 +616,8 @@ impl geng::State for LevelMenu {
             let assets_path = run_dir().join("assets");
             let options = self.state.options.clone();
             let level = crate::game::PlayLevel {
-                group_index,
+                group: PlayGroup { group_index, music },
                 level_index,
-                music,
                 level,
                 config: self.state.config.clone(),
                 start_time: Time::ZERO,

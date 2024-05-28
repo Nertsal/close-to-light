@@ -69,13 +69,14 @@ impl EditorRender {
         self.ui.draw_button(&ui.save, framebuffer);
     }
 
-    fn draw_tab_config(&mut self, _editor: &Editor, ui: &EditorConfigWidget) {
+    fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {
         if !ui.state.visible {
             return;
         }
 
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        let theme = editor.model.options.theme;
 
         self.ui.draw_text(&ui.timing, framebuffer);
         self.ui.draw_value(&ui.bpm, framebuffer);
@@ -86,6 +87,12 @@ impl EditorRender {
         self.ui.draw_input(&ui.level_name, framebuffer);
         self.ui.draw_button(&ui.level_delete, framebuffer);
         self.ui.draw_button(&ui.level_create, framebuffer);
+        self.ui.draw_text(&ui.all_levels, framebuffer);
+        for level in &ui.all_level_names {
+            let selected = false;
+            self.ui
+                .draw_toggle_button(level, selected, false, theme, framebuffer);
+        }
 
         self.ui.draw_text(&ui.timeline, framebuffer);
         self.ui.draw_value(&ui.scroll_by, framebuffer);

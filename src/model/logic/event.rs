@@ -24,7 +24,7 @@ impl Model {
                 );
                 self.rhythms.push(Rhythm {
                     position,
-                    time: Bounded::new_zero(self.level.music.meta.beat_time()),
+                    time: Bounded::new_zero(self.level.group.music.meta.beat_time()),
                     perfect,
                 });
             }

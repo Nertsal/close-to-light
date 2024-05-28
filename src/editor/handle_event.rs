@@ -191,9 +191,9 @@ impl EditorState {
                         };
                         // TODO: future proof in case level beat time is not constant
                         self.editor.real_time = self.editor.current_beat
-                            * self.editor.static_level.music.meta.beat_time();
+                            * self.editor.static_level.group.music.meta.beat_time();
                         self.context.music.play_from(
-                            &self.editor.static_level.music,
+                            &self.editor.static_level.group.music,
                             time::Duration::from_secs_f64(self.editor.real_time.as_f32() as f64),
                         );
                     }
