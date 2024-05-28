@@ -116,7 +116,13 @@ impl Leaderboard {
             let client = Arc::clone(client);
             let future = async move {
                 let state = Uuid::new_v4().to_string();
-                let url = format!("{}&state={}", crate::DISCORD_URL, state);
+                let redirect_uri = client.url.join("auth/discord")?;
+                let url = format!(
+                    "{}&state={}&redirect_uri={}",
+                    crate::DISCORD_URL,
+                    state,
+                    redirect_uri
+                );
                 if let Err(err) = webbrowser::open(&url) {
                     log::error!("failed to open login link: {:?}", err);
                 }

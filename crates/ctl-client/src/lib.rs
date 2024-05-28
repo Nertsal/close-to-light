@@ -20,7 +20,7 @@ use tokio_util::bytes::Bytes;
 pub type Result<T, E = ClientError> = std::result::Result<T, E>;
 
 pub struct Nertboard {
-    url: Url,
+    pub url: Url,
     client: Client,
     online: AtomicBool,
 }
