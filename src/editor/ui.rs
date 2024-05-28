@@ -623,9 +623,24 @@ impl StatefulWidget for EditorConfigWidget {
         let all = bar.cut_top(context.font_size);
         self.all_levels.update(all, context);
 
-        for level in &mut self.all_level_names {
+        let names: Vec<_> = state
+            .group
+            .cached
+            .data
+            .levels
+            .iter()
+            .map(|level| level.meta.name.clone())
+            .collect();
+        if self.all_level_names.len() != names.len() {
+            self.all_level_names = names
+                .iter()
+                .map(|name| TextWidget::new(name.clone()))
+                .collect();
+        }
+        for (level, level_name) in self.all_level_names.iter_mut().zip(names) {
             let name = bar.cut_top(context.font_size);
             level.update(name, context);
+            level.text = level_name;
         }
 
         let mut bar = columns[2];

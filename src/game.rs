@@ -3,7 +3,12 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{leaderboard::Leaderboard, local::CachedMusic, prelude::*, render::game::GameRender};
+use crate::{
+    leaderboard::Leaderboard,
+    local::{CachedGroup, CachedMusic},
+    prelude::*,
+    render::game::GameRender,
+};
 
 pub struct Game {
     context: Context,
@@ -25,6 +30,7 @@ pub struct Game {
 #[derive(Debug, Clone)]
 pub struct PlayGroup {
     pub group_index: Index,
+    pub cached: Rc<CachedGroup>,
     pub music: Rc<CachedMusic>,
 }
 
