@@ -615,9 +615,11 @@ impl StatefulWidget for EditorConfigWidget {
 
         let delete = bar.cut_top(context.font_size);
         self.level_delete.update(delete, context);
+        // TODO: click action
 
         let create = bar.cut_top(context.font_size);
         self.level_create.update(create, context);
+        // TODO: click action
 
         bar.cut_top(context.layout_size);
         let all = bar.cut_top(context.font_size);
@@ -637,10 +639,13 @@ impl StatefulWidget for EditorConfigWidget {
                 .map(|name| TextWidget::new(name.clone()))
                 .collect();
         }
-        for (level, level_name) in self.all_level_names.iter_mut().zip(names) {
+        for (i, (level, level_name)) in self.all_level_names.iter_mut().zip(names).enumerate() {
             let name = bar.cut_top(context.font_size);
             level.update(name, context);
             level.text = level_name;
+            if level.state.clicked {
+                state.change_level(i);
+            }
         }
 
         let mut bar = columns[2];

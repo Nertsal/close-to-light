@@ -630,7 +630,7 @@ impl geng::State for LevelMenu {
                 group,
                 level_index,
                 level,
-                config: self.state.config.clone(),
+                config: LevelConfig::default(),
                 start_time: Time::ZERO,
             };
             let future = async move {

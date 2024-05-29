@@ -364,6 +364,31 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
+    fn change_level(&mut self, level_index: usize) {
+        if let Some(_level_editor) = self.level_edit.take() {
+            // TODO: check unsaved changes
+        }
+
+        if let Some(level) = self.group.cached.data.levels.get(level_index) {
+            log::debug!("Changing to level {}", level.meta.name);
+
+            let level = PlayLevel {
+                group: self.group.clone(),
+                level_index,
+                level: level.clone(),
+                config: LevelConfig::default(),
+                start_time: Time::ZERO,
+            };
+            let model = Model::empty(self.context.clone(), self.options.clone(), level.clone());
+            self.level_edit = Some(LevelEditor::new(
+                self.context.clone(),
+                model,
+                level,
+                self.visualize_beat,
+            ));
+        }
+    }
+
     /// Exit the editor.
     fn exit(&mut self) {
         // TODO: check unsaved changes

@@ -88,8 +88,13 @@ impl EditorRender {
         self.ui.draw_button(&ui.level_delete, framebuffer);
         self.ui.draw_button(&ui.level_create, framebuffer);
         self.ui.draw_text(&ui.all_levels, framebuffer);
-        for level in &ui.all_level_names {
-            let selected = false;
+
+        let active = editor
+            .level_edit
+            .as_ref()
+            .map(|editor| editor.static_level.level_index);
+        for (i, level) in ui.all_level_names.iter().enumerate() {
+            let selected = active == Some(i);
             self.ui
                 .draw_toggle_button(level, selected, false, theme, framebuffer);
         }
