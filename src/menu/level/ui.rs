@@ -172,13 +172,13 @@ impl MenuUI {
                     }
                 }
                 LevelSelectAction::EditLevel(group, level) => {
-                    state.edit_level(group, level);
+                    state.edit_level(group, Some(level));
                 }
                 LevelSelectAction::DeleteLevel(group, level) => {
                     self.context.local.delete_level(group, level);
                 }
-                LevelSelectAction::EditGroup(_group) => {
-                    // state.edit_group(group);
+                LevelSelectAction::EditGroup(group) => {
+                    state.edit_level(group, None);
                 }
                 LevelSelectAction::DeleteGroup(group) => {
                     self.context.local.delete_group(group);

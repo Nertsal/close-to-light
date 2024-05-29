@@ -56,7 +56,7 @@ pub struct MenuState {
     pub switch_level: Option<usize>,
 
     /// Whether to open a (group, level) in the editor.
-    pub edit_level: Option<(Index, usize)>,
+    pub edit_level: Option<(Index, Option<usize>)>,
 }
 
 pub struct GroupEntry {
@@ -111,7 +111,7 @@ impl MenuState {
         self.switch_level = Some(level);
     }
 
-    fn edit_level(&mut self, group: Index, level: usize) {
+    fn edit_level(&mut self, group: Index, level: Option<usize>) {
         self.edit_level = Some((group, level));
     }
 
@@ -601,45 +601,51 @@ impl geng::State for LevelMenu {
 
         self.context.local.poll();
 
-        if let Some((group, level_index, level)) =
-            self.state
-                .edit_level
-                .take()
-                .and_then(|(group_index, level_index)| {
-                    // TODO: warn if smth wrong
-                    let local = self.state.context.local.inner.borrow();
-                    local.groups.get(group_index).and_then(|group| {
-                        group.music.as_ref().and_then(|music| {
-                            group.data.levels.get(level_index).map(|level| {
-                                let group = PlayGroup {
-                                    group_index,
-                                    cached: Rc::clone(group),
-                                    music: Rc::clone(music),
-                                };
-                                (group, level_index, level.clone())
-                            })
-                        })
+        let edit_level = self
+            .state
+            .edit_level
+            .take()
+            .and_then(|(group_index, level_index)| {
+                // TODO: warn if smth wrong
+                let local = self.state.context.local.inner.borrow();
+                local.groups.get(group_index).and_then(|group| {
+                    group.music.as_ref().map(|music| {
+                        let level = level_index.and_then(|idx| {
+                            group.data.levels.get(idx).map(|level| (idx, level.clone()))
+                        });
+                        let group = PlayGroup {
+                            group_index,
+                            cached: Rc::clone(group),
+                            music: Rc::clone(music),
+                        };
+                        (group, level)
                     })
                 })
-        {
-            let context = self.context.clone();
-            let manager = self.context.geng.asset_manager().clone();
-            let assets_path = run_dir().join("assets");
-            let options = self.state.options.clone();
-            let level = crate::game::PlayLevel {
-                group,
-                level_index,
-                level,
-                config: LevelConfig::default(),
-                start_time: Time::ZERO,
-            };
+            });
+        let context = self.context.clone();
+        let manager = self.context.geng.asset_manager().clone();
+        let assets_path = run_dir().join("assets");
+        let options = self.state.options.clone();
+
+        if let Some((group, level)) = edit_level {
             let future = async move {
                 let config: crate::editor::EditorConfig =
                     geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
                         .await
                         .expect("failed to load editor config");
 
-                crate::editor::EditorState::new(context, config, options, level)
+                if let Some((level_index, level)) = level {
+                    let level = crate::game::PlayLevel {
+                        group,
+                        level_index,
+                        level,
+                        config: LevelConfig::default(),
+                        start_time: Time::ZERO,
+                    };
+                    crate::editor::EditorState::new_level(context, config, options, level)
+                } else {
+                    crate::editor::EditorState::new_group(context, config, options, group)
+                }
             };
             let state = geng::LoadingScreen::new(
                 &self.context.geng,

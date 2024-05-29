@@ -171,8 +171,12 @@ impl LevelEditor {
 }
 
 impl EditorState {
-    pub fn new(context: Context, config: EditorConfig, options: Options, level: PlayLevel) -> Self {
-        let model = Model::empty(context.clone(), options.clone(), level.clone());
+    pub fn new_group(
+        context: Context,
+        config: EditorConfig,
+        options: Options,
+        group: PlayGroup,
+    ) -> Self {
         Self {
             transition: None,
             render: EditorRender::new(&context.geng, &context.assets),
@@ -180,7 +184,7 @@ impl EditorState {
             delta_time: r32(0.1),
             ui: EditorUI::new(&context.geng, &context.assets),
             ui_focused: false,
-            ui_context: UiContext::new(&context.geng, model.options.theme),
+            ui_context: UiContext::new(&context.geng, options.theme),
             drag: None,
             editor: Editor {
                 context: context.clone(),
@@ -199,13 +203,30 @@ impl EditorState {
                 snap_to_grid: true,
                 music_timer: Time::ZERO,
 
-                group: level.group.clone(),
-                level_edit: Some(LevelEditor::new(context.clone(), model, level, true)),
+                group,
+                level_edit: None,
                 options,
                 config,
             },
             context,
         }
+    }
+
+    pub fn new_level(
+        context: Context,
+        config: EditorConfig,
+        options: Options,
+        level: PlayLevel,
+    ) -> Self {
+        let mut editor = Self::new_group(
+            context.clone(),
+            config,
+            options.clone(),
+            level.group.clone(),
+        );
+        let model = Model::empty(context.clone(), options, level.clone());
+        editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true));
+        editor
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
