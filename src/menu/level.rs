@@ -491,8 +491,6 @@ impl geng::State for LevelMenu {
                     sync.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.explore.window.show.time.is_max() {
                     self.ui.explore.window.request = Some(WidgetRequest::Close);
-                // } else if self.ui.panels.options.window.show.time.is_max() {
-                //     self.ui.panels.options.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.leaderboard.window.show.time.is_max() {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
                 } else if self.state.switch_level.take().is_some()

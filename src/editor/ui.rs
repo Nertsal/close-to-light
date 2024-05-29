@@ -195,10 +195,7 @@ impl EditorUI {
         }
 
         let unsaved = top_bar.cut_right(layout_size * 10.0);
-        let changed = editor.level_edit.as_ref().map_or(false, |level_editor| {
-            level_editor.model.level.level.data != level_editor.level
-        });
-        if changed {
+        if editor.is_changed() {
             self.unsaved.show();
             self.unsaved.update(unsaved, context);
         } else {

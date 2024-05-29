@@ -513,6 +513,27 @@ impl Editor {
             log::error!("Failed to update the level cache");
         }
     }
+
+    /// Check whether the level has been changed.
+    fn is_changed(&self) -> bool {
+        if let Some(level_editor) = &self.level_edit {
+            let Some(cached) = self
+                .group
+                .cached
+                .data
+                .levels
+                .get(level_editor.static_level.level_index)
+            else {
+                return true;
+            };
+            let level_changed =
+                level_editor.level != cached.data || *level_editor.name != *cached.meta.name;
+            if level_changed {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl LevelEditor {
