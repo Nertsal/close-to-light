@@ -240,7 +240,7 @@ impl LevelCache {
     }
 
     /// Load the group info at the given path without loading the levels.
-    async fn load_group(
+    pub async fn load_group(
         &self,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(Option<Rc<CachedMusic>>, CachedGroup)> {
