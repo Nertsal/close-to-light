@@ -424,7 +424,7 @@ impl MenuRender {
         };
 
         let theme = state.options.theme;
-        let width = 12.0;
+        let width = self.font_size * 0.2;
 
         self.ui.draw_window(
             &mut self.masked,

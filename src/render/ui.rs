@@ -347,7 +347,6 @@ impl UiRender {
         masked: &mut MaskedRender,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let font_size = framebuffer.size().y as f32 * 0.04; // TODO: put in some context
         let camera = &geng::PixelPerfectCamera;
 
         self.geng.draw2d().draw2d(
@@ -378,13 +377,6 @@ impl UiRender {
         self.draw_text(&leaderboard.highscore.rank, framebuffer);
         self.draw_text(&leaderboard.highscore.player, framebuffer);
         self.draw_text(&leaderboard.highscore.score, framebuffer);
-
-        self.draw_outline(
-            leaderboard.state.position,
-            font_size * 0.2,
-            theme.light,
-            framebuffer,
-        );
     }
 
     pub fn draw_toggle_button(

@@ -238,7 +238,8 @@ impl MenuUI {
             self.leaderboard_head.update(leaderboard_head, context);
             context.update_focus(self.leaderboard.state.hovered);
 
-            let hover = self.leaderboard.state.hovered || self.leaderboard_head.state.hovered;
+            let hover = base_t > 0.0
+                && (self.leaderboard.state.hovered || self.leaderboard_head.state.hovered);
             self.leaderboard.window.layout(
                 hover,
                 context.cursor.position.x < leaderboard.min.x && !hover,
