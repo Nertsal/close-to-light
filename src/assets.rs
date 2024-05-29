@@ -69,6 +69,12 @@ pub struct Sprites {
     pub star: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub local: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub dotdotdot: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub arrow_up: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub arrow_down: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]

@@ -120,8 +120,6 @@ pub struct Editor {
 
     /// Whether to exit the game on the next frame.
     pub exit: bool,
-    /// Whether to save the game on the next frame.
-    pub save: bool,
 
     pub grid_size: Coord,
     pub view_zoom: f32,
@@ -195,7 +193,6 @@ impl EditorState {
                 cursor_world_pos: vec2::ZERO,
 
                 exit: false,
-                save: false,
 
                 grid_size: r32(10.0) / config.grid.height,
                 view_zoom: 1.0,
@@ -296,10 +293,6 @@ impl EditorState {
 
         level_editor.render_lights(self.editor.cursor_world_pos, self.editor.visualize_beat);
 
-        if std::mem::take(&mut self.editor.save) {
-            level_editor.save();
-        }
-
         let pos = self.ui_context.cursor.position;
         let pos = pos - self.ui.screen.position.bottom_left();
         let pos = level_editor
@@ -385,6 +378,47 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
+    fn move_level_low(&mut self, level_index: usize) {
+        let Some(swap_with) = level_index.checked_sub(1) else {
+            return;
+        };
+        self.swap_levels(level_index, swap_with);
+    }
+
+    fn move_level_high(&mut self, level_index: usize) {
+        self.swap_levels(level_index, level_index + 1);
+    }
+
+    fn swap_levels(&mut self, i: usize, j: usize) {
+        let levels = &self.group.cached.data.levels;
+        if !(0..levels.len()).contains(&i) || !(0..levels.len()).contains(&j) {
+            log::error!("Invalid indices to swap levels");
+            return;
+        }
+
+        let mut new_group = self.group.cached.data.clone();
+        new_group.levels.swap(i, j);
+
+        if let Some(group) =
+            self.context
+                .local
+                .update_group(self.group.group_index, new_group, None)
+        {
+            if let Some(level_editor) = &mut self.level_edit {
+                let active = &mut level_editor.static_level.level_index;
+                if i == *active {
+                    *active = j;
+                } else if j == *active {
+                    *active = i;
+                }
+            }
+            self.group.cached = group;
+            log::info!("Saved the level successfully");
+        } else {
+            log::error!("Failed to update the level cache");
+        }
+    }
+
     fn change_level(&mut self, level_index: usize) {
         if let Some(_level_editor) = self.level_edit.take() {
             // TODO: check unsaved changes
@@ -416,27 +450,27 @@ impl Editor {
         self.exit = true;
     }
 
-    /// Save the level.
     fn save(&mut self) {
-        self.save = true;
-    }
-}
+        let Some(level_editor) = &mut self.level_edit else {
+            return;
+        };
 
-impl LevelEditor {
-    fn save(&mut self) {
-        if let Some((_, cached)) = self.context.local.update_level(
-            self.static_level.group.group_index,
-            self.static_level.level_index,
-            self.level.clone(),
-            self.name.clone(),
+        if let Some((group, level)) = self.context.local.update_level(
+            level_editor.static_level.group.group_index,
+            level_editor.static_level.level_index,
+            level_editor.level.clone(),
+            level_editor.name.clone(),
         ) {
-            self.model.level.level = cached;
+            level_editor.model.level.level = level;
+            self.group.cached = group;
             log::info!("Saved the level successfully");
         } else {
             log::error!("Failed to update the level cache");
         }
     }
+}
 
+impl LevelEditor {
     fn undo(&mut self) {
         match &mut self.state {
             State::Playing { .. } => {}

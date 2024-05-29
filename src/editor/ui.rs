@@ -30,6 +30,7 @@ pub struct EditorUI {
 }
 
 pub struct EditorConfigWidget {
+    pub assets: Rc<Assets>,
     pub state: WidgetState,
 
     pub timing: TextWidget,
@@ -43,7 +44,7 @@ pub struct EditorConfigWidget {
     pub level_delete: ButtonWidget,
     pub level_create: ButtonWidget,
     pub all_levels: TextWidget,
-    pub all_level_names: Vec<TextWidget>,
+    pub all_level_names: Vec<(IconWidget, IconWidget, TextWidget)>,
 
     pub timeline: TextWidget,
     /// Normal time scroll.
@@ -89,7 +90,7 @@ pub struct EditorEditWidget {
 }
 
 impl EditorUI {
-    pub fn new(geng: &Geng, assets: &Assets) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             screen: default(),
             game: default(),
@@ -105,7 +106,7 @@ impl EditorUI {
             help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
             edit: EditorEditWidget::new(geng),
             config: {
-                let mut w = EditorConfigWidget::new();
+                let mut w = EditorConfigWidget::new(assets);
                 w.hide();
                 w
             },
@@ -539,8 +540,9 @@ impl StatefulWidget for EditorEditWidget {
 }
 
 impl EditorConfigWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
+            assets: assets.clone(),
             state: WidgetState::new(),
 
             timing: TextWidget::new("Timing"),
@@ -647,15 +649,60 @@ impl StatefulWidget for EditorConfigWidget {
         if self.all_level_names.len() != names.len() {
             self.all_level_names = names
                 .iter()
-                .map(|name| TextWidget::new(name.clone()))
+                .map(|name| {
+                    (
+                        IconWidget::new(&self.assets.sprites.arrow_up),
+                        IconWidget::new(&self.assets.sprites.arrow_down),
+                        TextWidget::new(name.clone()),
+                    )
+                })
                 .collect();
         }
-        for (i, (level, level_name)) in self.all_level_names.iter_mut().zip(names).enumerate() {
+
+        let max = names.len().saturating_sub(1);
+        for (i, ((icon_up, icon_down, level), level_name)) in
+            self.all_level_names.iter_mut().zip(names).enumerate()
+        {
             let name = bar.cut_top(context.font_size);
             level.update(name, context);
             level.text = level_name;
             if level.state.clicked {
                 state.change_level(i);
+            }
+
+            let width = name.height();
+            let mut icons = name;
+            let icons = icons.cut_left(width).translate(vec2(-width, 0.0));
+
+            if level.state.hovered || context.can_focus && icons.contains(context.cursor.position) {
+                let icons = icons.split_rows(2);
+                let up = icons[0];
+                let up_hover = up.contains(context.cursor.position);
+                let down = icons[1];
+                let down_hover = down.contains(context.cursor.position);
+
+                if i > 0 && (up_hover || !down_hover) {
+                    icon_up.show();
+                    icon_up.update(up, context);
+                    if icon_up.state.clicked {
+                        state.move_level_low(i);
+                    }
+                } else {
+                    icon_up.hide();
+                }
+
+                if i < max && (down_hover || !up_hover) {
+                    icon_down.show();
+                    icon_down.update(down, context);
+                    if icon_down.state.clicked {
+                        state.move_level_high(i);
+                    }
+                } else {
+                    icon_down.hide();
+                }
+            } else {
+                icon_up.hide();
+                icon_down.hide();
             }
         }
 
