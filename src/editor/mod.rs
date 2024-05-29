@@ -14,7 +14,10 @@ use crate::{
     leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
-    ui::UiContext,
+    ui::{
+        widget::{ConfirmAction, ConfirmPopup},
+        UiContext,
+    },
 };
 
 pub struct EditorState {
@@ -116,6 +119,8 @@ pub struct Editor {
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
 
+    pub confirm_popup: Option<ConfirmPopup>,
+
     /// Whether to exit the game on the next frame.
     pub exit: bool,
 
@@ -188,6 +193,8 @@ impl EditorState {
                     hide_ui: false,
                 },
                 cursor_world_pos: vec2::ZERO,
+
+                confirm_popup: None,
 
                 exit: false,
 
@@ -533,6 +540,24 @@ impl Editor {
             }
         }
         false
+    }
+
+    /// Create a popup window with a message for the given action.
+    fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
+        self.confirm_popup = Some(ConfirmPopup {
+            action,
+            message: message.into(),
+        });
+    }
+
+    /// Confirm the popup action and execute it.
+    fn confirm_action(&mut self, _ui: &mut EditorUI) {
+        let Some(popup) = self.confirm_popup.take() else {
+            return;
+        };
+        if let ConfirmAction::ExitUnsaved = popup.action {
+            self.exit();
+        }
     }
 }
 

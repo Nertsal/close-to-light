@@ -21,6 +21,7 @@ pub struct EditorRender {
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
+    font_size: f32,
 }
 
 pub struct RenderOptions {
@@ -45,6 +46,7 @@ impl EditorRender {
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
+            font_size: 1.0,
         }
     }
 

@@ -9,7 +9,10 @@ use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus, ScoreMeta},
     local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
-    ui::{widget::Widget, ShowTime, UiContext, WidgetRequest},
+    ui::{
+        widget::{ConfirmAction, ConfirmPopup, Widget},
+        ShowTime, UiContext, WidgetRequest,
+    },
 };
 
 pub struct LevelMenu {
@@ -59,18 +62,6 @@ pub struct MenuState {
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
-}
-
-#[derive(Debug)]
-pub enum ConfirmAction {
-    DeleteGroup(Index),
-    SyncDiscard,
-}
-
-#[derive(Debug)]
-pub struct ConfirmPopup {
-    pub action: ConfirmAction,
-    pub message: Name,
 }
 
 pub struct GroupEntry {
@@ -157,6 +148,7 @@ impl MenuState {
                     }
                 }
             }
+            _ => {}
         }
     }
 }

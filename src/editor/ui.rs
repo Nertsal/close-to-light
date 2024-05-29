@@ -16,6 +16,8 @@ pub struct EditorUI {
     pub screen: WidgetState,
     pub game: WidgetState,
 
+    pub confirm: Option<ConfirmWidget>,
+
     pub exit: ButtonWidget,
     pub help: IconWidget,
     pub tab_edit: ButtonWidget,
@@ -95,6 +97,8 @@ impl EditorUI {
             screen: default(),
             game: default(),
 
+            confirm: None,
+
             exit: ButtonWidget::new("Exit"),
             help: IconWidget::new(&assets.sprites.help),
             tab_edit: ButtonWidget::new("Edit"),
@@ -142,6 +146,28 @@ impl EditorUI {
             self.game.update(game, context);
         }
 
+        if let Some(confirm) = &mut self.confirm {
+            let size = vec2(20.0, 10.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+            confirm.update(window, context);
+            if confirm.confirm.state.clicked {
+                confirm.window.show.going_up = false;
+                editor.confirm_action(self);
+            } else if confirm.discard.state.clicked {
+                confirm.window.show.going_up = false;
+                editor.confirm_popup = None;
+            } else if confirm.window.show.time.is_min() {
+                self.confirm = None;
+            }
+
+            // NOTE: When confirm is active, you cant interact with other widgets
+            context.update_focus(true);
+        } else if let Some(popup) = &editor.confirm_popup {
+            let mut confirm = ConfirmWidget::new(&editor.context.assets, popup.message.clone());
+            confirm.window.show.going_up = true;
+            self.confirm = Some(confirm);
+        }
+
         let mut main = screen;
 
         let mut top_bar = main.cut_top(font_size * 1.5);
@@ -149,7 +175,11 @@ impl EditorUI {
         let exit = top_bar.cut_left(layout_size * 5.0);
         self.exit.update(exit, context);
         if self.exit.text.state.clicked {
-            editor.exit();
+            if editor.is_changed() {
+                editor.popup_confirm(ConfirmAction::ExitUnsaved, "there are unsaved changes");
+            } else {
+                editor.exit();
+            }
         }
 
         let help = top_bar.cut_left(layout_size * 3.0);

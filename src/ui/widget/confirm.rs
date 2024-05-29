@@ -1,8 +1,24 @@
 use super::*;
 
-use crate::{prelude::Assets, ui::layout::AreaOps};
+use crate::{
+    prelude::{Assets, Index},
+    ui::layout::AreaOps,
+};
 
 use ctl_client::core::types::Name;
+
+#[derive(Debug)]
+pub enum ConfirmAction {
+    DeleteGroup(Index),
+    SyncDiscard,
+    ExitUnsaved,
+}
+
+#[derive(Debug)]
+pub struct ConfirmPopup {
+    pub action: ConfirmAction,
+    pub message: Name,
+}
 
 pub struct ConfirmWidget {
     pub window: UiWindow<()>,

@@ -4,7 +4,7 @@ use super::{
     *,
 };
 
-use crate::ui::widget::*;
+use crate::ui::{layout::AreaOps, widget::*};
 
 pub fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
     const TARGET_SIZE: vec2<usize> = vec2(640, 360);
@@ -338,6 +338,41 @@ impl UiRender {
 
         self.draw_text(&widget.name, framebuffer);
         self.draw_text(&widget.text, framebuffer);
+    }
+
+    pub fn draw_confirm(
+        &mut self,
+        confirm: &ConfirmWidget,
+        outline_width: f32,
+        theme: Theme,
+        masked: &mut MaskedRender,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let t = crate::util::smoothstep(confirm.window.show.time.get_ratio());
+
+        let window = confirm.state.position;
+        let min_height = outline_width * 10.0;
+        let height = (t * window.height()).max(min_height);
+
+        let window = window.with_height(height, 1.0);
+        self.draw_window(
+            masked,
+            window,
+            None,
+            outline_width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                let hold = confirm.hold.position;
+                let hold = hold.extend_up(outline_width - hold.height());
+                self.draw_quad(hold, theme.light, framebuffer);
+
+                self.draw_text(&confirm.title, framebuffer);
+                self.draw_text(&confirm.message, framebuffer);
+                self.draw_icon(&confirm.confirm.icon, framebuffer);
+                self.draw_icon(&confirm.discard.icon, framebuffer);
+            },
+        );
     }
 
     pub fn draw_leaderboard(

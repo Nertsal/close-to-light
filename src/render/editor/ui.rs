@@ -5,6 +5,7 @@ impl EditorRender {
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
         let theme = editor.options.theme;
+        self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
@@ -67,6 +68,16 @@ impl EditorRender {
 
         self.ui.draw_text(&ui.unsaved, framebuffer);
         self.ui.draw_button(&ui.save, theme, framebuffer);
+
+        if let Some(ui) = &ui.confirm {
+            self.ui.draw_confirm(
+                ui,
+                self.font_size * 0.2,
+                editor.options.theme,
+                &mut self.mask,
+                framebuffer,
+            );
+        }
     }
 
     fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {

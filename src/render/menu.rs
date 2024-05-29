@@ -65,7 +65,15 @@ impl MenuRender {
 
         self.draw_explore(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
-        self.draw_confirm(ui, state, framebuffer);
+        if let Some(ui) = &ui.confirm {
+            self.ui.draw_confirm(
+                ui,
+                self.font_size * 0.2,
+                state.options.theme,
+                &mut self.masked,
+                framebuffer,
+            );
+        }
     }
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
@@ -108,41 +116,6 @@ impl MenuRender {
                 );
 
                 self.ui.draw_text(&sync.response, framebuffer);
-            },
-        );
-    }
-
-    fn draw_confirm(
-        &mut self,
-        ui: &MenuUI,
-        state: &MenuState,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let Some(confirm) = &ui.confirm else { return };
-        let t = crate::util::smoothstep(confirm.window.show.time.get_ratio());
-
-        let window = confirm.state.position;
-        let min_height = self.font_size * 2.0;
-        let height = (t * window.height()).max(min_height);
-
-        let window = window.with_height(height, 1.0);
-        self.ui.draw_window(
-            &mut self.masked,
-            window,
-            None,
-            self.font_size * 0.2,
-            state.options.theme,
-            framebuffer,
-            |framebuffer| {
-                let hold = confirm.hold.position;
-                let hold = hold.extend_up(self.font_size * 0.2 - hold.height());
-                self.ui
-                    .draw_quad(hold, state.options.theme.light, framebuffer);
-
-                self.ui.draw_text(&confirm.title, framebuffer);
-                self.ui.draw_text(&confirm.message, framebuffer);
-                self.ui.draw_icon(&confirm.confirm.icon, framebuffer);
-                self.ui.draw_icon(&confirm.discard.icon, framebuffer);
             },
         );
     }
