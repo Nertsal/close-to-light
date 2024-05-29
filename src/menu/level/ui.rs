@@ -30,7 +30,6 @@ pub struct MenuUI {
 
     pub leaderboard_head: TextWidget,
     pub leaderboard: LeaderboardWidget,
-    pub level_config: LevelConfigWidget,
 }
 
 impl MenuUI {
@@ -62,7 +61,6 @@ impl MenuUI {
                 .rotated(Angle::from_degrees(90.0))
                 .aligned(vec2(0.5, 0.5)),
             leaderboard: LeaderboardWidget::new(assets, true),
-            level_config: LevelConfigWidget::new(assets),
 
             context,
         }
