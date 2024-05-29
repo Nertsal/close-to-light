@@ -7,7 +7,10 @@ use super::{
 use crate::ui::widget::*;
 
 pub fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
-    framebuffer.size().y as f32 / 360.0
+    const TARGET_SIZE: vec2<usize> = vec2(640, 360);
+    let size = framebuffer.size().as_f32();
+    let ratio = size / TARGET_SIZE.as_f32();
+    ratio.x.min(ratio.y)
 }
 
 pub struct UiRender {
