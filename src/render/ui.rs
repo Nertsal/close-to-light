@@ -299,28 +299,33 @@ impl UiRender {
         }
     }
 
-    pub fn draw_button(&self, widget: &ButtonWidget, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_button(
+        &self,
+        widget: &ButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         let state = &widget.text.state;
         if !state.visible {
             return;
         }
 
         let options = &widget.text.options;
-        let color = if state.pressed {
-            options.press_color
+        let position = widget.text.state.position;
+        let width = options.size * 0.2;
+
+        let mut text_color = theme.light;
+        if state.pressed {
+            self.fill_quad(position, theme.light, framebuffer);
+            text_color = theme.dark;
         } else if state.hovered {
-            options.hover_color
+            self.fill_quad(position.extend_uniform(width), theme.light, framebuffer);
+            text_color = theme.dark;
         } else {
-            options.color
+            self.draw_outline(position, width, theme.light, framebuffer);
         };
-        self.util.draw_outline(
-            &Collider::aabb(widget.text.state.position.map(r32)),
-            options.size * 0.2,
-            color,
-            &geng::PixelPerfectCamera,
-            framebuffer,
-        );
-        self.draw_text(&widget.text, framebuffer);
+
+        self.draw_text_colored(&widget.text, text_color, framebuffer);
     }
 
     pub fn draw_input(&self, widget: &InputWidget, framebuffer: &mut ugli::Framebuffer) {
@@ -492,11 +497,21 @@ impl UiRender {
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let size = position.size();
+        let size = size.x.min(size.y);
+
+        let scale = ui::pixel_scale(framebuffer);
+
+        let texture = if size < 48.0 * scale {
+            &self.assets.sprites.fill_thin
+        } else {
+            &self.assets.sprites.fill
+        };
         self.util.draw_nine_slice(
             position,
             color,
-            &self.assets.sprites.fill,
-            ui::pixel_scale(framebuffer),
+            texture,
+            scale,
             &geng::PixelPerfectCamera,
             framebuffer,
         );

@@ -51,7 +51,7 @@ impl EditorRender {
             framebuffer,
         );
 
-        self.ui.draw_button(&ui.exit, framebuffer);
+        self.ui.draw_button(&ui.exit, theme, framebuffer);
 
         if ui.help_text.state.visible {
             let width = font_size * 0.1;
@@ -66,7 +66,7 @@ impl EditorRender {
         self.ui.draw_text(&ui.help_text, framebuffer);
 
         self.ui.draw_text(&ui.unsaved, framebuffer);
-        self.ui.draw_button(&ui.save, framebuffer);
+        self.ui.draw_button(&ui.save, theme, framebuffer);
     }
 
     fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {
@@ -85,8 +85,8 @@ impl EditorRender {
         self.ui.draw_text(&ui.music, framebuffer);
         self.ui.draw_text(&ui.level, framebuffer);
         self.ui.draw_input(&ui.level_name, framebuffer);
-        self.ui.draw_button(&ui.level_delete, framebuffer);
-        self.ui.draw_button(&ui.level_create, framebuffer);
+        self.ui.draw_button(&ui.level_delete, theme, framebuffer);
+        self.ui.draw_button(&ui.level_create, theme, framebuffer);
         self.ui.draw_text(&ui.all_levels, framebuffer);
 
         let active = editor
@@ -117,6 +117,7 @@ impl EditorRender {
         let Some(level_editor) = &editor.level_edit else {
             return;
         };
+        let theme = editor.options.theme;
 
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
@@ -126,9 +127,9 @@ impl EditorRender {
 
         // Event
         self.ui.draw_text(&ui.new_event, framebuffer);
-        self.ui.draw_button(&ui.new_palette, framebuffer);
-        self.ui.draw_button(&ui.new_circle, framebuffer);
-        self.ui.draw_button(&ui.new_line, framebuffer);
+        self.ui.draw_button(&ui.new_palette, theme, framebuffer);
+        self.ui.draw_button(&ui.new_circle, theme, framebuffer);
+        self.ui.draw_button(&ui.new_line, theme, framebuffer);
 
         // View
         self.ui.draw_text(&ui.view, framebuffer);
@@ -150,7 +151,7 @@ impl EditorRender {
         self.ui.draw_value(&ui.light_fade_out, framebuffer);
 
         // Waypoints
-        self.ui.draw_button(&ui.waypoint, framebuffer);
+        self.ui.draw_button(&ui.waypoint, theme, framebuffer);
         self.ui.draw_value(&ui.waypoint_scale, framebuffer);
         self.ui.draw_value(&ui.waypoint_angle, framebuffer);
 
