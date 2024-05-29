@@ -1,7 +1,8 @@
 use super::*;
 
 use crate::{
-    local::{CachedGroup, LevelCache},
+    local::CachedGroup,
+    menu::{ConfirmAction, MenuState},
     prelude::Assets,
     task::Task,
     ui::layout::AreaOps,
@@ -75,15 +76,17 @@ impl SyncWidget {
 }
 
 impl StatefulWidget for SyncWidget {
-    type State = Rc<LevelCache>;
+    type State = MenuState;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        let local = &state.context.local;
+
         if std::mem::take(&mut self.reload) && self.task_group_info.is_none() {
-            if let Some(client) = state.client() {
+            if let Some(client) = local.client() {
                 let group_id = self.cached_group.data.id;
                 if group_id == 0 {
                     self.status.text = "Level is local".into();
@@ -148,7 +151,7 @@ impl StatefulWidget for SyncWidget {
                     self.response.text = format!("{}", err).into();
                 }
                 Ok(Ok((group_index, group))) => {
-                    if let Some(group) = state.synchronize(group_index, group) {
+                    if let Some(group) = local.synchronize(group_index, group) {
                         self.cached_group = group;
                         self.reload = true;
                     }
@@ -170,7 +173,7 @@ impl StatefulWidget for SyncWidget {
                 }
                 Ok(Ok((group, info))) => {
                     if let Some(group) =
-                        state.update_group(self.cached_group_index, group, Some(info))
+                        local.update_group(self.cached_group_index, group, Some(info))
                     {
                         self.cached_group = group;
                         self.reload = true;
@@ -219,7 +222,7 @@ impl StatefulWidget for SyncWidget {
             if self.cached_music.is_some() {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
-                if let Some(client) = state.client() {
+                if let Some(client) = local.client() {
                     let group = (*self.cached_group).clone();
                     let group_index = self.cached_group_index;
                     let future = async move {
@@ -243,9 +246,13 @@ impl StatefulWidget for SyncWidget {
         if self.discard.state.clicked {
             if self.cached_group.data.id == 0 {
                 // Delete
-                state.delete_group(self.cached_group_index);
+                state.popup_confirm(
+                    ConfirmAction::DeleteGroup(self.cached_group_index),
+                    format!("delete the level by {}", self.cached_group.data.owner.name),
+                );
                 self.window.request = Some(WidgetRequest::Close);
-            } else if let Some(client) = state.client() {
+            } else if let Some(client) = local.client() {
+                // TODO confirm
                 let group_id = self.cached_group.data.id;
                 let future = async move {
                     let info = client.get_group_info(group_id).await?;

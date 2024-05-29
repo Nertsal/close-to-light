@@ -16,6 +16,7 @@ pub struct MenuUI {
     pub ctl_logo: IconWidget,
     pub separator: WidgetState,
 
+    pub confirm: Option<ConfirmWidget>,
     pub options: OptionsButtonWidget,
 
     pub sync: Option<SyncWidget>,
@@ -25,7 +26,6 @@ pub struct MenuUI {
     pub play_level: PlayLevelWidget,
     pub modifiers: ModifiersWidget,
 
-    // pub panels: PanelsUI,
     pub explore: ExploreWidget,
 
     pub leaderboard_head: TextWidget,
@@ -45,6 +45,7 @@ impl MenuUI {
             ctl_logo: IconWidget::new(&assets.sprites.title),
             separator: WidgetState::new(),
 
+            confirm: None,
             options: OptionsButtonWidget::new(assets, 0.25),
 
             sync: None,
@@ -54,7 +55,6 @@ impl MenuUI {
             play_level: PlayLevelWidget::new(),
             modifiers: ModifiersWidget::new(),
 
-            // panels: PanelsUI::new(assets),
             explore,
 
             leaderboard_head: TextWidget::new("Leaderboard")
@@ -108,6 +108,27 @@ impl MenuUI {
         let mut left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
         let logo = left.cut_top(2.5 * layout_size);
         self.ctl_logo.update(logo, context);
+
+        if let Some(confirm) = &mut self.confirm {
+            let size = vec2(20.0, 15.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+            confirm.update(window, context);
+            if confirm.confirm.state.clicked {
+                self.confirm = None;
+                state.confirm_action();
+            } else if confirm.discard.state.clicked {
+                self.confirm = None;
+                state.confirm_popup = None;
+            }
+
+            // NOTE: When confirm is active, you cant interact with other widgets
+            context.update_focus(true);
+        } else if let Some(popup) = &state.confirm_popup {
+            self.confirm = Some(ConfirmWidget::new(
+                &self.context.assets,
+                popup.message.clone(),
+            ));
+        }
 
         if self.explore.state.visible {
             let size = vec2(50.0, 30.0) * layout_size;
@@ -179,7 +200,7 @@ impl MenuUI {
                     state.edit_level(group, None);
                 }
                 LevelSelectAction::DeleteGroup(group) => {
-                    self.context.local.delete_group(group);
+                    state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
                 }
             }
         } else if self.level_select.add_music.state.clicked {
@@ -256,7 +277,7 @@ impl MenuUI {
         if let Some(sync) = &mut self.sync {
             let size = vec2(20.0, 17.0) * layout_size;
             let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
-            sync.update(pos, context, &mut self.context.local.clone());
+            sync.update(pos, context, state);
             context.update_focus(sync.state.hovered);
             if !sync.window.show.going_up && sync.window.show.time.is_min() {
                 // Close window

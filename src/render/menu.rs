@@ -65,6 +65,7 @@ impl MenuRender {
 
         self.draw_explore(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
+        self.draw_confirm(ui, state, framebuffer);
     }
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
@@ -107,6 +108,32 @@ impl MenuRender {
                 );
 
                 self.ui.draw_text(&sync.response, framebuffer);
+            },
+        );
+    }
+
+    fn draw_confirm(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let Some(confirm) = &ui.confirm else { return };
+
+        let window = confirm.state.position;
+
+        self.ui.draw_window(
+            &mut self.masked,
+            window,
+            None,
+            self.font_size * 0.2,
+            state.options.theme,
+            framebuffer,
+            |framebuffer| {
+                self.ui.draw_text(&confirm.title, framebuffer);
+                self.ui.draw_text(&confirm.message, framebuffer);
+                self.ui.draw_icon(&confirm.confirm.icon, framebuffer);
+                self.ui.draw_icon(&confirm.discard.icon, framebuffer);
             },
         );
     }

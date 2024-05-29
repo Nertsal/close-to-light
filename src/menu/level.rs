@@ -41,6 +41,8 @@ pub struct MenuState {
     pub options: Options,
     pub config: LevelConfig,
 
+    pub confirm_popup: Option<ConfirmPopup>,
+
     /// Currently showing music.
     pub selected_music: Option<ShowTime<Id>>,
     /// Currently showing group.
@@ -57,6 +59,17 @@ pub struct MenuState {
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
+}
+
+#[derive(Debug)]
+pub enum ConfirmAction {
+    DeleteGroup(Index),
+}
+
+#[derive(Debug)]
+pub struct ConfirmPopup {
+    pub action: ConfirmAction,
+    pub message: Name,
 }
 
 pub struct GroupEntry {
@@ -120,6 +133,24 @@ impl MenuState {
         let local = &self.context.local;
         local.new_group(music);
     }
+
+    /// Create a popup window with a message for the given action.
+    pub fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
+        self.confirm_popup = Some(ConfirmPopup {
+            action,
+            message: message.into(),
+        });
+    }
+
+    /// Confirm the popup action and execute it.
+    pub fn confirm_action(&mut self) {
+        let Some(popup) = self.confirm_popup.take() else {
+            return;
+        };
+        match popup.action {
+            ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
+        }
+    }
 }
 
 impl LevelMenu {
@@ -160,6 +191,8 @@ impl LevelMenu {
                 player,
                 options,
                 config: LevelConfig::default(),
+
+                confirm_popup: None,
 
                 selected_music: None,
                 selected_group: None,
