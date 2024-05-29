@@ -114,13 +114,16 @@ impl EditorRender {
         if !ui.state.visible {
             return;
         }
-        let Some(level_editor) = &editor.level_edit else {
-            return;
-        };
-        let theme = editor.options.theme;
 
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+
+        let Some(level_editor) = &editor.level_edit else {
+            self.ui.draw_text(&ui.warn_select_level, framebuffer);
+            return;
+        };
+
+        let theme = editor.options.theme;
 
         let camera = &geng::PixelPerfectCamera;
         let font_size = options.size;

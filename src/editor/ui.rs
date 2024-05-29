@@ -58,6 +58,8 @@ pub struct EditorConfigWidget {
 pub struct EditorEditWidget {
     pub state: WidgetState,
 
+    pub warn_select_level: TextWidget,
+
     pub new_event: TextWidget,
     pub new_palette: ButtonWidget,
     pub new_circle: ButtonWidget,
@@ -220,6 +222,8 @@ impl EditorEditWidget {
         Self {
             state: WidgetState::new(),
 
+            warn_select_level: TextWidget::new("Select or create a difficulty in the Config tab"),
+
             new_event: TextWidget::new("Event"),
             new_palette: ButtonWidget::new("Palette Swap"),
             new_circle: ButtonWidget::new("Circle"),
@@ -264,8 +268,15 @@ impl StatefulWidget for EditorEditWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         let editor = state;
         let Some(level_editor) = &mut editor.level_edit else {
+            let size = vec2(10.0, 1.0) * context.font_size;
+            let warn = position.align_aabb(size, vec2(0.5, 0.9));
+            self.warn_select_level.show();
+            self.warn_select_level.update(warn, context);
+
             return;
         };
+
+        self.warn_select_level.hide();
 
         let mut main = position;
         let font_size = context.font_size;
