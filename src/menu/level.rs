@@ -68,6 +68,9 @@ pub struct MenuState {
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
+
+    /// List of notifications to be consumed and transferred to UI.
+    pub notifications: Vec<String>,
 }
 
 pub struct GroupEntry {
@@ -208,6 +211,8 @@ impl LevelMenu {
                 switch_level: None,
 
                 edit_level: None,
+
+                notifications: Vec::new(),
             },
             play_button: HoverButton::new(
                 Collider {
@@ -634,6 +639,9 @@ impl geng::State for LevelMenu {
         self.update_leaderboard();
 
         self.context.local.poll();
+        self.state
+            .notifications
+            .extend(self.context.local.take_notifications());
 
         let edit_level = self
             .state

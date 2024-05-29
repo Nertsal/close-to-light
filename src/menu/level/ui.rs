@@ -20,6 +20,7 @@ pub struct MenuUI {
 
     pub confirm: Option<ConfirmWidget>,
     pub sync: Option<SyncWidget>,
+    pub notifications: NotificationsWidget,
 
     pub level_select: LevelSelectUI,
     pub play_level: PlayLevelWidget,
@@ -48,6 +49,7 @@ impl MenuUI {
 
             confirm: None,
             sync: None,
+            notifications: NotificationsWidget::new(assets),
 
             level_select: LevelSelectUI::new(geng, assets),
             play_level: PlayLevelWidget::new(),
@@ -128,6 +130,11 @@ impl MenuUI {
             confirm.window.show.going_up = true;
             self.confirm = Some(confirm);
         }
+
+        for message in state.notifications.drain(..) {
+            self.notifications.notify(message);
+        }
+        self.notifications.update(right, context);
 
         if self.explore.state.visible {
             let size = vec2(50.0, 30.0) * layout_size;

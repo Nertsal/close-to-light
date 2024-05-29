@@ -22,6 +22,8 @@ pub struct LevelCacheImpl {
 
     pub music: HashMap<Id, Rc<CachedMusic>>,
     pub groups: Arena<Rc<CachedGroup>>,
+
+    pub notifications: Vec<String>,
 }
 
 pub enum CacheState<T> {
@@ -118,11 +120,18 @@ impl LevelCache {
 
             music: HashMap::new(),
             groups: Arena::new(),
+
+            notifications: Vec::new(),
         };
         Self {
             geng: geng.clone(),
             inner: RefCell::new(inner),
         }
+    }
+
+    pub fn take_notifications(&self) -> Vec<String> {
+        let mut inner = self.inner.borrow_mut();
+        std::mem::take(&mut inner.notifications)
     }
 
     pub fn client(&self) -> Option<Arc<Nertboard>> {
@@ -477,6 +486,14 @@ impl LevelCache {
                 }
                 CacheAction::GroupList(groups) => inner.group_list = CacheState::Loaded(groups),
                 CacheAction::Group(group) => {
+                    let name = group
+                        .music
+                        .as_ref()
+                        .map_or(&group.data.owner.name, |music| &music.meta.name);
+                    inner
+                        .notifications
+                        .push(format!("Downloaded level {}", name));
+
                     if let Some(music) = &group.music {
                         inner.music.insert(music.meta.id, Rc::clone(music));
                     }

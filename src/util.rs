@@ -31,6 +31,10 @@ impl<T> Lerp<T> {
 }
 
 impl<T: Float> Lerp<T> {
+    pub fn stop(&mut self) {
+        self.to = self.current();
+    }
+
     pub fn current(&self) -> T {
         let mut t = self.time.get_ratio();
         if self.smoothstep {

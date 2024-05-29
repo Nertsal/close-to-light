@@ -157,12 +157,18 @@ impl StatefulWidget for SyncWidget {
                 Ok(Err(err)) => {
                     // TODO
                     log::error!("Failed to upload the group: {:?}", err);
+                    state.notifications.push("Upload has failed".into());
                     self.status.text = "".into();
                     self.response.show();
                     self.response.text = format!("{}", err).into();
                 }
                 Ok(Ok((group_index, group))) => {
                     if let Some(group) = local.synchronize(group_index, group) {
+                        let name = group
+                            .music
+                            .as_ref()
+                            .map_or(&group.data.owner.name, |music| &music.meta.name);
+                        state.notifications.push(format!("Uploaded level {}", name));
                         self.cached_group = group;
                         self.reload = true;
                     }
@@ -178,6 +184,7 @@ impl StatefulWidget for SyncWidget {
                         // TODO: delete local
                     } else {
                         log::error!("Failed to download the group: {:?}", err);
+                        state.notifications.push("Download has failed".into());
                         self.response.show();
                         self.response.text = format!("{}", err).into();
                     }
@@ -186,6 +193,13 @@ impl StatefulWidget for SyncWidget {
                     if let Some(group) =
                         local.update_group(self.cached_group_index, group, Some(info))
                     {
+                        let name = group
+                            .music
+                            .as_ref()
+                            .map_or(&group.data.owner.name, |music| &music.meta.name);
+                        state
+                            .notifications
+                            .push(format!("Downloaded level {}", name));
                         self.cached_group = group;
                         self.reload = true;
                     }
@@ -246,7 +260,9 @@ impl StatefulWidget for SyncWidget {
                     self.task_group_upload = Some(Task::new(&self.geng, future));
                 }
             } else {
-                // TODO: notify the user that no music is selected for the level
+                state
+                    .notifications
+                    .push("Upload error: the level has no music available".into());
             }
         }
 

@@ -245,6 +245,31 @@ impl UiRender {
         self.draw_text(&widget.text, framebuffer);
     }
 
+    pub fn draw_text_wrapped(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
+        if !widget.state.visible {
+            return;
+        }
+
+        let main = widget.state.position;
+        let lines = crate::util::wrap_text(
+            &self.assets.fonts.pixel,
+            &widget.text,
+            main.width() / widget.options.size,
+        );
+        let row = main.align_aabb(vec2(main.width(), widget.options.size), vec2(0.5, 1.0));
+        let rows = row.stack(vec2(0.0, -row.height()), lines.len());
+
+        for (line, position) in lines.into_iter().zip(rows) {
+            self.util.draw_text(
+                line,
+                position.align_pos(widget.options.align),
+                widget.options,
+                &geng::PixelPerfectCamera,
+                framebuffer,
+            );
+        }
+    }
+
     pub fn draw_text(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
         self.draw_text_colored(widget, widget.options.color, framebuffer)
     }
@@ -340,8 +365,31 @@ impl UiRender {
         self.draw_text(&widget.text, framebuffer);
     }
 
+    pub fn draw_notification(
+        &self,
+        notification: &NotificationWidget,
+        outline_width: f32,
+        theme: Theme,
+        masked: &mut MaskedRender,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let window = notification.state.position;
+        self.draw_window(
+            masked,
+            window,
+            None,
+            outline_width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.draw_text_wrapped(&notification.text, framebuffer);
+                self.draw_icon(&notification.confirm.icon, framebuffer);
+            },
+        );
+    }
+
     pub fn draw_confirm(
-        &mut self,
+        &self,
         confirm: &ConfirmWidget,
         outline_width: f32,
         theme: Theme,

@@ -5,6 +5,7 @@ mod explore;
 mod icon;
 mod input;
 mod leaderboard;
+mod notification;
 mod options;
 mod profile;
 mod slider;
@@ -14,8 +15,8 @@ mod timeline;
 mod value;
 
 pub use self::{
-    button::*, checkbox::*, confirm::*, explore::*, icon::*, input::*, leaderboard::*, options::*,
-    profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
+    button::*, checkbox::*, confirm::*, explore::*, icon::*, input::*, leaderboard::*,
+    notification::*, options::*, profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
 };
 
 use super::{context::*, window::*};

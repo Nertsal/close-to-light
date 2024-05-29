@@ -65,6 +65,22 @@ impl MenuRender {
 
         self.draw_explore(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
+
+        for notification in ui
+            .notifications
+            .items
+            .iter()
+            .chain(&ui.notifications.items_done)
+        {
+            self.ui.draw_notification(
+                notification,
+                self.font_size * 0.2,
+                state.options.theme,
+                &mut self.masked,
+                framebuffer,
+            );
+        }
+
         if let Some(ui) = &ui.confirm {
             self.ui.draw_confirm(
                 ui,
