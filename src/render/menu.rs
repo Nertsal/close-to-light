@@ -44,15 +44,11 @@ impl MenuRender {
         self.draw_play_level(ui, state, framebuffer);
 
         // Options button
-        let transparency = crate::util::smoothstep(1.0 - ui.options.open_time.get_ratio());
-        let mut color = theme.light;
-        color.a = transparency;
-        self.ui
-            .draw_icon_colored(&ui.options.button, color, framebuffer);
+        self.ui.draw_icon(&ui.options.button, framebuffer);
         self.ui.draw_outline(
             ui.options.button.state.position,
             self.font_size * 0.1,
-            color,
+            theme.light,
             framebuffer,
         );
 
