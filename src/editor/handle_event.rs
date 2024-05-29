@@ -3,6 +3,14 @@ use super::*;
 impl EditorState {
     pub fn handle_event(&mut self, event: geng::Event) {
         match &event {
+            geng::Event::KeyPress { key } => {
+                if let geng::Key::Escape | geng::Key::Enter = key {
+                    if self.ui_context.text_edit.any_active() {
+                        self.ui_context.text_edit.stop();
+                        return;
+                    }
+                }
+            }
             geng::Event::EditText(text) => {
                 self.ui_context.text_edit.text.clone_from(text);
             }

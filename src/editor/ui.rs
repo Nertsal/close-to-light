@@ -628,11 +628,15 @@ impl StatefulWidget for EditorConfigWidget {
 
         let delete = bar.cut_top(context.font_size);
         self.level_delete.update(delete, context);
-        // TODO: click action
+        if self.level_delete.text.state.clicked {
+            state.delete_active_level();
+        }
 
         let create = bar.cut_top(context.font_size);
         self.level_create.update(create, context);
-        // TODO: click action
+        if self.level_create.text.state.clicked {
+            state.create_new_level();
+        }
 
         bar.cut_top(context.layout_size);
         let all = bar.cut_top(context.font_size);

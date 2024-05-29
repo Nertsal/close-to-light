@@ -129,7 +129,7 @@ impl TextEdit {
                 self.counter += 1;
             }
             geng.window().start_text_edit(text);
-            self.text = text.to_owned();
+            text.clone_into(&mut self.text);
             self.counter
         } else {
             0
@@ -150,6 +150,11 @@ impl TextEdit {
     /// Check if the id is an active edit.
     pub fn is_active(&self, id: usize) -> bool {
         self.geng.is_some() && id == self.counter
+    }
+
+    /// Check if there is an active edit.
+    pub fn any_active(&self) -> bool {
+        self.geng.is_some()
     }
 }
 

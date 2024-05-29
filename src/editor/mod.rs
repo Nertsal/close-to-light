@@ -73,8 +73,6 @@ impl HistoryLabel {
 }
 
 pub struct LevelEditor {
-    context: Context,
-
     /// Static (initial) version of the level.
     pub static_level: PlayLevel,
     /// Current state of the level.
@@ -141,7 +139,7 @@ pub struct Replay {
 }
 
 impl LevelEditor {
-    pub fn new(context: Context, model: Model, level: PlayLevel, visualize_beat: bool) -> Self {
+    pub fn new(model: Model, level: PlayLevel, visualize_beat: bool) -> Self {
         let mut editor = Self {
             level_state: EditorLevelState::default(),
             current_beat: Time::ZERO,
@@ -161,7 +159,6 @@ impl LevelEditor {
             name: level.level.meta.name.to_string(),
             static_level: level,
             model,
-            context,
         };
         editor.render_lights(vec2::ZERO, visualize_beat);
         editor
@@ -221,8 +218,8 @@ impl EditorState {
             options.clone(),
             level.group.clone(),
         );
-        let model = Model::empty(context.clone(), options, level.clone());
-        editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true));
+        let model = Model::empty(context, options, level.clone());
+        editor.editor.level_edit = Some(LevelEditor::new(model, level, true));
         editor
     }
 
@@ -378,6 +375,59 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
+    fn delete_active_level(&mut self) {
+        let Some(level_editor) = self.level_edit.take() else {
+            return;
+        };
+        let level_index = level_editor.static_level.level_index;
+
+        if !(0..self.group.cached.data.levels.len()).contains(&level_index) {
+            log::error!(
+                "Tried to remove a level by an invalid index {}",
+                level_index
+            );
+            return;
+        }
+
+        let mut new_group = self.group.cached.data.clone();
+        new_group.levels.remove(level_index);
+
+        if let Some(group) =
+            self.context
+                .local
+                .update_group(self.group.group_index, new_group, None)
+        {
+            self.group.cached = group;
+            log::info!("Saved the level successfully");
+        } else {
+            log::error!("Failed to update the level cache");
+        }
+    }
+
+    fn create_new_level(&mut self) {
+        let mut new_group = self.group.cached.data.clone();
+        new_group.levels.push(Rc::new(LevelFull {
+            meta: LevelInfo {
+                id: 0,
+                name: "New Diff".into(),
+                authors: Vec::new(),
+                hash: String::new(),
+            },
+            data: Level::new(),
+        }));
+
+        if let Some(group) =
+            self.context
+                .local
+                .update_group(self.group.group_index, new_group, None)
+        {
+            self.group.cached = group;
+            log::info!("Saved the level successfully");
+        } else {
+            log::error!("Failed to update the level cache");
+        }
+    }
+
     fn move_level_low(&mut self, level_index: usize) {
         let Some(swap_with) = level_index.checked_sub(1) else {
             return;
@@ -435,12 +485,7 @@ impl Editor {
                 start_time: Time::ZERO,
             };
             let model = Model::empty(self.context.clone(), self.options.clone(), level.clone());
-            self.level_edit = Some(LevelEditor::new(
-                self.context.clone(),
-                model,
-                level,
-                self.visualize_beat,
-            ));
+            self.level_edit = Some(LevelEditor::new(model, level, self.visualize_beat));
         }
     }
 
