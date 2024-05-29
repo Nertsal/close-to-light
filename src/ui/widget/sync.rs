@@ -1,7 +1,11 @@
 use super::*;
 
 use crate::{
-    local::CachedGroup, menu::MenuState, prelude::Assets, task::Task, ui::layout::AreaOps,
+    local::CachedGroup,
+    menu::{ConfirmAction, MenuState},
+    prelude::Assets,
+    task::Task,
+    ui::layout::AreaOps,
 };
 
 use ctl_client::{

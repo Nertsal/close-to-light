@@ -10,10 +10,16 @@ use crate::{
     local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
-        widget::{ConfirmAction, ConfirmPopup, Widget},
+        widget::{ConfirmPopup, Widget},
         ShowTime, UiContext, WidgetRequest,
     },
 };
+
+#[derive(Debug)]
+pub enum ConfirmAction {
+    DeleteGroup(Index),
+    SyncDiscard,
+}
 
 pub struct LevelMenu {
     context: Context,
@@ -44,7 +50,7 @@ pub struct MenuState {
     pub options: Options,
     pub config: LevelConfig,
 
-    pub confirm_popup: Option<ConfirmPopup>,
+    pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
     /// Currently showing music.
     pub selected_music: Option<ShowTime<Id>>,
@@ -148,7 +154,6 @@ impl MenuState {
                     }
                 }
             }
-            _ => {}
         }
     }
 }

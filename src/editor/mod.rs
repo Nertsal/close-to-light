@@ -14,11 +14,14 @@ use crate::{
     leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
-    ui::{
-        widget::{ConfirmAction, ConfirmPopup},
-        UiContext,
-    },
+    ui::{widget::ConfirmPopup, UiContext},
 };
+
+#[derive(Debug)]
+pub enum ConfirmAction {
+    ExitUnsaved,
+    ChangeLevelUnsaved(usize),
+}
 
 pub struct EditorState {
     context: Context,
@@ -119,7 +122,7 @@ pub struct Editor {
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
 
-    pub confirm_popup: Option<ConfirmPopup>,
+    pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
     /// Whether to exit the game on the next frame.
     pub exit: bool,
@@ -558,7 +561,6 @@ impl Editor {
         match popup.action {
             ConfirmAction::ExitUnsaved => self.exit(),
             ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
-            _ => (),
         }
     }
 }
