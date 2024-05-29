@@ -16,11 +16,10 @@ pub struct MenuUI {
     pub ctl_logo: IconWidget,
     pub separator: WidgetState,
 
-    pub confirm: Option<ConfirmWidget>,
     pub options: OptionsButtonWidget,
 
+    pub confirm: Option<ConfirmWidget>,
     pub sync: Option<SyncWidget>,
-    pub sync_offset: vec2<f32>,
 
     pub level_select: LevelSelectUI,
     pub play_level: PlayLevelWidget,
@@ -45,11 +44,10 @@ impl MenuUI {
             ctl_logo: IconWidget::new(&assets.sprites.title),
             separator: WidgetState::new(),
 
-            confirm: None,
             options: OptionsButtonWidget::new(assets, 0.25),
 
+            confirm: None,
             sync: None,
-            sync_offset: vec2::ZERO,
 
             level_select: LevelSelectUI::new(geng, assets),
             play_level: PlayLevelWidget::new(),
@@ -110,24 +108,27 @@ impl MenuUI {
         self.ctl_logo.update(logo, context);
 
         if let Some(confirm) = &mut self.confirm {
-            let size = vec2(20.0, 15.0) * layout_size;
+            let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
             if confirm.confirm.state.clicked {
-                self.confirm = None;
+                confirm.window.show.going_up = false;
                 state.confirm_action();
             } else if confirm.discard.state.clicked {
-                self.confirm = None;
+                confirm.window.show.going_up = false;
                 state.confirm_popup = None;
+            }
+
+            if confirm.window.show.time.is_min() {
+                self.confirm = None;
             }
 
             // NOTE: When confirm is active, you cant interact with other widgets
             context.update_focus(true);
         } else if let Some(popup) = &state.confirm_popup {
-            self.confirm = Some(ConfirmWidget::new(
-                &self.context.assets,
-                popup.message.clone(),
-            ));
+            let mut confirm = ConfirmWidget::new(&self.context.assets, popup.message.clone());
+            confirm.window.show.going_up = true;
+            self.confirm = Some(confirm);
         }
 
         if self.explore.state.visible {
@@ -276,13 +277,12 @@ impl MenuUI {
 
         if let Some(sync) = &mut self.sync {
             let size = vec2(20.0, 17.0) * layout_size;
-            let pos = Aabb2::point(screen.center() + self.sync_offset).extend_symmetric(size / 2.0);
+            let pos = screen.align_aabb(size, vec2(0.5, 0.5));
             sync.update(pos, context, state);
             context.update_focus(sync.state.hovered);
             if !sync.window.show.going_up && sync.window.show.time.is_min() {
                 // Close window
                 self.sync = None;
-                self.sync_offset = vec2::ZERO;
             }
         }
 

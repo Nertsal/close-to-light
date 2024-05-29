@@ -70,7 +70,7 @@ impl MenuRender {
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         let Some(sync) = &ui.sync else { return };
-        let t = sync.window.show.time.get_ratio();
+        let t = crate::util::smoothstep(sync.window.show.time.get_ratio());
 
         let window = sync.state.position;
         let min_height = self.font_size * 2.0;
@@ -119,9 +119,13 @@ impl MenuRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let Some(confirm) = &ui.confirm else { return };
+        let t = crate::util::smoothstep(confirm.window.show.time.get_ratio());
 
         let window = confirm.state.position;
+        let min_height = self.font_size * 2.0;
+        let height = (t * window.height()).max(min_height);
 
+        let window = window.with_height(height, 1.0);
         self.ui.draw_window(
             &mut self.masked,
             window,
@@ -130,6 +134,11 @@ impl MenuRender {
             state.options.theme,
             framebuffer,
             |framebuffer| {
+                let hold = confirm.hold.position;
+                let hold = hold.extend_up(self.font_size * 0.2 - hold.height());
+                self.ui
+                    .draw_quad(hold, state.options.theme.light, framebuffer);
+
                 self.ui.draw_text(&confirm.title, framebuffer);
                 self.ui.draw_text(&confirm.message, framebuffer);
                 self.ui.draw_icon(&confirm.confirm.icon, framebuffer);

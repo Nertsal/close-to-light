@@ -39,11 +39,7 @@ pub struct UiWindow<T> {
 impl<T> UiWindow<T> {
     pub fn new(data: T, time: f32) -> Self {
         Self {
-            show: ShowTime {
-                data,
-                time: Bounded::new_zero(time),
-                going_up: false,
-            },
+            show: ShowTime::new(time, data),
             request: None,
             reload_reopen: true,
             last_request: None,
