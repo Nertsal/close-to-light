@@ -140,11 +140,12 @@ impl Leaderboard {
             return;
         }
 
-        let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE) else {
-            return;
-        };
-
         if let Some(client) = &self.client {
+            let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
+            else {
+                return;
+            };
+
             let client = Arc::clone(client);
             let future = async move { client.login_token(user.id, &user.token).await };
             self.log_task = Some(Task::new(&self.geng, future));
