@@ -120,7 +120,7 @@ impl EditorUI {
     ) -> bool {
         let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
-        let font_size = screen.height() * 0.03;
+        let font_size = screen.height() * 0.04;
         let layout_size = screen.height() * 0.03;
 
         context.font_size = font_size;
@@ -131,7 +131,7 @@ impl EditorUI {
         {
             let max_size = screen.size() * 0.75;
 
-            let ratio = 16.0 / 9.0;
+            let ratio = 15.0 / 9.0;
             let max_height = max_size.y.min(max_size.x / ratio);
 
             let game_height = max_height;
@@ -291,7 +291,7 @@ impl StatefulWidget for EditorEditWidget {
             }};
         }
 
-        let bottom_bar = main.cut_bottom(font_size * 3.0);
+        let bottom_bar = main.cut_bottom(layout_size * 3.0);
         let mut bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
 
         let mut main = main
