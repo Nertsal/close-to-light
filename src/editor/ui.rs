@@ -698,7 +698,14 @@ impl StatefulWidget for EditorConfigWidget {
             level.update(name, context);
             level.text = level_name;
             if level.state.clicked {
-                state.change_level(i);
+                if state.is_changed() {
+                    state.popup_confirm(
+                        ConfirmAction::ChangeLevelUnsaved(i),
+                        "there are unsaved changes",
+                    )
+                } else {
+                    state.change_level(i);
+                }
             }
 
             let width = name.height();

@@ -555,8 +555,10 @@ impl Editor {
         let Some(popup) = self.confirm_popup.take() else {
             return;
         };
-        if let ConfirmAction::ExitUnsaved = popup.action {
-            self.exit();
+        match popup.action {
+            ConfirmAction::ExitUnsaved => self.exit(),
+            ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
+            _ => (),
         }
     }
 }

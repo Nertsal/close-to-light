@@ -12,6 +12,7 @@ pub enum ConfirmAction {
     DeleteGroup(Index),
     SyncDiscard,
     ExitUnsaved,
+    ChangeLevelUnsaved(usize),
 }
 
 #[derive(Debug)]
