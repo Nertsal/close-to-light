@@ -64,6 +64,7 @@ pub struct MenuState {
 #[derive(Debug)]
 pub enum ConfirmAction {
     DeleteGroup(Index),
+    SyncDiscard,
 }
 
 #[derive(Debug)]
@@ -143,12 +144,19 @@ impl MenuState {
     }
 
     /// Confirm the popup action and execute it.
-    pub fn confirm_action(&mut self) {
+    pub fn confirm_action(&mut self, ui: &mut MenuUI) {
         let Some(popup) = self.confirm_popup.take() else {
             return;
         };
         match popup.action {
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
+            ConfirmAction::SyncDiscard => {
+                if let Some(sync) = &mut ui.sync {
+                    if let Some(client) = self.leaderboard.client.clone() {
+                        sync.discard_changes(client);
+                    }
+                }
+            }
         }
     }
 }

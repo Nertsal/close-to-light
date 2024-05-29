@@ -10,7 +10,7 @@ use crate::{
 
 use ctl_client::{
     core::types::{GroupInfo, Id, LevelSet},
-    ClientError,
+    ClientError, Nertboard,
 };
 use generational_arena::Index;
 
@@ -72,6 +72,17 @@ impl SyncWidget {
             task_group_upload: None,
             task_group_download: None,
         }
+    }
+
+    pub fn discard_changes(&mut self, client: Arc<Nertboard>) {
+        let group_id = self.cached_group.data.id;
+        let future = async move {
+            let info = client.get_group_info(group_id).await?;
+            let bytes = client.download_group(group_id).await?;
+            let group: LevelSet = bincode::deserialize(&bytes)?;
+            Ok((group, info))
+        };
+        self.task_group_download = Some(Task::new(&self.geng, future));
     }
 }
 
@@ -251,16 +262,8 @@ impl StatefulWidget for SyncWidget {
                     format!("delete the level by {}", self.cached_group.data.owner.name),
                 );
                 self.window.request = Some(WidgetRequest::Close);
-            } else if let Some(client) = local.client() {
-                // TODO confirm
-                let group_id = self.cached_group.data.id;
-                let future = async move {
-                    let info = client.get_group_info(group_id).await?;
-                    let bytes = client.download_group(group_id).await?;
-                    let group: LevelSet = bincode::deserialize(&bytes)?;
-                    Ok((group, info))
-                };
-                self.task_group_download = Some(Task::new(&self.geng, future));
+            } else if let Some(_client) = local.client() {
+                state.popup_confirm(ConfirmAction::SyncDiscard, "discard changes");
             }
         }
 

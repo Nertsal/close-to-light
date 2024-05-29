@@ -113,13 +113,11 @@ impl MenuUI {
             confirm.update(window, context);
             if confirm.confirm.state.clicked {
                 confirm.window.show.going_up = false;
-                state.confirm_action();
+                state.confirm_action(self);
             } else if confirm.discard.state.clicked {
                 confirm.window.show.going_up = false;
                 state.confirm_popup = None;
-            }
-
-            if confirm.window.show.time.is_min() {
+            } else if confirm.window.show.time.is_min() {
                 self.confirm = None;
             }
 
