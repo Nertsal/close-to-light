@@ -523,9 +523,9 @@ impl UtilRender {
             let radius = r32(0.1) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
-                LitState::Dark => continue, // (theme.light, theme.dark),
-                LitState::Light => (THEME.dark, THEME.light), // (theme.dark, theme.light),
-                LitState::Danger => (THEME.dark, THEME.danger), // (theme.dark, theme.danger),
+                LitState::Dark => (THEME.danger, THEME.dark),
+                LitState::Light => (THEME.dark, THEME.light),
+                LitState::Danger => (THEME.light, THEME.danger),
             };
             self.geng.draw2d().draw2d(
                 framebuffer,
