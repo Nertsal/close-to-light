@@ -4,6 +4,10 @@ pub type RequestResult<T, E = RequestError> = std::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RequestError {
+    #[error("You cannot upload more levels")]
+    TooManyGroups,
+    #[error("You cannot upload more levels for that song")]
+    TooManyGroupsForSong,
     #[error("Timed out")]
     Timeout,
     #[error("Server error")]
@@ -41,6 +45,8 @@ pub enum RequestError {
 impl RequestError {
     fn status(&self) -> StatusCode {
         match self {
+            RequestError::TooManyGroups => StatusCode::BAD_REQUEST,
+            RequestError::TooManyGroupsForSong => StatusCode::BAD_REQUEST,
             RequestError::Timeout => StatusCode::REQUEST_TIMEOUT,
             RequestError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
             RequestError::Unathorized => StatusCode::UNAUTHORIZED,

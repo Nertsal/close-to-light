@@ -5,7 +5,9 @@ use crate::database::types::LevelRow;
 use axum::{body::Bytes, extract::DefaultBodyLimit};
 use ctl_core::types::{GroupsQuery, LevelFull, LevelSet};
 
-const GROUP_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
+const GROUP_SIZE_LIMIT: usize = 1 * 1024 * 1024; // 5 MB
+const GROUPS_PER_USER: usize = 5;
+const GROUPS_PER_USER_PER_SONG: usize = 1;
 
 pub fn route(router: Router) -> Router {
     router
@@ -308,6 +310,23 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
 }
 
 async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>) -> Result<Id> {
+    // Check if the user already has groups
+    let user_groups: Vec<GroupRow> = sqlx::query_as("SELECT * FROM groups WHERE owner_id = ?")
+        .bind(user.user_id)
+        .fetch_all(&app.database)
+        .await?;
+    if user_groups.len() >= GROUPS_PER_USER {
+        return Err(RequestError::TooManyGroups);
+    }
+    if user_groups
+        .iter()
+        .filter(|group| group.music_id == parsed_group.music)
+        .count()
+        >= GROUPS_PER_USER_PER_SONG
+    {
+        return Err(RequestError::TooManyGroupsForSong);
+    }
+
     // Check if such a level already exists
     for level in &mut parsed_group.levels {
         level.meta.hash = level.data.calculate_hash();
