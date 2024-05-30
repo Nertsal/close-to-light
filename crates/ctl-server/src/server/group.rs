@@ -272,9 +272,9 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
             )
             .bind(&level.meta.hash)
             .bind(level.meta.name.as_ref())
+            .bind(order)
             .bind(level.meta.id)
             .bind(group_id)
-            .bind(order)
             .execute(&app.database)
             .await?;
         }
