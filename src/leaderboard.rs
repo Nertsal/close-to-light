@@ -113,6 +113,18 @@ impl ScoreMeta {
 }
 
 impl Leaderboard {
+    pub fn empty(geng: &Geng) -> Self {
+        Self {
+            geng: geng.clone(),
+            user: None,
+            client: None,
+            log_task: None,
+            task: None,
+            status: LeaderboardStatus::None,
+            loaded: LoadedBoard::new(),
+        }
+    }
+
     pub fn new(geng: &Geng, client: Option<&Arc<Nertboard>>) -> Self {
         let mut leaderboard = Self {
             geng: geng.clone(),
@@ -340,6 +352,7 @@ impl Leaderboard {
             meta: meta.clone(),
         });
 
+        self.loaded.level = level;
         self.loaded.category = meta.category.clone();
         self.loaded.reload_local(score.as_ref());
 
@@ -410,7 +423,7 @@ impl LoadedBoard {
 
     /// Refresh the filter.
     fn refresh(&mut self) {
-        log::debug!("Filtering scores with meta\n{:#?}", self.category);
+        log::debug!("Filtering scores with meta: {:?}", self.category);
 
         let mut scores = self.all_scores.clone();
 

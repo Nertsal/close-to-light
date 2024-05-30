@@ -61,7 +61,8 @@ CREATE TABLE levels
     level_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     hash BLOB NOT NULL,
     group_id INTEGER NOT NULL,
-    name TEXT
+    name TEXT NOT NULL,
+    ord INTEGER NOT NULL
 );
 
 CREATE TABLE level_authors

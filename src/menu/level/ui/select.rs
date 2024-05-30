@@ -357,10 +357,12 @@ impl LevelSelectUI {
         for (widget, (level_id, cached)) in
             self.grid_levels.iter_mut().zip(levels.iter().enumerate())
         {
-            let origin_hash = group
-                .origin
-                .as_ref()
-                .and_then(|info| info.levels.get(level_id).map(|level| &level.hash));
+            let origin_hash = group.origin.as_ref().and_then(|info| {
+                info.levels
+                    .iter()
+                    .find(|level| level.id == cached.meta.id)
+                    .map(|level| &level.hash)
+            });
             let edited =
                 origin_hash.map_or(false, |hash| Some(hash) != group.level_hashes.get(level_id));
             widget.sync(group_idx, level_id, cached, edited);

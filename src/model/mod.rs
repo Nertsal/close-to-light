@@ -124,8 +124,10 @@ impl Model {
         context: Context,
         options: Options,
         level: PlayLevel,
-        leaderboard: Leaderboard,
+        mut leaderboard: Leaderboard,
     ) -> Self {
+        leaderboard.loaded.level = level.level.meta.id;
+
         let start_time = level.start_time;
         let mut model = Self::empty(context, options, level);
         if let Some(player) = &leaderboard.user {
@@ -143,7 +145,7 @@ impl Model {
     pub fn empty(context: Context, options: Options, level: PlayLevel) -> Self {
         Self {
             transition: None,
-            leaderboard: Leaderboard::new(&context.geng, None),
+            leaderboard: Leaderboard::empty(&context.geng),
             context,
 
             high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version

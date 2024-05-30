@@ -131,10 +131,11 @@ async fn group_get(
         .await?
         .0;
 
-    let level_rows: Vec<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE group_id = ?")
-        .bind(group_id)
-        .fetch_all(&app.database)
-        .await?;
+    let level_rows: Vec<LevelRow> =
+        sqlx::query_as("SELECT * FROM levels WHERE group_id = ? ORDER BY ord")
+            .bind(group_id)
+            .fetch_all(&app.database)
+            .await?;
 
     let authors: Vec<(Id, UserInfo)> = sqlx::query(
         "
@@ -243,28 +244,34 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
     };
 
     // Update levels
-    for level in &mut parsed_group.levels {
+    // TODO: remove removed levels
+    for (order, level) in parsed_group.levels.iter_mut().enumerate() {
+        let order = order as i64;
         level.meta.hash = level.data.calculate_hash();
         if level.meta.id == 0 {
             // Create
             level.meta.id = sqlx::query(
-                "INSERT INTO levels (hash, group_id, name) VALUES (?, ?, ?) RETURNING level_id",
+                "INSERT INTO levels (hash, group_id, name, ord) VALUES (?, ?, ?, ?) RETURNING level_id",
             )
             .bind(&level.meta.hash)
             .bind(group_id)
             .bind(level.meta.name.as_ref())
+            .bind(order)
             .try_map(|row: DBRow| row.try_get("level_id"))
             .fetch_one(&app.database)
             .await?;
         } else {
             // Update
-            sqlx::query("UPDATE levels SET hash = ?, name = ? WHERE level_id = ? AND group_id = ?")
-                .bind(&level.meta.hash)
-                .bind(level.meta.name.as_ref())
-                .bind(level.meta.id)
-                .bind(group_id)
-                .execute(&app.database)
-                .await?;
+            sqlx::query(
+                "UPDATE levels SET hash = ?, name = ?, ord = ? WHERE level_id = ? AND group_id = ?",
+            )
+            .bind(&level.meta.hash)
+            .bind(level.meta.name.as_ref())
+            .bind(level.meta.id)
+            .bind(group_id)
+            .bind(order)
+            .execute(&app.database)
+            .await?;
         }
     }
 
@@ -332,7 +339,9 @@ async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>
     parsed_group.id = group_id;
 
     // Create levels
-    for level in &mut parsed_group.levels {
+    for (order, level) in parsed_group.levels.iter_mut().enumerate() {
+        let order = order as i64;
+
         // Check if such a level already exists
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
             .bind(&level.meta.hash)
@@ -343,11 +352,12 @@ async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>
         }
 
         level.meta.id = sqlx::query(
-            "INSERT INTO levels (hash, group_id, name) VALUES (?, ?, ?) RETURNING level_id",
+            "INSERT INTO levels (hash, group_id, name, ord) VALUES (?, ?, ?, ?) RETURNING level_id",
         )
         .bind(&level.meta.hash)
         .bind(group_id)
         .bind(level.meta.name.as_ref())
+        .bind(order)
         .try_map(|row: DBRow| row.try_get("level_id"))
         .fetch_one(&app.database)
         .await?;
