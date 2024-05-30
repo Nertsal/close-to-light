@@ -68,6 +68,7 @@ pub struct LevelItemWidget {
 pub struct MusicItemWidget {
     pub state: WidgetState,
     pub download: IconButtonWidget,
+    pub downloading: IconWidget,
     pub play: IconButtonWidget,
     pub goto: IconButtonWidget,
     pub info: MusicInfo,
@@ -323,8 +324,8 @@ impl ExploreMusicWidget {
     }
 
     fn load(&mut self, music: &CacheState<Vec<MusicInfo>>) {
-        self.items.clear();
         self.status.show();
+        let mut target_items = &Vec::new();
         match music {
             CacheState::Offline => self.status.text = "Offline :(".into(),
             CacheState::Loading => self.status.text = "Loading...".into(),
@@ -333,26 +334,15 @@ impl ExploreMusicWidget {
                     self.status.text = "Empty :(".into();
                 } else {
                     self.status.hide();
-                    self.items = music
-                        .iter()
-                        .map(|info| MusicItemWidget {
-                            state: WidgetState::new(),
-                            download: IconButtonWidget::new_normal(&self.assets.sprites.download),
-                            play: IconButtonWidget::new_normal(&self.assets.sprites.button_next),
-                            goto: IconButtonWidget::new_normal(&self.assets.sprites.goto),
-                            name: TextWidget::new(info.name.clone()),
-                            author: TextWidget::new(
-                                itertools::Itertools::intersperse(
-                                    info.authors.iter().map(|user| user.name.as_ref()),
-                                    ",",
-                                )
-                                .collect::<String>(),
-                            ),
-                            info: info.clone(),
-                        })
-                        .collect();
+                    target_items = music;
                 }
             }
+        }
+        if self.items.len() != target_items.len() {
+            self.items = target_items
+                .iter()
+                .map(|info| MusicItemWidget::new(&self.assets, info))
+                .collect()
         }
     }
 }
@@ -470,6 +460,29 @@ impl StatefulWidget for LevelItemWidget {
     }
 }
 
+impl MusicItemWidget {
+    pub fn new(assets: &Rc<Assets>, info: &MusicInfo) -> Self {
+        let mut widget = Self {
+            state: WidgetState::new(),
+            download: IconButtonWidget::new_normal(&assets.sprites.download),
+            downloading: IconWidget::new(&assets.sprites.loading),
+            play: IconButtonWidget::new_normal(&assets.sprites.button_next),
+            goto: IconButtonWidget::new_normal(&assets.sprites.goto),
+            name: TextWidget::new(info.name.clone()),
+            author: TextWidget::new(
+                itertools::Itertools::intersperse(
+                    info.authors.iter().map(|user| user.name.as_ref()),
+                    ",",
+                )
+                .collect::<String>(),
+            ),
+            info: info.clone(),
+        };
+        widget.downloading.hide();
+        widget
+    }
+}
+
 impl StatefulWidget for MusicItemWidget {
     type State = (Rc<LevelCache>, Option<ExploreAction>);
 
@@ -496,16 +509,23 @@ impl StatefulWidget for MusicItemWidget {
 
         if state.get_music(self.info.id).is_none() {
             // Not downloaded
-            self.download.show();
+            if !self.downloading.state.visible {
+                self.download.show();
+            }
+
             self.play.hide();
             self.goto.hide();
 
+            self.downloading.update(rows[1], context);
             self.download.update(rows[1], context);
             if self.download.state.clicked {
                 state.download_music(self.info.id);
+                self.download.hide();
+                self.downloading.show();
             }
         } else {
             self.download.hide();
+            self.downloading.hide();
             self.play.show();
             self.goto.show();
 

@@ -410,9 +410,10 @@ impl MenuRender {
                     mask.mask_quad(ui.music.items_state.position);
                     self.ui.draw_text(&ui.music.status, &mut mask.color);
                     for item in &ui.music.items {
-                        self.ui.draw_icon(&item.download.icon, &mut mask.color);
-                        self.ui.draw_icon(&item.play.icon, &mut mask.color);
-                        self.ui.draw_icon(&item.goto.icon, &mut mask.color);
+                        self.ui.draw_icon_button(&item.download, &mut mask.color);
+                        self.ui.draw_icon(&item.downloading, &mut mask.color);
+                        self.ui.draw_icon_button(&item.play, &mut mask.color);
+                        self.ui.draw_icon_button(&item.goto, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(

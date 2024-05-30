@@ -159,6 +159,13 @@ impl UiRender {
         );
     }
 
+    pub fn draw_icon_button(&self, icon: &IconButtonWidget, framebuffer: &mut ugli::Framebuffer) {
+        if !icon.state.visible {
+            return;
+        }
+        self.draw_icon_colored(&icon.icon, Color::WHITE, framebuffer);
+    }
+
     pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
         self.draw_icon_colored(icon, Color::WHITE, framebuffer);
     }
