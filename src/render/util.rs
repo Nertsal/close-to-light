@@ -187,7 +187,7 @@ impl UtilRender {
 
         let position = position.map(Float::as_f32);
         let transform = mat3::translate(position.map(Float::as_f32))
-            * mat3::scale_uniform(options.size * 0.6)
+            * mat3::scale_uniform(options.size * 0.6) // TODO: figure out what that 0.6 is lmao
             * mat3::translate(-align.rotate(options.rotation))
             * mat3::rotate_around(vec2(measure.center().x, 0.0), options.rotation);
 
