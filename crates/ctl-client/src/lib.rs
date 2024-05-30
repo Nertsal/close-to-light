@@ -63,6 +63,14 @@ impl Nertboard {
         Ok(res)
     }
 
+    pub async fn ping(&self) -> Result<()> {
+        let url = self.url.clone();
+        let req = self.client.get(url);
+        let response = self.check(req.send().await)?;
+        get_body(response).await?;
+        Ok(())
+    }
+
     pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
         let url = self.url.join(&format!("level/{}/scores", level)).unwrap();
         let req = self.client.get(url);

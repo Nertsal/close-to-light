@@ -118,6 +118,9 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
         .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
         .transpose()?
         .map(Arc::new);
+    if let Some(client) = &client {
+        let _ = client.ping().await; // Ping the server to check if we are online
+    }
 
     let context = context::Context::new(&geng, &assets, client.as_ref())
         .await

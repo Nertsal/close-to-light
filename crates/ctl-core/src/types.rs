@@ -94,13 +94,12 @@ impl MusicInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
 pub struct LevelInfo {
     /// Id `0` for local levels.
-    #[serde(default)]
     pub id: Id,
     pub name: Name,
     pub authors: Vec<UserInfo>,
-    #[serde(default)] // TODO: remove
     pub hash: String,
 }
 
