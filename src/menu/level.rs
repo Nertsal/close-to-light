@@ -20,6 +20,7 @@ pub enum ConfirmAction {
     DeleteGroup(Index),
     SyncDiscard,
     DownloadRecommended,
+    SyncUpload,
 }
 
 pub struct LevelMenu {
@@ -170,6 +171,13 @@ impl MenuState {
                 if let Some(sync) = &mut ui.sync {
                     if let Some(client) = self.leaderboard.client.clone() {
                         sync.discard_changes(client);
+                    }
+                }
+            }
+            ConfirmAction::SyncUpload => {
+                if let Some(sync) = &mut ui.sync {
+                    if let Some(client) = self.leaderboard.client.clone() {
+                        sync.upload(client);
                     }
                 }
             }

@@ -84,6 +84,19 @@ impl SyncWidget {
         };
         self.task_group_download = Some(Task::new(&self.geng, future));
     }
+
+    pub fn upload(&mut self, client: Arc<Nertboard>) {
+        let group = (*self.cached_group).clone();
+        let group_index = self.cached_group_index;
+        let future = async move {
+            // TODO: it could happen that a level has a local non-zero id
+            // but is not present on the server.
+            // In that case, upload will fail with "Not found"
+            let group = client.upload_group(&group.data).await?;
+            Ok((group_index, group))
+        };
+        self.task_group_upload = Some(Task::new(&self.geng, future));
+    }
 }
 
 impl StatefulWidget for SyncWidget {
@@ -247,17 +260,13 @@ impl StatefulWidget for SyncWidget {
             if self.cached_music.is_some() {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
-                if let Some(client) = local.client() {
-                    let group = (*self.cached_group).clone();
-                    let group_index = self.cached_group_index;
-                    let future = async move {
-                        // TODO: it could happen that a level has a local non-zero id
-                        // but is not present on the server.
-                        // In that case, upload will fail with "Not found"
-                        let group = client.upload_group(&group.data).await?;
-                        Ok((group_index, group))
-                    };
-                    self.task_group_upload = Some(Task::new(&self.geng, future));
+                if self.cached_group.data.id == 0 {
+                    state.popup_confirm(ConfirmAction::SyncUpload, "You cannot undo this action");
+                } else {
+                    state.popup_confirm(
+                        ConfirmAction::SyncUpload,
+                        "Uploading a new version will reset leaderboards of all difficulties",
+                    );
                 }
             } else {
                 state
@@ -278,7 +287,7 @@ impl StatefulWidget for SyncWidget {
                     format!("delete the level by {}", self.cached_group.data.owner.name),
                 );
                 self.window.request = Some(WidgetRequest::Close);
-            } else if let Some(_client) = local.client() {
+            } else if let Some(_client) = state.context.local.client() {
                 state.popup_confirm(ConfirmAction::SyncDiscard, "discard changes");
             }
         }
