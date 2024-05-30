@@ -3,24 +3,29 @@ use super::*;
 pub struct PlayLevelWidget {
     pub music: TextWidget,
     pub music_author: TextWidget,
+    pub music_original: TextWidget,
     pub difficulty: TextWidget,
     pub mappers: TextWidget,
 }
 
 impl PlayLevelWidget {
     pub fn new() -> Self {
-        Self {
+        let mut widget = Self {
             music: TextWidget::new(""),
             music_author: TextWidget::new("").aligned(vec2(1.0, 0.5)),
+            music_original: TextWidget::new("original"),
             difficulty: TextWidget::new(""),
             mappers: TextWidget::new("").aligned(vec2(1.0, 0.5)),
-        }
+        };
+        widget.music_original.hide();
+        widget
     }
 
     pub fn update(&mut self, mut main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
         // Base layout
         let music_pos = main.cut_top(context.font_size * 1.3);
-        let music_author_pos = main.cut_top(context.font_size * 0.5);
+        let mut music_author_pos = main.cut_top(context.font_size * 0.5);
+        let music_original = music_author_pos.cut_left(context.font_size * 3.0);
         main.cut_top(context.layout_size * 1.0);
         let difficulty_pos = main.cut_top(context.font_size * 1.0);
         let mappers_pos = main.cut_top(context.font_size * 0.5);
@@ -39,6 +44,14 @@ impl PlayLevelWidget {
 
                 self.music.update(music_pos.translate(slide), context);
                 self.music.options.size = music_pos.height() * font_factor;
+                if music.meta.original {
+                    self.music_original.show();
+                    self.music_original
+                        .update(music_original.translate(slide), context);
+                    self.music_original.options.size = music_original.height() * font_factor;
+                } else {
+                    self.music_original.hide();
+                }
                 self.music_author
                     .update(music_author_pos.translate(slide), context);
                 self.music_author.options.size = music_author_pos.height() * font_factor;

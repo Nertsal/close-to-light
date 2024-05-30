@@ -207,6 +207,16 @@ impl MenuRender {
 
         self.ui.draw_text(&ui.music, framebuffer);
         self.ui.draw_text(&ui.music_author, framebuffer);
+        if ui.music_original.state.visible {
+            let pos = ui
+                .music_original
+                .state
+                .position
+                .extend_uniform(self.font_size * 0.2);
+            self.ui.fill_quad(pos, theme.light, framebuffer);
+            self.ui
+                .draw_text_colored(&ui.music_original, theme.dark, framebuffer);
+        }
         self.ui
             .draw_text_colored(&ui.difficulty, theme.highlight, framebuffer);
         self.ui
