@@ -23,6 +23,7 @@ pub struct HoverButton {
     pub base_collider: Collider,
     pub hover_time: Lifetime,
     pub animation: Movement,
+    pub clicked: bool,
 }
 
 impl HoverButton {
@@ -36,21 +37,29 @@ impl HoverButton {
                 key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
                 fade_out: r32(0.2),
             },
+            clicked: false,
         }
     }
 
     /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
     pub fn is_fading(&self) -> bool {
         // TODO: more custom
-        self.hover_time.get_ratio().as_f32() > 0.5
+        self.hover_time.get_ratio().as_f32() > 0.6
     }
 
     pub fn update(&mut self, hovering: bool, delta_time: Time) {
-        self.hover_time.change(if self.is_fading() || hovering {
-            delta_time
+        let scale = if self.is_fading() {
+            self.clicked = false;
+            1.0
+        } else if self.clicked {
+            3.0
+        } else if hovering {
+            1.0
         } else {
-            -delta_time
-        });
+            -1.0
+        };
+        let dt = r32(scale) * delta_time;
+        self.hover_time.change(dt);
     }
 }
 
@@ -94,6 +103,8 @@ pub struct Model {
     pub high_score: i32,
     pub camera: Camera2d,
     pub player: Player,
+    /// Whether the cursor clicked last frame.
+    pub cursor_clicked: bool,
 
     pub options: Options,
     /// The level being played. Not changed, apart from music being played.
@@ -163,6 +174,7 @@ impl Model {
                 ),
                 level.config.health.max,
             ),
+            cursor_clicked: false,
 
             level_state: LevelState::default(),
             state: State::Starting {

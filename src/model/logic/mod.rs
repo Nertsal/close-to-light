@@ -150,6 +150,9 @@ impl Model {
                     .restart_button
                     .base_collider
                     .check(&self.player.collider);
+                if hovering && self.cursor_clicked {
+                    self.restart_button.clicked = true;
+                }
                 self.restart_button.update(hovering, delta_time);
                 self.player
                     .update_distance_simple(&self.restart_button.base_collider);
@@ -159,6 +162,9 @@ impl Model {
 
                 // 1 second before the UI is active
                 let hovering = self.exit_button.base_collider.check(&self.player.collider);
+                if hovering && self.cursor_clicked {
+                    self.exit_button.clicked = true;
+                }
                 self.exit_button.update(hovering, delta_time);
                 self.player
                     .update_distance_simple(&self.exit_button.base_collider);

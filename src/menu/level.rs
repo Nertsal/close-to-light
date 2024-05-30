@@ -653,6 +653,9 @@ impl geng::State for LevelMenu {
                 .play_button
                 .base_collider
                 .contains(cursor_world.as_r32());
+            if hovering && self.ui_context.cursor.was_down {
+                self.play_button.clicked = true;
+            }
             self.play_button.update(hovering, delta_time);
         }
         if self.play_button.hover_time.is_max() {

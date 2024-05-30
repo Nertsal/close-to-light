@@ -15,6 +15,8 @@ pub struct MainMenu {
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
     cursor_pos: vec2<f64>,
+    /// Cursor clicked last frame.
+    clicked: bool,
     active_touch: Option<u64>,
     cursor_world_pos: vec2<Coord>,
     camera: Camera2d,
@@ -39,6 +41,7 @@ impl MainMenu {
             cursor_pos: vec2::ZERO,
             active_touch: None,
             cursor_world_pos: vec2::ZERO,
+            clicked: false,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -97,6 +100,9 @@ impl geng::State for MainMenu {
         self.player.reset_distance();
 
         let hovering = self.player.collider.check(&self.play_button.base_collider);
+        if hovering && self.clicked {
+            self.play_button.clicked = true;
+        }
         self.play_button.update(hovering, delta_time);
         self.player
             .update_distance_simple(&self.play_button.base_collider);
@@ -104,6 +110,8 @@ impl geng::State for MainMenu {
             self.play_button.hover_time.set_ratio(Time::ZERO);
             self.play();
         }
+
+        self.clicked = false;
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
@@ -116,6 +124,9 @@ impl geng::State for MainMenu {
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }
+            geng::Event::MousePress {
+                button: geng::MouseButton::Left,
+            } => self.clicked = true,
             geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
                 self.active_touch = Some(touch.id);
             }

@@ -116,6 +116,9 @@ impl geng::State for Game {
             geng::Event::CursorMove { position } => {
                 self.ui_context.cursor.cursor_move(position.as_f32());
             }
+            geng::Event::MousePress {
+                button: geng::MouseButton::Left,
+            } => self.model.cursor_clicked = true,
             geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
                 self.active_touch = Some(touch.id);
             }
@@ -197,5 +200,6 @@ impl geng::State for Game {
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
         self.model.update(target_pos, delta_time);
+        self.model.cursor_clicked = false;
     }
 }
