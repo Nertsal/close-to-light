@@ -1,14 +1,19 @@
 use super::*;
 
 use crate::{
-    leaderboard::{LeaderboardStatus, LoadedBoard, SavedScore},
+    leaderboard::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore},
     prelude::Assets,
-    ui::layout,
+    ui::layout::AreaOps,
 };
+
+use ctl_client::core::types::{Name, UserInfo};
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
-    pub close: ButtonWidget,
+    pub window: UiWindow<()>,
+    // pub close: IconButtonWidget,
+    pub reload: IconButtonWidget,
+    pub show_title: bool,
     pub title: TextWidget,
     pub subtitle: TextWidget,
     pub status: TextWidget,
@@ -29,10 +34,13 @@ pub struct LeaderboardEntryWidget {
 }
 
 impl LeaderboardWidget {
-    pub fn new(assets: &Rc<Assets>) -> Self {
+    pub fn new(assets: &Rc<Assets>, show_title: bool) -> Self {
         Self {
             state: WidgetState::new(),
-            close: ButtonWidget::new_textured("", &assets.sprites.button_close),
+            window: UiWindow::new((), 0.3).reload_skip(),
+            // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
+            reload: IconButtonWidget::new_normal(&assets.sprites.reset),
+            show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("TOP WORLD"),
             status: TextWidget::new(""),
@@ -44,7 +52,11 @@ impl LeaderboardWidget {
             highscore: LeaderboardEntryWidget::new(
                 "",
                 SavedScore {
-                    player: "".to_string(),
+                    user: UserInfo {
+                        id: 0,
+                        name: "player".into(),
+                    },
+                    level: 0,
                     score: 0,
                     meta: crate::leaderboard::ScoreMeta::default(),
                 },
@@ -53,29 +65,35 @@ impl LeaderboardWidget {
         }
     }
 
-    pub fn update_state(
-        &mut self,
-        state: &LeaderboardStatus,
-        board: &LoadedBoard,
-        player_name: &str,
-    ) {
+    pub fn update_state(&mut self, leaderboard: &Leaderboard) {
+        let user = &leaderboard.user.as_ref().map_or(
+            UserInfo {
+                id: 0,
+                name: "offline".into(),
+            },
+            |user| UserInfo {
+                id: user.id,
+                name: user.name.clone(),
+            },
+        );
         // let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
+
         self.rows.clear();
-        self.status.text = "".to_string();
-        match state {
-            LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".to_string(),
-            LeaderboardStatus::Pending => self.status.text = "LOADING...".to_string(),
-            LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".to_string(),
+        self.status.text = "".into();
+        match leaderboard.status {
+            LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".into(),
+            LeaderboardStatus::Pending => self.status.text = "LOADING...".into(),
+            LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".into(),
             LeaderboardStatus::Done => {
-                if board.filtered.is_empty() {
-                    self.status.text = "EMPTY :(".to_string();
+                if leaderboard.loaded.filtered.is_empty() {
+                    self.status.text = "EMPTY :(".into();
                 }
             }
         }
-        self.load_scores(board, player_name);
+        self.load_scores(&leaderboard.loaded, user);
     }
 
-    pub fn load_scores(&mut self, board: &LoadedBoard, player_name: &str) {
+    pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {
         self.rows = board
             .filtered
             .iter()
@@ -86,14 +104,15 @@ impl LeaderboardWidget {
                     .as_ref()
                     .and_then(|meta| serde_json::from_str(meta).ok())?;
                 let score = SavedScore {
-                    player: entry.player.clone(),
+                    user: entry.user.clone(),
+                    level: board.level,
                     score: entry.score,
                     meta,
                 };
                 Some(LeaderboardEntryWidget::new(
                     (rank + 1).to_string(),
                     score,
-                    entry.player == player_name,
+                    entry.user.id == user.id,
                 ))
             })
             .collect();
@@ -103,61 +122,78 @@ impl LeaderboardWidget {
                 self.highscore.show();
                 self.highscore.rank.text = board
                     .my_position
-                    .map_or("???".to_string(), |rank| format!("{}.", rank + 1));
-                self.highscore.player.text = player_name.to_string(); // score.player.clone();
+                    .map_or("???".into(), |rank| format!("{}.", rank + 1).into());
+                self.highscore.player.text = user.name.clone();
                 self.highscore.score.text = format!(
                     "{} ({}/{})",
                     score.score,
                     (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
                     (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
-                );
+                )
+                .into();
             }
         }
     }
 }
 
 impl Widget for LeaderboardWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        self.window.update(context.delta_time);
+
         let main = position;
 
-        let close = layout::align_aabb(
-            vec2::splat(1.0) * context.font_size,
-            main.extend_uniform(-0.5 * context.layout_size),
-            vec2(0.0, 1.0),
-        );
-        self.close.update(close, context);
+        // let close = layout::align_aabb(
+        //     vec2::splat(1.0) * context.font_size,
+        //     main.extend_uniform(-0.5 * context.layout_size),
+        //     vec2(0.0, 1.0),
+        // );
+        // self.close.update(close, context);
 
-        let main = main
+        let reload = main
+            .extend_uniform(-0.5 * context.layout_size)
+            .align_aabb(vec2::splat(1.0) * context.font_size, vec2(1.0, 1.0));
+        self.reload.update(reload, context);
+        if self.reload.state.clicked {
+            self.window.request = Some(WidgetRequest::Reload);
+        }
+
+        let mut main = main
             .extend_symmetric(-vec2(1.0, 0.0) * context.layout_size)
             .extend_up(-context.layout_size);
 
-        let (title, main) = layout::cut_top_down(main, context.font_size * 1.2);
-        self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
+        let title = main.cut_top(context.font_size * 1.2);
+        if self.show_title {
+            self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
+        }
 
-        let (subtitle, main) = layout::cut_top_down(main, context.font_size * 1.0);
+        let subtitle = main.cut_top(context.font_size * 1.0);
         self.subtitle.update(subtitle, context);
 
-        let (status, _) = layout::cut_top_down(main, context.font_size * 1.0);
+        let status = main.clone().cut_top(context.font_size * 1.0);
         self.status.update(status, context);
 
-        let main = main.extend_right(-0.5 * context.font_size);
+        main.cut_right(0.5 * context.font_size);
 
-        let (main, highscore) = layout::cut_top_down(main, main.height() - context.font_size * 1.5);
+        let highscore = main.cut_bottom(context.font_size * 1.5);
         self.highscore.update(highscore, context);
 
-        let (main, separator) = layout::cut_top_down(main, main.height() - context.font_size * 0.1);
+        let separator = main.cut_bottom(context.font_size * 0.1);
         let separator = separator.extend_right(0.5 * context.font_size);
         self.separator.update(separator, context);
 
-        let main = main.extend_down(-0.2 * context.font_size);
+        main.cut_bottom(0.2 * context.font_size);
 
         self.rows_state.update(main, context);
         let main = main.translate(vec2(0.0, -self.scroll));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.0);
-        let rows = layout::stack(row, vec2(0.0, -context.font_size * 1.0), self.rows.len());
+        let rows = row.stack(vec2(0.0, -context.font_size * 1.0), self.rows.len());
         let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
         for (row, position) in self.rows.iter_mut().zip(rows) {
             row.update(position, context);
@@ -178,24 +214,15 @@ impl Widget for LeaderboardWidget {
 
         self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
     }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.title.walk_states_mut(f);
-        self.subtitle.walk_states_mut(f);
-        for row in &mut self.rows {
-            row.walk_states_mut(f);
-        }
-    }
 }
 
 impl LeaderboardEntryWidget {
-    pub fn new(rank: impl Into<String>, score: SavedScore, highlight: bool) -> Self {
+    pub fn new(rank: impl Into<Name>, score: SavedScore, highlight: bool) -> Self {
         let rank = rank.into();
         let mut rank = TextWidget::new(format!("{}.", rank));
         rank.align(vec2(1.0, 0.5));
 
-        let mut player = TextWidget::new(&score.player);
+        let mut player = TextWidget::new(score.user.name.clone());
         player.align(vec2(0.0, 0.5));
 
         let mut score = TextWidget::new(format!(
@@ -217,14 +244,18 @@ impl LeaderboardEntryWidget {
 }
 
 impl Widget for LeaderboardEntryWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        let main = position;
+        let mut main = position;
 
-        let (rank, main) = layout::cut_left_right(main, context.font_size * 1.0);
+        let rank = main.cut_left(context.font_size * 1.0);
         self.rank.update(rank, context);
-        let main = main.extend_left(-context.font_size * 0.2);
+        main.cut_left(context.font_size * 0.2);
 
-        let (main, score) = layout::cut_left_right(main, main.width() - context.font_size * 5.0);
+        let score = main.cut_right(context.font_size * 5.0);
         self.score.update(score, context);
 
         let player = main;
@@ -234,12 +265,5 @@ impl Widget for LeaderboardEntryWidget {
         } else {
             context.theme.light
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.rank.walk_states_mut(f);
-        self.player.walk_states_mut(f);
-        self.score.walk_states_mut(f);
     }
 }

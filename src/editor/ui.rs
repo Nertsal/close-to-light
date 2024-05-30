@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::ui::{layout, widget::*};
+use crate::ui::{layout::AreaOps, widget::*};
 
 const HELP: &str = "
 Scroll / Arrow keys - move through time
@@ -16,9 +16,15 @@ pub struct EditorUI {
     pub screen: WidgetState,
     pub game: WidgetState,
 
+    pub confirm: Option<ConfirmWidget>,
+
+    pub exit: ButtonWidget,
     pub help: IconWidget,
     pub tab_edit: ButtonWidget,
     pub tab_config: ButtonWidget,
+
+    pub unsaved: TextWidget,
+    pub save: ButtonWidget,
 
     pub help_text: TextWidget,
     pub edit: EditorEditWidget,
@@ -26,6 +32,7 @@ pub struct EditorUI {
 }
 
 pub struct EditorConfigWidget {
+    pub assets: Rc<Assets>,
     pub state: WidgetState,
 
     pub timing: TextWidget,
@@ -34,7 +41,12 @@ pub struct EditorConfigWidget {
     pub offset: ValueWidget<Time>,
 
     pub music: TextWidget,
-    pub level: TextWidget, // TODO: input
+    pub level: TextWidget,
+    pub level_name: InputWidget,
+    pub level_delete: ButtonWidget,
+    pub level_create: ButtonWidget,
+    pub all_levels: TextWidget,
+    pub all_level_names: Vec<(IconWidget, IconWidget, TextWidget)>,
 
     pub timeline: TextWidget,
     /// Normal time scroll.
@@ -48,6 +60,8 @@ pub struct EditorConfigWidget {
 
 pub struct EditorEditWidget {
     pub state: WidgetState,
+
+    pub warn_select_level: TextWidget,
 
     pub new_event: TextWidget,
     pub new_palette: ButtonWidget,
@@ -78,19 +92,25 @@ pub struct EditorEditWidget {
 }
 
 impl EditorUI {
-    pub fn new(assets: &Assets) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             screen: default(),
             game: default(),
 
+            confirm: None,
+
+            exit: ButtonWidget::new("Exit"),
             help: IconWidget::new(&assets.sprites.help),
             tab_edit: ButtonWidget::new("Edit"),
             tab_config: ButtonWidget::new("Config"),
 
+            unsaved: TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)),
+            save: ButtonWidget::new("Save"),
+
             help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
-            edit: EditorEditWidget::new(),
+            edit: EditorEditWidget::new(geng),
             config: {
-                let mut w = EditorConfigWidget::new();
+                let mut w = EditorConfigWidget::new(assets);
                 w.hide();
                 w
             },
@@ -101,51 +121,78 @@ impl EditorUI {
         &mut self,
         editor: &mut Editor,
         screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: Time,
-        geng: &Geng,
+        context: &mut UiContext,
     ) -> bool {
-        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+        let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
-        let font_size = screen.height() * 0.03;
+        let font_size = screen.height() * 0.04;
         let layout_size = screen.height() * 0.03;
 
-        let mut context = UiContext {
-            theme: editor.model.options.theme,
-            layout_size,
-            font_size,
-            can_focus: true,
-            cursor,
-            delta_time: delta_time.as_f32(),
-            mods: KeyModifiers::from_window(geng.window()),
-        };
+        context.font_size = font_size;
+        context.layout_size = layout_size;
 
-        self.screen.update(screen, &context);
+        self.screen.update(screen, context);
 
         {
             let max_size = screen.size() * 0.75;
 
-            let ratio = 16.0 / 9.0;
+            let ratio = 15.0 / 9.0;
             let max_height = max_size.y.min(max_size.x / ratio);
 
             let game_height = max_height;
             let game_size = vec2(game_height * ratio, game_height);
 
-            let game = layout::align_aabb(game_size, screen, vec2(0.5, 0.5));
-            self.game.update(game, &context);
+            let game = screen.align_aabb(game_size, vec2(0.5, 0.5));
+            self.game.update(game, context);
         }
 
-        let main = screen;
+        if let Some(confirm) = &mut self.confirm {
+            let size = vec2(20.0, 10.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+            confirm.update(window, context);
+            if confirm.confirm.state.clicked {
+                confirm.window.show.going_up = false;
+                editor.confirm_action(self);
+            } else if confirm.discard.state.clicked {
+                confirm.window.show.going_up = false;
+                editor.confirm_popup = None;
+            } else if confirm.window.show.time.is_min() {
+                self.confirm = None;
+            }
 
-        let (top_bar, main) = layout::cut_top_down(main, font_size * 1.5);
+            // NOTE: When confirm is active, you cant interact with other widgets
+            context.update_focus(true);
+        } else if let Some(popup) = &editor.confirm_popup {
+            let mut confirm = ConfirmWidget::new(
+                &editor.context.assets,
+                popup.title.clone(),
+                popup.message.clone(),
+            );
+            confirm.window.show.going_up = true;
+            self.confirm = Some(confirm);
+        }
 
-        let (help, top_bar) = layout::cut_left_right(top_bar, layout_size * 3.0);
-        self.help.update(help, &mut context);
+        let mut main = screen;
+
+        let mut top_bar = main.cut_top(font_size * 1.5);
+
+        let exit = top_bar.cut_left(layout_size * 5.0);
+        self.exit.update(exit, context);
+        if self.exit.text.state.clicked {
+            if editor.is_changed() {
+                editor.popup_confirm(ConfirmAction::ExitUnsaved, "there are unsaved changes");
+            } else {
+                editor.exit();
+            }
+        }
+
+        let help = top_bar.cut_left(layout_size * 3.0);
+        self.help.update(help, context);
 
         let help_text = Aabb2::point(help.bottom_right())
             .extend_right(layout_size * 12.0)
             .extend_down(font_size * HELP.lines().count() as f32);
-        self.help_text.update(help_text, &mut context);
+        self.help_text.update(help_text, context);
         context.update_focus(self.help_text.state.hovered);
         if self.help.state.hovered {
             self.help_text.show();
@@ -154,7 +201,7 @@ impl EditorUI {
                 self.help.state.position.top_left(),
                 self.help_text.state.position.bottom_right(),
             )
-            .contains(cursor.position)
+            .contains(context.cursor.position)
         {
             self.help_text.hide();
         }
@@ -162,9 +209,9 @@ impl EditorUI {
         let tabs = [&mut self.tab_edit, &mut self.tab_config];
         let tab = Aabb2::point(top_bar.bottom_left())
             .extend_positive(vec2(layout_size * 5.0, top_bar.height()));
-        let tabs_pos = layout::stack(tab, vec2(tab.width() + layout_size, 0.0), tabs.len());
+        let tabs_pos = tab.stack(vec2(tab.width() + layout_size, 0.0), tabs.len());
         for (tab, pos) in tabs.into_iter().zip(tabs_pos) {
-            tab.update(pos, &mut context);
+            tab.update(pos, context);
         }
 
         if self.tab_edit.text.state.clicked {
@@ -175,19 +222,39 @@ impl EditorUI {
             self.config.show();
         }
 
+        let save = top_bar.cut_right(layout_size * 5.0);
+        self.save.update(save, context);
+        if self.save.text.state.clicked {
+            editor.save();
+        }
+
+        let unsaved = top_bar.cut_right(layout_size * 10.0);
+        if editor.is_changed() {
+            self.unsaved.show();
+            self.unsaved.update(unsaved, context);
+        } else {
+            self.unsaved.hide();
+        }
+
         let main = main.extend_down(-layout_size).extend_up(-layout_size * 3.0);
 
-        self.edit.update(main, &mut context, editor);
-        self.config.update(main, &mut context, editor);
+        if self.edit.state.visible {
+            self.edit.update(main, context, editor);
+        }
+        if self.config.state.visible {
+            self.config.update(main, context, editor);
+        }
 
         context.can_focus
     }
 }
 
 impl EditorEditWidget {
-    pub fn new() -> Self {
+    pub fn new(geng: &Geng) -> Self {
         Self {
             state: WidgetState::new(),
+
+            warn_select_level: TextWidget::new("Select or create a difficulty in the Config tab"),
 
             new_event: TextWidget::new("Event"),
             new_palette: ButtonWidget::new("Palette Swap"),
@@ -218,7 +285,7 @@ impl EditorEditWidget {
             waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
             current_beat: default(),
-            timeline: TimelineWidget::new(),
+            timeline: TimelineWidget::new(geng),
         }
     }
 }
@@ -226,9 +293,24 @@ impl EditorEditWidget {
 impl StatefulWidget for EditorEditWidget {
     type State = Editor;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         let editor = state;
-        let main = position;
+        let Some(level_editor) = &mut editor.level_edit else {
+            let size = vec2(10.0, 1.0) * context.font_size;
+            let warn = position.align_aabb(size, vec2(0.5, 0.9));
+            self.warn_select_level.show();
+            self.warn_select_level.update(warn, context);
+
+            return;
+        };
+
+        self.warn_select_level.hide();
+
+        let mut main = position;
         let font_size = context.font_size;
         let layout_size = context.layout_size;
 
@@ -241,117 +323,114 @@ impl StatefulWidget for EditorEditWidget {
             }};
         }
 
-        let (main, bottom_bar) = layout::cut_top_down(main, main.height() - font_size * 3.0);
-        let bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
+        let bottom_bar = main.cut_bottom(layout_size * 3.0);
+        let mut bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
 
-        let main = main
+        let mut main = main
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
             .extend_up(-layout_size * 5.0);
-        let (left_bar, main) = layout::cut_left_right(main, font_size * 5.0);
-        let (main, mut right_bar) = layout::cut_left_right(main, main.width() - font_size * 5.0);
-        let _ = main;
+        let left_bar = main.cut_left(font_size * 5.0);
+        let mut right_bar = main.cut_right(font_size * 5.0);
 
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
         let button_height = font_size * 1.2;
 
         {
-            let bar = left_bar;
+            let mut bar = left_bar;
 
-            let (event, bar) = layout::cut_top_down(bar, title_size);
+            let event = bar.cut_top(title_size);
             update!(self.new_event, event);
             self.new_event.options.size = title_size;
 
-            let (palette, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
+            let palette = bar.cut_top(button_height);
+            bar.cut_top(spacing);
             update!(self.new_palette, palette);
             if self.new_palette.text.state.clicked {
-                editor.palette_swap();
+                level_editor.palette_swap();
             }
 
-            let (circle, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
+            let circle = bar.cut_top(button_height);
+            bar.cut_top(spacing);
             update!(self.new_circle, circle);
             if self.new_circle.text.state.clicked {
-                editor.new_light_circle();
+                level_editor.new_light_circle();
             }
 
-            let (line, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
+            let line = bar.cut_top(button_height);
+            bar.cut_top(spacing);
             update!(self.new_line, line);
             if self.new_line.text.state.clicked {
-                editor.new_light_line();
+                level_editor.new_light_line();
             }
 
-            let bar = bar.extend_up(-layout_size * 1.5);
+            bar.cut_top(layout_size * 1.5);
 
-            let (view, bar) = layout::cut_top_down(bar, title_size);
-            let bar = bar.extend_up(-spacing);
+            let view = bar.cut_top(title_size);
+            bar.cut_top(spacing);
             update!(self.view, view);
             self.view.options.size = title_size;
 
-            let (dynamic, bar) = layout::cut_top_down(bar, font_size);
-            let bar = bar.extend_up(-spacing);
+            let dynamic = bar.cut_top(font_size);
+            bar.cut_top(spacing);
             update!(self.visualize_beat, dynamic);
             if self.visualize_beat.state.clicked {
                 editor.visualize_beat = !editor.visualize_beat;
             }
             self.visualize_beat.checked = editor.visualize_beat;
 
-            let (grid, bar) = layout::cut_top_down(bar, font_size);
-            let bar = bar.extend_up(-spacing);
+            let grid = bar.cut_top(font_size);
+            bar.cut_top(spacing);
             update!(self.show_grid, grid);
             if self.show_grid.state.clicked {
                 editor.render_options.show_grid = !editor.render_options.show_grid;
             }
             self.show_grid.checked = editor.render_options.show_grid;
 
-            // let (waypoints, bar) = layout::cut_top_down(bar, button_height);
-            // let bar = bar.extend_up(-spacing);
+            // let waypoints = bar.cut_top(button_height);
+            // bar.cut_top(spacing);
             // update!(self.view_waypoints, waypoints);
             // if self.view_waypoints.text.state.clicked {
             //     editor.view_waypoints();
             // }
 
-            let (zoom, bar) = layout::cut_top_down(bar, font_size);
-            let bar = bar.extend_up(-spacing);
+            let zoom = bar.cut_top(font_size);
+            bar.cut_top(spacing);
             update!(self.view_zoom, zoom, &mut editor.view_zoom);
             context.update_focus(self.view_zoom.state.hovered);
-
-            let _ = bar;
         }
 
         {
             // Spacing
-            let bar = right_bar;
+            let mut bar = right_bar;
 
-            let (placement, bar) = layout::cut_top_down(bar, title_size);
+            let placement = bar.cut_top(title_size);
             update!(self.placement, placement);
             self.placement.options.size = title_size;
 
-            let (grid_snap, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
+            let grid_snap = bar.cut_top(button_height);
+            bar.cut_top(spacing);
             update!(self.snap_grid, grid_snap);
             if self.snap_grid.state.clicked {
                 editor.snap_to_grid = !editor.snap_to_grid;
             }
             self.snap_grid.checked = editor.snap_to_grid;
 
-            let (grid_size, bar) = layout::cut_top_down(bar, button_height);
-            let bar = bar.extend_up(-spacing);
+            let grid_size = bar.cut_top(button_height);
+            bar.cut_top(spacing);
             let mut value = 10.0 / editor.grid_size.as_f32();
             update!(self.grid_size, grid_size, &mut value);
             editor.grid_size = r32(10.0 / value);
             context.update_focus(self.grid_size.state.hovered);
 
-            right_bar = bar.extend_up(-font_size * 1.5);
+            right_bar = bar.cut_top(font_size * 1.5);
         }
 
         {
             // Light
-            let selected = if let Some(selected_event) = editor
+            let selected = if let Some(selected_event) = level_editor
                 .selected_light
-                .and_then(|i| editor.level.level.events.get_mut(i.event))
+                .and_then(|i| level_editor.level.events.get_mut(i.event))
             {
                 if let Event::Light(event) = &mut selected_event.event {
                     Some(&mut event.light)
@@ -377,47 +456,47 @@ impl StatefulWidget for EditorEditWidget {
                     self.light_fade_out.show();
                     self.waypoint.show();
 
-                    let bar = right_bar;
+                    let mut bar = right_bar;
 
-                    let (light_pos, bar) = layout::cut_top_down(bar, title_size);
+                    let light_pos = bar.cut_top(title_size);
                     update!(self.light, light_pos);
                     self.light.options.size = title_size;
 
-                    let (danger_pos, bar) = layout::cut_top_down(bar, button_height);
-                    let bar = bar.extend_up(-spacing);
+                    let danger_pos = bar.cut_top(button_height);
+                    bar.cut_top(spacing);
                     update!(self.light_danger, danger_pos);
                     if self.light_danger.state.clicked {
                         light.danger = !light.danger;
                     }
                     self.light_danger.checked = light.danger;
 
-                    let (fade_in, bar) = layout::cut_top_down(bar, button_height);
-                    let bar = bar.extend_up(-spacing);
+                    let fade_in = bar.cut_top(button_height);
+                    bar.cut_top(spacing);
                     update!(self.light_fade_in, fade_in, &mut light.movement.fade_in);
                     context.update_focus(self.light_fade_in.state.hovered);
 
-                    let (fade_out, bar) = layout::cut_top_down(bar, button_height);
-                    let bar = bar.extend_up(-spacing);
+                    let fade_out = bar.cut_top(button_height);
+                    bar.cut_top(spacing);
                     update!(self.light_fade_out, fade_out, &mut light.movement.fade_out);
                     context.update_focus(self.light_fade_out.state.hovered);
 
-                    let bar = bar.extend_up(-font_size * 0.5);
+                    bar.cut_top(-font_size * 0.5);
 
-                    let (waypoints, bar) = layout::cut_top_down(bar, button_height);
+                    let waypoints = bar.cut_top(button_height);
                     update!(self.waypoint, waypoints);
                     if self.waypoint.text.state.clicked {
-                        editor.view_waypoints();
+                        level_editor.view_waypoints();
                     }
 
-                    right_bar = bar.extend_up(-spacing);
+                    right_bar = bar.cut_top(spacing);
                 }
             }
         }
 
         let mut waypoint = false;
-        if let Some(waypoints) = &editor.level_state.waypoints {
+        if let Some(waypoints) = &level_editor.level_state.waypoints {
             if let Some(selected) = waypoints.selected {
-                if let Some(event) = editor.level.level.events.get_mut(waypoints.event) {
+                if let Some(event) = level_editor.level.events.get_mut(waypoints.event) {
                     if let Event::Light(light) = &mut event.event {
                         if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                             // Waypoint
@@ -425,23 +504,21 @@ impl StatefulWidget for EditorEditWidget {
                             self.waypoint_scale.show();
                             self.waypoint_angle.show();
 
-                            let bar = right_bar;
+                            let mut bar = right_bar;
 
-                            let (scale, bar) = layout::cut_top_down(bar, button_height);
-                            let bar = bar.extend_up(-spacing);
+                            let scale = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
                             update!(self.waypoint_scale, scale, &mut value);
                             frame.scale = r32(value);
                             context.update_focus(self.waypoint_scale.state.hovered);
 
-                            let (angle, bar) = layout::cut_top_down(bar, button_height);
-                            let bar = bar.extend_up(-spacing);
+                            let angle = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
                             let mut value = frame.rotation.as_degrees().as_f32();
                             update!(self.waypoint_angle, angle, &mut value);
                             frame.rotation = Angle::from_degrees(r32(value));
                             context.update_focus(self.waypoint_angle.state.hovered);
-
-                            let _ = bar;
                         }
                     }
                 }
@@ -453,23 +530,23 @@ impl StatefulWidget for EditorEditWidget {
         }
 
         {
-            let (current_beat, bottom_bar) = layout::cut_top_down(bottom_bar, font_size * 1.5);
+            let current_beat = bottom_bar.cut_top(font_size * 1.5);
             update!(self.current_beat, current_beat);
-            self.current_beat.text = format!("Beat: {:.2}", editor.current_beat);
+            self.current_beat.text = format!("Beat: {:.2}", level_editor.current_beat).into();
 
-            let (timeline, _bottom_bar) = layout::cut_top_down(bottom_bar, font_size * 1.0);
+            let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
             update!(self.timeline, timeline);
 
             if self.timeline.state.pressed {
                 let time = self.timeline.get_cursor_time();
-                editor.scroll_time(time - editor.current_beat);
+                level_editor.scroll_time(time - level_editor.current_beat);
             }
-            let replay = editor
+            let replay = level_editor
                 .dynamic_segment
                 .as_ref()
                 .map(|replay| replay.current_beat);
-            self.timeline.update_time(editor.current_beat, replay);
+            self.timeline.update_time(level_editor.current_beat, replay);
 
             let select = context.mods.ctrl;
             if select {
@@ -478,7 +555,7 @@ impl StatefulWidget for EditorEditWidget {
                 } else if was_pressed && !self.timeline.state.pressed {
                     let (start_beat, end_beat) = self.timeline.end_selection();
                     if start_beat != end_beat {
-                        editor.dynamic_segment = Some(Replay {
+                        level_editor.dynamic_segment = Some(Replay {
                             start_beat,
                             end_beat,
                             current_beat: start_beat,
@@ -488,18 +565,15 @@ impl StatefulWidget for EditorEditWidget {
                 }
             }
 
-            self.timeline.auto_scale(editor.level.level.last_beat());
+            self.timeline.auto_scale(level_editor.level.last_beat());
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }
 
 impl EditorConfigWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
+            assets: assets.clone(),
             state: WidgetState::new(),
 
             timing: TextWidget::new("Timing"),
@@ -507,7 +581,12 @@ impl EditorConfigWidget {
             offset: ValueWidget::new("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
 
             music: TextWidget::new("Music"),
-            level: TextWidget::new("Level"),
+            level: TextWidget::new("Difficulty"),
+            level_name: InputWidget::new("Name", false),
+            level_delete: ButtonWidget::new("Delete"),
+            level_create: ButtonWidget::new("Create"),
+            all_levels: TextWidget::new("All Dificulties"),
+            all_level_names: Vec::new(),
 
             timeline: TextWidget::new("Timeline"),
             scroll_by: ValueWidget::new("Scroll by", r32(1.0), r32(0.25)..=r32(4.0), r32(0.25)),
@@ -525,6 +604,10 @@ impl EditorConfigWidget {
 impl StatefulWidget for EditorConfigWidget {
     type State = Editor;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
 
@@ -539,52 +622,146 @@ impl StatefulWidget for EditorConfigWidget {
             .extend_right(width)
             .extend_down(main.height());
 
-        let columns = layout::stack(column, vec2(width + spacing, 0.0), columns);
+        let columns = column.stack(vec2(width + spacing, 0.0), columns);
 
-        let bar = columns[0];
-        let (timing, bar) = layout::cut_top_down(bar, context.font_size);
+        let mut bar = columns[0];
+        let timing = bar.cut_top(context.font_size);
         self.timing.update(timing, context);
 
-        let (bpm, bar) = layout::cut_top_down(bar, context.font_size);
-        self.bpm
-            .update(bpm, context, &mut state.level.group_meta.music.bpm);
+        let bpm = bar.cut_top(context.font_size);
+        let mut bpm_value = state.group.music.meta.bpm;
+        self.bpm.update(bpm, context, &mut bpm_value); // TODO: remove
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
 
-        let _ = bar;
-
-        let bar = columns[1];
-        let (music, bar) = layout::cut_top_down(bar, context.font_size);
-        self.music.text = format!("Music: {}", state.level.group_meta.name);
+        let mut bar = columns[1];
+        let music = bar.cut_top(context.font_size);
+        self.music.text = format!("Music: {}", state.group.music.meta.name).into();
         self.music.update(music, context);
 
-        let (level, bar) = layout::cut_top_down(bar, context.font_size);
-        self.level.text = format!("Level: {}", state.level.level_meta.name);
-        self.level.update(level, context);
+        bar.cut_top(context.layout_size);
 
-        let _ = bar;
+        if let Some(level_editor) = &mut state.level_edit {
+            let level = bar.cut_top(context.font_size);
+            self.level.show();
+            self.level.update(level, context);
 
-        let bar = columns[2];
-        let (timeline, bar) = layout::cut_top_down(bar, context.font_size);
+            let name = bar.cut_top(context.font_size);
+            self.level_name.sync(&level_editor.name, context);
+            self.level_name.show();
+            self.level_name.update(name, context);
+            level_editor.name.clone_from(&self.level_name.raw);
+        } else {
+            self.level.hide();
+            self.level_name.hide();
+        }
+
+        let delete = bar.cut_top(context.font_size);
+        self.level_delete.update(delete, context);
+        if self.level_delete.text.state.clicked {
+            state.delete_active_level();
+        }
+
+        let create = bar.cut_top(context.font_size);
+        self.level_create.update(create, context);
+        if self.level_create.text.state.clicked {
+            state.create_new_level();
+        }
+
+        bar.cut_top(context.layout_size);
+        let all = bar.cut_top(context.font_size);
+        self.all_levels.update(all, context);
+
+        let names: Vec<_> = state
+            .group
+            .cached
+            .data
+            .levels
+            .iter()
+            .map(|level| level.meta.name.clone())
+            .collect();
+        if self.all_level_names.len() != names.len() {
+            self.all_level_names = names
+                .iter()
+                .map(|name| {
+                    (
+                        IconWidget::new(&self.assets.sprites.arrow_up),
+                        IconWidget::new(&self.assets.sprites.arrow_down),
+                        TextWidget::new(name.clone()),
+                    )
+                })
+                .collect();
+        }
+
+        let max = names.len().saturating_sub(1);
+        for (i, ((icon_up, icon_down, level), level_name)) in
+            self.all_level_names.iter_mut().zip(names).enumerate()
+        {
+            let name = bar.cut_top(context.font_size);
+            level.update(name, context);
+            level.text = level_name;
+            if level.state.clicked {
+                if state.is_changed() {
+                    state.popup_confirm(
+                        ConfirmAction::ChangeLevelUnsaved(i),
+                        "there are unsaved changes",
+                    )
+                } else {
+                    state.change_level(i);
+                }
+            }
+
+            let width = name.height();
+            let mut icons = name;
+            let icons = icons.cut_left(width).translate(vec2(-width, 0.0));
+
+            if level.state.hovered || context.can_focus && icons.contains(context.cursor.position) {
+                let icons = icons.split_rows(2);
+                let up = icons[0];
+                let up_hover = up.contains(context.cursor.position);
+                let down = icons[1];
+                let down_hover = down.contains(context.cursor.position);
+
+                if i > 0 && (up_hover || !down_hover) {
+                    icon_up.show();
+                    icon_up.update(up, context);
+                    if icon_up.state.clicked {
+                        state.move_level_low(i);
+                    }
+                } else {
+                    icon_up.hide();
+                }
+
+                if i < max && (down_hover || !up_hover) {
+                    icon_down.show();
+                    icon_down.update(down, context);
+                    if icon_down.state.clicked {
+                        state.move_level_high(i);
+                    }
+                } else {
+                    icon_down.hide();
+                }
+            } else {
+                icon_up.hide();
+                icon_down.hide();
+            }
+        }
+
+        let mut bar = columns[2];
+        let timeline = bar.cut_top(context.font_size);
         self.timeline.update(timeline, context);
 
-        let (scroll_by, bar) = layout::cut_top_down(bar, context.font_size);
+        let scroll_by = bar.cut_top(context.font_size);
         self.scroll_by
             .update(scroll_by, context, &mut state.config.scroll_normal);
 
-        let (shift_scroll, bar) = layout::cut_top_down(bar, context.font_size);
+        let shift_scroll = bar.cut_top(context.font_size);
         self.shift_scroll
             .update(shift_scroll, context, &mut state.config.scroll_slow);
 
-        let (alt_scroll, bar) = layout::cut_top_down(bar, context.font_size);
+        let alt_scroll = bar.cut_top(context.font_size);
         self.alt_scroll
             .update(alt_scroll, context, &mut state.config.scroll_fast);
-
-        let _ = bar;
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
     }
 }

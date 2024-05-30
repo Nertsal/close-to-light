@@ -56,12 +56,32 @@ pub enum Modifier {
     Hidden,
 }
 
+impl Modifier {
+    pub fn description(&self) -> &'static str {
+        match self {
+            Modifier::NoFail => "you can't fail",
+            Modifier::Sudden => "you don't see the lights' next move",
+            Modifier::Hidden => "the lights are hidden but they are still there",
+        }
+    }
+}
+
 impl Display for Modifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Modifier::NoFail => write!(f, "Nofail"),
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
+        }
+    }
+}
+
+impl LevelModifiers {
+    pub fn get_mut(&mut self, modifier: Modifier) -> &mut bool {
+        match modifier {
+            Modifier::NoFail => &mut self.nofail,
+            Modifier::Sudden => &mut self.sudden,
+            Modifier::Hidden => &mut self.hidden,
         }
     }
 }
@@ -96,14 +116,14 @@ impl Default for PlayerConfig {
 }
 
 impl HealthConfig {
-    pub fn preset_easy() -> Self {
-        Self {
-            max: r32(1.0),
-            dark_decrease_rate: r32(0.3),
-            danger_decrease_rate: r32(0.5),
-            restore_rate: r32(0.5),
-        }
-    }
+    // pub fn preset_easy() -> Self {
+    //     Self {
+    //         max: r32(1.0),
+    //         dark_decrease_rate: r32(0.3),
+    //         danger_decrease_rate: r32(0.5),
+    //         restore_rate: r32(0.5),
+    //     }
+    // }
 
     pub fn preset_normal() -> Self {
         Self {
@@ -114,14 +134,14 @@ impl HealthConfig {
         }
     }
 
-    pub fn preset_hard() -> Self {
-        Self {
-            max: r32(1.0),
-            dark_decrease_rate: r32(1.0),
-            danger_decrease_rate: r32(2.0),
-            restore_rate: r32(0.25),
-        }
-    }
+    // pub fn preset_hard() -> Self {
+    //     Self {
+    //         max: r32(1.0),
+    //         dark_decrease_rate: r32(1.0),
+    //         danger_decrease_rate: r32(2.0),
+    //         restore_rate: r32(0.25),
+    //     }
+    // }
 }
 
 impl Default for HealthConfig {

@@ -2,13 +2,17 @@ use super::*;
 
 impl EditorRender {
     pub(super) fn draw_game(&mut self, editor: &Editor) {
+        let Some(level_editor) = &editor.level_edit else {
+            return;
+        };
+
         let options = &editor.render_options;
 
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
 
-        let mut theme = editor.model.options.theme;
-        if editor.level_state.relevant().swap_palette {
+        let mut theme = level_editor.model.options.theme;
+        if level_editor.level_state.relevant().swap_palette {
             std::mem::swap(&mut theme.light, &mut theme.dark);
         }
 
@@ -17,7 +21,8 @@ impl EditorRender {
 
         macro_rules! draw_game {
             ($alpha:expr) => {{
-                self.dither.finish(editor.real_time, &theme.transparent());
+                self.dither
+                    .finish(level_editor.real_time, &theme.transparent());
                 self.geng.draw2d().textured_quad(
                     game_buffer,
                     &geng::PixelPerfectCamera,
@@ -33,7 +38,7 @@ impl EditorRender {
         let light_color = THEME.light;
         let danger_color = THEME.danger;
 
-        let active_danger = if let State::Movement { light, .. } = &editor.state {
+        let active_danger = if let State::Movement { light, .. } = &level_editor.state {
             light.light.danger
         } else {
             false
@@ -46,16 +51,16 @@ impl EditorRender {
         };
 
         let hover_color = editor.config.theme.hover;
-        let hovered_event = editor.level_state.hovered_event();
+        let hovered_event = level_editor.level_state.hovered_event();
 
         let select_color = editor.config.theme.select;
-        let selected_event = editor.selected_light.map(|i| i.event);
+        let selected_event = level_editor.selected_light.map(|i| i.event);
 
         let get_color =
             |event_id: Option<usize>| -> Color {
                 if let Some(event_id) = event_id {
                     let check = |a: Option<usize>| -> bool { a == Some(event_id) };
-                    let base_color = if editor.level.level.events.get(event_id).map_or(false, |e| {
+                    let base_color = if level_editor.level.events.get(event_id).map_or(false, |e| {
                         match &e.event {
                             Event::Light(event) => event.light.danger,
                             _ => false,
@@ -88,13 +93,13 @@ impl EditorRender {
 
         let static_alpha = if let State::Place { .. }
         | State::Movement { .. }
-        | State::Waypoints { .. } = editor.state
+        | State::Waypoints { .. } = level_editor.state
         {
             0.5
         } else {
             1.0
         };
-        let dynamic_alpha = if editor.level_state.static_level.is_some() {
+        let dynamic_alpha = if level_editor.level_state.static_level.is_some() {
             0.5
         } else {
             1.0
@@ -106,7 +111,7 @@ impl EditorRender {
                 &tele.light.collider,
                 0.02,
                 color,
-                &editor.model.camera,
+                &level_editor.model.camera,
                 framebuffer,
             );
         };
@@ -115,7 +120,7 @@ impl EditorRender {
             self.util.draw_light_gradient(
                 &light.collider,
                 color,
-                &editor.model.camera,
+                &level_editor.model.camera,
                 framebuffer,
             );
         };
@@ -123,7 +128,7 @@ impl EditorRender {
         // Dynamic
         let mut pixel_buffer = self.dither.start();
 
-        if let Some(level) = &editor.level_state.dynamic_level {
+        if let Some(level) = &level_editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
                 draw_telegraph(tele, &mut pixel_buffer);
             }
@@ -134,7 +139,7 @@ impl EditorRender {
 
         let mut pixel_buffer = draw_game!(dynamic_alpha);
 
-        if let Some(level) = &editor.level_state.static_level {
+        if let Some(level) = &level_editor.level_state.static_level {
             for tele in &level.telegraphs {
                 draw_telegraph(tele, &mut pixel_buffer);
             }
@@ -149,15 +154,15 @@ impl EditorRender {
                 start_beat,
                 ref light,
                 ..
-            } = editor.state
+            } = level_editor.state
             {
-                let time = editor.current_beat - start_beat
+                let time = level_editor.current_beat - start_beat
                     + light.light.movement.fade_in
                     + light.telegraph.precede_time;
                 let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
                     let event = commit_light(light.clone());
                     let (tele, light) =
-                        render_light(&event, time, None, &editor.model.level.config);
+                        render_light(&event, time, None, &level_editor.model.level.config);
                     for tele in tele {
                         draw_telegraph(&tele, pixel_buffer);
                     }
@@ -168,7 +173,10 @@ impl EditorRender {
 
                 let mut pixel_buffer = if editor.visualize_beat {
                     // Active movement
-                    let time = time + (editor.real_time / editor.level.music.beat_time()).fract();
+                    let time = time
+                        + (level_editor.real_time
+                            / level_editor.static_level.group.music.meta.beat_time())
+                        .fract();
                     draw_active(time, &mut pixel_buffer);
                     draw_game!(0.75)
                 } else {
@@ -183,7 +191,7 @@ impl EditorRender {
             };
 
             // Current action
-            let shape = match editor.state {
+            let shape = match level_editor.state {
                 State::Place { shape, danger } => Some((shape, danger)),
                 State::Movement { ref light, .. } => Some((light.light.shape, light.light.danger)),
                 _ => None,
@@ -191,24 +199,24 @@ impl EditorRender {
             if let Some((shape, danger)) = shape {
                 let collider = Collider {
                     position: editor.cursor_world_pos,
-                    rotation: editor.place_rotation,
-                    shape: shape.scaled(editor.place_scale),
+                    rotation: level_editor.place_rotation,
+                    shape: shape.scaled(level_editor.place_scale),
                 };
                 let color = if danger { THEME.danger } else { THEME.light };
                 self.util.draw_outline(
                     &collider,
                     0.05,
                     color,
-                    &editor.model.camera,
+                    &level_editor.model.camera,
                     &mut pixel_buffer,
                 );
             }
         }
         let mut pixel_buffer = draw_game!(1.0);
 
-        if let State::Waypoints { event, .. } = &editor.state {
+        if let State::Waypoints { event, .. } = &level_editor.state {
             let event = *event;
-            if let Some(event) = editor.level.level.events.get(event) {
+            if let Some(event) = level_editor.level.events.get(event) {
                 if let Event::Light(event) = &event.event {
                     let color = if event.light.danger {
                         danger_color
@@ -217,7 +225,7 @@ impl EditorRender {
                     };
 
                     // A dashed line moving through the waypoints to show general direction
-                    let mut positions: Vec<vec2<f32>> = editor
+                    let mut positions: Vec<vec2<f32>> = level_editor
                         .level_state
                         .waypoints
                         .iter()
@@ -235,18 +243,19 @@ impl EditorRender {
                         let pos = positions.first_mut().unwrap();
                         let period = options.dash_length + options.space_length;
                         let speed = 1.0;
-                        let t = ((editor.real_time.as_f32() * speed) / period).fract() * period;
+                        let t =
+                            ((level_editor.real_time.as_f32() * speed) / period).fract() * period;
                         *pos += (to - *pos).normalize_or_zero() * t;
                     }
                     let chain = Chain::new(positions);
                     self.util.draw_dashed_chain(
                         &chain,
                         &options,
-                        &editor.model.camera,
+                        &level_editor.model.camera,
                         &mut pixel_buffer,
                     );
 
-                    if let Some(waypoints) = &editor.level_state.waypoints {
+                    if let Some(waypoints) = &level_editor.level_state.waypoints {
                         // Draw waypoints themselves
                         for (i, point) in waypoints.points.iter().enumerate() {
                             if !point.visible {
@@ -263,18 +272,18 @@ impl EditorRender {
                                 &point.collider,
                                 0.05,
                                 color,
-                                &editor.model.camera,
+                                &level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
                             self.util.draw_text(
                                 format!("{}", i + 1),
                                 point.collider.position,
                                 TextRenderOptions::new(1.5).color(THEME.light),
-                                &editor.model.camera,
+                                &level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
                             if let Some(i) = point.original {
-                                if let Some(event) = editor.level.level.events.get(waypoints.event)
+                                if let Some(event) = level_editor.level.events.get(waypoints.event)
                                 {
                                     if let Event::Light(light) = &event.event {
                                         if let Some(beat) = light.light.movement.get_time(i) {
@@ -284,7 +293,7 @@ impl EditorRender {
                                                 format!("at {}", beat),
                                                 point.collider.position - vec2(0.0, 0.6).as_r32(),
                                                 TextRenderOptions::new(0.6).color(THEME.light),
-                                                &editor.model.camera,
+                                                &level_editor.model.camera,
                                                 &mut pixel_buffer,
                                             );
                                         }
@@ -314,8 +323,8 @@ impl EditorRender {
                 };
                 let grid_size = editor.grid_size.as_f32();
                 let view = vec2(
-                    editor.model.camera.fov * ui_buffer.size().as_f32().aspect(),
-                    editor.model.camera.fov,
+                    level_editor.model.camera.fov * ui_buffer.size().as_f32().aspect(),
+                    level_editor.model.camera.fov,
                 )
                 .map(|x| (x / 2.0 / grid_size).ceil() as i64);
                 let thick = editor.config.grid.thick_every as i64;
@@ -330,7 +339,7 @@ impl EditorRender {
                     let y = view.y as f32;
                     self.geng.draw2d().draw2d(
                         &mut ui_buffer,
-                        &editor.model.camera,
+                        &level_editor.model.camera,
                         &draw2d::Segment::new(
                             Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
                             width,
@@ -349,7 +358,7 @@ impl EditorRender {
                     let x = view.x as f32;
                     self.geng.draw2d().draw2d(
                         &mut ui_buffer,
-                        &editor.model.camera,
+                        &level_editor.model.camera,
                         &draw2d::Segment::new(
                             Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
                             width,
@@ -402,7 +411,7 @@ impl EditorRender {
             //     text_color,
             // );
 
-            if editor.model.level.level != editor.level.level {
+            if level_editor.model.level.level.data != level_editor.level {
                 // Save indicator
                 let text = "Ctrl+S to save the level";
                 font.draw(

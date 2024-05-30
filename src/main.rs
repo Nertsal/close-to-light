@@ -1,7 +1,12 @@
 mod assets;
+#[cfg(not(target_arch = "wasm32"))]
+mod command;
+mod context;
 mod editor;
 mod game;
 mod leaderboard;
+mod local;
+#[cfg(not(target_arch = "wasm32"))]
 mod media;
 mod menu;
 mod model;
@@ -11,29 +16,33 @@ mod task;
 mod ui;
 mod util;
 
-use leaderboard::Leaderboard;
+// use leaderboard::Leaderboard;
 use prelude::Options;
 
 use geng::prelude::*;
 
-const FIXED_FPS: f64 = 60.0;
+const FIXED_FPS: f64 = 60.0; // TODO: upgrade to 120 i think
 
-const PLAYER_NAME_STORAGE: &str = "close-to-light-name";
-const PLAYER_STORAGE: &str = "player";
 const OPTIONS_STORAGE: &str = "options";
 const HIGHSCORES_STORAGE: &str = "highscores";
+const PLAYER_LOGIN_STORAGE: &str = "user";
+
+const DISCORD_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&scope=identify";
 
 #[derive(clap::Parser)]
 struct Opts {
+    #[cfg(not(target_arch = "wasm32"))]
+    #[command(subcommand)]
+    command: Option<command::Command>,
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
-    /// Just display some dithered text on screen.
+    /// Open a specific group.
     #[clap(long)]
-    text: Option<String>,
-    /// Play a specific level.
+    group: Option<std::path::PathBuf>,
+    /// Open a specific level inside the group.
     #[clap(long)]
-    level: Option<std::path::PathBuf>,
+    level: Option<String>,
     /// Move through the level without player input.
     #[clap(long)]
     clean_auto: bool,
@@ -53,10 +62,19 @@ pub struct Secrets {
 #[derive(Deserialize, Clone)]
 pub struct LeaderboardSecrets {
     url: String,
-    key: String,
 }
 
 fn main() {
+    #[cfg(target_arch = "wasm32")]
+    let mut builder = tokio::runtime::Builder::new_current_thread();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let mut builder = tokio::runtime::Builder::new_multi_thread();
+
+    builder.enable_all().build().unwrap().block_on(async_main());
+}
+
+async fn async_main() {
     logger::init();
     geng::setup_panic_handler();
 
@@ -69,114 +87,163 @@ fn main() {
     options.with_cli(&opts.geng);
 
     Geng::run_with(&options, move |geng| async move {
-        let manager = geng.asset_manager();
-        let assets_path = run_dir().join("assets");
-
-        let assets = assets::Assets::load(manager).await.unwrap();
-        let assets = Rc::new(assets);
-
-        let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
-
-        if let Some(text) = opts.text {
-            let state = media::MediaState::new(&geng, &assets).with_text(text);
-            geng.run_state(state).await;
-        } else if let Some(level_path) = opts.level {
-            let mut config = model::LevelConfig::default();
-            let (group_meta, level_meta, music, level) = menu::load_level(manager, &level_path)
-                .await
-                .expect("failed to load level");
-
-            if opts.edit {
-                // Editor
-                let editor_config: editor::EditorConfig =
-                    geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-                        .await
-                        .expect("failed to load editor config");
-
-                let (group_name, level_name) = crate::group_level_from_path(&level_path);
-                let level = game::PlayLevel {
-                    group_name,
-                    group_meta,
-                    level_name,
-                    level_meta,
-                    config,
-                    level,
-                    music,
-                    start_time: model::Time::ZERO,
-                };
-
-                let state =
-                    editor::EditorState::new(geng.clone(), assets, editor_config, options, level);
-                geng.run_state(state).await;
-            } else {
-                // Game
-                let (group_name, level_name) = group_level_from_path(level_path);
-                config.modifiers.clean_auto = opts.clean_auto;
-                let level = game::PlayLevel {
-                    group_name,
-                    group_meta,
-                    level_name,
-                    level_meta,
-                    config,
-                    level,
-                    music,
-                    start_time: prelude::Time::ZERO,
-                };
-                let state = game::Game::new(
-                    &geng,
-                    &assets,
-                    options,
-                    level,
-                    Leaderboard::new(None),
-                    "".to_string(),
-                );
-                geng.run_state(state).await;
-            }
-        } else {
-            // Main menu
-            let secrets: Option<Secrets> =
-                geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
-                    .await
-                    .ok();
-            let secrets = secrets.or_else(|| {
-                Some(Secrets {
-                    leaderboard: LeaderboardSecrets {
-                        url: option_env!("LEADERBOARD_URL")?.to_string(),
-                        key: option_env!("LEADERBOARD_KEY")?.to_string(),
-                    },
-                })
-            });
-
-            if opts.skip_intro {
-                let assets_path = run_dir().join("assets");
-                let groups_path = assets_path.join("groups");
-
-                let groups = menu::load_groups(manager, &groups_path)
-                    .await
-                    .expect("failed to load groups");
-
-                let state = menu::LevelMenu::new(&geng, &assets, groups, secrets, options);
-                geng.run_state(state).await;
-            } else {
-                let state = menu::SplashScreen::new(&geng, &assets, secrets, options);
-                geng.run_state(state).await;
-            }
+        if let Err(err) = geng_main(opts, geng).await {
+            log::error!("{:?}", err);
         }
     });
 }
 
-fn group_level_from_path(path: impl AsRef<std::path::Path>) -> (String, String) {
-    let path = path.as_ref();
-    let group_name = path
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_owned();
-    let level_name = path.file_name().unwrap().to_str().unwrap().to_owned();
-    (group_name, level_name)
+async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
+    let manager = geng.asset_manager();
+    let assets_path = run_dir().join("assets");
+
+    let assets = assets::Assets::load(manager).await?;
+    let assets = Rc::new(assets);
+
+    let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
+
+    let secrets: Option<Secrets> =
+        geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
+            .await
+            .ok();
+    let secrets = secrets.or_else(|| {
+        Some(Secrets {
+            leaderboard: LeaderboardSecrets {
+                url: option_env!("LEADERBOARD_URL")?.to_string(),
+            },
+        })
+    });
+    let client = secrets
+        .as_ref()
+        .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
+        .transpose()?
+        .map(Arc::new);
+
+    let context = context::Context::new(&geng, &assets, client.as_ref())
+        .await
+        .expect("failed to initialize context");
+
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(command) = opts.command {
+        command
+            .execute(geng, assets, secrets)
+            .await
+            .context("failed to execute the command")?;
+        return Ok(());
+    }
+
+    if let Some(group_path) = opts.group {
+        let mut config = model::LevelConfig::default();
+        let (music, group) = context
+            .local
+            .load_group(&group_path)
+            .await
+            .context("failed to load the group")?;
+        let Some(music) = music else {
+            anyhow::bail!("failed to load music");
+        };
+        let group = Rc::new(group);
+
+        let group_index = {
+            let mut inner = context.local.inner.borrow_mut();
+            inner.music.insert(music.meta.id, music.clone());
+            inner.groups.insert(group.clone())
+        };
+
+        let group = game::PlayGroup {
+            group_index,
+            cached: group,
+            music,
+        };
+
+        let level = if let Some(level) = opts.level {
+            Some(if let Ok(index) = level.parse::<usize>() {
+                let level = group
+                    .cached
+                    .data
+                    .levels
+                    .get(index)
+                    .ok_or(anyhow!("invalid level index"))?
+                    .clone();
+                (index, level)
+            } else {
+                let index = group
+                    .cached
+                    .data
+                    .levels
+                    .iter()
+                    .position(|lvl| *lvl.meta.name == *level)
+                    .ok_or(anyhow!("level with that name was not found"))?;
+                (index, group.cached.data.levels.get(index).unwrap().clone())
+            })
+        } else {
+            None
+        };
+
+        if opts.edit {
+            // Editor
+            let editor_config: editor::EditorConfig =
+                geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
+                    .await
+                    .context("failed to load editor config")?;
+
+            let state = if let Some((level_index, level)) = level {
+                let level = game::PlayLevel {
+                    group,
+                    level_index,
+                    level,
+                    config,
+                    start_time: prelude::Time::ZERO,
+                };
+                editor::EditorState::new_level(context, editor_config, options, level)
+            } else {
+                editor::EditorState::new_group(context, editor_config, options, group)
+            };
+
+            geng.run_state(state).await;
+            return Ok(());
+        }
+
+        // Game
+        let (level_index, level) = match level {
+            Some(res) => res,
+            None => {
+                log::warn!("level not specified, playing the first one in the group");
+                let index = 0;
+                let level = group
+                    .cached
+                    .data
+                    .levels
+                    .get(index)
+                    .ok_or(anyhow!("group has no levels to play"))?;
+                (index, level.clone())
+            }
+        };
+        config.modifiers.clean_auto = opts.clean_auto;
+        let level = game::PlayLevel {
+            group,
+            level_index,
+            level,
+            config,
+            start_time: prelude::Time::ZERO,
+        };
+        let state = game::Game::new(
+            context,
+            options,
+            level,
+            leaderboard::Leaderboard::new(&geng, None),
+        );
+        geng.run_state(state).await;
+    } else {
+        // Main menu
+        if opts.skip_intro {
+            let state = menu::LevelMenu::new(context, client.as_ref(), options);
+            geng.run_state(state).await;
+        } else {
+            let state = menu::SplashScreen::new(context, client.as_ref(), options);
+            geng.run_state(state).await;
+        }
+    }
+
+    Ok(())
 }

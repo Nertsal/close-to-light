@@ -2,7 +2,6 @@ use super::*;
 
 use crate::prelude::*;
 
-#[derive(Debug)]
 pub struct TimelineWidget {
     context: UiContext,
     pub state: WidgetState,
@@ -24,16 +23,19 @@ pub struct TimelineWidget {
 }
 
 impl TimelineWidget {
-    pub fn new() -> Self {
+    pub fn new(geng: &Geng) -> Self {
         Self {
             context: UiContext {
+                font: geng.default_font().clone(),
                 theme: Theme::default(),
+                screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
                 layout_size: 1.0,
                 font_size: 1.0,
                 can_focus: true,
                 cursor: CursorContext::new(),
                 delta_time: 0.1,
                 mods: KeyModifiers::default(),
+                text_edit: TextEdit::empty(),
             },
             state: default(),
             current_beat: default(),
@@ -156,17 +158,13 @@ impl TimelineWidget {
 }
 
 impl Widget for TimelineWidget {
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.state.update(position, context);
-        self.context = *context;
-        self.reload();
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
     }
 
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.current_beat.walk_states_mut(f);
-        self.left.walk_states_mut(f);
-        self.right.walk_states_mut(f);
-        self.replay.walk_states_mut(f);
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.state.update(position, context);
+        self.context = context.clone();
+        self.reload();
     }
 }

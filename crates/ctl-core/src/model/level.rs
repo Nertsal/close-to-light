@@ -1,9 +1,9 @@
 use super::*;
 
-#[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(geng::asset::Load, Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[load(serde = "json")]
+#[serde(default)]
 pub struct Level {
-    #[serde(default)]
     pub events: Vec<TimedEvent>,
 }
 
@@ -49,6 +49,10 @@ pub struct Telegraph {
 }
 
 impl Level {
+    pub fn new() -> Self {
+        Self { events: Vec::new() }
+    }
+
     /// Calculate the last beat when anything happens.
     pub fn last_beat(&self) -> Time {
         self.events
@@ -56,6 +60,11 @@ impl Level {
             .map(|event| event.beat + event.duration())
             .max()
             .unwrap_or(Time::ZERO)
+    }
+
+    pub fn calculate_hash(&self) -> String {
+        let bytes = bincode::serialize(self).expect("level should be serializable");
+        crate::util::calculate_hash(&bytes)
     }
 }
 

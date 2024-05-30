@@ -1,107 +1,40 @@
 mod button;
 mod checkbox;
-mod group;
+mod confirm;
+mod explore;
 mod icon;
+mod input;
 mod leaderboard;
-mod level;
-mod level_config;
+mod notification;
 mod options;
+mod profile;
 mod slider;
+mod sync;
 mod text;
 mod timeline;
 mod value;
 
 pub use self::{
-    button::ButtonWidget, checkbox::CheckboxWidget, group::GroupWidget, icon::IconWidget,
-    leaderboard::*, level::*, level_config::*, options::*, slider::SliderWidget, text::TextWidget,
-    timeline::TimelineWidget, value::ValueWidget,
+    button::*, checkbox::*, confirm::*, explore::*, icon::*, input::*, leaderboard::*,
+    notification::*, options::*, profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
 };
 
-use crate::prelude::Theme;
+use super::{context::*, window::*};
 
 use geng::prelude::*;
-
-#[derive(Debug, Clone, Copy)]
-pub struct CursorContext {
-    pub position: vec2<f32>,
-    pub down: bool,
-    /// Was the cursor down last frame.
-    pub was_down: bool,
-    pub scroll: f32,
-}
-
-impl CursorContext {
-    pub fn new() -> Self {
-        Self {
-            position: vec2::ZERO,
-            down: false,
-            was_down: false,
-            scroll: 0.0,
-        }
-    }
-
-    pub fn update(&mut self, is_down: bool) {
-        self.was_down = self.down;
-        self.down = is_down;
-    }
-}
-
-#[derive(Default, Debug, Clone, Copy)]
-pub struct KeyModifiers {
-    pub shift: bool,
-    pub ctrl: bool,
-    pub alt: bool,
-}
-
-impl KeyModifiers {
-    pub fn from_window(window: &geng::Window) -> Self {
-        Self {
-            shift: geng_utils::key::is_key_pressed(window, [geng::Key::ShiftLeft]),
-            ctrl: geng_utils::key::is_key_pressed(window, [geng::Key::ControlLeft]),
-            alt: geng_utils::key::is_key_pressed(window, [geng::Key::AltLeft]),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct UiContext {
-    pub theme: Theme,
-    pub layout_size: f32,
-    pub font_size: f32,
-    /// Whether the widget can use the cursor position to get focus.
-    pub can_focus: bool,
-    pub cursor: CursorContext,
-    pub delta_time: f32,
-    /// Active key modifiers.
-    pub mods: KeyModifiers,
-}
-
-impl UiContext {
-    pub fn scale_font(self, scale: f32) -> Self {
-        Self {
-            font_size: self.font_size * scale,
-            ..self
-        }
-    }
-
-    /// Update `can_focus` property given another widget's focus.
-    pub fn update_focus(&mut self, focus: bool) {
-        self.can_focus = self.can_focus && !focus;
-    }
-}
 
 pub trait Widget {
     /// Update position and related properties.
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext);
-    /// Apply a function to all states contained in the widget.
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
+    /// Get a mutable reference to the root state.
+    fn state_mut(&mut self) -> &mut WidgetState;
     /// Make the widget visible.
     fn show(&mut self) {
-        self.walk_states_mut(&WidgetState::show)
+        self.state_mut().show()
     }
     /// Hide the widget and disable interactions.
     fn hide(&mut self) {
-        self.walk_states_mut(&WidgetState::hide)
+        self.state_mut().hide()
     }
 }
 
@@ -111,29 +44,17 @@ pub trait StatefulWidget {
 
     /// Update position and related properties.
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State);
-    /// Apply a function to all states contained in the widget.
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState));
+    /// Get a mutable reference to the root state.
+    fn state_mut(&mut self) -> &mut WidgetState;
     /// Make the widget visible.
     fn show(&mut self) {
-        self.walk_states_mut(&WidgetState::show)
+        self.state_mut().show()
     }
     /// Hide the widget and disable interactions.
     fn hide(&mut self) {
-        self.walk_states_mut(&WidgetState::hide)
+        self.state_mut().hide()
     }
 }
-
-// impl<T: Widget> StatefulWidget for T {
-//     type State = ();
-
-//     fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Self::State) {
-//         self.update(position, context)
-//     }
-
-//     fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-//         self.walk_states_mut(f)
-//     }
-// }
 
 #[derive(Debug, Clone)]
 pub struct WidgetState {
@@ -141,10 +62,14 @@ pub struct WidgetState {
     /// Whether to show the widget.
     pub visible: bool,
     pub hovered: bool,
-    /// Whether user has clicked on the widget since last frame.
+    /// Whether user has left clicked on the widget since last frame.
     pub clicked: bool,
-    /// Whether user is holding the mouse button down on the widget.
+    /// Whether user is holding the left mouse button down on the widget.
     pub pressed: bool,
+    /// Whether user has right clicked on the widget since last frame.
+    pub right_clicked: bool,
+    /// Whether user is holding the right mouse button down on the widget.
+    pub right_pressed: bool,
 }
 
 impl WidgetState {
@@ -161,16 +86,18 @@ impl WidgetState {
             self.pressed =
                 context.cursor.down && (was_pressed || self.hovered && !context.cursor.was_down);
             self.clicked = !was_pressed && self.pressed;
+
+            let was_pressed = self.right_pressed;
+            self.right_pressed = context.cursor.right_down
+                && (was_pressed || self.hovered && !context.cursor.was_right_down);
+            self.right_clicked = !was_pressed && self.right_pressed;
         } else {
             self.hovered = false;
             self.pressed = false;
             self.clicked = false;
+            self.right_pressed = false;
+            self.right_clicked = false;
         }
-    }
-
-    /// For compatibility with [Widget::walk_states_mut].
-    pub fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        f(self)
     }
 
     pub fn show(&mut self) {
@@ -182,6 +109,8 @@ impl WidgetState {
         self.hovered = false;
         self.pressed = false;
         self.clicked = false;
+        self.right_pressed = false;
+        self.right_clicked = false;
     }
 }
 
@@ -193,6 +122,8 @@ impl Default for WidgetState {
             hovered: false,
             clicked: false,
             pressed: false,
+            right_clicked: false,
+            right_pressed: false,
         }
     }
 }

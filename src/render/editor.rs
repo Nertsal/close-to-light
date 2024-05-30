@@ -21,6 +21,7 @@ pub struct EditorRender {
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
+    font_size: f32,
 }
 
 pub struct RenderOptions {
@@ -45,6 +46,7 @@ impl EditorRender {
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
+            font_size: 1.0,
         }
     }
 
@@ -66,27 +68,31 @@ impl EditorRender {
             self.geng.ugli(),
         );
 
-        self.draw_game(editor);
+        if ui.edit.state.visible {
+            self.draw_game(editor);
+        }
         if !editor.render_options.hide_ui {
             self.draw_ui(editor, ui);
         }
 
         let camera = &geng::PixelPerfectCamera;
 
-        let mut masked = self.mask.start();
-        masked.mask_quad(if editor.render_options.hide_ui {
-            ui.screen.position
-        } else {
-            ui.game.position
-        });
-        self.geng.draw2d().textured_quad(
-            &mut masked.color,
-            camera,
-            ui.screen.position,
-            &self.game_texture,
-            Color::WHITE,
-        );
-        self.mask.draw(draw_parameters(), framebuffer);
+        if ui.edit.state.visible {
+            let mut masked = self.mask.start();
+            masked.mask_quad(if editor.render_options.hide_ui {
+                ui.screen.position
+            } else {
+                ui.game.position
+            });
+            self.geng.draw2d().textured_quad(
+                &mut masked.color,
+                camera,
+                ui.screen.position,
+                &self.game_texture,
+                Color::WHITE,
+            );
+            self.mask.draw(draw_parameters(), framebuffer);
+        }
 
         if !editor.render_options.hide_ui {
             self.geng.draw2d().textured_quad(

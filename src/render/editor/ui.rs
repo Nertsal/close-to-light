@@ -4,7 +4,8 @@ impl EditorRender {
     pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI) {
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = &editor.model.options.theme;
+        let theme = editor.options.theme;
+        self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
@@ -51,6 +52,8 @@ impl EditorRender {
             framebuffer,
         );
 
+        self.ui.draw_button(&ui.exit, theme, framebuffer);
+
         if ui.help_text.state.visible {
             let width = font_size * 0.1;
             let pos = Aabb2::from_corners(
@@ -62,15 +65,29 @@ impl EditorRender {
         }
         self.ui.draw_icon(&ui.help, framebuffer);
         self.ui.draw_text(&ui.help_text, framebuffer);
+
+        self.ui.draw_text(&ui.unsaved, framebuffer);
+        self.ui.draw_button(&ui.save, theme, framebuffer);
+
+        if let Some(ui) = &ui.confirm {
+            self.ui.draw_confirm(
+                ui,
+                self.font_size * 0.2,
+                editor.options.theme,
+                &mut self.mask,
+                framebuffer,
+            );
+        }
     }
 
-    fn draw_tab_config(&mut self, _editor: &Editor, ui: &EditorConfigWidget) {
+    fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {
         if !ui.state.visible {
             return;
         }
 
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        let theme = editor.options.theme;
 
         self.ui.draw_text(&ui.timing, framebuffer);
         self.ui.draw_value(&ui.bpm, framebuffer);
@@ -78,6 +95,22 @@ impl EditorRender {
 
         self.ui.draw_text(&ui.music, framebuffer);
         self.ui.draw_text(&ui.level, framebuffer);
+        self.ui.draw_input(&ui.level_name, framebuffer);
+        self.ui.draw_button(&ui.level_delete, theme, framebuffer);
+        self.ui.draw_button(&ui.level_create, theme, framebuffer);
+        self.ui.draw_text(&ui.all_levels, framebuffer);
+
+        let active = editor
+            .level_edit
+            .as_ref()
+            .map(|editor| editor.static_level.level_index);
+        for (i, (up, down, level)) in ui.all_level_names.iter().enumerate() {
+            let selected = active == Some(i);
+            self.ui.draw_icon(up, framebuffer);
+            self.ui.draw_icon(down, framebuffer);
+            self.ui
+                .draw_toggle_button(level, selected, false, theme, framebuffer);
+        }
 
         self.ui.draw_text(&ui.timeline, framebuffer);
         self.ui.draw_value(&ui.scroll_by, framebuffer);
@@ -98,14 +131,21 @@ impl EditorRender {
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
+        let Some(level_editor) = &editor.level_edit else {
+            self.ui.draw_text(&ui.warn_select_level, framebuffer);
+            return;
+        };
+
+        let theme = editor.options.theme;
+
         let camera = &geng::PixelPerfectCamera;
         let font_size = options.size;
 
         // Event
         self.ui.draw_text(&ui.new_event, framebuffer);
-        self.ui.draw_button(&ui.new_palette, framebuffer);
-        self.ui.draw_button(&ui.new_circle, framebuffer);
-        self.ui.draw_button(&ui.new_line, framebuffer);
+        self.ui.draw_button(&ui.new_palette, theme, framebuffer);
+        self.ui.draw_button(&ui.new_circle, theme, framebuffer);
+        self.ui.draw_button(&ui.new_line, theme, framebuffer);
 
         // View
         self.ui.draw_text(&ui.view, framebuffer);
@@ -127,7 +167,7 @@ impl EditorRender {
         self.ui.draw_value(&ui.light_fade_out, framebuffer);
 
         // Waypoints
-        self.ui.draw_button(&ui.waypoint, framebuffer);
+        self.ui.draw_button(&ui.waypoint, theme, framebuffer);
         self.ui.draw_value(&ui.waypoint_scale, framebuffer);
         self.ui.draw_value(&ui.waypoint_angle, framebuffer);
 
@@ -158,12 +198,12 @@ impl EditorRender {
             }
 
             // Light timespan
-            let event = if let State::Waypoints { event, .. } = editor.state {
+            let event = if let State::Waypoints { event, .. } = level_editor.state {
                 Some(event)
             } else {
-                editor.selected_light.map(|id| id.event)
+                level_editor.selected_light.map(|id| id.event)
             };
-            if let Some(event) = event.and_then(|i| editor.level.level.events.get(i)) {
+            if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
                 let from = event.beat;
                 if let Event::Light(event) = &event.event {
                     let from = from + event.telegraph.precede_time;

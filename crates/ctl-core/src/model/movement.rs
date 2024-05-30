@@ -135,7 +135,7 @@ impl Movement {
             } else {
                 Time::ONE
             };
-            let t = crate::util::smoothstep(t);
+            let t = smoothstep(t);
             from.lerp(&to, t)
         };
 
@@ -185,4 +185,8 @@ impl Movement {
             .map(|frame| frame.lerp_time)
             .fold(Time::ZERO, Time::add)
     }
+}
+
+fn smoothstep<T: Float>(t: T) -> T {
+    T::from_f32(3.0) * t * t - T::from_f32(2.0) * t * t * t
 }

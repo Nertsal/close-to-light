@@ -15,6 +15,14 @@ pub struct Theme {
     pub highlight: Color,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum ThemeColor {
+    Dark,
+    Light,
+    Danger,
+    Highlight,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VolumeOptions {
     pub master: Bounded<f32>, // TODO: impl in crate
@@ -68,6 +76,15 @@ impl Theme {
         Self {
             dark: Color::TRANSPARENT_BLACK,
             ..self
+        }
+    }
+
+    pub fn get_color(&self, color: ThemeColor) -> Color {
+        match color {
+            ThemeColor::Dark => self.dark,
+            ThemeColor::Light => self.light,
+            ThemeColor::Danger => self.danger,
+            ThemeColor::Highlight => self.highlight,
         }
     }
 }
