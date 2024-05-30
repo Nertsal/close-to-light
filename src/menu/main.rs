@@ -58,7 +58,7 @@ impl MainMenu {
                 1.5,
             ),
             player: Player::new(
-                Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
+                Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
                 r32(0.0),
             ),
 
