@@ -491,9 +491,6 @@ impl geng::State for LevelMenu {
             );
         }
 
-        self.util
-            .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
-
         self.dither.finish(self.time, &self.state.options.theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
@@ -551,6 +548,15 @@ impl geng::State for LevelMenu {
             if pixelated {}
         }
         self.ui_context.frame_end();
+
+        let mut dither_buffer = self.dither.start();
+        self.util
+            .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
+        self.dither
+            .finish(self.time, &self.state.options.theme.transparent());
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit_screen(vec2(0.5, 0.5), framebuffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -645,13 +651,11 @@ impl geng::State for LevelMenu {
 
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
-        if self.state.selected_level.is_some() {
+        if !self.ui_focused && self.state.selected_level.is_some() {
             self.state
                 .player
                 .update_distance_simple(&self.play_button.base_collider);
-        }
 
-        if !self.ui_focused && self.state.selected_level.is_some() {
             let hovering = self
                 .play_button
                 .base_collider
