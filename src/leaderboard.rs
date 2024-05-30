@@ -248,7 +248,7 @@ impl Leaderboard {
                 Ok(res) => {
                     match res {
                         Ok(Ok(user)) => {
-                            log::debug!("Logged in as {:?}", user);
+                            log::debug!("Logged in as {}", &user.name);
                             preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
                             self.loaded.player = Some(user.id);
                             self.user = Some(user);
