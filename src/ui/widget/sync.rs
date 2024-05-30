@@ -65,7 +65,7 @@ impl SyncWidget {
             title: TextWidget::new("Synchronizing level"),
             status: TextWidget::new("Offline"),
             upload: TextWidget::new("Upload to the server"),
-            discard: TextWidget::new("Discard changes"),
+            discard: TextWidget::new("Download new version"),
             response: TextWidget::new(""),
 
             task_group_info: None,
@@ -103,7 +103,7 @@ impl StatefulWidget for SyncWidget {
                     self.status.text = "Level is local".into();
                     self.response.hide();
                     self.upload.show();
-                    self.discard.show();
+                    self.discard.hide();
                 } else {
                     let future = async move { client.get_group_info(group_id).await };
                     self.task_group_info = Some(Task::new(&self.geng, future));
@@ -132,14 +132,18 @@ impl StatefulWidget for SyncWidget {
                 Ok(Ok(group)) => {
                     if group.hash != self.cached_group.hash {
                         // Local level version is probably outdated (or invalid)
-                        self.status.text = "Outdated or changed".into();
+                        self.status.text = "Outdated".into();
                         self.response.hide();
 
-                        // TODO: Check the author
-                        // if current user is the author - upload new version ; discard changes
-                        // if current user is not author - download new version
+                        if group.owner.id == self.cached_group.data.owner.id {
+                            // if current user is the author - upload new version ; discard changes
 
-                        self.upload.show();
+                            self.upload.show();
+                        } else {
+                            // if current user is not author - download new version
+                            self.upload.hide();
+                        }
+
                         self.discard.show();
                     } else {
                         // Everything's fine
@@ -155,9 +159,6 @@ impl StatefulWidget for SyncWidget {
             match task.poll() {
                 Err(task) => self.task_group_upload = Some(task),
                 Ok(Err(err)) => {
-                    // TODO
-                    log::error!("Failed to upload the group: {:?}", err);
-                    state.notifications.push("Upload has failed".into());
                     self.status.text = "".into();
                     self.response.show();
                     self.response.text = format!("{}", err).into();
@@ -184,7 +185,6 @@ impl StatefulWidget for SyncWidget {
                         // TODO: delete local
                     } else {
                         log::error!("Failed to download the group: {:?}", err);
-                        state.notifications.push("Download has failed".into());
                         self.response.show();
                         self.response.text = format!("{}", err).into();
                     }

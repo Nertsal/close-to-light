@@ -5,7 +5,7 @@ use crate::database::types::LevelRow;
 use axum::{body::Bytes, extract::DefaultBodyLimit};
 use ctl_core::types::{GroupsQuery, LevelFull, LevelSet};
 
-const GROUP_SIZE_LIMIT: usize = 1 * 1024 * 1024; // 5 MB
+const GROUP_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 const GROUPS_PER_USER: usize = 5;
 const GROUPS_PER_USER_PER_SONG: usize = 1;
 

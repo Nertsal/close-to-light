@@ -493,7 +493,7 @@ impl MenuRender {
             bg_color,
             framebuffer,
         );
-        self.ui.draw_text_fit(text, fg_color, framebuffer);
+        self.ui.draw_text_colored(text, fg_color, framebuffer);
         self.ui
             .draw_outline(text.state.position, outline_width, out_color, framebuffer);
     }

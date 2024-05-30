@@ -255,7 +255,7 @@ impl UiRender {
         let lines = crate::util::wrap_text(
             &self.assets.fonts.pixel,
             &widget.text,
-            main.width() / widget.options.size,
+            main.width() / widget.options.size / 0.6, // Magic constant from the util renderer that scales everything by 0.6 idk why
         );
         let row = main.align_aabb(vec2(main.width(), widget.options.size), vec2(0.5, 1.0));
         let rows = row.stack(vec2(0.0, -row.height()), lines.len());
@@ -271,27 +271,6 @@ impl UiRender {
         }
     }
 
-    // TODO: as text render option
-    pub fn draw_text_fit(
-        &self,
-        widget: &TextWidget,
-        color: Color,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let mut widget = widget.clone();
-
-        let font = &self.assets.fonts.pixel;
-        let measure = font
-            .measure(&widget.text, vec2::splat(geng::TextAlign::CENTER))
-            .unwrap_or(Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)));
-        let max_width = widget.state.position.width() * 0.9; // Leave some space TODO: move into a parameter or smth
-        let max_size = max_width / measure.width() / 0.6; // Magic constant from the util renderer that scales everything by 0.6 idk why
-        let size = widget.options.size.min(max_size);
-
-        widget.options.size = size;
-        self.draw_text_colored(&widget, color, framebuffer);
-    }
-
     pub fn draw_text(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
         self.draw_text_colored(widget, widget.options.color, framebuffer)
     }
@@ -305,6 +284,19 @@ impl UiRender {
         if !widget.state.visible {
             return;
         }
+
+        // Fit to area
+        let mut widget = widget.clone();
+
+        let font = &self.assets.fonts.pixel;
+        let measure = font
+            .measure(&widget.text, vec2::splat(geng::TextAlign::CENTER))
+            .unwrap_or(Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)));
+        let max_width = widget.state.position.width() * 0.9; // Leave some space TODO: move into a parameter or smth
+        let max_size = max_width / measure.width() / 0.6; // Magic constant from the util renderer that scales everything by 0.6 idk why
+        let size = widget.options.size.min(max_size);
+
+        widget.options.size = size;
 
         self.util.draw_text(
             &widget.text,
