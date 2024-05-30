@@ -4,6 +4,10 @@ pub type RequestResult<T, E = RequestError> = std::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RequestError {
+    #[error("There are no difficulties")]
+    NoLevels,
+    #[error("The level is too short")]
+    LevelTooSmall,
     #[error("You cannot upload more levels")]
     TooManyGroups,
     #[error("You cannot upload more levels for that song")]
@@ -45,6 +49,8 @@ pub enum RequestError {
 impl RequestError {
     fn status(&self) -> StatusCode {
         match self {
+            RequestError::NoLevels => StatusCode::BAD_REQUEST,
+            RequestError::LevelTooSmall => StatusCode::BAD_REQUEST,
             RequestError::TooManyGroups => StatusCode::BAD_REQUEST,
             RequestError::TooManyGroupsForSong => StatusCode::BAD_REQUEST,
             RequestError::Timeout => StatusCode::REQUEST_TIMEOUT,

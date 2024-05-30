@@ -8,6 +8,8 @@ use ctl_core::types::{GroupsQuery, LevelFull, LevelSet};
 const GROUP_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 const GROUPS_PER_USER: usize = 5;
 const GROUPS_PER_USER_PER_SONG: usize = 1;
+/// seconds
+const LEVEL_MIN_DURATION: f32 = 30.0;
 
 pub fn route(router: Router) -> Router {
     router
@@ -212,6 +214,7 @@ async fn group_create(
     // also we want to mutate it
     let parsed_group: LevelSet<LevelFull> =
         bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
+    validate_group(&parsed_group)?;
 
     music::music_exists(&app, parsed_group.music).await?;
 
@@ -441,4 +444,23 @@ async fn download(
         .join("levels")
         .join(group_id.to_string());
     send_file(file_path, content_level()).await
+}
+
+// TODO: move to core, so the client can reuse it
+fn validate_group(group: &LevelSet<LevelFull>) -> Result<()> {
+    if group.levels.is_empty() {
+        return Err(RequestError::NoLevels);
+    }
+
+    // TODO: check empty space
+
+    for level in &group.levels {
+        // TODO: check realtime
+        // but i think the format will change to use realtime inside the level
+        let duration = level.data.last_beat().as_f32();
+        if dbg!(duration) < LEVEL_MIN_DURATION {
+            return Err(RequestError::LevelTooSmall);
+        }
+    }
+    Ok(())
 }
