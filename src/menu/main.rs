@@ -121,6 +121,9 @@ impl geng::State for MainMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
+            geng::Event::KeyPress {
+                key: geng::Key::F11,
+            } => self.context.geng.window().toggle_fullscreen(),
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
             }
