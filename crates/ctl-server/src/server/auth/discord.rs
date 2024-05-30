@@ -26,7 +26,7 @@ struct AccessTokenResponse {
 struct User {
     id: String,
     username: String,
-    display_name: Option<String>,
+    global_name: Option<String>,
 }
 
 async fn auth_discord(
@@ -115,7 +115,7 @@ async fn discord_login(app: &App, user: User) -> Result<Id> {
     }
 
     // Register a new user
-    let username = user.display_name.unwrap_or(user.username);
+    let username = user.global_name.unwrap_or(user.username);
     let user_id = super::register_user(app, username.clone(), None, true)
         .await
         .map_err(|_| RequestError::InvalidCredentials)?; // TODO: better error
