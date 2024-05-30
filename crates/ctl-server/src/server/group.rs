@@ -3,7 +3,7 @@ use super::*;
 use crate::database::types::LevelRow;
 
 use axum::{body::Bytes, extract::DefaultBodyLimit};
-use ctl_core::types::{LevelFull, LevelSet};
+use ctl_core::types::{GroupsQuery, LevelFull, LevelSet};
 
 const GROUP_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
 
@@ -17,7 +17,10 @@ pub fn route(router: Router) -> Router {
 }
 
 // TODO: filter, sort, limit, pages
-async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>> {
+async fn group_list(
+    State(app): State<Arc<App>>,
+    Query(query): Query<GroupsQuery>,
+) -> Result<Json<Vec<GroupInfo>>> {
     let music = super::music::music_list(State(app.clone())).await?.0;
 
     #[derive(sqlx::FromRow)]
@@ -28,27 +31,30 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
         level: LevelRow,
     }
 
-    let levels: Vec<LevelGroupRow> =
-        sqlx::query_as("SELECT * FROM levels JOIN groups ON levels.group_id = groups.group_id")
-            .fetch_all(&app.database)
-            .await?;
+    let query = if query.recommended {
+        "SELECT * FROM levels JOIN (
+            SELECT * FROM groups_recommended JOIN groups ON groups_recommended.group_id = groups.group_id
+        ) AS groups ON levels.group_id = groups.group_id"
+    } else {
+        "SELECT * FROM levels JOIN groups ON levels.group_id = groups.group_id"
+    };
 
-    let authors: Vec<(Id, UserInfo)> = sqlx::query(
+    let levels: Vec<LevelGroupRow> = sqlx::query_as(query).fetch_all(&app.database).await?;
+
+    #[derive(sqlx::FromRow)]
+    struct AuthorRow {
+        level_id: Id,
+        #[sqlx(flatten)]
+        user: UserRow,
+    }
+
+    let authors: Vec<AuthorRow> = sqlx::query_as(
         "
     SELECT level_id, users.user_id, username
     FROM level_authors
     JOIN users ON level_authors.user_id = users.user_id
             ",
     )
-    .try_map(|row: DBRow| {
-        Ok((
-            row.try_get("level_id")?,
-            UserInfo {
-                id: row.try_get("user_id")?,
-                name: row.try_get::<String, _>("username")?.into(),
-            },
-        ))
-    })
     .fetch_all(&app.database)
     .await?;
 
@@ -56,8 +62,8 @@ async fn group_list(State(app): State<Arc<App>>) -> Result<Json<Vec<GroupInfo>>>
     for level_row in levels {
         let authors: Vec<UserInfo> = authors
             .iter()
-            .filter(|(level_id, _)| *level_id == level_row.level.level_id)
-            .map(|(_, user)| user.clone())
+            .filter(|author| author.level_id == level_row.level.level_id)
+            .map(|author| author.user.clone().into())
             .collect();
 
         let owner = match authors

@@ -7,6 +7,7 @@ use ctl_client::core::types::Name;
 #[derive(Debug)]
 pub struct ConfirmPopup<T> {
     pub action: T,
+    pub title: Name,
     pub message: Name,
 }
 
@@ -23,13 +24,13 @@ pub struct ConfirmWidget {
 }
 
 impl ConfirmWidget {
-    pub fn new(assets: &Rc<Assets>, message: impl Into<Name>) -> Self {
+    pub fn new(assets: &Rc<Assets>, title: impl Into<Name>, message: impl Into<Name>) -> Self {
         Self {
             window: UiWindow::new((), 0.25),
             offset: vec2::ZERO,
             state: WidgetState::new(),
             hold: WidgetState::new(),
-            title: TextWidget::new("Are you sure?"),
+            title: TextWidget::new(title),
             message: TextWidget::new(message),
             confirm: IconButtonWidget::new_normal(&assets.sprites.confirm),
             discard: IconButtonWidget::new_normal(&assets.sprites.discard),

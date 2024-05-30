@@ -12,6 +12,7 @@ use ctl_core::{
     ScoreEntry, SubmitScore,
 };
 
+use core::types::GroupsQuery;
 use std::sync::atomic::AtomicBool;
 
 use reqwest::{Client, Response, StatusCode, Url};
@@ -102,8 +103,12 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn get_group_list(&self) -> Result<Vec<GroupInfo>> {
-        self.get_json("groups").await
+    pub async fn get_group_list(&self, query: &GroupsQuery) -> Result<Vec<GroupInfo>> {
+        let url = self.url.join("groups").unwrap();
+        let req = self.client.get(url).query(&query);
+        let response = self.check(req.send().await)?;
+        let res = read_json(response).await?;
+        Ok(res)
     }
 
     pub async fn get_group_info(&self, group: Id) -> Result<GroupInfo> {

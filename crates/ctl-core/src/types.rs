@@ -171,3 +171,8 @@ pub struct NewArtist {
     pub name: String,
     pub user: Option<Id>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GroupsQuery {
+    pub recommended: bool,
+}

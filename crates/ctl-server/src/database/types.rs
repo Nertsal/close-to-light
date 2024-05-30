@@ -8,7 +8,7 @@ pub type DBRow = sqlx::sqlite::SqliteRow;
 
 pub type Score = i32;
 
-#[derive(FromRow)]
+#[derive(Debug, Clone, FromRow)]
 pub struct UserRow {
     pub user_id: Id,
     pub username: String,

@@ -444,7 +444,7 @@ impl StatefulWidget for LevelItemWidget {
             self.goto.hide();
             self.download.update(rows[1], context);
             if self.download.state.clicked {
-                state.download_group(self.info.id);
+                state.download_groups(vec![self.info.id], false);
             }
         } else {
             self.download.hide();

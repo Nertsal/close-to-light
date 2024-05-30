@@ -549,6 +549,7 @@ impl Editor {
     fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
         self.confirm_popup = Some(ConfirmPopup {
             action,
+            title: "Are you sure?".into(),
             message: message.into(),
         });
     }

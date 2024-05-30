@@ -19,6 +19,7 @@ use crate::{
 pub enum ConfirmAction {
     DeleteGroup(Index),
     SyncDiscard,
+    DownloadRecommended,
 }
 
 pub struct LevelMenu {
@@ -139,6 +140,21 @@ impl MenuState {
     pub fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
         self.confirm_popup = Some(ConfirmPopup {
             action,
+            title: "Are you sure?".into(),
+            message: message.into(),
+        });
+    }
+
+    /// Create a popup window with a title and message for the given action.
+    pub fn popup_confirm_custom(
+        &mut self,
+        action: ConfirmAction,
+        title: impl Into<Name>,
+        message: impl Into<Name>,
+    ) {
+        self.confirm_popup = Some(ConfirmPopup {
+            action,
+            title: title.into(),
             message: message.into(),
         });
     }
@@ -157,6 +173,7 @@ impl MenuState {
                     }
                 }
             }
+            ConfirmAction::DownloadRecommended => self.context.local.download_recommended(),
         }
     }
 }
@@ -174,7 +191,7 @@ impl LevelMenu {
 
         let leaderboard = Leaderboard::new(&context.geng, client);
 
-        Self {
+        let mut state = Self {
             render: MenuRender::new(&context.geng, &context.assets),
             util: UtilRender::new(&context.geng, &context.assets),
             dither: DitherRender::new(&context.geng, &context.assets),
@@ -225,7 +242,17 @@ impl LevelMenu {
 
             context,
             transition: None,
+        };
+
+        if state.context.local.inner.borrow().groups.is_empty() {
+            state.state.popup_confirm_custom(
+                ConfirmAction::DownloadRecommended,
+                "Download recommended levels?",
+                "",
+            );
         }
+
+        state
     }
 
     fn get_active_level(&self) -> Option<(PlayGroup, usize, Rc<LevelFull>)> {

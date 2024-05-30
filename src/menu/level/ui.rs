@@ -126,7 +126,11 @@ impl MenuUI {
             // NOTE: When confirm is active, you cant interact with other widgets
             context.update_focus(true);
         } else if let Some(popup) = &state.confirm_popup {
-            let mut confirm = ConfirmWidget::new(&self.context.assets, popup.message.clone());
+            let mut confirm = ConfirmWidget::new(
+                &self.context.assets,
+                popup.title.clone(),
+                popup.message.clone(),
+            );
             confirm.window.show.going_up = true;
             self.confirm = Some(confirm);
         }
