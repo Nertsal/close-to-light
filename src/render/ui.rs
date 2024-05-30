@@ -438,7 +438,9 @@ impl UiRender {
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
         // self.draw_icon(&leaderboard.close.icon, framebuffer);
-        self.draw_icon(&leaderboard.reload.icon, framebuffer);
+        if leaderboard.reload.state.visible {
+            self.draw_icon(&leaderboard.reload.icon, framebuffer);
+        }
         self.draw_text(&leaderboard.title, framebuffer);
         self.draw_text(&leaderboard.subtitle, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);

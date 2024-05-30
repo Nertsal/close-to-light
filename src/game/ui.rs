@@ -9,9 +9,9 @@ pub struct GameUI {
 
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
-        Self {
-            leaderboard: LeaderboardWidget::new(assets, true),
-        }
+        let mut leaderboard = LeaderboardWidget::new(assets, true);
+        leaderboard.reload.hide();
+        Self { leaderboard }
     }
 
     pub fn layout(
@@ -26,7 +26,7 @@ impl GameUI {
         let layout_size = screen.height() * 0.03;
 
         context.layout_size = layout_size;
-        context.font_size = screen.height() * 0.07;
+        context.font_size = screen.height() * 0.05;
 
         macro_rules! update {
             ($widget:expr, $position:expr) => {{

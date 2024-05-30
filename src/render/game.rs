@@ -15,6 +15,8 @@ pub struct GameRender {
     masked: MaskedRender,
     util: UtilRender,
     ui: UiRender,
+
+    font_size: f32,
 }
 
 impl GameRender {
@@ -26,6 +28,8 @@ impl GameRender {
             masked: MaskedRender::new(geng, assets, vec2(1, 1)),
             util: UtilRender::new(geng, assets),
             ui: UiRender::new(geng, assets),
+
+            font_size: 1.0,
         }
     }
 
@@ -192,6 +196,7 @@ impl GameRender {
         debug_mode: bool,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        self.font_size = framebuffer.size().y as f32 * 0.04;
         self.masked.update_size(framebuffer.size());
 
         // let camera = &geng::PixelPerfectCamera;
@@ -272,8 +277,15 @@ impl GameRender {
         }
 
         if ui.leaderboard.state.visible {
+            let width = self.font_size * 0.2;
             self.ui
                 .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+            self.ui.draw_outline(
+                ui.leaderboard.state.position,
+                width,
+                theme.light,
+                framebuffer,
+            );
         }
     }
 }
