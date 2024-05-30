@@ -502,6 +502,10 @@ impl LevelCache {
             match action {
                 CacheAction::MusicList(music) => inner.music_list = CacheState::Loaded(music),
                 CacheAction::Music(music) => {
+                    inner
+                        .notifications
+                        .push(format!("Downloaded music {}", music.meta.name));
+
                     inner.music.insert(music.meta.id, Rc::new(music));
                 }
                 CacheAction::GroupList(groups) => inner.group_list = CacheState::Loaded(groups),
@@ -511,9 +515,10 @@ impl LevelCache {
                             .music
                             .as_ref()
                             .map_or(&group.data.owner.name, |music| &music.meta.name);
-                        inner
-                            .notifications
-                            .push(format!("Downloaded level {}", name));
+                        inner.notifications.push(format!(
+                            "Downloaded level {} - {}",
+                            name, group.data.owner.name
+                        ));
 
                         if let Some(music) = &group.music {
                             inner.music.insert(music.meta.id, Rc::clone(music));
