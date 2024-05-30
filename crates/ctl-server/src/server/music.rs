@@ -42,7 +42,7 @@ pub(super) async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<M
 
     let authors: Vec<(Id, ArtistRow)> = sqlx::query(
         "
-SELECT music_id, artists.artist_id, name, user_id
+SELECT *
 FROM music_authors
 JOIN artists ON music_authors.artist_id = artists.artist_id
         ",
@@ -88,7 +88,7 @@ pub(super) async fn music_get(
 
     let authors: Vec<ArtistRow> = sqlx::query_as(
         "
-SELECT artists.artist_id, name, user_id
+SELECT *
 FROM music_authors
 JOIN artists ON music_authors.artist_id = artists.artist_id
 WHERE music_id = ?

@@ -93,6 +93,8 @@ pub enum ArtistCommand {
     Create {
         name: String,
         #[clap(long)]
+        romanized: Option<String>,
+        #[clap(long)]
         user: Option<Id>,
     },
 }
@@ -229,10 +231,18 @@ impl Command {
             Command::Artist(artist) => {
                 let client = client.expect("Cannot update artists without secrets");
                 match artist.command {
-                    ArtistCommand::Create { name, user } => {
+                    ArtistCommand::Create {
+                        name,
+                        romanized,
+                        user,
+                    } => {
                         log::info!("Creating a new artist {} (user: {:?})", name, user);
                         client
-                            .create_artist(NewArtist { name, user })
+                            .create_artist(NewArtist {
+                                romanized_name: romanized.unwrap_or(name.clone()),
+                                name,
+                                user,
+                            })
                             .await
                             .context("when creating a new artist")?;
                     }

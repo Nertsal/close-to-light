@@ -169,6 +169,7 @@ pub struct LevelUpdate {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewArtist {
     pub name: String,
+    pub romanized_name: String,
     pub user: Option<Id>,
 }
 

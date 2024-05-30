@@ -13,13 +13,15 @@ pub async fn artist_create(
 ) -> Result<Json<Id>> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
 
-    let artist_id: Id =
-        sqlx::query("INSERT INTO artists (name, user_id) VALUES (?, ?) RETURNING artist_id")
-            .bind(&artist.name)
-            .bind(artist.user)
-            .try_map(|row: DBRow| row.try_get("artist_id"))
-            .fetch_one(&app.database)
-            .await?;
+    let artist_id: Id = sqlx::query(
+        "INSERT INTO artists (name, romanized_name, user_id) VALUES (?, ?, ?) RETURNING artist_id",
+    )
+    .bind(&artist.name)
+    .bind(&artist.romanized_name)
+    .bind(artist.user)
+    .try_map(|row: DBRow| row.try_get("artist_id"))
+    .fetch_one(&app.database)
+    .await?;
 
     Ok(Json(artist_id))
 }
