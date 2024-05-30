@@ -103,7 +103,7 @@ impl Model {
             } => {
                 let music_start_time = *music_start_time;
                 *start_timer -= delta_time;
-                if *start_timer <= Time::ZERO && self.player.light_distance.is_some() {
+                if *start_timer <= Time::ZERO && self.player.is_perfect {
                     self.start(music_start_time);
                 }
             }

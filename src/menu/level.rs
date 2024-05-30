@@ -6,7 +6,7 @@ use super::*;
 
 use crate::{
     game::PlayGroup,
-    leaderboard::{Leaderboard, LeaderboardStatus, ScoreMeta},
+    leaderboard::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta},
     local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
@@ -89,14 +89,14 @@ impl Debug for GroupEntry {
 }
 
 impl MenuState {
-    fn get_meta(&self) -> ScoreMeta {
+    fn get_category(&self) -> ScoreCategory {
         let mods = self.config.modifiers.clone();
         let health = self.config.health.clone();
-        ScoreMeta::new(mods, health)
+        ScoreCategory::new(mods, health)
     }
 
     fn update_board_meta(&mut self) {
-        self.leaderboard.change_meta(self.get_meta());
+        self.leaderboard.change_category(self.get_category());
     }
 
     fn select_music(&mut self, music: Id) {
@@ -432,8 +432,12 @@ impl LevelMenu {
     }
 
     fn fetch_leaderboard(&mut self) {
-        let meta = self.state.get_meta();
+        let category = self.state.get_category();
         if let Some((_, _, level)) = self.get_active_level() {
+            let meta = ScoreMeta {
+                category,
+                score: Score::new(),
+            };
             self.state.leaderboard.submit(None, level.meta.id, meta);
         }
     }

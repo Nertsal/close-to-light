@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    leaderboard::{Leaderboard, LeaderboardStatus, LoadedBoard},
+    leaderboard::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore},
     prelude::Assets,
     ui::layout::AreaOps,
 };
@@ -49,7 +49,19 @@ impl LeaderboardWidget {
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator: WidgetState::new(),
-            highscore: LeaderboardEntryWidget::new("", "", 0, false),
+            highscore: LeaderboardEntryWidget::new(
+                "",
+                SavedScore {
+                    user: UserInfo {
+                        id: 0,
+                        name: "player".into(),
+                    },
+                    level: 0,
+                    score: 0,
+                    meta: crate::leaderboard::ScoreMeta::default(),
+                },
+                false,
+            ),
         }
     }
 
@@ -86,13 +98,22 @@ impl LeaderboardWidget {
             .filtered
             .iter()
             .enumerate()
-            .map(|(rank, entry)| {
-                LeaderboardEntryWidget::new(
+            .filter_map(|(rank, entry)| {
+                let meta = entry
+                    .extra_info
+                    .as_ref()
+                    .and_then(|meta| serde_json::from_str(meta).ok())?;
+                let score = SavedScore {
+                    user: entry.user.clone(),
+                    level: board.level,
+                    score: entry.score,
+                    meta,
+                };
+                Some(LeaderboardEntryWidget::new(
                     (rank + 1).to_string(),
-                    entry.user.name.clone(),
-                    entry.score,
+                    score,
                     entry.user.id == user.id,
-                )
+                ))
             })
             .collect();
         match &board.local_high {
@@ -103,7 +124,13 @@ impl LeaderboardWidget {
                     .my_position
                     .map_or("???".into(), |rank| format!("{}.", rank + 1).into());
                 self.highscore.player.text = user.name.clone();
-                self.highscore.score.text = format!("{}", score.score).into();
+                self.highscore.score.text = format!(
+                    "{} ({}/{})",
+                    score.score,
+                    (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
+                    (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
+                )
+                .into();
             }
         }
     }
@@ -190,20 +217,20 @@ impl Widget for LeaderboardWidget {
 }
 
 impl LeaderboardEntryWidget {
-    pub fn new(
-        rank: impl Into<Name>,
-        player: impl Into<Name>,
-        score: i32,
-        highlight: bool,
-    ) -> Self {
+    pub fn new(rank: impl Into<Name>, score: SavedScore, highlight: bool) -> Self {
         let rank = rank.into();
         let mut rank = TextWidget::new(format!("{}.", rank));
         rank.align(vec2(1.0, 0.5));
 
-        let mut player = TextWidget::new(player);
+        let mut player = TextWidget::new(score.user.name.clone());
         player.align(vec2(0.0, 0.5));
 
-        let mut score = TextWidget::new(format!("{}", score));
+        let mut score = TextWidget::new(format!(
+            "{} ({}/{})",
+            score.score,
+            (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
+            (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
+        ));
         score.align(vec2(1.0, 0.5));
 
         Self {

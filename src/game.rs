@@ -144,24 +144,30 @@ impl geng::State for Game {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
                     let player_name = self.model.player.info.name.clone();
-                    let submit_score = submit_score && !player_name.trim().is_empty();
-                    let raw_score = self.model.score.calculated.combined;
-                    let score = submit_score.then_some(raw_score);
+                    let do_submit_score = submit_score && !player_name.trim().is_empty();
+
+                    let score = &self.model.score;
+                    let raw_score = score.calculated.combined;
+                    let submit_score = do_submit_score.then_some(raw_score);
 
                     let meta = crate::leaderboard::ScoreMeta::new(
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
+                        score.clone(),
                     );
 
-                    if submit_score {
-                        self.model
-                            .leaderboard
-                            .submit(score, self.model.level.level.meta.id, meta);
+                    if do_submit_score {
+                        self.model.leaderboard.submit(
+                            submit_score,
+                            self.model.level.level.meta.id,
+                            meta,
+                        );
                     } else {
-                        self.model.leaderboard.loaded.meta = meta.clone();
+                        self.model.leaderboard.loaded.category = meta.category.clone();
                         // Save highscores on lost runs only locally
                         self.model.leaderboard.loaded.reload_local(Some(
                             &crate::leaderboard::SavedScore {
+                                user: self.model.player.info.clone(),
                                 level: self.model.level.level.meta.id,
                                 score: raw_score,
                                 meta,

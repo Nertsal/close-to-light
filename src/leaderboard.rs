@@ -1,10 +1,14 @@
 use crate::{
-    prelude::{HealthConfig, Id, LevelModifiers},
+    prelude::{HealthConfig, Id, LevelModifiers, Score},
     task::Task,
 };
 
 use ctl_client::{
-    core::{prelude::Uuid, types::UserLogin, ScoreEntry, SubmitScore},
+    core::{
+        prelude::Uuid,
+        types::{UserInfo, UserLogin},
+        ScoreEntry, SubmitScore,
+    },
     Nertboard,
 };
 use geng::prelude::*;
@@ -42,7 +46,7 @@ impl Clone for Leaderboard {
             task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard {
-                meta: self.loaded.meta.clone(),
+                category: self.loaded.category.clone(),
                 local_high: self.loaded.local_high.clone(),
                 ..LoadedBoard::new()
             },
@@ -52,6 +56,7 @@ impl Clone for Leaderboard {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavedScore {
+    pub user: UserInfo,
     pub level: Id,
     pub score: i32,
     pub meta: ScoreMeta,
@@ -60,8 +65,8 @@ pub struct SavedScore {
 #[derive(Debug)]
 pub struct LoadedBoard {
     pub level: Id,
-    pub meta: ScoreMeta,
     pub player: Option<Id>,
+    pub category: ScoreCategory,
     pub my_position: Option<usize>,
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
@@ -69,19 +74,40 @@ pub struct LoadedBoard {
 }
 
 /// Meta information saved together with the score.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreMeta {
-    pub version: u32,
+    pub category: ScoreCategory,
+    pub score: Score,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScoreCategory {
+    version: u32,
     pub mods: LevelModifiers,
     pub health: HealthConfig,
 }
 
-impl ScoreMeta {
+impl Default for ScoreCategory {
+    fn default() -> Self {
+        Self::new(LevelModifiers::default(), HealthConfig::default())
+    }
+}
+
+impl ScoreCategory {
     pub fn new(mods: LevelModifiers, health: HealthConfig) -> Self {
         Self {
-            version: 1,
+            version: 0,
             mods,
             health,
+        }
+    }
+}
+
+impl ScoreMeta {
+    pub fn new(mods: LevelModifiers, health: HealthConfig, score: Score) -> Self {
+        Self {
+            category: ScoreCategory::new(mods, health),
+            score,
         }
     }
 }
@@ -256,13 +282,13 @@ impl Leaderboard {
         self.loaded.refresh();
     }
 
-    /// Change meta filter using the cached scores if available.
-    pub fn change_meta(&mut self, meta: ScoreMeta) {
-        if self.loaded.meta == meta {
+    /// Change category filter using the cached scores if available.
+    pub fn change_category(&mut self, category: ScoreCategory) {
+        if self.loaded.category == category {
             return; // Unchanged
         }
 
-        self.loaded.meta = meta;
+        self.loaded.category = category;
         self.loaded.reload_local(None);
         match self.status {
             LeaderboardStatus::None | LeaderboardStatus::Failed => {
@@ -299,12 +325,22 @@ impl Leaderboard {
 
     pub fn submit(&mut self, score: Option<i32>, level: Id, meta: ScoreMeta) {
         let score = score.map(|score| SavedScore {
+            user: self.user.as_ref().map_or(
+                UserInfo {
+                    id: 0,
+                    name: "<anon>".into(),
+                },
+                |user| UserInfo {
+                    id: user.id,
+                    name: user.name.clone(),
+                },
+            ),
             level,
             score,
             meta: meta.clone(),
         });
 
-        self.loaded.meta = meta.clone();
+        self.loaded.category = meta.category.clone();
         self.loaded.reload_local(score.as_ref());
 
         if let Some(board) = &self.client {
@@ -335,8 +371,8 @@ impl LoadedBoard {
     fn new() -> Self {
         Self {
             level: 0,
-            meta: ScoreMeta::new(LevelModifiers::default(), HealthConfig::default()),
             player: None,
+            category: ScoreCategory::new(LevelModifiers::default(), HealthConfig::default()),
             my_position: None,
             all_scores: Vec::new(),
             filtered: Vec::new(),
@@ -349,10 +385,13 @@ impl LoadedBoard {
         let mut highscores: Vec<SavedScore> =
             preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
         let mut save = false;
-        if let Some(highscore) = highscores.iter_mut().find(|s| s.meta == self.meta) {
+        if let Some(highscore) = highscores
+            .iter_mut()
+            .find(|s| s.meta.category == self.category)
+        {
             if let Some(score) = score {
-                if score.score > highscore.score && score.meta == highscore.meta {
-                    highscore.score = score.score;
+                if score.score > highscore.score && score.meta.category == highscore.meta.category {
+                    *highscore = score.clone();
                     save = true;
                 }
             }
@@ -371,7 +410,7 @@ impl LoadedBoard {
 
     /// Refresh the filter.
     fn refresh(&mut self) {
-        log::debug!("Filtering scores with meta\n{:#?}", self.meta);
+        log::debug!("Filtering scores with meta\n{:#?}", self.category);
 
         let mut scores = self.all_scores.clone();
 
@@ -380,7 +419,7 @@ impl LoadedBoard {
             !entry.user.name.is_empty()
                 && entry.extra_info.as_ref().map_or(false, |info| {
                     serde_json::from_str::<ScoreMeta>(info)
-                        .map_or(false, |entry_meta| entry_meta == self.meta)
+                        .map_or(false, |entry_meta| entry_meta.category == self.category)
                 })
         });
 

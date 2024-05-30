@@ -71,12 +71,16 @@ impl EditorState {
                                             match light.light.movement.key_frames.pop_front() {
                                                 None => {
                                                     // No waypoints -> delete the whole event
-                                                    level_editor
-                                                        .level
-                                                        .events
-                                                        .swap_remove(waypoints.event);
-                                                    level_editor.level_state.waypoints = None;
-                                                    level_editor.state = State::Idle;
+                                                    if waypoints.event
+                                                        < level_editor.level.events.len()
+                                                    {
+                                                        level_editor
+                                                            .level
+                                                            .events
+                                                            .swap_remove(waypoints.event);
+                                                        level_editor.level_state.waypoints = None;
+                                                        level_editor.state = State::Idle;
+                                                    }
                                                 }
                                                 Some(frame) => {
                                                     // Make the first frame the initial position
@@ -100,9 +104,15 @@ impl EditorState {
                                     }
                                 }
                             }
+                            if let Some(waypoints) = &mut level_editor.level_state.waypoints {
+                                waypoints.selected = None;
+                            }
                         }
                     } else if let Some(index) = level_editor.selected_light {
-                        level_editor.level.events.swap_remove(index.event);
+                        if index.event < level_editor.level.events.len() {
+                            level_editor.level.events.swap_remove(index.event);
+                        }
+                        level_editor.selected_light = None;
                     }
                     level_editor.save_state(default());
                 }
