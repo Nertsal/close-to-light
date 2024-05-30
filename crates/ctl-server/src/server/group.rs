@@ -202,7 +202,7 @@ async fn group_create(
     session: AuthSession,
     State(app): State<Arc<App>>,
     data: Bytes,
-) -> Result<Json<GroupInfo>> {
+) -> Result<Json<Id>> {
     let user = check_user(&session).await?;
 
     // NOTE: Not parsing into Rc, because we cant hold it across an await point
@@ -220,7 +220,7 @@ async fn group_create(
         new_group(&app, user, parsed_group).await?
     };
 
-    group_get(State(app), Path(group_id)).await
+    Ok(Json(group_id))
 }
 
 async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>) -> Result<()> {
@@ -244,13 +244,13 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
 
     // Update levels
     for level in &mut parsed_group.levels {
-        let level_hash = level.data.calculate_hash();
+        level.meta.hash = level.data.calculate_hash();
         if level.meta.id == 0 {
             // Create
             level.meta.id = sqlx::query(
                 "INSERT INTO levels (hash, group_id, name) VALUES (?, ?, ?) RETURNING level_id",
             )
-            .bind(&level_hash)
+            .bind(&level.meta.hash)
             .bind(group_id)
             .bind(level.meta.name.as_ref())
             .try_map(|row: DBRow| row.try_get("level_id"))
@@ -259,7 +259,7 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
         } else {
             // Update
             sqlx::query("UPDATE levels SET hash = ?, name = ? WHERE level_id = ? AND group_id = ?")
-                .bind(&level_hash)
+                .bind(&level.meta.hash)
                 .bind(level.meta.name.as_ref())
                 .bind(level.meta.id)
                 .bind(group_id)
@@ -273,8 +273,9 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
     let hash = parsed_group.calculate_hash();
 
     // Update group
-    sqlx::query("UPDATE groups SET hash = ?")
+    sqlx::query("UPDATE groups SET hash = ? WHERE group_id = ?")
         .bind(&hash)
+        .bind(group_id)
         .execute(&app.database)
         .await?;
 
@@ -301,19 +302,15 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
 
 async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>) -> Result<Id> {
     // Check if such a level already exists
-    let mut hashes = Vec::with_capacity(parsed_group.levels.len());
     for level in &mut parsed_group.levels {
-        let level_hash = level.data.calculate_hash();
-
+        level.meta.hash = level.data.calculate_hash();
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(&level_hash)
+            .bind(&level.meta.hash)
             .fetch_optional(&app.database)
             .await?;
         if conflict.is_some() {
             return Err(RequestError::LevelAlreadyExists);
         }
-
-        hashes.push(level_hash);
     }
 
     // Verify owner
@@ -335,14 +332,10 @@ async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>
     parsed_group.id = group_id;
 
     // Create levels
-    for (i, level) in parsed_group.levels.iter_mut().enumerate() {
-        let level_hash = hashes
-            .get(i)
-            .expect("the hash is precalculated for validation");
-
+    for level in &mut parsed_group.levels {
         // Check if such a level already exists
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(level_hash)
+            .bind(&level.meta.hash)
             .fetch_optional(&app.database)
             .await?;
         if conflict.is_some() {
@@ -352,12 +345,22 @@ async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>
         level.meta.id = sqlx::query(
             "INSERT INTO levels (hash, group_id, name) VALUES (?, ?, ?) RETURNING level_id",
         )
-        .bind(level_hash)
+        .bind(&level.meta.hash)
         .bind(group_id)
         .bind(level.meta.name.as_ref())
         .try_map(|row: DBRow| row.try_get("level_id"))
         .fetch_one(&app.database)
         .await?;
+
+        level.meta.authors = vec![UserInfo {
+            id: user.user_id,
+            name: user.username.clone().into(),
+        }];
+        sqlx::query("INSERT INTO level_authors (level_id, user_id) VALUES (?, ?)")
+            .bind(level.meta.id)
+            .bind(user.user_id)
+            .execute(&app.database)
+            .await?;
     }
 
     // Disallow further mutation to make sure the hash is valid
@@ -365,8 +368,9 @@ async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>
     let hash = parsed_group.calculate_hash();
 
     // Update hash
-    sqlx::query("UPDATE groups SET hash = ?")
+    sqlx::query("UPDATE groups SET hash = ? WHERE group_id = ?")
         .bind(&hash)
+        .bind(group_id)
         .execute(&app.database)
         .await?;
 

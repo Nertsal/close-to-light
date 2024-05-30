@@ -526,6 +526,8 @@ impl LevelCache {
     }
 
     pub fn synchronize(&self, group_index: Index, info: GroupInfo) -> Option<Rc<CachedGroup>> {
+        log::debug!("Synchronizing cached group {:?}: {:?}", group_index, info);
+
         let inner = self.inner.borrow();
         let group = inner.groups.get(group_index)?;
         let mut new_group = group.data.clone();
@@ -536,11 +538,12 @@ impl LevelCache {
         }
         for (level, info) in new_group.levels.iter_mut().zip(&info.levels) {
             let mut lvl = (**level).clone();
-            lvl.meta.id = info.id;
+            lvl.meta = info.clone();
             *level = Rc::new(lvl);
         }
         new_group.id = info.id;
         new_group.owner = info.owner.clone();
+        new_group.music = info.music.id;
 
         drop(inner);
 

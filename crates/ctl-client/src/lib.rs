@@ -99,8 +99,9 @@ impl Nertboard {
         let req = self.client.post(url).body(body);
 
         let response = self.check(req.send().await)?;
-        let res = read_json(response).await?;
-        Ok(res)
+        let group_id: Id = read_json(response).await?;
+
+        self.get_group_info(group_id).await
     }
 
     pub async fn get_group_list(&self, query: &GroupsQuery) -> Result<Vec<GroupInfo>> {
