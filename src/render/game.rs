@@ -205,8 +205,8 @@ impl GameRender {
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
 
-        let accuracy = (model.score.calculated.accuracy.as_f32() * 100.0).floor() as i32;
-        let precision = (model.score.calculated.precision.as_f32() * 100.0).floor() as i32;
+        let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
+        let precision = model.score.calculated.precision.as_f32() * 100.0;
 
         if let State::Lost { .. } | State::Finished = model.state {
             if !fading {
@@ -218,14 +218,14 @@ impl GameRender {
                     framebuffer,
                 );
                 self.util.draw_text(
-                    &format!("ACCURACY: {}%", accuracy),
+                    &format!("ACCURACY: {:.2}%", accuracy),
                     vec2(-3.0, -3.5),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
                     framebuffer,
                 );
                 self.util.draw_text(
-                    &format!("PRECISION: {}%", precision),
+                    &format!("PRECISION: {:.2}%", precision),
                     vec2(-3.0, -4.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
@@ -244,7 +244,7 @@ impl GameRender {
             );
 
             self.util.draw_text(
-                format!("acc: {:3}%", accuracy),
+                format!("acc: {:3.2}%", accuracy),
                 vec2(-8.0, 4.0).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
@@ -254,7 +254,7 @@ impl GameRender {
             );
 
             self.util.draw_text(
-                format!("prec: {:3}%", precision),
+                format!("prec: {:3.2}%", precision),
                 vec2(-8.0, 3.5).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
