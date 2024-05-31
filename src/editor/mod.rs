@@ -26,6 +26,8 @@ pub enum ConfirmAction {
 pub struct EditorState {
     context: Context,
     transition: Option<geng::state::Transition>,
+    /// Stop music on the next `update` frame. Used when returning from F5 play to stop music.
+    stop_music_next_frame: bool,
     render: EditorRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
@@ -183,6 +185,7 @@ impl EditorState {
     ) -> Self {
         Self {
             transition: None,
+            stop_music_next_frame: true,
             render: EditorRender::new(&context.geng, &context.assets),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
@@ -341,6 +344,7 @@ impl EditorState {
                 Leaderboard::new(&self.context.geng, None),
             ),
         )));
+        self.stop_music_next_frame = true;
     }
 }
 
@@ -352,6 +356,10 @@ impl geng::State for EditorState {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.delta_time = delta_time;
+
+        if self.transition.is_none() && std::mem::take(&mut self.stop_music_next_frame) {
+            self.context.music.stop();
+        }
 
         self.ui_context
             .update(self.context.geng.window(), delta_time.as_f32());
