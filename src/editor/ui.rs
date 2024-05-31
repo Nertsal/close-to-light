@@ -181,13 +181,13 @@ impl EditorUI {
             self.unsaved.hide();
         }
 
-        let main = main.extend_down(-layout_size).extend_up(-layout_size * 3.0);
-
+        let main = main.extend_down(-layout_size);
         if self.edit.state.visible {
             self.edit.update(main, context, editor);
         }
         if self.config.state.visible {
-            self.config.update(main, context, editor);
+            self.config
+                .update(main.extend_up(-3.0 * layout_size), context, editor);
         }
 
         context.can_focus

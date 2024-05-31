@@ -114,7 +114,7 @@ impl StatefulWidget for EditorEditWidget {
 
         let mut main = main
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
-            .extend_up(-layout_size * 5.0);
+            .extend_up(-layout_size);
         let left_bar = main.cut_left(font_size * 5.0);
         let mut right_bar = main.cut_right(font_size * 5.0);
 
@@ -209,7 +209,8 @@ impl StatefulWidget for EditorEditWidget {
             editor.grid_size = r32(10.0 / value);
             context.update_focus(self.grid_size.state.hovered);
 
-            right_bar = bar.cut_top(font_size * 1.5);
+            bar.cut_top(font_size * 1.5);
+            right_bar = bar;
         }
 
         {
@@ -266,7 +267,7 @@ impl StatefulWidget for EditorEditWidget {
                     update!(self.light_fade_out, fade_out, &mut light.movement.fade_out);
                     context.update_focus(self.light_fade_out.state.hovered);
 
-                    bar.cut_top(-font_size * 0.5);
+                    bar.cut_top(layout_size * 1.5);
 
                     let waypoints = bar.cut_top(button_height);
                     update!(self.waypoint, waypoints);
@@ -274,7 +275,8 @@ impl StatefulWidget for EditorEditWidget {
                         level_editor.view_waypoints();
                     }
 
-                    right_bar = bar.cut_top(spacing);
+                    bar.cut_top(spacing);
+                    right_bar = bar;
                 }
             }
         }
