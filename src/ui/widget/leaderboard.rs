@@ -16,12 +16,13 @@ pub struct LeaderboardWidget {
     pub show_title: bool,
     pub title: TextWidget,
     pub subtitle: TextWidget,
+    pub separator_title: WidgetState,
     pub status: TextWidget,
     pub scroll: f32,
     pub target_scroll: f32,
     pub rows_state: WidgetState,
     pub rows: Vec<LeaderboardEntryWidget>,
-    pub separator: WidgetState,
+    pub separator_highscore: WidgetState,
     pub highscore: LeaderboardEntryWidget,
 }
 
@@ -42,13 +43,14 @@ impl LeaderboardWidget {
             reload: IconButtonWidget::new_normal(&assets.sprites.reset),
             show_title,
             title: TextWidget::new("LEADERBOARD"),
-            subtitle: TextWidget::new("TOP WORLD"),
+            subtitle: TextWidget::new("login to submit scores"),
+            separator_title: WidgetState::new(),
             status: TextWidget::new(""),
             scroll: 0.0,
             target_scroll: 0.0,
             rows_state: WidgetState::new(),
             rows: Vec::new(),
-            separator: WidgetState::new(),
+            separator_highscore: WidgetState::new(),
             highscore: LeaderboardEntryWidget::new(
                 "",
                 SavedScore {
@@ -66,10 +68,16 @@ impl LeaderboardWidget {
     }
 
     pub fn update_state(&mut self, leaderboard: &Leaderboard) {
+        if leaderboard.user.is_some() {
+            self.subtitle.hide();
+        } else {
+            self.subtitle.show();
+        }
+
         let user = &leaderboard.user.as_ref().map_or(
             UserInfo {
                 id: 0,
-                name: "offline".into(),
+                name: "local highscore".into(),
             },
             |user| UserInfo {
                 id: user.id,
@@ -174,6 +182,9 @@ impl Widget for LeaderboardWidget {
         let subtitle = main.cut_top(context.font_size * 1.0);
         self.subtitle.update(subtitle, context);
 
+        let separator = main.cut_top(context.font_size * 0.1);
+        self.separator_title.update(separator, context);
+
         let status = main.clone().cut_top(context.font_size * 1.0);
         self.status.update(status, context);
 
@@ -184,7 +195,7 @@ impl Widget for LeaderboardWidget {
 
         let separator = main.cut_bottom(context.font_size * 0.1);
         let separator = separator.extend_right(0.5 * context.font_size);
-        self.separator.update(separator, context);
+        self.separator_highscore.update(separator, context);
 
         main.cut_bottom(0.2 * context.font_size);
 

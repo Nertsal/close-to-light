@@ -472,6 +472,12 @@ impl UiRender {
         self.draw_text(&leaderboard.subtitle, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);
 
+        self.draw_quad(
+            leaderboard.separator_title.position,
+            theme.light,
+            framebuffer,
+        );
+
         let mut buffer = masked.start();
 
         buffer.mask_quad(leaderboard.rows_state.position);
@@ -484,7 +490,11 @@ impl UiRender {
 
         masked.draw(draw_parameters(), framebuffer);
 
-        self.draw_quad(leaderboard.separator.position, theme.light, framebuffer);
+        self.draw_quad(
+            leaderboard.separator_highscore.position,
+            theme.light,
+            framebuffer,
+        );
 
         if leaderboard.highscore.state.visible {
             self.draw_text(&leaderboard.highscore.rank, framebuffer);

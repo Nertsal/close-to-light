@@ -335,7 +335,11 @@ impl Leaderboard {
         }
     }
 
-    pub fn submit(&mut self, score: Option<i32>, level: Id, meta: ScoreMeta) {
+    pub fn submit(&mut self, mut score: Option<i32>, level: Id, meta: ScoreMeta) {
+        if self.user.is_none() {
+            score = None;
+        }
+
         let score = score.map(|score| SavedScore {
             user: self.user.as_ref().map_or(
                 UserInfo {
