@@ -490,9 +490,11 @@ impl UiRender {
 
         self.draw_quad(leaderboard.separator.position, theme.light, framebuffer);
 
-        self.draw_text(&leaderboard.highscore.rank, framebuffer);
-        self.draw_text(&leaderboard.highscore.player, framebuffer);
-        self.draw_text(&leaderboard.highscore.score, framebuffer);
+        if leaderboard.highscore.state.visible {
+            self.draw_text(&leaderboard.highscore.rank, framebuffer);
+            self.draw_text(&leaderboard.highscore.player, framebuffer);
+            self.draw_text(&leaderboard.highscore.score, framebuffer);
+        }
     }
 
     pub fn draw_toggle_button(

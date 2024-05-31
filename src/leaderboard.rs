@@ -397,10 +397,11 @@ impl LoadedBoard {
         log::debug!("Reloading local scores with a new score: {:?}", score);
         let mut highscores: Vec<SavedScore> =
             preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
+
         let mut save = false;
-        if let Some(highscore) = highscores
+        self.local_high = if let Some(highscore) = highscores
             .iter_mut()
-            .find(|s| s.meta.category == self.category)
+            .find(|s| s.level == self.level && s.meta.category == self.category)
         {
             if let Some(score) = score {
                 if score.score > highscore.score && score.meta.category == highscore.meta.category {
@@ -408,14 +409,15 @@ impl LoadedBoard {
                     save = true;
                 }
             }
-            self.local_high = Some(highscore.clone());
+            Some(highscore.clone())
         } else if let Some(score) = score {
             highscores.push(score.clone());
             save = true;
-            self.local_high = Some(score.clone());
+            Some(score.clone())
         } else {
-            self.local_high = None;
-        }
+            None
+        };
+
         if save {
             preferences::save(crate::HIGHSCORES_STORAGE, &highscores);
         }
