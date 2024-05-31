@@ -181,7 +181,11 @@ impl MenuState {
                     }
                 }
             }
-            ConfirmAction::DownloadRecommended => self.context.local.download_recommended(),
+            ConfirmAction::DownloadRecommended => {
+                self.context.local.download_recommended();
+                self.notifications
+                    .push("Please wait while the levels are being downloaded".into());
+            }
         }
     }
 }
