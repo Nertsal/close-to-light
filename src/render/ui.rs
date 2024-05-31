@@ -217,7 +217,7 @@ impl UiRender {
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        if !widget.check.visible {
+        if !widget.state.visible {
             return;
         }
 
@@ -596,6 +596,10 @@ impl UiRender {
     }
 
     pub fn draw_value<T>(&self, value: &ValueWidget<T>, framebuffer: &mut ugli::Framebuffer) {
+        if !value.state.visible {
+            return;
+        }
+
         self.draw_text(&value.text, framebuffer);
         self.draw_text(&value.value_text, framebuffer);
     }
