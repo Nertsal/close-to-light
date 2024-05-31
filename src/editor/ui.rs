@@ -301,7 +301,9 @@ impl StatefulWidget for EditorEditWidget {
         let editor = state;
         let Some(level_editor) = &mut editor.level_edit else {
             let size = vec2(10.0, 1.0) * context.font_size;
-            let warn = position.align_aabb(size, vec2(0.5, 0.9));
+            let warn = position
+                .align_aabb(size, vec2(0.5, 1.0))
+                .translate(vec2(0.0, size.y * 2.0));
             self.warn_select_level.show();
             self.warn_select_level.update(warn, context);
 

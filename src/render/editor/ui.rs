@@ -8,7 +8,7 @@ impl EditorRender {
         self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
-        ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+        ugli::clear(framebuffer, Some(theme.dark), None, None);
 
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
@@ -28,7 +28,7 @@ impl EditorRender {
             self.util.draw_outline(
                 &Collider::aabb(ui.game.position.extend_uniform(width).map(r32)),
                 width,
-                Color::WHITE,
+                theme.light,
                 camera,
                 framebuffer,
             );
@@ -150,19 +150,18 @@ impl EditorRender {
         // View
         self.ui.draw_text(&ui.view, framebuffer);
         self.ui
-            .draw_checkbox(&ui.visualize_beat, options, framebuffer);
-        self.ui.draw_checkbox(&ui.show_grid, options, framebuffer);
+            .draw_checkbox(&ui.visualize_beat, theme, framebuffer);
+        self.ui.draw_checkbox(&ui.show_grid, theme, framebuffer);
         self.ui.draw_value(&ui.view_zoom, framebuffer);
 
         // Placement
         self.ui.draw_text(&ui.placement, framebuffer);
-        self.ui.draw_checkbox(&ui.snap_grid, options, framebuffer);
+        self.ui.draw_checkbox(&ui.snap_grid, theme, framebuffer);
         self.ui.draw_value(&ui.grid_size, framebuffer);
 
         // Light
         self.ui.draw_text(&ui.light, framebuffer);
-        self.ui
-            .draw_checkbox(&ui.light_danger, options, framebuffer);
+        self.ui.draw_checkbox(&ui.light_danger, theme, framebuffer);
         self.ui.draw_value(&ui.light_fade_in, framebuffer);
         self.ui.draw_value(&ui.light_fade_out, framebuffer);
 
@@ -179,7 +178,7 @@ impl EditorRender {
             let timeline = ui.timeline.state.position;
             let line = Aabb2::point(timeline.center())
                 .extend_symmetric(vec2(timeline.width(), font_size * 0.1) / 2.0);
-            quad(line, Color::WHITE);
+            quad(line, theme.light);
 
             if ui.timeline.left.visible {
                 // Selected area
@@ -214,7 +213,7 @@ impl EditorRender {
                     let timespan = Aabb2::point(from)
                         .extend_right(to.x - from.x)
                         .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
-                    quad(timespan, Color::CYAN);
+                    quad(timespan, theme.highlight);
                 }
             }
 
@@ -232,7 +231,7 @@ impl EditorRender {
                     Color::try_from("#aaa").unwrap(),
                 );
             }
-            quad(ui.timeline.current_beat.position, Color::WHITE);
+            quad(ui.timeline.current_beat.position, theme.light);
         }
     }
 }

@@ -77,6 +77,16 @@ impl EditorRender {
 
         let camera = &geng::PixelPerfectCamera;
 
+        if !editor.render_options.hide_ui {
+            self.geng.draw2d().textured_quad(
+                framebuffer,
+                camera,
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                &self.ui_texture,
+                Color::WHITE,
+            );
+        }
+
         if ui.edit.state.visible {
             let mut masked = self.mask.start();
             masked.mask_quad(if editor.render_options.hide_ui {
@@ -92,16 +102,6 @@ impl EditorRender {
                 Color::WHITE,
             );
             self.mask.draw(draw_parameters(), framebuffer);
-        }
-
-        if !editor.render_options.hide_ui {
-            self.geng.draw2d().textured_quad(
-                framebuffer,
-                camera,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                &self.ui_texture,
-                Color::WHITE,
-            );
         }
     }
 }

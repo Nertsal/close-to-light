@@ -1,8 +1,4 @@
-use super::{
-    mask::MaskedRender,
-    util::{TextRenderOptions, UtilRender},
-    *,
-};
+use super::{mask::MaskedRender, util::UtilRender, *};
 
 use crate::ui::{layout::AreaOps, widget::*};
 
@@ -218,7 +214,7 @@ impl UiRender {
     pub fn draw_checkbox(
         &self,
         widget: &CheckboxWidget,
-        options: TextRenderOptions,
+        theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         if !widget.check.visible {
@@ -226,11 +222,11 @@ impl UiRender {
         }
 
         let camera = &geng::PixelPerfectCamera;
-        let options = options.align(vec2(0.0, 0.5)); // TODO
+        let size = widget.state.position.height();
 
         let checkbox = widget.check.position;
         if widget.checked {
-            let checkbox = checkbox.extend_uniform(-options.size * 0.05);
+            let checkbox = checkbox.extend_uniform(-size * 0.05);
             for (a, b) in [
                 (checkbox.bottom_left(), checkbox.top_right()),
                 (checkbox.top_left(), checkbox.bottom_right()),
@@ -238,14 +234,14 @@ impl UiRender {
                 self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
-                    &draw2d::Segment::new(Segment(a, b), options.size * 0.07, options.color),
+                    &draw2d::Segment::new(Segment(a, b), size * 0.07, theme.light),
                 );
             }
         }
         self.util.draw_outline(
             &Collider::aabb(checkbox.map(r32)),
-            options.size * 0.1,
-            options.color,
+            size * 0.1,
+            theme.light,
             camera,
             framebuffer,
         );
