@@ -196,24 +196,32 @@ impl EditorRender {
                 );
             }
 
-            // Light timespan
+            // Selected light timespan
             let event = if let State::Waypoints { event, .. } = level_editor.state {
                 Some(event)
             } else {
                 level_editor.selected_light.map(|id| id.event)
             };
             if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
-                let from = event.beat;
+                let from_time = event.beat;
                 if let Event::Light(event) = &event.event {
-                    let from = from + event.telegraph.precede_time;
-                    let to = from + event.light.movement.total_duration();
+                    let from_time = from_time + event.telegraph.precede_time;
+                    let to_time = from_time + event.light.movement.total_duration();
 
-                    let from = ui.timeline.time_to_screen(from);
-                    let to = ui.timeline.time_to_screen(to);
+                    let from = ui.timeline.time_to_screen(from_time);
+                    let to = ui.timeline.time_to_screen(to_time);
                     let timespan = Aabb2::point(from)
                         .extend_right(to.x - from.x)
                         .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
                     quad(timespan, theme.highlight);
+
+                    for (_, _, time) in event.light.movement.timed_positions() {
+                        let time = from_time + time;
+                        let point = ui.timeline.time_to_screen(time);
+                        let timespan =
+                            Aabb2::point(point).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
+                        quad(timespan, theme.highlight);
+                    }
                 }
             }
 
