@@ -143,7 +143,7 @@ impl EditorRender {
 
         // Event
         self.ui.draw_text(&ui.new_event, framebuffer);
-        self.ui.draw_button(&ui.new_palette, theme, framebuffer);
+        // self.ui.draw_button(&ui.new_palette, theme, framebuffer);
         self.ui.draw_button(&ui.new_circle, theme, framebuffer);
         self.ui.draw_button(&ui.new_line, theme, framebuffer);
 

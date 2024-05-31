@@ -6,7 +6,7 @@ pub struct EditorEditWidget {
     pub warn_select_level: TextWidget,
 
     pub new_event: TextWidget,
-    pub new_palette: ButtonWidget,
+    // pub new_palette: ButtonWidget, // TODO: reimplement
     pub new_circle: ButtonWidget,
     pub new_line: ButtonWidget,
 
@@ -41,7 +41,7 @@ impl EditorEditWidget {
             warn_select_level: TextWidget::new("Select or create a difficulty in the Config tab"),
 
             new_event: TextWidget::new("Event"),
-            new_palette: ButtonWidget::new("Palette Swap"),
+            // new_palette: ButtonWidget::new("Palette Swap"),
             new_circle: ButtonWidget::new("Circle"),
             new_line: ButtonWidget::new("Line"),
 
@@ -129,12 +129,12 @@ impl StatefulWidget for EditorEditWidget {
             update!(self.new_event, event);
             self.new_event.options.size = title_size;
 
-            let palette = bar.cut_top(button_height);
-            bar.cut_top(spacing);
-            update!(self.new_palette, palette);
-            if self.new_palette.text.state.clicked {
-                level_editor.palette_swap();
-            }
+            // let palette = bar.cut_top(button_height);
+            // bar.cut_top(spacing);
+            // update!(self.new_palette, palette);
+            // if self.new_palette.text.state.clicked {
+            //     level_editor.palette_swap();
+            // }
 
             let circle = bar.cut_top(button_height);
             bar.cut_top(spacing);
