@@ -62,12 +62,21 @@ impl Theme {
         }
     }
 
-    pub fn test() -> Self {
+    pub fn peach_mint() -> Self {
         Self {
             dark: Color::try_from("#2B3A67").unwrap(),
             light: Color::try_from("#FFC482").unwrap(),
             danger: Color::try_from("#D34F73").unwrap(),
             highlight: Color::try_from("#61C9A8").unwrap(),
+        }
+    }
+
+    pub fn corruption() -> Self {
+        Self {
+            dark: Color::try_from("#382637").unwrap(),
+            light: Color::try_from("#dea257").unwrap(),
+            danger: Color::try_from("#A23F6D").unwrap(),
+            highlight: Color::try_from("#43BCCD").unwrap(),
         }
     }
 
