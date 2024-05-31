@@ -786,9 +786,11 @@ impl LevelEditor {
                         (
                             point.collider.position.x,
                             point.collider.position.y,
-                            (event_time + *time - self.current_beat).abs(),
+                            (event_time + event.telegraph.precede_time + *time - self.current_beat)
+                                .abs(),
                         )
                     });
+                    // event.beat + light.telegraph.precede_time + beat
                     {
                         let mut points = points.iter_mut();
                         if let Some(last) = points.next() {

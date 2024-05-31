@@ -296,6 +296,9 @@ impl StatefulWidget for EditorEditWidget {
                         if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                             // Waypoint
                             waypoint = true;
+                            self.prev_waypoint.show();
+                            self.next_waypoint.show();
+                            self.current_waypoint.show();
                             self.waypoint_scale.show();
                             self.waypoint_angle.show();
 
@@ -354,6 +357,9 @@ impl StatefulWidget for EditorEditWidget {
             }
         }
         if !waypoint {
+            self.prev_waypoint.hide();
+            self.next_waypoint.hide();
+            self.current_waypoint.hide();
             self.waypoint_scale.hide();
             self.waypoint_angle.hide();
         }
