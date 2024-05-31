@@ -154,7 +154,9 @@ impl TextEdit {
 
     /// Check if there is an active edit.
     pub fn any_active(&self) -> bool {
-        self.geng.is_some()
+        self.geng
+            .as_ref()
+            .map_or(false, |geng| geng.window().is_editing_text())
     }
 }
 
