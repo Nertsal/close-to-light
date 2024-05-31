@@ -553,7 +553,7 @@ impl UtilRender {
         let font_size = screen.height() * 0.05;
 
         let aabb = Aabb2::point(
-            geng_utils::layout::aabb_pos(screen, vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size,
+            geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) - vec2(0.0, 1.0) * font_size,
         )
         .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
         .extend_up(font_size);

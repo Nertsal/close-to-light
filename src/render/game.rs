@@ -157,29 +157,30 @@ impl GameRender {
             }
         }
 
-        {
-            // Rhythm
-            let radius = 0.2;
-            for rhythm in &model.rhythms {
-                let t = rhythm.time.get_ratio().as_f32();
+        // TODO: option
+        // {
+        //     // Rhythm
+        //     let radius = 0.2;
+        //     for rhythm in &model.rhythms {
+        //         let t = rhythm.time.get_ratio().as_f32();
 
-                let t = t * f32::PI;
-                let (sin, cos) = t.sin_cos();
-                let pos = vec2(0.0, 5.0 - radius) + vec2(cos, sin) * vec2(1.0, -0.2);
+        //         let t = t * f32::PI;
+        //         let (sin, cos) = t.sin_cos();
+        //         let pos = vec2(0.0, 5.0 - radius) + vec2(cos, sin) * vec2(1.0, -0.2);
 
-                let color = if rhythm.perfect {
-                    THEME.light
-                } else {
-                    THEME.danger
-                };
+        //         let color = if rhythm.perfect {
+        //             THEME.light
+        //         } else {
+        //             THEME.danger
+        //         };
 
-                self.geng.draw2d().draw2d(
-                    &mut framebuffer,
-                    camera,
-                    &draw2d::Ellipse::circle(pos, radius, color),
-                );
-            }
-        }
+        //         self.geng.draw2d().draw2d(
+        //             &mut framebuffer,
+        //             camera,
+        //             &draw2d::Ellipse::circle(pos, radius, color),
+        //         );
+        //     }
+        // }
 
         self.dither.finish(model.real_time, theme);
 
@@ -235,7 +236,7 @@ impl GameRender {
         } else if !model.level.config.modifiers.clean_auto {
             self.util.draw_text(
                 format!("SCORE: {}", model.score.calculated.combined),
-                vec2(-1.0, 4.2).as_r32(),
+                vec2(-8.5, 4.5).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),
@@ -244,8 +245,8 @@ impl GameRender {
             );
 
             self.util.draw_text(
-                format!("acc: {:3.2}%", accuracy),
-                vec2(-8.0, 4.0).as_r32(),
+                format!("{:3.2}%", accuracy),
+                vec2(-8.5, 3.9).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),
@@ -253,15 +254,15 @@ impl GameRender {
                 framebuffer,
             );
 
-            self.util.draw_text(
-                format!("prec: {:3.2}%", precision),
-                vec2(-8.0, 3.5).as_r32(),
-                TextRenderOptions::new(0.7)
-                    .color(theme.light)
-                    .align(vec2(0.0, 0.5)),
-                &model.camera,
-                framebuffer,
-            );
+            // self.util.draw_text(
+            //     format!("{:3.2}%", precision),
+            //     vec2(-8.0, 3.5).as_r32(),
+            //     TextRenderOptions::new(0.7)
+            //         .color(theme.light)
+            //         .align(vec2(0.0, 0.5)),
+            //     &model.camera,
+            //     framebuffer,
+            // );
 
             if debug_mode {
                 self.util.draw_text(
