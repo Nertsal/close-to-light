@@ -36,6 +36,7 @@ pub struct CacheTasks {
     client: Option<Arc<Nertboard>>,
 
     fetch_music: TaskRes<Vec<MusicInfo>>,
+    downloading_music: Option<Id>,
     download_music: TaskRes<CachedMusic>,
 
     fetch_groups: TaskRes<Vec<GroupInfo>>,
@@ -56,6 +57,7 @@ impl CacheTasks {
             client: client.cloned(),
 
             fetch_music: None,
+            downloading_music: None,
             download_music: None,
 
             fetch_groups: None,
@@ -87,9 +89,11 @@ impl CacheTasks {
                 Err(task) => self.download_music = Some(task),
                 Ok(Err(err)) => {
                     log::error!("failed to download music: {:?}", err);
+                    self.downloading_music = None;
                 }
                 Ok(Ok(music)) => {
                     log::debug!("downloaded music: {:?}", music);
+                    self.downloading_music = None;
                     return Some(CacheAction::Music(music));
                 }
             }
@@ -214,6 +218,11 @@ impl LevelCache {
         log::debug!("Loaded cache in {:.2}s", timer.tick().as_secs_f64());
 
         Ok(local)
+    }
+
+    pub fn is_downloading_music(&self) -> Option<Id> {
+        let inner = self.inner.borrow();
+        inner.tasks.downloading_music
     }
 
     pub fn get_music(&self, music_id: Id) -> Option<Rc<CachedMusic>> {
@@ -492,6 +501,7 @@ impl LevelCache {
                     Ok(music)
                 };
                 inner.tasks.download_music = Some(Task::new(&self.geng, future));
+                inner.tasks.downloading_music = Some(music_id);
             }
         }
     }

@@ -509,7 +509,11 @@ impl StatefulWidget for MusicItemWidget {
 
         if state.get_music(self.info.id).is_none() {
             // Not downloaded
-            if !self.downloading.state.visible {
+            if state.is_downloading_music() == Some(self.info.id) {
+                self.downloading.show();
+                self.download.hide();
+            } else {
+                self.downloading.hide();
                 self.download.show();
             }
 
@@ -520,8 +524,6 @@ impl StatefulWidget for MusicItemWidget {
             self.download.update(rows[1], context);
             if self.download.state.clicked {
                 state.download_music(self.info.id);
-                self.download.hide();
-                self.downloading.show();
             }
         } else {
             self.download.hide();
