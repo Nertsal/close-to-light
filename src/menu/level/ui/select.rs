@@ -538,10 +538,6 @@ impl ItemGroupWidget {
         } else if !self.state.hovered && !self.menu.state.hovered {
             self.menu.window.request = Some(WidgetRequest::Close);
         }
-        self.menu.window.update(context.delta_time);
-        if self.menu.window.show.time.is_min() {
-            self.menu.hide();
-        }
         self.menu.update(position, context);
         if self.menu.state.hovered {
             context.can_focus = false;
@@ -756,6 +752,11 @@ impl Widget for ItemMenuWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.window.update(context.delta_time);
+        if self.window.show.time.is_min() {
+            self.hide();
+        }
+
         let sync = !self.sync.state.visible;
         let mut columns = [&mut self.delete, &mut self.edit, &mut self.sync];
         let columns = if sync {
@@ -769,6 +770,10 @@ impl Widget for ItemMenuWidget {
         let position = position.align_aabb(size, vec2(0.0, 1.0));
 
         self.state.update(position, context);
+
+        if !self.window.show.time.is_max() {
+            return;
+        }
 
         let positions = position.split_columns(columns.len());
         for (widget, pos) in columns.iter_mut().zip(positions) {
