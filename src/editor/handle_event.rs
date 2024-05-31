@@ -467,7 +467,7 @@ impl EditorState {
         self.drag = Some(Drag {
             moved: false,
             from_screen: self.ui_context.cursor.position,
-            from_world: self.editor.cursor_world_pos,
+            from_world: self.editor.cursor_world_pos_snapped,
             from_time: level_editor.current_beat,
             target,
         });
@@ -502,8 +502,8 @@ impl EditorState {
 
                         // Move spatially
                         let movement = &mut light.light.movement;
-                        let target =
-                            initial_translation + self.editor.cursor_world_pos - drag.from_world;
+                        let target = initial_translation + self.editor.cursor_world_pos_snapped
+                            - drag.from_world;
                         let delta = target - movement.initial.translation;
                         movement.initial.translation += delta;
                         for frame in &mut movement.key_frames {
@@ -521,7 +521,8 @@ impl EditorState {
                     if let Event::Light(light) = &mut event.event {
                         // Move spatially
                         if let Some(frame) = light.light.movement.get_frame_mut(waypoint) {
-                            frame.translation = initial_translation + self.editor.cursor_world_pos
+                            frame.translation = initial_translation
+                                + self.editor.cursor_world_pos_snapped
                                 - drag.from_world;
                         }
                     }
@@ -562,7 +563,7 @@ impl EditorState {
                 // Fade in
                 let movement = Movement {
                     initial: Transform {
-                        translation: self.editor.cursor_world_pos,
+                        translation: self.editor.cursor_world_pos_snapped,
                         rotation: level_editor.place_rotation,
                         scale: level_editor.place_scale,
                     },
@@ -592,7 +593,7 @@ impl EditorState {
                 light.light.movement.key_frames.push_back(MoveFrame {
                     lerp_time: level_editor.current_beat - last_beat, // in beats
                     transform: Transform {
-                        translation: self.editor.cursor_world_pos,
+                        translation: self.editor.cursor_world_pos_snapped,
                         rotation: level_editor.place_rotation,
                         scale: level_editor.place_scale,
                     },
@@ -639,7 +640,7 @@ impl EditorState {
                                     .position(|point| point.original.is_none())
                                 {
                                     let mut transform = Transform {
-                                        translation: self.editor.cursor_world_pos,
+                                        translation: self.editor.cursor_world_pos_snapped,
                                         rotation: level_editor.place_rotation,
                                         scale: level_editor.place_scale,
                                     };

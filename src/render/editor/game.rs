@@ -198,7 +198,7 @@ impl EditorRender {
             };
             if let Some((shape, danger)) = shape {
                 let collider = Collider {
-                    position: editor.cursor_world_pos,
+                    position: editor.cursor_world_pos_snapped,
                     rotation: level_editor.place_rotation,
                     shape: shape.scaled(level_editor.place_scale),
                 };

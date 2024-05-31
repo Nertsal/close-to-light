@@ -70,9 +70,7 @@ impl Collider {
         self.check(&Collider {
             position: point,
             rotation: Angle::ZERO,
-            shape: Shape::Circle {
-                radius: Coord::ZERO,
-            },
+            shape: Shape::Circle { radius: r32(0.01) },
         })
     }
 

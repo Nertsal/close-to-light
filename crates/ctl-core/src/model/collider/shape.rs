@@ -27,7 +27,7 @@ impl Shape {
         match self {
             Shape::Circle { radius } => Box::new(parry2d::shape::Ball::new(radius.as_f32())),
             Shape::Line { width } => Shape::Rectangle {
-                width: r32(1e6), // TODO: unhack
+                width: r32(1e3), // TODO: unhack
                 height: width,
             }
             .to_parry(),

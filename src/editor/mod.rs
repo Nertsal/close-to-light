@@ -121,6 +121,7 @@ pub struct Editor {
     pub config: EditorConfig,
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
+    pub cursor_world_pos_snapped: vec2<Coord>,
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
@@ -196,6 +197,7 @@ impl EditorState {
                     hide_ui: false,
                 },
                 cursor_world_pos: vec2::ZERO,
+                cursor_world_pos_snapped: vec2::ZERO,
 
                 confirm_popup: None,
 
@@ -307,7 +309,8 @@ impl EditorState {
             .camera
             .screen_to_world(self.ui.screen.position.size(), pos)
             .as_r32();
-        self.editor.cursor_world_pos = if self.editor.snap_to_grid {
+        self.editor.cursor_world_pos = pos;
+        self.editor.cursor_world_pos_snapped = if self.editor.snap_to_grid {
             self.snap_pos_grid(pos)
         } else {
             pos
