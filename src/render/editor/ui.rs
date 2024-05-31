@@ -167,6 +167,9 @@ impl EditorRender {
 
         // Waypoints
         self.ui.draw_button(&ui.waypoint, theme, framebuffer);
+        self.ui.draw_icon_button(&ui.prev_waypoint, framebuffer);
+        self.ui.draw_icon_button(&ui.next_waypoint, framebuffer);
+        self.ui.draw_text(&ui.current_waypoint, framebuffer);
         self.ui.draw_value(&ui.waypoint_scale, framebuffer);
         self.ui.draw_value(&ui.waypoint_angle, framebuffer);
 

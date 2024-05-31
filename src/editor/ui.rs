@@ -53,7 +53,7 @@ impl EditorUI {
             save: ButtonWidget::new("Save"),
 
             help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
-            edit: EditorEditWidget::new(geng),
+            edit: EditorEditWidget::new(geng, assets),
             config: {
                 let mut w = EditorConfigWidget::new(assets);
                 w.hide();

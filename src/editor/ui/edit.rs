@@ -25,6 +25,9 @@ pub struct EditorEditWidget {
     pub light_fade_out: ValueWidget<Time>,
 
     pub waypoint: ButtonWidget,
+    pub prev_waypoint: IconButtonWidget,
+    pub current_waypoint: TextWidget,
+    pub next_waypoint: IconButtonWidget,
     pub waypoint_scale: ValueWidget<f32>,
     /// Angle in degrees.
     pub waypoint_angle: ValueWidget<f32>,
@@ -34,7 +37,7 @@ pub struct EditorEditWidget {
 }
 
 impl EditorEditWidget {
-    pub fn new(geng: &Geng) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             state: WidgetState::new(),
 
@@ -65,6 +68,9 @@ impl EditorEditWidget {
             ),
 
             waypoint: ButtonWidget::new("Waypoints"),
+            prev_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_left),
+            current_waypoint: TextWidget::new("0"),
+            next_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_right),
             waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
             waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
@@ -282,10 +288,11 @@ impl StatefulWidget for EditorEditWidget {
         }
 
         let mut waypoint = false;
-        if let Some(waypoints) = &level_editor.level_state.waypoints {
+        if let Some(waypoints) = &mut level_editor.level_state.waypoints {
             if let Some(selected) = waypoints.selected {
                 if let Some(event) = level_editor.level.events.get_mut(waypoints.event) {
                     if let Event::Light(light) = &mut event.event {
+                        let frames = light.light.movement.key_frames.len();
                         if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                             // Waypoint
                             waypoint = true;
@@ -293,6 +300,40 @@ impl StatefulWidget for EditorEditWidget {
                             self.waypoint_angle.show();
 
                             let mut bar = right_bar;
+
+                            let mut current = bar.cut_top(button_height);
+
+                            if let WaypointId::Initial = selected {
+                                self.prev_waypoint.hide();
+                            } else {
+                                self.prev_waypoint.show();
+                            }
+                            let prev = current.cut_left(current.height());
+                            self.prev_waypoint.update(prev, context);
+                            if self.prev_waypoint.state.clicked {
+                                if let Some(id) = selected.prev() {
+                                    waypoints.selected = Some(id);
+                                }
+                            }
+
+                            let i = match selected {
+                                WaypointId::Initial => 0,
+                                WaypointId::Frame(i) => i + 1,
+                            };
+
+                            if i >= frames {
+                                self.next_waypoint.hide();
+                            } else {
+                                self.next_waypoint.show();
+                            }
+                            let next = current.cut_right(current.height());
+                            self.next_waypoint.update(next, context);
+                            if self.next_waypoint.state.clicked {
+                                waypoints.selected = Some(selected.next());
+                            }
+
+                            self.current_waypoint.update(current, context);
+                            self.current_waypoint.text = (i + 1).to_string().into();
 
                             let scale = bar.cut_top(button_height);
                             bar.cut_top(spacing);

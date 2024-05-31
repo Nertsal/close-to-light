@@ -23,6 +23,23 @@ pub enum WaypointId {
     Frame(usize),
 }
 
+impl WaypointId {
+    pub fn prev(self) -> Option<Self> {
+        match self {
+            Self::Initial => None,
+            Self::Frame(0) => Some(Self::Initial),
+            Self::Frame(i) => Some(Self::Frame(i - 1)),
+        }
+    }
+
+    pub fn next(self) -> Self {
+        match self {
+            Self::Initial => Self::Frame(0),
+            Self::Frame(i) => Self::Frame(i + 1),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Transform {
