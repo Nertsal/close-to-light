@@ -353,7 +353,7 @@ impl StatefulWidget for EditorEditWidget {
                 }
             }
 
-            self.timeline.auto_scale(level_editor.level.last_beat());
+            // self.timeline.auto_scale(level_editor.level.last_beat());
         }
     }
 }

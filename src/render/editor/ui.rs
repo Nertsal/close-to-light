@@ -201,14 +201,12 @@ impl EditorRender {
                 let from_time = event.beat;
                 if let Event::Light(event) = &event.event {
                     let from_time = from_time + event.telegraph.precede_time;
-                    let to_time = from_time + event.light.movement.total_duration();
+                    // let to_time = from_time + event.light.movement.total_duration();
 
                     let from = ui.timeline.time_to_screen(from_time);
-                    let to = ui.timeline.time_to_screen(to_time);
-                    let timespan = Aabb2::point(from)
-                        .extend_right(to.x - from.x)
-                        .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
-                    quad(timespan, crate::util::with_alpha(theme.highlight, 0.3));
+                    let timespan =
+                        Aabb2::point(from).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
+                    quad(timespan, crate::util::with_alpha(theme.highlight, 0.5));
                 }
             }
 

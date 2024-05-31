@@ -240,8 +240,29 @@ impl EditorState {
                 let delta = delta as f32;
                 if !self.ui_focused && self.ui.edit.state.visible {
                     let scroll = r32(delta.signum());
-                    if ctrl {
-                        if let State::Place { .. }
+                    if shift && self.ui.edit.timeline.state.hovered {
+                        // Scroll on the timeline
+                        let timeline = &mut self.ui.edit.timeline;
+                        let delta = scroll * r32(30.0 / timeline.get_scale());
+                        let current = -timeline.get_scroll();
+                        let delta = if delta > Time::ZERO {
+                            delta.min(current)
+                        } else {
+                            -delta.abs().min(
+                                level_editor.level.last_beat()
+                                    - timeline.visible_scroll()
+                                    - current,
+                            )
+                        };
+                        timeline.scroll(delta);
+                    } else if ctrl {
+                        if self.ui.edit.timeline.state.hovered {
+                            // Zoom on the timeline
+                            let timeline = &mut self.ui.edit.timeline;
+                            let zoom = timeline.get_scale();
+                            let zoom = (zoom + scroll.as_f32()).clamp(5.0, 20.0);
+                            timeline.rescale(zoom);
+                        } else if let State::Place { .. }
                         | State::Movement { .. }
                         | State::Waypoints {
                             state: WaypointsState::New,

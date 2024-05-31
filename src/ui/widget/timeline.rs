@@ -42,7 +42,7 @@ impl TimelineWidget {
             left: default(),
             right: default(),
             replay: default(),
-            scale: 1.0,
+            scale: 15.0,
             scroll: Time::ZERO,
             raw_current_beat: Time::ZERO,
             raw_left: None,
@@ -60,10 +60,14 @@ impl TimelineWidget {
         self.reload();
     }
 
-    pub fn auto_scale(&mut self, max_beat: Time) {
-        let scale = self.state.position.width() / max_beat.as_f32().max(1.0);
-        self.scale = scale;
-        self.reload();
+    // pub fn auto_scale(&mut self, max_beat: Time) {
+    //     let scale = self.state.position.width() / max_beat.as_f32().max(1.0);
+    //     self.scale = scale;
+    //     self.reload();
+    // }
+
+    pub fn visible_scroll(&self) -> Time {
+        r32(self.state.position.width() / self.scale)
     }
 
     pub fn get_scroll(&self) -> Time {
