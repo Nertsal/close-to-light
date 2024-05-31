@@ -15,7 +15,8 @@ use ctl_core::{
 use core::types::GroupsQuery;
 use std::sync::atomic::AtomicBool;
 
-use reqwest::{Client, Response, StatusCode, Url};
+use reqwest::{Client, RequestBuilder, Response, StatusCode, Url};
+use tokio::sync::RwLock;
 use tokio_util::bytes::Bytes;
 
 pub type Result<T, E = ClientError> = std::result::Result<T, E>;
@@ -24,19 +25,19 @@ pub struct Nertboard {
     pub url: Url,
     client: Client,
     online: AtomicBool,
+    auth: RwLock<Option<(String, String)>>,
 }
 
 impl Nertboard {
     pub fn new(url: impl reqwest::IntoUrl) -> Result<Self> {
         let client = Client::builder();
-        #[cfg(not(target_arch = "wasm32"))]
-        let client = client.cookie_store(true); // NOTE: cookie_store does not work on wasm
         let client = client.build()?;
 
         Ok(Self {
             url: url.into_url()?,
             client,
             online: AtomicBool::new(false),
+            auth: RwLock::new(None),
         })
     }
 
@@ -45,8 +46,14 @@ impl Nertboard {
         self.online.load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    fn check(&self, response: Result<Response, reqwest::Error>) -> Result<Response> {
-        // let online = !matches!(&response, Err(err) if err.is_connect()); // TODO: fix web
+    async fn send(&self, mut request: RequestBuilder) -> Result<Response> {
+        if let Some((user, pass)) = &*self.auth.read().await {
+            request = request.basic_auth(user, Some(pass));
+        }
+        self.check(request.send().await).await
+    }
+
+    async fn check(&self, response: Result<Response, reqwest::Error>) -> Result<Response> {
         let online = response.is_ok();
         self.online
             .swap(online, std::sync::atomic::Ordering::Relaxed);
@@ -58,7 +65,7 @@ impl Nertboard {
         let url = self.url.join(url).unwrap();
         let req = self.client.get(url);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -66,7 +73,7 @@ impl Nertboard {
     pub async fn ping(&self) -> Result<()> {
         let url = self.url.clone();
         let req = self.client.get(url);
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         get_body(response).await?;
         Ok(())
     }
@@ -75,7 +82,7 @@ impl Nertboard {
         let url = self.url.join(&format!("level/{}/scores", level)).unwrap();
         let req = self.client.get(url);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -86,7 +93,7 @@ impl Nertboard {
             .post(self.url.join(&format!("level/{}/scores", level)).unwrap())
             .json(entry);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         get_body(response).await?;
         // TODO: check returned error
         Ok(())
@@ -96,7 +103,7 @@ impl Nertboard {
         let url = self.url.join(&format!("level/{}", level)).unwrap();
         let req = self.client.get(url);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -106,7 +113,7 @@ impl Nertboard {
         let body = bincode::serialize(group)?;
         let req = self.client.post(url).body(body);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let group_id: Id = read_json(response).await?;
 
         self.get_group_info(group_id).await
@@ -115,7 +122,7 @@ impl Nertboard {
     pub async fn get_group_list(&self, query: &GroupsQuery) -> Result<Vec<GroupInfo>> {
         let url = self.url.join("groups").unwrap();
         let req = self.client.get(url).query(&query);
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let res = read_json(response).await?;
         Ok(res)
     }
@@ -136,7 +143,7 @@ impl Nertboard {
         let url = self.url.join(&format!("music/{}/download", music)).unwrap();
         let req = self.client.get(url);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let response = error_for_status(response).await?;
         Ok(response.bytes().await?)
     }
@@ -145,7 +152,7 @@ impl Nertboard {
         let url = self.url.join(&format!("group/{}/download", group)).unwrap();
         let req = self.client.get(url);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let response = error_for_status(response).await?;
         Ok(response.bytes().await?)
     }
@@ -155,7 +162,7 @@ impl Nertboard {
 
         let req = self.client.patch(url).json(update);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         get_body(response).await?;
         Ok(())
     }
@@ -165,7 +172,7 @@ impl Nertboard {
 
         let req = self.client.post(url).query(&[("id", artist)]);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         get_body(response).await?;
         Ok(())
     }
@@ -175,7 +182,7 @@ impl Nertboard {
 
         let req = self.client.delete(url).query(&[("id", artist)]);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         get_body(response).await?;
         Ok(())
     }
@@ -185,7 +192,7 @@ impl Nertboard {
 
         let req = self.client.post(url).form(&artist);
 
-        let response = self.check(req.send().await)?;
+        let response = self.send(req).await?;
         let res = read_json(response).await?;
         Ok(res)
     }

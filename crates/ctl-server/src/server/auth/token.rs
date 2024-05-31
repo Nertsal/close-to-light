@@ -1,43 +1,71 @@
 use super::*;
 
+use axum_extra::TypedHeader;
+use ctl_core::auth::Credentials;
+use headers::{authorization::Basic, Authorization};
+
 pub fn router() -> Router {
-    Router::new().route("/auth/token", post(auth_token))
+    Router::new().route("/auth/token", post(auth_token_route))
+}
+
+pub async fn auth_header_required_middleware(
+    mut session: AuthSession,
+    auth_header: Option<TypedHeader<Authorization<Basic>>>,
+    mut request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> impl IntoResponse {
+    tracing::info!("middleware");
+    if session.user.is_none() {
+        tracing::info!("no user");
+        if let Some(auth_header) = auth_header {
+            tracing::info!("header: {:?}", auth_header);
+            // Attempt extracting token from header
+            if auth_token(&mut session, auth_header.0).await.is_ok() {
+                request.extensions_mut().insert(session);
+            }
+        }
+    }
+    next.run(request).await
+}
+
+async fn auth_token_route(
+    mut session: AuthSession,
+    TypedHeader(auth_header): TypedHeader<Authorization<Basic>>,
+) -> Result<Json<UserLogin>> {
+    auth_token(&mut session, auth_header).await
 }
 
 async fn auth_token(
-    mut session: AuthSession,
-    State(app): State<Arc<App>>,
-    headers: HeaderMap,
+    session: &mut AuthSession,
+    auth_header: Authorization<Basic>,
 ) -> Result<Json<UserLogin>> {
-    use base64::Engine;
-
-    let Some(credentials) = headers.get("Authorization") else {
-        return Err(RequestError::Unathorized);
-    };
-
-    let Some(credentials) = credentials.as_bytes().strip_prefix(b"Basic ") else {
-        return Err(RequestError::InvalidCredentials);
-    };
-
-    let credentials = base64::prelude::BASE64_STANDARD
-        .decode(credentials)
-        .map_err(|_| RequestError::InvalidCredentials)?;
-    let credentials =
-        String::from_utf8(credentials).map_err(|_| RequestError::InvalidCredentials)?;
-
-    let mut parts = credentials.split(':');
-    let user_id = parts.next().ok_or(RequestError::InvalidCredentials)?;
-
-    let user_id: Id = user_id
+    let user_id = auth_header
+        .username()
         .parse()
         .map_err(|_| RequestError::InvalidCredentials)?;
+    let token = auth_header.password().to_owned();
 
-    let token = parts
-        .next()
-        .ok_or(RequestError::InvalidCredentials)?
-        .to_owned();
+    let back_err = |err| match err {
+        axum_login::Error::Session(_) => RequestError::InvalidCredentials,
+        axum_login::Error::Backend(err) => err,
+    };
 
-    let user = login_via_token(&mut session, &app, user_id, token).await?;
+    let user = session
+        .authenticate(Credentials {
+            user_id,
+            token: token.clone(),
+        })
+        .await
+        .map_err(back_err)?
+        .ok_or(RequestError::InvalidCredentials)?;
+    session.login(&user).await.map_err(back_err)?;
+
+    let user = UserLogin {
+        id: user.user_id,
+        name: user.username.into(),
+        token: token.into(),
+    };
+
     Ok(Json(user))
 }
 
@@ -51,36 +79,4 @@ pub(super) async fn generate_login_token(app: &App, user_id: Id) -> Result<Strin
         .await?;
 
     Ok(token)
-}
-
-pub(super) async fn login_via_token(
-    session: &mut AuthSession,
-    app: &App,
-    user_id: Id,
-    token: String,
-) -> Result<UserLogin> {
-    let login = sqlx::query("SELECT null FROM user_tokens WHERE user_id = ? AND token = ?")
-        .bind(user_id)
-        .bind(&token)
-        .fetch_optional(&app.database)
-        .await?;
-    if login.is_none() {
-        return Err(RequestError::InvalidCredentials);
-    }
-
-    let user: User = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
-        .bind(user_id)
-        .fetch_one(&app.database)
-        .await?;
-
-    session
-        .login(&user)
-        .await
-        .map_err(|_| RequestError::Internal)?;
-
-    Ok(UserLogin {
-        id: user.user_id,
-        name: user.username.into(),
-        token: token.into(),
-    })
 }

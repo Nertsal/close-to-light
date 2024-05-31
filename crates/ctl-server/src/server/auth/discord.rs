@@ -1,7 +1,7 @@
 use super::*;
 
-const REDIRECT_URI: &str = "https://nertboard.kuviman.com/auth/discord";
-// const REDIRECT_URI: &str = "http://localhost:3000/auth/discord";
+// const REDIRECT_URI: &str = "https://nertboard.kuviman.com/auth/discord";
+const REDIRECT_URI: &str = "http://localhost:3000/auth/discord";
 
 pub fn router() -> Router {
     Router::new().route("/auth/discord", get(auth_discord))

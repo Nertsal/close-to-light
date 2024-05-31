@@ -20,16 +20,19 @@ use crate::{
 
 use std::collections::BTreeMap;
 
-use axum_login::AuthManagerLayerBuilder;
 use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
 
 use axum::{
     body::Body,
     extract::{Path, Query, State},
-    http::{header, HeaderMap},
+    http::header,
     response::IntoResponse,
     routing::{get, post},
     Extension, Form, Json,
+};
+use axum_login::{
+    tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
+    AuthManagerLayerBuilder,
 };
 use reqwest::Client;
 use serde::Deserialize;
@@ -37,7 +40,8 @@ use sqlx::Row;
 use time::Duration;
 use tokio::sync::RwLock;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer, SqliteStore};
+use tower_sessions::cookie::Key;
+use tower_sessions_sqlx_store::SqliteStore;
 
 type Router = axum::Router<Arc<App>>;
 
@@ -81,9 +85,11 @@ pub async fn run(
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
 
+    let key = Key::generate();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
-        .with_expiry(Expiry::OnInactivity(Duration::days(1)));
+        .with_expiry(Expiry::OnInactivity(Duration::days(1)))
+        .with_signed(key);
 
     // Auth service
     let backend = crate::database::auth::Backend::new(app.database.clone());
@@ -104,13 +110,16 @@ pub async fn run(
         .wrap_err("failed to build the http client")?;
 
     let router = router
+        .layer(axum::middleware::from_fn(
+            auth::token::auth_header_required_middleware,
+        ))
+        .layer(auth_layer)
         .layer(TraceLayer::new_for_http())
         .layer(
             CorsLayer::new()
                 .allow_origin(tower_http::cors::Any)
                 .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]),
         )
-        .layer(auth_layer)
         .layer(Extension(client))
         .with_state(app);
 

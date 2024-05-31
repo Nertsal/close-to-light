@@ -3,19 +3,29 @@ use super::*;
 use ctl_core::types::UserLogin;
 
 impl Nertboard {
+    async fn login(&self, response: Response) -> Result<Result<UserLogin, String>> {
+        match get_json_or::<UserLogin>(response).await? {
+            Err(err) => Ok(Err(err)),
+            Ok(user) => {
+                *self.auth.write().await = Some((user.id.to_string(), user.token.to_string()));
+                Ok(Ok(user))
+            }
+        }
+    }
+
     /// Waits for the authentication from the external service and logs in after.
     pub async fn login_external(&self, state: String) -> Result<Result<UserLogin, String>> {
         let url = self.url.join("auth/wait").unwrap();
         let req = self.client.get(url).query(&[("state", state)]);
-        let response = req.send().await?;
-        get_json_or(response).await
+        let response = self.send(req).await?;
+        self.login(response).await
     }
 
     pub async fn login_token(&self, user_id: Id, token: &str) -> Result<Result<UserLogin, String>> {
         let url = self.url.join("auth/token")?;
         let req = self.client.post(url).basic_auth(user_id, Some(token));
-        let response = req.send().await?;
-        get_json_or(response).await
+        let response = self.send(req).await?;
+        self.login(response).await
     }
 
     // pub async fn register(&self, creds: &Credentials) -> Result<Result<(), String>> {
@@ -49,7 +59,7 @@ impl Nertboard {
         if let Some(token) = token {
             req = req.query(&[("token", token)]);
         }
-        let response = req.send().await?;
+        let response = self.send(req).await?;
         get_body(response).await?;
         Ok(())
     }

@@ -1,3 +1,5 @@
+use self::error::RequestError;
+
 use super::{types::DatabasePool, *};
 
 use axum_login::{AuthUser, AuthnBackend, UserId};
@@ -62,24 +64,27 @@ impl Backend {
 impl AuthnBackend for Backend {
     type User = User;
     type Credentials = Credentials;
-    type Error = sqlx::Error;
+    type Error = RequestError;
 
     async fn authenticate(
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let user: Option<Self::User> = sqlx::query_as("SELECT * FROM users WHERE username = ?")
-            .bind(&creds.username)
+        let login = sqlx::query("SELECT null FROM user_tokens WHERE user_id = ? AND token = ?")
+            .bind(creds.user_id)
+            .bind(&creds.token)
             .fetch_optional(&self.db)
             .await?;
+        if login.is_none() {
+            return Err(RequestError::InvalidCredentials);
+        }
 
-        Ok(user.filter(|user| {
-            user.password.as_ref().map_or(true, |pass| {
-                password_auth::verify_password(creds.password, pass)
-                    .ok()
-                    .is_some()
-            })
-        }))
+        let user: User = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
+            .bind(creds.user_id)
+            .fetch_one(&self.db)
+            .await?;
+
+        Ok(Some(user))
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {

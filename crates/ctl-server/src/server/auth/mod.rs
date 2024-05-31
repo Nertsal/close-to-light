@@ -1,6 +1,6 @@
 mod discord;
 mod native;
-mod token;
+pub mod token;
 
 use super::*;
 
