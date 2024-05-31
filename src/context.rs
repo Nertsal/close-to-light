@@ -97,12 +97,12 @@ impl MusicManager {
         }
     }
 
-    pub fn restart_from(&self, time: Duration) {
-        let mut inner = self.inner.borrow_mut();
-        if let Some(music) = &mut inner.playing {
-            music.play_from(time);
-        }
-    }
+    // pub fn restart_from(&self, time: Duration) {
+    //     let mut inner = self.inner.borrow_mut();
+    //     if let Some(music) = &mut inner.playing {
+    //         music.play_from(time);
+    //     }
+    // }
 
     pub fn play(&self, music: &CachedMusic) {
         self.play_from(music, Duration::from_secs_f64(0.0))
