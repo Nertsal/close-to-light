@@ -7,6 +7,8 @@ use ctl_client::core::types::Name;
 pub struct NotificationsWidget {
     pub assets: Rc<Assets>,
     pub state: WidgetState,
+    pub discard_offset: Lerp<f32>,
+    pub discard_all: TextWidget,
     pub items: Vec<NotificationWidget>,
     pub items_done: Vec<NotificationWidget>,
 }
@@ -16,6 +18,8 @@ impl NotificationsWidget {
         Self {
             assets: assets.clone(),
             state: WidgetState::new(),
+            discard_offset: Lerp::new_smooth(0.3, 0.0, 0.0),
+            discard_all: TextWidget::new("discard all"),
             items: Vec::new(),
             items_done: Vec::new(),
         }
@@ -37,10 +41,25 @@ impl Widget for NotificationsWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
 
+        let discard_size = vec2(5.0, 1.2) * context.font_size;
+        {
+            let mut position = position.align_aabb(discard_size, vec2(1.0, 1.0));
+            let offset = position.height();
+            position = position.translate(vec2(0.0, offset + self.discard_offset.current()));
+            if self.items.is_empty() {
+                self.discard_offset.change_target(0.0);
+            } else {
+                self.discard_offset.change_target(-offset);
+            }
+            self.discard_offset.update(context.delta_time);
+            self.discard_all.update(position, context);
+        }
+
         let size = vec2(15.0, 7.0) * context.layout_size;
         let mut position = position.align_aabb(size, vec2(1.0, 1.0));
         position = position.translate(vec2(0.0, position.height()));
         let anchor = position;
+        position = position.translate(vec2(0.0, -discard_size.y + context.layout_size));
 
         let mut done = Vec::new();
         for (i, notification) in self.items.iter_mut().enumerate() {
@@ -52,7 +71,9 @@ impl Widget for NotificationsWidget {
 
             context.update_focus(notification.state.hovered);
 
-            if notification.confirm.state.clicked {
+            if notification.offset_y.time.is_max()
+                && (notification.confirm.state.clicked || self.discard_all.state.clicked)
+            {
                 done.push(i);
             }
         }

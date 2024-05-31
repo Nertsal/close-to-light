@@ -62,6 +62,13 @@ impl MenuRender {
         self.draw_explore(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
 
+        self.draw_item_widget(
+            &ui.notifications.discard_all,
+            false,
+            1.0,
+            theme,
+            framebuffer,
+        );
         for notification in ui
             .notifications
             .items
@@ -71,7 +78,7 @@ impl MenuRender {
             self.ui.draw_notification(
                 notification,
                 self.font_size * 0.2,
-                state.options.theme,
+                theme,
                 &mut self.masked,
                 framebuffer,
             );
@@ -81,7 +88,7 @@ impl MenuRender {
             self.ui.draw_confirm(
                 ui,
                 self.font_size * 0.2,
-                state.options.theme,
+                theme,
                 &mut self.masked,
                 framebuffer,
             );
