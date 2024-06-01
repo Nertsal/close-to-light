@@ -23,9 +23,10 @@ impl From<UserRow> for UserInfo {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScoreRecord {
-    pub player_id: Id,
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ScoreRow {
+    pub level_id: Id,
+    pub user_id: Id,
     pub score: Score,
     pub extra_info: Option<String>,
 }

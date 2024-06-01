@@ -252,7 +252,7 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
     // TODO: remove removed levels
     for (order, level) in parsed_group.levels.iter_mut().enumerate() {
         let order = order as i64;
-        level.meta.hash = level.data.calculate_hash();
+        level.meta.hash = level.data.calculate_hash(); // Make sure the hash is valid
         if level.meta.id == 0 {
             // Create
             level.meta.id = sqlx::query(
@@ -266,17 +266,35 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
             .fetch_one(&app.database)
             .await?;
         } else {
-            // Update
-            sqlx::query(
+            let old_level: Option<LevelRow> =
+                sqlx::query_as("SELECT * FROM levels WHERE level_id = ? AND group_id = ?")
+                    .bind(level.meta.id)
+                    .bind(group_id)
+                    .fetch_optional(&app.database)
+                    .await?;
+            if let Some(old_level) = old_level {
+                if old_level.hash != level.meta.hash {
+                    // Reset the leaderboard
+                    sqlx::query("DELETE FROM scores WHERE level_id = ?")
+                        .bind(old_level.level_id)
+                        .execute(&app.database)
+                        .await?;
+                }
+
+                // Update
+                sqlx::query(
                 "UPDATE levels SET hash = ?, name = ?, ord = ? WHERE level_id = ? AND group_id = ?",
-            )
-            .bind(&level.meta.hash)
-            .bind(level.meta.name.as_ref())
-            .bind(order)
-            .bind(level.meta.id)
-            .bind(group_id)
-            .execute(&app.database)
-            .await?;
+                )
+                .bind(&level.meta.hash)
+                .bind(level.meta.name.as_ref())
+                .bind(order)
+                .bind(level.meta.id)
+                .bind(group_id)
+                .execute(&app.database)
+                .await?;
+            } else {
+                // TODO: maybe invalidate request
+            }
         }
     }
 
