@@ -566,7 +566,7 @@ impl EditorState {
                 let movement = Movement {
                     initial: Transform {
                         translation: self.editor.cursor_world_pos_snapped,
-                        rotation: level_editor.place_rotation,
+                        rotation: level_editor.place_rotation.normalized_2pi(),
                         scale: level_editor.place_scale,
                     },
                     ..default()

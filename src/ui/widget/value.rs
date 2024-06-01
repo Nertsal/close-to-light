@@ -38,10 +38,9 @@ impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut T) {
-        self.value.set(*state);
         self.state.update(position, context);
 
-        if self.state.hovered {
+        let mut target = if self.state.hovered {
             let sign = if context.cursor.scroll.approx_eq(&0.0) {
                 T::ZERO
             } else if context.cursor.scroll > 0.0 {
@@ -50,18 +49,20 @@ impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
                 -T::ONE
             };
 
-            let mut target = self.value.value() + sign * self.scroll_by;
-            if self.wrap {
-                // TODO: move to Bounded
-                let range = self.value.max() - self.value.min();
-                if target > self.value.max() {
-                    target -= range;
-                } else if target < self.value.min() {
-                    target += range;
-                }
+            *state + sign * self.scroll_by
+        } else {
+            *state
+        };
+        if self.wrap {
+            // TODO: move to Bounded
+            let range = self.value.max() - self.value.min();
+            if target > self.value.max() {
+                target -= range;
+            } else if target < self.value.min() {
+                target += range;
             }
-            self.value.set(target);
         }
+        self.value.set(target);
 
         self.text.align(vec2(0.0, 0.5));
         self.text.update(position, context);

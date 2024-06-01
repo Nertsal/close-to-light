@@ -351,7 +351,7 @@ impl StatefulWidget for EditorEditWidget {
                             bar.cut_top(spacing);
                             let mut value = frame.rotation.as_degrees().as_f32();
                             update!(self.waypoint_angle, angle, &mut value);
-                            frame.rotation = Angle::from_degrees(r32(value));
+                            frame.rotation = Angle::from_degrees(r32(value.round()));
                             context.update_focus(self.waypoint_angle.state.hovered);
                         }
                     }
