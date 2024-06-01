@@ -59,11 +59,11 @@ impl EditorEditWidget {
 
             light: TextWidget::new("Light"),
             light_danger: CheckboxWidget::new("Danger"),
-            light_fade_in: ValueWidget::new("Fade in", r32(1.0), r32(0.25)..=r32(10.0), r32(0.25)),
+            light_fade_in: ValueWidget::new("Fade in", r32(1.0), r32(0.25)..=r32(25.0), r32(0.25)),
             light_fade_out: ValueWidget::new(
                 "Fade out",
                 r32(1.0),
-                r32(0.25)..=r32(10.0),
+                r32(0.25)..=r32(25.0),
                 r32(0.25),
             ),
 

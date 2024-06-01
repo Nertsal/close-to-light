@@ -307,12 +307,12 @@ impl EditorState {
                                     // Fade out
                                     let change = change.max(-movement.fade_out + r32(0.25));
                                     movement.fade_out =
-                                        (movement.fade_out + change).clamp(r32(0.0), r32(10.0));
+                                        (movement.fade_out + change).clamp(r32(0.0), r32(25.0));
                                 } else {
                                     // Fade in
                                     let change = change.max(-movement.fade_in + r32(0.25));
                                     let target =
-                                        (movement.fade_in + change).clamp(r32(0.0), r32(10.0));
+                                        (movement.fade_in + change).clamp(r32(0.0), r32(25.0));
                                     event.beat -= target - movement.fade_in;
                                     movement.fade_in = target;
                                 }
