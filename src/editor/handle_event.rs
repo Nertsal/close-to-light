@@ -656,6 +656,9 @@ impl EditorState {
                                     }
                                 }
                             }
+                        } else {
+                            // Deselect
+                            waypoints.selected = None;
                         }
                     }
                 }
