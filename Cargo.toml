@@ -32,6 +32,7 @@ geng-utils = "0.3.0"
 parry2d = "0.13.5"
 async-executor = "1.8.0"
 webbrowser = "1.0.1"
+directories = "5.0.1"
 
 # Server
 axum = { version = "0.7.2", features = ["macros", "multipart"] }
@@ -76,6 +77,7 @@ async-executor.workspace = true
 generational-arena.workspace = true
 bincode.workspace = true
 webbrowser.workspace = true
+directories.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
