@@ -187,15 +187,17 @@ impl EditorState {
                             level_editor.state = State::Idle;
                         }
                         State::Waypoints { state, .. } => {
-                            if let Some(waypoints) = &mut level_editor.level_state.waypoints {
-                                if waypoints.selected.take().is_some() {
-                                    // Cancel selection
-                                    return;
-                                }
-                            }
                             // Cancel selection
                             match state {
-                                WaypointsState::Idle => level_editor.state = State::Idle,
+                                WaypointsState::Idle => {
+                                    if let Some(waypoints) = &mut level_editor.level_state.waypoints
+                                    {
+                                        if waypoints.selected.take().is_some() {
+                                            return;
+                                        }
+                                    }
+                                    level_editor.state = State::Idle
+                                }
                                 WaypointsState::New => *state = WaypointsState::Idle,
                             }
                         }
@@ -329,22 +331,47 @@ impl EditorState {
                 geng::MouseButton::Left => self.cursor_down(),
                 geng::MouseButton::Middle => {}
                 geng::MouseButton::Right => {
-                    if let State::Movement {
-                        start_beat, light, ..
-                    } = &level_editor.state
-                    {
-                        // extra time for the fade in and telegraph
-                        let beat = *start_beat
-                            - light.light.movement.fade_in
-                            - light.telegraph.precede_time;
-                        let event = commit_light(light.clone());
-                        let event = TimedEvent {
-                            beat,
-                            event: Event::Light(event),
-                        };
-                        level_editor.level.events.push(event);
-                        level_editor.state = State::Idle;
-                        level_editor.save_state(default());
+                    match &mut level_editor.state {
+                        State::Movement {
+                            start_beat, light, ..
+                        } => {
+                            // extra time for the fade in and telegraph
+                            let beat = *start_beat
+                                - light.light.movement.fade_in
+                                - light.telegraph.precede_time;
+                            let event = commit_light(light.clone());
+                            let event = TimedEvent {
+                                beat,
+                                event: Event::Light(event),
+                            };
+                            level_editor.level.events.push(event);
+                            level_editor.state = State::Idle;
+                            level_editor.save_state(default());
+                        }
+                        State::Idle => {
+                            // Cancel selection
+                            level_editor.selected_light = None;
+                        }
+                        State::Place { .. } => {
+                            // Cancel creation
+                            level_editor.state = State::Idle;
+                        }
+                        State::Waypoints { state, .. } => {
+                            // Cancel selection
+                            match state {
+                                WaypointsState::Idle => {
+                                    if let Some(waypoints) = &mut level_editor.level_state.waypoints
+                                    {
+                                        if waypoints.selected.take().is_some() {
+                                            return;
+                                        }
+                                    }
+                                    level_editor.state = State::Idle
+                                }
+                                WaypointsState::New => *state = WaypointsState::Idle,
+                            }
+                        }
+                        _ => (),
                     }
                 }
             },

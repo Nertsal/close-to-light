@@ -171,7 +171,7 @@ impl LevelEditor {
             static_level: level,
             model,
         };
-        editor.render_lights(vec2::ZERO, visualize_beat);
+        editor.render_lights(vec2::ZERO, vec2::ZERO, visualize_beat);
         editor
     }
 }
@@ -303,7 +303,11 @@ impl EditorState {
             }
         }
 
-        level_editor.render_lights(self.editor.cursor_world_pos, self.editor.visualize_beat);
+        level_editor.render_lights(
+            self.editor.cursor_world_pos,
+            self.editor.cursor_world_pos_snapped,
+            self.editor.visualize_beat,
+        );
 
         let pos = self.ui_context.cursor.position;
         let pos = pos - self.ui.screen.position.bottom_left();
@@ -717,7 +721,12 @@ impl LevelEditor {
         self.scrolling_time = true;
     }
 
-    pub fn render_lights(&mut self, cursor_world_pos: vec2<Coord>, visualize_beat: bool) {
+    pub fn render_lights(
+        &mut self,
+        cursor_world_pos: vec2<Coord>,
+        cursor_world_pos_snapped: vec2<Coord>,
+        visualize_beat: bool,
+    ) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
             (None, Some(self.current_beat))
@@ -831,7 +840,7 @@ impl LevelEditor {
                                     visible: true,
                                     original: None,
                                     collider: base_collider.transformed(Transform {
-                                        translation: cursor_world_pos,
+                                        translation: cursor_world_pos_snapped,
                                         rotation: self.place_rotation,
                                         scale: self.place_scale,
                                     }),
