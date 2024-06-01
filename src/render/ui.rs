@@ -489,6 +489,9 @@ impl UiRender {
                 theme.light,
                 &mut buffer.color,
             );
+            for icon in &row.modifiers {
+                self.draw_icon(icon, theme, framebuffer);
+            }
         }
 
         masked.draw(draw_parameters(), framebuffer);
@@ -503,6 +506,9 @@ impl UiRender {
             self.draw_text(&leaderboard.highscore.rank, framebuffer);
             self.draw_text(&leaderboard.highscore.player, framebuffer);
             self.draw_text(&leaderboard.highscore.score, framebuffer);
+            for icon in &leaderboard.highscore.modifiers {
+                self.draw_icon(icon, theme, framebuffer);
+            }
         }
     }
 

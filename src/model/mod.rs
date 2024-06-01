@@ -181,7 +181,7 @@ impl Model {
                 start_timer: Time::ZERO, // reset during init
                 music_start_time: Time::ZERO,
             },
-            score: Score::new(),
+            score: Score::new(level.config.modifiers.multiplier()),
 
             last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
             rhythms: Vec::new(),

@@ -132,18 +132,14 @@ impl LeaderboardWidget {
         match &board.local_high {
             None => self.highscore.hide(),
             Some(score) => {
-                self.highscore.show();
-                self.highscore.rank.text = board
-                    .my_position
-                    .map_or("???".into(), |rank| format!("{}.", rank + 1).into());
-                self.highscore.player.text = user.name.clone();
-                self.highscore.score.text = format!(
-                    "{} ({}/{})",
-                    score.score,
-                    (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
-                    (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
-                )
-                .into();
+                self.highscore = LeaderboardEntryWidget::new(
+                    &self.assets,
+                    board
+                        .my_position
+                        .map_or("???".into(), |rank| format!("{}.", rank + 1)),
+                    score.clone(),
+                    false,
+                );
             }
         }
     }
@@ -279,20 +275,25 @@ impl Widget for LeaderboardEntryWidget {
         self.state.update(position, context);
         let mut main = position;
 
+        let mods = main.cut_bottom(context.font_size * 1.0);
+        let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
+        let mods = mod_pos.stack_aligned(
+            vec2(mod_pos.width(), 0.0),
+            self.modifiers.len(),
+            vec2(0.5, 0.5),
+        );
+        for (modifier, pos) in self.modifiers.iter_mut().zip(mods) {
+            modifier.update(pos, context);
+        }
+
         let rank = main.cut_left(context.font_size * 1.0);
         self.rank.update(rank, context);
         main.cut_left(context.font_size * 0.2);
 
         main.cut_right(context.layout_size);
 
-        let mut score = main.cut_right(main.width() / 2.0);
-        let mods = score.cut_bottom(score.height() / 2.0);
+        let score = main.cut_right(main.width() / 2.0);
         self.score.update(score, context);
-        let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(1.0, 0.5));
-        let mods = mod_pos.stack(vec2(-mod_pos.width(), 0.0), self.modifiers.len());
-        for (modifier, pos) in self.modifiers.iter_mut().zip(mods) {
-            modifier.update(pos, context);
-        }
 
         let player = main;
         self.player.update(player, context);

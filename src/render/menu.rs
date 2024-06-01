@@ -254,6 +254,8 @@ impl MenuRender {
                         self.ui.draw_icon(icon, theme, framebuffer);
                     }
                     self.ui
+                        .draw_text_colored(&ui.score_multiplier, theme.light, framebuffer);
+                    self.ui
                         .draw_quad(ui.separator.position, theme.light, framebuffer);
                     for line in &ui.description {
                         self.ui.draw_text_colored(line, theme.light, framebuffer);

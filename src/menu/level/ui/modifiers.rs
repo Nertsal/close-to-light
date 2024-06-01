@@ -10,6 +10,7 @@ pub struct ModifiersWidget {
     pub description: Vec<TextWidget>,
     pub description_lerp: Lerp<f32>,
     pub mods: Vec<(ToggleWidget, IconWidget, Modifier)>,
+    pub score_multiplier: TextWidget,
     pub separator: WidgetState,
 }
 
@@ -31,6 +32,7 @@ impl ModifiersWidget {
                     )
                 })
                 .collect(),
+            score_multiplier: TextWidget::new(""),
             separator: WidgetState::new(),
         }
     }
@@ -57,7 +59,7 @@ impl ModifiersWidget {
 
         let t = crate::util::smoothstep(self.body_slide.get_ratio());
 
-        let mut body_height = 3.0 * context.font_size + 0.1 * context.layout_size;
+        let mut body_height = 4.0 * context.font_size + 0.1 * context.layout_size;
         if self.description_lerp.current() > 0.0 {
             body_height += self.description_lerp.current();
         }
@@ -84,6 +86,14 @@ impl ModifiersWidget {
 
             let buttons = main.cut_bottom(1.0 * context.font_size);
             let _icons = main.cut_bottom(0.7 * context.font_size);
+
+            let mut multipler = main.cut_bottom(1.0 * context.font_size);
+            multipler.cut_bottom(context.layout_size);
+            self.score_multiplier.text =
+                format!("Score x{:.2}", state.config.modifiers.multiplier()).into();
+            self.score_multiplier
+                .update(multipler, &mut context.scale_font(0.7));
+
             let separator = main.cut_bottom(1.0 * context.layout_size);
             let separator = separator.align_aabb(
                 vec2(separator.width(), 0.1 * context.layout_size),

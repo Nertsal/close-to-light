@@ -60,6 +60,13 @@ impl LevelModifiers {
         .into_iter()
         .flatten()
     }
+
+    pub fn multiplier(&self) -> R32 {
+        r32(self
+            .iter()
+            .map(|modifier| modifier.multiplier().as_f32())
+            .product())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, enum_iterator::Sequence)]
@@ -70,6 +77,14 @@ pub enum Modifier {
 }
 
 impl Modifier {
+    pub fn multiplier(&self) -> R32 {
+        match self {
+            Modifier::NoFail => r32(0.8),
+            Modifier::Sudden => r32(1.15),
+            Modifier::Hidden => r32(1.1),
+        }
+    }
+
     pub fn description(&self) -> &'static str {
         match self {
             Modifier::NoFail => "you can't fail",
