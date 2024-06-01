@@ -42,7 +42,7 @@ impl IconButtonWidget {
     ) -> Self {
         let mut icon = IconWidget::new(texture);
         icon.background = Some(IconBackground {
-            color: Rgba::BLACK,
+            color: ThemeColor::Dark,
             kind: bg_kind,
         });
         Self {
@@ -74,8 +74,8 @@ impl Widget for IconButtonWidget {
         self.state.update(position, context);
         self.icon.update(position, context);
 
-        let mut light = context.theme.get_color(self.light_color);
-        let mut dark = context.theme.dark;
+        let mut light = self.light_color;
+        let mut dark = ThemeColor::Dark;
         if self.state.hovered {
             std::mem::swap(&mut dark, &mut light);
         }

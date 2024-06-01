@@ -278,12 +278,16 @@ impl GameRender {
         }
 
         if ui.leaderboard.state.visible {
-            let width = self.font_size * 0.2;
-            self.ui
-                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+            self.ui.draw_leaderboard(
+                &ui.leaderboard,
+                theme,
+                self.font_size * 0.1,
+                &mut self.masked,
+                framebuffer,
+            );
             self.ui.draw_outline(
                 ui.leaderboard.state.position,
-                width,
+                self.font_size * 0.2,
                 theme.light,
                 framebuffer,
             );

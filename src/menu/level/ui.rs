@@ -53,7 +53,7 @@ impl MenuUI {
 
             level_select: LevelSelectUI::new(geng, assets),
             play_level: PlayLevelWidget::new(),
-            modifiers: ModifiersWidget::new(),
+            modifiers: ModifiersWidget::new(assets),
 
             explore,
 

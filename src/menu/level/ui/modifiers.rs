@@ -9,12 +9,12 @@ pub struct ModifiersWidget {
     pub body: WidgetState,
     pub description: Vec<TextWidget>,
     pub description_lerp: Lerp<f32>,
-    pub mods: Vec<(ToggleWidget, Modifier)>,
+    pub mods: Vec<(ToggleWidget, IconWidget, Modifier)>,
     pub separator: WidgetState,
 }
 
 impl ModifiersWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             t: 0.0,
             body_slide: Bounded::new_zero(0.25),
@@ -26,6 +26,7 @@ impl ModifiersWidget {
                 .map(|modifier| {
                     (
                         ToggleWidget::new_deselectable(format!("{}", modifier)),
+                        IconWidget::new(assets.get_modifier(modifier)),
                         modifier,
                     )
                 })
@@ -56,7 +57,7 @@ impl ModifiersWidget {
 
         let t = crate::util::smoothstep(self.body_slide.get_ratio());
 
-        let mut body_height = 2.0 * context.font_size + 0.1 * context.layout_size;
+        let mut body_height = 3.0 * context.font_size + 0.1 * context.layout_size;
         if self.description_lerp.current() > 0.0 {
             body_height += self.description_lerp.current();
         }
@@ -82,6 +83,7 @@ impl ModifiersWidget {
             let mut main = body.extend_uniform(-1.0 * context.layout_size);
 
             let buttons = main.cut_bottom(1.0 * context.font_size);
+            let _icons = main.cut_bottom(0.7 * context.font_size);
             let separator = main.cut_bottom(1.0 * context.layout_size);
             let separator = separator.align_aabb(
                 vec2(separator.width(), 0.1 * context.layout_size),
@@ -95,10 +97,10 @@ impl ModifiersWidget {
     }
 
     pub fn update_description(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
-        if let Some((_, modifier)) = self
+        if let Some((_, _, modifier)) = self
             .mods
             .iter()
-            .find(|(widget, _)| widget.text.state.hovered)
+            .find(|(widget, _, _)| widget.text.state.hovered)
         {
             let lines = crate::util::wrap_text(
                 &context.font,
@@ -135,6 +137,9 @@ impl ModifiersWidget {
     ) {
         let columns = self.mods.len();
         let spacing = 1.0 * context.layout_size;
+
+        let icon_size = vec2::splat(0.7) * context.font_size;
+
         let button_size = vec2(
             (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
             1.0 * context.font_size,
@@ -142,12 +147,17 @@ impl ModifiersWidget {
         let button = main.align_aabb(button_size, vec2(0.5, 0.5));
         let stack =
             button.stack_aligned(vec2(button_size.x + spacing, 0.0), columns, vec2(0.5, 0.5));
-        for ((button, modifier), pos) in self.mods.iter_mut().zip(stack) {
+        for ((button, icon, modifier), pos) in self.mods.iter_mut().zip(stack) {
             let value = state.config.modifiers.get_mut(*modifier);
             button.selected = *value;
             button.update(pos, context);
             button.text.options.size = pos.height() * 0.8;
             *value = button.selected;
+
+            let icon_pos = pos.align_aabb(icon_size, vec2(0.5, 1.0));
+            let icon_pos =
+                icon_pos.translate(vec2(0.0, icon_pos.height() + context.layout_size * 0.1));
+            icon.update(icon_pos, context);
         }
     }
 }

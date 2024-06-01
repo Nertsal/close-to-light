@@ -1,6 +1,8 @@
 use ctl_client::core::types::MusicInfo;
 use geng::prelude::*;
 
+use crate::prelude::Modifier;
+
 #[derive(geng::asset::Load)]
 pub struct MusicAssets {
     #[load(postprocess = "looping", ext = "mp3")]
@@ -85,6 +87,12 @@ pub struct Sprites {
     pub discard: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub loading: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub mod_nofail: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub mod_sudden: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub mod_hidden: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]
@@ -122,5 +130,13 @@ impl Assets {
         geng::asset::Load::load(manager, &run_dir().join("assets"), &())
             .await
             .context("failed to load assets")
+    }
+
+    pub fn get_modifier(&self, modifier: Modifier) -> &Rc<ugli::Texture> {
+        match modifier {
+            Modifier::NoFail => &self.sprites.mod_nofail,
+            Modifier::Sudden => &self.sprites.mod_sudden,
+            Modifier::Hidden => &self.sprites.mod_hidden,
+        }
     }
 }

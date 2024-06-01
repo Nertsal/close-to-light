@@ -63,7 +63,7 @@ impl EditorRender {
             self.ui.draw_quad(pos, theme.dark, framebuffer);
             self.ui.draw_outline(pos, width, theme.light, framebuffer);
         }
-        self.ui.draw_icon(&ui.help, framebuffer);
+        self.ui.draw_icon(&ui.help, theme, framebuffer);
         self.ui.draw_text(&ui.help_text, framebuffer);
 
         self.ui.draw_text(&ui.unsaved, framebuffer);
@@ -106,8 +106,8 @@ impl EditorRender {
             .map(|editor| editor.static_level.level_index);
         for (i, (up, down, level)) in ui.all_level_names.iter().enumerate() {
             let selected = active == Some(i);
-            self.ui.draw_icon(up, framebuffer);
-            self.ui.draw_icon(down, framebuffer);
+            self.ui.draw_icon(up, theme, framebuffer);
+            self.ui.draw_icon(down, theme, framebuffer);
             self.ui
                 .draw_toggle_button(level, selected, false, theme, framebuffer);
         }
@@ -167,8 +167,10 @@ impl EditorRender {
 
         // Waypoints
         self.ui.draw_button(&ui.waypoint, theme, framebuffer);
-        self.ui.draw_icon_button(&ui.prev_waypoint, framebuffer);
-        self.ui.draw_icon_button(&ui.next_waypoint, framebuffer);
+        self.ui
+            .draw_icon_button(&ui.prev_waypoint, theme, framebuffer);
+        self.ui
+            .draw_icon_button(&ui.next_waypoint, theme, framebuffer);
         self.ui.draw_text(&ui.current_waypoint, framebuffer);
         self.ui.draw_value(&ui.waypoint_scale, framebuffer);
         self.ui.draw_value(&ui.waypoint_angle, framebuffer);

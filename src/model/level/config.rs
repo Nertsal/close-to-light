@@ -49,6 +49,19 @@ pub struct LevelModifiers {
     pub hidden: bool,
 }
 
+impl LevelModifiers {
+    /// Iterate over active modifiers.
+    pub fn iter(&self) -> impl Iterator<Item = Modifier> {
+        [
+            self.nofail.then_some(Modifier::NoFail),
+            self.sudden.then_some(Modifier::Sudden),
+            self.hidden.then_some(Modifier::Hidden),
+        ]
+        .into_iter()
+        .flatten()
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, enum_iterator::Sequence)]
 pub enum Modifier {
     NoFail,

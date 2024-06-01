@@ -155,23 +155,19 @@ impl UiRender {
         );
     }
 
-    pub fn draw_icon_button(&self, icon: &IconButtonWidget, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_icon_button(
+        &self,
+        icon: &IconButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         if !icon.state.visible {
             return;
         }
-        self.draw_icon_colored(&icon.icon, Color::WHITE, framebuffer);
+        self.draw_icon(&icon.icon, theme, framebuffer);
     }
 
-    pub fn draw_icon(&self, icon: &IconWidget, framebuffer: &mut ugli::Framebuffer) {
-        self.draw_icon_colored(icon, Color::WHITE, framebuffer);
-    }
-
-    pub fn draw_icon_colored(
-        &self,
-        icon: &IconWidget,
-        color: Rgba<f32>,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
+    pub fn draw_icon(&self, icon: &IconWidget, theme: Theme, framebuffer: &mut ugli::Framebuffer) {
         if !icon.state.visible {
             return;
         }
@@ -186,7 +182,7 @@ impl UiRender {
                     // };
                     self.util.draw_nine_slice(
                         icon.state.position,
-                        bg.color * color,
+                        theme.get_color(bg.color),
                         texture,
                         pixel_scale(framebuffer),
                         &geng::PixelPerfectCamera,
@@ -197,7 +193,7 @@ impl UiRender {
                     self.draw_texture(
                         icon.state.position,
                         &self.assets.sprites.circle,
-                        bg.color * color,
+                        theme.get_color(bg.color),
                         framebuffer,
                     );
                 }
@@ -206,7 +202,7 @@ impl UiRender {
         self.draw_texture(
             icon.state.position,
             &icon.texture,
-            icon.color * color,
+            theme.get_color(icon.color),
             framebuffer,
         );
     }
@@ -410,7 +406,7 @@ impl UiRender {
             framebuffer,
             |framebuffer| {
                 self.draw_text_wrapped(&notification.text, framebuffer);
-                self.draw_icon(&notification.confirm.icon, framebuffer);
+                self.draw_icon(&notification.confirm.icon, theme, framebuffer);
             },
         );
     }
@@ -444,8 +440,8 @@ impl UiRender {
 
                 self.draw_text(&confirm.title, framebuffer);
                 self.draw_text(&confirm.message, framebuffer);
-                self.draw_icon(&confirm.confirm.icon, framebuffer);
-                self.draw_icon(&confirm.discard.icon, framebuffer);
+                self.draw_icon(&confirm.confirm.icon, theme, framebuffer);
+                self.draw_icon(&confirm.discard.icon, theme, framebuffer);
             },
         );
     }
@@ -454,6 +450,7 @@ impl UiRender {
         &self,
         leaderboard: &LeaderboardWidget,
         theme: Theme,
+        outline_width: f32,
         masked: &mut MaskedRender,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -466,7 +463,7 @@ impl UiRender {
         );
         // self.draw_icon(&leaderboard.close.icon, framebuffer);
         if leaderboard.reload.state.visible {
-            self.draw_icon(&leaderboard.reload.icon, framebuffer);
+            self.draw_icon(&leaderboard.reload.icon, theme, framebuffer);
         }
         self.draw_text(&leaderboard.title, framebuffer);
         self.draw_text(&leaderboard.subtitle, framebuffer);
@@ -486,6 +483,12 @@ impl UiRender {
             self.draw_text(&row.rank, &mut buffer.color);
             self.draw_text(&row.player, &mut buffer.color);
             self.draw_text(&row.score, &mut buffer.color);
+            self.draw_outline(
+                row.state.position,
+                outline_width,
+                theme.light,
+                &mut buffer.color,
+            );
         }
 
         masked.draw(draw_parameters(), framebuffer);

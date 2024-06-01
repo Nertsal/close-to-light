@@ -35,7 +35,7 @@ impl MenuRender {
 
         let theme = state.options.theme;
 
-        self.ui.draw_icon(&ui.ctl_logo, framebuffer);
+        self.ui.draw_icon(&ui.ctl_logo, theme, framebuffer);
 
         self.ui
             .draw_quad(ui.separator.position, theme.light, framebuffer);
@@ -44,7 +44,7 @@ impl MenuRender {
         self.draw_play_level(ui, state, framebuffer);
 
         // Options button
-        self.ui.draw_icon(&ui.options.button, framebuffer);
+        self.ui.draw_icon(&ui.options.button, theme, framebuffer);
         self.ui.draw_outline(
             ui.options.button.state.position,
             self.font_size * 0.1,
@@ -97,6 +97,7 @@ impl MenuRender {
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         let Some(sync) = &ui.sync else { return };
+        let theme = state.options.theme;
         let t = crate::util::smoothstep(sync.window.show.time.get_ratio());
 
         let window = sync.state.position;
@@ -109,30 +110,21 @@ impl MenuRender {
             window,
             None,
             self.font_size * 0.2,
-            state.options.theme,
+            theme,
             framebuffer,
             |framebuffer| {
                 let hold = sync.hold.position;
                 let hold = hold.extend_up(self.font_size * 0.2 - hold.height());
-                self.ui
-                    .draw_quad(hold, state.options.theme.light, framebuffer);
+                self.ui.draw_quad(hold, theme.light, framebuffer);
 
-                self.ui.draw_icon(&sync.close.icon, framebuffer);
+                self.ui.draw_icon(&sync.close.icon, theme, framebuffer);
                 self.ui.draw_text(&sync.title, framebuffer);
                 self.ui.draw_text(&sync.status, framebuffer);
 
-                self.ui.draw_toggle(
-                    &sync.upload,
-                    self.font_size * 0.2,
-                    state.options.theme,
-                    framebuffer,
-                );
-                self.ui.draw_toggle(
-                    &sync.discard,
-                    self.font_size * 0.2,
-                    state.options.theme,
-                    framebuffer,
-                );
+                self.ui
+                    .draw_toggle(&sync.upload, self.font_size * 0.2, theme, framebuffer);
+                self.ui
+                    .draw_toggle(&sync.discard, self.font_size * 0.2, theme, framebuffer);
 
                 self.ui.draw_text(&sync.response, framebuffer);
             },
@@ -160,8 +152,8 @@ impl MenuRender {
             self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
         } else if ui.tab_groups.selected {
             for group in &ui.grid_groups {
-                self.ui.draw_icon(&group.edited, framebuffer);
-                self.ui.draw_icon(&group.local, framebuffer);
+                self.ui.draw_icon(&group.edited, theme, framebuffer);
+                self.ui.draw_icon(&group.local, theme, framebuffer);
                 self.ui.draw_outline(
                     group.state.position,
                     self.font_size * 0.2,
@@ -184,8 +176,8 @@ impl MenuRender {
         } else if ui.tab_levels.selected {
             self.ui.draw_text(&ui.no_levels, framebuffer);
             for level in &ui.grid_levels {
-                self.ui.draw_icon(&level.edited, framebuffer);
-                self.ui.draw_icon(&level.local, framebuffer);
+                self.ui.draw_icon(&level.edited, theme, framebuffer);
+                self.ui.draw_icon(&level.local, theme, framebuffer);
                 self.ui.draw_outline(
                     level.state.position,
                     self.font_size * 0.2,
@@ -257,8 +249,9 @@ impl MenuRender {
                 theme,
                 framebuffer,
                 |framebuffer| {
-                    for (modifier, _) in &ui.mods {
+                    for (modifier, icon, _) in &ui.mods {
                         self.ui.draw_toggle_widget(modifier, theme, framebuffer);
+                        self.ui.draw_icon(icon, theme, framebuffer);
                     }
                     self.ui
                         .draw_quad(ui.separator.position, theme.light, framebuffer);
@@ -305,7 +298,8 @@ impl MenuRender {
                         // self.ui.draw_button(&register.login, framebuffer);
                         // self.ui.draw_button(&register.register, framebuffer);
                         self.ui.draw_text(&register.login_with, framebuffer);
-                        self.ui.draw_icon(&register.discord.icon, framebuffer);
+                        self.ui
+                            .draw_icon(&register.discord.icon, theme, framebuffer);
                     }
 
                     let logged = &ui.logged;
@@ -406,7 +400,7 @@ impl MenuRender {
                     self.ui
                         .draw_toggle_button(tab, active, false, theme, framebuffer);
                 }
-                self.ui.draw_icon(&ui.close.icon, framebuffer);
+                self.ui.draw_icon(&ui.close.icon, theme, framebuffer);
                 self.ui
                     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
@@ -416,10 +410,11 @@ impl MenuRender {
                     mask.mask_quad(ui.music.items_state.position);
                     self.ui.draw_text(&ui.music.status, &mut mask.color);
                     for item in &ui.music.items {
-                        self.ui.draw_icon_button(&item.download, &mut mask.color);
-                        self.ui.draw_icon(&item.downloading, &mut mask.color);
-                        self.ui.draw_icon_button(&item.play, &mut mask.color);
-                        self.ui.draw_icon_button(&item.goto, &mut mask.color);
+                        self.ui
+                            .draw_icon_button(&item.download, theme, &mut mask.color);
+                        self.ui.draw_icon(&item.downloading, theme, &mut mask.color);
+                        self.ui.draw_icon_button(&item.play, theme, &mut mask.color);
+                        self.ui.draw_icon_button(&item.goto, theme, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(
@@ -433,8 +428,9 @@ impl MenuRender {
                     mask.mask_quad(ui.levels.items_state.position);
                     self.ui.draw_text(&ui.levels.status, &mut mask.color);
                     for item in &ui.levels.items {
-                        self.ui.draw_icon(&item.download.icon, &mut mask.color);
-                        self.ui.draw_icon(&item.goto.icon, &mut mask.color);
+                        self.ui
+                            .draw_icon(&item.download.icon, theme, &mut mask.color);
+                        self.ui.draw_icon(&item.goto.icon, theme, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(
@@ -472,8 +468,13 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                self.ui
-                    .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked2, framebuffer);
+                self.ui.draw_leaderboard(
+                    &ui.leaderboard,
+                    theme,
+                    self.font_size * 0.1,
+                    &mut self.masked2,
+                    framebuffer,
+                );
             },
         );
         self.ui.draw_text(&ui.leaderboard_head, framebuffer);
@@ -567,9 +568,9 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                self.ui.draw_icon(&menu.sync.icon, framebuffer);
-                self.ui.draw_icon(&menu.edit.icon, framebuffer);
-                self.ui.draw_icon(&menu.delete.icon, framebuffer);
+                self.ui.draw_icon(&menu.sync.icon, theme, framebuffer);
+                self.ui.draw_icon(&menu.edit.icon, theme, framebuffer);
+                self.ui.draw_icon(&menu.delete.icon, theme, framebuffer);
             },
         );
     }
