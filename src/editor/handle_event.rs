@@ -569,15 +569,21 @@ impl EditorState {
             State::Idle => {
                 // Select a light
                 if let Some(event) = level_editor.level_state.hovered_event() {
-                    level_editor.selected_light = Some(LightId { event });
-                    if let Some(e) = level_editor.level.events.get(event) {
-                        if let Event::Light(light) = &e.event {
-                            let target = DragTarget::Light {
-                                event,
-                                initial_time: e.beat,
-                                initial_translation: light.light.movement.initial.translation,
-                            };
-                            self.start_drag(target);
+                    let light_id = LightId { event };
+                    if level_editor.selected_light == Some(light_id) {
+                        // Double click -> goto waypoints
+                        level_editor.view_waypoints();
+                    } else {
+                        level_editor.selected_light = Some(light_id);
+                        if let Some(e) = level_editor.level.events.get(event) {
+                            if let Event::Light(light) = &e.event {
+                                let target = DragTarget::Light {
+                                    event,
+                                    initial_time: e.beat,
+                                    initial_translation: light.light.movement.initial.translation,
+                                };
+                                self.start_drag(target);
+                            }
                         }
                     }
                 } else {
