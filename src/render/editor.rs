@@ -70,9 +70,7 @@ impl EditorRender {
             self.geng.ugli(),
         );
 
-        if ui.edit.state.visible {
-            self.draw_game(editor);
-        }
+        self.draw_game(editor, ui.edit.state.visible);
         if !editor.render_options.hide_ui {
             self.draw_ui(editor, ui);
         }

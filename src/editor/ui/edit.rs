@@ -90,10 +90,10 @@ impl StatefulWidget for EditorEditWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         let editor = state;
         let Some(level_editor) = &mut editor.level_edit else {
-            let size = vec2(10.0, 1.0) * context.font_size;
+            let size = vec2(15.0, 1.0) * context.font_size;
             let warn = position
                 .align_aabb(size, vec2(0.5, 1.0))
-                .translate(vec2(0.0, size.y * 2.0));
+                .translate(vec2(0.0, -3.0 * size.y));
             self.warn_select_level.show();
             self.warn_select_level.update(warn, context);
 

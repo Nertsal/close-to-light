@@ -1,23 +1,28 @@
 use super::*;
 
 impl EditorRender {
-    pub(super) fn draw_game(&mut self, editor: &Editor) {
-        let Some(level_editor) = &editor.level_edit else {
-            return;
-        };
-
+    pub(super) fn draw_game(&mut self, editor: &Editor, visible: bool) {
         let options = &editor.render_options;
+        let mut theme = editor.options.theme;
 
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
 
-        let mut theme = level_editor.model.options.theme;
-        if level_editor.level_state.relevant().swap_palette {
-            std::mem::swap(&mut theme.light, &mut theme.dark);
+        if let Some(level_editor) = &editor.level_edit {
+            if level_editor.level_state.relevant().swap_palette {
+                std::mem::swap(&mut theme.light, &mut theme.dark);
+            }
         }
 
         ugli::clear(game_buffer, Some(theme.dark), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
+
+        let Some(level_editor) = &editor.level_edit else {
+            return;
+        };
+        if !visible {
+            return;
+        }
 
         macro_rules! draw_game {
             ($alpha:expr) => {{
