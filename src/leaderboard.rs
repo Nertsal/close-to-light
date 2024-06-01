@@ -439,8 +439,9 @@ impl LoadedBoard {
         scores.retain(|entry| {
             !entry.user.name.is_empty()
                 && entry.extra_info.as_ref().map_or(false, |info| {
-                    serde_json::from_str::<ScoreMeta>(info)
-                        .map_or(false, |entry_meta| entry_meta.category == self.category)
+                    serde_json::from_str::<ScoreMeta>(info).map_or(false, |entry_meta| {
+                        entry_meta.category.version == self.category.version
+                    })
                 })
         });
 
