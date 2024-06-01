@@ -249,7 +249,7 @@ impl EditorState {
                     if shift && self.ui.edit.timeline.state.hovered {
                         // Scroll on the timeline
                         let timeline = &mut self.ui.edit.timeline;
-                        let delta = scroll * r32(30.0 / timeline.get_scale());
+                        let delta = -scroll * r32(30.0 / timeline.get_scale());
                         let current = -timeline.get_scroll();
                         let delta = if delta > Time::ZERO {
                             delta.min(current)

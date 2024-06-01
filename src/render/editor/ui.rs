@@ -209,7 +209,7 @@ impl EditorRender {
                     let from = ui.timeline.time_to_screen(from_time);
                     let timespan =
                         Aabb2::point(from).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
-                    quad(timespan, crate::util::with_alpha(theme.highlight, 0.5));
+                    quad(timespan, crate::util::with_alpha(theme.highlight, 0.7));
                 }
             }
 
