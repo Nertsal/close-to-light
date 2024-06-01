@@ -11,6 +11,7 @@ pub struct EditorEditWidget {
     pub new_line: ButtonWidget,
 
     pub view: TextWidget,
+    pub show_only_selected: CheckboxWidget,
     pub visualize_beat: CheckboxWidget,
     pub show_grid: CheckboxWidget,
     pub view_zoom: ValueWidget<f32>,
@@ -49,6 +50,7 @@ impl EditorEditWidget {
             new_line: ButtonWidget::new("Line"),
 
             view: TextWidget::new("View"),
+            show_only_selected: CheckboxWidget::new("Only selected"),
             visualize_beat: CheckboxWidget::new("Dynamic"),
             show_grid: CheckboxWidget::new("Grid"),
             view_zoom: ValueWidget::new("Zoom: ", 1.0, 0.5..=2.0, 0.25),
@@ -162,6 +164,14 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.view, view);
             self.view.options.size = title_size;
+
+            let selected = bar.cut_top(font_size);
+            bar.cut_top(spacing);
+            update!(self.show_only_selected, selected);
+            if self.show_only_selected.state.clicked {
+                editor.show_only_selected = !editor.show_only_selected;
+            }
+            self.show_only_selected.checked = editor.show_only_selected;
 
             let dynamic = bar.cut_top(font_size);
             bar.cut_top(spacing);

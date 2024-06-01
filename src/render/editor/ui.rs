@@ -150,6 +150,8 @@ impl EditorRender {
         // View
         self.ui.draw_text(&ui.view, framebuffer);
         self.ui
+            .draw_checkbox(&ui.show_only_selected, theme, framebuffer);
+        self.ui
             .draw_checkbox(&ui.visualize_beat, theme, framebuffer);
         self.ui.draw_checkbox(&ui.show_grid, theme, framebuffer);
         self.ui.draw_value(&ui.view_zoom, framebuffer);

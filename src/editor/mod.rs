@@ -136,6 +136,8 @@ pub struct Editor {
     pub snap_to_grid: bool,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
+    /// Whether to only render the selected light.
+    pub show_only_selected: bool,
 
     pub group: PlayGroup,
     pub level_edit: Option<LevelEditor>,
@@ -150,7 +152,12 @@ pub struct Replay {
 }
 
 impl LevelEditor {
-    pub fn new(model: Model, level: PlayLevel, visualize_beat: bool) -> Self {
+    pub fn new(
+        model: Model,
+        level: PlayLevel,
+        visualize_beat: bool,
+        show_only_selected: bool,
+    ) -> Self {
         let mut editor = Self {
             level_state: EditorLevelState::default(),
             current_beat: Time::ZERO,
@@ -171,7 +178,7 @@ impl LevelEditor {
             static_level: level,
             model,
         };
-        editor.render_lights(vec2::ZERO, vec2::ZERO, visualize_beat);
+        editor.render_lights(vec2::ZERO, vec2::ZERO, visualize_beat, show_only_selected);
         editor
     }
 }
@@ -209,6 +216,7 @@ impl EditorState {
                 grid_size: r32(10.0) / config.grid.height,
                 view_zoom: 1.0,
                 visualize_beat: true,
+                show_only_selected: false,
                 snap_to_grid: true,
                 music_timer: Time::ZERO,
 
@@ -234,7 +242,7 @@ impl EditorState {
             level.group.clone(),
         );
         let model = Model::empty(context, options, level.clone());
-        editor.editor.level_edit = Some(LevelEditor::new(model, level, true));
+        editor.editor.level_edit = Some(LevelEditor::new(model, level, true, false));
         editor
     }
 
@@ -307,6 +315,7 @@ impl EditorState {
             self.editor.cursor_world_pos,
             self.editor.cursor_world_pos_snapped,
             self.editor.visualize_beat,
+            self.editor.show_only_selected,
         );
 
         let pos = self.ui_context.cursor.position;
@@ -510,7 +519,12 @@ impl Editor {
                 start_time: Time::ZERO,
             };
             let model = Model::empty(self.context.clone(), self.options.clone(), level.clone());
-            self.level_edit = Some(LevelEditor::new(model, level, self.visualize_beat));
+            self.level_edit = Some(LevelEditor::new(
+                model,
+                level,
+                self.visualize_beat,
+                self.show_only_selected,
+            ));
         }
     }
 
@@ -726,6 +740,7 @@ impl LevelEditor {
         cursor_world_pos: vec2<Coord>,
         cursor_world_pos_snapped: vec2<Coord>,
         visualize_beat: bool,
+        show_only_selected: bool,
     ) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
@@ -747,27 +762,21 @@ impl LevelEditor {
             (Some(time), dynamic)
         };
 
-        let static_level = static_time
-            .map(|time| LevelState::render(&self.level, &self.model.level.config, time, None));
-        let dynamic_level = dynamic_time
-            .map(|time| LevelState::render(&self.level, &self.model.level.config, time, None));
+        let selected_level = show_only_selected
+            .then(|| {
+                self.selected_light
+                    .and_then(|id| self.level.events.get(id.event))
+                    .map(|selected| Level {
+                        events: vec![selected.clone()],
+                    })
+            })
+            .flatten();
+        let level = selected_level.as_ref().unwrap_or(&self.level);
 
-        // if let State::Movement {
-        //     start_beat, light, ..
-        // } = &self.state
-        // {
-        //     let event = commit_light(light.clone());
-        //     let event = TimedEvent {
-        //         beat: *start_beat,
-        //         event: Event::Light(event),
-        //     };
-        //     for level in [&mut static_level, &mut dynamic_level]
-        //         .into_iter()
-        //         .flatten()
-        //     {
-        //         level.render_event(&event, None);
-        //     }
-        // }
+        let static_level =
+            static_time.map(|time| LevelState::render(level, &self.model.level.config, time, None));
+        let dynamic_level = dynamic_time
+            .map(|time| LevelState::render(level, &self.model.level.config, time, None));
 
         let mut hovered_light = None;
         if let State::Idle = self.state {
@@ -810,7 +819,7 @@ impl LevelEditor {
                                 .abs(),
                         )
                     });
-                    // event.beat + light.telegraph.precede_time + beat
+
                     {
                         let mut points = points.iter_mut();
                         if let Some(last) = points.next() {
