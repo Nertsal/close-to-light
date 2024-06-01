@@ -56,9 +56,10 @@ impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
         if self.wrap {
             // TODO: move to Bounded
             let range = self.value.max() - self.value.min();
-            if target > self.value.max() {
+            while target > self.value.max() {
                 target -= range;
-            } else if target < self.value.min() {
+            }
+            while target < self.value.min() {
                 target += range;
             }
         }
