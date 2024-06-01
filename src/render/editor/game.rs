@@ -312,6 +312,17 @@ impl EditorRender {
         }
         draw_game!(1.0);
 
+        let gameplay_fov = 10.0;
+        let gameplay_area =
+            Aabb2::ZERO.extend_symmetric(vec2(16.0 / 9.0, 1.0) * gameplay_fov / 2.0);
+        self.util.draw_outline(
+            &Collider::aabb(gameplay_area.map(r32)),
+            0.1,
+            theme.highlight,
+            &level_editor.model.camera,
+            game_buffer,
+        );
+
         if !options.hide_ui {
             // World UI
             let mut ui_buffer =
@@ -376,61 +387,6 @@ impl EditorRender {
             geng_utils::texture::DrawTexture::new(&self.ui_texture)
                 .fit(screen_aabb, vec2(0.5, 0.5))
                 .draw(&geng::PixelPerfectCamera, &self.geng, game_buffer);
-        }
-
-        if !options.hide_ui {
-            // UI
-            let framebuffer_size = game_buffer.size().as_f32();
-            let camera = &geng::PixelPerfectCamera;
-            let screen = Aabb2::ZERO.extend_positive(framebuffer_size);
-            let font_size = framebuffer_size.y * 0.05;
-            let font = self.geng.default_font();
-            let text_color = theme.light;
-            // let outline_color = crate::render::THEME.dark;
-            // let outline_size = 0.05;
-
-            // Current beat / Fade in/out
-            // let mut text = String::new();
-            // if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
-            //     if let Some(event) = hovered_event.and_then(|i| editor.level.events.get(i)) {
-            //         if let Event::Light(light) = &event.event {
-            //             if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
-            //                 if let Some(frame) = light.light.movement.key_frames.back() {
-            //                     text = format!("Fade out time: {}", frame.lerp_time);
-            //                 }
-            //             } else if let Some(frame) = light.light.movement.key_frames.get(1) {
-            //                 text = format!("Fade in time: {}", frame.lerp_time);
-            //             }
-            //         }
-            //     }
-            // }
-            // font.draw(
-            //     game_buffer,
-            //     camera,
-            //     &text,
-            //     vec2::splat(geng::TextAlign(0.5)),
-            //     mat3::translate(
-            //         geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) + vec2(0.0, -font_size),
-            //     ) * mat3::scale_uniform(font_size)
-            //         * mat3::translate(vec2(0.0, -0.5)),
-            //     text_color,
-            // );
-
-            if level_editor.model.level.level.data != level_editor.level {
-                // Save indicator
-                let text = "Ctrl+S to save the level";
-                font.draw(
-                    game_buffer,
-                    camera,
-                    text,
-                    vec2::splat(geng::TextAlign::RIGHT),
-                    mat3::translate(
-                        geng_utils::layout::aabb_pos(screen, vec2(1.0, 1.0))
-                            + vec2(-1.0, -1.0) * font_size,
-                    ) * mat3::scale_uniform(font_size * 0.5),
-                    text_color,
-                );
-            }
         }
     }
 }
