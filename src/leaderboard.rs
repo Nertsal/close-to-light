@@ -405,10 +405,12 @@ impl LoadedBoard {
         let mut save = false;
         self.local_high = if let Some(highscore) = highscores
             .iter_mut()
-            .find(|s| s.level == self.level && s.meta.category == self.category)
+            .find(|s| s.level == self.level && s.meta.category.version == self.category.version)
         {
             if let Some(score) = score {
-                if score.score > highscore.score && score.meta.category == highscore.meta.category {
+                if score.score > highscore.score
+                    && score.meta.category.version == highscore.meta.category.version
+                {
                     *highscore = score.clone();
                     save = true;
                 }
