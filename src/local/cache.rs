@@ -146,76 +146,73 @@ impl LevelCache {
 
     /// Load from the local storage.
     pub async fn load(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Result<Self> {
-        let mut timer = Timer::new();
+        let local = Self::new(client, geng);
 
         // TODO: report failures but continue working
 
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(not(target_arch = "wasm32"))]
         {
-            return Ok(Self::new(client, geng));
-        }
+            let mut timer = Timer::new();
+            log::info!("Loading local storage");
+            let base_path = fs::base_path();
+            std::fs::create_dir_all(&base_path)?;
 
-        log::info!("Loading local storage");
-        let base_path = fs::base_path();
-        std::fs::create_dir_all(&base_path)?;
-
-        let local = Self::new(client, geng);
-
-        let music_path = fs::all_music_path();
-        if music_path.exists() {
-            let paths: Vec<_> = std::fs::read_dir(music_path)?
-                .flat_map(|entry| {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if !path.is_dir() {
-                        log::error!("Unexpected file in music dir: {:?}", path);
-                        return Ok(None);
-                    }
-                    anyhow::Ok(Some(path))
-                })
-                .flatten()
-                .collect();
-            let music_loaders = paths.iter().map(|path| local.load_music(path));
-            let music = future::join_all(music_loaders).await;
-
-            let mut inner = local.inner.borrow_mut();
-            inner.music.extend(
-                music
-                    .into_iter()
+            let music_path = fs::all_music_path();
+            if music_path.exists() {
+                let paths: Vec<_> = std::fs::read_dir(music_path)?
+                    .flat_map(|entry| {
+                        let entry = entry?;
+                        let path = entry.path();
+                        if !path.is_dir() {
+                            log::error!("Unexpected file in music dir: {:?}", path);
+                            return Ok(None);
+                        }
+                        anyhow::Ok(Some(path))
+                    })
                     .flatten()
-                    .map(|music| (music.meta.id, music)),
-            );
-            log::debug!("loaded music: {:?}", inner.music);
-        }
+                    .collect();
+                let music_loaders = paths.iter().map(|path| local.load_music(path));
+                let music = future::join_all(music_loaders).await;
 
-        let groups_path = fs::all_groups_path();
-        if groups_path.exists() {
-            let paths: Vec<_> = std::fs::read_dir(groups_path)?
-                .flat_map(|entry| {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if path.is_dir() {
-                        log::error!("Unexpected directory inside levels: {:?}", path);
-                        return Ok(None);
-                    }
-                    anyhow::Ok(Some(path))
-                })
-                .flatten()
-                .collect();
-            let group_loaders = paths.iter().map(|path| local.load_group(path));
-            let groups = future::join_all(group_loaders).await;
-
-            let mut inner = local.inner.borrow_mut();
-            for (music, group) in groups.into_iter().flatten() {
-                if let Some(music) = music {
-                    inner.music.insert(music.meta.id, music);
-                }
-                inner.groups.insert(Rc::new(group));
+                let mut inner = local.inner.borrow_mut();
+                inner.music.extend(
+                    music
+                        .into_iter()
+                        .flatten()
+                        .map(|music| (music.meta.id, music)),
+                );
+                log::debug!("loaded music: {:?}", inner.music);
             }
-            log::debug!("loaded groups: {}", inner.groups.len());
-        }
 
-        log::debug!("Loaded cache in {:.2}s", timer.tick().as_secs_f64());
+            let groups_path = fs::all_groups_path();
+            if groups_path.exists() {
+                let paths: Vec<_> = std::fs::read_dir(groups_path)?
+                    .flat_map(|entry| {
+                        let entry = entry?;
+                        let path = entry.path();
+                        if path.is_dir() {
+                            log::error!("Unexpected directory inside levels: {:?}", path);
+                            return Ok(None);
+                        }
+                        anyhow::Ok(Some(path))
+                    })
+                    .flatten()
+                    .collect();
+                let group_loaders = paths.iter().map(|path| local.load_group(path));
+                let groups = future::join_all(group_loaders).await;
+
+                let mut inner = local.inner.borrow_mut();
+                for (music, group) in groups.into_iter().flatten() {
+                    if let Some(music) = music {
+                        inner.music.insert(music.meta.id, music);
+                    }
+                    inner.groups.insert(Rc::new(group));
+                }
+                log::debug!("loaded groups: {}", inner.groups.len());
+            }
+
+            log::debug!("Loaded cache in {:.2}s", timer.tick().as_secs_f64());
+        }
 
         Ok(local)
     }
@@ -633,8 +630,7 @@ impl LevelCache {
     pub fn delete_group(&self, group: Index) {
         let mut inner = self.inner.borrow_mut();
         if let Some(group) = inner.groups.remove(group) {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
+            if cfg!(not(target_arch = "wasm32")) {
                 log::debug!("Deleting the group: {:?}", group.path);
                 if let Err(err) = std::fs::remove_file(&group.path) {
                     log::error!("Failed to delete group: {:?}", err);
