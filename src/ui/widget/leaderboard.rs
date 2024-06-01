@@ -136,7 +136,7 @@ impl LeaderboardWidget {
                     &self.assets,
                     board
                         .my_position
-                        .map_or("???".into(), |rank| format!("{}.", rank + 1)),
+                        .map_or("???".into(), |rank| format!("{}", rank + 1)),
                     score.clone(),
                     false,
                 );
