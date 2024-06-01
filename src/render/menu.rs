@@ -182,6 +182,7 @@ impl MenuRender {
             );
             self.draw_add_menu(&ui.add_group.menu, theme, framebuffer);
         } else if ui.tab_levels.selected {
+            self.ui.draw_text(&ui.no_levels, framebuffer);
             for level in &ui.grid_levels {
                 self.ui.draw_icon(&level.edited, framebuffer);
                 self.ui.draw_icon(&level.local, framebuffer);
@@ -195,8 +196,6 @@ impl MenuRender {
                 self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
                 self.draw_item_menu(&level.menu, theme, framebuffer);
             }
-
-            self.draw_item_widget(&ui.add_level, false, 0.5, theme, framebuffer);
         }
 
         self.ui

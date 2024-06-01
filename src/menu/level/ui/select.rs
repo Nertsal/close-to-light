@@ -14,7 +14,7 @@ pub struct LevelSelectUI {
     pub grid_music: Vec<ItemMusicWidget>,
     pub add_group: AddItemWidget,
     pub grid_groups: Vec<ItemGroupWidget>,
-    pub add_level: TextWidget,
+    pub no_levels: TextWidget,
     pub grid_levels: Vec<ItemLevelWidget>,
 }
 
@@ -48,7 +48,7 @@ impl LevelSelectUI {
             grid_music: Vec::new(),
             add_group: AddItemWidget::new(assets),
             grid_groups: Vec::new(),
-            add_level: TextWidget::new("+"),
+            no_levels: TextWidget::new("Create a Difficulty in the editor"),
             grid_levels: Vec::new(),
         };
         ui.tab_music.selected = true;
@@ -370,6 +370,15 @@ impl LevelSelectUI {
 
         drop(local);
 
+        if self.grid_levels.is_empty() {
+            self.no_levels.show();
+            let size = vec2(10.0, 1.2) * context.font_size;
+            let pos = main.align_aabb(size, vec2(0.5, 0.5));
+            self.no_levels.update(pos, context);
+        } else {
+            self.no_levels.hide();
+        }
+
         // Layout
         let columns = 3;
         let rows = self.grid_levels.len() / columns + 1;
@@ -387,17 +396,10 @@ impl LevelSelectUI {
                     .extend_down(item_size.y);
             let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
 
-            let mut row_items = 3;
-            let mut skip = 0;
-            if row == 0 {
-                skip = 1;
-                let pos = layout[0];
-                self.add_level
-                    .update(pos.extend_symmetric(-pos.size() * 0.1), context);
-            }
-            row_items -= skip;
+            let row_items = 3;
+            let skip = 0;
 
-            let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
+            let i = columns * row;
             let range = (i + row_items).min(self.grid_levels.len());
 
             let mut tab = None;
