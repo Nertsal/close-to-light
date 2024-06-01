@@ -497,7 +497,8 @@ impl EditorState {
             moved: false,
             from_screen: self.ui_context.cursor.position,
             from_world: self.editor.cursor_world_pos_snapped,
-            from_time: level_editor.current_beat,
+            from_real_time: level_editor.real_time,
+            from_beat: level_editor.current_beat,
             target,
         });
     }
@@ -507,7 +508,17 @@ impl EditorState {
             return;
         };
 
-        if let Some(_drag) = self.drag.take() {
+        if let Some(drag) = self.drag.take() {
+            if let DragTarget::Light { double, .. } = drag.target {
+                if double
+                    && drag.from_world == self.editor.cursor_world_pos_snapped
+                    && level_editor.real_time - drag.from_real_time < r32(0.5)
+                {
+                    // See waypoints
+                    level_editor.view_waypoints();
+                }
+            }
+
             level_editor.save_state(default());
         }
     }
@@ -523,11 +534,12 @@ impl EditorState {
                 event,
                 initial_time,
                 initial_translation,
+                ..
             } => {
                 if let Some(event) = level_editor.level.events.get_mut(event) {
                     if let Event::Light(light) = &mut event.event {
                         // Move temporaly
-                        event.beat = level_editor.current_beat - drag.from_time + initial_time;
+                        event.beat = level_editor.current_beat - drag.from_beat + initial_time;
 
                         // Move spatially
                         let movement = &mut light.light.movement;
@@ -570,20 +582,17 @@ impl EditorState {
                 // Select a light
                 if let Some(event) = level_editor.level_state.hovered_event() {
                     let light_id = LightId { event };
-                    if level_editor.selected_light == Some(light_id) {
-                        // Double click -> goto waypoints
-                        level_editor.view_waypoints();
-                    } else {
-                        level_editor.selected_light = Some(light_id);
-                        if let Some(e) = level_editor.level.events.get(event) {
-                            if let Event::Light(light) = &e.event {
-                                let target = DragTarget::Light {
-                                    event,
-                                    initial_time: e.beat,
-                                    initial_translation: light.light.movement.initial.translation,
-                                };
-                                self.start_drag(target);
-                            }
+                    let double = level_editor.selected_light == Some(light_id);
+                    level_editor.selected_light = Some(light_id);
+                    if let Some(e) = level_editor.level.events.get(event) {
+                        if let Event::Light(light) = &e.event {
+                            let target = DragTarget::Light {
+                                double,
+                                event,
+                                initial_time: e.beat,
+                                initial_translation: light.light.movement.initial.translation,
+                            };
+                            self.start_drag(target);
                         }
                     }
                 } else {

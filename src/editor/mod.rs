@@ -44,7 +44,8 @@ pub struct Drag {
     pub moved: bool,
     pub from_screen: vec2<f32>,
     pub from_world: vec2<Coord>,
-    pub from_time: Time,
+    pub from_real_time: Time,
+    pub from_beat: Time,
     pub target: DragTarget,
 }
 
@@ -52,6 +53,9 @@ pub struct Drag {
 pub enum DragTarget {
     /// Move the whole light event through time and space.
     Light {
+        /// Whether it was the second click on the light.
+        /// If the drag is short, waypoints will be toggled.
+        double: bool,
         event: usize,
         initial_time: Time,
         initial_translation: vec2<Coord>,
