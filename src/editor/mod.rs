@@ -710,7 +710,7 @@ impl LevelEditor {
     }
 
     fn scroll_time(&mut self, delta: Time) {
-        let margin = r32(10.0);
+        let margin = r32(1000.0);
         let min = Time::ZERO;
         let max = margin + self.level.last_beat();
         let target = (self.current_beat + delta).clamp(min, max);
