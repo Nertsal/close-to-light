@@ -8,7 +8,7 @@ use ctl_core::{
 };
 use sqlx::FromRow;
 
-const MUSIC_SIZE_LIMIT: usize = 5 * 1024 * 1024; // 5 MB
+const MUSIC_SIZE_LIMIT: usize = 10 * 1024 * 1024; // 10 MB
 
 pub fn route(router: Router) -> Router {
     router
