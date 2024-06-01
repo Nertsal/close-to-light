@@ -201,13 +201,27 @@ impl MenuUI {
                     }
                 }
                 LevelSelectAction::EditLevel(group, level) => {
-                    state.edit_level(group, Some(level));
+                    if cfg!(target_arch = "wasm32") {
+                        state.popup_confirm(
+                            ConfirmAction::EditLevel(group, level),
+                            "browser does not retain changes across sessions",
+                        );
+                    } else {
+                        state.edit_level(group, Some(level));
+                    }
                 }
                 LevelSelectAction::DeleteLevel(group, level) => {
                     self.context.local.delete_level(group, level);
                 }
                 LevelSelectAction::EditGroup(group) => {
-                    state.edit_level(group, None);
+                    if cfg!(target_arch = "wasm32") {
+                        state.popup_confirm(
+                            ConfirmAction::EditGroup(group),
+                            "browser does not retain changes across sessions",
+                        );
+                    } else {
+                        state.edit_level(group, None);
+                    }
                 }
                 LevelSelectAction::DeleteGroup(group) => {
                     state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
