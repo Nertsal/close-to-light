@@ -305,16 +305,12 @@ impl EditorState {
                                 let movement = &mut light.light.movement;
                                 if shift {
                                     // Fade out
-                                    let change = change.max(-movement.fade_out + r32(0.25));
-                                    movement.fade_out =
-                                        (movement.fade_out + change).clamp(r32(0.0), r32(25.0));
+                                    movement.change_fade_out(movement.fade_out + change);
                                 } else {
                                     // Fade in
-                                    let change = change.max(-movement.fade_in + r32(0.25));
-                                    let target =
-                                        (movement.fade_in + change).clamp(r32(0.0), r32(25.0));
-                                    event.beat -= target - movement.fade_in;
-                                    movement.fade_in = target;
+                                    let from = movement.fade_in;
+                                    movement.change_fade_in(movement.fade_in + change);
+                                    event.beat -= movement.fade_in - from;
                                 }
                             }
                         }

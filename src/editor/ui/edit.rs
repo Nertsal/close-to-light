@@ -221,18 +221,10 @@ impl StatefulWidget for EditorEditWidget {
 
         {
             // Light
-            let selected = if let Some(selected_event) = level_editor
+            let selected = level_editor
                 .selected_light
                 .and_then(|i| level_editor.level.events.get_mut(i.event))
-            {
-                if let Event::Light(event) = &mut selected_event.event {
-                    Some(&mut event.light)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
+                .filter(|event| matches!(event.event, Event::Light(_)));
 
             match selected {
                 None => {
@@ -242,47 +234,57 @@ impl StatefulWidget for EditorEditWidget {
                     self.light_fade_out.hide();
                     self.waypoint.hide();
                 }
-                Some(light) => {
-                    self.light.show();
-                    self.light_danger.show();
-                    self.light_fade_in.show();
-                    self.light_fade_out.show();
-                    self.waypoint.show();
+                Some(event) => {
+                    if let Event::Light(light) = &mut event.event {
+                        let light = &mut light.light;
 
-                    let mut bar = right_bar;
+                        self.light.show();
+                        self.light_danger.show();
+                        self.light_fade_in.show();
+                        self.light_fade_out.show();
+                        self.waypoint.show();
 
-                    let light_pos = bar.cut_top(title_size);
-                    update!(self.light, light_pos);
-                    self.light.options.size = title_size;
+                        let mut bar = right_bar;
 
-                    let danger_pos = bar.cut_top(button_height);
-                    bar.cut_top(spacing);
-                    update!(self.light_danger, danger_pos);
-                    if self.light_danger.state.clicked {
-                        light.danger = !light.danger;
+                        let light_pos = bar.cut_top(title_size);
+                        update!(self.light, light_pos);
+                        self.light.options.size = title_size;
+
+                        let danger_pos = bar.cut_top(button_height);
+                        bar.cut_top(spacing);
+                        update!(self.light_danger, danger_pos);
+                        if self.light_danger.state.clicked {
+                            light.danger = !light.danger;
+                        }
+                        self.light_danger.checked = light.danger;
+
+                        let fade_in = bar.cut_top(button_height);
+                        bar.cut_top(spacing);
+                        let mut fade = light.movement.fade_in;
+                        let from = fade;
+                        update!(self.light_fade_in, fade_in, &mut fade);
+                        light.movement.change_fade_in(fade);
+                        context.update_focus(self.light_fade_in.state.hovered);
+                        event.beat -= light.movement.fade_in - from;
+
+                        let fade_out = bar.cut_top(button_height);
+                        bar.cut_top(spacing);
+                        let mut fade = light.movement.fade_out;
+                        update!(self.light_fade_out, fade_out, &mut fade);
+                        light.movement.change_fade_out(fade);
+                        context.update_focus(self.light_fade_out.state.hovered);
+
+                        bar.cut_top(layout_size * 1.5);
+
+                        let waypoints = bar.cut_top(button_height);
+                        update!(self.waypoint, waypoints);
+                        if self.waypoint.text.state.clicked {
+                            level_editor.view_waypoints();
+                        }
+
+                        bar.cut_top(spacing);
+                        right_bar = bar;
                     }
-                    self.light_danger.checked = light.danger;
-
-                    let fade_in = bar.cut_top(button_height);
-                    bar.cut_top(spacing);
-                    update!(self.light_fade_in, fade_in, &mut light.movement.fade_in);
-                    context.update_focus(self.light_fade_in.state.hovered);
-
-                    let fade_out = bar.cut_top(button_height);
-                    bar.cut_top(spacing);
-                    update!(self.light_fade_out, fade_out, &mut light.movement.fade_out);
-                    context.update_focus(self.light_fade_out.state.hovered);
-
-                    bar.cut_top(layout_size * 1.5);
-
-                    let waypoints = bar.cut_top(button_height);
-                    update!(self.waypoint, waypoints);
-                    if self.waypoint.text.state.clicked {
-                        level_editor.view_waypoints();
-                    }
-
-                    bar.cut_top(spacing);
-                    right_bar = bar;
                 }
             }
         }

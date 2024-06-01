@@ -202,6 +202,14 @@ impl Movement {
             .map(|frame| frame.lerp_time)
             .fold(Time::ZERO, Time::add)
     }
+
+    pub fn change_fade_out(&mut self, target: Time) {
+        self.fade_out = target.clamp(r32(0.25), r32(25.0));
+    }
+
+    pub fn change_fade_in(&mut self, target: Time) {
+        self.fade_in = target.clamp(r32(0.25), r32(25.0));
+    }
 }
 
 fn smoothstep<T: Float>(t: T) -> T {
