@@ -23,7 +23,7 @@ impl Nertboard {
         let file = File::open(path).await?;
         let req = self.client.post(url).body(file_to_body(file)).query(&music);
 
-        let response = req.send().await?;
+        let response = self.send(req).await?;
         let res = read_json(response).await?;
         Ok(res)
     }

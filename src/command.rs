@@ -258,10 +258,11 @@ async fn login(client: &Nertboard) -> Result<()> {
     let user: Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE);
 
     if let Some(user) = user {
-        client
+        let user = client
             .login_token(user.id, &user.token)
             .await?
             .map_err(|err| anyhow!(err))?;
+        log::debug!("logged in as {}", user.name);
     } else {
         let state = Uuid::new_v4().to_string();
         webbrowser::open(&format!("{}&state={}", crate::DISCORD_URL, state))?;
