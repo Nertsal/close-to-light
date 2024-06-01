@@ -23,6 +23,12 @@ impl EditorState {
             _ => (),
         }
 
+        if self.ui_focused {
+            if let geng::Event::Wheel { .. } | geng::Event::MousePress { .. } = &event {
+                return;
+            }
+        }
+
         if !self.ui.edit.state.visible {
             return;
         }

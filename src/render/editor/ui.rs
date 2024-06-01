@@ -8,7 +8,7 @@ impl EditorRender {
         self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
-        ugli::clear(framebuffer, Some(theme.dark), None, None);
+        ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         let font_size = ui.screen.position.height() * 0.04;
         let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));

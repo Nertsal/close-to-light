@@ -56,6 +56,8 @@ impl EditorRender {
         ui: &EditorUI,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        ugli::clear(framebuffer, Some(editor.options.theme.dark), None, None);
+
         self.mask.update_size(framebuffer.size());
         geng_utils::texture::update_texture_size(
             &mut self.game_texture,
@@ -77,16 +79,6 @@ impl EditorRender {
 
         let camera = &geng::PixelPerfectCamera;
 
-        if !editor.render_options.hide_ui {
-            self.geng.draw2d().textured_quad(
-                framebuffer,
-                camera,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                &self.ui_texture,
-                Color::WHITE,
-            );
-        }
-
         if ui.edit.state.visible {
             let mut masked = self.mask.start();
             masked.mask_quad(if editor.render_options.hide_ui {
@@ -102,6 +94,16 @@ impl EditorRender {
                 Color::WHITE,
             );
             self.mask.draw(draw_parameters(), framebuffer);
+        }
+
+        if !editor.render_options.hide_ui {
+            self.geng.draw2d().textured_quad(
+                framebuffer,
+                camera,
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                &self.ui_texture,
+                Color::WHITE,
+            );
         }
     }
 }
