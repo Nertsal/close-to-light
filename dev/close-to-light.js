@@ -1655,16 +1655,16 @@ function __wbg_get_imports() {
         const ret = makeMutClosure(arg0, arg1, 126, __wbg_adapter_43);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3355 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1353, __wbg_adapter_46);
+    imports.wbg.__wbindgen_closure_wrapper3356 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1356, __wbg_adapter_46);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper5772 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 2508, __wbg_adapter_49);
+    imports.wbg.__wbindgen_closure_wrapper5773 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 2511, __wbg_adapter_49);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper5948 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 2603, __wbg_adapter_52);
+    imports.wbg.__wbindgen_closure_wrapper5949 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 2606, __wbg_adapter_52);
         return addHeapObject(ret);
     };
     imports['./snippets/geng-2e04217e96c54cd9/inline3.js'] = __wbg_star0;
