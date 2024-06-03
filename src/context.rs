@@ -1,6 +1,6 @@
 use crate::{
     local::{CachedMusic, LevelCache},
-    prelude::{Assets, Time},
+    prelude::{Assets, Options, Time},
 };
 
 use std::{cell::RefCell, rc::Rc};
@@ -15,6 +15,7 @@ pub struct Context {
     pub assets: Rc<Assets>,
     pub music: Rc<MusicManager>,
     pub local: Rc<LevelCache>,
+    options: Rc<RefCell<Options>>,
 }
 
 impl Context {
@@ -28,7 +29,22 @@ impl Context {
             assets: assets.clone(),
             music: Rc::new(MusicManager::new()),
             local: Rc::new(LevelCache::load(client, geng).await?),
+            options: Rc::new(RefCell::new(
+                preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
+            )),
         })
+    }
+
+    pub fn get_options(&self) -> Options {
+        self.options.borrow().clone()
+    }
+
+    pub fn set_options(&self, options: Options) {
+        let mut old = self.options.borrow_mut();
+        if *old != options {
+            preferences::save(crate::OPTIONS_STORAGE, &options);
+            *old = options;
+        }
     }
 }
 

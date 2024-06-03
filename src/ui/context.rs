@@ -1,4 +1,4 @@
-use crate::prelude::Theme;
+use crate::prelude::{Context, Theme};
 
 use geng::prelude::*;
 
@@ -74,8 +74,8 @@ impl CursorContext {
 
 #[derive(Clone)]
 pub struct UiContext {
+    pub context: Context,
     pub font: Rc<geng::Font>,
-    pub theme: Theme,
     pub screen: Aabb2<f32>,
     pub layout_size: f32,
     pub font_size: f32,
@@ -161,19 +161,23 @@ impl TextEdit {
 }
 
 impl UiContext {
-    pub fn new(geng: &Geng, theme: Theme) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
-            font: geng.default_font().clone(),
-            theme,
+            font: context.geng.default_font().clone(),
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,
             font_size: 1.0,
             can_focus: true,
             cursor: CursorContext::new(),
-            text_edit: TextEdit::new(geng),
+            text_edit: TextEdit::new(&context.geng),
             delta_time: 0.1,
             mods: KeyModifiers::default(),
+            context,
         }
+    }
+
+    pub fn theme(&self) -> Theme {
+        self.context.get_options().theme
     }
 
     // TODO: better

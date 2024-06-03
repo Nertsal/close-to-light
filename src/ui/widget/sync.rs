@@ -296,6 +296,6 @@ impl StatefulWidget for SyncWidget {
 
         let response = main.cut_top(context.font_size);
         self.response.update(response, context);
-        self.response.options.color = context.theme.danger;
+        self.response.options.color = context.theme().danger;
     }
 }

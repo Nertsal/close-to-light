@@ -38,7 +38,8 @@ pub struct EditorEditWidget {
 }
 
 impl EditorEditWidget {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
+        let assets = &context.assets;
         Self {
             state: WidgetState::new(),
 
@@ -77,7 +78,7 @@ impl EditorEditWidget {
             waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
             current_beat: default(),
-            timeline: TimelineWidget::new(geng),
+            timeline: TimelineWidget::new(context.clone()),
         }
     }
 }

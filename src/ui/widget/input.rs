@@ -11,6 +11,7 @@ pub struct InputWidget {
     pub edit_id: Option<usize>,
     pub hide_input: bool,
     pub raw: String,
+    pub editing: bool,
 }
 
 impl InputWidget {
@@ -22,6 +23,7 @@ impl InputWidget {
             edit_id: None,
             hide_input,
             raw: String::new(),
+            editing: false,
         }
     }
 
@@ -53,7 +55,7 @@ impl Widget for InputWidget {
             self.edit_id = Some(context.text_edit.edit(&self.text.text));
         }
 
-        let color = if self
+        self.editing = if self
             .edit_id
             .map_or(false, |id| context.text_edit.is_active(id))
         {
@@ -63,21 +65,16 @@ impl Widget for InputWidget {
             } else {
                 context.text_edit.text.clone().into()
             };
-            context.theme.highlight
+            true
         } else {
-            context.theme.light
+            false
         };
 
         let mut main = position;
-
-        let old_color = context.theme.light;
-        context.theme.light = color;
 
         let name_width = context.layout_size * 5.0;
         let name = main.cut_left(name_width);
         self.name.update(name, context);
         self.text.update(main, context);
-
-        context.theme.light = old_color;
     }
 }

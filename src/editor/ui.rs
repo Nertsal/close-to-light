@@ -37,7 +37,8 @@ pub struct EditorUI {
 }
 
 impl EditorUI {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
+        let assets = &context.assets;
         Self {
             screen: default(),
             game: default(),
@@ -53,12 +54,12 @@ impl EditorUI {
             save: ButtonWidget::new("Save"),
 
             help_text: TextWidget::new(HELP).aligned(vec2(0.0, 1.0)),
-            edit: EditorEditWidget::new(geng, assets),
             config: {
                 let mut w = EditorConfigWidget::new(assets);
                 w.hide();
                 w
             },
+            edit: EditorEditWidget::new(context),
         }
     }
 

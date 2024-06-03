@@ -17,7 +17,6 @@ mod ui;
 mod util;
 
 // use leaderboard::Leaderboard;
-use prelude::Options;
 
 use geng::prelude::*;
 
@@ -118,8 +117,6 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
 
     let assets = assets::Assets::load(manager).await?;
     let assets = Rc::new(assets);
-
-    let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
     let secrets: Option<Secrets> =
         match geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &()).await {
@@ -230,9 +227,9 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
                     config,
                     start_time: prelude::Time::ZERO,
                 };
-                editor::EditorState::new_level(context, editor_config, options, level)
+                editor::EditorState::new_level(context, editor_config, level)
             } else {
-                editor::EditorState::new_group(context, editor_config, options, group)
+                editor::EditorState::new_group(context, editor_config, group)
             };
 
             geng.run_state(state).await;
@@ -262,6 +259,7 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
             config,
             start_time: prelude::Time::ZERO,
         };
+        let options = context.get_options();
         let state = game::Game::new(
             context,
             options,
@@ -272,10 +270,10 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     } else {
         // Main menu
         if opts.skip_intro {
-            let state = menu::LevelMenu::new(context, client.as_ref(), options);
+            let state = menu::LevelMenu::new(context, client.as_ref());
             geng.run_state(state).await;
         } else {
-            let state = menu::SplashScreen::new(context, client.as_ref(), options);
+            let state = menu::SplashScreen::new(context, client.as_ref());
             geng.run_state(state).await;
         }
     }

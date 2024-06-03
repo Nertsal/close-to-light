@@ -10,5 +10,4 @@ use crate::{
         dither::DitherRender,
         util::{TextRenderOptions, UtilRender},
     },
-    OPTIONS_STORAGE,
 };

@@ -23,11 +23,10 @@ pub struct TimelineWidget {
 }
 
 impl TimelineWidget {
-    pub fn new(geng: &Geng) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
             context: UiContext {
-                font: geng.default_font().clone(),
-                theme: Theme::default(),
+                font: context.geng.default_font().clone(),
                 screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
                 layout_size: 1.0,
                 font_size: 1.0,
@@ -36,6 +35,7 @@ impl TimelineWidget {
                 delta_time: 0.1,
                 mods: KeyModifiers::default(),
                 text_edit: TextEdit::empty(),
+                context,
             },
             state: default(),
             current_beat: default(),

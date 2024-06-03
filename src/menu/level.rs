@@ -51,7 +51,6 @@ pub struct MenuState {
     pub context: Context,
     pub leaderboard: Leaderboard,
     pub player: Player,
-    pub options: Options,
     pub config: LevelConfig,
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
@@ -195,11 +194,7 @@ impl MenuState {
 }
 
 impl LevelMenu {
-    pub fn new(
-        context: Context,
-        client: Option<&Arc<ctl_client::Nertboard>>,
-        options: Options,
-    ) -> Self {
+    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
         let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
             r32(0.0),
@@ -219,7 +214,7 @@ impl LevelMenu {
 
             ui: MenuUI::new(context.clone()),
             ui_focused: false,
-            ui_context: UiContext::new(&context.geng, options.theme),
+            ui_context: UiContext::new(context.clone()),
 
             camera: Camera2d {
                 center: vec2::ZERO,
@@ -230,7 +225,6 @@ impl LevelMenu {
                 context: context.clone(),
                 leaderboard,
                 player,
-                options,
                 config: LevelConfig::default(),
 
                 confirm_popup: None,
@@ -306,7 +300,7 @@ impl LevelMenu {
         let future = {
             let context = self.context.clone();
             let leaderboard = self.state.leaderboard.clone();
-            let options = self.state.options.clone();
+            let options = self.state.context.get_options();
             let config = self.state.config.clone();
 
             async move {
@@ -481,7 +475,8 @@ impl geng::State for LevelMenu {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(self.state.options.theme.dark), None, None);
+        let theme = self.context.get_options().theme;
+        ugli::clear(framebuffer, Some(theme.dark), None, None);
         self.masked.update_size(framebuffer.size());
 
         self.dither.set_noise(1.0);
@@ -507,7 +502,7 @@ impl geng::State for LevelMenu {
             );
         }
 
-        self.dither.finish(self.time, &self.state.options.theme);
+        self.dither.finish(self.time, &theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), framebuffer)
@@ -568,8 +563,7 @@ impl geng::State for LevelMenu {
         let mut dither_buffer = self.dither.start();
         self.util
             .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
-        self.dither
-            .finish(self.time, &self.state.options.theme.transparent());
+        self.dither.finish(self.time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), framebuffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
@@ -620,9 +614,10 @@ impl geng::State for LevelMenu {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
 
+        let options = self.context.get_options();
+
         self.ui_context
             .update(self.context.geng.window(), delta_time.as_f32());
-        self.ui_context.theme = self.state.options.theme;
 
         if self.ui.explore.state.visible {
             let t = if !self.ui.explore.window.show.going_up
@@ -633,16 +628,12 @@ impl geng::State for LevelMenu {
             } else {
                 1.0
             };
-            self.context
-                .music
-                .set_volume(self.state.options.volume.music() * t);
+            self.context.music.set_volume(options.volume.music() * t);
         } else {
             // Music volume
             let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
                 .min(show_ratio(&self.state.selected_music).unwrap_or(0.0));
-            self.context
-                .music
-                .set_volume(self.state.options.volume.music() * t);
+            self.context.music.set_volume(options.volume.music() * t);
 
             // Playing music
             if let Some(active) = self
@@ -724,7 +715,6 @@ impl geng::State for LevelMenu {
         let context = self.context.clone();
         let manager = self.context.geng.asset_manager().clone();
         let assets_path = run_dir().join("assets");
-        let options = self.state.options.clone();
 
         if let Some((group, level)) = edit_level {
             let future = async move {
@@ -741,9 +731,9 @@ impl geng::State for LevelMenu {
                         config: LevelConfig::default(),
                         start_time: Time::ZERO,
                     };
-                    crate::editor::EditorState::new_level(context, config, options, level)
+                    crate::editor::EditorState::new_level(context, config, level)
                 } else {
-                    crate::editor::EditorState::new_group(context, config, options, group)
+                    crate::editor::EditorState::new_group(context, config, group)
                 }
             };
             let state = geng::LoadingScreen::new(

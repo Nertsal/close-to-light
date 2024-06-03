@@ -3,7 +3,7 @@ use super::*;
 impl EditorRender {
     pub(super) fn draw_game(&mut self, editor: &Editor, visible: bool) {
         let options = &editor.render_options;
-        let mut theme = editor.options.theme;
+        let mut theme = editor.context.get_options().theme;
 
         let game_buffer =
             &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());

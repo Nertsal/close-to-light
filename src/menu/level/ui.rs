@@ -291,11 +291,7 @@ impl MenuUI {
             context.update_focus(self.leaderboard.state.hovered);
         }
 
-        let old_options = state.options.clone();
         self.options.update(options, context, state);
-        if state.options != old_options {
-            preferences::save(OPTIONS_STORAGE, &state.options);
-        }
         context.update_focus(self.options.options.state.hovered);
 
         if let Some(sync) = &mut self.sync {

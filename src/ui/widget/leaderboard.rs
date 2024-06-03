@@ -298,9 +298,9 @@ impl Widget for LeaderboardEntryWidget {
         let player = main;
         self.player.update(player, context);
         self.player.options.color = if self.highlight {
-            context.theme.danger
+            context.theme().danger
         } else {
-            context.theme.light
+            context.theme().light
         }
     }
 }

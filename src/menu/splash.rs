@@ -5,7 +5,6 @@ const TRANSITION_TIME: f32 = 5.0;
 pub struct SplashScreen {
     context: Context,
     client: Option<Arc<ctl_client::Nertboard>>,
-    options: Options,
     transition: Option<geng::state::Transition>,
 
     util: UtilRender,
@@ -14,11 +13,7 @@ pub struct SplashScreen {
 }
 
 impl SplashScreen {
-    pub fn new(
-        context: Context,
-        client: Option<&Arc<ctl_client::Nertboard>>,
-        options: Options,
-    ) -> Self {
+    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
         Self {
             util: UtilRender::new(&context.geng, &context.assets),
 
@@ -26,7 +21,6 @@ impl SplashScreen {
 
             context,
             client: client.cloned(),
-            options,
             transition: None,
         }
     }
@@ -38,7 +32,9 @@ impl geng::State for SplashScreen {
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        ugli::clear(framebuffer, Some(self.options.theme.dark), None, None);
+        let theme = self.context.get_options().theme;
+
+        ugli::clear(framebuffer, Some(theme.dark), None, None);
 
         let camera = &Camera2d {
             center: vec2::ZERO,
@@ -48,7 +44,7 @@ impl geng::State for SplashScreen {
 
         let alpha = (TRANSITION_TIME - self.time.as_f32()).clamp(0.0, 1.0);
         let alpha = crate::util::smoothstep(alpha);
-        let color = crate::util::with_alpha(self.options.theme.light, alpha);
+        let color = crate::util::with_alpha(theme.light, alpha);
 
         self.util.draw_text(
             "PHOTOSENSITIVITY WARNING",
@@ -83,7 +79,6 @@ trigger seizures for people with photosensitive epilepsy
             self.transition = Some(geng::state::Transition::Switch(Box::new(MainMenu::new(
                 self.context.clone(),
                 self.client.take(),
-                self.options.clone(),
             ))));
         }
     }

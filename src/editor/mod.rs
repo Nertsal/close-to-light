@@ -123,7 +123,6 @@ pub struct LevelEditor {
 
 pub struct Editor {
     pub context: Context,
-    pub options: Options,
     pub config: EditorConfig,
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,
@@ -188,21 +187,16 @@ impl LevelEditor {
 }
 
 impl EditorState {
-    pub fn new_group(
-        context: Context,
-        config: EditorConfig,
-        options: Options,
-        group: PlayGroup,
-    ) -> Self {
+    pub fn new_group(context: Context, config: EditorConfig, group: PlayGroup) -> Self {
         Self {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(&context.geng, &context.assets),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
-            ui: EditorUI::new(&context.geng, &context.assets),
+            ui: EditorUI::new(context.clone()),
             ui_focused: false,
-            ui_context: UiContext::new(&context.geng, options.theme),
+            ui_context: UiContext::new(context.clone()),
             drag: None,
             editor: Editor {
                 context: context.clone(),
@@ -226,25 +220,15 @@ impl EditorState {
 
                 group,
                 level_edit: None,
-                options,
                 config,
             },
             context,
         }
     }
 
-    pub fn new_level(
-        context: Context,
-        config: EditorConfig,
-        options: Options,
-        level: PlayLevel,
-    ) -> Self {
-        let mut editor = Self::new_group(
-            context.clone(),
-            config,
-            options.clone(),
-            level.group.clone(),
-        );
+    pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
+        let mut editor = Self::new_group(context.clone(), config, level.group.clone());
+        let options = context.get_options();
         let model = Model::empty(context, options, level.clone());
         editor.editor.level_edit = Some(LevelEditor::new(model, level, true, false));
         editor
@@ -522,7 +506,11 @@ impl Editor {
                 config: LevelConfig::default(),
                 start_time: Time::ZERO,
             };
-            let model = Model::empty(self.context.clone(), self.options.clone(), level.clone());
+            let model = Model::empty(
+                self.context.clone(),
+                self.context.get_options(),
+                level.clone(),
+            );
             self.level_edit = Some(LevelEditor::new(
                 model,
                 level,

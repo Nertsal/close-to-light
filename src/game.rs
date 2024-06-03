@@ -64,7 +64,7 @@ impl Game {
             active_touch: None,
             ui: GameUI::new(&context.assets),
             ui_focused: false,
-            ui_context: UiContext::new(&context.geng, model.options.theme),
+            ui_context: UiContext::new(context.clone()),
 
             model,
             debug_mode: false,

@@ -116,12 +116,14 @@ impl StatefulWidget for OptionsWidget {
         );
         self.separator.update(separator, context);
 
+        let mut options = state.context.get_options();
+
         let volume = main.cut_top(5.0 * context.layout_size);
-        self.volume
-            .update(volume, context, &mut state.options.volume);
+        self.volume.update(volume, context, &mut options.volume);
         let palette = main.cut_top(6.0 * context.layout_size);
-        self.palette
-            .update(palette, context, &mut state.options.theme);
+        self.palette.update(palette, context, &mut options.theme);
+
+        state.context.set_options(options);
     }
 }
 

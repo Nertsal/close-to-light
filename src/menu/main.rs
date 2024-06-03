@@ -5,7 +5,6 @@ use crate::render::{ui::UiRender, THEME};
 pub struct MainMenu {
     context: Context,
     client: Option<Arc<ctl_client::Nertboard>>,
-    options: Options,
     transition: Option<geng::state::Transition>,
 
     dither: DitherRender,
@@ -27,11 +26,7 @@ pub struct MainMenu {
 }
 
 impl MainMenu {
-    pub fn new(
-        context: Context,
-        client: Option<Arc<ctl_client::Nertboard>>,
-        options: Options,
-    ) -> Self {
+    pub fn new(context: Context, client: Option<Arc<ctl_client::Nertboard>>) -> Self {
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
             util_render: UtilRender::new(&context.geng, &context.assets),
@@ -65,15 +60,13 @@ impl MainMenu {
             context,
             transition: None,
             client,
-            options,
         }
     }
 
     fn play(&mut self) {
         let context = self.context.clone();
         let client = self.client.clone();
-        let options = self.options.clone();
-        let state = LevelMenu::new(context, client.as_ref(), options);
+        let state = LevelMenu::new(context, client.as_ref());
         self.transition = Some(geng::state::Transition::Push(Box::new(state)));
     }
 }
@@ -86,6 +79,8 @@ impl geng::State for MainMenu {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
+
+        self.context.music.stop(); // TODO: menu music
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
@@ -145,7 +140,8 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        ugli::clear(screen_buffer, Some(self.options.theme.dark), None, None);
+        let theme = self.context.get_options().theme;
+        ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
         let mut framebuffer = self.dither.start();
 
@@ -170,7 +166,7 @@ impl geng::State for MainMenu {
                 .draw_player(&self.player, &self.camera, &mut framebuffer);
         }
 
-        self.dither.finish(self.time, &self.options.theme);
+        self.dither.finish(self.time, &theme);
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())

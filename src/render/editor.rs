@@ -56,7 +56,12 @@ impl EditorRender {
         ui: &EditorUI,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        ugli::clear(framebuffer, Some(editor.options.theme.dark), None, None);
+        ugli::clear(
+            framebuffer,
+            Some(editor.context.get_options().theme.dark),
+            None,
+            None,
+        );
 
         self.mask.update_size(framebuffer.size());
         geng_utils::texture::update_texture_size(

@@ -33,7 +33,7 @@ impl MenuRender {
         self.masked2.update_size(framebuffer.size());
         self.font_size = framebuffer.size().y as f32 * 0.04;
 
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
 
         self.ui.draw_icon(&ui.ctl_logo, theme, framebuffer);
 
@@ -97,7 +97,7 @@ impl MenuRender {
 
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         let Some(sync) = &ui.sync else { return };
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
         let t = crate::util::smoothstep(sync.window.show.time.get_ratio());
 
         let window = sync.state.position;
@@ -133,7 +133,7 @@ impl MenuRender {
 
     fn draw_levels(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
         let ui = &ui.level_select;
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
 
         self.ui
             .draw_toggle_widget(&ui.tab_music, theme, framebuffer);
@@ -201,7 +201,7 @@ impl MenuRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let ui = &ui.play_level;
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
 
         self.ui.draw_text(&ui.music, framebuffer);
         self.ui.draw_text(&ui.music_author, framebuffer);
@@ -228,7 +228,7 @@ impl MenuRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let ui = &ui.modifiers;
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
         let width = self.font_size * 0.2;
 
         if !ui.body.visible {
@@ -275,7 +275,7 @@ impl MenuRender {
     ) {
         let ui = &ui.options;
         let camera = &geng::PixelPerfectCamera;
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
 
         let width = 12.0;
         let options = ui.options.state.position.extend_up(width);
@@ -382,7 +382,7 @@ impl MenuRender {
             return;
         };
 
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
 
         let width = 12.0;
         let explore = ui.state.position;
@@ -459,7 +459,7 @@ impl MenuRender {
             return;
         };
 
-        let theme = state.options.theme;
+        let theme = state.context.get_options().theme;
         let width = self.font_size * 0.2;
 
         self.ui.draw_window(
