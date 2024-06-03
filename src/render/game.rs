@@ -9,8 +9,7 @@ use super::{
 use crate::game::GameUI;
 
 pub struct GameRender {
-    geng: Geng,
-    // assets: Rc<Assets>,
+    context: Context,
     dither: DitherRender,
     masked: MaskedRender,
     util: UtilRender,
@@ -20,14 +19,13 @@ pub struct GameRender {
 }
 
 impl GameRender {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
-            geng: geng.clone(),
-            // assets: assets.clone(),
-            dither: DitherRender::new(geng, assets),
-            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
-            util: UtilRender::new(geng, assets),
-            ui: UiRender::new(geng, assets),
+            dither: DitherRender::new(&context.geng, &context.assets),
+            masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            util: UtilRender::new(context.clone()),
+            ui: UiRender::new(context.clone()),
+            context,
 
             font_size: 1.0,
         }
@@ -187,7 +185,11 @@ impl GameRender {
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.geng, old_framebuffer);
+            .draw(
+                &geng::PixelPerfectCamera,
+                &self.context.geng,
+                old_framebuffer,
+            );
     }
 
     pub fn draw_ui(

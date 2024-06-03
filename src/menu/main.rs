@@ -29,8 +29,8 @@ impl MainMenu {
     pub fn new(context: Context, client: Option<Arc<ctl_client::Nertboard>>) -> Self {
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
-            util_render: UtilRender::new(&context.geng, &context.assets),
-            ui_render: UiRender::new(&context.geng, &context.assets),
+            util_render: UtilRender::new(context.clone()),
+            ui_render: UiRender::new(context.clone()),
 
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,

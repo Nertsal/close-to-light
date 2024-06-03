@@ -70,7 +70,7 @@ impl Game {
             debug_mode: false,
 
             transition: None,
-            render: GameRender::new(&context.geng, &context.assets),
+            render: GameRender::new(context.clone()),
             context,
         }
     }

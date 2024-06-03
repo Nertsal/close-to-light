@@ -6,8 +6,7 @@ use crate::{
 };
 
 pub struct MenuRender {
-    geng: Geng,
-    // assets: Rc<Assets>,
+    context: Context,
     // util: UtilRender,
     masked: MaskedRender,
     masked2: MaskedRender, // TODO: have just one somehow maybe
@@ -16,14 +15,13 @@ pub struct MenuRender {
 }
 
 impl MenuRender {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
-            geng: geng.clone(),
-            // assets: assets.clone(),
             // util: UtilRender::new(geng, assets),
-            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
-            masked2: MaskedRender::new(geng, assets, vec2(1, 1)),
-            ui: UiRender::new(geng, assets),
+            masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            ui: UiRender::new(context.clone()),
+            context,
             font_size: 1.0,
         }
     }
@@ -347,7 +345,7 @@ impl MenuRender {
                             let pos = Aabb2::point(pos.bottom_left())
                                 .extend_positive(vec2::splat(pos.height()));
                             let pos = pos.translate(vec2(i * pos.width(), 0.0));
-                            self.geng.draw2d().draw2d(
+                            self.context.geng.draw2d().draw2d(
                                 framebuffer,
                                 camera,
                                 &draw2d::Quad::new(pos, color),

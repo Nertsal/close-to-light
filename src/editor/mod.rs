@@ -191,7 +191,7 @@ impl EditorState {
         Self {
             transition: None,
             stop_music_next_frame: true,
-            render: EditorRender::new(&context.geng, &context.assets),
+            render: EditorRender::new(context.clone()),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
             ui: EditorUI::new(context.clone()),

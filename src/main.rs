@@ -158,7 +158,7 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(command) = opts.command {
         command
-            .execute(geng, assets, secrets)
+            .execute(context, secrets)
             .await
             .context("failed to execute the command")?;
         return Ok(());

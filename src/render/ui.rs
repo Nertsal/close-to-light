@@ -10,17 +10,15 @@ pub fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
 }
 
 pub struct UiRender {
-    geng: Geng,
-    pub assets: Rc<Assets>,
+    context: Context,
     pub util: UtilRender,
 }
 
 impl UiRender {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-            util: UtilRender::new(geng, assets),
+            util: UtilRender::new(context.clone()),
+            context,
         }
     }
 
@@ -108,7 +106,7 @@ impl UiRender {
     ) {
         let size = texture.size().as_f32() * pixel_scale(framebuffer);
         let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
-        self.geng.draw2d().textured_quad(
+        self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,
             pos,
@@ -126,11 +124,11 @@ impl UiRender {
     ) {
         let scale = pixel_scale(framebuffer);
         let (texture, real_width) = if width < 2.0 * scale {
-            (&self.assets.sprites.border_thinner, 1.0 * scale)
+            (&self.context.assets.sprites.border_thinner, 1.0 * scale)
         } else if width < 4.0 * scale {
-            (&self.assets.sprites.border_thin, 2.0 * scale)
+            (&self.context.assets.sprites.border_thin, 2.0 * scale)
         } else {
-            (&self.assets.sprites.border, 4.0 * scale)
+            (&self.context.assets.sprites.border, 4.0 * scale)
         };
         self.util.draw_nine_slice(
             quad.extend_uniform(real_width - width),
@@ -148,7 +146,7 @@ impl UiRender {
         color: Rgba<f32>,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        self.geng.draw2d().draw2d(
+        self.context.geng.draw2d().draw2d(
             framebuffer,
             &geng::PixelPerfectCamera,
             &draw2d::Quad::new(quad, color),
@@ -176,7 +174,7 @@ impl UiRender {
             match bg.kind {
                 IconBackgroundKind::NineSlice => {
                     let texture = //if width < 5.0 {
-                        &self.assets.sprites.fill_thin;
+                        &self.context.assets.sprites.fill_thin;
                     // } else {
                     //     &self.assets.sprites.fill
                     // };
@@ -192,7 +190,7 @@ impl UiRender {
                 IconBackgroundKind::Circle => {
                     self.draw_texture(
                         icon.state.position,
-                        &self.assets.sprites.circle,
+                        &self.context.assets.sprites.circle,
                         theme.get_color(bg.color),
                         framebuffer,
                     );
@@ -227,7 +225,7 @@ impl UiRender {
                 (checkbox.bottom_left(), checkbox.top_right()),
                 (checkbox.top_left(), checkbox.bottom_right()),
             ] {
-                self.geng.draw2d().draw2d(
+                self.context.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
                     &draw2d::Segment::new(Segment(a, b), size * 0.07, theme.light),
@@ -252,7 +250,7 @@ impl UiRender {
 
         let main = widget.state.position;
         let lines = crate::util::wrap_text(
-            &self.assets.fonts.pixel,
+            &self.context.assets.fonts.pixel,
             &widget.text,
             main.width() / widget.options.size / 0.6, // Magic constant from the util renderer that scales everything by 0.6 idk why
         );
@@ -287,7 +285,7 @@ impl UiRender {
         // Fit to area
         let mut widget = widget.clone();
 
-        let font = &self.assets.fonts.pixel;
+        let font = &self.context.assets.fonts.pixel;
         let measure = font
             .measure(&widget.text, vec2::splat(geng::TextAlign::CENTER))
             .unwrap_or(Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)));
@@ -331,7 +329,7 @@ impl UiRender {
         self.draw_text_colored(&slider.value, theme.light, framebuffer);
 
         if slider.bar.visible {
-            self.geng.draw2d().quad(
+            self.context.geng.draw2d().quad(
                 framebuffer,
                 &geng::PixelPerfectCamera,
                 slider.bar.position,
@@ -341,7 +339,7 @@ impl UiRender {
 
         if slider.head.visible {
             let color = theme.light;
-            self.geng.draw2d().quad(
+            self.context.geng.draw2d().quad(
                 framebuffer,
                 &geng::PixelPerfectCamera,
                 slider.head.position,
@@ -383,9 +381,15 @@ impl UiRender {
         if !widget.state.visible {
             return;
         }
+        let theme = self.context.get_options().theme;
 
         self.draw_text(&widget.name, framebuffer);
-        self.draw_text(&widget.text, framebuffer);
+        let color = if widget.editing {
+            theme.highlight
+        } else {
+            theme.light
+        };
+        self.draw_text_colored(&widget.text, color, framebuffer);
     }
 
     pub fn draw_notification(
@@ -456,7 +460,7 @@ impl UiRender {
     ) {
         let camera = &geng::PixelPerfectCamera;
 
-        self.geng.draw2d().draw2d(
+        self.context.geng.draw2d().draw2d(
             framebuffer,
             camera,
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
@@ -635,9 +639,9 @@ impl UiRender {
         let scale = ui::pixel_scale(framebuffer);
 
         let texture = if size < 48.0 * scale {
-            &self.assets.sprites.fill_thin
+            &self.context.assets.sprites.fill_thin
         } else {
-            &self.assets.sprites.fill
+            &self.context.assets.sprites.fill
         };
         self.util.draw_nine_slice(
             position,

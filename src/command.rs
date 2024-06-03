@@ -1,9 +1,10 @@
+use self::prelude::Context;
+
 use super::*;
 
 use std::path::PathBuf;
 
 use anyhow::Result;
-use assets::Assets;
 use ctl_client::{
     core::{
         prelude::Uuid,
@@ -100,12 +101,7 @@ pub enum ArtistCommand {
 }
 
 impl Command {
-    pub async fn execute(
-        self,
-        geng: Geng,
-        assets: Rc<Assets>,
-        secrets: Option<Secrets>,
-    ) -> Result<()> {
+    pub async fn execute(self, context: Context, secrets: Option<Secrets>) -> Result<()> {
         let client = if let Some(secrets) = &secrets {
             let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
                 .context("Client initialization failed")?;
@@ -162,8 +158,8 @@ impl Command {
                 }
             }
             Command::Text { text } => {
-                let state = media::MediaState::new(&geng, &assets).with_text(text);
-                geng.run_state(state).await;
+                let state = media::MediaState::new(context.clone()).with_text(text);
+                context.geng.run_state(state).await;
             }
             Command::Music(music) => {
                 let client = client.expect("Cannot update music without secrets");

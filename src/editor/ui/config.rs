@@ -99,25 +99,25 @@ impl StatefulWidget for EditorConfigWidget {
 
         bar.cut_top(context.layout_size);
 
-        if let Some(level_editor) = &mut state.level_edit {
-            let level = bar.cut_top(context.font_size);
-            self.level.show();
-            self.level.update(level, context);
+        let level = bar.cut_top(context.font_size);
+        self.level.update(level, context);
 
-            let name = bar.cut_top(context.font_size);
+        let name = bar.cut_top(context.font_size);
+        let delete = bar.cut_top(context.font_size);
+        if let Some(level_editor) = &mut state.level_edit {
             self.level_name.sync(&level_editor.name, context);
             self.level_name.show();
             self.level_name.update(name, context);
             level_editor.name.clone_from(&self.level_name.raw);
-        } else {
-            self.level.hide();
-            self.level_name.hide();
-        }
 
-        let delete = bar.cut_top(context.font_size);
-        self.level_delete.update(delete, context);
-        if self.level_delete.text.state.clicked {
-            state.delete_active_level();
+            self.level_delete.show();
+            self.level_delete.update(delete, context);
+            if self.level_delete.text.state.clicked {
+                state.delete_active_level();
+            }
+        } else {
+            self.level_name.hide();
+            self.level_delete.hide();
         }
 
         let create = bar.cut_top(context.font_size);
