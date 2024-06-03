@@ -445,11 +445,9 @@ impl UiRender {
             theme,
             framebuffer,
             |framebuffer| {
-                let hold = confirm.hold.position;
-                let hold = hold.extend_up(outline_width - hold.height());
-                self.draw_quad(hold, theme.light, framebuffer);
-
-                self.draw_text(&confirm.title, framebuffer);
+                let title = confirm.title.state.position;
+                self.fill_quad(title, theme.light, framebuffer);
+                self.draw_text_colored(&confirm.title, theme.dark, framebuffer);
                 self.draw_text(&confirm.message, framebuffer);
                 self.draw_icon(&confirm.confirm.icon, theme, framebuffer);
                 self.draw_icon(&confirm.discard.icon, theme, framebuffer);

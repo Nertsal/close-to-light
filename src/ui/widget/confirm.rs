@@ -15,8 +15,6 @@ pub struct ConfirmWidget {
     pub window: UiWindow<()>,
     pub offset: vec2<f32>,
     pub state: WidgetState,
-    /// Position that can be dragged to move the widget.
-    pub hold: WidgetState,
     pub title: TextWidget,
     pub message: TextWidget,
     pub confirm: IconButtonWidget,
@@ -29,7 +27,6 @@ impl ConfirmWidget {
             window: UiWindow::new((), 0.25),
             offset: vec2::ZERO,
             state: WidgetState::new(),
-            hold: WidgetState::new(),
             title: TextWidget::new(title),
             message: TextWidget::new(message),
             confirm: IconButtonWidget::new_normal(&assets.sprites.confirm),
@@ -51,18 +48,14 @@ impl Widget for ConfirmWidget {
 
         let mut main = position;
 
-        let hold = main.cut_top(context.layout_size);
-        let hold = hold.extend_symmetric(-vec2(context.layout_size * 2.0, 0.0));
-        self.hold.update(hold, context);
-        if self.hold.pressed {
+        let title = main.cut_top(1.5 * context.font_size);
+        self.title.update(title, context);
+        if self.title.state.pressed {
             // Drag window
             self.offset += context.cursor.delta();
         }
 
-        let title = main.cut_top(context.font_size);
-        self.title.update(title, context);
-
-        let buttons = main.cut_bottom(context.font_size);
+        let buttons = main.cut_bottom(1.2 * context.font_size);
         let buttons = buttons.split_columns(2);
         self.confirm.update(buttons[0], context);
         self.discard.update(buttons[1], context);
