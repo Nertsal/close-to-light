@@ -184,6 +184,78 @@ impl LevelEditor {
         editor.render_lights(vec2::ZERO, vec2::ZERO, visualize_beat, show_only_selected);
         editor
     }
+
+    fn delete_light_selected(&mut self) -> bool {
+        let Some(id) = self.selected_light else {
+            return false;
+        };
+        self.delete_light(id);
+        true
+    }
+
+    fn delete_light(&mut self, id: LightId) {
+        if id.event >= self.level.events.len() {
+            return;
+        }
+        self.level.events.swap_remove(id.event);
+        self.selected_light = None;
+        self.save_state(default());
+    }
+
+    fn delete_waypoint_selected(&mut self) -> bool {
+        let Some(waypoints) = &self.level_state.waypoints else {
+            return false;
+        };
+        let Some(id) = waypoints.selected else {
+            return false;
+        };
+        self.delete_waypoint(id);
+        true
+    }
+
+    fn delete_waypoint(&mut self, id: WaypointId) {
+        let Some(waypoints) = &mut self.level_state.waypoints else {
+            return;
+        };
+        let Some(event) = self.level.events.get_mut(waypoints.event) else {
+            return;
+        };
+        let Event::Light(light) = &mut event.event else {
+            return;
+        };
+        match id {
+            WaypointId::Initial => {
+                match light.light.movement.key_frames.pop_front() {
+                    None => {
+                        // No waypoints -> delete the whole event
+                        if waypoints.event < self.level.events.len() {
+                            self.level.events.swap_remove(waypoints.event);
+                            self.level_state.waypoints = None;
+                            self.state = State::Idle;
+                        }
+                    }
+                    Some(frame) => {
+                        // Make the first frame the initial position
+                        light.light.movement.initial = frame.transform;
+                        event.beat += frame.lerp_time;
+                    }
+                }
+            }
+            WaypointId::Frame(i) => {
+                if let Some(frame) = light.light.movement.key_frames.remove(i) {
+                    // Offset the next one
+                    if let Some(next) = light.light.movement.key_frames.get_mut(i) {
+                        next.lerp_time += frame.lerp_time;
+                    }
+                }
+            }
+        }
+
+        if let Some(waypoints) = &mut self.level_state.waypoints {
+            waypoints.selected = None;
+        }
+        self.save_state(default());
+    }
 }
 
 impl EditorState {

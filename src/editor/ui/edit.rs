@@ -21,6 +21,7 @@ pub struct EditorEditWidget {
     pub grid_size: ValueWidget<f32>,
 
     pub light: TextWidget,
+    pub light_delete: ButtonWidget,
     pub light_danger: CheckboxWidget,
     pub light_fade_in: ValueWidget<Time>,
     pub light_fade_out: ValueWidget<Time>,
@@ -29,6 +30,7 @@ pub struct EditorEditWidget {
     pub prev_waypoint: IconButtonWidget,
     pub current_waypoint: TextWidget,
     pub next_waypoint: IconButtonWidget,
+    pub waypoint_delete: ButtonWidget,
     pub waypoint_scale: ValueWidget<f32>,
     /// Angle in degrees.
     pub waypoint_angle: ValueWidget<f32>,
@@ -61,6 +63,7 @@ impl EditorEditWidget {
             grid_size: ValueWidget::new("Grid size", 16.0, 2.0..=32.0, 1.0),
 
             light: TextWidget::new("Light"),
+            light_delete: ButtonWidget::new("delete"),
             light_danger: CheckboxWidget::new("Danger"),
             light_fade_in: ValueWidget::new("Fade in", r32(1.0), r32(0.25)..=r32(25.0), r32(0.25)),
             light_fade_out: ValueWidget::new(
@@ -74,6 +77,7 @@ impl EditorEditWidget {
             prev_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_left),
             current_waypoint: TextWidget::new("0"),
             next_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_right),
+            waypoint_delete: ButtonWidget::new("delete"),
             waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
             waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
@@ -124,7 +128,7 @@ impl StatefulWidget for EditorEditWidget {
         let mut main = main
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
             .extend_up(-layout_size);
-        let left_bar = main.cut_left(font_size * 5.0);
+        let mut left_bar = main.cut_left(font_size * 5.0);
         let mut right_bar = main.cut_right(font_size * 5.0);
 
         let spacing = layout_size * 0.25;
@@ -201,11 +205,14 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.view_zoom, zoom, &mut editor.view_zoom);
             context.update_focus(self.view_zoom.state.hovered);
+
+            bar.cut_top(layout_size * 1.5);
+            left_bar = bar;
         }
 
         {
             // Spacing
-            let mut bar = right_bar;
+            let mut bar = left_bar;
 
             let placement = bar.cut_top(title_size);
             update!(self.placement, placement);
@@ -226,8 +233,8 @@ impl StatefulWidget for EditorEditWidget {
             editor.grid_size = r32(10.0 / value);
             context.update_focus(self.grid_size.state.hovered);
 
-            bar.cut_top(font_size * 1.5);
-            right_bar = bar;
+            bar.cut_top(layout_size * 1.5);
+            // left_bar = bar;
         }
 
         {
@@ -240,6 +247,7 @@ impl StatefulWidget for EditorEditWidget {
             match selected {
                 None => {
                     self.light.hide();
+                    self.light_delete.hide();
                     self.light_danger.hide();
                     self.light_fade_in.hide();
                     self.light_fade_out.hide();
@@ -250,6 +258,7 @@ impl StatefulWidget for EditorEditWidget {
                         let light = &mut light.light;
 
                         self.light.show();
+                        self.light_delete.show();
                         self.light_danger.show();
                         self.light_fade_in.show();
                         self.light_fade_out.show();
@@ -260,6 +269,10 @@ impl StatefulWidget for EditorEditWidget {
                         let light_pos = bar.cut_top(title_size);
                         update!(self.light, light_pos);
                         self.light.options.size = title_size;
+
+                        let delete = bar.cut_top(button_height);
+                        self.light_delete.update(delete, context);
+                        // NOTE: click action delayed because level_editor is borrowed
 
                         let danger_pos = bar.cut_top(button_height);
                         bar.cut_top(spacing);
@@ -295,6 +308,11 @@ impl StatefulWidget for EditorEditWidget {
 
                         bar.cut_top(spacing);
                         right_bar = bar;
+
+                        // Delayed actions
+                        if self.light_delete.text.state.clicked {
+                            level_editor.delete_light_selected();
+                        }
                     }
                 }
             }
@@ -312,6 +330,7 @@ impl StatefulWidget for EditorEditWidget {
                             self.prev_waypoint.show();
                             self.next_waypoint.show();
                             self.current_waypoint.show();
+                            self.waypoint_delete.show();
                             self.waypoint_scale.show();
                             self.waypoint_angle.show();
 
@@ -351,6 +370,10 @@ impl StatefulWidget for EditorEditWidget {
                             self.current_waypoint.update(current, context);
                             self.current_waypoint.text = (i + 1).to_string().into();
 
+                            let delete = bar.cut_top(button_height);
+                            self.waypoint_delete.update(delete, context);
+                            // NOTE: click action delayed because level_editor is borrowed
+
                             let scale = bar.cut_top(button_height);
                             bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
@@ -364,6 +387,11 @@ impl StatefulWidget for EditorEditWidget {
                             update!(self.waypoint_angle, angle, &mut value);
                             frame.rotation = Angle::from_degrees(r32(value.round()));
                             context.update_focus(self.waypoint_angle.state.hovered);
+
+                            // Delayed actions
+                            if self.waypoint_delete.text.state.clicked {
+                                level_editor.delete_waypoint_selected();
+                            }
                         }
                     }
                 }
@@ -373,6 +401,7 @@ impl StatefulWidget for EditorEditWidget {
             self.prev_waypoint.hide();
             self.next_waypoint.hide();
             self.current_waypoint.hide();
+            self.waypoint_delete.hide();
             self.waypoint_scale.hide();
             self.waypoint_angle.hide();
         }

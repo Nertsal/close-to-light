@@ -163,6 +163,7 @@ impl EditorRender {
 
         // Light
         self.ui.draw_text(&ui.light, framebuffer);
+        self.ui.draw_button(&ui.light_delete, theme, framebuffer);
         self.ui.draw_checkbox(&ui.light_danger, theme, framebuffer);
         self.ui.draw_value(&ui.light_fade_in, framebuffer);
         self.ui.draw_value(&ui.light_fade_out, framebuffer);
@@ -174,6 +175,7 @@ impl EditorRender {
         self.ui
             .draw_icon_button(&ui.next_waypoint, theme, framebuffer);
         self.ui.draw_text(&ui.current_waypoint, framebuffer);
+        self.ui.draw_button(&ui.waypoint_delete, theme, framebuffer);
         self.ui.draw_value(&ui.waypoint_scale, framebuffer);
         self.ui.draw_value(&ui.waypoint_angle, framebuffer);
 

@@ -66,61 +66,9 @@ impl EditorState {
                     }
                 }
                 geng::Key::X => {
-                    if let Some(waypoints) = &level_editor.level_state.waypoints {
-                        // Delete a waypoint
-                        if let Some(index) = waypoints.selected {
-                            if let Some(event) = level_editor.level.events.get_mut(waypoints.event)
-                            {
-                                if let Event::Light(light) = &mut event.event {
-                                    match index {
-                                        WaypointId::Initial => {
-                                            match light.light.movement.key_frames.pop_front() {
-                                                None => {
-                                                    // No waypoints -> delete the whole event
-                                                    if waypoints.event
-                                                        < level_editor.level.events.len()
-                                                    {
-                                                        level_editor
-                                                            .level
-                                                            .events
-                                                            .swap_remove(waypoints.event);
-                                                        level_editor.level_state.waypoints = None;
-                                                        level_editor.state = State::Idle;
-                                                    }
-                                                }
-                                                Some(frame) => {
-                                                    // Make the first frame the initial position
-                                                    light.light.movement.initial = frame.transform;
-                                                    event.beat += frame.lerp_time;
-                                                }
-                                            }
-                                        }
-                                        WaypointId::Frame(i) => {
-                                            if let Some(frame) =
-                                                light.light.movement.key_frames.remove(i)
-                                            {
-                                                // Offset the next one
-                                                if let Some(next) =
-                                                    light.light.movement.key_frames.get_mut(i)
-                                                {
-                                                    next.lerp_time += frame.lerp_time;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if let Some(waypoints) = &mut level_editor.level_state.waypoints {
-                                waypoints.selected = None;
-                            }
-                        }
-                    } else if let Some(index) = level_editor.selected_light {
-                        if index.event < level_editor.level.events.len() {
-                            level_editor.level.events.swap_remove(index.event);
-                        }
-                        level_editor.selected_light = None;
+                    if !level_editor.delete_waypoint_selected() {
+                        level_editor.delete_light_selected();
                     }
-                    level_editor.save_state(default());
                 }
                 geng::Key::S if ctrl => {
                     self.editor.save();
