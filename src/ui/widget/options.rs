@@ -30,6 +30,7 @@ impl OptionsButtonWidget {
                     PaletteWidget::new("Classic", Theme::classic()),
                     PaletteWidget::new("Stargazer", Theme::peach_mint()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
+                    PaletteWidget::new("Linksider", Theme::linksider()),
                 ],
             ),
         }
@@ -60,7 +61,7 @@ impl StatefulWidget for OptionsButtonWidget {
         }
 
         if self.options.state.visible {
-            let max_size = vec2(15.0, 25.0) * context.layout_size;
+            let max_size = vec2(15.0, 27.0) * context.layout_size;
             let min_size = button_size;
             let options_size = min_size + (max_size - min_size) * self.open_time.get_ratio();
             let options = position.align_aabb(options_size, vec2(1.0, 1.0));
