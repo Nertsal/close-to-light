@@ -390,6 +390,13 @@ impl UiRender {
             theme.light
         };
         self.draw_text_colored(&widget.text, color, framebuffer);
+
+        if !widget.editing && widget.state.hovered {
+            // Underline
+            let mut pos = widget.text.state.position;
+            let underline = pos.cut_bottom(pos.height() * 0.05);
+            self.draw_quad(underline, theme.highlight, framebuffer);
+        }
     }
 
     pub fn draw_notification(

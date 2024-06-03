@@ -72,7 +72,13 @@ impl Widget for InputWidget {
 
         let mut main = position;
 
-        let name_width = context.layout_size * 5.0;
+        let name_width = if self.name.text.is_empty() {
+            self.text.align(vec2(0.5, 0.5));
+            0.0
+        } else {
+            self.text.align(vec2(1.0, 0.5));
+            (context.layout_size * 5.0).min(main.width() / 2.0)
+        };
         let name = main.cut_left(name_width);
         self.name.update(name, context);
         self.text.update(main, context);

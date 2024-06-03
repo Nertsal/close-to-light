@@ -39,7 +39,7 @@ impl EditorConfigWidget {
 
             music: TextWidget::new("Music"),
             level: TextWidget::new("Difficulty"),
-            level_name: InputWidget::new("Name", false),
+            level_name: InputWidget::new("", false),
             level_delete: ButtonWidget::new("Delete"),
             level_create: ButtonWidget::new("Create"),
             all_levels: TextWidget::new("All Dificulties"),
@@ -152,12 +152,19 @@ impl StatefulWidget for EditorConfigWidget {
         }
 
         let max = names.len().saturating_sub(1);
-        for (i, ((icon_up, icon_down, level), level_name)) in
+        for (i, ((icon_up, icon_down, level), mut level_name)) in
             self.all_level_names.iter_mut().zip(names).enumerate()
         {
             let name = bar.cut_top(context.font_size);
             level.update(name, context);
+
+            if let Some(level_editor) = &state.level_edit {
+                if level_editor.static_level.level_index == i {
+                    level_name = self.level_name.text.text.clone();
+                }
+            }
             level.text = level_name;
+
             if level.state.clicked {
                 if state.is_changed() {
                     state.popup_confirm(
