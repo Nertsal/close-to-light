@@ -31,6 +31,8 @@ const DISCORD_URL: &str = "https://discord.com/oauth2/authorize?client_id=124209
 
 #[derive(clap::Parser)]
 struct Opts {
+    #[clap(long)]
+    log: Option<String>,
     #[cfg(not(target_arch = "wasm32"))]
     #[command(subcommand)]
     command: Option<command::Command>,
@@ -75,10 +77,27 @@ fn main() {
 }
 
 async fn async_main() {
-    logger::init();
-    geng::setup_panic_handler();
-
     let opts: Opts = batbox::cli::parse();
+
+    let mut builder = logger::builder();
+    builder.filter_level(
+        if let Some(level) = opts.log.as_deref().or(option_env!("LOG")) {
+            match level {
+                "debug" => log::LevelFilter::Debug,
+                "info" => log::LevelFilter::Info,
+                "warn" => log::LevelFilter::Warn,
+                "error" => log::LevelFilter::Error,
+                "off" => log::LevelFilter::Off,
+                _ => panic!("invalid log level string"),
+            }
+        } else if cfg!(debug_assertions) {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        },
+    );
+    logger::init_with(builder).expect("failed to init logger");
+    geng::setup_panic_handler();
 
     let mut options = geng::ContextOptions::default();
     options.window.title = "Geng Game".to_string();
@@ -103,13 +122,26 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     let options: Options = preferences::load(OPTIONS_STORAGE).unwrap_or_default();
 
     let secrets: Option<Secrets> =
-        geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &())
-            .await
-            .ok();
+        match geng::asset::Load::load(manager, &run_dir().join("secrets.toml"), &()).await {
+            Ok(secrets) => {
+                log::debug!("Successfully loaded secrets.toml");
+                Some(secrets)
+            }
+            Err(err) => {
+                log::debug!("Failed to load secrets.toml: {:?}", err);
+                None
+            }
+        };
     let secrets = secrets.or_else(|| {
+        let url = option_env!("LEADERBOARD_URL");
+        if url.is_none() {
+            log::debug!("LEADERBOARD_URL environment variable is not set, launching offline");
+            return None;
+        }
+        log::debug!("Loaded LEADERBOARD_URL");
         Some(Secrets {
             leaderboard: LeaderboardSecrets {
-                url: option_env!("LEADERBOARD_URL")?.to_string(),
+                url: url?.to_string(),
             },
         })
     });
