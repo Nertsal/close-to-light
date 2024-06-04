@@ -1,17 +1,29 @@
 use super::*;
 
-use crate::prelude::*;
+use crate::{
+    editor::{LevelEditor, LightId},
+    prelude::*,
+};
+
+use std::collections::BTreeMap;
 
 pub struct TimelineWidget {
     context: UiContext,
     pub state: WidgetState,
+
     pub current_beat: WidgetState,
+
     /// Start of the selection.
     pub left: WidgetState,
     /// End of the selection.
     pub right: WidgetState,
     /// Replay current position.
     pub replay: WidgetState,
+
+    pub lights: BTreeMap<Time, Vec<(LightId, WidgetState)>>,
+    pub selected: WidgetState,
+    pub waypoints: Vec<(WaypointId, WidgetState)>,
+
     /// Render scale in pixels per beat.
     scale: f32,
     /// The scrolloff in beats.
@@ -20,6 +32,9 @@ pub struct TimelineWidget {
     raw_left: Option<Time>,
     raw_right: Option<Time>,
     raw_replay: Option<Time>,
+    level: Level, // TODO: reuse existing
+    selected_light: Option<LightId>,
+    selected_waypoint: Option<WaypointId>,
 }
 
 impl TimelineWidget {
@@ -38,16 +53,26 @@ impl TimelineWidget {
                 context,
             },
             state: default(),
+
             current_beat: default(),
+
             left: default(),
             right: default(),
             replay: default(),
+
+            lights: BTreeMap::new(),
+            selected: WidgetState::new(),
+            waypoints: Vec::new(),
+
             scale: 15.0,
             scroll: Time::ZERO,
             raw_current_beat: Time::ZERO,
             raw_left: None,
             raw_right: None,
             raw_replay: None,
+            level: Level::new(),
+            selected_light: None,
+            selected_waypoint: None,
         }
     }
 
@@ -136,6 +161,49 @@ impl TimelineWidget {
         self.current_beat
             .update(render_time(self.raw_current_beat), &self.context);
 
+        self.lights.clear();
+        self.waypoints.clear();
+        self.selected.hide();
+        let height = self.context.font_size * 0.4;
+        for (i, event) in self.level.events.iter().enumerate() {
+            if let Event::Light(light) = &event.event {
+                let time = event.beat + light.telegraph.precede_time;
+                let id = LightId { event: i };
+                if Some(id) == self.selected_light {
+                    let from = render_time(time).center();
+                    let to = render_time(time + light.light.movement.total_duration())
+                        .center()
+                        .x;
+                    let selected = Aabb2::point(from)
+                        .extend_right(to - from.x)
+                        .extend_symmetric(vec2(0.0, 0.1) * self.context.font_size / 2.0);
+                    self.selected.show();
+                    self.selected.update(selected, &self.context);
+
+                    let size = vec2(0.25, 0.5) * self.context.font_size;
+                    for (id, _, offset) in light.light.movement.timed_positions() {
+                        let mut state = WidgetState::new();
+                        let position = render_time(time + offset).center();
+                        let position = Aabb2::point(position).extend_symmetric(size / 2.0);
+                        state.update(position, &self.context);
+                        self.waypoints.push((id, state));
+                    }
+                }
+
+                let lights = self.lights.entry(time).or_default();
+
+                let mut state = WidgetState::new();
+                let position = render_time(time).center();
+                let position = Aabb2::point(position)
+                    .extend_symmetric(vec2(height, 0.0) / 2.0)
+                    .extend_down(height)
+                    .translate(-vec2(0.0, height * lights.len() as f32));
+                state.update(position, &self.context);
+
+                lights.push((id, state));
+            }
+        }
+
         let render_option = |widget: &mut WidgetState, time: Option<Time>| match time {
             Some(time) => {
                 widget.show();
@@ -161,14 +229,23 @@ impl TimelineWidget {
     }
 }
 
-impl Widget for TimelineWidget {
+impl StatefulWidget for TimelineWidget {
+    type State = LevelEditor;
+
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
         self.state.update(position, context);
         self.context = context.clone();
+        self.level = state.level.clone();
+        self.selected_light = state.selected_light;
+        self.selected_waypoint = state
+            .level_state
+            .waypoints
+            .as_ref()
+            .and_then(|waypoints| waypoints.selected);
         self.reload();
     }
 }

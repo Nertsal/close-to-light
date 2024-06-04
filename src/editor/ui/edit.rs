@@ -123,7 +123,7 @@ impl EditorEditWidget {
             waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
             waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
 
-            current_beat: default(),
+            current_beat: TextWidget::default().aligned(vec2(0.5, 0.0)),
             timeline: TimelineWidget::new(context.clone()),
         }
     }
@@ -486,13 +486,13 @@ impl StatefulWidget for EditorEditWidget {
         }
 
         {
-            let current_beat = bottom_bar.cut_top(font_size * 1.5);
+            let current_beat = bottom_bar.cut_top(font_size * 1.0);
             update!(self.current_beat, current_beat);
             self.current_beat.text = format!("Beat: {:.2}", level_editor.current_beat).into();
 
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
-            update!(self.timeline, timeline);
+            update!(self.timeline, timeline, level_editor);
 
             if self.timeline.state.pressed {
                 let time = self.timeline.get_cursor_time();

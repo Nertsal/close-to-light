@@ -1,3 +1,5 @@
+use crate::ui::layout::AreaOps;
+
 use super::*;
 
 impl EditorRender {
@@ -206,48 +208,100 @@ impl EditorRender {
                 );
             }
 
-            // All lights
-            for event in &level_editor.level.events {
-                let from_time = event.beat;
-                if let Event::Light(event) = &event.event {
-                    let from_time = from_time + event.telegraph.precede_time;
-                    // let to_time = from_time + event.light.movement.total_duration();
-
-                    let from = ui.timeline.time_to_screen(from_time);
-                    let timespan =
-                        Aabb2::point(from).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
-                    quad(timespan, crate::util::with_alpha(theme.highlight, 0.7));
-                }
+            if ui.timeline.selected.visible {
+                quad(ui.timeline.selected.position, theme.highlight);
             }
 
-            // Selected light timespan
-            let event = if let State::Waypoints { event, .. } = level_editor.state {
-                Some(event)
-            } else {
-                level_editor.selected_light.map(|id| id.event)
+            let triangle = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
+                let vertices = [
+                    aabb.align_pos(vec2(0.5, 1.0)),
+                    aabb.bottom_left(),
+                    aabb.bottom_right(),
+                ]
+                .map(|a_pos| draw2d::ColoredVertex {
+                    a_pos,
+                    a_color: Rgba::WHITE,
+                });
+                self.geng.draw2d().draw(
+                    framebuffer,
+                    camera,
+                    &vertices,
+                    color,
+                    ugli::DrawMode::Triangles,
+                );
             };
-            if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
-                let from_time = event.beat;
-                if let Event::Light(event) = &event.event {
-                    let from_time = from_time + event.telegraph.precede_time;
-                    let to_time = from_time + event.light.movement.total_duration();
+            let diamond = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
+                let vertices = [
+                    aabb.align_pos(vec2(0.0, 0.5)),
+                    aabb.align_pos(vec2(0.5, 0.0)),
+                    aabb.align_pos(vec2(1.0, 0.5)),
+                    aabb.align_pos(vec2(0.5, 1.0)),
+                ]
+                .map(|a_pos| draw2d::ColoredVertex {
+                    a_pos,
+                    a_color: Rgba::WHITE,
+                });
+                self.geng.draw2d().draw(
+                    framebuffer,
+                    camera,
+                    &vertices,
+                    color,
+                    ugli::DrawMode::TriangleFan,
+                );
+            };
 
-                    let from = ui.timeline.time_to_screen(from_time);
-                    let to = ui.timeline.time_to_screen(to_time);
-                    let timespan = Aabb2::point(from)
-                        .extend_right(to.x - from.x)
-                        .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
-                    quad(timespan, theme.highlight);
-
-                    for (_, _, time) in event.light.movement.timed_positions() {
-                        let time = from_time + time;
-                        let point = ui.timeline.time_to_screen(time);
-                        let timespan =
-                            Aabb2::point(point).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
-                        quad(timespan, theme.highlight);
-                    }
-                }
+            // All lights
+            for (id, light) in ui.timeline.lights.values().flatten() {
+                let color = if level_editor.selected_light == Some(*id) {
+                    theme.highlight
+                } else if level_editor.level.events.get(id.event).map_or(
+                    false,
+                    |event| match &event.event {
+                        Event::Light(light) => light.light.danger,
+                        _ => false,
+                    },
+                ) {
+                    theme.danger
+                } else {
+                    theme.light
+                };
+                triangle(light.position, color, framebuffer);
             }
+            // Waypoints
+            for (_, waypoint) in &ui.timeline.waypoints {
+                diamond(waypoint.position, theme.highlight, framebuffer);
+            }
+
+            // // Selected light timespan
+            // let event = if let State::Waypoints { event, .. } = level_editor.state {
+            //     Some(event)
+            // } else {
+            //     level_editor.selected_light.map(|id| id.event)
+            // };
+            // if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
+            //     let from_time = event.beat;
+            //     if let Event::Light(event) = &event.event {
+            //         let from_time = from_time + event.telegraph.precede_time;
+            //         let to_time = from_time + event.light.movement.total_duration();
+
+            //         let from = ui.timeline.time_to_screen(from_time);
+            //         let to = ui.timeline.time_to_screen(to_time);
+            //         let timespan = Aabb2::point(from)
+            //             .extend_right(to.x - from.x)
+            //             .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
+            //         quad(timespan, theme.highlight);
+
+            //         for (_, _, time) in event.light.movement.timed_positions() {
+            //             let time = from_time + time;
+            //             let point = ui.timeline.time_to_screen(time);
+            //             let timespan =
+            //                 Aabb2::point(point).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
+            //             quad(timespan, theme.highlight);
+            //         }
+            //     }
+            // }
+
+            let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
 
             // Selected bounds
             if ui.timeline.left.visible {
