@@ -75,7 +75,7 @@ impl EditorRender {
                     } else {
                         light_color
                     };
-                    let mod_color = if check(selected_event) {
+                    let mod_color = if !editor.show_only_selected && check(selected_event) {
                         select_color
                     } else if check(hovered_event) {
                         hover_color

@@ -185,6 +185,24 @@ impl LevelEditor {
         editor
     }
 
+    pub fn select_waypoint(&mut self, light_id: LightId, waypoint_id: WaypointId) {
+        self.selected_light = Some(light_id);
+        if let Some(waypoints) = &mut self.level_state.waypoints {
+            waypoints.selected = Some(waypoint_id);
+        } else {
+            self.state = State::Waypoints {
+                event: light_id.event,
+                state: WaypointsState::Idle,
+            };
+            self.level_state.waypoints = Some(Waypoints {
+                event: light_id.event,
+                points: Vec::new(),
+                hovered: None,
+                selected: Some(waypoint_id),
+            });
+        }
+    }
+
     fn delete_light_selected(&mut self) -> bool {
         let Some(id) = self.selected_light else {
             return false;

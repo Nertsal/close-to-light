@@ -82,7 +82,7 @@ impl TimelineWidget {
 
     pub fn rescale(&mut self, new_scale: f32) {
         self.scale = new_scale;
-        self.reload();
+        self.reload(None);
     }
 
     // pub fn auto_scale(&mut self, max_beat: Time) {
@@ -101,13 +101,13 @@ impl TimelineWidget {
 
     pub fn scroll(&mut self, delta: Time) {
         self.scroll += delta;
-        self.reload();
+        self.reload(None);
     }
 
     pub fn update_time(&mut self, current_beat: Time, replay: Option<Time>) {
         self.raw_current_beat = current_beat;
         self.raw_replay = replay;
-        self.reload();
+        self.reload(None);
 
         // Auto scroll if current beat goes off screen
         let margin = 50.0;
@@ -121,19 +121,19 @@ impl TimelineWidget {
         } else if current > max {
             self.scroll(r32((max - current) / self.scale));
         }
-        self.reload();
+        self.reload(None);
     }
 
     pub fn start_selection(&mut self) {
         self.raw_left = Some(self.raw_current_beat);
-        self.reload();
+        self.reload(None);
     }
 
     /// Finishes the selection and returns the left and right boundaries in ascending order.
     pub fn end_selection(&mut self) -> (Time, Time) {
         let right = self.raw_current_beat;
         self.raw_right = Some(right);
-        self.reload();
+        self.reload(None);
 
         let left = self.raw_left.unwrap_or(right);
         if left < right {
@@ -146,10 +146,10 @@ impl TimelineWidget {
     pub fn clear_selection(&mut self) {
         self.raw_left = None;
         self.raw_right = None;
-        self.reload();
+        self.reload(None);
     }
 
-    fn reload(&mut self) {
+    fn reload(&mut self, mut editor: Option<&mut LevelEditor>) {
         let render_time = |time: Time| {
             let pos = (time + self.scroll).as_f32() * self.scale;
             let pos = vec2(
@@ -168,8 +168,8 @@ impl TimelineWidget {
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light) = &event.event {
                 let time = event.beat + light.telegraph.precede_time;
-                let id = LightId { event: i };
-                if Some(id) == self.selected_light {
+                let light_id = LightId { event: i };
+                if Some(light_id) == self.selected_light {
                     let from = render_time(time).center();
                     let to = render_time(time + light.light.movement.total_duration())
                         .center()
@@ -181,12 +181,17 @@ impl TimelineWidget {
                     self.selected.update(selected, &self.context);
 
                     let size = vec2(0.25, 0.5) * self.context.font_size;
-                    for (id, _, offset) in light.light.movement.timed_positions() {
+                    for (waypoint_id, _, offset) in light.light.movement.timed_positions() {
                         let mut state = WidgetState::new();
                         let position = render_time(time + offset).center();
                         let position = Aabb2::point(position).extend_symmetric(size / 2.0);
                         state.update(position, &self.context);
-                        self.waypoints.push((id, state));
+                        if state.clicked {
+                            if let Some(editor) = &mut editor {
+                                editor.select_waypoint(light_id, waypoint_id);
+                            }
+                        }
+                        self.waypoints.push((waypoint_id, state));
                     }
                 }
 
@@ -197,10 +202,16 @@ impl TimelineWidget {
                 let position = Aabb2::point(position)
                     .extend_symmetric(vec2(height, 0.0) / 2.0)
                     .extend_down(height)
-                    .translate(-vec2(0.0, height * lights.len() as f32));
+                    .translate(-vec2(0.0, height * (lights.len() as f32 + 0.2)));
                 state.update(position, &self.context);
+                if state.clicked {
+                    if let Some(editor) = &mut editor {
+                        editor.selected_light = Some(light_id);
+                        editor.level_state.waypoints = None;
+                    }
+                }
 
-                lights.push((id, state));
+                lights.push((light_id, state));
             }
         }
 
@@ -219,14 +230,6 @@ impl TimelineWidget {
     pub fn get_cursor_time(&self) -> Time {
         r32((self.context.cursor.position.x - self.state.position.min.x) / self.scale) - self.scroll
     }
-
-    pub fn time_to_screen(&self, t: Time) -> vec2<f32> {
-        let pos = (t + self.scroll).as_f32() * self.scale;
-        vec2(
-            self.state.position.min.x + pos,
-            self.state.position.center().y,
-        )
-    }
 }
 
 impl StatefulWidget for TimelineWidget {
@@ -237,7 +240,10 @@ impl StatefulWidget for TimelineWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
-        self.state.update(position, context);
+        let bar =
+            position.extend_symmetric(vec2(0.0, context.font_size * 0.2 - position.height()) / 2.0);
+        self.state.update(bar, context);
+
         self.context = context.clone();
         self.level = state.level.clone();
         self.selected_light = state.selected_light;
@@ -246,6 +252,6 @@ impl StatefulWidget for TimelineWidget {
             .waypoints
             .as_ref()
             .and_then(|waypoints| waypoints.selected);
-        self.reload();
+        self.reload(Some(state));
     }
 }
