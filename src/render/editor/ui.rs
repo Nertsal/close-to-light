@@ -18,8 +18,6 @@ impl EditorRender {
         }
 
         if ui.edit.state.visible {
-            self.draw_tab_edit(editor, &ui.edit, options);
-
             let framebuffer =
                 &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
@@ -32,6 +30,8 @@ impl EditorRender {
                 camera,
                 framebuffer,
             );
+
+            self.draw_tab_edit(editor, &ui.edit, options);
         }
 
         let framebuffer =
@@ -146,6 +146,7 @@ impl EditorRender {
         // self.ui.draw_button(&ui.new_palette, theme, framebuffer);
         self.ui.draw_button(&ui.new_circle, theme, framebuffer);
         self.ui.draw_button(&ui.new_line, theme, framebuffer);
+        self.ui.draw_button(&ui.new_waypoint, theme, framebuffer);
 
         // View
         self.ui.draw_text(&ui.view, framebuffer);
@@ -263,6 +264,21 @@ impl EditorRender {
                 );
             }
             quad(ui.timeline.current_beat.position, theme.light);
+        }
+
+        // Tooltip
+        if ui.tooltip.state.visible {
+            let position = ui.tooltip.state.position;
+            let width = self.font_size * 0.1;
+            self.ui.fill_quad(
+                position.extend_uniform(width / 2.0),
+                theme.dark,
+                framebuffer,
+            );
+            self.ui.draw_text(&ui.tooltip.title, framebuffer);
+            self.ui.draw_text(&ui.tooltip.text, framebuffer);
+            self.ui
+                .draw_outline(position, width, theme.light, framebuffer);
         }
     }
 }

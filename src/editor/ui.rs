@@ -76,6 +76,7 @@ impl EditorUI {
 
         context.font_size = font_size;
         context.layout_size = layout_size;
+        context.screen = screen;
 
         self.screen.update(screen, context);
 

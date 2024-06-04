@@ -770,6 +770,12 @@ impl LevelEditor {
         };
     }
 
+    fn new_waypoint(&mut self) {
+        if let State::Waypoints { state, .. } = &mut self.state {
+            *state = WaypointsState::New;
+        }
+    }
+
     fn view_waypoints(&mut self) {
         match self.state {
             State::Idle => {

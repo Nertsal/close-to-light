@@ -1,7 +1,46 @@
 use super::*;
 
+#[derive(Debug, Clone)]
+pub struct TooltipWidget {
+    pub state: WidgetState,
+    pub title: TextWidget,
+    pub text: TextWidget,
+}
+
+impl TooltipWidget {
+    pub fn new() -> Self {
+        Self {
+            state: WidgetState::new(),
+            title: TextWidget::new("shortcut"),
+            text: TextWidget::new("tip").aligned(vec2(0.5, 0.0)),
+        }
+    }
+
+    pub fn update(&mut self, anchor: &WidgetState, tip: impl Into<Name>, context: &mut UiContext) {
+        if !anchor.hovered {
+            return;
+        }
+        self.state.show();
+        let mut position = Aabb2::point(anchor.position.top_right())
+            .extend_positive(vec2::splat(context.font_size * 1.5));
+        if position.max.x >= context.screen.max.x {
+            position = position.translate(vec2(-anchor.position.width() - position.width(), 0.0));
+        }
+        self.state.update(position, context);
+
+        let position = position.extend_uniform(-context.font_size * 0.2);
+
+        let title = position.clone().cut_top(context.font_size * 0.3);
+        self.title.update(title, &mut context.scale_font(0.7));
+
+        self.text.text = tip.into();
+        self.text.update(position, &mut context.scale_font(0.9));
+    }
+}
+
 pub struct EditorEditWidget {
     pub state: WidgetState,
+    pub tooltip: TooltipWidget,
 
     pub warn_select_level: TextWidget,
 
@@ -9,6 +48,7 @@ pub struct EditorEditWidget {
     // pub new_palette: ButtonWidget, // TODO: reimplement
     pub new_circle: ButtonWidget,
     pub new_line: ButtonWidget,
+    pub new_waypoint: ButtonWidget,
 
     pub view: TextWidget,
     pub show_only_selected: CheckboxWidget,
@@ -44,6 +84,7 @@ impl EditorEditWidget {
         let assets = &context.assets;
         Self {
             state: WidgetState::new(),
+            tooltip: TooltipWidget::new(),
 
             warn_select_level: TextWidget::new("Select or create a difficulty in the Config tab"),
 
@@ -51,6 +92,7 @@ impl EditorEditWidget {
             // new_palette: ButtonWidget::new("Palette Swap"),
             new_circle: ButtonWidget::new("Circle"),
             new_line: ButtonWidget::new("Line"),
+            new_waypoint: ButtonWidget::new("Add waypoint"),
 
             view: TextWidget::new("View"),
             show_only_selected: CheckboxWidget::new("Only selected"),
@@ -107,6 +149,7 @@ impl StatefulWidget for EditorEditWidget {
             return;
         };
 
+        self.tooltip.state.hide();
         self.warn_select_level.hide();
 
         let mut main = position;
@@ -142,25 +185,50 @@ impl StatefulWidget for EditorEditWidget {
             update!(self.new_event, event);
             self.new_event.options.size = title_size;
 
-            // let palette = bar.cut_top(button_height);
-            // bar.cut_top(spacing);
-            // update!(self.new_palette, palette);
-            // if self.new_palette.text.state.clicked {
-            //     level_editor.palette_swap();
-            // }
+            if level_editor.level_state.waypoints.is_some() {
+                self.new_circle.hide();
+                self.new_line.hide();
+                self.new_waypoint.show();
 
-            let circle = bar.cut_top(button_height);
-            bar.cut_top(spacing);
-            update!(self.new_circle, circle);
-            if self.new_circle.text.state.clicked {
-                level_editor.new_light_circle();
-            }
+                let waypoint = bar.cut_top(button_height);
+                bar.cut_top(spacing);
+                self.new_waypoint.update(waypoint, context);
+                if self.new_waypoint.text.state.clicked {
+                    level_editor.new_waypoint();
+                }
+                self.tooltip
+                    .update(&self.new_waypoint.text.state, "1", context);
 
-            let line = bar.cut_top(button_height);
-            bar.cut_top(spacing);
-            update!(self.new_line, line);
-            if self.new_line.text.state.clicked {
-                level_editor.new_light_line();
+                bar.cut_top(button_height);
+                bar.cut_top(spacing);
+            } else {
+                self.new_circle.show();
+                self.new_line.show();
+                self.new_waypoint.hide();
+
+                // let palette = bar.cut_top(button_height);
+                // bar.cut_top(spacing);
+                // update!(self.new_palette, palette);
+                // if self.new_palette.text.state.clicked {
+                //     level_editor.palette_swap();
+                // }
+
+                let circle = bar.cut_top(button_height);
+                bar.cut_top(spacing);
+                update!(self.new_circle, circle);
+                if self.new_circle.text.state.clicked {
+                    level_editor.new_light_circle();
+                }
+                self.tooltip
+                    .update(&self.new_circle.text.state, "1", context);
+
+                let line = bar.cut_top(button_height);
+                bar.cut_top(spacing);
+                update!(self.new_line, line);
+                if self.new_line.text.state.clicked {
+                    level_editor.new_light_line();
+                }
+                self.tooltip.update(&self.new_line.text.state, "2", context);
             }
 
             bar.cut_top(layout_size * 1.5);
@@ -185,6 +253,8 @@ impl StatefulWidget for EditorEditWidget {
                 editor.visualize_beat = !editor.visualize_beat;
             }
             self.visualize_beat.checked = editor.visualize_beat;
+            self.tooltip
+                .update(&self.visualize_beat.state, "F", context);
 
             let grid = bar.cut_top(font_size);
             bar.cut_top(spacing);
@@ -193,6 +263,7 @@ impl StatefulWidget for EditorEditWidget {
                 editor.render_options.show_grid = !editor.render_options.show_grid;
             }
             self.show_grid.checked = editor.render_options.show_grid;
+            self.tooltip.update(&self.show_grid.state, "C-~", context);
 
             // let waypoints = bar.cut_top(button_height);
             // bar.cut_top(spacing);
@@ -225,6 +296,7 @@ impl StatefulWidget for EditorEditWidget {
                 editor.snap_to_grid = !editor.snap_to_grid;
             }
             self.snap_grid.checked = editor.snap_to_grid;
+            self.tooltip.update(&self.snap_grid.state, "~", context);
 
             let grid_size = bar.cut_top(button_height);
             bar.cut_top(spacing);
@@ -273,6 +345,8 @@ impl StatefulWidget for EditorEditWidget {
                         let delete = bar.cut_top(button_height);
                         self.light_delete.update(delete, context);
                         // NOTE: click action delayed because level_editor is borrowed
+                        self.tooltip
+                            .update(&self.light_delete.text.state, "X", context);
 
                         let danger_pos = bar.cut_top(button_height);
                         bar.cut_top(spacing);
@@ -281,6 +355,7 @@ impl StatefulWidget for EditorEditWidget {
                             light.danger = !light.danger;
                         }
                         self.light_danger.checked = light.danger;
+                        self.tooltip.update(&self.light_danger.state, "D", context);
 
                         let fade_in = bar.cut_top(button_height);
                         bar.cut_top(spacing);
@@ -373,6 +448,8 @@ impl StatefulWidget for EditorEditWidget {
                             let delete = bar.cut_top(button_height);
                             self.waypoint_delete.update(delete, context);
                             // NOTE: click action delayed because level_editor is borrowed
+                            self.tooltip
+                                .update(&self.waypoint_delete.text.state, "X", context);
 
                             let scale = bar.cut_top(button_height);
                             bar.cut_top(spacing);
@@ -387,6 +464,8 @@ impl StatefulWidget for EditorEditWidget {
                             update!(self.waypoint_angle, angle, &mut value);
                             frame.rotation = Angle::from_degrees(r32(value.round()));
                             context.update_focus(self.waypoint_angle.state.hovered);
+                            self.tooltip
+                                .update(&self.waypoint_angle.state, "Q/E", context);
 
                             // Delayed actions
                             if self.waypoint_delete.text.state.clicked {
