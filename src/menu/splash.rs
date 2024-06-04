@@ -78,7 +78,7 @@ trigger seizures for people with photosensitive epilepsy
         if self.time.as_f32() > TRANSITION_TIME {
             self.transition = Some(geng::state::Transition::Switch(Box::new(MainMenu::new(
                 self.context.clone(),
-                self.client.take(),
+                self.client.as_ref(),
             ))));
         }
     }

@@ -286,34 +286,7 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                {
-                    // Profile
-                    let ui = &ui.options.profile;
-                    self.ui.draw_text(&ui.offline, framebuffer);
-
-                    let register = &ui.register;
-                    if register.state.visible {
-                        // self.ui.draw_input(&register.username, framebuffer);
-                        // self.ui.draw_input(&register.password, framebuffer);
-                        // self.ui.draw_button(&register.login, framebuffer);
-                        // self.ui.draw_button(&register.register, framebuffer);
-                        self.ui.draw_text(&register.login_with, framebuffer);
-                        self.ui
-                            .draw_icon(&register.discord.icon, theme, framebuffer);
-                    }
-
-                    let logged = &ui.logged;
-                    if logged.state.visible {
-                        self.ui.draw_text(&logged.username, framebuffer);
-                        self.ui.draw_toggle_button(
-                            &logged.logout,
-                            false,
-                            false,
-                            theme,
-                            framebuffer,
-                        );
-                    }
-                }
+                self.ui.draw_profile(&ui.options.profile, framebuffer);
 
                 self.ui
                     .draw_quad(ui.options.separator.position, theme.light, framebuffer);

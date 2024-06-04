@@ -26,7 +26,9 @@ const OPTIONS_STORAGE: &str = "options";
 const HIGHSCORES_STORAGE: &str = "highscores";
 const PLAYER_LOGIN_STORAGE: &str = "user";
 
-const DISCORD_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&scope=identify";
+const DISCORD_LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&scope=identify";
+
+const DISCORD_SERVER_URL: &str = "https://discord.gg/Aq9bTvSbFN";
 
 #[derive(clap::Parser)]
 struct Opts {
@@ -270,7 +272,8 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     } else {
         // Main menu
         if opts.skip_intro {
-            let state = menu::LevelMenu::new(context, client.as_ref());
+            let leaderboard = leaderboard::Leaderboard::new(&geng, client.as_ref());
+            let state = menu::LevelMenu::new(context, leaderboard);
             geng.run_state(state).await;
         } else {
             let state = menu::SplashScreen::new(context, client.as_ref());

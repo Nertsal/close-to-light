@@ -657,4 +657,25 @@ impl UiRender {
             framebuffer,
         );
     }
+
+    pub fn draw_profile(&self, ui: &ProfileWidget, framebuffer: &mut ugli::Framebuffer) {
+        let theme = self.context.get_options().theme;
+        self.draw_text(&ui.offline, framebuffer);
+
+        let register = &ui.register;
+        if register.state.visible {
+            // self.draw_input(&register.username, framebuffer);
+            // self.draw_input(&register.password, framebuffer);
+            // self.draw_button(&register.login, framebuffer);
+            // self.draw_button(&register.register, framebuffer);
+            self.draw_text(&register.login_with, framebuffer);
+            self.draw_icon(&register.discord.icon, theme, framebuffer);
+        }
+
+        let logged = &ui.logged;
+        if logged.state.visible {
+            self.draw_text(&logged.username, framebuffer);
+            self.draw_toggle_button(&logged.logout, false, false, theme, framebuffer);
+        }
+    }
 }

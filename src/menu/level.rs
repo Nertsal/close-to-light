@@ -194,13 +194,11 @@ impl MenuState {
 }
 
 impl LevelMenu {
-    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
+    pub fn new(context: Context, leaderboard: Leaderboard) -> Self {
         let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
             r32(0.0),
         );
-
-        let leaderboard = Leaderboard::new(&context.geng, client);
 
         let mut state = Self {
             render: MenuRender::new(context.clone()),
@@ -555,8 +553,6 @@ impl geng::State for LevelMenu {
                     framebuffer,
                 );
             };
-
-            if pixelated {}
         }
         self.ui_context.frame_end();
 

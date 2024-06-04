@@ -157,7 +157,7 @@ impl Leaderboard {
                 let redirect_uri = client.url.join("auth/discord")?;
                 let url = format!(
                     "{}&state={}&redirect_uri={}",
-                    crate::DISCORD_URL,
+                    crate::DISCORD_LOGIN_URL,
                     state,
                     redirect_uri
                 );

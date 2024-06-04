@@ -196,6 +196,7 @@ impl UiContext {
 
     /// Should be called before layout.
     /// Updates input values.
+    // TODO: use window from context
     pub fn update(&mut self, window: &geng::Window, delta_time: f32) {
         self.delta_time = delta_time;
         self.cursor.update(

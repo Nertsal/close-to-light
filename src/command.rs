@@ -261,7 +261,7 @@ async fn login(client: &Nertboard) -> Result<()> {
         log::debug!("logged in as {}", user.name);
     } else {
         let state = Uuid::new_v4().to_string();
-        webbrowser::open(&format!("{}&state={}", crate::DISCORD_URL, state))?;
+        webbrowser::open(&format!("{}&state={}", crate::DISCORD_LOGIN_URL, state))?;
         let user = client
             .login_external(state)
             .await?
