@@ -81,6 +81,15 @@ impl TimelineWidget {
     }
 
     pub fn rescale(&mut self, new_scale: f32) {
+        if new_scale.approx_eq(&0.0) {
+            return;
+        }
+
+        // scroll so that current beat stays in-place
+        let min = self.state.position.min.x;
+        let current = self.current_beat.position.center().x;
+        self.scroll = r32(current - min) / r32(new_scale) - self.raw_current_beat;
+
         self.scale = new_scale;
         self.reload(None);
     }
