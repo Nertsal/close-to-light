@@ -448,6 +448,11 @@ impl geng::State for EditorState {
         let delta_time = Time::new(delta_time as f32);
         self.delta_time = delta_time;
 
+        self.context
+            .geng
+            .window()
+            .set_cursor_type(geng::CursorType::Default);
+
         if self.transition.is_none() && std::mem::take(&mut self.stop_music_next_frame) {
             self.context.music.stop();
         }

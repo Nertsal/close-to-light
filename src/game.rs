@@ -135,6 +135,12 @@ impl geng::State for Game {
     fn update(&mut self, delta_time: f64) {
         let delta_time = Time::new(delta_time as _);
         self.delta_time = delta_time;
+
+        self.context
+            .geng
+            .window()
+            .set_cursor_type(geng::CursorType::None);
+
         self.model.leaderboard.poll();
         if let Some(player) = self.model.leaderboard.loaded.player {
             self.model.player.info.id = player;

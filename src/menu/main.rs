@@ -108,6 +108,11 @@ impl geng::State for MainMenu {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
 
+        self.context
+            .geng
+            .window()
+            .set_cursor_type(geng::CursorType::None);
+
         self.ui_context
             .update(self.context.geng.window(), delta_time.as_f32());
 

@@ -606,6 +606,11 @@ impl geng::State for LevelMenu {
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
 
+        self.context
+            .geng
+            .window()
+            .set_cursor_type(geng::CursorType::None);
+
         let options = self.context.get_options();
 
         self.ui_context
