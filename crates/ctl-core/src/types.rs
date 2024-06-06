@@ -76,7 +76,7 @@ impl GroupInfo {
         authors.sort();
         authors.dedup();
 
-        itertools::Itertools::intersperse(authors.into_iter(), ",").collect::<String>()
+        itertools::Itertools::intersperse(authors.into_iter(), ", ").collect::<String>()
     }
 }
 
