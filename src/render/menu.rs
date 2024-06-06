@@ -142,6 +142,13 @@ impl MenuRender {
 
         if ui.tab_music.selected {
             for music in &ui.grid_music {
+                self.ui.draw_icon(&music.edited, theme, framebuffer);
+                self.ui.draw_outline(
+                    music.state.position,
+                    self.font_size * 0.2,
+                    theme.light,
+                    framebuffer,
+                );
                 let selected =
                     state.selected_music.as_ref().map(|m| m.data) == Some(music.music.meta.id);
                 self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);

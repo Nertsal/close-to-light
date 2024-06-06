@@ -198,8 +198,6 @@ impl LevelSelectUI {
             widget.text.text = cache.meta.name.clone();
         }
 
-        drop(local);
-
         // Layout
         let columns = 3;
         let rows = self.grid_music.len() / columns + 1;
@@ -235,6 +233,24 @@ impl LevelSelectUI {
                 .iter_mut()
                 .zip(layout.into_iter().skip(skip))
             {
+                // Check edited
+                let edited = local
+                    .inner
+                    .borrow()
+                    .groups
+                    .iter()
+                    .filter(|(_, group)| group.data.music == widget.music.meta.id)
+                    .any(|(_, group)| {
+                        group.data.id == 0
+                            || group.origin.as_ref().map(|info| &info.hash) != Some(&group.hash)
+                    });
+                if edited {
+                    widget.edited.show();
+                } else {
+                    widget.edited.hide();
+                }
+
+                // Update
                 let act = widget.update(pos, context);
                 action = action.or(act);
                 if widget.state.clicked {
@@ -482,6 +498,7 @@ impl Widget for AddItemWidget {
 pub struct ItemMusicWidget {
     pub state: WidgetState,
     pub menu: ItemMenuWidget,
+    pub edited: IconWidget,
     pub text: TextWidget,
     pub music: Rc<CachedMusic>,
 }
@@ -495,6 +512,7 @@ impl ItemMusicWidget {
         Self {
             state: WidgetState::new(),
             menu,
+            edited: IconWidget::new(&assets.sprites.star),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             music,
         }
@@ -502,7 +520,7 @@ impl ItemMusicWidget {
 
     fn update(
         &mut self,
-        position: Aabb2<f32>,
+        mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
         if self.state.right_clicked {
@@ -517,6 +535,19 @@ impl ItemMusicWidget {
         }
 
         self.state.update(position, context);
+
+        let widgets = [&mut self.edited];
+        if widgets.iter().any(|widget| widget.state.visible) {
+            let icons = position
+                .cut_left(position.height() / 2.0)
+                .extend_left(-context.font_size * 0.2)
+                .extend_symmetric(-vec2(0.0, context.font_size * 0.15));
+            let positions = icons.split_rows(widgets.len());
+            for (widget, pos) in widgets.into_iter().zip(positions) {
+                widget.update(pos, context);
+            }
+        }
+
         self.text.update(position, &mut context.scale_font(0.9));
 
         let mut action = None;
