@@ -117,6 +117,23 @@ pub async fn save_group(rexie: &Rexie, group: &CachedGroup, id: &str) -> Result<
     Ok(())
 }
 
+pub async fn remove_music(rexie: &Rexie, id: Id) -> Result<()> {
+    log::debug!("Deleting music {:?} from browser storage", id);
+
+    let transaction = rexie.transaction(&["music"], TransactionMode::ReadWrite)?;
+
+    let store = transaction.store("music")?;
+
+    let serializer = Serializer::json_compatible();
+    let id = id.serialize(&serializer).unwrap();
+
+    store.delete(&id).await?;
+
+    transaction.done().await?;
+
+    Ok(())
+}
+
 pub async fn remove_group(rexie: &Rexie, id: &str) -> Result<()> {
     log::debug!("Deleting group {:?} from browser storage", id);
 

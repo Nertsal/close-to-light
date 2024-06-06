@@ -17,6 +17,7 @@ use crate::{
 
 #[derive(Debug)]
 pub enum ConfirmAction {
+    DeleteMusic(Id),
     DeleteGroup(Index),
     SyncDiscard,
     DownloadRecommended,
@@ -165,6 +166,7 @@ impl MenuState {
             return;
         };
         match popup.action {
+            ConfirmAction::DeleteMusic(id) => self.context.local.delete_music(id),
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync {

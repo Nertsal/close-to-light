@@ -212,6 +212,12 @@ impl MenuUI {
                 LevelSelectAction::DeleteGroup(group) => {
                     state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
                 }
+                LevelSelectAction::DeleteMusic(music) => {
+                    state.popup_confirm(
+                        ConfirmAction::DeleteMusic(music),
+                        "delete the music and all inner groups",
+                    );
+                }
             }
         } else if self.level_select.add_music.state.clicked {
             self.explore_music();

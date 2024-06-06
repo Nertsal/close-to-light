@@ -118,6 +118,24 @@ impl Controller {
         Ok(())
     }
 
+    pub async fn remove_music(&self, id: Id) -> Result<()> {
+        log::debug!("Deleting music: {:?}", id);
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Err(err) = web::remove_music(&self.rexie, id).await {
+                log::error!("failed to remove music from the web file system: {}", err);
+                anyhow::bail!("check logs");
+            }
+            Ok(())
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let path = music_path(id);
+            std::fs::remove_file(path)?;
+            Ok(())
+        }
+    }
+
     pub async fn remove_group(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref();
         log::debug!("Deleting a group: {:?}", path);

@@ -145,6 +145,7 @@ impl MenuRender {
                 let selected =
                     state.selected_music.as_ref().map(|m| m.data) == Some(music.music.meta.id);
                 self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
+                self.draw_item_menu(&music.menu, theme, framebuffer);
             }
 
             self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);

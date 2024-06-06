@@ -328,6 +328,18 @@ impl LevelCache {
         inner.tasks.fs.push_back(Task::new(&self.geng, future));
     }
 
+    fn remove_music(&self, id: Id) {
+        let mut inner = self.inner.borrow_mut();
+        let future = {
+            let fs = self.fs.clone();
+            async move {
+                fs.remove_music(id).await?;
+                Ok(())
+            }
+        };
+        inner.tasks.fs.push_back(Task::new(&self.geng, future));
+    }
+
     fn remove_group(&self, path: impl AsRef<Path>) {
         let mut inner = self.inner.borrow_mut();
         let future = {
@@ -641,6 +653,24 @@ impl LevelCache {
         let group = self.update_group(group_index, new_group, None)?;
         let level = group.data.levels.get(level_index)?.clone();
         Some((group, level))
+    }
+
+    /// Delete the music and all associated groups.
+    pub fn delete_music(&self, music_id: Id) {
+        let mut inner = self.inner.borrow_mut();
+        if let Some(_music) = inner.music.remove(&music_id) {
+            let group_ids: Vec<_> = inner
+                .groups
+                .iter()
+                .filter(|(_, group)| group.data.music == music_id)
+                .map(|(idx, _)| idx)
+                .collect();
+            drop(inner);
+            for idx in group_ids {
+                self.delete_group(idx);
+            }
+            self.remove_music(music_id);
+        }
     }
 
     pub fn delete_group(&self, group: Index) {
