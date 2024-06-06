@@ -216,7 +216,7 @@ impl EditorState {
                             // Zoom on the timeline
                             let timeline = &mut self.ui.edit.timeline;
                             let zoom = timeline.get_scale();
-                            let zoom = (zoom + scroll.as_f32()).clamp(5.0, 20.0);
+                            let zoom = (zoom + scroll.as_f32()).clamp(5.0, 50.0);
                             timeline.rescale(zoom);
                         } else if let State::Place { .. }
                         | State::Movement { .. }
