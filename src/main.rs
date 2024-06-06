@@ -40,18 +40,9 @@ struct Opts {
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
-    /// Open a specific group.
-    #[clap(long)]
-    group: Option<std::path::PathBuf>,
-    /// Open a specific level inside the group.
-    #[clap(long)]
-    level: Option<String>,
     /// Move through the level without player input.
     #[clap(long)]
     clean_auto: bool,
-    /// Open a level in the editor.
-    #[clap(long)]
-    edit: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
 }
@@ -115,7 +106,6 @@ async fn async_main() {
 
 async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
     let manager = geng.asset_manager();
-    let assets_path = run_dir().join("assets");
 
     let assets = assets::Assets::load(manager).await?;
     let assets = Rc::new(assets);
@@ -166,119 +156,14 @@ async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(group_path) = opts.group {
-        let mut config = model::LevelConfig::default();
-        let (music, group) = context
-            .local
-            .load_group(&group_path)
-            .await
-            .context("failed to load the group")?;
-        let Some(music) = music else {
-            anyhow::bail!("failed to load music");
-        };
-        let group = Rc::new(group);
-
-        let group_index = {
-            let mut inner = context.local.inner.borrow_mut();
-            inner.music.insert(music.meta.id, music.clone());
-            inner.groups.insert(group.clone())
-        };
-
-        let group = game::PlayGroup {
-            group_index,
-            cached: group,
-            music,
-        };
-
-        let level = if let Some(level) = opts.level {
-            Some(if let Ok(index) = level.parse::<usize>() {
-                let level = group
-                    .cached
-                    .data
-                    .levels
-                    .get(index)
-                    .ok_or(anyhow!("invalid level index"))?
-                    .clone();
-                (index, level)
-            } else {
-                let index = group
-                    .cached
-                    .data
-                    .levels
-                    .iter()
-                    .position(|lvl| *lvl.meta.name == *level)
-                    .ok_or(anyhow!("level with that name was not found"))?;
-                (index, group.cached.data.levels.get(index).unwrap().clone())
-            })
-        } else {
-            None
-        };
-
-        if opts.edit {
-            // Editor
-            let editor_config: editor::EditorConfig =
-                geng::asset::Load::load(manager, &assets_path.join("editor.ron"), &())
-                    .await
-                    .context("failed to load editor config")?;
-
-            let state = if let Some((level_index, level)) = level {
-                let level = game::PlayLevel {
-                    group,
-                    level_index,
-                    level,
-                    config,
-                    start_time: prelude::Time::ZERO,
-                };
-                editor::EditorState::new_level(context, editor_config, level)
-            } else {
-                editor::EditorState::new_group(context, editor_config, group)
-            };
-
-            geng.run_state(state).await;
-            return Ok(());
-        }
-
-        // Game
-        let (level_index, level) = match level {
-            Some(res) => res,
-            None => {
-                log::warn!("level not specified, playing the first one in the group");
-                let index = 0;
-                let level = group
-                    .cached
-                    .data
-                    .levels
-                    .get(index)
-                    .ok_or(anyhow!("group has no levels to play"))?;
-                (index, level.clone())
-            }
-        };
-        config.modifiers.clean_auto = opts.clean_auto;
-        let level = game::PlayLevel {
-            group,
-            level_index,
-            level,
-            config,
-            start_time: prelude::Time::ZERO,
-        };
-        let options = context.get_options();
-        let state = game::Game::new(
-            context,
-            options,
-            level,
-            leaderboard::Leaderboard::new(&geng, None),
-        );
+    // Main menu
+    if opts.skip_intro {
+        let leaderboard = leaderboard::Leaderboard::new(&geng, client.as_ref());
+        let state = menu::LevelMenu::new(context, leaderboard);
         geng.run_state(state).await;
     } else {
-        // Main menu
-        if opts.skip_intro {
-            let leaderboard = leaderboard::Leaderboard::new(&geng, client.as_ref());
-            let state = menu::LevelMenu::new(context, leaderboard);
-            geng.run_state(state).await;
-        } else {
-            let state = menu::SplashScreen::new(context, client.as_ref());
-            geng.run_state(state).await;
-        }
+        let state = menu::SplashScreen::new(context, client.as_ref());
+        geng.run_state(state).await;
     }
 
     Ok(())

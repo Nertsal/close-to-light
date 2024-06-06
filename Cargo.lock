@@ -1204,6 +1204,7 @@ name = "close-to-light"
 version = "0.1.0"
 dependencies = [
  "async-executor",
+ "base64 0.22.1",
  "bincode",
  "ctl-client",
  "data-encoding",
@@ -1213,7 +1214,9 @@ dependencies = [
  "geng",
  "geng-utils",
  "parry2d",
+ "rexie",
  "serde",
+ "serde-wasm-bindgen",
  "sha2",
  "tokio",
  "tokio-util",
@@ -4648,6 +4651,21 @@ dependencies = [
  "web-sys",
  "webpki-roots",
  "winreg",
+]
+
+[[package]]
+name = "rexie"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d34618a20b14cebebc63f8b1c5228116e7379765e8f1b7a9f66b5920babd8595"
+dependencies = [
+ "js-sys",
+ "num-traits",
+ "thiserror",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

@@ -10,6 +10,7 @@ type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
 pub struct LevelCache {
     geng: Geng,
     pub inner: RefCell<LevelCacheImpl>,
+    fs: Rc<fs::Controller>,
 }
 
 pub struct LevelCacheImpl {
@@ -35,6 +36,8 @@ pub enum CacheState<T> {
 pub struct CacheTasks {
     client: Option<Arc<Nertboard>>,
 
+    fs: VecDeque<Task<anyhow::Result<()>>>,
+
     fetch_music: TaskRes<Vec<MusicInfo>>,
     downloading_music: Option<Id>,
     download_music: TaskRes<CachedMusic>,
@@ -56,6 +59,8 @@ impl CacheTasks {
         Self {
             client: client.cloned(),
 
+            fs: VecDeque::new(),
+
             fetch_music: None,
             downloading_music: None,
             download_music: None,
@@ -66,7 +71,13 @@ impl CacheTasks {
     }
 
     fn poll(&mut self) -> Option<CacheAction> {
-        if let Some(task) = self.fetch_music.take() {
+        if let Some(task) = self.fs.pop_front() {
+            match task.poll() {
+                Err(task) => self.fs.push_front(task),
+                Ok(Err(err)) => log::error!("File system task failed: {:?}", err),
+                Ok(Ok(())) => {}
+            }
+        } else if let Some(task) = self.fetch_music.take() {
             match task.poll() {
                 Err(task) => self.fetch_music = Some(task),
                 Ok(result) => {
@@ -116,7 +127,7 @@ impl CacheTasks {
 }
 
 impl LevelCache {
-    pub fn new(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Self {
+    pub async fn new(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Self {
         let inner = LevelCacheImpl {
             tasks: CacheTasks::new(client),
 
@@ -131,6 +142,11 @@ impl LevelCache {
         Self {
             geng: geng.clone(),
             inner: RefCell::new(inner),
+            fs: Rc::new(
+                fs::Controller::new(geng)
+                    .await
+                    .expect("failed to init file system"),
+            ),
         }
     }
 
@@ -146,75 +162,46 @@ impl LevelCache {
 
     /// Load from the local storage.
     pub async fn load(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Result<Self> {
-        let local = Self::new(client, geng);
+        log::info!("Loading local storage");
+        let timer = Timer::new();
+        let local = Self::new(client, geng).await;
 
-        // TODO: report failures but continue working
+        local.load_all().await?;
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let mut timer = Timer::new();
-            log::info!("Loading local storage");
-            let base_path = fs::base_path();
-            std::fs::create_dir_all(&base_path)?;
-
-            let music_path = fs::all_music_path();
-            if music_path.exists() {
-                let paths: Vec<_> = std::fs::read_dir(music_path)?
-                    .flat_map(|entry| {
-                        let entry = entry?;
-                        let path = entry.path();
-                        if !path.is_dir() {
-                            log::error!("Unexpected file in music dir: {:?}", path);
-                            return Ok(None);
-                        }
-                        anyhow::Ok(Some(path))
-                    })
-                    .flatten()
-                    .collect();
-                let music_loaders = paths.iter().map(|path| local.load_music(path));
-                let music = future::join_all(music_loaders).await;
-
-                let mut inner = local.inner.borrow_mut();
-                inner.music.extend(
-                    music
-                        .into_iter()
-                        .flatten()
-                        .map(|music| (music.meta.id, music)),
-                );
-                log::debug!("loaded music: {:?}", inner.music);
-            }
-
-            let groups_path = fs::all_groups_path();
-            if groups_path.exists() {
-                let paths: Vec<_> = std::fs::read_dir(groups_path)?
-                    .flat_map(|entry| {
-                        let entry = entry?;
-                        let path = entry.path();
-                        if path.is_dir() {
-                            log::error!("Unexpected directory inside levels: {:?}", path);
-                            return Ok(None);
-                        }
-                        anyhow::Ok(Some(path))
-                    })
-                    .flatten()
-                    .collect();
-                let group_loaders = paths.iter().map(|path| local.load_group(path));
-                let groups = future::join_all(group_loaders).await;
-
-                let mut inner = local.inner.borrow_mut();
-                for (music, group) in groups.into_iter().flatten() {
-                    if let Some(music) = music {
-                        inner.music.insert(music.meta.id, music);
-                    }
-                    inner.groups.insert(Rc::new(group));
-                }
-                log::debug!("loaded groups: {}", inner.groups.len());
-            }
-
-            log::debug!("Loaded cache in {:.2}s", timer.tick().as_secs_f64());
-        }
+        log::debug!("Loaded cache in {:.2}s", timer.elapsed().as_secs_f64());
 
         Ok(local)
+    }
+
+    async fn load_all(&self) -> Result<()> {
+        {
+            let music = self.fs.load_music_all().await?;
+            let mut inner = self.inner.borrow_mut();
+            inner.music.extend(
+                music
+                    .into_iter()
+                    .map(|music| (music.meta.id, Rc::new(music))),
+            );
+            log::debug!("loaded music: {:?}", inner.music);
+        }
+
+        {
+            let groups = self.fs.load_groups_all().await?;
+            let group_loaders = groups
+                .into_iter()
+                .map(|(path, group)| self.insert_group(path, group));
+            let groups = future::join_all(group_loaders).await;
+            let mut inner = self.inner.borrow_mut();
+            for (music, group) in groups.into_iter().flatten() {
+                if let Some(music) = music {
+                    inner.music.insert(music.meta.id, music);
+                }
+                inner.groups.insert(Rc::new(group));
+            }
+            log::debug!("loaded groups: {}", inner.groups.len());
+        }
+
+        Ok(())
     }
 
     pub fn is_downloading_music(&self) -> Option<Id> {
@@ -255,18 +242,13 @@ impl LevelCache {
         res
     }
 
-    /// Load the group info at the given path without loading the levels.
-    pub async fn load_group(
+    async fn insert_group(
         &self,
-        path: impl AsRef<std::path::Path>,
+        group_path: PathBuf,
+        group: LevelSet,
     ) -> Result<(Option<Rc<CachedMusic>>, CachedGroup)> {
         let result = async {
-            let group_path = path.as_ref().to_path_buf();
-            log::debug!("loading group at {:?}", group_path);
-
-            let bytes = file::load_bytes(&group_path).await?;
-            let hash = ctl_client::core::util::calculate_hash(&bytes);
-            let group: LevelSet = bincode::deserialize(&bytes)?;
+            let hash = group.calculate_hash();
 
             let music = match self.get_music(group.music) {
                 Some(music) => Some(music),
@@ -315,32 +297,83 @@ impl LevelCache {
         result
     }
 
-    pub fn new_group(&self, music_id: Id) {
+    fn save_group(&self, group: &Rc<CachedGroup>) {
         let mut inner = self.inner.borrow_mut();
+        let future = {
+            let fs = self.fs.clone();
+            let group = group.clone();
+            async move {
+                fs.save_group(&group).await?;
+                Ok(())
+            }
+        };
+        inner.tasks.fs.push_back(Task::new(&self.geng, future));
+    }
+
+    // Dont use paths because the actual structure is flat
+    fn move_group(&self, group: &Rc<CachedGroup>, old_path: impl AsRef<Path>) {
+        let mut inner = self.inner.borrow_mut();
+        let future = {
+            let fs = self.fs.clone();
+            let group = group.clone();
+            let old_path = old_path.as_ref().to_owned();
+            async move {
+                fs.save_group(&group).await?;
+                if old_path != group.path {
+                    fs.remove_group(old_path).await?;
+                }
+                Ok(())
+            }
+        };
+        inner.tasks.fs.push_back(Task::new(&self.geng, future));
+    }
+
+    fn remove_group(&self, path: impl AsRef<Path>) {
+        let mut inner = self.inner.borrow_mut();
+        let future = {
+            let fs = self.fs.clone();
+            let path = path.as_ref().to_owned();
+            async move {
+                fs.remove_group(path).await?;
+                Ok(())
+            }
+        };
+        inner.tasks.fs.push_back(Task::new(&self.geng, future));
+    }
+
+    pub fn new_group(&self, music_id: Id) {
+        let inner = self.inner.borrow();
+
+        // Generate a non-occupied path
+        let path = loop {
+            let path = fs::generate_group_path(0);
+            if !inner.groups.iter().any(|(_, group)| group.path == path) {
+                break path;
+            }
+        };
 
         let music = inner.music.get(&music_id).cloned();
-        let mut group = CachedGroup::new(LevelSet {
-            id: 0,
-            music: music_id,
-            // TODO: set the logged in user
-            owner: UserInfo {
+        let mut group = CachedGroup::new(
+            path,
+            LevelSet {
                 id: 0,
-                name: "".into(),
+                music: music_id,
+                // TODO: set the logged in user
+                owner: UserInfo {
+                    id: 0,
+                    name: "".into(),
+                },
+                levels: Vec::new(),
             },
-            levels: Vec::new(),
-        });
+        );
         group.music = music;
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // Write to fs
-            group.path = fs::generate_group_path(0);
-            if let Err(err) = fs::save_group(&group) {
-                log::error!("Failed to save group: {:?}", err);
-            }
-        }
+        // Write to fs
+        drop(inner);
+        let group = Rc::new(group);
+        self.save_group(&group);
 
-        inner.groups.insert(Rc::new(group));
+        self.inner.borrow_mut().groups.insert(group);
     }
 
     pub fn fetch_groups(&self) {
@@ -378,6 +411,7 @@ impl LevelCache {
         if inner.tasks.download_groups.is_none() {
             if let Some(client) = inner.tasks.client.clone() {
                 let geng = self.geng.clone();
+                let fs = self.fs.clone();
                 let music_list = inner.music.clone();
 
                 let future = async move {
@@ -409,18 +443,13 @@ impl LevelCache {
 
                                 log::debug!("Decoding downloaded music bytes");
                                 let music = geng.audio().decode(bytes.clone()).await?;
+                                let music = CachedMusic::new(meta, music);
 
-                                #[cfg(not(target_arch = "wasm32"))]
-                                {
-                                    // Write to fs
-                                    if let Err(err) = fs::download_music(data.music, bytes, &meta) {
-                                        log::error!("Failed to save music locally: {:?}", err);
-                                    } else {
-                                        log::info!("Music saved successfully");
-                                    }
+                                if let Err(err) = fs.save_music(&music, &bytes).await {
+                                    log::error!("Failed to save music locally: {:?}", err);
                                 }
 
-                                Rc::new(CachedMusic::new(meta, music))
+                                Rc::new(music)
                             }
                         };
 
@@ -439,12 +468,9 @@ impl LevelCache {
                             level_hashes,
                         };
 
-                        #[cfg(not(target_arch = "wasm32"))]
-                        {
-                            // Write to fs
-                            if let Err(err) = fs::save_group(&group) {
-                                log::error!("Failed to save group locally: {:?}", err);
-                            }
+                        // Write to fs
+                        if let Err(err) = fs.save_group(&group).await {
+                            log::error!("Failed to save group locally: {:?}", err);
                         }
 
                         groups.push(group);
@@ -477,6 +503,7 @@ impl LevelCache {
             if let Some(client) = inner.tasks.client.clone() {
                 log::debug!("Downloading music {}", music_id);
                 let geng = self.geng.clone();
+                let fs = self.fs.clone();
                 let future = async move {
                     let meta = client.get_music_info(music_id).await?;
                     let bytes = client.download_music(music_id).await?.to_vec();
@@ -484,17 +511,15 @@ impl LevelCache {
                     log::debug!("Decoding downloaded music bytes");
                     let music = geng.audio().decode(bytes.clone()).await?;
 
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        // Write to fs
-                        if let Err(err) = fs::download_music(meta.id, bytes, &meta) {
-                            log::error!("Failed to save music locally: {:?}", err);
-                        } else {
-                            log::info!("Music saved successfully");
-                        }
+                    let music = CachedMusic::new(meta, music);
+
+                    // Write to fs
+                    if let Err(err) = fs.save_music(&music, &bytes).await {
+                        log::error!("Failed to save music locally: {:?}", err);
+                    } else {
+                        log::info!("Music saved successfully");
                     }
 
-                    let music = CachedMusic::new(meta, music);
                     Ok(music)
                 };
                 inner.tasks.download_music = Some(Task::new(&self.geng, future));
@@ -573,7 +598,6 @@ impl LevelCache {
 
         let mut new_group: CachedGroup = (**cached).clone();
 
-        #[cfg(not(target_arch = "wasm32"))]
         let old_path = new_group.path.clone();
 
         new_group.hash = group.calculate_hash();
@@ -591,17 +615,9 @@ impl LevelCache {
         let group = Rc::new(new_group);
         *cached = Rc::clone(&group);
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            // Write to fs
-            if let Err(err) = fs::save_group(&group) {
-                log::error!("Failed to save the group: {:?}", err);
-            } else if old_path != group.path {
-                // Remove the level from the old path
-                log::debug!("Deleting the old group: {:?}", old_path);
-                let _ = std::fs::remove_file(old_path);
-            }
-        }
+        // Write to fs
+        drop(inner);
+        self.move_group(&group, old_path);
 
         Some(group)
     }
@@ -630,12 +646,8 @@ impl LevelCache {
     pub fn delete_group(&self, group: Index) {
         let mut inner = self.inner.borrow_mut();
         if let Some(group) = inner.groups.remove(group) {
-            if cfg!(not(target_arch = "wasm32")) {
-                log::debug!("Deleting the group: {:?}", group.path);
-                if let Err(err) = std::fs::remove_file(&group.path) {
-                    log::error!("Failed to delete group: {:?}", err);
-                }
-            }
+            drop(inner);
+            self.remove_group(&group.path);
         }
     }
 
@@ -645,7 +657,6 @@ impl LevelCache {
             let mut new_group = group.data.clone();
             if level < new_group.levels.len() {
                 let _level = new_group.levels.remove(level);
-
                 drop(inner);
                 self.update_group(group_index, new_group, None);
             }

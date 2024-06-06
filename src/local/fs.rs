@@ -1,38 +1,143 @@
+#[cfg(not(target_arch = "wasm32"))]
+mod native;
+#[cfg(target_arch = "wasm32")]
+mod web;
+
 use crate::assets::MusicAssets;
 
 use super::*;
 
-#[cfg(not(target_arch = "wasm32"))]
-mod native {
-    use super::*;
-
-    pub fn download_music(id: Id, data: Vec<u8>, info: &MusicInfo) -> Result<()> {
-        let path = music_path(id);
-        std::fs::create_dir_all(&path)?;
-
-        std::fs::write(path.join("music.mp3"), data)?;
-        std::fs::write(path.join("meta.toml"), toml::to_string_pretty(&info)?)?;
-
-        Ok(())
-    }
-
-    pub fn save_group(group: &CachedGroup) -> Result<()> {
-        let path = &group.path;
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
-        bincode::serialize_into(writer, &group.data)?;
-
-        log::debug!("Saved group ({}) successfully", group.data.id);
-
-        Ok(())
-    }
+pub struct Controller {
+    #[cfg(target_arch = "wasm32")]
+    rexie: rexie::Rexie,
+    geng: Geng,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub use native::*;
+impl Controller {
+    pub async fn new(geng: &Geng) -> Result<Self> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let rexie = match web::build_database().await {
+                Ok(rexie) => rexie,
+                Err(err) => {
+                    log::error!("failed to init web file system: {}", err);
+                    anyhow::bail!("check logs");
+                }
+            };
+            log::info!("Connected to browser indexed db");
+            Ok(Self {
+                rexie,
+                geng: geng.clone(),
+            })
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let base_path = base_path();
+            std::fs::create_dir_all(base_path)?;
+            Ok(Self { geng: geng.clone() })
+        }
+    }
+
+    pub async fn load_music_all(&self) -> Result<Vec<CachedMusic>> {
+        log::debug!("Loading all local music");
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            match web::load_music_all(&self.rexie, &self.geng).await {
+                Ok(items) => Ok(items),
+                Err(err) => {
+                    log::error!("failed to load music from web file system: {}", err);
+                    anyhow::bail!("check logs");
+                }
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::load_music_all(&self.geng).await
+        }
+    }
+
+    pub async fn load_groups_all(&self) -> Result<Vec<(PathBuf, LevelSet)>> {
+        log::debug!("Loading all local groups");
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            match web::load_groups_all(&self.rexie).await {
+                Ok(items) => Ok(items),
+                Err(err) => {
+                    log::error!("failed to load groups from web file system: {}", err);
+                    anyhow::bail!("check logs");
+                }
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::load_groups_all().await
+        }
+    }
+
+    pub async fn save_music(&self, music: &CachedMusic, data: &[u8]) -> Result<()> {
+        let id = music.meta.id;
+        let info = &music.meta;
+
+        log::debug!("Saving music: {}", id);
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Err(err) = web::save_music(&self.rexie, id, data, info).await {
+                log::error!("failed to save music into web file system: {}", err);
+                anyhow::bail!("check logs");
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::save_music(id, data, info)?;
+        }
+        Ok(())
+    }
+
+    pub async fn save_group(&self, group: &CachedGroup) -> Result<()> {
+        log::debug!("Saving group: {}", group.data.id);
+        #[cfg(target_arch = "wasm32")]
+        {
+            let id = group.data.id.to_string();
+            let id = group
+                .path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or(&id);
+            if let Err(err) = web::save_group(&self.rexie, group, id).await {
+                log::error!("failed to save group into web file system: {}", err);
+                anyhow::bail!("check logs");
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::save_group(group)?;
+        }
+        Ok(())
+    }
+
+    pub async fn remove_group(&self, path: impl AsRef<Path>) -> Result<()> {
+        let path = path.as_ref();
+        log::debug!("Deleting a group: {:?}", path);
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(id) = path.file_name().and_then(|name| name.to_str()) {
+                if let Err(err) = web::remove_group(&self.rexie, id).await {
+                    log::error!("failed to remove group from the web file system: {}", err);
+                    anyhow::bail!("check logs");
+                }
+            }
+            Ok(())
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            std::fs::remove_file(path)?;
+            Ok(())
+        }
+    }
+}
 
 /// Path to the directory that hold locally saved levels and music.
 pub fn base_path() -> PathBuf {
@@ -77,6 +182,7 @@ pub fn generate_group_path(group: Id) -> PathBuf {
         loop {
             let name: String = (0..5).map(|_| rng.gen_range('a'..='z')).collect();
             let path = base_path.join(name);
+            // TODO: validate on web
             if !path.exists() {
                 return path;
             }
@@ -95,7 +201,7 @@ impl CachedMusic {
 }
 
 impl CachedGroup {
-    pub fn new(data: LevelSet) -> Self {
+    pub fn new(path: PathBuf, data: LevelSet) -> Self {
         let level_hashes = data
             .levels
             .iter()
@@ -103,7 +209,7 @@ impl CachedGroup {
             .collect();
 
         Self {
-            path: fs::generate_group_path(data.id),
+            path,
             music: None,
             hash: data.calculate_hash(),
             origin: None,

@@ -18,8 +18,6 @@ use crate::{
 #[derive(Debug)]
 pub enum ConfirmAction {
     DeleteGroup(Index),
-    EditGroup(Index),
-    EditLevel(Index, usize),
     SyncDiscard,
     DownloadRecommended,
     SyncUpload,
@@ -168,8 +166,6 @@ impl MenuState {
         };
         match popup.action {
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
-            ConfirmAction::EditGroup(index) => self.edit_level(index, None),
-            ConfirmAction::EditLevel(group, index) => self.edit_level(group, Some(index)),
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync {
                     if let Some(client) = self.leaderboard.client.clone() {

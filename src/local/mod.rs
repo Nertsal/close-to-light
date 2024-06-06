@@ -1,5 +1,5 @@
 mod cache;
-mod fs;
+pub mod fs;
 
 pub use self::cache::*;
 
