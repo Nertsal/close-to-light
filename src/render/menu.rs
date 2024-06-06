@@ -373,6 +373,8 @@ impl MenuRender {
                     self.ui
                         .draw_toggle_button(tab, active, false, theme, framebuffer);
                 }
+
+                self.ui.draw_icon(&ui.reload.icon, theme, framebuffer);
                 self.ui.draw_icon(&ui.close.icon, theme, framebuffer);
                 self.ui
                     .draw_quad(ui.separator.position, theme.light, framebuffer);

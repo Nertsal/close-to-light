@@ -28,12 +28,14 @@ pub struct ExploreWidget {
     pub tabs: WidgetState,
     pub tab_music: TextWidget,
     pub tab_levels: TextWidget,
+
+    pub reload: IconButtonWidget,
     pub close: IconButtonWidget,
     pub separator: WidgetState,
 
     pub music: ExploreMusicWidget,
     pub levels: ExploreLevelsWidget,
-    first_load: bool,
+    refetch: bool,
 }
 
 pub struct ExploreLevelsWidget {
@@ -85,13 +87,15 @@ impl ExploreWidget {
             tabs: WidgetState::new(),
             tab_music: TextWidget::new("Music"),
             tab_levels: TextWidget::new("Levels"),
+
+            reload: IconButtonWidget::new_normal(&assets.sprites.reset),
             close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             separator: WidgetState::new(),
 
             music: ExploreMusicWidget::new(assets),
             levels: ExploreLevelsWidget::new(assets),
 
-            first_load: true,
+            refetch: true,
         };
         w.music.hide();
         w
@@ -126,7 +130,7 @@ impl StatefulWidget for ExploreWidget {
             return;
         }
 
-        if std::mem::take(&mut self.first_load) {
+        if std::mem::take(&mut self.refetch) {
             state.fetch_music();
             state.fetch_groups();
         }
@@ -145,6 +149,13 @@ impl StatefulWidget for ExploreWidget {
         let bar = main.cut_top(context.font_size * 1.2);
 
         let bar = bar.extend_symmetric(-vec2(1.0, 0.0) * context.layout_size);
+
+        let reload = vec2::splat(2.0) * context.layout_size;
+        let reload = bar.align_aabb(reload, vec2(0.0, 1.0));
+        self.reload.update(reload, context);
+        if self.reload.state.clicked {
+            self.refetch = true;
+        }
 
         let close = vec2::splat(2.0) * context.layout_size;
         let close = bar.align_aabb(close, vec2(1.0, 1.0));
