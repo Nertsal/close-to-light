@@ -61,6 +61,7 @@ pub struct ExploreMusicWidget {
 pub struct LevelItemWidget {
     pub state: WidgetState,
     pub download: IconButtonWidget,
+    pub downloading: IconWidget,
     pub goto: IconButtonWidget,
     pub info: GroupInfo,
     pub name: TextWidget,
@@ -239,11 +240,12 @@ impl ExploreLevelsWidget {
                             let artists = info.music.authors();
                             let authors = info.mappers();
 
-                            LevelItemWidget {
+                            let mut widget = LevelItemWidget {
                                 state: WidgetState::new(),
                                 download: IconButtonWidget::new_normal(
                                     &self.assets.sprites.download,
                                 ),
+                                downloading: IconWidget::new(&self.assets.sprites.loading),
                                 goto: IconButtonWidget::new_normal(&self.assets.sprites.goto),
                                 name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
@@ -251,7 +253,9 @@ impl ExploreLevelsWidget {
                                     artists, authors
                                 )),
                                 info: info.clone(),
-                            }
+                            };
+                            widget.downloading.hide();
+                            widget
                         })
                         .collect();
                 }
@@ -441,9 +445,20 @@ impl StatefulWidget for LevelItemWidget {
             .any(|(_, group)| group.data.id == self.info.id)
         {
             // Not downloaded
-            self.download.show();
+            if state
+                .is_downloading_group()
+                .map_or(false, |ids| ids.contains(&self.info.id))
+            {
+                self.downloading.show();
+                self.download.hide();
+            } else {
+                self.downloading.hide();
+                self.download.show();
+            }
+
             self.goto.hide();
             self.download.update(rows[1], context);
+            self.downloading.update(rows[1], context);
             if self.download.state.clicked {
                 state.download_groups(vec![self.info.id], false);
             }

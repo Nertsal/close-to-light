@@ -43,6 +43,7 @@ pub struct CacheTasks {
     download_music: TaskRes<CachedMusic>,
 
     fetch_groups: TaskRes<Vec<GroupInfo>>,
+    downloading_groups: Option<Vec<Id>>,
     download_groups: TaskRes<Vec<CachedGroup>>,
 }
 
@@ -66,6 +67,7 @@ impl CacheTasks {
             download_music: None,
 
             fetch_groups: None,
+            downloading_groups: None,
             download_groups: None,
         }
     }
@@ -113,10 +115,12 @@ impl CacheTasks {
                 Err(task) => self.download_groups = Some(task),
                 Ok(Err(err)) => {
                     log::error!("failed to download group: {:?}", err);
+                    self.downloading_groups = None;
                 }
                 Ok(Ok(groups)) => {
                     let ids: Vec<Id> = groups.iter().map(|group| group.data.id).collect();
                     log::debug!("downloaded groups: {:?}", ids);
+                    self.downloading_groups = None;
                     return Some(CacheAction::Groups(groups));
                 }
             }
@@ -207,6 +211,11 @@ impl LevelCache {
     pub fn is_downloading_music(&self) -> Option<Id> {
         let inner = self.inner.borrow();
         inner.tasks.downloading_music
+    }
+
+    pub fn is_downloading_group(&self) -> Option<Vec<Id>> {
+        let inner = self.inner.borrow();
+        inner.tasks.downloading_groups.clone()
     }
 
     pub fn get_music(&self, music_id: Id) -> Option<Rc<CachedMusic>> {
@@ -408,7 +417,7 @@ impl LevelCache {
         self.download_groups(vec![], true)
     }
 
-    pub fn download_groups(&self, mut group_ids: Vec<Id>, include_recommended: bool) {
+    pub fn download_groups(&self, group_ids: Vec<Id>, include_recommended: bool) {
         let mut inner = self.inner.borrow_mut();
         if inner
             .groups
@@ -426,71 +435,76 @@ impl LevelCache {
                 let fs = self.fs.clone();
                 let music_list = inner.music.clone();
 
-                let future = async move {
-                    if include_recommended {
-                        let recommended = client
-                            .get_group_list(&GroupsQuery { recommended: true })
-                            .await?;
-                        group_ids.extend(recommended.into_iter().map(|group| group.id));
-                    }
-
-                    let mut groups = Vec::with_capacity(group_ids.len());
-                    for group_id in group_ids {
-                        log::debug!("Downloading group {}", group_id);
-
-                        // Download group
-                        let info = client.get_group_info(group_id).await?;
-                        let bytes = client.download_group(group_id).await?.to_vec();
-                        let hash = ctl_client::core::util::calculate_hash(&bytes);
-                        let data: LevelSet = bincode::deserialize(&bytes)?;
-
-                        // Download music
-                        let music = match music_list.get(&data.music) {
-                            Some(music) => Rc::clone(music),
-                            None => {
-                                log::debug!("Downloading music {}", data.music);
-                                // Music is not local so we need to download it
-                                let meta = client.get_music_info(data.music).await?;
-                                let bytes = client.download_music(data.music).await?.to_vec();
-
-                                log::debug!("Decoding downloaded music bytes");
-                                let music = geng.audio().decode(bytes.clone()).await?;
-                                let music = CachedMusic::new(meta, music);
-
-                                if let Err(err) = fs.save_music(&music, &bytes).await {
-                                    log::error!("Failed to save music locally: {:?}", err);
-                                }
-
-                                Rc::new(music)
-                            }
-                        };
-
-                        let level_hashes = data
-                            .levels
-                            .iter()
-                            .map(|level| level.data.calculate_hash())
-                            .collect();
-
-                        let group = CachedGroup {
-                            path: fs::generate_group_path(data.id),
-                            music: Some(music),
-                            data,
-                            origin: Some(info),
-                            hash,
-                            level_hashes,
-                        };
-
-                        // Write to fs
-                        if let Err(err) = fs.save_group(&group).await {
-                            log::error!("Failed to save group locally: {:?}", err);
+                let future = {
+                    let mut group_ids = group_ids.clone();
+                    async move {
+                        if include_recommended {
+                            let recommended = client
+                                .get_group_list(&GroupsQuery { recommended: true })
+                                .await?;
+                            group_ids.extend(recommended.into_iter().map(|group| group.id));
+                            // TODO: sync with `self.downloading_groups`
                         }
 
-                        groups.push(group);
-                    }
+                        let mut groups = Vec::with_capacity(group_ids.len());
+                        for group_id in group_ids {
+                            log::debug!("Downloading group {}", group_id);
 
-                    Ok(groups)
+                            // Download group
+                            let info = client.get_group_info(group_id).await?;
+                            let bytes = client.download_group(group_id).await?.to_vec();
+                            let hash = ctl_client::core::util::calculate_hash(&bytes);
+                            let data: LevelSet = bincode::deserialize(&bytes)?;
+
+                            // Download music
+                            let music = match music_list.get(&data.music) {
+                                Some(music) => Rc::clone(music),
+                                None => {
+                                    log::debug!("Downloading music {}", data.music);
+                                    // Music is not local so we need to download it
+                                    let meta = client.get_music_info(data.music).await?;
+                                    let bytes = client.download_music(data.music).await?.to_vec();
+
+                                    log::debug!("Decoding downloaded music bytes");
+                                    let music = geng.audio().decode(bytes.clone()).await?;
+                                    let music = CachedMusic::new(meta, music);
+
+                                    if let Err(err) = fs.save_music(&music, &bytes).await {
+                                        log::error!("Failed to save music locally: {:?}", err);
+                                    }
+
+                                    Rc::new(music)
+                                }
+                            };
+
+                            let level_hashes = data
+                                .levels
+                                .iter()
+                                .map(|level| level.data.calculate_hash())
+                                .collect();
+
+                            let group = CachedGroup {
+                                path: fs::generate_group_path(data.id),
+                                music: Some(music),
+                                data,
+                                origin: Some(info),
+                                hash,
+                                level_hashes,
+                            };
+
+                            // Write to fs
+                            if let Err(err) = fs.save_group(&group).await {
+                                log::error!("Failed to save group locally: {:?}", err);
+                            }
+
+                            groups.push(group);
+                        }
+
+                        Ok(groups)
+                    }
                 };
                 inner.tasks.download_groups = Some(Task::new(&self.geng, future));
+                inner.tasks.downloading_groups = Some(group_ids);
             }
         }
     }

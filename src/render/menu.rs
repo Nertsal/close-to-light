@@ -412,7 +412,8 @@ impl MenuRender {
                     self.ui.draw_text(&ui.levels.status, &mut mask.color);
                     for item in &ui.levels.items {
                         self.ui
-                            .draw_icon(&item.download.icon, theme, &mut mask.color);
+                            .draw_icon_button(&item.download, theme, &mut mask.color);
+                        self.ui.draw_icon(&item.downloading, theme, &mut mask.color);
                         self.ui.draw_icon(&item.goto.icon, theme, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
