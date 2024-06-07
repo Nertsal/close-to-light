@@ -1,41 +1,82 @@
+mod level;
+mod modifiers;
+mod select;
+
+pub use self::{level::*, modifiers::*, select::*};
+
 use super::*;
 
-use crate::ui::{layout, widget::*};
+use crate::ui::{layout::AreaOps, widget::*};
+
+use itertools::Itertools;
 
 pub struct MenuUI {
+    context: Context,
     pub screen: WidgetState,
-    pub ctl_logo: WidgetState,
-    pub groups_state: WidgetState,
-    pub groups: Vec<GroupWidget>,
-    pub levels_state: WidgetState,
-    pub levels: Vec<LevelWidget>,
-    pub options_head: TextWidget,
-    pub options: OptionsWidget,
+    pub ctl_logo: IconWidget,
+    pub separator: WidgetState,
+
+    pub options: OptionsButtonWidget,
+
+    pub confirm: Option<ConfirmWidget>,
+    pub sync: Option<SyncWidget>,
+    pub notifications: NotificationsWidget,
+
+    pub level_select: LevelSelectUI,
+    pub play_level: PlayLevelWidget,
+    pub modifiers: ModifiersWidget,
+
+    pub explore: ExploreWidget,
+
+    pub leaderboard_head: TextWidget,
     pub leaderboard: LeaderboardWidget,
-    pub level_config: LevelConfigWidget,
 }
 
 impl MenuUI {
-    pub fn new(assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
+        let geng = &context.geng;
+        let assets = &context.assets;
+
+        let mut explore = ExploreWidget::new(assets);
+        explore.hide();
+
         Self {
             screen: WidgetState::new(),
-            ctl_logo: default(),
-            groups_state: default(),
-            groups: Vec::new(),
-            levels_state: default(),
-            levels: Vec::new(),
-            options_head: TextWidget::new("Options"),
-            options: OptionsWidget::new(
-                Options::default(),
-                vec![
-                    // TODO: custom
-                    PaletteWidget::new("Classic", Theme::classic()),
-                    PaletteWidget::new("Test", Theme::test()),
-                ],
-            ),
-            leaderboard: LeaderboardWidget::new(assets),
-            level_config: LevelConfigWidget::new(assets),
+            ctl_logo: IconWidget::new(&assets.sprites.title),
+            separator: WidgetState::new(),
+
+            options: OptionsButtonWidget::new(assets, 0.25),
+
+            confirm: None,
+            sync: None,
+            notifications: NotificationsWidget::new(assets),
+
+            level_select: LevelSelectUI::new(geng, assets),
+            play_level: PlayLevelWidget::new(),
+            modifiers: ModifiersWidget::new(assets),
+
+            explore,
+
+            leaderboard_head: TextWidget::new("Leaderboard")
+                .rotated(Angle::from_degrees(90.0))
+                .aligned(vec2(0.5, 0.5)),
+            leaderboard: LeaderboardWidget::new(assets, true),
+
+            context,
         }
+    }
+
+    fn explore_music(&mut self) {
+        self.explore.window.request = Some(WidgetRequest::Open);
+        self.explore.select_tab(ExploreTab::Music);
+        self.explore.show();
+    }
+
+    fn explore_groups(&mut self) {
+        // TODO: with music filter
+        self.explore.window.request = Some(WidgetRequest::Open);
+        self.explore.select_tab(ExploreTab::Group);
+        self.explore.show();
     }
 
     /// Layout all the ui elements and return whether any of them is focused.
@@ -43,298 +84,216 @@ impl MenuUI {
         &mut self,
         state: &mut MenuState,
         screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: f32,
-        geng: &Geng,
+        context: &mut UiContext,
     ) -> bool {
         // Fix aspect
-        let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
+        let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
+        let font_size = screen.height() * 0.06;
 
-        let mut context = UiContext {
-            theme: state.options.theme,
-            layout_size,
-            font_size: screen.height() * 0.06,
-            can_focus: true,
-            cursor,
-            delta_time,
-            mods: KeyModifiers::from_window(geng.window()),
-        };
-        macro_rules! update {
-            ($widget:expr, $position:expr) => {{
-                $widget.update($position, &mut context);
-            }};
-            ($widget:expr, $position:expr, $state:expr) => {{
-                $widget.update($position, &mut context, $state);
-            }};
-        }
+        context.screen = screen;
+        context.layout_size = layout_size;
+        context.font_size = font_size;
 
-        update!(self.screen, screen);
+        self.screen.update(screen, context);
 
-        // Margin
-        let main = screen
-            .extend_uniform(-layout_size * 2.0)
-            .extend_up(-layout_size * 2.0);
+        let mut right = self.screen.position;
+        let left = right.split_left(0.55);
 
-        // Logo
-        let (ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
-        update!(self.ctl_logo, ctl_logo);
-        let main = main.extend_up(-layout_size * 3.0);
+        let separator = Aabb2::point(vec2(right.min.x, right.center().y))
+            .extend_symmetric(vec2(0.1 * layout_size, screen.height() - 10.0 * layout_size) / 2.0);
+        self.separator.update(separator, context);
 
-        let base_t = if state.level_up {
-            1.0
-        } else {
-            state
-                .show_level
-                .as_ref()
-                .map_or(0.0, |show| show.time.get_ratio().as_f32())
-        };
-        let base_t = crate::util::smoothstep(base_t) * 2.0 - 1.0;
+        let mut left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
+        let logo = left.cut_top(2.5 * layout_size);
+        self.ctl_logo.update(logo, context);
 
-        {
-            // Options
-            let width = layout_size * 50.0;
-            let height = layout_size * 15.0;
-
-            let options = Aabb2::point(layout::aabb_pos(screen, vec2(0.5, 1.0)))
-                .extend_symmetric(vec2(width, 0.0) / 2.0)
-                .extend_up(height);
-
-            let t = state.show_options.time.get_ratio().as_f32();
-            let t = crate::util::smoothstep(t);
-            let offset = -options.height() * t;
-
-            let options = options.translate(vec2(0.0, offset));
-
-            let head = Aabb2::point(screen.top_right() - vec2(7.0, 0.0) * layout_size)
-                .extend_left(context.font_size * 3.5)
-                .extend_down(context.font_size * 1.2)
-                .translate(vec2(0.0, offset));
-
-            update!(self.options_head, head);
-            context.update_focus(self.options_head.state.hovered);
-
-            let old_options = state.options.clone();
-            update!(self.options, options, &mut state.options);
-            context.update_focus(self.options.state.hovered);
-            if state.options != old_options {
-                preferences::save(OPTIONS_STORAGE, &state.options);
+        if let Some(confirm) = &mut self.confirm {
+            let size = vec2(20.0, 10.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+            confirm.update(window, context);
+            if confirm.confirm.state.clicked {
+                confirm.window.show.going_up = false;
+                state.confirm_action(self);
+            } else if confirm.discard.state.clicked {
+                confirm.window.show.going_up = false;
+                state.confirm_popup = None;
+            } else if confirm.window.show.time.is_min() {
+                self.confirm = None;
             }
 
-            if self.options_head.state.hovered && state.show_options.time.is_min() {
-                state.options_request = Some(WidgetRequest::Open);
-            } else if !self.options.state.hovered && !self.options_head.state.hovered {
-                state.options_request = Some(WidgetRequest::Close);
+            // NOTE: When confirm is active, you cant interact with other widgets
+            context.update_focus(true);
+        } else if let Some(popup) = &state.confirm_popup {
+            let mut confirm = ConfirmWidget::new(
+                &self.context.assets,
+                popup.title.clone(),
+                popup.message.clone(),
+            );
+            confirm.window.show.going_up = true;
+            self.confirm = Some(confirm);
+        }
+
+        for message in state.notifications.drain(..) {
+            self.notifications.notify(message);
+        }
+        self.notifications.update(right, context);
+
+        if self.explore.state.visible {
+            let size = vec2(50.0, 30.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+
+            let slide_t = 1.0 - self.explore.window.show.time.get_ratio();
+            let slide_t = crate::util::smoothstep(slide_t);
+            let slide = vec2(0.0, screen.min.y - window.max.y) * slide_t;
+
+            let mut temp_state = (self.context.local.clone(), None);
+            self.explore
+                .update(window.translate(slide), context, &mut temp_state);
+            if let Some(action) = temp_state.1 {
+                match action {
+                    ExploreAction::PlayMusic(music_id) => {
+                        if let Some(music) = self.context.local.get_music(music_id) {
+                            self.context.music.switch(&music);
+                        }
+                    }
+                    ExploreAction::GotoMusic(music_id) => {
+                        self.explore.window.request = Some(WidgetRequest::Close);
+                        self.level_select.select_tab(LevelSelectTab::Group);
+                        state.switch_music = Some(music_id);
+                    }
+                    ExploreAction::GotoGroup(group_id) => {
+                        if let Some((index, group)) = self
+                            .context
+                            .local
+                            .inner
+                            .borrow()
+                            .groups
+                            .iter()
+                            .find(|(_, group)| group.data.id == group_id)
+                        {
+                            self.explore.window.request = Some(WidgetRequest::Close);
+                            self.level_select.select_tab(LevelSelectTab::Difficulty);
+                            state.switch_music = Some(group.data.music);
+                            state.switch_group = Some(index);
+                        }
+                    }
+                }
+            }
+
+            // NOTE: Everything below `explore` cannot get focused
+            context.can_focus = false;
+        }
+
+        let action = self.level_select.update(left, state, context);
+        if let Some(action) = action {
+            match action {
+                LevelSelectAction::SyncGroup(group_index) => {
+                    let local = self.context.local.inner.borrow();
+                    if let Some(group) = local.groups.get(group_index) {
+                        self.sync = Some(SyncWidget::new(
+                            &self.context.geng,
+                            &self.context.assets,
+                            group.clone(),
+                            group_index,
+                        ));
+                    }
+                }
+                LevelSelectAction::EditLevel(group, level) => {
+                    state.edit_level(group, Some(level));
+                }
+                LevelSelectAction::DeleteLevel(group, level) => {
+                    self.context.local.delete_level(group, level);
+                }
+                LevelSelectAction::EditGroup(group) => {
+                    state.edit_level(group, None);
+                }
+                LevelSelectAction::DeleteGroup(group) => {
+                    state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
+                }
+                LevelSelectAction::DeleteMusic(music) => {
+                    state.popup_confirm(
+                        ConfirmAction::DeleteMusic(music),
+                        "delete the music and all inner groups",
+                    );
+                }
+            }
+        } else if self.level_select.add_music.state.clicked {
+            self.explore_music();
+        } else if self.level_select.add_group.menu.browse.state.clicked {
+            self.explore_groups();
+        } else if self.level_select.add_group.menu.create.state.clicked {
+            if let Some(music) = &state.selected_music {
+                state.new_group(music.data);
             }
         }
 
-        let cursor_high = context.cursor.position.y > main.max.y;
+        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
+
+        right.cut_left(5.0 * layout_size);
+        right.cut_right(5.0 * layout_size);
+        right.cut_top(3.5 * layout_size);
+        right.cut_bottom(2.0 * layout_size);
+        self.play_level.update(right, state, context);
+        self.modifiers.update(right, state, context);
+        state.update_board_meta();
 
         {
             // Leaderboard
-            let width = layout_size * 22.0;
-            let height = main.height() + layout_size * 2.0;
+            let main = screen;
 
-            let leaderboard =
-                Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * base_t * layout_size)
-                    .extend_left(width)
-                    .extend_down(height);
+            let size = vec2(layout_size * 22.0, main.height() - layout_size * 6.0);
+            let head_size = vec2(font_size, layout_size * 8.0);
+            let pos = main.align_pos(vec2(1.0, 0.5));
 
-            let t = state.show_leaderboard.time.get_ratio().as_f32();
-            let t = crate::util::smoothstep(t);
-            let offset = main.height() * t;
+            let base_t = state
+                .selected_level
+                .as_ref()
+                .map_or(0.0, |show| show.time.get_ratio());
+            let base_t = crate::util::smoothstep(base_t);
 
-            let leaderboard = leaderboard.translate(vec2(0.0, offset));
+            let hover_t = self.leaderboard.window.show.time.get_ratio();
+            let hover_t = crate::util::smoothstep(hover_t);
 
-            self.leaderboard.update_state(
-                &state.leaderboard.status,
-                &state.leaderboard.loaded,
-                &state.player.name,
-            );
-            update!(self.leaderboard, leaderboard);
+            let slide =
+                vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + base_t * head_size.x);
+
+            let up = 0.6;
+            let leaderboard = Aabb2::point(pos + vec2(head_size.x, 0.0) + slide)
+                .extend_right(size.x)
+                .extend_up(size.y * up)
+                .extend_down(size.y * (1.0 - up));
+            let leaderboard_head = Aabb2::point(pos + slide)
+                .extend_right(head_size.x)
+                .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
+
+            self.leaderboard.update_state(&state.leaderboard);
+            self.leaderboard.update(leaderboard, context);
+            self.leaderboard_head.update(leaderboard_head, context);
             context.update_focus(self.leaderboard.state.hovered);
 
-            if self.leaderboard.state.hovered && state.show_leaderboard.time.is_min() {
-                state.leaderboard_request = Some(WidgetRequest::Open);
-            } else if self.leaderboard.close.text.state.clicked
-                || cursor_high && !self.leaderboard.state.hovered
-            {
-                state.leaderboard_request = Some(WidgetRequest::Close);
-            }
+            let hover = base_t > 0.0
+                && (self.leaderboard.state.hovered || self.leaderboard_head.state.hovered);
+            self.leaderboard.window.layout(
+                hover,
+                context.cursor.position.x < leaderboard.min.x && !hover,
+            );
+
+            context.update_focus(self.leaderboard.state.hovered);
         }
 
-        {
-            // Mods
-            let width = layout_size * 30.0;
-            let height = layout_size * 20.0;
+        self.options.update(options, context, state);
+        context.update_focus(self.options.options.state.hovered);
 
-            let t = state.show_level_config.time.get_ratio().as_f32();
-            let t = crate::util::smoothstep(t);
-            let offset = height * t;
-            let config = Aabb2::point(main.bottom_left() + vec2(0.0, 2.0) * base_t * layout_size)
-                .extend_right(width)
-                .extend_down(height)
-                .translate(vec2(0.0, offset));
-
-            self.level_config.set_config(&state.config);
-            update!(self.level_config, config);
-            context.update_focus(self.level_config.state.hovered);
-            let old_config = state.config.clone();
-            self.level_config.update_config(&mut state.config);
-            if old_config != state.config && state.show_leaderboard.going_up {
-                state.leaderboard_request = Some(WidgetRequest::Reload);
-            }
-
-            if self.level_config.state.hovered && state.show_level_config.time.is_min() {
-                state.config_request = Some(WidgetRequest::Open);
-            } else if self.level_config.close.text.state.clicked
-                || cursor_high && !self.level_config.state.hovered
-            {
-                state.config_request = Some(WidgetRequest::Close);
-            }
-        }
-
-        // Margin
-        let main = main.extend_left(-layout_size * 0.5);
-
-        // Groups and levels on the left
-        let (groups, side) = layout::cut_left_right(main, context.font_size * 7.0);
-        let (_connections, side) = layout::cut_left_right(side, layout_size * 3.0);
-        let (levels, _side) = layout::cut_left_right(side, context.font_size * 5.0);
-        update!(self.groups_state, groups);
-        update!(self.levels_state, levels);
-
-        {
-            // Level groups
-            let slide = layout_size * 2.0;
-
-            let scroll = 0.0; // TODO
-            let group = Aabb2::point(layout::aabb_pos(groups, vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                .extend_right(groups.width() - slide)
-                .extend_down(2.0 * context.font_size);
-
-            // Initialize missing groups
-            for _ in 0..state.groups.len() - self.groups.len() {
-                self.groups.push(GroupWidget::new());
-            }
-
-            // Layout each group
-            let mut selected = None;
-            for (static_pos, (i, entry)) in layout::stack(
-                group,
-                vec2(0.0, -group.height() - layout_size * 0.5),
-                state.groups.len(),
-            )
-            .into_iter()
-            .zip(state.groups.iter().enumerate())
-            {
-                let Some(group) = self.groups.get_mut(i) else {
-                    // should not happen
-                    continue;
-                };
-
-                // Animate on hover
-                let t = group.selected_time.get_ratio();
-                let t = crate::util::smoothstep(t);
-                let pos = static_pos.translate(vec2(t * slide, 0.0));
-
-                update!(group, pos);
-                group.set_group(entry);
-
-                if group.state.clicked {
-                    selected = Some(i);
-                }
-
-                let target = if state.switch_group == Some(i) {
-                    1.0
-                } else if group.state.hovered
-                    || context.can_focus && static_pos.contains(context.cursor.position)
-                {
-                    0.5
-                } else {
-                    0.0
-                };
-                let delta = (target * group.selected_time.max() - group.selected_time.value())
-                    .clamp_abs(delta_time);
-                group.selected_time.change(delta);
-            }
-
-            // Show levels for the group
-            if let Some(group) = selected {
-                state.show_group(group);
-            }
-        }
-
-        if let Some(show_group) = &state.show_group {
-            if let Some(group) = state.groups.get(show_group.data) {
-                // Levels
-                let slide = layout_size * 2.0;
-
-                let scroll = 0.0; // TODO
-
-                // Animate slide-in/out
-                let sign = if show_group.going_up { 1.0 } else { -1.0 };
-                let t = 1.0 - crate::util::smoothstep(show_group.time.get_ratio().as_f32());
-                let scroll = scroll + sign * t * layout_size * 25.0;
-
-                let level =
-                    Aabb2::point(layout::aabb_pos(levels, vec2(0.0, 1.0)) + vec2(0.0, scroll))
-                        .extend_right(levels.width() - slide)
-                        .extend_down(2.0 * context.font_size);
-
-                // Initialize missing levels
-                for _ in 0..group.levels.len().saturating_sub(self.levels.len()) {
-                    self.levels.push(LevelWidget::new());
-                }
-
-                // Layout each level
-                let mut selected = None;
-                for (static_pos, (i, (_, level_meta))) in layout::stack(
-                    level,
-                    vec2(0.0, -level.height() - layout_size * 0.5),
-                    group.levels.len(),
-                )
-                .into_iter()
-                .zip(group.levels.iter().enumerate())
-                {
-                    let Some(level) = self.levels.get_mut(i) else {
-                        // should not happen
-                        continue;
-                    };
-
-                    // Animate
-                    let t = level.selected_time.get_ratio();
-                    let t = crate::util::smoothstep(t);
-                    let pos = static_pos.translate(vec2(t * slide, 0.0));
-
-                    update!(level, pos);
-                    level.set_level(level_meta);
-
-                    if level.state.clicked {
-                        selected = Some(i);
-                    }
-
-                    let target = if state.switch_level == Some(i) {
-                        1.0
-                    } else if level.state.hovered
-                        || context.can_focus && static_pos.contains(context.cursor.position)
-                    {
-                        0.5
-                    } else {
-                        0.0
-                    };
-                    let delta = (target * level.selected_time.max() - level.selected_time.value())
-                        .clamp_abs(delta_time);
-                    level.selected_time.change(delta);
-                }
-
-                // Show level
-                if let Some(level) = selected {
-                    if state.show_group.as_ref().is_some_and(|show| show.going_up) {
-                        state.show_level(Some(level));
-                    }
-                }
+        if let Some(sync) = &mut self.sync {
+            let size = vec2(20.0, 17.0) * layout_size;
+            let pos = screen.align_aabb(size, vec2(0.5, 0.5));
+            sync.update(pos, context, state);
+            context.update_focus(sync.state.hovered);
+            if !sync.window.show.going_up && sync.window.show.time.is_min() {
+                // Close window
+                self.sync = None;
             }
         }
 

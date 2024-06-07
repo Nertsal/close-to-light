@@ -1,15 +1,14 @@
 use super::*;
 
 use crate::{
+    leaderboard::Leaderboard,
     render::{ui::UiRender, THEME},
-    Secrets,
+    ui::{layout::AreaOps, widget::*, UiContext},
 };
 
 pub struct MainMenu {
-    geng: Geng,
-    assets: Rc<Assets>,
-    secrets: Option<Secrets>,
-    options: Options,
+    context: Context,
+    leaderboard: Leaderboard,
     transition: Option<geng::state::Transition>,
 
     dither: DitherRender,
@@ -19,45 +18,48 @@ pub struct MainMenu {
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
     cursor_pos: vec2<f64>,
+    /// Cursor clicked last frame.
+    clicked: bool,
     active_touch: Option<u64>,
     cursor_world_pos: vec2<Coord>,
     camera: Camera2d,
+
     time: Time,
     play_button: HoverButton,
     player: Player,
-    name: String,
+
+    ui: MainUI,
+    ui_context: UiContext,
+}
+
+struct MainUI {
+    screen: WidgetState,
+    join_community: TextWidget,
+    join_discord: IconButtonWidget,
+    profile: ProfileWidget,
 }
 
 impl MainMenu {
-    pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
-        secrets: Option<Secrets>,
-        options: Options,
-    ) -> Self {
-        let name: String = preferences::load(PLAYER_NAME_STORAGE).unwrap_or_default();
-        let name = fix_name(&name);
-        geng.window().start_text_edit(&name);
-        Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-            secrets,
-            options,
-            transition: None,
+    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
+        let leaderboard = Leaderboard::new(&context.geng, client);
 
-            dither: DitherRender::new(geng, assets),
-            util_render: UtilRender::new(geng, assets),
-            ui_render: UiRender::new(geng, assets),
+        Self {
+            dither: DitherRender::new(&context.geng, &context.assets),
+            util_render: UtilRender::new(context.clone()),
+            ui_render: UiRender::new(context.clone()),
+            leaderboard,
 
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
             active_touch: None,
             cursor_world_pos: vec2::ZERO,
+            clicked: false,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
+
             time: Time::ZERO,
             play_button: HoverButton::new(
                 Collider {
@@ -68,44 +70,32 @@ impl MainMenu {
                 1.5,
             ),
             player: Player::new(
-                Collider::new(vec2::ZERO, Shape::Circle { radius: r32(1.0) }),
+                Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
                 r32(0.0),
             ),
-            name,
+
+            ui: MainUI::new(context.clone()),
+            ui_context: UiContext::new(context.clone()),
+
+            context,
+            transition: None,
         }
     }
 
     fn play(&mut self) {
-        self.geng.window().stop_text_edit();
-        self.name = fix_name(&self.name);
-        preferences::save(PLAYER_NAME_STORAGE, &self.name);
+        let context = self.context.clone();
+        let state = LevelMenu::new(context, self.leaderboard.clone());
+        self.transition = Some(geng::state::Transition::Push(Box::new(state)));
+    }
 
-        let future = {
-            let geng = self.geng.clone();
-            let assets = self.assets.clone();
-            let secrets = self.secrets.clone();
-            let options = self.options.clone();
+    fn draw_ui(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        let theme = self.context.get_options().theme;
+        let ui = &self.ui;
 
-            async move {
-                let manager = geng.asset_manager();
-                let assets_path = run_dir().join("assets");
-                let groups_path = assets_path.join("groups");
-
-                let groups = load_groups(manager, &groups_path)
-                    .await
-                    .expect("failed to load groups");
-                LevelMenu::new(&geng, &assets, groups, secrets, options)
-            }
-            .boxed_local()
-        };
-        self.transition = Some(geng::state::Transition::Push(Box::new(
-            geng::LoadingScreen::new(
-                &self.geng,
-                geng::EmptyLoadingScreen::new(&self.geng),
-                future,
-            ),
-        )));
-        self.cursor_pos = vec2::ZERO;
+        self.ui_render.draw_text(&ui.join_community, framebuffer);
+        self.ui_render
+            .draw_icon_button(&ui.join_discord, theme, framebuffer);
+        self.ui_render.draw_profile(&ui.profile, framebuffer);
     }
 }
 
@@ -115,13 +105,20 @@ impl geng::State for MainMenu {
     }
 
     fn update(&mut self, delta_time: f64) {
-        // In case we come back to that state after playing the game
-        if !self.geng.window().is_editing_text() {
-            self.geng.window().start_text_edit(&self.name);
-        }
-
         let delta_time = Time::new(delta_time as f32);
         self.time += delta_time;
+
+        self.context
+            .geng
+            .window()
+            .set_cursor_type(geng::CursorType::None);
+
+        self.ui_context
+            .update(self.context.geng.window(), delta_time.as_f32());
+
+        self.context.music.stop(); // TODO: menu music
+
+        self.leaderboard.poll();
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
@@ -136,6 +133,9 @@ impl geng::State for MainMenu {
         self.player.reset_distance();
 
         let hovering = self.player.collider.check(&self.play_button.base_collider);
+        if hovering && self.clicked {
+            self.play_button.clicked = true;
+        }
         self.play_button.update(hovering, delta_time);
         self.player
             .update_distance_simple(&self.play_button.base_collider);
@@ -143,6 +143,8 @@ impl geng::State for MainMenu {
             self.play_button.hover_time.set_ratio(Time::ZERO);
             self.play();
         }
+
+        self.clicked = false;
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
@@ -152,16 +154,19 @@ impl geng::State for MainMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
-            geng::Event::EditText(text) => {
-                self.name = text;
-                self.name = self.name.to_lowercase();
-                // self.name.retain(|c| self.assets.font.can_render(c));
-                self.name = self.name.chars().take(10).collect();
-                self.geng.window().start_text_edit(&self.name);
+            geng::Event::KeyPress {
+                key: geng::Key::F11,
+            } => self.context.geng.window().toggle_fullscreen(),
+            geng::Event::Wheel { delta } => {
+                self.ui_context.cursor.scroll += delta as f32;
             }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
+                self.ui_context.cursor.cursor_move(position.as_f32());
             }
+            geng::Event::MousePress {
+                button: geng::MouseButton::Left,
+            } => self.clicked = true,
             geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
                 self.active_touch = Some(touch.id);
             }
@@ -177,7 +182,8 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        ugli::clear(screen_buffer, Some(self.options.theme.dark), None, None);
+        let theme = self.context.get_options().theme;
+        ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
         let mut framebuffer = self.dither.start();
 
@@ -185,14 +191,15 @@ impl geng::State for MainMenu {
         self.util_render
             .draw_button(&button, "START", &THEME, &self.camera, &mut framebuffer);
 
-        if !self.play_button.is_fading() {
+        let fading = self.play_button.is_fading();
+        if !fading {
             if let Some(pos) = self
                 .camera
                 .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
             {
                 self.ui_render.draw_texture(
                     Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
-                    &self.assets.sprites.title,
+                    &self.context.assets.sprites.title,
                     THEME.light,
                     &mut framebuffer,
                 );
@@ -202,33 +209,70 @@ impl geng::State for MainMenu {
                 .draw_player(&self.player, &self.camera, &mut framebuffer);
         }
 
-        self.dither.finish(self.time, &self.options.theme);
+        self.dither.finish(self.time, &theme);
 
         let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.geng, screen_buffer);
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, screen_buffer);
 
-        if !self.play_button.is_fading() {
-            // Name
-            self.util_render.draw_text(
-                &self.name,
-                vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.8).color(self.options.theme.light),
-                &self.camera,
-                screen_buffer,
+        if !fading {
+            self.ui.layout(
+                Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32()),
+                &mut self.ui_context,
+                &mut self.leaderboard,
             );
-            self.util_render.draw_text(
-                "TYPE YOUR NAME",
-                vec2(0.0, -3.8).as_r32(),
-                TextRenderOptions::new(0.7).color(self.options.theme.light),
-                &self.camera,
-                screen_buffer,
-            );
+
+            self.draw_ui(screen_buffer);
         }
+
+        self.ui_context.frame_end();
     }
 }
 
-fn fix_name(name: &str) -> String {
-    name.trim().to_lowercase()
+impl MainUI {
+    pub fn new(context: Context) -> Self {
+        Self {
+            screen: WidgetState::new(),
+            join_community: TextWidget::new("Join our community!"),
+            join_discord: IconButtonWidget::new_normal(&context.assets.sprites.discord),
+            profile: ProfileWidget::new(&context.assets),
+        }
+    }
+
+    pub fn layout(
+        &mut self,
+        screen: Aabb2<f32>,
+        context: &mut UiContext,
+        leaderboard: &mut Leaderboard,
+    ) {
+        // Fix aspect
+        let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
+
+        let layout_size = screen.height() * 0.03;
+        let font_size = screen.height() * 0.06;
+
+        context.screen = screen;
+        context.layout_size = layout_size;
+        context.font_size = font_size;
+
+        self.screen.update(screen, context);
+
+        let join = vec2(6.0, 3.0) * font_size;
+        let mut join = screen
+            .align_aabb(join, vec2(0.0, 0.0))
+            .translate(vec2(1.0, 1.0) * layout_size);
+        let text = join.cut_top(font_size * 1.5);
+        self.join_community.update(text, context);
+        self.join_discord.update(join, context);
+        if self.join_discord.state.clicked {
+            let _ = webbrowser::open(crate::DISCORD_SERVER_URL);
+        }
+
+        let profile = vec2(6.0, 3.0) * font_size;
+        let profile = screen
+            .align_aabb(profile, vec2(1.0, 0.0))
+            .translate(vec2(-1.0, 1.0) * layout_size);
+        self.profile.update(profile, context, leaderboard);
+    }
 }

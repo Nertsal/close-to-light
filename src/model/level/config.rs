@@ -49,11 +49,49 @@ pub struct LevelModifiers {
     pub hidden: bool,
 }
 
+impl LevelModifiers {
+    /// Iterate over active modifiers.
+    pub fn iter(&self) -> impl Iterator<Item = Modifier> {
+        [
+            self.nofail.then_some(Modifier::NoFail),
+            self.sudden.then_some(Modifier::Sudden),
+            self.hidden.then_some(Modifier::Hidden),
+        ]
+        .into_iter()
+        .flatten()
+    }
+
+    pub fn multiplier(&self) -> R32 {
+        r32(self
+            .iter()
+            .map(|modifier| modifier.multiplier().as_f32())
+            .product())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, enum_iterator::Sequence)]
 pub enum Modifier {
     NoFail,
     Sudden,
     Hidden,
+}
+
+impl Modifier {
+    pub fn multiplier(&self) -> R32 {
+        match self {
+            Modifier::NoFail => r32(0.8),
+            Modifier::Sudden => r32(1.15),
+            Modifier::Hidden => r32(1.1),
+        }
+    }
+
+    pub fn description(&self) -> &'static str {
+        match self {
+            Modifier::NoFail => "you can't fail",
+            Modifier::Sudden => "you don't see the lights' next move",
+            Modifier::Hidden => "the lights are hidden but they are still there",
+        }
+    }
 }
 
 impl Display for Modifier {
@@ -62,6 +100,16 @@ impl Display for Modifier {
             Modifier::NoFail => write!(f, "Nofail"),
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
+        }
+    }
+}
+
+impl LevelModifiers {
+    pub fn get_mut(&mut self, modifier: Modifier) -> &mut bool {
+        match modifier {
+            Modifier::NoFail => &mut self.nofail,
+            Modifier::Sudden => &mut self.sudden,
+            Modifier::Hidden => &mut self.hidden,
         }
     }
 }
@@ -96,14 +144,14 @@ impl Default for PlayerConfig {
 }
 
 impl HealthConfig {
-    pub fn preset_easy() -> Self {
-        Self {
-            max: r32(1.0),
-            dark_decrease_rate: r32(0.3),
-            danger_decrease_rate: r32(0.5),
-            restore_rate: r32(0.5),
-        }
-    }
+    // pub fn preset_easy() -> Self {
+    //     Self {
+    //         max: r32(1.0),
+    //         dark_decrease_rate: r32(0.3),
+    //         danger_decrease_rate: r32(0.5),
+    //         restore_rate: r32(0.5),
+    //     }
+    // }
 
     pub fn preset_normal() -> Self {
         Self {
@@ -114,14 +162,14 @@ impl HealthConfig {
         }
     }
 
-    pub fn preset_hard() -> Self {
-        Self {
-            max: r32(1.0),
-            dark_decrease_rate: r32(1.0),
-            danger_decrease_rate: r32(2.0),
-            restore_rate: r32(0.25),
-        }
-    }
+    // pub fn preset_hard() -> Self {
+    //     Self {
+    //         max: r32(1.0),
+    //         dark_decrease_rate: r32(1.0),
+    //         danger_decrease_rate: r32(2.0),
+    //         restore_rate: r32(0.25),
+    //     }
+    // }
 }
 
 impl Default for HealthConfig {

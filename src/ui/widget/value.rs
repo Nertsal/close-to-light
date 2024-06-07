@@ -1,6 +1,7 @@
-use geng_utils::bounded::Bounded;
-
 use super::*;
+
+use ctl_client::core::types::Name;
+use geng_utils::bounded::Bounded;
 
 pub struct ValueWidget<T> {
     pub state: WidgetState,
@@ -13,7 +14,7 @@ pub struct ValueWidget<T> {
 }
 
 impl<T: Num + Copy> ValueWidget<T> {
-    pub fn new(text: impl Into<String>, value: T, range: RangeInclusive<T>, scroll_by: T) -> Self {
+    pub fn new(text: impl Into<Name>, value: T, range: RangeInclusive<T>, scroll_by: T) -> Self {
         Self {
             state: WidgetState::new(),
             text: TextWidget::new(text),
@@ -32,11 +33,14 @@ impl<T: Num + Copy> ValueWidget<T> {
 impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
     type State = T;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut T) {
-        self.value.set(*state);
         self.state.update(position, context);
 
-        if self.state.hovered {
+        let mut target = if self.state.hovered {
             let sign = if context.cursor.scroll.approx_eq(&0.0) {
                 T::ZERO
             } else if context.cursor.scroll > 0.0 {
@@ -45,32 +49,29 @@ impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
                 -T::ONE
             };
 
-            let mut target = self.value.value() + sign * self.scroll_by;
-            if self.wrap {
-                // TODO: move to Bounded
-                let range = self.value.max() - self.value.min();
-                if target > self.value.max() {
-                    target -= range;
-                } else if target < self.value.min() {
-                    target += range;
-                }
+            *state + sign * self.scroll_by
+        } else {
+            *state
+        };
+        if self.wrap {
+            // TODO: move to Bounded
+            let range = self.value.max() - self.value.min();
+            while target > self.value.max() {
+                target -= range;
             }
-            self.value.set(target);
+            while target < self.value.min() {
+                target += range;
+            }
         }
+        self.value.set(target);
 
         self.text.align(vec2(0.0, 0.5));
         self.text.update(position, context);
 
         self.value_text.align(vec2(1.0, 0.5));
-        self.value_text.text = format!("{}", self.value.value());
+        self.value_text.text = format!("{}", self.value.value()).into();
         self.value_text.update(position, context);
 
         *state = self.value.value();
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.state.walk_states_mut(f);
-        self.text.walk_states_mut(f);
-        self.value_text.walk_states_mut(f);
     }
 }

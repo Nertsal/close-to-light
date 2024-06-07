@@ -1,33 +1,130 @@
 use super::*;
 
+use crate::prelude::ThemeColor;
+
+use ctl_client::core::types::Name;
+
 #[derive(Clone, Default)]
 pub struct ButtonWidget {
     pub text: TextWidget,
-    pub texture: Option<Rc<ugli::Texture>>,
 }
 
 impl ButtonWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
             text: TextWidget::new(text),
-            texture: None,
-        }
-    }
-
-    pub fn new_textured(text: impl Into<String>, texture: &Rc<ugli::Texture>) -> Self {
-        Self {
-            text: TextWidget::new(text),
-            texture: Some(texture.clone()),
         }
     }
 }
 
 impl Widget for ButtonWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.text.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.text.update(position, context);
     }
+}
 
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.text.walk_states_mut(f);
+#[derive(Clone)]
+pub struct IconButtonWidget {
+    pub state: WidgetState,
+    pub icon: IconWidget,
+    pub light_color: ThemeColor,
+}
+
+impl IconButtonWidget {
+    pub fn new(
+        texture: &Rc<ugli::Texture>,
+        light_color: ThemeColor,
+        bg_kind: IconBackgroundKind,
+    ) -> Self {
+        let mut icon = IconWidget::new(texture);
+        icon.background = Some(IconBackground {
+            color: ThemeColor::Dark,
+            kind: bg_kind,
+        });
+        Self {
+            state: WidgetState::new(),
+            icon,
+            light_color,
+        }
+    }
+
+    pub fn new_normal(texture: &Rc<ugli::Texture>) -> Self {
+        Self::new(texture, ThemeColor::Light, IconBackgroundKind::NineSlice)
+    }
+
+    pub fn new_danger(texture: &Rc<ugli::Texture>) -> Self {
+        Self::new(texture, ThemeColor::Danger, IconBackgroundKind::NineSlice)
+    }
+
+    pub fn new_close_button(texture: &Rc<ugli::Texture>) -> Self {
+        Self::new(texture, ThemeColor::Danger, IconBackgroundKind::Circle)
+    }
+}
+
+impl Widget for IconButtonWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.state.update(position, context);
+        self.icon.update(position, context);
+
+        let mut light = self.light_color;
+        let mut dark = ThemeColor::Dark;
+        if self.state.hovered {
+            std::mem::swap(&mut dark, &mut light);
+        }
+
+        self.icon.color = light;
+        if let Some(bg) = &mut self.icon.background {
+            bg.color = dark;
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct ToggleWidget {
+    pub text: TextWidget,
+    pub selected: bool,
+    pub can_deselect: bool,
+}
+
+impl ToggleWidget {
+    pub fn new(text: impl Into<Name>) -> Self {
+        Self {
+            text: TextWidget::new(text),
+            selected: false,
+            can_deselect: false,
+        }
+    }
+
+    pub fn new_deselectable(text: impl Into<Name>) -> Self {
+        Self {
+            text: TextWidget::new(text),
+            selected: false,
+            can_deselect: true,
+        }
+    }
+}
+
+impl Widget for ToggleWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.text.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.text.update(position, context);
+        if self.text.state.clicked {
+            if self.can_deselect {
+                self.selected = !self.selected;
+            } else {
+                self.selected = true;
+            }
+        }
     }
 }

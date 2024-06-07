@@ -4,8 +4,7 @@ use crate::render::{dither::DitherRender, util::UtilRender};
 use crate::prelude::*;
 
 pub struct MediaState {
-    geng: Geng,
-    // assets: Rc<Assets>,
+    context: Context,
     util_render: UtilRender,
     dither: DitherRender,
     text: String,
@@ -15,12 +14,10 @@ pub struct MediaState {
 }
 
 impl MediaState {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
-            geng: geng.clone(),
-            // assets: assets.clone(),
-            util_render: UtilRender::new(geng, assets),
-            dither: DitherRender::new(geng, assets),
+            util_render: UtilRender::new(context.clone()),
+            dither: DitherRender::new(&context.geng, &context.assets),
             text: String::new(),
             theme: Theme::default(),
             time: Time::ZERO,
@@ -29,6 +26,7 @@ impl MediaState {
                 rotation: Angle::ZERO,
                 fov: 10.0,
             },
+            context,
         }
     }
 
@@ -59,7 +57,7 @@ impl geng::State for MediaState {
         let aabb = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.geng, framebuffer);
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
     }
 
     fn update(&mut self, delta_time: f64) {

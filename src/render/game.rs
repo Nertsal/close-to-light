@@ -9,23 +9,25 @@ use super::{
 use crate::game::GameUI;
 
 pub struct GameRender {
-    geng: Geng,
-    // assets: Rc<Assets>,
+    context: Context,
     dither: DitherRender,
     masked: MaskedRender,
     util: UtilRender,
     ui: UiRender,
+
+    font_size: f32,
 }
 
 impl GameRender {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(context: Context) -> Self {
         Self {
-            geng: geng.clone(),
-            // assets: assets.clone(),
-            dither: DitherRender::new(geng, assets),
-            masked: MaskedRender::new(geng, assets, vec2(1, 1)),
-            util: UtilRender::new(geng, assets),
-            ui: UiRender::new(geng, assets),
+            dither: DitherRender::new(&context.geng, &context.assets),
+            masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            util: UtilRender::new(context.clone()),
+            ui: UiRender::new(context.clone()),
+            context,
+
+            font_size: 1.0,
         }
     }
 
@@ -153,36 +155,41 @@ impl GameRender {
             }
         }
 
-        {
-            // Rhythm
-            let radius = 0.2;
-            for rhythm in &model.rhythms {
-                let t = rhythm.time.get_ratio().as_f32();
+        // TODO: option
+        // {
+        //     // Rhythm
+        //     let radius = 0.2;
+        //     for rhythm in &model.rhythms {
+        //         let t = rhythm.time.get_ratio().as_f32();
 
-                let t = t * f32::PI;
-                let (sin, cos) = t.sin_cos();
-                let pos = vec2(0.0, 5.0 - radius) + vec2(cos, sin) * vec2(1.0, -0.2);
+        //         let t = t * f32::PI;
+        //         let (sin, cos) = t.sin_cos();
+        //         let pos = vec2(0.0, 5.0 - radius) + vec2(cos, sin) * vec2(1.0, -0.2);
 
-                let color = if rhythm.perfect {
-                    THEME.light
-                } else {
-                    THEME.danger
-                };
+        //         let color = if rhythm.perfect {
+        //             THEME.light
+        //         } else {
+        //             THEME.danger
+        //         };
 
-                self.geng.draw2d().draw2d(
-                    &mut framebuffer,
-                    camera,
-                    &draw2d::Ellipse::circle(pos, radius, color),
-                );
-            }
-        }
+        //         self.geng.draw2d().draw2d(
+        //             &mut framebuffer,
+        //             camera,
+        //             &draw2d::Ellipse::circle(pos, radius, color),
+        //         );
+        //     }
+        // }
 
         self.dither.finish(model.real_time, theme);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.geng, old_framebuffer);
+            .draw(
+                &geng::PixelPerfectCamera,
+                &self.context.geng,
+                old_framebuffer,
+            );
     }
 
     pub fn draw_ui(
@@ -192,16 +199,17 @@ impl GameRender {
         debug_mode: bool,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        self.font_size = framebuffer.size().y as f32 * 0.04;
         self.masked.update_size(framebuffer.size());
 
         // let camera = &geng::PixelPerfectCamera;
-        let theme = &model.options.theme;
+        let theme = model.options.theme;
         // let font_size = framebuffer.size().y as f32 * 0.05;
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
 
-        let accuracy = (model.score.calculated.accuracy.as_f32() * 100.0).floor() as i32;
-        let precision = (model.score.calculated.precision.as_f32() * 100.0).floor() as i32;
+        let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
+        let precision = model.score.calculated.precision.as_f32() * 100.0;
 
         if let State::Lost { .. } | State::Finished = model.state {
             if !fading {
@@ -213,14 +221,14 @@ impl GameRender {
                     framebuffer,
                 );
                 self.util.draw_text(
-                    &format!("ACCURACY: {}%", accuracy),
+                    &format!("ACCURACY: {:.2}%", accuracy),
                     vec2(-3.0, -3.5),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
                     framebuffer,
                 );
                 self.util.draw_text(
-                    &format!("PRECISION: {}%", precision),
+                    &format!("PRECISION: {:.2}%", precision),
                     vec2(-3.0, -4.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
@@ -230,7 +238,7 @@ impl GameRender {
         } else if !model.level.config.modifiers.clean_auto {
             self.util.draw_text(
                 format!("SCORE: {}", model.score.calculated.combined),
-                vec2(-1.0, 4.2).as_r32(),
+                vec2(-8.5, 4.5).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),
@@ -239,8 +247,8 @@ impl GameRender {
             );
 
             self.util.draw_text(
-                format!("acc: {:3}%", accuracy),
-                vec2(-8.0, 4.0).as_r32(),
+                format!("{:3.2}%", accuracy),
+                vec2(-8.5, 3.9).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
                     .align(vec2(0.0, 0.5)),
@@ -248,15 +256,15 @@ impl GameRender {
                 framebuffer,
             );
 
-            self.util.draw_text(
-                format!("prec: {:3}%", precision),
-                vec2(-8.0, 3.5).as_r32(),
-                TextRenderOptions::new(0.7)
-                    .color(theme.light)
-                    .align(vec2(0.0, 0.5)),
-                &model.camera,
-                framebuffer,
-            );
+            // self.util.draw_text(
+            //     format!("{:3.2}%", precision),
+            //     vec2(-8.0, 3.5).as_r32(),
+            //     TextRenderOptions::new(0.7)
+            //         .color(theme.light)
+            //         .align(vec2(0.0, 0.5)),
+            //     &model.camera,
+            //     framebuffer,
+            // );
 
             if debug_mode {
                 self.util.draw_text(
@@ -272,8 +280,19 @@ impl GameRender {
         }
 
         if ui.leaderboard.state.visible {
-            self.ui
-                .draw_leaderboard(&ui.leaderboard, theme, &mut self.masked, framebuffer);
+            self.ui.draw_leaderboard(
+                &ui.leaderboard,
+                theme,
+                self.font_size * 0.1,
+                &mut self.masked,
+                framebuffer,
+            );
+            self.ui.draw_outline(
+                ui.leaderboard.state.position,
+                self.font_size * 0.2,
+                theme.light,
+                framebuffer,
+            );
         }
     }
 }

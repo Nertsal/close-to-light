@@ -15,6 +15,14 @@ pub struct Theme {
     pub highlight: Color,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum ThemeColor {
+    Dark,
+    Light,
+    Danger,
+    Highlight,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VolumeOptions {
     pub master: Bounded<f32>, // TODO: impl in crate
@@ -54,7 +62,7 @@ impl Theme {
         }
     }
 
-    pub fn test() -> Self {
+    pub fn peach_mint() -> Self {
         Self {
             dark: Color::try_from("#2B3A67").unwrap(),
             light: Color::try_from("#FFC482").unwrap(),
@@ -63,11 +71,38 @@ impl Theme {
         }
     }
 
+    pub fn corruption() -> Self {
+        Self {
+            dark: Color::try_from("#382637").unwrap(),
+            light: Color::try_from("#DEA257").unwrap(),
+            danger: Color::try_from("#A23F6D").unwrap(),
+            highlight: Color::try_from("#43BCCD").unwrap(),
+        }
+    }
+
+    pub fn linksider() -> Self {
+        Self {
+            dark: Color::try_from("#46425E").unwrap(),
+            light: Color::try_from("#FFEECC").unwrap(),
+            danger: Color::try_from("#FF6973").unwrap(),
+            highlight: Color::try_from("#00B9BE").unwrap(),
+        }
+    }
+
     /// Make `dark` color transparent black.
     pub fn transparent(self) -> Self {
         Self {
             dark: Color::TRANSPARENT_BLACK,
             ..self
+        }
+    }
+
+    pub fn get_color(&self, color: ThemeColor) -> Color {
+        match color {
+            ThemeColor::Dark => self.dark,
+            ThemeColor::Light => self.light,
+            ThemeColor::Danger => self.danger,
+            ThemeColor::Highlight => self.highlight,
         }
     }
 }

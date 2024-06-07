@@ -1,21 +1,16 @@
-mod collider;
 mod level;
-mod light;
 mod logic;
-mod movement;
 mod options;
 mod player;
 mod score;
 
-pub use self::{collider::*, level::*, light::*, movement::*, options::*, player::*, score::*};
+pub use self::{level::*, options::*, player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
 const COYOTE_TIME: f32 = 0.1;
 const BUFFER_TIME: f32 = 0.1;
 
-pub type Time = R32;
-pub type Coord = R32;
 pub type Lifetime = Bounded<Time>;
 
 #[derive(Debug, Clone)]
@@ -23,83 +18,12 @@ pub enum GameEvent {
     Rhythm { perfect: bool },
 }
 
-pub struct Music {
-    pub meta: MusicMeta,
-    sound: Rc<geng::Sound>,
-    effect: Option<geng::SoundEffect>,
-    volume: f64,
-    /// Stop the music after the timer runs out.
-    pub timer: Time,
-}
-
-impl Drop for Music {
-    fn drop(&mut self) {
-        self.stop();
-    }
-}
-
-impl Debug for Music {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Music")
-            .field("meta", &self.meta)
-            // .field("effect", &self.effect)
-            .field("volume", &self.volume)
-            .field("timer", &self.timer)
-            .finish()
-    }
-}
-
-impl Clone for Music {
-    fn clone(&self) -> Self {
-        Self::new(self.sound.clone(), self.meta.clone())
-    }
-}
-
-impl Music {
-    pub fn new(sound: Rc<geng::Sound>, meta: MusicMeta) -> Self {
-        Self {
-            meta,
-            sound,
-            volume: 0.5,
-            effect: None,
-            timer: Time::ZERO,
-        }
-    }
-
-    pub fn set_volume(&mut self, volume: f32) {
-        let volume = f64::from(volume);
-        let volume = volume.clamp(0.0, 1.0);
-        self.volume = volume;
-        if let Some(effect) = &mut self.effect {
-            effect.set_volume(volume);
-        }
-    }
-
-    pub fn stop(&mut self) {
-        if let Some(mut effect) = self.effect.take() {
-            effect.stop();
-        }
-        self.timer = Time::ZERO;
-    }
-
-    pub fn play_from(&mut self, time: time::Duration) {
-        self.stop();
-        let mut effect = self.sound.effect();
-        effect.set_volume(self.volume);
-        effect.play_from(time);
-        self.effect = Some(effect);
-    }
-
-    pub fn beat_time(&self) -> Time {
-        self.meta.beat_time()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct HoverButton {
     pub base_collider: Collider,
     pub hover_time: Lifetime,
     pub animation: Movement,
+    pub clicked: bool,
 }
 
 impl HoverButton {
@@ -113,21 +37,29 @@ impl HoverButton {
                 key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
                 fade_out: r32(0.2),
             },
+            clicked: false,
         }
     }
 
     /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
     pub fn is_fading(&self) -> bool {
         // TODO: more custom
-        self.hover_time.get_ratio().as_f32() > 0.5
+        self.hover_time.get_ratio().as_f32() > 0.6
     }
 
     pub fn update(&mut self, hovering: bool, delta_time: Time) {
-        self.hover_time.change(if self.is_fading() || hovering {
-            delta_time
+        let scale = if self.is_fading() {
+            self.clicked = false;
+            1.0
+        } else if self.clicked {
+            3.0
+        } else if hovering {
+            1.0
         } else {
-            -delta_time
-        });
+            -1.0
+        };
+        let dt = r32(scale) * delta_time;
+        self.hover_time.change(dt);
     }
 }
 
@@ -164,13 +96,15 @@ pub struct Rhythm {
 }
 
 pub struct Model {
+    pub context: Context,
     pub transition: Option<Transition>,
-    pub assets: Rc<Assets>,
     pub leaderboard: Leaderboard,
 
     pub high_score: i32,
     pub camera: Camera2d,
     pub player: Player,
+    /// Whether the cursor clicked last frame.
+    pub cursor_clicked: bool,
 
     pub options: Options,
     /// The level being played. Not changed, apart from music being played.
@@ -198,26 +132,32 @@ pub struct Model {
 
 impl Model {
     pub fn new(
-        assets: &Rc<Assets>,
+        context: Context,
         options: Options,
         level: PlayLevel,
-        leaderboard: Leaderboard,
-        player_name: String,
+        mut leaderboard: Leaderboard,
     ) -> Self {
+        leaderboard.loaded.level = level.level.meta.id;
+
         let start_time = level.start_time;
-        let mut model = Self::empty(assets, options, level);
-        model.player.name = player_name;
+        let mut model = Self::empty(context, options, level);
+        if let Some(player) = &leaderboard.user {
+            model.player.info = UserInfo {
+                id: player.id,
+                name: player.name.clone(),
+            };
+        }
         model.leaderboard = leaderboard;
 
         model.init(start_time);
         model
     }
 
-    pub fn empty(assets: &Rc<Assets>, options: Options, level: PlayLevel) -> Self {
+    pub fn empty(context: Context, options: Options, level: PlayLevel) -> Self {
         Self {
             transition: None,
-            assets: assets.clone(),
-            leaderboard: Leaderboard::new(None),
+            leaderboard: Leaderboard::empty(&context.geng),
+            context,
 
             high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
             camera: Camera2d {
@@ -234,13 +174,14 @@ impl Model {
                 ),
                 level.config.health.max,
             ),
+            cursor_clicked: false,
 
             level_state: LevelState::default(),
             state: State::Starting {
                 start_timer: Time::ZERO, // reset during init
                 music_start_time: Time::ZERO,
             },
-            score: Score::new(),
+            score: Score::new(level.config.modifiers.multiplier()),
 
             last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
             rhythms: Vec::new(),

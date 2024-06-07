@@ -1,14 +1,10 @@
 use super::*;
 
-use crate::Secrets;
-
 const TRANSITION_TIME: f32 = 5.0;
 
 pub struct SplashScreen {
-    geng: Geng,
-    assets: Rc<Assets>,
-    secrets: Option<Secrets>,
-    options: Options,
+    context: Context,
+    client: Option<Arc<ctl_client::Nertboard>>,
     transition: Option<geng::state::Transition>,
 
     util: UtilRender,
@@ -17,22 +13,15 @@ pub struct SplashScreen {
 }
 
 impl SplashScreen {
-    pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
-        secrets: Option<Secrets>,
-        options: Options,
-    ) -> Self {
+    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
         Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-            secrets,
-            options,
-            transition: None,
-
-            util: UtilRender::new(geng, assets),
+            util: UtilRender::new(context.clone()),
 
             time: Time::ZERO,
+
+            context,
+            client: client.cloned(),
+            transition: None,
         }
     }
 }
@@ -43,7 +32,9 @@ impl geng::State for SplashScreen {
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        ugli::clear(framebuffer, Some(self.options.theme.dark), None, None);
+        let theme = self.context.get_options().theme;
+
+        ugli::clear(framebuffer, Some(theme.dark), None, None);
 
         let camera = &Camera2d {
             center: vec2::ZERO,
@@ -53,7 +44,7 @@ impl geng::State for SplashScreen {
 
         let alpha = (TRANSITION_TIME - self.time.as_f32()).clamp(0.0, 1.0);
         let alpha = crate::util::smoothstep(alpha);
-        let color = crate::util::with_alpha(self.options.theme.light, alpha);
+        let color = crate::util::with_alpha(theme.light, alpha);
 
         self.util.draw_text(
             "PHOTOSENSITIVITY WARNING",
@@ -86,10 +77,8 @@ trigger seizures for people with photosensitive epilepsy
 
         if self.time.as_f32() > TRANSITION_TIME {
             self.transition = Some(geng::state::Transition::Switch(Box::new(MainMenu::new(
-                &self.geng,
-                &self.assets,
-                self.secrets.take(),
-                self.options.clone(),
+                self.context.clone(),
+                self.client.as_ref(),
             ))));
         }
     }

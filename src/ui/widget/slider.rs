@@ -1,10 +1,12 @@
 use super::*;
 
-use crate::{render::util::TextRenderOptions, ui::layout};
+use crate::{render::util::TextRenderOptions, ui::layout::AreaOps};
 
+use ctl_client::core::types::Name;
 use geng_utils::bounded::Bounded;
 
 pub struct SliderWidget {
+    pub state: WidgetState,
     pub text: TextWidget,
     pub bar: WidgetState,
     /// Hitbox
@@ -15,8 +17,9 @@ pub struct SliderWidget {
 }
 
 impl SliderWidget {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub fn new(text: impl Into<Name>) -> Self {
         Self {
+            state: WidgetState::new(),
             text: TextWidget::new(text),
             bar: WidgetState::new(),
             bar_box: WidgetState::new(),
@@ -30,25 +33,31 @@ impl SliderWidget {
 impl StatefulWidget for SliderWidget {
     type State = Bounded<f32>;
 
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+        self.state.update(position, context);
+
         self.options.update(context);
         let mut main = position;
 
         if !self.text.text.is_empty() {
-            let (text, m) = layout::cut_left_right(main, context.font_size * 5.0);
+            let text = main.cut_left(context.font_size * 5.0);
             self.text.show();
             self.text.align(vec2(1.0, 0.5));
             self.text.update(text, context);
-            main = m;
         } else {
             self.text.hide();
         }
 
-        let (main, value) = layout::cut_left_right(main, main.width() - context.font_size * 3.0);
-        self.value.text = format!("{:.precision$}", state.value(), precision = 2);
+        let value = main.cut_right(context.font_size * 2.0);
+        self.value.text = format!("{:.precision$}", state.value(), precision = 2).into();
         self.value.update(value, context);
 
-        let bar = Aabb2::point(layout::aabb_pos(main, vec2(0.0, 0.5)))
+        main.cut_left(context.layout_size * 0.5);
+        let bar = Aabb2::point(main.align_pos(vec2(0.0, 0.5)))
             .extend_right(main.width())
             .extend_symmetric(vec2(0.0, context.font_size * 0.1) / 2.0);
         self.bar.update(bar, context);
@@ -56,7 +65,7 @@ impl StatefulWidget for SliderWidget {
         let bar_box = bar.extend_symmetric(vec2(0.0, context.font_size * 0.6) / 2.0);
         self.bar_box.update(bar_box, context);
 
-        let head = Aabb2::point(layout::aabb_pos(main, vec2(state.get_ratio(), 0.5)))
+        let head = Aabb2::point(main.align_pos(vec2(state.get_ratio(), 0.5)))
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 
@@ -66,12 +75,5 @@ impl StatefulWidget for SliderWidget {
             let t = t.clamp(0.0, 1.0);
             state.set_ratio(t);
         }
-    }
-
-    fn walk_states_mut(&mut self, f: &dyn Fn(&mut WidgetState)) {
-        self.text.walk_states_mut(f);
-        self.bar.walk_states_mut(f);
-        self.head.walk_states_mut(f);
-        self.value.walk_states_mut(f);
     }
 }

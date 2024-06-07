@@ -1,6 +1,7 @@
 use super::*;
 
-pub use crate::ui::{layout, widget::*};
+use crate::game::ui::layout::AreaOps;
+pub use crate::ui::{layout, widget::*, *};
 
 pub struct GameUI {
     pub leaderboard: LeaderboardWidget,
@@ -8,51 +9,43 @@ pub struct GameUI {
 
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
-        Self {
-            leaderboard: LeaderboardWidget::new(assets),
-        }
+        let mut leaderboard = LeaderboardWidget::new(assets, true);
+        leaderboard.reload.hide();
+        Self { leaderboard }
     }
 
     pub fn layout(
         &mut self,
         model: &mut Model,
         screen: Aabb2<f32>,
-        cursor: CursorContext,
-        delta_time: f32,
-        geng: &Geng,
+        context: &mut UiContext,
     ) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
 
-        let mut context = UiContext {
-            theme: model.options.theme,
-            layout_size,
-            font_size: screen.height() * 0.06,
-            can_focus: true,
-            cursor,
-            delta_time,
-            mods: KeyModifiers::from_window(geng.window()),
-        };
+        context.layout_size = layout_size;
+        context.font_size = screen.height() * 0.05;
+
         macro_rules! update {
             ($widget:expr, $position:expr) => {{
-                $widget.update($position, &mut context);
+                $widget.update($position, context);
             }};
         }
 
         // Margin
-        let main = screen.extend_uniform(-layout_size * 2.0);
+        let mut main = screen.extend_uniform(-layout_size * 2.0);
 
         // Logo
-        let (_ctl_logo, main) = layout::cut_top_down(main, layout_size * 4.0);
+        let _ctl_logo = main.cut_top(layout_size * 4.0);
         // update!(self.ctl_logo, ctl_logo);
         let main = main.extend_up(-layout_size * 3.0);
 
         if let State::Lost { .. } | State::Finished = model.state {
             // Leaderboard
             self.leaderboard.show();
-            self.leaderboard.close.hide();
+            // self.leaderboard.close.hide();
 
             let width = layout_size * 20.0;
             let height = main.height() + layout_size * 2.0;
@@ -65,11 +58,7 @@ impl GameUI {
 
             let leaderboard = leaderboard.translate(vec2(0.0, offset));
 
-            self.leaderboard.update_state(
-                &model.leaderboard.status,
-                &model.leaderboard.loaded,
-                &model.player.name,
-            );
+            self.leaderboard.update_state(&model.leaderboard);
             update!(self.leaderboard, leaderboard);
             context.update_focus(self.leaderboard.state.hovered);
         } else {

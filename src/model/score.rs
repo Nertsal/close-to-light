@@ -5,7 +5,9 @@ pub const DISCRETE_OK: i32 = 100;
 pub const DYNAMIC_SCALE: f32 = 1000.0;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Score {
+    pub multiplier: R32,
     pub calculated: CalculatedScore,
     pub metrics: ScoreMetrics,
 }
@@ -45,13 +47,14 @@ pub struct DynamicMetrics {
 
 impl Default for Score {
     fn default() -> Self {
-        Self::new()
+        Self::new(R32::ONE)
     }
 }
 
 impl Score {
-    pub fn new() -> Self {
+    pub fn new(multiplier: R32) -> Self {
         Self {
+            multiplier,
             calculated: CalculatedScore::new(),
             metrics: ScoreMetrics::new(),
         }
@@ -61,7 +64,7 @@ impl Score {
     #[must_use]
     pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
         let events = self.metrics.update(player, delta_time);
-        self.calculated = CalculatedScore::from_metrics(&self.metrics);
+        self.calculated = CalculatedScore::from_metrics(&self.metrics, self.multiplier);
         events
     }
 }
@@ -75,7 +78,7 @@ impl CalculatedScore {
         }
     }
 
-    pub fn from_metrics(metrics: &ScoreMetrics) -> Self {
+    pub fn from_metrics(metrics: &ScoreMetrics, multiplier: R32) -> Self {
         let accuracy = if metrics.discrete.total == 0 {
             R32::ONE
         } else {
@@ -87,7 +90,7 @@ impl CalculatedScore {
         let discrete = (metrics.discrete.score as f32 * accuracy.as_f32()).ceil() as i32;
 
         Self {
-            combined: discrete + metrics.dynamic.score,
+            combined: ((discrete + metrics.dynamic.score) as f32 * multiplier.as_f32()) as i32,
             accuracy,
             precision,
         }

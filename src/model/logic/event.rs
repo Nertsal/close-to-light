@@ -16,15 +16,9 @@ impl Model {
                 }
 
                 let position = self.player.collider.position;
-                log::debug!(
-                    "Rhythm (perfect: {}) at {:?}: {:?}",
-                    perfect,
-                    position,
-                    self.last_rhythm
-                );
                 self.rhythms.push(Rhythm {
                     position,
-                    time: Bounded::new_zero(self.level.music.beat_time()),
+                    time: Bounded::new_zero(self.level.group.music.meta.beat_time()),
                     perfect,
                 });
             }
