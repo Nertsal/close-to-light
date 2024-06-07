@@ -494,7 +494,7 @@ impl StatefulWidget for EditorEditWidget {
             let was_pressed = self.timeline.state.pressed;
             update!(self.timeline, timeline, level_editor);
 
-            if self.timeline.state.pressed {
+            if self.timeline.clickable.pressed {
                 let time = self.timeline.get_cursor_time();
                 level_editor.scroll_time(time - level_editor.current_beat);
             }

@@ -13,7 +13,6 @@ impl EditorRender {
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         let font_size = ui.screen.position.height() * 0.04;
-        let options = TextRenderOptions::new(font_size).align(vec2(0.5, 1.0));
 
         if ui.config.state.visible {
             self.draw_tab_config(editor, &ui.config);
@@ -33,7 +32,7 @@ impl EditorRender {
                 framebuffer,
             );
 
-            self.draw_tab_edit(editor, &ui.edit, options);
+            self.draw_tab_edit(editor, &ui.edit);
         }
 
         let framebuffer =
@@ -120,12 +119,7 @@ impl EditorRender {
         self.ui.draw_value(&ui.alt_scroll, framebuffer);
     }
 
-    fn draw_tab_edit(
-        &mut self,
-        editor: &Editor,
-        ui: &EditorEditWidget,
-        options: TextRenderOptions,
-    ) {
+    fn draw_tab_edit(&mut self, editor: &Editor, ui: &EditorEditWidget) {
         if !ui.state.visible {
             return;
         }
@@ -141,7 +135,6 @@ impl EditorRender {
         let theme = editor.context.get_options().theme;
 
         let camera = &geng::PixelPerfectCamera;
-        let font_size = options.size;
 
         // Event
         self.ui.draw_text(&ui.new_event, framebuffer);
@@ -187,10 +180,8 @@ impl EditorRender {
             self.ui.draw_text(&ui.current_beat, framebuffer);
 
             let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
-            let timeline = ui.timeline.state.position;
-            let line = Aabb2::point(timeline.center())
-                .extend_symmetric(vec2(timeline.width(), font_size * 0.1) / 2.0);
-            quad(line, theme.light);
+            let bar = ui.timeline.bar.position;
+            quad(bar, theme.light);
 
             if ui.timeline.left.visible {
                 // Selected area

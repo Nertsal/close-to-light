@@ -10,6 +10,8 @@ use std::collections::BTreeMap;
 pub struct TimelineWidget {
     context: UiContext,
     pub state: WidgetState,
+    pub clickable: WidgetState,
+    pub bar: WidgetState,
 
     pub current_beat: WidgetState,
 
@@ -53,6 +55,8 @@ impl TimelineWidget {
                 context,
             },
             state: default(),
+            clickable: default(),
+            bar: default(),
 
             current_beat: default(),
 
@@ -249,9 +253,13 @@ impl StatefulWidget for TimelineWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
-        let bar =
+        self.state.update(position, context);
+        let clickable =
             position.extend_symmetric(vec2(0.0, context.font_size * 0.2 - position.height()) / 2.0);
-        self.state.update(bar, context);
+        self.clickable.update(clickable, context);
+        let bar = Aabb2::point(clickable.center())
+            .extend_symmetric(vec2(clickable.width(), context.font_size * 0.1) / 2.0);
+        self.bar.update(bar, context);
 
         self.context = context.clone();
         self.level = state.level.clone();
