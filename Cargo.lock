@@ -247,9 +247,9 @@ dependencies = [
 
 [[package]]
 name = "async-compat"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f68a707c1feb095d8c07f8a65b9f506b117d30af431cab89374357de7c11461b"
+checksum = "7bab94bde396a3f7b4962e396fdad640e241ed797d4d8d77fc8c237d14c58fc0"
 dependencies = [
  "futures-core",
  "futures-io",
@@ -1203,6 +1203,7 @@ checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 name = "close-to-light"
 version = "0.1.0"
 dependencies = [
+ "async-compat",
  "async-executor",
  "base64 0.22.1",
  "bincode",

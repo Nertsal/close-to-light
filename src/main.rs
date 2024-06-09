@@ -59,16 +59,6 @@ pub struct LeaderboardSecrets {
 }
 
 fn main() {
-    #[cfg(target_arch = "wasm32")]
-    let mut builder = tokio::runtime::Builder::new_current_thread();
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let mut builder = tokio::runtime::Builder::new_multi_thread();
-
-    builder.enable_all().build().unwrap().block_on(async_main());
-}
-
-async fn async_main() {
     let opts: Opts = batbox::cli::parse();
 
     let mut builder = logger::builder();
@@ -98,13 +88,18 @@ async fn async_main() {
     options.with_cli(&opts.geng);
 
     Geng::run_with(&options, move |geng| async move {
-        if let Err(err) = geng_main(opts, geng).await {
+        let main = geng_main(geng, opts);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let main = async_compat::Compat::new(main);
+
+        if let Err(err) = main.await {
             log::error!("{:?}", err);
         }
     });
 }
 
-async fn geng_main(opts: Opts, geng: Geng) -> anyhow::Result<()> {
+async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
     let manager = geng.asset_manager();
 
     let assets = assets::Assets::load(manager).await?;

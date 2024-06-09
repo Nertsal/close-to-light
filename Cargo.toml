@@ -34,6 +34,7 @@ async-executor = "1.8.0"
 webbrowser = "1.0.1"
 directories = "5.0.1"
 base64 = "0.22.1"
+async-compat = "0.2.4"
 
 # Server
 axum = { version = "0.7.2", features = ["macros", "multipart"] }
@@ -80,6 +81,7 @@ bincode.workspace = true
 webbrowser.workspace = true
 directories.workspace = true
 base64.workspace = true
+async-compat.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
