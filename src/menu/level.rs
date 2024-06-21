@@ -646,6 +646,7 @@ impl geng::State for LevelMenu {
                 self.context.music.stop();
             }
         }
+        self.context.music.set_speed(1.0);
 
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
