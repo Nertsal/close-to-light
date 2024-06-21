@@ -445,10 +445,7 @@ impl StatefulWidget for LevelItemWidget {
             .any(|(_, group)| group.data.id == self.info.id)
         {
             // Not downloaded
-            if state
-                .is_downloading_group()
-                .map_or(false, |ids| ids.contains(&self.info.id))
-            {
+            if state.is_downloading_group().contains(&self.info.id) {
                 self.downloading.show();
                 self.download.hide();
             } else {
@@ -460,7 +457,7 @@ impl StatefulWidget for LevelItemWidget {
             self.download.update(rows[1], context);
             self.downloading.update(rows[1], context);
             if self.download.state.clicked {
-                state.download_groups(vec![self.info.id], false);
+                state.download_group(self.info.id);
             }
         } else {
             self.download.hide();
@@ -535,7 +532,7 @@ impl StatefulWidget for MusicItemWidget {
 
         if state.get_music(self.info.id).is_none() {
             // Not downloaded
-            if state.is_downloading_music() == Some(self.info.id) {
+            if state.is_downloading_music().contains(&self.info.id) {
                 self.downloading.show();
                 self.download.hide();
             } else {
