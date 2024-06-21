@@ -4,6 +4,7 @@ use crate::util::Lerp;
 
 pub struct ModifiersWidget {
     t: f32,
+    pub active_mods: Vec<IconWidget>,
     pub body_slide: Bounded<f32>,
     pub head: TextWidget,
     pub body: WidgetState,
@@ -18,6 +19,7 @@ impl ModifiersWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
             t: 0.0,
+            active_mods: Vec::new(),
             body_slide: Bounded::new_zero(0.25),
             head: TextWidget::new("Modifiers"),
             body: WidgetState::new(),
@@ -40,6 +42,24 @@ impl ModifiersWidget {
     pub fn update(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
         let head_size = vec2(7.0 * context.layout_size, 1.1 * context.font_size);
         let head = main.align_aabb(head_size, vec2(0.5, 0.0));
+
+        // Active mods
+        self.active_mods = state
+            .config
+            .modifiers
+            .iter()
+            .map(|modifier| IconWidget::new(context.context.assets.get_modifier(modifier)))
+            .collect();
+        let mods = head.translate(vec2(0.0, head.height()));
+        let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
+        let mods = mod_pos.stack_aligned(
+            vec2(mod_pos.width(), 0.0),
+            self.active_mods.len(),
+            vec2(0.5, 0.5),
+        );
+        for (modifier, pos) in self.active_mods.iter_mut().zip(mods) {
+            modifier.update(pos, context);
+        }
 
         // Slide in when a level is selected
         let t = state.selected_level.as_ref().map_or(0.0, |show| {

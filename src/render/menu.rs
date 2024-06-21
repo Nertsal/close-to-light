@@ -237,16 +237,22 @@ impl MenuRender {
         let theme = state.context.get_options().theme;
         let width = self.font_size * 0.2;
 
+        let danger_theme = Theme {
+            light: theme.danger,
+            ..theme
+        };
+
+        for icon in &ui.active_mods {
+            self.ui.draw_icon(icon, danger_theme, framebuffer);
+        }
+
         if !ui.body.visible {
             self.ui
                 .draw_outline(ui.head.state.position, width, theme.danger, framebuffer);
             self.ui
                 .draw_text_colored(&ui.head, theme.danger, framebuffer);
         } else {
-            let theme = Theme {
-                light: theme.danger,
-                ..theme
-            };
+            let theme = danger_theme;
             self.ui.draw_window(
                 &mut self.masked,
                 ui.body.position,

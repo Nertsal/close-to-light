@@ -266,6 +266,19 @@ impl GameRender {
             //     framebuffer,
             // );
 
+            let position = Aabb2::point(vec2(-8.3, 3.2)).extend_uniform(0.3);
+            for (i, modifier) in model.level.config.modifiers.iter().enumerate() {
+                let position = position.translate(vec2(i as f32, 0.0) * position.size());
+                if let Some(position) = model
+                    .camera
+                    .world_to_screen(framebuffer.size().as_f32(), position.center())
+                {
+                    let texture = self.context.assets.get_modifier(modifier);
+                    self.ui
+                        .draw_texture(Aabb2::point(position), texture, theme.light, framebuffer);
+                }
+            }
+
             if debug_mode {
                 self.util.draw_text(
                     format!("{:#?}", model.score),
