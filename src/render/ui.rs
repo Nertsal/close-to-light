@@ -499,7 +499,7 @@ impl UiRender {
                 &mut buffer.color,
             );
             for icon in &row.modifiers {
-                self.draw_icon(icon, theme, framebuffer);
+                self.draw_icon(icon, theme, &mut buffer.color);
             }
         }
 
