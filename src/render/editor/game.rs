@@ -287,23 +287,33 @@ impl EditorRender {
                                 &level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
-                            if let Some(i) = point.original {
-                                if let Some(event) = level_editor.level.events.get(waypoints.event)
-                                {
-                                    if let Event::Light(light) = &event.event {
-                                        if let Some(beat) = light.light.movement.get_time(i) {
-                                            let beat =
-                                                event.beat + light.telegraph.precede_time + beat;
-                                            self.util.draw_text(
-                                                format!("at {}", beat),
-                                                point.collider.position - vec2(0.0, 0.6).as_r32(),
-                                                TextRenderOptions::new(0.6).color(THEME.light),
-                                                &level_editor.model.camera,
-                                                &mut pixel_buffer,
-                                            );
-                                        }
-                                    }
-                                }
+
+                            let beat_time =
+                                point.original.map_or(Some(level_editor.current_beat), |i| {
+                                    level_editor.level.events.get(waypoints.event).and_then(
+                                        |event| {
+                                            if let Event::Light(light) = &event.event {
+                                                if let Some(beat) = light.light.movement.get_time(i)
+                                                {
+                                                    return Some(
+                                                        event.beat
+                                                            + light.telegraph.precede_time
+                                                            + beat,
+                                                    );
+                                                }
+                                            }
+                                            None
+                                        },
+                                    )
+                                });
+                            if let Some(beat) = beat_time {
+                                self.util.draw_text(
+                                    format!("at {}", beat),
+                                    point.collider.position - vec2(0.0, 0.6).as_r32(),
+                                    TextRenderOptions::new(0.6).color(THEME.light),
+                                    &level_editor.model.camera,
+                                    &mut pixel_buffer,
+                                );
                             }
                         }
                     }
