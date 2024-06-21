@@ -100,6 +100,22 @@ impl geng::State for Game {
                 .draw_ui(&self.ui, &self.model, self.debug_mode, framebuffer);
         }
         self.ui_context.frame_end();
+
+        if !self.model.level.config.modifiers.clean_auto {
+            let mut dither_buffer = self.render.dither.start();
+            self.render.util.draw_player(
+                &self.model.player,
+                &self.model.camera,
+                &mut dither_buffer,
+            );
+            self.render.dither.finish(
+                self.model.real_time,
+                &self.model.options.theme.transparent(),
+            );
+            geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
+                .fit_screen(vec2(0.5, 0.5), framebuffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {

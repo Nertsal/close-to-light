@@ -10,9 +10,9 @@ use crate::game::GameUI;
 
 pub struct GameRender {
     context: Context,
-    dither: DitherRender,
+    pub dither: DitherRender,
     masked: MaskedRender,
-    util: UtilRender,
+    pub util: UtilRender,
     ui: UiRender,
 
     font_size: f32,
