@@ -794,6 +794,12 @@ impl LevelEditor {
     }
 
     fn new_waypoint(&mut self) {
+        // Deselect
+        if let Some(waypoints) = &mut self.level_state.waypoints {
+            waypoints.selected = None;
+        }
+
+        // Create new
         if let State::Waypoints { state, .. } = &mut self.state {
             *state = WaypointsState::New;
         }

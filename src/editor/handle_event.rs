@@ -349,9 +349,9 @@ impl EditorState {
                     };
                 }
             }
-            State::Waypoints { state, .. } => {
+            State::Waypoints { .. } => {
                 // TODO: better key
-                *state = WaypointsState::New;
+                level_editor.new_waypoint();
             }
             _ => (),
         }
