@@ -158,6 +158,9 @@ impl MenuUI {
                             self.context.music.switch(&music);
                         }
                     }
+                    ExploreAction::PauseMusic => {
+                        self.context.music.stop();
+                    }
                     ExploreAction::GotoMusic(music_id) => {
                         self.explore.window.request = Some(WidgetRequest::Close);
                         self.level_select.select_tab(LevelSelectTab::Group);

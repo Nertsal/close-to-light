@@ -11,6 +11,7 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub enum ExploreAction {
     PlayMusic(Id),
+    PauseMusic,
     GotoMusic(Id),
     GotoGroup(Id),
 }
@@ -73,6 +74,7 @@ pub struct MusicItemWidget {
     pub download: IconButtonWidget,
     pub downloading: IconWidget,
     pub play: IconButtonWidget,
+    pub pause: IconButtonWidget,
     pub goto: IconButtonWidget,
     pub info: MusicInfo,
     pub name: TextWidget,
@@ -490,6 +492,7 @@ impl MusicItemWidget {
             download: IconButtonWidget::new_normal(&assets.sprites.download),
             downloading: IconWidget::new(&assets.sprites.loading),
             play: IconButtonWidget::new_normal(&assets.sprites.button_next),
+            pause: IconButtonWidget::new_normal(&assets.sprites.pause),
             goto: IconButtonWidget::new_normal(&assets.sprites.goto),
             name: TextWidget::new(info.name.clone()),
             author: TextWidget::new(
@@ -551,13 +554,23 @@ impl StatefulWidget for MusicItemWidget {
         } else {
             self.download.hide();
             self.downloading.hide();
-            self.play.show();
             self.goto.show();
 
+            if context.context.music.is_playing() == Some(self.info.id) {
+                self.play.hide();
+                self.pause.show();
+            } else {
+                self.play.show();
+                self.pause.hide();
+            }
+
             self.play.update(rows[0], context);
+            self.pause.update(rows[0], context);
             self.goto.update(rows[1], context);
             if self.play.state.clicked {
                 *action = Some(ExploreAction::PlayMusic(self.info.id));
+            } else if self.pause.state.clicked {
+                *action = Some(ExploreAction::PauseMusic);
             } else if self.goto.state.clicked {
                 *action = Some(ExploreAction::GotoMusic(self.info.id));
             }

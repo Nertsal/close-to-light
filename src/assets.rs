@@ -82,6 +82,8 @@ pub struct Sprites {
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub arrow_right: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub pause: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
     pub confirm: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub discard: Rc<ugli::Texture>,

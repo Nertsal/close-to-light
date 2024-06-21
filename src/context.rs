@@ -1,6 +1,6 @@
 use crate::{
     local::{CachedMusic, LevelCache},
-    prelude::{Assets, Options, Time},
+    prelude::{Assets, Id, Options, Time},
 };
 
 use std::{cell::RefCell, rc::Rc};
@@ -97,6 +97,15 @@ impl MusicManager {
         if let Some(music) = &mut inner.playing {
             music.stop();
         }
+    }
+
+    pub fn is_playing(&self) -> Option<Id> {
+        self.inner
+            .borrow()
+            .playing
+            .as_ref()
+            .filter(|music| music.effect.is_some())
+            .map(|music| music.meta.id)
     }
 
     pub fn switch(&self, music: &CachedMusic) {
