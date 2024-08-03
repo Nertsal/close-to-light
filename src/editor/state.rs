@@ -9,6 +9,7 @@ pub enum State {
         danger: bool,
     },
     /// Specify a movement path for the light.
+    // TODO: remove, we can just reuse State::Waypoints
     Movement {
         /// Time when the movement starts (after fade in and telegraph).
         start_beat: Time,

@@ -120,6 +120,13 @@ impl Movement {
             })
     }
 
+    pub fn get_frame(&self, id: WaypointId) -> Option<Transform> {
+        match id {
+            WaypointId::Initial => Some(self.initial),
+            WaypointId::Frame(i) => self.key_frames.get(i).map(|frame| frame.transform),
+        }
+    }
+
     pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut Transform> {
         match id {
             WaypointId::Initial => Some(&mut self.initial),

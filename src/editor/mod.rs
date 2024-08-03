@@ -1,9 +1,11 @@
+mod action;
 mod config;
 mod handle_event;
 mod state;
 mod ui;
 
 pub use self::{
+    action::*,
     config::*,
     state::{State, *},
     ui::*,
@@ -49,7 +51,7 @@ pub struct Drag {
     pub target: DragTarget,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DragTarget {
     /// Move the whole light event through time and space.
     Light {
@@ -85,6 +87,7 @@ impl HistoryLabel {
 }
 
 pub struct LevelEditor {
+    pub context: Context,
     /// Static (initial) version of the level.
     pub static_level: PlayLevel,
     /// Current state of the level.
@@ -156,12 +159,14 @@ pub struct Replay {
 
 impl LevelEditor {
     pub fn new(
+        context: Context,
         model: Model,
         level: PlayLevel,
         visualize_beat: bool,
         show_only_selected: bool,
     ) -> Self {
         let mut editor = Self {
+            context,
             level_state: EditorLevelState::default(),
             current_beat: Time::ZERO,
             real_time: Time::ZERO,
@@ -319,8 +324,8 @@ impl EditorState {
     pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
         let options = context.get_options();
-        let model = Model::empty(context, options, level.clone());
-        editor.editor.level_edit = Some(LevelEditor::new(model, level, true, false));
+        let model = Model::empty(context.clone(), options, level.clone());
+        editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true, false));
         editor
     }
 
@@ -470,7 +475,10 @@ impl geng::State for EditorState {
     }
 
     fn handle_event(&mut self, event: geng::Event) {
-        self.handle_event(event);
+        let actions = self.process_event(event);
+        for action in actions {
+            self.execute(action);
+        }
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
@@ -607,6 +615,7 @@ impl Editor {
                 level.clone(),
             );
             self.level_edit = Some(LevelEditor::new(
+                self.context.clone(),
                 model,
                 level,
                 self.visualize_beat,
@@ -832,6 +841,10 @@ impl LevelEditor {
         self.current_beat = ((target.as_f32() * 4.0).round() / 4.0).as_r32();
 
         self.scrolling_time = true;
+
+        if let State::Playing { old_state, .. } = &self.state {
+            self.state = (**old_state).clone()
+        }
     }
 
     pub fn render_lights(
