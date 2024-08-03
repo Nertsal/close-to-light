@@ -43,17 +43,7 @@ impl EditorRender {
         let light_color = THEME.light;
         let danger_color = THEME.danger;
 
-        let active_danger = if let State::Movement { light, .. } = &level_editor.state {
-            light.light.danger
-        } else {
-            false
-        };
-
-        let active_color = if active_danger {
-            danger_color
-        } else {
-            light_color
-        };
+        let active_color = light_color;
 
         let hover_color = editor.config.theme.hover;
         let hovered_event = level_editor.level_state.hovered_event();
@@ -96,9 +86,7 @@ impl EditorRender {
                 }
             };
 
-        let static_alpha = if let State::Place { .. }
-        | State::Movement { .. }
-        | State::Waypoints { .. } = level_editor.state
+        let static_alpha = if let State::Place { .. } | State::Waypoints { .. } = level_editor.state
         {
             0.5
         } else {
@@ -155,50 +143,9 @@ impl EditorRender {
         let mut pixel_buffer = draw_game!(static_alpha);
 
         if !options.hide_ui {
-            let mut pixel_buffer = if let State::Movement {
-                start_beat,
-                ref light,
-                ..
-            } = level_editor.state
-            {
-                let time = level_editor.current_beat - start_beat
-                    + light.light.movement.fade_in
-                    + light.telegraph.precede_time;
-                let draw_active = |time: Time, pixel_buffer: &mut ugli::Framebuffer| {
-                    let event = commit_light(light.clone());
-                    let (tele, light) =
-                        render_light(&event, time, None, &level_editor.model.level.config);
-                    for tele in tele {
-                        draw_telegraph(&tele, pixel_buffer);
-                    }
-                    if let Some(light) = light {
-                        draw_light(&light, pixel_buffer);
-                    }
-                };
-
-                let mut pixel_buffer = if editor.visualize_beat {
-                    // Active movement
-                    let time = time
-                        + (level_editor.real_time
-                            / level_editor.static_level.group.music.meta.beat_time())
-                        .fract();
-                    draw_active(time, &mut pixel_buffer);
-                    draw_game!(0.75)
-                } else {
-                    pixel_buffer
-                };
-
-                // Active static
-                draw_active(time, &mut pixel_buffer);
-                draw_game!(1.0)
-            } else {
-                pixel_buffer
-            };
-
             // Current action
             let shape = match level_editor.state {
                 State::Place { shape, danger } => Some((shape, danger)),
-                State::Movement { ref light, .. } => Some((light.light.shape, light.light.danger)),
                 _ => None,
             };
             if let Some((shape, danger)) = shape {

@@ -695,13 +695,6 @@ impl LevelEditor {
     fn undo(&mut self) {
         match &mut self.state {
             State::Playing { .. } => {}
-            State::Movement {
-                light, redo_stack, ..
-            } => {
-                if let Some(frame) = light.light.movement.key_frames.pop_back() {
-                    redo_stack.push(frame);
-                }
-            }
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
                 if let Some(mut level) = self.undo_stack.pop() {
@@ -717,13 +710,6 @@ impl LevelEditor {
     fn redo(&mut self) {
         match &mut self.state {
             State::Playing { .. } => {}
-            State::Movement {
-                light, redo_stack, ..
-            } => {
-                if let Some(frame) = redo_stack.pop() {
-                    light.light.movement.key_frames.push_back(frame);
-                }
-            }
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
                 if let Some(mut level) = self.redo_stack.pop() {

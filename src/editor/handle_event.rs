@@ -141,7 +141,6 @@ impl EditorState {
                             // Zoom on the timeline
                             actions.push(EditorStateAction::TimelineZoom(scroll));
                         } else if let State::Place { .. }
-                        | State::Movement { .. }
                         | State::Waypoints {
                             state: WaypointsState::New,
                             ..
@@ -171,14 +170,9 @@ impl EditorState {
             geng::Event::MousePress { button } => match button {
                 geng::MouseButton::Left => actions.extend(self.cursor_down()),
                 geng::MouseButton::Middle => {}
-                geng::MouseButton::Right => match &level_editor.state {
-                    State::Movement { .. } => {
-                        actions.push(LevelAction::CommitLight.into());
-                    }
-                    _ => {
-                        actions.push(LevelAction::Cancel.into());
-                    }
-                },
+                geng::MouseButton::Right => {
+                    actions.push(LevelAction::Cancel.into());
+                }
             },
             geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
@@ -315,21 +309,6 @@ impl EditorState {
             }
             State::Place { .. } => {
                 actions.push(LevelAction::PlaceLight(self.editor.cursor_world_pos_snapped).into());
-            }
-            State::Movement { start_beat, .. } => {
-                // // TODO: check negative time
-                // let last_beat = *start_beat + light.light.movement.movement_duration();
-                // light.light.movement.key_frames.push_back(MoveFrame {
-                //     lerp_time: level_editor.current_beat - last_beat, // in beats
-                //     transform: Transform {
-                //         translation: self.editor.cursor_world_pos_snapped,
-                //         rotation: level_editor.place_rotation,
-                //         scale: level_editor.place_scale,
-                //     },
-                // });
-                // redo_stack.clear();
-                // TODO: remove
-                log::warn!("State::Movement about to be removed");
             }
             State::Playing { .. } => {}
             State::Waypoints { state, .. } => match state {

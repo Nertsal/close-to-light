@@ -8,14 +8,6 @@ pub enum State {
         shape: Shape,
         danger: bool,
     },
-    /// Specify a movement path for the light.
-    // TODO: remove, we can just reuse State::Waypoints
-    Movement {
-        /// Time when the movement starts (after fade in and telegraph).
-        start_beat: Time,
-        light: LightEvent,
-        redo_stack: Vec<MoveFrame>,
-    },
     Playing {
         start_beat: Time,
         old_state: Box<State>,

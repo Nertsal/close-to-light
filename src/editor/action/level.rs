@@ -19,7 +19,6 @@ pub enum LevelAction {
     ScaleWaypoint(Coord),
     ChangeFadeOut(LightId, Time),
     ChangeFadeIn(LightId, Time),
-    CommitLight,
     DeselectLight,
     SelectLight(LightId),
     SelectWaypoint(WaypointId),
@@ -69,35 +68,7 @@ impl LevelEditor {
                     danger: false,
                 };
             }
-            LevelAction::PlaceLight(position) => {
-                if let State::Place { shape, danger } = &self.state {
-                    let shape = *shape;
-                    let danger = *danger;
-
-                    // Fade in
-                    let movement = Movement {
-                        initial: Transform {
-                            translation: position,
-                            rotation: self.place_rotation.normalized_2pi(),
-                            scale: self.place_scale,
-                        },
-                        ..default()
-                    };
-                    let telegraph = Telegraph::default();
-                    self.state = State::Movement {
-                        start_beat: self.current_beat,
-                        light: LightEvent {
-                            light: LightSerde {
-                                shape,
-                                movement,
-                                danger,
-                            },
-                            telegraph,
-                        },
-                        redo_stack: Vec::new(),
-                    };
-                }
-            }
+            LevelAction::PlaceLight(position) => self.place_light(position),
             LevelAction::NewWaypoint => self.new_waypoint(),
             LevelAction::ScaleLight(delta) => {
                 self.place_scale = (self.place_scale + delta).clamp(r32(0.2), r32(2.0));
@@ -135,24 +106,6 @@ impl LevelEditor {
                         event.beat -= movement.fade_in - from;
                         self.save_state(HistoryLabel::Scroll);
                     }
-                }
-            }
-            LevelAction::CommitLight => {
-                if let State::Movement {
-                    start_beat, light, ..
-                } = &self.state
-                {
-                    // extra time for the fade in and telegraph
-                    let beat =
-                        *start_beat - light.light.movement.fade_in - light.telegraph.precede_time;
-                    let event = commit_light(light.clone());
-                    let event = TimedEvent {
-                        beat,
-                        event: Event::Light(event),
-                    };
-                    self.level.events.push(event);
-                    self.state = State::Idle;
-                    self.save_state(default());
                 }
             }
             LevelAction::DeselectLight => {
@@ -220,9 +173,6 @@ impl LevelEditor {
             State::Place { danger, .. } => {
                 *danger = !*danger;
             }
-            State::Movement { light, .. } => {
-                light.light.danger = !light.light.danger;
-            }
             _ => return,
         }
         self.save_state(default());
@@ -234,7 +184,7 @@ impl LevelEditor {
                 // Cancel selection
                 self.execute(LevelAction::DeselectLight);
             }
-            State::Movement { .. } | State::Place { .. } => {
+            State::Place { .. } => {
                 // Cancel creation
                 self.state = State::Idle;
             }
@@ -254,6 +204,50 @@ impl LevelEditor {
             }
             _ => (),
         }
+    }
+
+    fn place_light(&mut self, position: vec2<Coord>) {
+        let State::Place { shape, danger } = self.state else {
+            return;
+        };
+
+        let movement = Movement {
+            initial: Transform {
+                translation: position,
+                rotation: self.place_rotation.normalized_2pi(),
+                scale: self.place_scale,
+            },
+            ..default()
+        };
+        let telegraph = Telegraph::default();
+
+        let light = LightEvent {
+            light: LightSerde {
+                shape,
+                movement,
+                danger,
+            },
+            telegraph,
+        };
+
+        // extra time for the fade in and telegraph
+        let start_beat = self.current_beat;
+        let beat = start_beat - light.light.movement.fade_in - light.telegraph.precede_time;
+        let event = commit_light(light.clone());
+        let event = TimedEvent {
+            beat,
+            event: Event::Light(event),
+        };
+
+        let event_i = self.level.events.len();
+        self.level.events.push(event);
+
+        self.state = State::Waypoints {
+            event: event_i,
+            state: WaypointsState::New,
+        };
+
+        self.save_state(default());
     }
 
     fn place_waypoint(&mut self, position: vec2<Coord>) {
