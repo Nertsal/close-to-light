@@ -59,13 +59,18 @@ impl EditorConfigWidget {
 }
 
 impl StatefulWidget for EditorConfigWidget {
-    type State = Editor;
+    type State<'a> = (&'a Editor, Vec<EditorStateAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, actions): &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
 
         let main = position;
@@ -104,16 +109,16 @@ impl StatefulWidget for EditorConfigWidget {
 
         let name = bar.cut_top(context.font_size);
         let delete = bar.cut_top(context.font_size);
-        if let Some(level_editor) = &mut state.level_edit {
+        if let Some(level_editor) = &state.level_edit {
             self.level_name.sync(&level_editor.name, context);
             self.level_name.show();
             self.level_name.update(name, context);
-            level_editor.name.clone_from(&self.level_name.raw);
+            actions.push(LevelAction::SetName(self.level_name.raw.clone()).into());
 
             self.level_delete.show();
             self.level_delete.update(delete, context);
             if self.level_delete.text.state.clicked {
-                state.delete_active_level();
+                actions.push(EditorAction::DeleteLevel.into());
             }
         } else {
             self.level_name.hide();
@@ -123,7 +128,7 @@ impl StatefulWidget for EditorConfigWidget {
         let create = bar.cut_top(context.font_size);
         self.level_create.update(create, context);
         if self.level_create.text.state.clicked {
-            state.create_new_level();
+            actions.push(EditorAction::NewLevel.into());
         }
 
         bar.cut_top(context.layout_size);
@@ -167,12 +172,15 @@ impl StatefulWidget for EditorConfigWidget {
 
             if level.state.clicked {
                 if state.is_changed() {
-                    state.popup_confirm(
-                        ConfirmAction::ChangeLevelUnsaved(i),
-                        "there are unsaved changes",
-                    )
+                    actions.push(
+                        EditorAction::PopupConfirm(
+                            ConfirmAction::ChangeLevelUnsaved(i),
+                            "there are unsaved changes".into(),
+                        )
+                        .into(),
+                    );
                 } else {
-                    state.change_level(i);
+                    actions.push(EditorAction::ChangeLevel(i).into());
                 }
             }
 
@@ -191,7 +199,7 @@ impl StatefulWidget for EditorConfigWidget {
                     icon_up.show();
                     icon_up.update(up, context);
                     if icon_up.state.clicked {
-                        state.move_level_low(i);
+                        actions.push(EditorAction::MoveLevelLow(i).into());
                     }
                 } else {
                     icon_up.hide();
@@ -201,7 +209,7 @@ impl StatefulWidget for EditorConfigWidget {
                     icon_down.show();
                     icon_down.update(down, context);
                     if icon_down.state.clicked {
-                        state.move_level_high(i);
+                        actions.push(EditorAction::MoveLevelHigh(i).into());
                     }
                 } else {
                     icon_down.hide();
@@ -216,16 +224,20 @@ impl StatefulWidget for EditorConfigWidget {
         let timeline = bar.cut_top(context.font_size);
         self.timeline.update(timeline, context);
 
+        let mut config = state.config.clone();
+
         let scroll_by = bar.cut_top(context.font_size);
         self.scroll_by
-            .update(scroll_by, context, &mut state.config.scroll_normal);
+            .update(scroll_by, context, &mut config.scroll_normal);
 
         let shift_scroll = bar.cut_top(context.font_size);
         self.shift_scroll
-            .update(shift_scroll, context, &mut state.config.scroll_slow);
+            .update(shift_scroll, context, &mut config.scroll_slow);
 
         let alt_scroll = bar.cut_top(context.font_size);
         self.alt_scroll
-            .update(alt_scroll, context, &mut state.config.scroll_fast);
+            .update(alt_scroll, context, &mut config.scroll_fast);
+
+        actions.push(EditorAction::SetConfig(config).into());
     }
 }

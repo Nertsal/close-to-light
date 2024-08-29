@@ -31,13 +31,18 @@ impl SliderWidget {
 }
 
 impl StatefulWidget for SliderWidget {
-    type State = Bounded<f32>;
+    type State<'a> = Bounded<f32>;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
 
         self.options.update(context);

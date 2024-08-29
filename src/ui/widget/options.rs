@@ -38,13 +38,18 @@ impl OptionsButtonWidget {
 }
 
 impl StatefulWidget for OptionsButtonWidget {
-    type State = MenuState;
+    type State<'a> = MenuState;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         let button_size = vec2::splat(1.0 * context.font_size);
         let button = position.align_aabb(button_size, vec2(1.0, 1.0));
         self.state.update(button, context);
@@ -93,13 +98,18 @@ impl OptionsWidget {
 }
 
 impl StatefulWidget for OptionsWidget {
-    type State = MenuState;
+    type State<'a> = MenuState;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
 
@@ -146,13 +156,18 @@ impl VolumeWidget {
 }
 
 impl StatefulWidget for VolumeWidget {
-    type State = VolumeOptions;
+    type State<'a> = VolumeOptions;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
         let mut main = position;
 
@@ -186,13 +201,18 @@ impl PaletteChooseWidget {
 }
 
 impl StatefulWidget for PaletteChooseWidget {
-    type State = Theme;
+    type State<'a> = Theme;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
         let mut main = position;
 
@@ -234,13 +254,18 @@ impl PaletteWidget {
 }
 
 impl StatefulWidget for PaletteWidget {
-    type State = Theme;
+    type State<'a> = Theme;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
         if self.state.clicked {
             *state = self.palette;

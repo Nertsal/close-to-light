@@ -3,6 +3,8 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum LevelAction {
     DeleteSelected,
+    DeleteSelectedLight,
+    DeleteSelectedWaypoint,
     Undo,
     Redo,
     Rotate(Angle<Coord>),
@@ -23,6 +25,8 @@ pub enum LevelAction {
     SelectLight(LightId),
     SelectWaypoint(WaypointId),
     DeselectWaypoint,
+    SetName(String),
+    SetSelectedFrame(Transform),
 }
 
 impl LevelEditor {
@@ -32,6 +36,12 @@ impl LevelEditor {
                 if !self.delete_waypoint_selected() {
                     self.delete_light_selected();
                 }
+            }
+            LevelAction::DeleteSelectedLight => {
+                self.delete_light_selected();
+            }
+            LevelAction::DeleteSelectedWaypoint => {
+                self.delete_waypoint_selected();
             }
             LevelAction::Undo => self.undo(),
             LevelAction::Redo => self.redo(),
@@ -116,18 +126,51 @@ impl LevelEditor {
                 self.level_state.waypoints = None;
                 self.selected_light = Some(id);
             }
-            LevelAction::SelectWaypoint(id) => {
-                if let Some(waypoints) = &mut self.level_state.waypoints {
-                    // TODO: validation check
-                    waypoints.selected = Some(id);
-                }
-            }
+            LevelAction::SelectWaypoint(id) => self.select_waypoint(id),
             LevelAction::DeselectWaypoint => {
                 if let Some(waypoints) = &mut self.level_state.waypoints {
                     waypoints.selected = None;
                 }
             }
             LevelAction::PlaceWaypoint(position) => self.place_waypoint(position),
+            LevelAction::SetName(name) => self.name = name,
+            LevelAction::SetSelectedFrame(frame) => {
+                if let Some(waypoints) = &self.level_state.waypoints {
+                    if let Some(selected) = waypoints.selected {
+                        if let Some(event) = self.level.events.get_mut(waypoints.event) {
+                            if let Event::Light(light) = &mut event.event {
+                                if let Some(old_frame) =
+                                    light.light.movement.get_frame_mut(selected)
+                                {
+                                    *old_frame = frame;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn select_waypoint(&mut self, waypoint_id: WaypointId) {
+        let Some(light_id) = self.selected_light else {
+            return;
+        };
+
+        // TODO: validation check
+        if let Some(waypoints) = &mut self.level_state.waypoints {
+            waypoints.selected = Some(waypoint_id);
+        } else {
+            self.state = State::Waypoints {
+                event: light_id.event,
+                state: WaypointsState::Idle,
+            };
+            self.level_state.waypoints = Some(Waypoints {
+                event: light_id.event,
+                points: Vec::new(),
+                hovered: None,
+                selected: Some(waypoint_id),
+            });
         }
     }
 

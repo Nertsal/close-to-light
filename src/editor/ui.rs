@@ -65,11 +65,13 @@ impl EditorUI {
 
     pub fn layout(
         &mut self,
-        editor: &mut Editor,
+        editor: &Editor,
         screen: Aabb2<f32>,
         context: &mut UiContext,
-    ) -> bool {
+    ) -> (bool, Vec<EditorStateAction>) {
         let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
+
+        let mut actions = vec![];
 
         let font_size = screen.height() * 0.04;
         let layout_size = screen.height() * 0.03;
@@ -99,10 +101,10 @@ impl EditorUI {
             confirm.update(window, context);
             if confirm.confirm.state.clicked {
                 confirm.window.show.going_up = false;
-                editor.confirm_action(self);
+                actions.push(EditorStateAction::ConfirmPopupAction);
             } else if confirm.discard.state.clicked {
                 confirm.window.show.going_up = false;
-                editor.confirm_popup = None;
+                actions.push(EditorAction::ClosePopup.into());
             } else if confirm.window.show.time.is_min() {
                 self.confirm = None;
             }
@@ -127,9 +129,15 @@ impl EditorUI {
         self.exit.update(exit, context);
         if self.exit.text.state.clicked {
             if editor.is_changed() {
-                editor.popup_confirm(ConfirmAction::ExitUnsaved, "there are unsaved changes");
+                actions.push(
+                    EditorAction::PopupConfirm(
+                        ConfirmAction::ExitUnsaved,
+                        "there are unsaved changes".into(),
+                    )
+                    .into(),
+                );
             } else {
-                editor.exit();
+                actions.push(EditorStateAction::Exit);
             }
         }
 
@@ -172,7 +180,7 @@ impl EditorUI {
         let save = top_bar.cut_right(layout_size * 5.0);
         self.save.update(save, context);
         if self.save.text.state.clicked {
-            editor.save();
+            actions.push(EditorAction::Save.into());
         }
 
         let unsaved = top_bar.cut_right(layout_size * 10.0);
@@ -184,14 +192,15 @@ impl EditorUI {
         }
 
         let main = main.extend_down(-layout_size);
+        let mut state = (editor, actions);
         if self.edit.state.visible {
-            self.edit.update(main, context, editor);
+            self.edit.update(main, context, &mut state);
         }
         if self.config.state.visible {
             self.config
-                .update(main.extend_up(-3.0 * layout_size), context, editor);
+                .update(main.extend_up(-3.0 * layout_size), context, &mut state);
         }
 
-        context.can_focus
+        (context.can_focus, state.1)
     }
 }

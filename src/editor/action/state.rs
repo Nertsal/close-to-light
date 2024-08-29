@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum EditorStateAction {
+    Exit,
     ScrollTime(Time),
     Editor(EditorAction),
     StopTextEdit,
@@ -14,6 +15,7 @@ pub enum EditorStateAction {
     TimelineZoom(Coord),
     EndDrag,
     StartDrag(DragTarget),
+    ConfirmPopupAction,
 }
 
 impl From<EditorAction> for EditorStateAction {
@@ -31,6 +33,9 @@ impl From<LevelAction> for EditorStateAction {
 impl EditorState {
     pub fn execute(&mut self, action: EditorStateAction) {
         match action {
+            EditorStateAction::Exit => {
+                self.transition = Some(geng::state::Transition::Pop);
+            }
             EditorStateAction::ScrollTime(delta) => self.scroll_time(delta),
             EditorStateAction::Editor(action) => self.editor.execute(action),
             EditorStateAction::StopTextEdit => {
@@ -78,6 +83,7 @@ impl EditorState {
             }
             EditorStateAction::EndDrag => self.end_drag(),
             EditorStateAction::StartDrag(target) => self.start_drag(target),
+            EditorStateAction::ConfirmPopupAction => self.editor.confirm_action(&mut self.ui),
         }
     }
 

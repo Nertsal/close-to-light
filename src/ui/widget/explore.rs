@@ -116,7 +116,7 @@ impl ExploreWidget {
 }
 
 impl StatefulWidget for ExploreWidget {
-    type State = (Rc<LevelCache>, Option<ExploreAction>);
+    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -126,7 +126,7 @@ impl StatefulWidget for ExploreWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, action): &mut Self::State,
+        (state, action): &mut Self::State<'_>,
     ) {
         // TODO: better
         if !self.state.visible {
@@ -267,7 +267,7 @@ impl ExploreLevelsWidget {
 }
 
 impl StatefulWidget for ExploreLevelsWidget {
-    type State = (Rc<LevelCache>, Option<ExploreAction>);
+    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -277,7 +277,7 @@ impl StatefulWidget for ExploreLevelsWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, action): &mut Self::State,
+        (state, action): &mut Self::State<'_>,
     ) {
         // TODO: better
         if !self.state.visible {
@@ -365,13 +365,18 @@ impl ExploreMusicWidget {
 }
 
 impl StatefulWidget for ExploreMusicWidget {
-    type State = (Rc<LevelCache>, Option<ExploreAction>);
+    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         // TODO: better
         if !self.state.visible {
             return;
@@ -416,7 +421,7 @@ impl StatefulWidget for ExploreMusicWidget {
 }
 
 impl StatefulWidget for LevelItemWidget {
-    type State = (Rc<LevelCache>, Option<ExploreAction>);
+    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -426,7 +431,7 @@ impl StatefulWidget for LevelItemWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, action): &mut Self::State,
+        (state, action): &mut Self::State<'_>,
     ) {
         // TODO: better
         if !self.state.visible {
@@ -510,7 +515,7 @@ impl MusicItemWidget {
 }
 
 impl StatefulWidget for MusicItemWidget {
-    type State = (Rc<LevelCache>, Option<ExploreAction>);
+    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -520,7 +525,7 @@ impl StatefulWidget for MusicItemWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        (state, action): &mut Self::State,
+        (state, action): &mut Self::State<'_>,
     ) {
         // TODO: better
         if !self.state.visible {

@@ -31,7 +31,7 @@ impl<T: Num + Copy> ValueWidget<T> {
 }
 
 impl<T: Num + Display> StatefulWidget for ValueWidget<T> {
-    type State = T;
+    type State<'a> = T;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state

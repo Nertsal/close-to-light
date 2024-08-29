@@ -19,7 +19,7 @@ use crate::{
     ui::{widget::ConfirmPopup, UiContext},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ConfirmAction {
     ExitUnsaved,
     ChangeLevelUnsaved(usize),
@@ -188,24 +188,6 @@ impl LevelEditor {
         };
         editor.render_lights(vec2::ZERO, vec2::ZERO, visualize_beat, show_only_selected);
         editor
-    }
-
-    pub fn select_waypoint(&mut self, light_id: LightId, waypoint_id: WaypointId) {
-        self.selected_light = Some(light_id);
-        if let Some(waypoints) = &mut self.level_state.waypoints {
-            waypoints.selected = Some(waypoint_id);
-        } else {
-            self.state = State::Waypoints {
-                event: light_id.event,
-                state: WaypointsState::Idle,
-            };
-            self.level_state.waypoints = Some(Waypoints {
-                event: light_id.event,
-                points: Vec::new(),
-                hovered: None,
-                selected: Some(waypoint_id),
-            });
-        }
     }
 
     fn delete_light_selected(&mut self) -> bool {
@@ -470,7 +452,7 @@ impl geng::State for EditorState {
         self.update_level_editor(delta_time);
 
         if std::mem::take(&mut self.editor.exit) {
-            self.transition = Some(geng::state::Transition::Pop);
+            self.execute(EditorStateAction::Exit);
         }
     }
 
@@ -485,12 +467,16 @@ impl geng::State for EditorState {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(Color::BLACK), None, None);
 
-        self.ui_focused = !self.ui.layout(
-            &mut self.editor,
+        let (can_focus, actions) = self.ui.layout(
+            &self.editor,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             &mut self.ui_context,
         );
+        self.ui_focused = !can_focus;
         self.ui_context.frame_end();
+        for action in actions {
+            self.execute(action);
+        }
 
         if let Some(level_editor) = &mut self.editor.level_edit {
             level_editor.model.camera.fov = 10.0 / self.editor.view_zoom;
@@ -773,20 +759,6 @@ impl LevelEditor {
     //         });
     //     }
     // }
-
-    fn new_light_circle(&mut self) {
-        self.state = State::Place {
-            shape: Shape::Circle { radius: r32(1.3) },
-            danger: false,
-        };
-    }
-
-    fn new_light_line(&mut self) {
-        self.state = State::Place {
-            shape: Shape::Line { width: r32(1.7) },
-            danger: false,
-        };
-    }
 
     fn new_waypoint(&mut self) {
         // Deselect

@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    editor::{LevelEditor, LightId},
+    editor::{LevelAction, LevelEditor, LightId},
     prelude::*,
 };
 
@@ -162,7 +162,7 @@ impl TimelineWidget {
         self.reload(None);
     }
 
-    fn reload(&mut self, mut editor: Option<&mut LevelEditor>) {
+    fn reload(&mut self, mut editor: Option<(&LevelEditor, &mut Vec<LevelAction>)>) {
         let render_time = |time: Time| {
             let pos = (time + self.scroll).as_f32() * self.scale;
             let pos = vec2(
@@ -200,8 +200,11 @@ impl TimelineWidget {
                         let position = Aabb2::point(position).extend_symmetric(size / 2.0);
                         state.update(position, &self.context);
                         if state.clicked {
-                            if let Some(editor) = &mut editor {
-                                editor.select_waypoint(light_id, waypoint_id);
+                            if let Some((_editor, actions)) = &mut editor {
+                                actions.extend([
+                                    LevelAction::SelectLight(light_id),
+                                    LevelAction::SelectWaypoint(waypoint_id),
+                                ]);
                             }
                         }
                         self.waypoints.push((waypoint_id, state));
@@ -218,9 +221,8 @@ impl TimelineWidget {
                     .translate(-vec2(0.0, height * (lights.len() as f32 + 0.2)));
                 state.update(position, &self.context);
                 if state.clicked {
-                    if let Some(editor) = &mut editor {
-                        editor.selected_light = Some(light_id);
-                        editor.level_state.waypoints = None;
+                    if let Some((_editor, actions)) = &mut editor {
+                        actions.extend([LevelAction::SelectLight(light_id)]);
                     }
                 }
 
@@ -246,13 +248,18 @@ impl TimelineWidget {
 }
 
 impl StatefulWidget for TimelineWidget {
-    type State = LevelEditor;
+    type State<'a> = (&'a LevelEditor, Vec<LevelAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, actions): &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
         let clickable =
             position.extend_symmetric(vec2(0.0, context.font_size * 0.2 - position.height()) / 2.0);
@@ -269,6 +276,6 @@ impl StatefulWidget for TimelineWidget {
             .waypoints
             .as_ref()
             .and_then(|waypoints| waypoints.selected);
-        self.reload(Some(state));
+        self.reload(Some((state, actions)));
     }
 }

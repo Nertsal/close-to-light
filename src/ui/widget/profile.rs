@@ -51,13 +51,18 @@ impl ProfileWidget {
 }
 
 impl StatefulWidget for ProfileWidget {
-    type State = Leaderboard;
+    type State<'a> = Leaderboard;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
         self.window.update(context.delta_time);
 
@@ -91,13 +96,18 @@ impl StatefulWidget for ProfileWidget {
 }
 
 impl StatefulWidget for RegisterWidget {
-    type State = Leaderboard;
+    type State<'a> = Leaderboard;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
 
         let mut main = position;
@@ -142,13 +152,18 @@ impl StatefulWidget for RegisterWidget {
 }
 
 impl StatefulWidget for LoggedWidget {
-    type State = Leaderboard;
+    type State<'a> = Leaderboard;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         self.state.update(position, context);
 
         if let Some(user) = &state.user {

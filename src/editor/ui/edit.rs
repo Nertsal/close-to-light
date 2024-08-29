@@ -130,15 +130,20 @@ impl EditorEditWidget {
 }
 
 impl StatefulWidget for EditorEditWidget {
-    type State = Editor;
+    type State<'a> = (&'a Editor, Vec<EditorStateAction>);
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        (state, actions): &mut Self::State<'_>,
+    ) {
         let editor = state;
-        let Some(level_editor) = &mut editor.level_edit else {
+        let Some(level_editor) = &editor.level_edit else {
             let size = vec2(15.0, 1.0) * context.font_size;
             let warn = position
                 .align_aabb(size, vec2(0.5, 1.0))
@@ -194,7 +199,7 @@ impl StatefulWidget for EditorEditWidget {
                 bar.cut_top(spacing);
                 self.new_waypoint.update(waypoint, context);
                 if self.new_waypoint.text.state.clicked {
-                    level_editor.new_waypoint();
+                    actions.push(LevelAction::NewWaypoint.into());
                 }
                 self.tooltip
                     .update(&self.new_waypoint.text.state, "1", context);
@@ -217,7 +222,7 @@ impl StatefulWidget for EditorEditWidget {
                 bar.cut_top(spacing);
                 update!(self.new_circle, circle);
                 if self.new_circle.text.state.clicked {
-                    level_editor.new_light_circle();
+                    actions.push(LevelAction::NewLight(Shape::circle(r32(1.0))).into());
                 }
                 self.tooltip
                     .update(&self.new_circle.text.state, "1", context);
@@ -226,7 +231,7 @@ impl StatefulWidget for EditorEditWidget {
                 bar.cut_top(spacing);
                 update!(self.new_line, line);
                 if self.new_line.text.state.clicked {
-                    level_editor.new_light_line();
+                    actions.push(LevelAction::NewLight(Shape::line(r32(1.0))).into());
                 }
                 self.tooltip.update(&self.new_line.text.state, "2", context);
             }
@@ -242,7 +247,7 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.show_only_selected, selected);
             if self.show_only_selected.state.clicked {
-                editor.show_only_selected = !editor.show_only_selected;
+                actions.push(EditorAction::ToggleShowOnlySelected.into());
             }
             self.show_only_selected.checked = editor.show_only_selected;
 
@@ -250,7 +255,7 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.visualize_beat, dynamic);
             if self.visualize_beat.state.clicked {
-                editor.visualize_beat = !editor.visualize_beat;
+                actions.push(EditorAction::ToggleDynamicVisual.into());
             }
             self.visualize_beat.checked = editor.visualize_beat;
             self.tooltip
@@ -260,7 +265,7 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.show_grid, grid);
             if self.show_grid.state.clicked {
-                editor.render_options.show_grid = !editor.render_options.show_grid;
+                actions.push(EditorAction::ToggleGrid.into());
             }
             self.show_grid.checked = editor.render_options.show_grid;
             self.tooltip.update(&self.show_grid.state, "C-~", context);
@@ -274,7 +279,11 @@ impl StatefulWidget for EditorEditWidget {
 
             let zoom = bar.cut_top(font_size);
             bar.cut_top(spacing);
-            update!(self.view_zoom, zoom, &mut editor.view_zoom);
+            {
+                let mut view_zoom = editor.view_zoom;
+                update!(self.view_zoom, zoom, &mut view_zoom);
+                actions.push(EditorAction::SetViewZoom(view_zoom).into());
+            }
             context.update_focus(self.view_zoom.state.hovered);
 
             bar.cut_top(layout_size * 1.5);
@@ -293,16 +302,18 @@ impl StatefulWidget for EditorEditWidget {
             bar.cut_top(spacing);
             update!(self.snap_grid, grid_snap);
             if self.snap_grid.state.clicked {
-                editor.snap_to_grid = !editor.snap_to_grid;
+                actions.push(EditorAction::ToggleGridSnap.into());
             }
             self.snap_grid.checked = editor.snap_to_grid;
             self.tooltip.update(&self.snap_grid.state, "~", context);
 
             let grid_size = bar.cut_top(button_height);
             bar.cut_top(spacing);
-            let mut value = 10.0 / editor.grid_size.as_f32();
-            update!(self.grid_size, grid_size, &mut value);
-            editor.grid_size = r32(10.0 / value);
+            {
+                let mut value = 10.0 / editor.grid_size.as_f32();
+                update!(self.grid_size, grid_size, &mut value);
+                actions.push(EditorAction::SetGridSize(r32(10.0 / value)).into());
+            }
             context.update_focus(self.grid_size.state.hovered);
 
             bar.cut_top(layout_size * 1.5);
@@ -313,7 +324,7 @@ impl StatefulWidget for EditorEditWidget {
             // Light
             let selected = level_editor
                 .selected_light
-                .and_then(|i| level_editor.level.events.get_mut(i.event))
+                .and_then(|i| level_editor.level.events.get(i.event))
                 .filter(|event| matches!(event.event, Event::Light(_)));
 
             match selected {
@@ -326,8 +337,11 @@ impl StatefulWidget for EditorEditWidget {
                     self.waypoint.hide();
                 }
                 Some(event) => {
-                    if let Event::Light(light) = &mut event.event {
-                        let light = &mut light.light;
+                    let selected_id = level_editor
+                        .selected_light
+                        .expect("light selected without id 0_0");
+                    if let Event::Light(light) = &event.event {
+                        let light = &light.light;
 
                         self.light.show();
                         self.light_delete.show();
@@ -352,33 +366,39 @@ impl StatefulWidget for EditorEditWidget {
                         bar.cut_top(spacing);
                         update!(self.light_danger, danger_pos);
                         if self.light_danger.state.clicked {
-                            light.danger = !light.danger;
+                            actions.push(LevelAction::ToggleDanger.into());
                         }
                         self.light_danger.checked = light.danger;
                         self.tooltip.update(&self.light_danger.state, "D", context);
 
-                        let fade_in = bar.cut_top(button_height);
-                        bar.cut_top(spacing);
-                        let mut fade = light.movement.fade_in;
-                        let from = fade;
-                        update!(self.light_fade_in, fade_in, &mut fade);
-                        light.movement.change_fade_in(fade);
-                        context.update_focus(self.light_fade_in.state.hovered);
-                        event.beat -= light.movement.fade_in - from;
+                        {
+                            let fade_in = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
+                            let mut fade = light.movement.fade_in;
+                            let from = fade;
+                            update!(self.light_fade_in, fade_in, &mut fade);
+                            context.update_focus(self.light_fade_in.state.hovered);
+                            actions
+                                .push(LevelAction::ChangeFadeIn(selected_id, fade - from).into());
+                        }
 
-                        let fade_out = bar.cut_top(button_height);
-                        bar.cut_top(spacing);
-                        let mut fade = light.movement.fade_out;
-                        update!(self.light_fade_out, fade_out, &mut fade);
-                        light.movement.change_fade_out(fade);
-                        context.update_focus(self.light_fade_out.state.hovered);
+                        {
+                            let fade_out = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
+                            let mut fade = light.movement.fade_out;
+                            let from = fade;
+                            update!(self.light_fade_out, fade_out, &mut fade);
+                            context.update_focus(self.light_fade_out.state.hovered);
+                            actions
+                                .push(LevelAction::ChangeFadeOut(selected_id, fade - from).into());
+                        }
 
                         bar.cut_top(layout_size * 1.5);
 
                         let waypoints = bar.cut_top(button_height);
                         update!(self.waypoint, waypoints);
                         if self.waypoint.text.state.clicked {
-                            level_editor.view_waypoints();
+                            actions.push(LevelAction::ToggleWaypointsView.into());
                         }
 
                         bar.cut_top(spacing);
@@ -386,7 +406,7 @@ impl StatefulWidget for EditorEditWidget {
 
                         // Delayed actions
                         if self.light_delete.text.state.clicked {
-                            level_editor.delete_light_selected();
+                            actions.push(LevelAction::DeleteSelectedLight.into());
                         }
                     }
                 }
@@ -394,12 +414,12 @@ impl StatefulWidget for EditorEditWidget {
         }
 
         let mut waypoint = false;
-        if let Some(waypoints) = &mut level_editor.level_state.waypoints {
+        if let Some(waypoints) = &level_editor.level_state.waypoints {
             if let Some(selected) = waypoints.selected {
-                if let Some(event) = level_editor.level.events.get_mut(waypoints.event) {
-                    if let Event::Light(light) = &mut event.event {
+                if let Some(event) = level_editor.level.events.get(waypoints.event) {
+                    if let Event::Light(light) = &event.event {
                         let frames = light.light.movement.key_frames.len();
-                        if let Some(frame) = light.light.movement.get_frame_mut(selected) {
+                        if let Some(frame) = light.light.movement.get_frame(selected) {
                             // Waypoint
                             waypoint = true;
                             self.prev_waypoint.show();
@@ -422,7 +442,7 @@ impl StatefulWidget for EditorEditWidget {
                             self.prev_waypoint.update(prev, context);
                             if self.prev_waypoint.state.clicked {
                                 if let Some(id) = selected.prev() {
-                                    waypoints.selected = Some(id);
+                                    actions.push(LevelAction::SelectWaypoint(id).into());
                                 }
                             }
 
@@ -439,7 +459,7 @@ impl StatefulWidget for EditorEditWidget {
                             let next = current.cut_right(current.height());
                             self.next_waypoint.update(next, context);
                             if self.next_waypoint.state.clicked {
-                                waypoints.selected = Some(selected.next());
+                                actions.push(LevelAction::SelectWaypoint(selected.next()).into());
                             }
 
                             self.current_waypoint.update(current, context);
@@ -447,30 +467,31 @@ impl StatefulWidget for EditorEditWidget {
 
                             let delete = bar.cut_top(button_height);
                             self.waypoint_delete.update(delete, context);
-                            // NOTE: click action delayed because level_editor is borrowed
+                            if self.waypoint_delete.text.state.clicked {
+                                actions.push(LevelAction::DeleteSelectedWaypoint.into());
+                            }
                             self.tooltip
                                 .update(&self.waypoint_delete.text.state, "X", context);
+
+                            let mut new_frame = frame;
 
                             let scale = bar.cut_top(button_height);
                             bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
                             update!(self.waypoint_scale, scale, &mut value);
-                            frame.scale = r32(value);
+                            new_frame.scale = r32(value);
                             context.update_focus(self.waypoint_scale.state.hovered);
 
                             let angle = bar.cut_top(button_height);
                             bar.cut_top(spacing);
                             let mut value = frame.rotation.as_degrees().as_f32();
                             update!(self.waypoint_angle, angle, &mut value);
-                            frame.rotation = Angle::from_degrees(r32(value.round()));
+                            new_frame.rotation = Angle::from_degrees(r32(value.round()));
                             context.update_focus(self.waypoint_angle.state.hovered);
                             self.tooltip
                                 .update(&self.waypoint_angle.state, "Q/E", context);
 
-                            // Delayed actions
-                            if self.waypoint_delete.text.state.clicked {
-                                level_editor.delete_waypoint_selected();
-                            }
+                            actions.push(LevelAction::SetSelectedFrame(new_frame).into());
                         }
                     }
                 }
@@ -492,11 +513,18 @@ impl StatefulWidget for EditorEditWidget {
 
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
-            update!(self.timeline, timeline, level_editor);
+
+            {
+                let mut state = (level_editor, vec![]);
+                update!(self.timeline, timeline, &mut state);
+                actions.extend(state.1.into_iter().map(Into::into));
+            }
 
             if self.timeline.clickable.pressed {
                 let time = self.timeline.get_cursor_time();
-                level_editor.scroll_time(time - level_editor.current_beat);
+                actions.push(EditorStateAction::ScrollTime(
+                    time - level_editor.current_beat,
+                ));
             }
             let replay = level_editor
                 .dynamic_segment
@@ -511,12 +539,13 @@ impl StatefulWidget for EditorEditWidget {
                 } else if was_pressed && !self.timeline.state.pressed {
                     let (start_beat, end_beat) = self.timeline.end_selection();
                     if start_beat != end_beat {
-                        level_editor.dynamic_segment = Some(Replay {
-                            start_beat,
-                            end_beat,
-                            current_beat: start_beat,
-                            speed: Time::ONE,
-                        });
+                        // TODO
+                        // level_editor.dynamic_segment = Some(Replay {
+                        //     start_beat,
+                        //     end_beat,
+                        //     current_beat: start_beat,
+                        //     speed: Time::ONE,
+                        // });
                     }
                 }
             }

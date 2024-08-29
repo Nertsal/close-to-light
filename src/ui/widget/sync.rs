@@ -100,13 +100,18 @@ impl SyncWidget {
 }
 
 impl StatefulWidget for SyncWidget {
-    type State = MenuState;
+    type State<'a> = MenuState;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State) {
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
         let local = &state.context.local;
 
         if std::mem::take(&mut self.reload) && self.task_group_info.is_none() {

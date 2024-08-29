@@ -40,10 +40,15 @@ pub trait Widget {
 
 pub trait StatefulWidget {
     /// The external state that the widget operates on and can modify.
-    type State;
+    type State<'a>;
 
     /// Update position and related properties.
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext, state: &mut Self::State);
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    );
     /// Get a mutable reference to the root state.
     fn state_mut(&mut self) -> &mut WidgetState;
     /// Make the widget visible.
