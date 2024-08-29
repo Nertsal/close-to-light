@@ -29,8 +29,46 @@ pub enum LevelAction {
     SetSelectedFrame(Transform),
 }
 
+impl LevelAction {
+    /// Whether the action has no effect.
+    pub fn is_noop(&self) -> bool {
+        match self {
+            LevelAction::DeleteSelected => false,
+            LevelAction::DeleteSelectedLight => false,
+            LevelAction::DeleteSelectedWaypoint => false,
+            LevelAction::Undo => false,
+            LevelAction::Redo => false,
+            LevelAction::Rotate(delta) => *delta == Angle::ZERO,
+            LevelAction::ToggleDanger => false,
+            LevelAction::ToggleWaypointsView => false,
+            LevelAction::Cancel => false,
+            LevelAction::StopPlaying => false,
+            LevelAction::StartPlaying => false,
+            LevelAction::NewLight(_) => false,
+            LevelAction::PlaceLight(_) => false,
+            LevelAction::NewWaypoint => false,
+            LevelAction::PlaceWaypoint(_) => false,
+            LevelAction::ScaleLight(delta) => *delta == Coord::ZERO,
+            LevelAction::ScaleWaypoint(delta) => *delta == Coord::ZERO,
+            LevelAction::ChangeFadeOut(_, delta) => *delta == Coord::ZERO,
+            LevelAction::ChangeFadeIn(_, delta) => *delta == Coord::ZERO,
+            LevelAction::DeselectLight => false,
+            LevelAction::SelectLight(_) => false,
+            LevelAction::SelectWaypoint(_) => false,
+            LevelAction::DeselectWaypoint => false,
+            LevelAction::SetName(_) => false,
+            LevelAction::SetSelectedFrame(_) => false,
+        }
+    }
+}
+
 impl LevelEditor {
     pub fn execute(&mut self, action: LevelAction) {
+        if action.is_noop() {
+            return;
+        }
+
+        // log::debug!("action LevelAction::{:?}", action);
         match action {
             LevelAction::DeleteSelected => {
                 if !self.delete_waypoint_selected() {

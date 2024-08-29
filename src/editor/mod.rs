@@ -729,6 +729,11 @@ impl LevelEditor {
         self.undo_stack.push(state);
         // TODO: limit capacity
         self.redo_stack.clear();
+
+        log::debug!(
+            "Saved old state to the stack, starting new buffer {:?}",
+            label
+        );
     }
 
     // TODO: reimplement with smooth transition or smth

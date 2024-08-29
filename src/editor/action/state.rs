@@ -32,6 +32,7 @@ impl From<LevelAction> for EditorStateAction {
 
 impl EditorState {
     pub fn execute(&mut self, action: EditorStateAction) {
+        // log::debug!("action EditorStateAction::{:?}", action);
         match action {
             EditorStateAction::Exit => {
                 self.transition = Some(geng::state::Transition::Pop);

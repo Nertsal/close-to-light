@@ -29,6 +29,7 @@ impl From<LevelAction> for EditorAction {
 
 impl Editor {
     pub fn execute(&mut self, action: EditorAction) {
+        // log::debug!("action EditorAction::{:?}", action);
         match action {
             EditorAction::Level(action) => {
                 if let Some(editor) = &mut self.level_edit {
