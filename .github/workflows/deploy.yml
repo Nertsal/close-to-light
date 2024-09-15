@@ -48,7 +48,7 @@ jobs:
           toolchain: stable
           profile: minimal
       - name: Install cargo-geng
-        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --force
+        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --rev b2655fd973409f990e7967b37ce8a349b44eda31
       - name: Build
         uses: actions-rs/cargo@v1
         with:
