@@ -1,5 +1,7 @@
 use super::*;
 
+// TODO: maybe make every action mostly not depend on the editor state,
+// so include LightId in every relevant action
 #[derive(Debug, Clone)]
 pub enum LevelAction {
     DeleteSelected,
