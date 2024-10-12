@@ -11,7 +11,7 @@ pub enum Interpolation<T> {
     Linear(Vec<T>),
     Spline(Spline<T>),
     BezierQuadratic(Bezier<3, T>),
-    // BezierCubic(),
+    BezierCubic(Bezier<4, T>),
 }
 
 impl<T: 'static + Interpolatable> Interpolation<T> {
@@ -27,6 +27,10 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
         Self::BezierQuadratic(Bezier::new(&points))
     }
 
+    pub fn bezier_cubic(points: Vec<T>) -> Self {
+        Self::BezierCubic(Bezier::new(&points))
+    }
+
     /// Get an interpolated value on the given interval.
     pub fn get(&self, interval: usize, t: Time) -> Option<T> {
         match self {
@@ -37,6 +41,7 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
             }
             Self::Spline(i) => i.get(interval, t),
             Self::BezierQuadratic(i) => i.get(interval, t),
+            Self::BezierCubic(i) => i.get(interval, t),
         }
     }
 }

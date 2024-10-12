@@ -67,7 +67,7 @@ impl TrajectoryInterpolation {
             Self::Linear => Interpolation::linear(points),
             Self::Spline { tension } => Interpolation::spline(points, tension.as_f32()),
             Self::BezierQuadratic => Interpolation::bezier_quadratic(points),
-            Self::BezierCubic => todo!(),
+            Self::BezierCubic => Interpolation::bezier_cubic(points),
         }
     }
 }
