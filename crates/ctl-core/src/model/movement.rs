@@ -53,7 +53,7 @@ pub enum TrajectoryInterpolation {
     #[default]
     Linear,
     /// Connects keyframes via a smooth cubic Cardinal spline.
-    Spline,
+    Spline { tension: R32 },
     /// Connects keyframes via a quadratic Bezier curve, using every other keyframe as an intermediate control point.
     BezierQuadratic,
     /// Connects keyframes via a quadratic Bezier curve, using every third keyframe as an endpoint.
@@ -65,8 +65,8 @@ impl TrajectoryInterpolation {
     pub fn bake<T: 'static + Interpolatable>(&self, points: Vec<T>) -> Interpolation<T> {
         match self {
             Self::Linear => Interpolation::linear(points),
-            Self::Spline => Interpolation::spline(points, 0.1),
-            Self::BezierQuadratic => todo!(),
+            Self::Spline { tension } => Interpolation::spline(points, tension.as_f32()),
+            Self::BezierQuadratic => Interpolation::bezier_quadratic(points),
             Self::BezierCubic => todo!(),
         }
     }

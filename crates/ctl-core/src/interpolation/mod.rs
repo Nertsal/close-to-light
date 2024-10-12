@@ -10,7 +10,7 @@ use super::*;
 pub enum Interpolation<T> {
     Linear(Vec<T>),
     Spline(Spline<T>),
-    // BezierQuadratic(),
+    BezierQuadratic(Bezier<3, T>),
     // BezierCubic(),
 }
 
@@ -23,6 +23,10 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
         Self::Spline(Spline::new(points, tension))
     }
 
+    pub fn bezier_quadratic(points: Vec<T>) -> Self {
+        Self::BezierQuadratic(Bezier::new(&points))
+    }
+
     /// Get an interpolated value on the given interval.
     pub fn get(&self, interval: usize, t: Time) -> Option<T> {
         match self {
@@ -32,6 +36,7 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
                 Some(a.clone().add(b.sub(a).scale(t.as_f32()))) // a + (b - a) * t
             }
             Self::Spline(i) => i.get(interval, t),
+            Self::BezierQuadratic(i) => i.get(interval, t),
         }
     }
 }

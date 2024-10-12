@@ -105,29 +105,6 @@ fn intervals<T: 'static + Interpolatable>(points: Vec<T>, tension: f32) -> Vec<I
         let m0 = prev;
         let m1 = next.clone();
 
-        // // a = 2p0 + m0 - 2p1 + m1
-        // let a = p0
-        //     .clone()
-        //     .scale(2.0)
-        //     .add(m0.clone())
-        //     .add(p1.clone().scale(-2.0))
-        //     .add(m1.clone());
-        // // b = -3p0 - 2m0 + 3p1 - m1
-        // let b = p0
-        //     .clone()
-        //     .scale(-3.0)
-        //     .add(m0.clone().scale(-2.0))
-        //     .add(p1.clone().scale(3.0))
-        //     .add(m1.clone().scale(-1.0));
-        // // c = m0
-        // let c = m0.clone();
-        // let gradient = |t: f32| {
-        //     a.clone()
-        //         .scale(3.0 * t * t)
-        //         .add(b.clone().scale(2.0 * t))
-        //         .add(c.clone())
-        // };
-
         let sample = {
             let (p0, p1, m0, m1) = (p0.clone(), p1.clone(), m0.clone(), m1.clone());
             move |t| sample(t, p0.clone(), p1.clone(), m0.clone(), m1.clone())
