@@ -1,10 +1,11 @@
 pub mod auth;
+pub mod interpolation;
 pub mod model;
 pub mod types;
 pub mod util;
 
 pub mod prelude {
-    pub use crate::{model::*, types::*};
+    pub use crate::{interpolation::*, model::*, types::*};
 
     pub use std::collections::VecDeque;
 

@@ -369,6 +369,7 @@ impl LevelEditor {
                     self.current_beat - light.light.movement.fade_in - light.telegraph.precede_time;
                 light.light.movement.key_frames.push_front(MoveFrame {
                     lerp_time: event.beat - time,
+                    interpolation: MoveInterpolation::Linear, // TODO: interpolation customize
                     transform,
                 });
                 event.beat = time;
@@ -384,6 +385,7 @@ impl LevelEditor {
                         i,
                         MoveFrame {
                             lerp_time,
+                            interpolation: MoveInterpolation::Linear, // TODO: interpolation customize
                             transform,
                         },
                     );

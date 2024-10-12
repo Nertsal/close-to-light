@@ -1196,6 +1196,7 @@ dependencies = [
  "geng-utils",
  "parry2d",
  "rexie",
+ "ron",
  "serde",
  "serde-wasm-bindgen",
  "sha2",

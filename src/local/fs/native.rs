@@ -99,13 +99,24 @@ pub fn save_music(id: Id, data: &[u8], info: &MusicInfo) -> Result<()> {
 }
 
 pub fn save_group(group: &CachedGroup) -> Result<()> {
+    use ron::extensions::Extensions;
+
     let path = &group.path;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
 
     let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
-    bincode::serialize_into(writer, &group.data)?;
+    let extensions = Extensions::UNWRAP_NEWTYPES
+        | Extensions::IMPLICIT_SOME
+        | Extensions::UNWRAP_VARIANT_NEWTYPES;
+    let config = ron::ser::PrettyConfig::new()
+        .struct_names(false)
+        .separate_tuple_members(true)
+        .enumerate_arrays(true)
+        .compact_arrays(true)
+        .extensions(extensions);
+    ron::ser::to_writer_pretty(writer, &group.data, config)?;
 
     log::debug!("Saved group ({}) successfully", group.data.id);
 

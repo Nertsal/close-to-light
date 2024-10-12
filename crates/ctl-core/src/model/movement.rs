@@ -7,6 +7,8 @@ pub struct Movement {
     /// Time (in beats) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
+    #[serde(skip)] // TODO: remove
+    pub interpolation: TrajectoryInterpolation,
     pub key_frames: VecDeque<MoveFrame>,
 }
 
@@ -14,7 +16,60 @@ pub struct Movement {
 pub struct MoveFrame {
     /// How long (in beats) should the interpolation from the last frame to that frame last.
     pub lerp_time: Time,
+    /// Interpolation to use when moving towards this frame.
+    #[serde(skip)] // TODO: remove
+    pub interpolation: MoveInterpolation,
     pub transform: Transform,
+}
+
+/// Controls the speed of the light when moving between keyframes.
+/// Default is Smoothstep.
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum MoveInterpolation {
+    Linear,
+    #[default]
+    Smoothstep,
+    EaseIn,
+    EaseOut,
+}
+
+impl MoveInterpolation {
+    /// Applies the interpolation function to a value between 0 and 1.
+    pub fn apply(&self, t: Time) -> Time {
+        match self {
+            Self::Linear => t,
+            Self::Smoothstep => smoothstep(t),
+            Self::EaseIn => ease_in(t),
+            Self::EaseOut => ease_out(t),
+        }
+    }
+}
+
+/// Controls the overall trajectory of the light based on the keyframes.
+/// Default is Linear.
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TrajectoryInterpolation {
+    /// Connects keyframes in a straight line.
+    #[default]
+    Linear,
+    /// Connects keyframes via a smooth cubic Cardinal spline.
+    Spline,
+    /// Connects keyframes via a quadratic Bezier curve, using every other keyframe as an intermediate control point.
+    BezierQuadratic,
+    /// Connects keyframes via a quadratic Bezier curve, using every third keyframe as an endpoint.
+    BezierCubic,
+}
+
+impl TrajectoryInterpolation {
+    /// Bakes the interpolation path based on the keypoints.
+    pub fn bake<T: 'static + Interpolatable>(&self, points: Vec<T>) -> Interpolation<T> {
+        match self {
+            Self::Linear => Interpolation::linear(points),
+            Self::Spline => Interpolation::spline(points, 0.1),
+            Self::BezierQuadratic => todo!(),
+            Self::BezierCubic => todo!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -48,10 +103,42 @@ pub struct Transform {
     pub scale: Coord,
 }
 
+impl Interpolatable for Transform {
+    fn add(self, other: Self) -> Self {
+        Self {
+            translation: self.translation + other.translation,
+            rotation: self.rotation + other.rotation,
+            scale: self.scale + other.scale,
+        }
+    }
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            translation: self.translation - other.translation,
+            rotation: self.rotation - other.rotation,
+            scale: self.scale - other.scale,
+        }
+    }
+
+    fn scale(self, factor: f32) -> Self {
+        let factor = r32(factor);
+        Self {
+            translation: self.translation * factor,
+            rotation: self.rotation * factor,
+            scale: self.scale * factor,
+        }
+    }
+
+    fn length_sqr(self) -> f32 {
+        self.translation.length_sqr() + self.rotation.length_sqr() + self.scale.length_sqr()
+    }
+}
+
 impl MoveFrame {
     pub fn scale(lerp_time: impl Float, scale: impl Float) -> Self {
         Self {
             lerp_time: lerp_time.as_r32(),
+            interpolation: MoveInterpolation::default(),
             transform: Transform::scale(scale),
         }
     }
@@ -93,8 +180,9 @@ impl Default for Movement {
         Self {
             fade_in: r32(1.0),
             fade_out: r32(1.0),
-            initial: default(),
-            key_frames: default(),
+            initial: Transform::default(),
+            interpolation: TrajectoryInterpolation::default(),
+            key_frames: VecDeque::new(),
         }
     }
 }
@@ -153,18 +241,19 @@ impl Movement {
     pub fn get(&self, mut time: Time) -> Transform {
         let mut from = self.initial;
 
-        let lerp = |from: Transform, to, time, duration| {
+        let lerp = |from: Transform, to, time, duration, interpolation: MoveInterpolation| {
             let t = if duration > Time::ZERO {
                 time / duration
             } else {
                 Time::ONE
             };
-            let t = smoothstep(t);
+            let t = interpolation.apply(t);
             from.lerp(&to, t)
         };
 
         // Fade in
         if time <= self.fade_in {
+            let interpolation = MoveInterpolation::Smoothstep; // TODO: customize?
             return lerp(
                 Transform {
                     scale: Coord::ZERO,
@@ -173,28 +262,45 @@ impl Movement {
                 from,
                 time,
                 self.fade_in,
+                interpolation,
             );
         }
         time -= self.fade_in;
 
-        for frame in self.frames_iter() {
+        // TODO: bake only once before starting the level, then cache
+        let interpolation = self.interpolation.bake(
+            self.timed_positions()
+                .map(|(_, transform, _)| transform)
+                .collect(),
+        );
+
+        // Find the target frame
+        for (i, frame) in self.frames_iter().enumerate() {
             if time <= frame.lerp_time {
-                return lerp(from, frame.transform, time, frame.lerp_time);
+                // Apply frame's move interpolation
+                let time = if frame.lerp_time > Time::ZERO {
+                    time / frame.lerp_time
+                } else {
+                    Time::ONE
+                };
+                let time = frame.interpolation.apply(time);
+                return interpolation.get(i, time).unwrap_or(from);
             }
             time -= frame.lerp_time;
             from = frame.transform;
         }
 
         // Fade out
-        let target = Transform {
-            scale: Coord::ZERO,
-            ..from
-        };
-        if time <= self.fade_out {
-            lerp(from, target, time, self.fade_out)
-        } else {
-            target
+        if time > Time::ZERO && time <= self.fade_out {
+            let target = Transform {
+                scale: Coord::ZERO,
+                ..from
+            };
+            let interpolation = MoveInterpolation::Smoothstep; // TODO: customize?
+            return lerp(from, target, time, self.fade_out, interpolation);
         }
+
+        from // Default
     }
 
     /// Returns the total duration of the movement including fade in/out.
@@ -207,7 +313,7 @@ impl Movement {
         self.key_frames
             .iter()
             .map(|frame| frame.lerp_time)
-            .fold(Time::ZERO, Time::add)
+            .fold(Time::ZERO, Add::add)
     }
 
     pub fn change_fade_out(&mut self, target: Time) {
@@ -221,4 +327,13 @@ impl Movement {
 
 fn smoothstep<T: Float>(t: T) -> T {
     T::from_f32(3.0) * t * t - T::from_f32(2.0) * t * t * t
+}
+
+fn ease_in<T: Float>(t: T) -> T {
+    t * t * t
+}
+
+fn ease_out<T: Float>(t: T) -> T {
+    let t = T::ONE - t;
+    T::ONE - t * t * t
 }

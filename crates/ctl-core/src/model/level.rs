@@ -30,8 +30,6 @@ pub struct LightSerde {
     /// Movement with timings in beats.
     #[serde(default)]
     pub movement: Movement,
-    // /// Lifetime (in beats).
-    // pub lifetime: Time,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -84,9 +82,7 @@ impl LightSerde {
         Light {
             base_collider: collider.clone(),
             collider,
-            // movement: self.movement,
             lifetime: Time::ZERO,
-            // lifetime: Lifetime::new_max(self.lifetime * beat_time),
             danger: self.danger,
             event_id,
             closest_waypoint: (Time::ZERO, WaypointId::Initial),
