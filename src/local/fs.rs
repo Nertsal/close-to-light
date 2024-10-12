@@ -20,7 +20,7 @@ impl Controller {
             let rexie = match web::build_database().await {
                 Ok(rexie) => rexie,
                 Err(err) => {
-                    log::error!("failed to init web file system: {}", err);
+                    log::error!("failed to init web file system: {:?}", err);
                     anyhow::bail!("check logs");
                 }
             };
@@ -46,7 +46,7 @@ impl Controller {
             match web::load_music_all(&self.rexie, &self.geng).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
-                    log::error!("failed to load music from web file system: {}", err);
+                    log::error!("failed to load music from web file system: {:?}", err);
                     anyhow::bail!("check logs");
                 }
             }
@@ -65,7 +65,7 @@ impl Controller {
             match web::load_groups_all(&self.rexie).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
-                    log::error!("failed to load groups from web file system: {}", err);
+                    log::error!("failed to load groups from web file system: {:?}", err);
                     anyhow::bail!("check logs");
                 }
             }
@@ -85,7 +85,7 @@ impl Controller {
         #[cfg(target_arch = "wasm32")]
         {
             if let Err(err) = web::save_music(&self.rexie, id, data, info).await {
-                log::error!("failed to save music into web file system: {}", err);
+                log::error!("failed to save music into web file system: {:?}", err);
                 anyhow::bail!("check logs");
             }
         }
@@ -107,7 +107,7 @@ impl Controller {
                 .and_then(|name| name.to_str())
                 .unwrap_or(&id);
             if let Err(err) = web::save_group(&self.rexie, group, id).await {
-                log::error!("failed to save group into web file system: {}", err);
+                log::error!("failed to save group into web file system: {:?}", err);
                 anyhow::bail!("check logs");
             }
         }
@@ -123,7 +123,7 @@ impl Controller {
         #[cfg(target_arch = "wasm32")]
         {
             if let Err(err) = web::remove_music(&self.rexie, id).await {
-                log::error!("failed to remove music from the web file system: {}", err);
+                log::error!("failed to remove music from the web file system: {:?}", err);
                 anyhow::bail!("check logs");
             }
             Ok(())
@@ -143,7 +143,7 @@ impl Controller {
         {
             if let Some(id) = path.file_name().and_then(|name| name.to_str()) {
                 if let Err(err) = web::remove_group(&self.rexie, id).await {
-                    log::error!("failed to remove group from the web file system: {}", err);
+                    log::error!("failed to remove group from the web file system: {:?}", err);
                     anyhow::bail!("check logs");
                 }
             }

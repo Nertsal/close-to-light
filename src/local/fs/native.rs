@@ -26,7 +26,7 @@ pub async fn load_music_all(geng: &Geng) -> Result<Vec<CachedMusic>> {
         match music {
             Ok(music) => res.push(music),
             Err(err) => {
-                log::error!("failed to load music: {}", err);
+                log::error!("failed to load music: {:?}", err);
             }
         }
     }
@@ -67,9 +67,14 @@ pub async fn load_groups_all() -> Result<Vec<(PathBuf, LevelSet)>> {
         .collect();
 
     let load_group = |path| async move {
-        let bytes = file::load_bytes(&path).await?;
-        let group: LevelSet = bincode::deserialize(&bytes)?;
-        anyhow::Ok((path, group))
+        let context = format!("when loading {:?}", path);
+        async move {
+            let bytes = file::load_bytes(&path).await?;
+            let group: LevelSet = bincode::deserialize(&bytes)?;
+            anyhow::Ok((path, group))
+        }
+        .await
+        .with_context(|| context)
     };
 
     let group_loaders = paths.into_iter().map(load_group);
@@ -80,7 +85,7 @@ pub async fn load_groups_all() -> Result<Vec<(PathBuf, LevelSet)>> {
         match group {
             Ok((path, group)) => res.push((path, group)),
             Err(err) => {
-                log::error!("failed to load group: {}", err);
+                log::error!("failed to load group: {:?}", err);
             }
         }
     }
