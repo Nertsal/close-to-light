@@ -69,8 +69,10 @@ pub async fn load_groups_all() -> Result<Vec<(PathBuf, LevelSet)>> {
     let load_group = |path| async move {
         let context = format!("when loading {:?}", path);
         async move {
-            let bytes = file::load_bytes(&path).await?;
-            let group: LevelSet = bincode::deserialize(&bytes)?;
+            let bytes = file::load_bytes(&path)
+                .await
+                .with_context(|| "when loading file")?;
+            let group: LevelSet = decode_group(&bytes).with_context(|| "when deserializing")?;
             anyhow::Ok((path, group))
         }
         .await
@@ -104,24 +106,13 @@ pub fn save_music(id: Id, data: &[u8], info: &MusicInfo) -> Result<()> {
 }
 
 pub fn save_group(group: &CachedGroup) -> Result<()> {
-    use ron::extensions::Extensions;
-
     let path = &group.path;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
 
     let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
-    let extensions = Extensions::UNWRAP_NEWTYPES
-        | Extensions::IMPLICIT_SOME
-        | Extensions::UNWRAP_VARIANT_NEWTYPES;
-    let config = ron::ser::PrettyConfig::new()
-        .struct_names(false)
-        .separate_tuple_members(true)
-        .enumerate_arrays(true)
-        .compact_arrays(true)
-        .extensions(extensions);
-    ron::ser::to_writer_pretty(writer, &group.data, config)?;
+    cbor4ii::serde::to_writer(writer, &group.data)?;
 
     log::debug!("Saved group ({}) successfully", group.data.id);
 

@@ -7,7 +7,6 @@ pub struct Movement {
     /// Time (in beats) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
-    #[serde(skip)] // TODO: remove
     pub interpolation: TrajectoryInterpolation,
     pub key_frames: VecDeque<MoveFrame>,
 }
@@ -17,7 +16,6 @@ pub struct MoveFrame {
     /// How long (in beats) should the interpolation from the last frame to that frame last.
     pub lerp_time: Time,
     /// Interpolation to use when moving towards this frame.
-    #[serde(skip)] // TODO: remove
     pub interpolation: MoveInterpolation,
     pub transform: Transform,
 }

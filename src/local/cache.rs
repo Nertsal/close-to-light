@@ -482,7 +482,8 @@ impl LevelCache {
                     let info = client.get_group_info(group_id).await?;
                     let bytes = client.download_group(group_id).await?.to_vec();
                     let hash = ctl_client::core::util::calculate_hash(&bytes);
-                    let data: LevelSet = bincode::deserialize(&bytes)?;
+                    // let data: LevelSet = bincode::deserialize(&bytes)?;
+                    let data: LevelSet = cbor4ii::serde::from_slice(&bytes)?;
 
                     // Download music
                     let music = match music_list.get(&data.music) {

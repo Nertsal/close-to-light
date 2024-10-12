@@ -64,7 +64,8 @@ pub async fn load_groups_all(rexie: &Rexie) -> Result<Vec<(PathBuf, LevelSet)>> 
         let item: GroupItem = serde_wasm_bindgen::from_value(item).unwrap();
 
         let data = BASE64_STANDARD.decode(&item.data).unwrap(); // TODO dont panic
-        let group: LevelSet = bincode::deserialize(&data).unwrap();
+
+        let group: LevelSet = decode_group(&data).unwrap();
 
         items.push((path, group));
     }
@@ -102,8 +103,9 @@ pub async fn save_group(rexie: &Rexie, group: &CachedGroup, id: &str) -> Result<
 
     let store = transaction.store("groups")?;
 
-    let data = bincode::serialize(&group.data).unwrap();
-    let data = BASE64_STANDARD.encode(&data);
+    let data = cbor4ii::serde::to_vec(Vec::new(), &group.data).unwrap();
+    let data = data.as_bytes();
+    let data = BASE64_STANDARD.encode(data);
     let item = GroupItem { data };
 
     let serializer = Serializer::json_compatible();

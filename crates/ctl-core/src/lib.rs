@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod interpolation;
+pub mod legacy;
 pub mod model;
 pub mod types;
 pub mod util;

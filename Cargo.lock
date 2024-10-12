@@ -1070,6 +1070,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cbor4ii"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "472931dd4dfcc785075b09be910147f9c6258883fc4591d0dac6116392b2daa6"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cc"
 version = "1.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1187,6 +1196,7 @@ dependencies = [
  "async-executor",
  "base64 0.22.1",
  "bincode",
+ "cbor4ii",
  "ctl-client",
  "data-encoding",
  "directories",
@@ -1196,7 +1206,6 @@ dependencies = [
  "geng-utils",
  "parry2d",
  "rexie",
- "ron",
  "serde",
  "serde-wasm-bindgen",
  "sha2",

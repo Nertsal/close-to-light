@@ -7,6 +7,8 @@ use crate::assets::MusicAssets;
 
 use super::*;
 
+const GROUP_EXTENSION: &str = "cbor";
+
 pub struct Controller {
     #[cfg(target_arch = "wasm32")]
     rexie: rexie::Rexie,
@@ -199,14 +201,14 @@ pub fn generate_group_path(group: Id) -> PathBuf {
         let mut rng = rand::thread_rng();
         loop {
             let name: String = (0..5).map(|_| rng.gen_range('a'..='z')).collect();
-            let path = base_path.join(name);
+            let path = base_path.join(format!("{}.{}", name, GROUP_EXTENSION));
             // TODO: validate on web
             if !path.exists() {
                 return path;
             }
         }
     } else {
-        base_path.join(format!("{}", group))
+        base_path.join(format!("{}.{}", group, GROUP_EXTENSION))
     }
 }
 
@@ -233,6 +235,21 @@ impl CachedGroup {
             origin: None,
             data,
             level_hashes,
+        }
+    }
+}
+
+fn decode_group(bytes: &[u8]) -> Result<LevelSet> {
+    match cbor4ii::serde::from_slice(bytes) {
+        Ok(value) => Ok(value),
+        Err(err) => {
+            // Try legacy version, for backwards compatibility
+            if let Ok(value) = bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(bytes)
+            {
+                return Ok(value.into());
+            }
+
+            Err(err.into())
         }
     }
 }
