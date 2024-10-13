@@ -326,15 +326,13 @@ impl Movement {
         let mut current_curve = TrajectoryInterpolation::Linear;
         let mut current_segment = vec![]; // TODO: smallvec
         for (point, curve) in points {
-            match curve {
-                None => current_segment.push(point),
-                Some(new_curve) => {
-                    if !current_segment.is_empty() {
-                        segments.push(mk_segment(current_curve, &current_segment));
-                    }
-                    current_segment = vec![point];
-                    current_curve = new_curve;
+            current_segment.push(point);
+            if let Some(new_curve) = curve {
+                if !current_segment.is_empty() {
+                    segments.push(mk_segment(current_curve, &current_segment));
                 }
+                current_segment = vec![point];
+                current_curve = new_curve;
             }
         }
 
