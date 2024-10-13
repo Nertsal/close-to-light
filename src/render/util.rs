@@ -532,7 +532,7 @@ impl UtilRender {
         ugli::draw(
             framebuffer,
             &self.context.assets.shaders.solid,
-            ugli::DrawMode::TriangleFan,
+            ugli::DrawMode::Triangles,
             &ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), vertices),
             (
                 ugli::uniforms! {
@@ -767,27 +767,26 @@ fn build_segment(
     start: draw2d::ColoredVertex,
     end: draw2d::ColoredVertex,
     width: f32,
-) -> [draw2d::ColoredVertex; 4] {
+) -> [draw2d::ColoredVertex; 6] {
     use draw2d::ColoredVertex;
 
     let half_width = width / 2.0;
     let normal = (end.a_pos - start.a_pos).normalize_or_zero().rotate_90();
-    [
-        ColoredVertex {
-            a_pos: start.a_pos - normal * half_width,
-            a_color: start.a_color,
-        },
-        ColoredVertex {
-            a_pos: start.a_pos + normal * half_width,
-            a_color: start.a_color,
-        },
-        ColoredVertex {
-            a_pos: end.a_pos + normal * half_width,
-            a_color: end.a_color,
-        },
-        ColoredVertex {
-            a_pos: end.a_pos - normal * half_width,
-            a_color: end.a_color,
-        },
-    ]
+    let a = ColoredVertex {
+        a_pos: start.a_pos - normal * half_width,
+        a_color: start.a_color,
+    };
+    let b = ColoredVertex {
+        a_pos: start.a_pos + normal * half_width,
+        a_color: start.a_color,
+    };
+    let c = ColoredVertex {
+        a_pos: end.a_pos - normal * half_width,
+        a_color: end.a_color,
+    };
+    let d = ColoredVertex {
+        a_pos: end.a_pos + normal * half_width,
+        a_color: end.a_color,
+    };
+    [a, b, c, b, d, c]
 }
