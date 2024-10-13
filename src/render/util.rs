@@ -391,30 +391,25 @@ impl UtilRender {
         camera: &impl geng::AbstractCamera2d,
         segment: &draw2d::Segment,
     ) {
-        {
-            let framebuffer_size = framebuffer.size();
-            ugli::draw(
-                framebuffer,
-                &self.context.assets.shaders.solid,
-                ugli::DrawMode::TriangleFan,
-                &ugli::VertexBuffer::new_dynamic(
-                    self.context.geng.ugli(),
-                    segment.vertices.clone(),
-                ),
-                (
-                    ugli::uniforms! {
-                        u_color: Rgba::WHITE,
-                        u_framebuffer_size: framebuffer_size,
-                        u_model_matrix: segment.transform,
-                    },
-                    camera.uniforms(framebuffer_size.map(|x| x as f32)),
-                ),
-                ugli::DrawParameters {
-                    blend_mode: None,
-                    ..Default::default()
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.solid,
+            ugli::DrawMode::TriangleFan,
+            &ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), segment.vertices.clone()),
+            (
+                ugli::uniforms! {
+                    u_color: Rgba::WHITE,
+                    u_framebuffer_size: framebuffer_size,
+                    u_model_matrix: segment.transform,
                 },
-            );
-        }
+                camera.uniforms(framebuffer_size.map(|x| x as f32)),
+            ),
+            ugli::DrawParameters {
+                blend_mode: None,
+                ..Default::default()
+            },
+        );
     }
 
     pub fn draw_outline(
@@ -523,27 +518,51 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let mut dash_full_left = 0.0;
-        for segment in chain.windows(2) {
-            let segment = (segment[0], segment[1]);
-            dash_full_left =
-                self.draw_dashed_segment(segment, options, dash_full_left, camera, framebuffer);
-        }
+        let vertices: Vec<_> = chain
+            .windows(2)
+            .flat_map(|segment| {
+                let segment = (segment[0], segment[1]);
+                let (vertices, left) = self.build_dashed_segment(segment, options, dash_full_left);
+                dash_full_left = left;
+                vertices
+            })
+            .collect();
+
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.solid,
+            ugli::DrawMode::TriangleFan,
+            &ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), vertices),
+            (
+                ugli::uniforms! {
+                    u_color: Rgba::WHITE,
+                    u_framebuffer_size: framebuffer_size,
+                    u_model_matrix: mat3::identity(),
+                },
+                camera.uniforms(framebuffer_size.map(|x| x as f32)),
+            ),
+            ugli::DrawParameters {
+                blend_mode: None,
+                ..Default::default()
+            },
+        );
     }
 
     /// Draws a dashed segment.
     /// Returns the unrendered length of the last dash.
-    pub fn draw_dashed_segment(
+    fn build_dashed_segment(
         &self,
         mut segment: (draw2d::ColoredVertex, draw2d::ColoredVertex),
         options: &DashRenderOptions,
         dash_full_left: f32,
-        camera: &impl geng::AbstractCamera2d,
-        framebuffer: &mut ugli::Framebuffer,
-    ) -> f32 {
+    ) -> (Vec<draw2d::ColoredVertex>, f32) {
+        let mut vertices = vec![];
+
         let delta = segment.1.a_pos - segment.0.a_pos;
         let delta_len = delta.len();
         let direction_norm = if delta.len().approx_eq(&0.0) {
-            return dash_full_left;
+            return (vertices, dash_full_left);
         } else {
             delta / delta_len
         };
@@ -563,17 +582,13 @@ impl UtilRender {
                         dash_length / delta_len,
                     ),
                 };
-                self.draw_chain(
-                    framebuffer,
-                    camera,
-                    &draw2d::Chain::new_gradient(vec![segment.0, dash_end], options.width, 1),
-                );
+                vertices.extend(build_segment(segment.0, dash_end, options.width));
             }
 
             // Finish space
             let dash_left = dash_full_left - dash_full_length;
             if dash_left > 0.0 {
-                return dash_left;
+                return (vertices, dash_left);
             }
 
             // Offset
@@ -607,11 +622,7 @@ impl UtilRender {
                     (full_length * i as f32 + options.dash_length) / delta_len,
                 ),
             };
-            self.draw_chain(
-                framebuffer,
-                camera,
-                &draw2d::Chain::new_gradient(vec![dash_start, dash_end], options.width, 1),
-            );
+            vertices.extend(build_segment(dash_start, dash_end, options.width));
         }
 
         let last_start = draw2d::ColoredVertex {
@@ -632,12 +643,9 @@ impl UtilRender {
                 (dashes as f32 * full_length + dash_len) / delta_len,
             ),
         };
-        self.draw_chain(
-            framebuffer,
-            camera,
-            &draw2d::Chain::new_gradient(vec![last_start, last_end], options.width, 1),
-        );
-        full_length - last_len
+        vertices.extend(build_segment(last_start, last_end, options.width));
+
+        (vertices, full_length - last_len)
     }
 
     pub fn draw_player(
@@ -753,4 +761,33 @@ pub fn additive() -> ugli::BlendMode {
         dst_factor: ugli::BlendFactor::One,
         equation: ugli::BlendEquation::Add,
     })
+}
+
+fn build_segment(
+    start: draw2d::ColoredVertex,
+    end: draw2d::ColoredVertex,
+    width: f32,
+) -> [draw2d::ColoredVertex; 4] {
+    use draw2d::ColoredVertex;
+
+    let half_width = width / 2.0;
+    let normal = (end.a_pos - start.a_pos).normalize_or_zero().rotate_90();
+    [
+        ColoredVertex {
+            a_pos: start.a_pos - normal * half_width,
+            a_color: start.a_color,
+        },
+        ColoredVertex {
+            a_pos: start.a_pos + normal * half_width,
+            a_color: start.a_color,
+        },
+        ColoredVertex {
+            a_pos: end.a_pos + normal * half_width,
+            a_color: end.a_color,
+        },
+        ColoredVertex {
+            a_pos: end.a_pos - normal * half_width,
+            a_color: end.a_color,
+        },
+    ]
 }

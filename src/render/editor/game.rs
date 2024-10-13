@@ -176,8 +176,11 @@ impl EditorRender {
                         light_color
                     };
 
+                    // TODO: adapt to movement density
                     /// How many beats away are the waypoints still visible
                     const VISIBILITY: f32 = 5.0;
+                    /// Waypoints past this time-distance are not rendered at all
+                    const MAX_VISIBILITY: f32 = 15.0;
                     /// The minimum transparency level of waypoints outside visibility
                     const MIN_ALPHA: f32 = 0.05;
                     // Calculate the waypoint visibility at the given relative timestamp
@@ -185,8 +188,11 @@ impl EditorRender {
                         let d = (timed_event.beat + event.telegraph.precede_time + beat
                             - level_editor.current_beat)
                             .abs()
-                            .as_f32()
-                            / VISIBILITY;
+                            .as_f32();
+                        if d > MAX_VISIBILITY {
+                            return 0.0;
+                        }
+                        let d = d / VISIBILITY;
                         (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
                     };
 
@@ -251,29 +257,32 @@ impl EditorRender {
                                 color
                             };
 
-                            let mut t = 1.0;
+                            let mut alpha = 1.0;
                             let original =
                                 point.original.and_then(|i| {
                                     level_editor.level.events.get(waypoints.event).and_then(
                                         |event| {
                                             if let Event::Light(light) = &event.event {
                                                 let beat = light.light.movement.get_time(i)?;
-                                                t = visibility(beat);
+                                                alpha = visibility(beat);
                                                 return Some((event.beat, light, beat));
                                             }
                                             None
                                         },
                                     )
                                 });
+                            if alpha <= 0.0 {
+                                continue;
+                            }
 
                             self.util.draw_outline(
                                 &point.collider,
                                 0.05,
-                                crate::util::with_alpha(color, t),
+                                crate::util::with_alpha(color, alpha),
                                 &level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
-                            let text_color = crate::util::with_alpha(THEME.light, t);
+                            let text_color = crate::util::with_alpha(THEME.light, alpha);
                             self.util.draw_text_with(
                                 format!("{}", i + 1),
                                 point.collider.position,
