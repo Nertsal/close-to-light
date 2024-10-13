@@ -7,7 +7,6 @@ pub struct Movement {
     /// Time (in beats) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
-    pub interpolation: TrajectoryInterpolation,
     pub key_frames: VecDeque<MoveFrame>,
 }
 
@@ -17,6 +16,10 @@ pub struct MoveFrame {
     pub lerp_time: Time,
     /// Interpolation to use when moving towards this frame.
     pub interpolation: MoveInterpolation,
+    /// Whether to start a new curve starting from this frame.
+    /// Is set to `None`, the curve will either continue the previous type,
+    /// or continue as linear in the case of bezier.
+    pub change_curve: Option<TrajectoryInterpolation>,
     pub transform: Transform,
 }
 
@@ -52,22 +55,8 @@ pub enum TrajectoryInterpolation {
     Linear,
     /// Connects keyframes via a smooth cubic Cardinal spline.
     Spline { tension: R32 },
-    /// Connects keyframes via a quadratic Bezier curve, using every other keyframe as an intermediate control point.
-    BezierQuadratic,
-    /// Connects keyframes via a quadratic Bezier curve, using every third keyframe as an endpoint.
-    BezierCubic,
-}
-
-impl TrajectoryInterpolation {
-    /// Bakes the interpolation path based on the keypoints.
-    pub fn bake<T: 'static + Interpolatable>(&self, points: Vec<T>) -> Interpolation<T> {
-        match self {
-            Self::Linear => Interpolation::linear(points),
-            Self::Spline { tension } => Interpolation::spline(points, tension.as_f32()),
-            Self::BezierQuadratic => Interpolation::bezier_quadratic(points),
-            Self::BezierCubic => Interpolation::bezier_cubic(points),
-        }
-    }
+    /// Connects keyframes via a Bezier curve.
+    Bezier,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -137,6 +126,7 @@ impl MoveFrame {
         Self {
             lerp_time: lerp_time.as_r32(),
             interpolation: MoveInterpolation::default(),
+            change_curve: None,
             transform: Transform::scale(scale),
         }
     }
@@ -179,7 +169,6 @@ impl Default for Movement {
             fade_in: r32(1.0),
             fade_out: r32(1.0),
             initial: Transform::default(),
-            interpolation: TrajectoryInterpolation::default(),
             key_frames: VecDeque::new(),
         }
     }
@@ -266,11 +255,7 @@ impl Movement {
         time -= self.fade_in;
 
         // TODO: bake only once before starting the level, then cache
-        let interpolation = self.interpolation.bake(
-            self.timed_positions()
-                .map(|(_, transform, _)| transform)
-                .collect(),
-        );
+        let interpolation = self.bake();
 
         // Find the target frame
         for (i, frame) in self.frames_iter().enumerate() {
@@ -320,6 +305,44 @@ impl Movement {
 
     pub fn change_fade_in(&mut self, target: Time) {
         self.fade_in = target.clamp(r32(0.25), r32(25.0));
+    }
+
+    /// Bakes the interpolation path based on the keypoints.
+    pub fn bake(&self) -> Interpolation<Transform> {
+        let points = std::iter::once((self.initial, None)).chain(
+            self.frames_iter()
+                .map(|frame| (frame.transform, frame.change_curve)),
+        );
+
+        let mk_segment = |curve, segment: &[_]| match curve {
+            TrajectoryInterpolation::Linear => InterpolationSegment::linear(segment),
+            TrajectoryInterpolation::Spline { tension } => {
+                InterpolationSegment::spline(segment, tension.as_f32())
+            }
+            TrajectoryInterpolation::Bezier => InterpolationSegment::bezier(segment),
+        };
+
+        let mut segments = vec![];
+        let mut current_curve = TrajectoryInterpolation::Linear;
+        let mut current_segment = vec![]; // TODO: smallvec
+        for (point, curve) in points {
+            match curve {
+                None => current_segment.push(point),
+                Some(new_curve) => {
+                    if !current_segment.is_empty() {
+                        segments.push(mk_segment(current_curve, &current_segment));
+                    }
+                    current_segment = vec![point];
+                    current_curve = new_curve;
+                }
+            }
+        }
+
+        if !current_segment.is_empty() {
+            segments.push(mk_segment(current_curve, &current_segment));
+        }
+
+        Interpolation { segments }
     }
 }
 

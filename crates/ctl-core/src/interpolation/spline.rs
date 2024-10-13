@@ -2,7 +2,7 @@ use super::*;
 
 /// Represents a [cardinal spline](https://en.wikipedia.org/wiki/Cubic_Hermite_spline#Cardinal_spline).
 pub struct Spline<T> {
-    intervals: Vec<Interval<T>>,
+    intervals: Vec<Interval<T>>, // TODO: smallvec
 }
 
 /// Represents a single interval of the spline.
@@ -33,10 +33,14 @@ impl<T: Interpolatable> Interval<T> {
 }
 
 impl<T: 'static + Interpolatable> Spline<T> {
+    pub fn num_intervals(&self) -> usize {
+        self.intervals.len()
+    }
+
     /// Create a cardinal spline passing through points.
     /// Tension should be in range `0..=1`.
     /// For example, if tension is `0.5`, then the curve is a Catmull-Rom spline.
-    pub fn new(points: Vec<T>, tension: f32) -> Self {
+    pub fn new(points: &[T], tension: f32) -> Self {
         let n = points.len();
         let intervals = intervals(points, tension);
         assert_eq!(n, intervals.len() + 1);
@@ -51,7 +55,7 @@ impl<T: 'static + Interpolatable> Spline<T> {
     }
 }
 
-fn intervals<T: 'static + Interpolatable>(points: Vec<T>, tension: f32) -> Vec<Interval<T>> {
+fn intervals<T: 'static + Interpolatable>(points: &[T], tension: f32) -> Vec<Interval<T>> {
     // Calculate tangents
     let len = points.len();
     let mut tangents = Vec::with_capacity(len);
@@ -105,10 +109,7 @@ fn intervals<T: 'static + Interpolatable>(points: Vec<T>, tension: f32) -> Vec<I
         let m0 = prev;
         let m1 = next.clone();
 
-        let sample = {
-            let (p0, p1, m0, m1) = (p0.clone(), p1.clone(), m0.clone(), m1.clone());
-            move |t| sample(t, p0.clone(), p1.clone(), m0.clone(), m1.clone())
-        };
+        let sample = |t| sample(t, p0.clone(), p1.clone(), m0.clone(), m1.clone());
         let uniform_transformation = Box::new(calculate_uniform_transformation(&sample));
 
         intervals.push(Interval {

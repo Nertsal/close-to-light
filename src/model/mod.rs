@@ -34,7 +34,6 @@ impl HoverButton {
             animation: Movement {
                 fade_in: r32(0.0),
                 initial: Transform::scale(2.25),
-                interpolation: TrajectoryInterpolation::Linear,
                 key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
                 fade_out: r32(0.2),
             },

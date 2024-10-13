@@ -7,28 +7,51 @@ pub use self::{bezier::*, spline::*};
 
 use super::*;
 
-pub enum Interpolation<T> {
-    Linear(Vec<T>),
-    Spline(Spline<T>),
-    BezierQuadratic(Bezier<3, T>),
-    BezierCubic(Bezier<4, T>),
+pub struct Interpolation<T> {
+    pub segments: Vec<InterpolationSegment<T>>,
 }
 
 impl<T: 'static + Interpolatable> Interpolation<T> {
-    pub fn linear(points: Vec<T>) -> Self {
-        Self::Linear(points)
+    pub fn get(&self, mut interval: usize, t: Time) -> Option<T> {
+        self.segments
+            .iter()
+            .find(|segment| {
+                let f = segment.num_intervals() > interval;
+                if !f {
+                    interval -= segment.num_intervals();
+                }
+                f
+            })
+            .and_then(|segment| segment.get(interval, t))
+    }
+}
+
+pub enum InterpolationSegment<T> {
+    Linear(Vec<T>), // TODO: smallvec
+    Spline(Spline<T>),
+    Bezier(Bezier<T>),
+}
+
+impl<T: 'static + Interpolatable> InterpolationSegment<T> {
+    pub fn linear(points: &[T]) -> Self {
+        Self::Linear(points.to_vec())
     }
 
-    pub fn spline(points: Vec<T>, tension: f32) -> Self {
+    pub fn spline(points: &[T], tension: f32) -> Self {
         Self::Spline(Spline::new(points, tension))
     }
 
-    pub fn bezier_quadratic(points: Vec<T>) -> Self {
-        Self::BezierQuadratic(Bezier::new(&points))
+    pub fn bezier(points: &[T]) -> Self {
+        Self::Bezier(Bezier::new(points))
     }
 
-    pub fn bezier_cubic(points: Vec<T>) -> Self {
-        Self::BezierCubic(Bezier::new(&points))
+    /// The number of intervals within the curve segment.
+    pub fn num_intervals(&self) -> usize {
+        match self {
+            Self::Linear(points) => points.len().saturating_sub(1),
+            Self::Spline(spline) => spline.num_intervals(),
+            Self::Bezier(bezier) => bezier.num_intervals(),
+        }
     }
 
     /// Get an interpolated value on the given interval.
@@ -40,8 +63,7 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
                 Some(a.clone().add(b.sub(a).scale(t.as_f32()))) // a + (b - a) * t
             }
             Self::Spline(i) => i.get(interval, t),
-            Self::BezierQuadratic(i) => i.get(interval, t),
-            Self::BezierCubic(i) => i.get(interval, t),
+            Self::Bezier(i) => i.get(interval, t),
         }
     }
 }

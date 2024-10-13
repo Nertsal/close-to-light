@@ -205,7 +205,6 @@ impl From<Level> for crate::Level {
                                     fade_in: light.light.movement.fade_in,
                                     fade_out: light.light.movement.fade_out,
                                     initial: light.light.movement.initial.into(),
-                                    interpolation: crate::TrajectoryInterpolation::default(),
                                     key_frames: light
                                         .light
                                         .movement
@@ -243,6 +242,7 @@ impl From<MoveFrame> for crate::MoveFrame {
         Self {
             lerp_time: value.lerp_time,
             interpolation: crate::MoveInterpolation::default(),
+            change_curve: None, // Linear
             transform: value.transform.into(),
         }
     }

@@ -4,7 +4,7 @@ use super::*;
 /// `sample` function to achieve uniform speed when interpolating.
 pub fn calculate_uniform_transformation<T: Interpolatable>(
     sample: &impl Fn(f32) -> T,
-) -> impl Fn(f32) -> f32 {
+) -> impl Fn(f32) -> f32 + 'static {
     const RESOLUTION: usize = 100;
     let step = (RESOLUTION as f32).recip();
 

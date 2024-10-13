@@ -1,65 +1,38 @@
 use super::*;
 
-/// A Bezier curve of arbitrary degree.
-pub struct Bezier<const N: usize, T> {
-    segments: Vec<BezierSegment<N, T>>,
-}
-
-impl<const N: usize, T: 'static + Interpolatable> Bezier<N, T> {
-    pub fn new(points: &[T]) -> Self {
-        Self {
-            segments: points
-                .windows(N)
-                .enumerate()
-                .filter(|(i, _)| *i % (N - 1) == 0)
-                .map(|(_, window)| {
-                    assert_eq!(window.len(), N);
-                    let points = std::array::from_fn(|i| window[i].clone());
-                    BezierSegment::new(points)
-                })
-                .collect(),
-        }
-    }
-
-    pub fn get(&self, interval: usize, t: Time) -> Option<T> {
-        let subinterval = interval % (N - 1);
-        let interval = interval / (N - 1);
-        let interval = self.segments.get(interval)?;
-        let t = (t.as_f32() + subinterval as f32) / (N - 1) as f32;
-        Some(interval.get(t))
-    }
-}
-
-/// A single Bezier segment of arbitrary degree.
-/// BezierSegment<3> is a Bezier defined by 3 points, so a curve of the 2nd degree, or a quadratic Bezier.
-pub struct BezierSegment<const N: usize, T> {
-    points: [T; N],
+/// A single Bezier segment of arbitrary degree, defined by the given number of points.
+pub struct Bezier<T> {
+    points: Vec<T>, // TODO: smallvec
     uniform_transform: Box<dyn Fn(f32) -> f32>,
 }
 
-impl<const N: usize, T: 'static + Interpolatable> BezierSegment<N, T> {
-    pub fn new(points: [T; N]) -> Self {
-        let sample = {
-            let points = points.clone();
-            move |t: f32| sample(&points, t)
-        };
+impl<T: 'static + Interpolatable> Bezier<T> {
+    pub fn new(points: &[T]) -> Self {
+        let sample = |t: f32| sample(points, t);
         let uniform_transform = Box::new(calculate_uniform_transformation(&sample));
         Self {
-            points,
+            points: points.to_vec(),
             uniform_transform,
         }
     }
 
+    pub fn num_intervals(&self) -> usize {
+        self.points.len().saturating_sub(1)
+    }
+
     /// Returns a smoothed point.
     /// `t` is expected to be in range `0..=1`.
-    pub fn get(&self, t: f32) -> T {
+    pub fn get(&self, interval: usize, t: Time) -> Option<T> {
+        let degree = self.points.len().saturating_sub(1);
+        let t = (t.as_f32() + interval as f32) / degree as f32;
+
         let t = (self.uniform_transform)(t);
-        sample(&self.points, t)
+        Some(sample(&self.points, t))
     }
 }
 
-fn sample<const N: usize, T: Interpolatable>(points: &[T; N], t: f32) -> T {
-    let n = N - 1;
+fn sample<T: Interpolatable>(points: &[T], t: f32) -> T {
+    let n = points.len();
     (0..=n)
         .map(|i| {
             let p = points[i].clone();
