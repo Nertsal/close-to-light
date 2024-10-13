@@ -24,6 +24,18 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
             })
             .and_then(|segment| segment.get(interval, t))
     }
+
+    /// Get the full path of the interpolation with the given `resolution` per segment.
+    pub fn get_path(&self, resolution: usize) -> impl Iterator<Item = T> + '_ {
+        self.segments.iter().flat_map(move |segment| {
+            (0..segment.num_intervals()).flat_map(move |interval| {
+                (0..resolution).flat_map(move |i| {
+                    let t = i as f32 / resolution as f32;
+                    segment.get(interval, r32(t))
+                })
+            })
+        })
+    }
 }
 
 pub enum InterpolationSegment<T> {

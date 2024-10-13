@@ -177,13 +177,24 @@ impl EditorRender {
                     };
 
                     // A dashed line moving through the waypoints to show general direction
-                    let mut positions: Vec<vec2<f32>> = level_editor
-                        .level_state
-                        .waypoints
-                        .iter()
-                        .flat_map(|waypoints| &waypoints.points)
-                        .map(|point| point.collider.position.as_f32())
+                    const RESOLUTION: usize = 10;
+                    // TODO: cache curve
+                    let mut positions: Vec<vec2<f32>> = event
+                        .light
+                        .movement
+                        .bake()
+                        .get_path(RESOLUTION)
+                        .map(|transform| transform.translation.as_f32())
                         .collect();
+
+                    // let mut positions: Vec<vec2<f32>> = level_editor
+                    //     .level_state
+                    //     .waypoints
+                    //     .iter()
+                    //     .flat_map(|waypoints| &waypoints.points)
+                    //     .map(|point| point.collider.position.as_f32())
+                    //     .collect();
+
                     positions.dedup();
                     let options = util::DashRenderOptions {
                         width: 0.15,
