@@ -104,8 +104,7 @@ pub async fn save_group(rexie: &Rexie, group: &CachedGroup, id: &str) -> Result<
     let store = transaction.store("groups")?;
 
     let data = cbor4ii::serde::to_vec(Vec::new(), &group.data).unwrap();
-    let data = data.as_bytes();
-    let data = BASE64_STANDARD.encode(data);
+    let data = BASE64_STANDARD.encode(&data);
     let item = GroupItem { data };
 
     let serializer = Serializer::json_compatible();
