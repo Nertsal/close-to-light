@@ -104,6 +104,7 @@ pub struct Shaders {
     pub light: ugli::Program,
     pub masked: ugli::Program,
     pub texture: ugli::Program,
+    pub ellipse: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]

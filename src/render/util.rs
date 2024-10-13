@@ -173,6 +173,25 @@ impl UtilRender {
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        self.draw_text_with(
+            text,
+            position,
+            options,
+            Some(ugli::BlendMode::straight_alpha()),
+            camera,
+            framebuffer,
+        )
+    }
+
+    pub fn draw_text_with(
+        &self,
+        text: impl AsRef<str>,
+        position: vec2<impl Float>,
+        options: TextRenderOptions,
+        mode: Option<ugli::BlendMode>,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         let text = text.as_ref();
         let font = &self.context.assets.fonts.pixel;
 
@@ -215,7 +234,7 @@ impl UtilRender {
                         camera.uniforms(framebuffer_size.map(|x| x as f32)),
                     ),
                     ugli::DrawParameters {
-                        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                        blend_mode: mode,
                         depth_func: None,
                         ..Default::default()
                     },
@@ -309,6 +328,95 @@ impl UtilRender {
         );
     }
 
+    fn circle_with_cut(
+        &self,
+        framebuffer: &mut ugli::Framebuffer,
+        camera: &impl geng::AbstractCamera2d,
+        transform: mat3<f32>,
+        color: Color,
+        cut: f32,
+    ) {
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.ellipse,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: transform,
+                    u_color: color,
+                    u_framebuffer_size: framebuffer_size,
+                    u_inner_cut: cut,
+                },
+                camera.uniforms(framebuffer_size.map(|x| x as f32)),
+            ),
+            ugli::DrawParameters {
+                blend_mode: None,
+                ..Default::default()
+            },
+        );
+    }
+
+    fn draw_chain(
+        &self,
+        framebuffer: &mut ugli::Framebuffer,
+        camera: &impl geng::AbstractCamera2d,
+        chain: &draw2d::Chain,
+    ) {
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.solid,
+            ugli::DrawMode::Triangles,
+            &ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), chain.vertices.clone()),
+            (
+                ugli::uniforms! {
+                    u_color: Rgba::WHITE,
+                    u_framebuffer_size: framebuffer_size,
+                    u_model_matrix: chain.transform,
+                },
+                camera.uniforms(framebuffer_size.map(|x| x as f32)),
+            ),
+            ugli::DrawParameters {
+                blend_mode: None,
+                ..Default::default()
+            },
+        );
+    }
+
+    fn draw_segment(
+        &self,
+        framebuffer: &mut ugli::Framebuffer,
+        camera: &impl geng::AbstractCamera2d,
+        segment: &draw2d::Segment,
+    ) {
+        {
+            let framebuffer_size = framebuffer.size();
+            ugli::draw(
+                framebuffer,
+                &self.context.assets.shaders.solid,
+                ugli::DrawMode::TriangleFan,
+                &ugli::VertexBuffer::new_dynamic(
+                    self.context.geng.ugli(),
+                    segment.vertices.clone(),
+                ),
+                (
+                    ugli::uniforms! {
+                        u_color: Rgba::WHITE,
+                        u_framebuffer_size: framebuffer_size,
+                        u_model_matrix: segment.transform,
+                    },
+                    camera.uniforms(framebuffer_size.map(|x| x as f32)),
+                ),
+                ugli::DrawParameters {
+                    blend_mode: None,
+                    ..Default::default()
+                },
+            );
+        }
+    }
+
     pub fn draw_outline(
         &self,
         collider: &Collider,
@@ -319,20 +427,18 @@ impl UtilRender {
     ) {
         match collider.shape {
             Shape::Circle { radius } => {
-                self.context.geng.draw2d().draw2d(
+                self.circle_with_cut(
                     framebuffer,
                     camera,
-                    &draw2d::Ellipse::circle_with_cut(
-                        collider.position.as_f32(),
-                        radius.as_f32() - outline_width,
-                        radius.as_f32(),
-                        color,
-                    ),
+                    mat3::translate(collider.position.as_f32())
+                        * mat3::scale_uniform(radius.as_f32()),
+                    color,
+                    (radius.as_f32() - outline_width) / radius.as_f32(),
                 );
             }
             Shape::Line { width } => {
                 let inf = 1e3; // camera.fov;
-                self.context.geng.draw2d().draw2d(
+                self.draw_segment(
                     framebuffer,
                     camera,
                     &draw2d::Segment::new(
@@ -346,7 +452,7 @@ impl UtilRender {
                     .rotate(collider.rotation.map(Coord::as_f32))
                     .translate(collider.position.as_f32()),
                 );
-                self.context.geng.draw2d().draw2d(
+                self.draw_segment(
                     framebuffer,
                     camera,
                     &draw2d::Segment::new(
@@ -367,7 +473,7 @@ impl UtilRender {
                     .extend_uniform(-outline_width / 2.0)
                     .corners();
                 let m = (a + b) / 2.0;
-                self.context.geng.draw2d().draw2d(
+                self.draw_chain(
                     framebuffer,
                     camera,
                     &draw2d::Chain::new(
@@ -411,13 +517,14 @@ impl UtilRender {
 
     pub fn draw_dashed_chain(
         &self,
-        chain: &Chain<f32>,
+        chain: &[draw2d::ColoredVertex],
         options: &DashRenderOptions,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let mut dash_full_left = 0.0;
-        for segment in chain.segments() {
+        for segment in chain.windows(2) {
+            let segment = (segment[0], segment[1]);
             dash_full_left =
                 self.draw_dashed_segment(segment, options, dash_full_left, camera, framebuffer);
         }
@@ -427,13 +534,13 @@ impl UtilRender {
     /// Returns the unrendered length of the last dash.
     pub fn draw_dashed_segment(
         &self,
-        mut segment: Segment<f32>,
+        mut segment: (draw2d::ColoredVertex, draw2d::ColoredVertex),
         options: &DashRenderOptions,
         dash_full_left: f32,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) -> f32 {
-        let delta = segment.1 - segment.0;
+        let delta = segment.1.a_pos - segment.0.a_pos;
         let delta_len = delta.len();
         let direction_norm = if delta.len().approx_eq(&0.0) {
             return dash_full_left;
@@ -448,16 +555,18 @@ impl UtilRender {
             if dash_length > 0.0 {
                 // Finish dash
                 let dash_length = dash_length.min(dash_full_length);
-                let dash_end = segment.0 + direction_norm * dash_length;
-                self.context.geng.draw2d().draw2d(
+                let dash_end = draw2d::ColoredVertex {
+                    a_pos: segment.0.a_pos + direction_norm * dash_length,
+                    a_color: Color::lerp(
+                        segment.0.a_color,
+                        segment.1.a_color,
+                        dash_length / delta_len,
+                    ),
+                };
+                self.draw_chain(
                     framebuffer,
                     camera,
-                    &draw2d::Chain::new(
-                        Chain::new(vec![segment.0, dash_end]),
-                        options.width,
-                        options.color,
-                        1,
-                    ),
+                    &draw2d::Chain::new_gradient(vec![segment.0, dash_end], options.width, 1),
                 );
             }
 
@@ -468,44 +577,65 @@ impl UtilRender {
             }
 
             // Offset
-            segment.0 += dash_full_length * direction_norm
+            segment.0.a_pos += dash_full_length * direction_norm;
+            segment.0.a_color = Color::lerp(
+                segment.0.a_color,
+                segment.1.a_color,
+                dash_full_length / delta_len,
+            );
         }
 
         let full_length = options.dash_length + options.space_length;
 
         // Recalculate delta
-        let delta_len = (segment.1 - segment.0).len();
+        let delta_len = (segment.1.a_pos - segment.0.a_pos).len();
         let dashes = (delta_len / full_length).floor() as usize;
         for i in 0..dashes {
-            let dash_start = segment.0 + direction_norm * i as f32 * full_length;
-            self.context.geng.draw2d().draw2d(
+            let dash_start = draw2d::ColoredVertex {
+                a_pos: segment.0.a_pos + direction_norm * i as f32 * full_length,
+                a_color: Color::lerp(
+                    segment.0.a_color,
+                    segment.1.a_color,
+                    full_length * i as f32 / delta_len,
+                ),
+            };
+            let dash_end = draw2d::ColoredVertex {
+                a_pos: dash_start.a_pos + direction_norm * options.dash_length,
+                a_color: Color::lerp(
+                    segment.0.a_color,
+                    segment.1.a_color,
+                    (full_length * i as f32 + options.dash_length) / delta_len,
+                ),
+            };
+            self.draw_chain(
                 framebuffer,
                 camera,
-                &draw2d::Chain::new(
-                    Chain::new(vec![
-                        dash_start,
-                        dash_start + direction_norm * options.dash_length,
-                    ]),
-                    options.width,
-                    options.color,
-                    1,
-                ),
+                &draw2d::Chain::new_gradient(vec![dash_start, dash_end], options.width, 1),
             );
         }
 
-        let last_start = segment.0 + direction_norm * dashes as f32 * full_length;
-        let last_len = (segment.1 - last_start).len();
+        let last_start = draw2d::ColoredVertex {
+            a_pos: segment.0.a_pos + direction_norm * dashes as f32 * full_length,
+            a_color: Color::lerp(
+                segment.0.a_color,
+                segment.1.a_color,
+                dashes as f32 * full_length / delta_len,
+            ),
+        };
+        let last_len = (segment.1.a_pos - last_start.a_pos).len();
         let dash_len = last_len.min(options.dash_length);
-        let last_end = last_start + direction_norm * dash_len;
-        self.context.geng.draw2d().draw2d(
+        let last_end = draw2d::ColoredVertex {
+            a_pos: last_start.a_pos + direction_norm * dash_len,
+            a_color: Color::lerp(
+                segment.0.a_color,
+                segment.1.a_color,
+                (dashes as f32 * full_length + dash_len) / delta_len,
+            ),
+        };
+        self.draw_chain(
             framebuffer,
             camera,
-            &draw2d::Chain::new(
-                Chain::new(vec![last_start, last_end]),
-                options.width,
-                options.color,
-                1,
-            ),
+            &draw2d::Chain::new_gradient(vec![last_start, last_end], options.width, 1),
         );
         full_length - last_len
     }

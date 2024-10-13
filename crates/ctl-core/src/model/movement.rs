@@ -309,39 +309,47 @@ impl Movement {
 
     /// Bakes the interpolation path based on the keypoints.
     pub fn bake(&self) -> Interpolation<Transform> {
-        let points = std::iter::once((self.initial, None)).chain(
+        bake_movement(
+            self.initial,
             self.frames_iter()
                 .map(|frame| (frame.transform, frame.change_curve)),
-        );
-
-        let mk_segment = |curve, segment: &[_]| match curve {
-            TrajectoryInterpolation::Linear => InterpolationSegment::linear(segment),
-            TrajectoryInterpolation::Spline { tension } => {
-                InterpolationSegment::spline(segment, tension.as_f32())
-            }
-            TrajectoryInterpolation::Bezier => InterpolationSegment::bezier(segment),
-        };
-
-        let mut segments = vec![];
-        let mut current_curve = TrajectoryInterpolation::Linear;
-        let mut current_segment = vec![]; // TODO: smallvec
-        for (point, curve) in points {
-            current_segment.push(point);
-            if let Some(new_curve) = curve {
-                if !current_segment.is_empty() {
-                    segments.push(mk_segment(current_curve, &current_segment));
-                }
-                current_segment = vec![point];
-                current_curve = new_curve;
-            }
-        }
-
-        if !current_segment.is_empty() {
-            segments.push(mk_segment(current_curve, &current_segment));
-        }
-
-        Interpolation { segments }
+        )
     }
+}
+
+pub fn bake_movement<T: 'static + Interpolatable>(
+    initial: T,
+    keyframes: impl IntoIterator<Item = (T, Option<TrajectoryInterpolation>)>,
+) -> Interpolation<T> {
+    let points = std::iter::once((initial, None)).chain(keyframes);
+
+    let mk_segment = |curve, segment: &[_]| match curve {
+        TrajectoryInterpolation::Linear => InterpolationSegment::linear(segment),
+        TrajectoryInterpolation::Spline { tension } => {
+            InterpolationSegment::spline(segment, tension.as_f32())
+        }
+        TrajectoryInterpolation::Bezier => InterpolationSegment::bezier(segment),
+    };
+
+    let mut segments = vec![];
+    let mut current_curve = TrajectoryInterpolation::Linear;
+    let mut current_segment = vec![]; // TODO: smallvec
+    for (point, curve) in points {
+        current_segment.push(point.clone());
+        if let Some(new_curve) = curve {
+            if !current_segment.is_empty() {
+                segments.push(mk_segment(current_curve, &current_segment));
+            }
+            current_segment = vec![point];
+            current_curve = new_curve;
+        }
+    }
+
+    if !current_segment.is_empty() {
+        segments.push(mk_segment(current_curve, &current_segment));
+    }
+
+    Interpolation { segments }
 }
 
 fn smoothstep<T: Float>(t: T) -> T {

@@ -88,7 +88,7 @@ impl EditorRender {
 
         let static_alpha = if let State::Place { .. } | State::Waypoints { .. } = level_editor.state
         {
-            0.5
+            0.75
         } else {
             1.0
         };
@@ -168,34 +168,54 @@ impl EditorRender {
 
         if let State::Waypoints { event, .. } = &level_editor.state {
             let event = *event;
-            if let Some(event) = level_editor.level.events.get(event) {
-                if let Event::Light(event) = &event.event {
+            if let Some(timed_event) = level_editor.level.events.get(event) {
+                if let Event::Light(event) = &timed_event.event {
                     let color = if event.light.danger {
                         danger_color
                     } else {
                         light_color
                     };
 
+                    /// How many beats away are the waypoints still visible
+                    const VISIBILITY: f32 = 5.0;
+                    /// The minimum transparency level of waypoints outside visibility
+                    const MIN_ALPHA: f32 = 0.05;
+                    // Calculate the waypoint visibility at the given relative timestamp
+                    let visibility = |beat: Time| {
+                        let d = (timed_event.beat + event.telegraph.precede_time + beat
+                            - level_editor.current_beat)
+                            .abs()
+                            .as_f32()
+                            / VISIBILITY;
+                        (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
+                    };
+
                     // A dashed line moving through the waypoints to show general direction
                     const RESOLUTION: usize = 10;
                     // TODO: cache curve
-                    let mut positions: Vec<vec2<f32>> = event
-                        .light
-                        .movement
-                        .bake()
+                    let curve = event.light.movement.bake();
+                    let mut positions: Vec<draw2d::ColoredVertex> = curve
                         .get_path(RESOLUTION)
-                        .map(|transform| transform.translation.as_f32())
+                        .enumerate()
+                        .map(|(i, transform)| {
+                            let movement = &event.light.movement;
+                            let segment = i / RESOLUTION;
+                            let t = (i % RESOLUTION) as f32 / RESOLUTION.saturating_sub(1) as f32;
+                            let a = movement
+                                .get_time(WaypointId::Frame(segment).prev().unwrap())
+                                .unwrap_or(Time::ZERO);
+                            let b = movement
+                                .get_time(WaypointId::Frame(segment))
+                                .unwrap_or(Time::ZERO);
+                            let beat = a + (b - a) * r32(t);
+                            draw2d::ColoredVertex {
+                                a_pos: transform.translation.as_f32(),
+                                a_color: crate::util::with_alpha(color, visibility(beat)),
+                            }
+                        })
                         .collect();
 
-                    // let mut positions: Vec<vec2<f32>> = level_editor
-                    //     .level_state
-                    //     .waypoints
-                    //     .iter()
-                    //     .flat_map(|waypoints| &waypoints.points)
-                    //     .map(|point| point.collider.position.as_f32())
-                    //     .collect();
-
-                    positions.dedup();
+                    positions.dedup_by_key(|vertex| vertex.a_pos);
                     let options = util::DashRenderOptions {
                         width: 0.15,
                         color,
@@ -208,11 +228,10 @@ impl EditorRender {
                         let speed = 1.0;
                         let t =
                             ((level_editor.real_time.as_f32() * speed) / period).fract() * period;
-                        *pos += (to - *pos).normalize_or_zero() * t;
+                        pos.a_pos += (to.a_pos - pos.a_pos).normalize_or_zero() * t;
                     }
-                    let chain = Chain::new(positions);
                     self.util.draw_dashed_chain(
-                        &chain,
+                        &positions,
                         &options,
                         &level_editor.model.camera,
                         &mut pixel_buffer,
@@ -231,44 +250,53 @@ impl EditorRender {
                             } else {
                                 color
                             };
-                            self.util.draw_outline(
-                                &point.collider,
-                                0.05,
-                                color,
-                                &level_editor.model.camera,
-                                &mut pixel_buffer,
-                            );
-                            self.util.draw_text(
-                                format!("{}", i + 1),
-                                point.collider.position,
-                                TextRenderOptions::new(1.5).color(THEME.light),
-                                &level_editor.model.camera,
-                                &mut pixel_buffer,
-                            );
 
-                            let beat_time =
-                                point.original.map_or(Some(level_editor.current_beat), |i| {
+                            let mut t = 1.0;
+                            let original =
+                                point.original.and_then(|i| {
                                     level_editor.level.events.get(waypoints.event).and_then(
                                         |event| {
                                             if let Event::Light(light) = &event.event {
-                                                if let Some(beat) = light.light.movement.get_time(i)
-                                                {
-                                                    return Some(
-                                                        event.beat
-                                                            + light.telegraph.precede_time
-                                                            + beat,
-                                                    );
-                                                }
+                                                let beat = light.light.movement.get_time(i)?;
+                                                t = visibility(beat);
+                                                return Some((event.beat, light, beat));
                                             }
                                             None
                                         },
                                     )
                                 });
+
+                            self.util.draw_outline(
+                                &point.collider,
+                                0.05,
+                                crate::util::with_alpha(color, t),
+                                &level_editor.model.camera,
+                                &mut pixel_buffer,
+                            );
+                            let text_color = crate::util::with_alpha(THEME.light, t);
+                            self.util.draw_text_with(
+                                format!("{}", i + 1),
+                                point.collider.position,
+                                TextRenderOptions::new(1.5).color(text_color),
+                                Some(util::additive()),
+                                &level_editor.model.camera,
+                                &mut pixel_buffer,
+                            );
+
+                            let beat_time =
+                                point.original.map_or(Some(level_editor.current_beat), |_| {
+                                    original.map(|(original_beat, original, relative_beat)| {
+                                        original_beat
+                                            + original.telegraph.precede_time
+                                            + relative_beat
+                                    })
+                                });
                             if let Some(beat) = beat_time {
-                                self.util.draw_text(
+                                self.util.draw_text_with(
                                     format!("at {}", beat),
                                     point.collider.position - vec2(0.0, 0.6).as_r32(),
-                                    TextRenderOptions::new(0.6).color(THEME.light),
+                                    TextRenderOptions::new(0.6).color(text_color),
+                                    Some(util::additive()),
                                     &level_editor.model.camera,
                                     &mut pixel_buffer,
                                 );

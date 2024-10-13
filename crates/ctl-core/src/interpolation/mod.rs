@@ -108,6 +108,21 @@ impl<T: Float> Interpolatable for Angle<T> {
     }
 }
 
+impl<A: Interpolatable, B: Interpolatable> Interpolatable for (A, B) {
+    fn add(self, other: Self) -> Self {
+        (self.0.add(other.0), self.1.add(other.1))
+    }
+    fn sub(self, other: Self) -> Self {
+        (self.0.sub(other.0), self.1.sub(other.1))
+    }
+    fn scale(self, factor: f32) -> Self {
+        (self.0.scale(factor), self.1.scale(factor))
+    }
+    fn length_sqr(self) -> f32 {
+        self.0.length_sqr() + self.1.length_sqr()
+    }
+}
+
 macro_rules! impl_interpolatable_for_float {
     ($T:ty) => {
         impl Interpolatable for $T {
