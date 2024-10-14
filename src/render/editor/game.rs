@@ -197,16 +197,16 @@ impl EditorRender {
                     };
 
                     // A dashed line moving through the waypoints to show general direction
-                    const RESOLUTION: usize = 10;
+                    const RESOLUTION: usize = 5;
                     // TODO: cache curve
                     let curve = event.light.movement.bake();
                     let mut positions: Vec<draw2d::ColoredVertex> = curve
                         .get_path(RESOLUTION)
                         .enumerate()
-                        .map(|(i, transform)| {
+                        .filter_map(|(i, transform)| {
                             let movement = &event.light.movement;
                             let segment = i / RESOLUTION;
-                            let t = (i % RESOLUTION) as f32 / RESOLUTION.saturating_sub(1) as f32;
+                            let t = (i % RESOLUTION) as f32 / RESOLUTION as f32;
                             let a = movement
                                 .get_time(WaypointId::Frame(segment).prev().unwrap())
                                 .unwrap_or(Time::ZERO);
@@ -214,20 +214,25 @@ impl EditorRender {
                                 .get_time(WaypointId::Frame(segment))
                                 .unwrap_or(Time::ZERO);
                             let beat = a + (b - a) * r32(t);
-                            draw2d::ColoredVertex {
+                            let alpha = visibility(beat);
+                            (alpha > 0.01).then_some(draw2d::ColoredVertex {
                                 a_pos: transform.translation.as_f32(),
-                                a_color: crate::util::with_alpha(color, visibility(beat)),
-                            }
+                                a_color: crate::util::with_alpha(color, alpha),
+                            })
                         })
                         .collect();
 
-                    positions.dedup_by_key(|vertex| vertex.a_pos);
                     let options = util::DashRenderOptions {
                         width: 0.15,
-                        color,
                         dash_length: 0.1,
                         space_length: 0.2,
                     };
+
+                    positions.dedup_by(|a, b| {
+                        (a.a_pos - b.a_pos).len_sqr()
+                            < (options.dash_length + options.space_length).sqr()
+                    });
+
                     if let Some(&to) = positions.get(1) {
                         let pos = positions.first_mut().unwrap();
                         let period = options.dash_length + options.space_length;

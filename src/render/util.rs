@@ -20,7 +20,6 @@ pub struct TextRenderOptions {
 #[derive(Debug, Clone, Copy)]
 pub struct DashRenderOptions {
     pub width: f32,
-    pub color: Color,
     pub dash_length: f32,
     pub space_length: f32,
 }
