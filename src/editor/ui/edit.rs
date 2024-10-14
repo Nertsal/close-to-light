@@ -98,17 +98,22 @@ impl EditorEditWidget {
             show_only_selected: CheckboxWidget::new("Only selected"),
             visualize_beat: CheckboxWidget::new("Dynamic"),
             show_grid: CheckboxWidget::new("Grid"),
-            view_zoom: ValueWidget::new("Zoom: ", 1.0, 0.5..=2.0, 0.25),
+            view_zoom: ValueWidget::new_range("Zoom: ", 1.0, 0.5..=2.0, 0.25),
 
             placement: TextWidget::new("Placement"),
             snap_grid: CheckboxWidget::new("Grid snap"),
-            grid_size: ValueWidget::new("Grid size", 16.0, 2.0..=32.0, 1.0),
+            grid_size: ValueWidget::new_range("Grid size", 16.0, 2.0..=32.0, 1.0),
 
             light: TextWidget::new("Light"),
             light_delete: ButtonWidget::new("delete"),
             light_danger: CheckboxWidget::new("Danger"),
-            light_fade_in: ValueWidget::new("Fade in", r32(1.0), r32(0.25)..=r32(25.0), r32(0.25)),
-            light_fade_out: ValueWidget::new(
+            light_fade_in: ValueWidget::new_range(
+                "Fade in",
+                r32(1.0),
+                r32(0.25)..=r32(25.0),
+                r32(0.25),
+            ),
+            light_fade_out: ValueWidget::new_range(
                 "Fade out",
                 r32(1.0),
                 r32(0.25)..=r32(25.0),
@@ -120,8 +125,8 @@ impl EditorEditWidget {
             current_waypoint: TextWidget::new("0"),
             next_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_right),
             waypoint_delete: ButtonWidget::new("delete"),
-            waypoint_scale: ValueWidget::new("Scale", 1.0, 0.25..=2.0, 0.25),
-            waypoint_angle: ValueWidget::new("Angle", 0.0, 0.0..=360.0, 15.0).wrapping(),
+            waypoint_scale: ValueWidget::new_range("Scale", 1.0, 0.25..=10.0, 0.25),
+            waypoint_angle: ValueWidget::new_circle("Angle", 0.0, 360.0, 15.0),
 
             current_beat: TextWidget::default().aligned(vec2(0.5, 0.0)),
             timeline: TimelineWidget::new(context.clone()),
@@ -182,6 +187,7 @@ impl StatefulWidget for EditorEditWidget {
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
         let button_height = font_size * 1.2;
+        let value_height = font_size * 2.0;
 
         {
             let mut bar = left_bar;
@@ -277,7 +283,7 @@ impl StatefulWidget for EditorEditWidget {
             //     editor.view_waypoints();
             // }
 
-            let zoom = bar.cut_top(font_size);
+            let zoom = bar.cut_top(value_height);
             bar.cut_top(spacing);
             {
                 let mut view_zoom = editor.view_zoom;
@@ -307,7 +313,7 @@ impl StatefulWidget for EditorEditWidget {
             self.snap_grid.checked = editor.snap_to_grid;
             self.tooltip.update(&self.snap_grid.state, "~", context);
 
-            let grid_size = bar.cut_top(button_height);
+            let grid_size = bar.cut_top(value_height);
             bar.cut_top(spacing);
             {
                 let mut value = 10.0 / editor.grid_size.as_f32();
@@ -372,7 +378,7 @@ impl StatefulWidget for EditorEditWidget {
                         self.tooltip.update(&self.light_danger.state, "D", context);
 
                         {
-                            let fade_in = bar.cut_top(button_height);
+                            let fade_in = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut fade = light.movement.fade_in;
                             let from = fade;
@@ -383,7 +389,7 @@ impl StatefulWidget for EditorEditWidget {
                         }
 
                         {
-                            let fade_out = bar.cut_top(button_height);
+                            let fade_out = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut fade = light.movement.fade_out;
                             let from = fade;
@@ -475,14 +481,14 @@ impl StatefulWidget for EditorEditWidget {
 
                             let mut new_frame = frame;
 
-                            let scale = bar.cut_top(button_height);
+                            let scale = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
                             update!(self.waypoint_scale, scale, &mut value);
                             new_frame.scale = r32(value);
                             context.update_focus(self.waypoint_scale.state.hovered);
 
-                            let angle = bar.cut_top(button_height);
+                            let angle = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut value = frame.rotation.as_degrees().as_f32();
                             update!(self.waypoint_angle, angle, &mut value);

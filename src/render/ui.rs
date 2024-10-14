@@ -623,13 +623,49 @@ impl UiRender {
         self.draw_outline(state.position, width, theme.light, framebuffer);
     }
 
-    pub fn draw_value<T>(&self, value: &ValueWidget<T>, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_value<T: Float>(
+        &self,
+        value: &ValueWidget<T>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         if !value.state.visible {
             return;
         }
 
-        self.draw_text(&value.text, framebuffer);
-        self.draw_text(&value.value_text, framebuffer);
+        let theme = self.context.get_options().theme;
+        self.draw_input(&value.value_text, framebuffer);
+
+        let quad = value.control_state.position;
+        let width = quad.height() * 0.05;
+        let quad = quad.extend_uniform(-width);
+        match value.control {
+            ValueControl::Slider { min, max } => {
+                let t = (value.value - min) / (max - min);
+                let mut fill = quad.extend_uniform(-width);
+                let fill = fill.cut_bottom(fill.height() * t.as_f32());
+                self.draw_quad(fill, theme.highlight, framebuffer);
+                self.draw_outline(quad, width, theme.light, framebuffer);
+            }
+            ValueControl::Circle { zero_angle, period } => {
+                let angle =
+                    Angle::from_radians((value.value / period).as_f32() * std::f32::consts::TAU);
+                let angle = zero_angle + angle;
+
+                let texture = &self.context.assets.sprites.value_knob;
+                let size = texture.size().as_f32() * pixel_scale(framebuffer);
+
+                let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+                self.context.geng.draw2d().draw2d(
+                    framebuffer,
+                    &geng::PixelPerfectCamera,
+                    &draw2d::TexturedQuad::unit_colored(&**texture, theme.light).transform(
+                        mat3::translate(pos.center())
+                            * mat3::rotate(angle)
+                            * mat3::scale(pos.size() / 2.0),
+                    ),
+                );
+            }
+        }
     }
 
     pub fn fill_quad(

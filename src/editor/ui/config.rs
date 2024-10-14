@@ -34,26 +34,36 @@ impl EditorConfigWidget {
             state: WidgetState::new(),
 
             timing: TextWidget::new("Timing"),
-            bpm: ValueWidget::new("BPM", r32(150.0), r32(60.0)..=r32(240.0), r32(1.0)), // TODO: different
-            offset: ValueWidget::new("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
+            bpm: ValueWidget::new_range("BPM", r32(150.0), r32(60.0)..=r32(240.0), r32(1.0)), // TODO: different
+            offset: ValueWidget::new_range("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
 
             music: TextWidget::new("Music"),
             level: TextWidget::new("Difficulty"),
-            level_name: InputWidget::new("", false),
+            level_name: InputWidget::new(""),
             level_delete: ButtonWidget::new("Delete"),
             level_create: ButtonWidget::new("Create"),
             all_levels: TextWidget::new("All Dificulties"),
             all_level_names: Vec::new(),
 
             timeline: TextWidget::new("Timeline"),
-            scroll_by: ValueWidget::new("Scroll by", r32(1.0), r32(0.25)..=r32(4.0), r32(0.25)),
-            shift_scroll: ValueWidget::new(
+            scroll_by: ValueWidget::new_range(
+                "Scroll by",
+                r32(1.0),
+                r32(0.25)..=r32(4.0),
+                r32(0.25),
+            ),
+            shift_scroll: ValueWidget::new_range(
                 "Shift scroll",
                 r32(0.25),
                 r32(0.125)..=r32(1.0),
                 r32(0.125),
             ),
-            alt_scroll: ValueWidget::new("Alt scroll", r32(10.0), r32(1.0)..=r32(20.0), r32(0.5)),
+            alt_scroll: ValueWidget::new_range(
+                "Alt scroll",
+                r32(10.0),
+                r32(1.0)..=r32(20.0),
+                r32(0.5),
+            ),
         }
     }
 }

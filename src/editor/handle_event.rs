@@ -6,11 +6,11 @@ impl EditorState {
 
         match &event {
             geng::Event::KeyPress { key } => {
-                if let geng::Key::Escape | geng::Key::Enter = key {
-                    if self.ui_context.text_edit.any_active() {
+                if self.ui_context.text_edit.any_active() {
+                    if let geng::Key::Escape | geng::Key::Enter = key {
                         actions.push(EditorStateAction::StopTextEdit);
-                        return actions;
                     }
+                    return actions;
                 }
             }
             geng::Event::EditText(text) => {
