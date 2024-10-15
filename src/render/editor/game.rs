@@ -166,9 +166,9 @@ impl EditorRender {
         }
         let mut pixel_buffer = draw_game!(1.0);
 
-        if let State::Waypoints { event, .. } = &level_editor.state {
-            let event = *event;
-            if let Some(timed_event) = level_editor.level.events.get(event) {
+        if let State::Waypoints { light_id, .. } = &level_editor.state {
+            let light_id = *light_id;
+            if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.light.danger {
                         danger_color
@@ -263,19 +263,20 @@ impl EditorRender {
                             };
 
                             let mut alpha = 1.0;
-                            let original =
-                                point.original.and_then(|i| {
-                                    level_editor.level.events.get(waypoints.event).and_then(
-                                        |event| {
-                                            if let Event::Light(light) = &event.event {
-                                                let beat = light.light.movement.get_time(i)?;
-                                                alpha = visibility(beat);
-                                                return Some((event.beat, light, beat));
-                                            }
-                                            None
-                                        },
-                                    )
-                                });
+                            let original = point.original.and_then(|i| {
+                                level_editor
+                                    .level
+                                    .events
+                                    .get(waypoints.light.event)
+                                    .and_then(|event| {
+                                        if let Event::Light(light) = &event.event {
+                                            let beat = light.light.movement.get_time(i)?;
+                                            alpha = visibility(beat);
+                                            return Some((event.beat, light, beat));
+                                        }
+                                        None
+                                    })
+                            });
                             if alpha <= 0.0 {
                                 continue;
                             }

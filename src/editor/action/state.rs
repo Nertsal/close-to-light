@@ -133,7 +133,7 @@ impl EditorState {
         if let Some(waypoints) = &level_editor.level_state.waypoints {
             if let Some(waypoint) = waypoints.selected {
                 // Move waypoint in time
-                if let Some(event) = level_editor.level.events.get_mut(waypoints.event) {
+                if let Some(event) = level_editor.level.events.get_mut(waypoints.light.event) {
                     if let Event::Light(light) = &mut event.event {
                         // Move temporaly
                         if let Some(beat) = light.light.movement.get_time(waypoint) {

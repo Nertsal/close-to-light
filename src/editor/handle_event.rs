@@ -227,53 +227,56 @@ impl EditorState {
         vec![EditorStateAction::EndDrag]
     }
 
-    pub(super) fn update_drag(&mut self) {
-        let Some(level_editor) = &mut self.editor.level_edit else {
-            return;
+    pub(super) fn update_drag(&mut self) -> Vec<EditorStateAction> {
+        let mut actions = vec![];
+
+        let Some(level_editor) = &self.editor.level_edit else {
+            return actions;
         };
 
-        let Some(drag) = &mut self.drag else { return };
+        let Some(drag) = &mut self.drag else {
+            return actions;
+        };
         match drag.target {
             DragTarget::Light {
-                event,
+                light,
                 initial_time,
                 initial_translation,
                 ..
             } => {
-                if let Some(event) = level_editor.level.events.get_mut(event) {
-                    if let Event::Light(light) = &mut event.event {
-                        // Move temporaly
-                        event.beat = level_editor.current_beat - drag.from_beat + initial_time;
-
-                        // Move spatially
-                        let movement = &mut light.light.movement;
-                        let target = initial_translation + self.editor.cursor_world_pos_snapped
-                            - drag.from_world;
-                        let delta = target - movement.initial.translation;
-                        movement.initial.translation += delta;
-                        for frame in &mut movement.key_frames {
-                            frame.transform.translation += delta;
-                        }
-                    }
-                }
+                actions.push(
+                    LevelAction::MoveLight(
+                        light,
+                        Change::Set(level_editor.current_beat - drag.from_beat + initial_time),
+                        Change::Set(
+                            initial_translation + self.editor.cursor_world_pos_snapped
+                                - drag.from_world,
+                        ),
+                    )
+                    .into(),
+                );
             }
             DragTarget::Waypoint {
-                event,
+                light,
                 waypoint,
                 initial_translation,
             } => {
-                if let Some(event) = level_editor.level.events.get_mut(event) {
-                    if let Event::Light(light) = &mut event.event {
-                        // Move spatially
-                        if let Some(frame) = light.light.movement.get_frame_mut(waypoint) {
-                            frame.translation = initial_translation
-                                + self.editor.cursor_world_pos_snapped
-                                - drag.from_world;
-                        }
-                    }
-                }
+                actions.push(
+                    LevelAction::MoveWaypoint(
+                        light,
+                        waypoint,
+                        // Change::Set(level_editor.current_beat - drag.from_beat + initial_time),
+                        Change::Set(
+                            initial_translation + self.editor.cursor_world_pos_snapped
+                                - drag.from_world,
+                        ),
+                    )
+                    .into(),
+                );
             }
         }
+
+        actions
     }
 
     fn game_cursor_down(&self) -> Vec<EditorStateAction> {
@@ -295,7 +298,7 @@ impl EditorState {
                         if let Event::Light(light) = &e.event {
                             let target = DragTarget::Light {
                                 double,
-                                event,
+                                light: LightId { event },
                                 initial_time: e.beat,
                                 initial_translation: light.light.movement.initial.translation,
                             };
@@ -318,7 +321,8 @@ impl EditorState {
                             waypoints.hovered.and_then(|i| waypoints.points.get(i))
                         {
                             if let Some(waypoint) = hovered.original {
-                                if let Some(event) = level_editor.level.events.get(waypoints.event)
+                                if let Some(event) =
+                                    level_editor.level.events.get(waypoints.light.event)
                                 {
                                     if let Event::Light(event) = &event.event {
                                         if let Some(frame) =
@@ -326,11 +330,10 @@ impl EditorState {
                                         {
                                             actions
                                                 .push(LevelAction::SelectWaypoint(waypoint).into());
-                                            let event = waypoints.event;
                                             let initial_translation = frame.translation;
                                             actions.push(EditorStateAction::StartDrag(
                                                 DragTarget::Waypoint {
-                                                    event,
+                                                    light: waypoints.light,
                                                     waypoint,
                                                     initial_translation,
                                                 },

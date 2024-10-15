@@ -14,7 +14,7 @@ pub enum State {
     },
     /// Control waypoints of an existing event.
     Waypoints {
-        event: usize,
+        light_id: LightId,
         state: WaypointsState,
     },
 }
@@ -39,7 +39,7 @@ pub struct EditorLevelState {
 #[derive(Debug)]
 pub struct Waypoints {
     /// Index of the light event.
-    pub event: usize,
+    pub light: LightId,
     pub points: Vec<Waypoint>,
     /// Index of the hovered *rendered* waypoint.
     pub hovered: Option<usize>,

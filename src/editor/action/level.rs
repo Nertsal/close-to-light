@@ -29,6 +29,41 @@ pub enum LevelAction {
     DeselectWaypoint,
     SetName(String),
     SetSelectedFrame(Transform),
+    MoveLight(LightId, Change<Time>, Change<vec2<Coord>>),
+    MoveWaypoint(LightId, WaypointId, Change<vec2<Coord>>),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Change<T> {
+    Add(T),
+    Set(T),
+}
+
+impl<T: Sub<Output = T>> Change<T> {
+    pub fn into_delta(self, reference_value: T) -> Self {
+        match self {
+            Change::Add(_) => self,
+            Change::Set(target_value) => Change::Add(target_value.sub(reference_value)),
+        }
+    }
+}
+
+impl<T: Add<Output = T> + Copy> Change<T> {
+    pub fn apply(&self, value: &mut T) {
+        *value = match *self {
+            Change::Add(delta) => value.add(delta),
+            Change::Set(value) => value,
+        };
+    }
+}
+
+impl<T: PartialEq> Change<T> {
+    pub fn is_noop(&self, zero_delta: &T) -> bool {
+        match self {
+            Change::Add(delta) => delta == zero_delta,
+            Change::Set(_) => false,
+        }
+    }
 }
 
 impl LevelAction {
@@ -60,6 +95,10 @@ impl LevelAction {
             LevelAction::DeselectWaypoint => false,
             LevelAction::SetName(_) => false,
             LevelAction::SetSelectedFrame(_) => false,
+            LevelAction::MoveLight(_, time, position) => {
+                time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
+            }
+            LevelAction::MoveWaypoint(_, _, position) => position.is_noop(&vec2::ZERO),
         }
     }
 }
@@ -127,7 +166,7 @@ impl LevelEditor {
             LevelAction::ScaleWaypoint(delta) => {
                 if let Some(waypoints) = &self.level_state.waypoints {
                     if let Some(selected) = waypoints.selected {
-                        if let Some(event) = self.level.events.get_mut(waypoints.event) {
+                        if let Some(event) = self.level.events.get_mut(waypoints.light.event) {
                             if let Event::Light(light) = &mut event.event {
                                 if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                                     frame.scale = (frame.scale + delta).clamp(r32(0.2), r32(2.0));
@@ -177,7 +216,7 @@ impl LevelEditor {
             LevelAction::SetSelectedFrame(frame) => {
                 if let Some(waypoints) = &self.level_state.waypoints {
                     if let Some(selected) = waypoints.selected {
-                        if let Some(event) = self.level.events.get_mut(waypoints.event) {
+                        if let Some(event) = self.level.events.get_mut(waypoints.light.event) {
                             if let Event::Light(light) = &mut event.event {
                                 if let Some(old_frame) =
                                     light.light.movement.get_frame_mut(selected)
@@ -189,7 +228,55 @@ impl LevelEditor {
                     }
                 }
             }
+            LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
+            LevelAction::MoveWaypoint(light, waypoint, pos) => {
+                self.move_waypoint(light, waypoint, pos)
+            }
         }
+    }
+
+    fn move_light(
+        &mut self,
+        light_id: LightId,
+        change_time: Change<Time>,
+        change_pos: Change<vec2<Coord>>,
+    ) {
+        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
+            return;
+        };
+
+        let Event::Light(event) = &mut timed_event.event else {
+            return;
+        };
+
+        change_time.apply(&mut timed_event.beat);
+
+        let change_pos = change_pos.into_delta(event.light.movement.initial.translation);
+        change_pos.apply(&mut event.light.movement.initial.translation);
+        for frame in &mut event.light.movement.key_frames {
+            change_pos.apply(&mut frame.transform.translation);
+        }
+    }
+
+    fn move_waypoint(
+        &mut self,
+        light_id: LightId,
+        waypoint_id: WaypointId,
+        change_pos: Change<vec2<Coord>>,
+    ) {
+        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
+            return;
+        };
+
+        let Event::Light(event) = &mut timed_event.event else {
+            return;
+        };
+
+        let Some(frame) = event.light.movement.get_frame_mut(waypoint_id) else {
+            return;
+        };
+
+        change_pos.apply(&mut frame.translation);
     }
 
     fn select_waypoint(&mut self, waypoint_id: WaypointId) {
@@ -202,11 +289,11 @@ impl LevelEditor {
             waypoints.selected = Some(waypoint_id);
         } else {
             self.state = State::Waypoints {
-                event: light_id.event,
+                light_id,
                 state: WaypointsState::Idle,
             };
             self.level_state.waypoints = Some(Waypoints {
-                event: light_id.event,
+                light: light_id,
                 points: Vec::new(),
                 hovered: None,
                 selected: Some(waypoint_id),
@@ -220,7 +307,7 @@ impl LevelEditor {
             waypoints.selected.and_then(|selected| {
                 self.level
                     .events
-                    .get_mut(waypoints.event)
+                    .get_mut(waypoints.light.event)
                     .and_then(|event| {
                         if let Event::Light(event) = &mut event.event {
                             event.light.movement.get_frame_mut(selected)
@@ -246,8 +333,8 @@ impl LevelEditor {
                     }
                 }
             }
-            State::Waypoints { event, .. } => {
-                if let Some(event) = self.level.events.get_mut(*event) {
+            State::Waypoints { light_id, .. } => {
+                if let Some(event) = self.level.events.get_mut(light_id.event) {
                     if let Event::Light(event) = &mut event.event {
                         event.light.danger = !event.light.danger;
                     }
@@ -326,7 +413,7 @@ impl LevelEditor {
         self.level.events.push(event);
 
         self.state = State::Waypoints {
-            event: event_i,
+            light_id: LightId { event: event_i },
             state: WaypointsState::New,
         };
 
@@ -338,7 +425,7 @@ impl LevelEditor {
             return;
         };
 
-        let Some(event) = self.level.events.get_mut(waypoints.event) else {
+        let Some(event) = self.level.events.get_mut(waypoints.light.event) else {
             return;
         };
 

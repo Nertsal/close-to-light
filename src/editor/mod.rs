@@ -58,12 +58,12 @@ pub enum DragTarget {
         /// Whether it was the second click on the light.
         /// If the drag is short, waypoints will be toggled.
         double: bool,
-        event: usize,
+        light: LightId,
         initial_time: Time,
         initial_translation: vec2<Coord>,
     },
     Waypoint {
-        event: usize,
+        light: LightId,
         waypoint: WaypointId,
         initial_translation: vec2<Coord>,
     },
@@ -222,7 +222,7 @@ impl LevelEditor {
         let Some(waypoints) = &mut self.level_state.waypoints else {
             return;
         };
-        let Some(event) = self.level.events.get_mut(waypoints.event) else {
+        let Some(event) = self.level.events.get_mut(waypoints.light.event) else {
             return;
         };
         let Event::Light(light) = &mut event.event else {
@@ -233,8 +233,8 @@ impl LevelEditor {
                 match light.light.movement.key_frames.pop_front() {
                     None => {
                         // No waypoints -> delete the whole event
-                        if waypoints.event < self.level.events.len() {
-                            self.level.events.swap_remove(waypoints.event);
+                        if waypoints.light.event < self.level.events.len() {
+                            self.level.events.swap_remove(waypoints.light.event);
                             self.level_state.waypoints = None;
                             self.state = State::Idle;
                         }
@@ -335,7 +335,7 @@ impl EditorState {
 
         if let Some(waypoints) = &level_editor.level_state.waypoints {
             if let Some(waypoint) = waypoints.selected {
-                if let Some(event) = level_editor.level.events.get(waypoints.event) {
+                if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
                     if let Event::Light(light) = &event.event {
                         // Set current time to align with the selected waypoint
                         if let Some(time) = light.light.movement.get_time(waypoint) {
@@ -447,7 +447,9 @@ impl geng::State for EditorState {
         self.ui_context
             .update(self.context.geng.window(), delta_time.as_f32());
 
-        self.update_drag();
+        for action in self.update_drag() {
+            self.execute(action);
+        }
 
         self.update_level_editor(delta_time);
 
@@ -782,7 +784,7 @@ impl LevelEditor {
             State::Idle => {
                 if let Some(selected) = self.selected_light {
                     self.state = State::Waypoints {
-                        event: selected.event,
+                        light_id: selected,
                         state: WaypointsState::Idle,
                     };
                 }
@@ -864,9 +866,9 @@ impl LevelEditor {
         }
 
         let mut waypoints = None;
-        if let State::Waypoints { event, state } = &self.state {
-            let event_id = *event;
-            if let Some(event) = self.level.events.get(event_id) {
+        if let State::Waypoints { light_id, state } = &self.state {
+            let light_id = *light_id;
+            if let Some(event) = self.level.events.get(light_id.event) {
                 if let Event::Light(light_event) = &event.event {
                     let event_time = event.beat + light_event.telegraph.precede_time;
                     // If some waypoints overlap, render the temporaly closest one
@@ -940,7 +942,7 @@ impl LevelEditor {
                     });
 
                     waypoints = Some(Waypoints {
-                        event: event_id,
+                        light: light_id,
                         points,
                         hovered,
                         selected: self

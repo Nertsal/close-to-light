@@ -422,7 +422,7 @@ impl StatefulWidget for EditorEditWidget {
         let mut waypoint = false;
         if let Some(waypoints) = &level_editor.level_state.waypoints {
             if let Some(selected) = waypoints.selected {
-                if let Some(event) = level_editor.level.events.get(waypoints.event) {
+                if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
                     if let Event::Light(light) = &event.event {
                         let frames = light.light.movement.key_frames.len();
                         if let Some(frame) = light.light.movement.get_frame(selected) {
@@ -446,11 +446,6 @@ impl StatefulWidget for EditorEditWidget {
                             }
                             let prev = current.cut_left(current.height());
                             self.prev_waypoint.update(prev, context);
-                            if self.prev_waypoint.state.clicked {
-                                if let Some(id) = selected.prev() {
-                                    actions.push(LevelAction::SelectWaypoint(id).into());
-                                }
-                            }
 
                             let i = match selected {
                                 WaypointId::Initial => 0,
@@ -464,9 +459,6 @@ impl StatefulWidget for EditorEditWidget {
                             }
                             let next = current.cut_right(current.height());
                             self.next_waypoint.update(next, context);
-                            if self.next_waypoint.state.clicked {
-                                actions.push(LevelAction::SelectWaypoint(selected.next()).into());
-                            }
 
                             self.current_waypoint.update(current, context);
                             self.current_waypoint.text = (i + 1).to_string().into();
@@ -498,6 +490,14 @@ impl StatefulWidget for EditorEditWidget {
                                 .update(&self.waypoint_angle.state, "Q/E", context);
 
                             actions.push(LevelAction::SetSelectedFrame(new_frame).into());
+
+                            if self.prev_waypoint.state.clicked {
+                                if let Some(id) = selected.prev() {
+                                    actions.push(LevelAction::SelectWaypoint(id).into());
+                                }
+                            } else if self.next_waypoint.state.clicked {
+                                actions.push(LevelAction::SelectWaypoint(selected.next()).into());
+                            }
                         }
                     }
                 }
