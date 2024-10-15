@@ -214,21 +214,21 @@ impl GameRender {
         if let State::Lost { .. } | State::Finished = model.state {
             if !fading {
                 self.util.draw_text(
-                    &format!("SCORE: {}", model.score.calculated.combined),
+                    format!("SCORE: {}", model.score.calculated.combined),
                     vec2(-3.0, -3.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
                     framebuffer,
                 );
                 self.util.draw_text(
-                    &format!("ACCURACY: {:.2}%", accuracy),
+                    format!("ACCURACY: {:.2}%", accuracy),
                     vec2(-3.0, -3.5),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
                     framebuffer,
                 );
                 self.util.draw_text(
-                    &format!("PRECISION: {:.2}%", precision),
+                    format!("PRECISION: {:.2}%", precision),
                     vec2(-3.0, -4.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
