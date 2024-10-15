@@ -1,6 +1,7 @@
 mod button;
 mod checkbox;
 mod confirm;
+mod dropdown;
 mod explore;
 mod icon;
 mod input;
@@ -15,7 +16,7 @@ mod timeline;
 mod value;
 
 pub use self::{
-    button::*, checkbox::*, confirm::*, explore::*, icon::*, input::*, leaderboard::*,
+    button::*, checkbox::*, confirm::*, dropdown::*, explore::*, icon::*, input::*, leaderboard::*,
     notification::*, options::*, profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
 };
 

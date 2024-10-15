@@ -29,6 +29,7 @@ pub enum LevelAction {
     DeselectWaypoint,
     SetName(String),
     SetSelectedFrame(Transform),
+    SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
     MoveLight(LightId, Change<Time>, Change<vec2<Coord>>),
     MoveWaypoint(LightId, WaypointId, Change<vec2<Coord>>),
 }
@@ -95,6 +96,7 @@ impl LevelAction {
             LevelAction::DeselectWaypoint => false,
             LevelAction::SetName(_) => false,
             LevelAction::SetSelectedFrame(_) => false,
+            LevelAction::SetWaypointCurve(..) => false,
             LevelAction::MoveLight(_, time, position) => {
                 time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
@@ -228,6 +230,9 @@ impl LevelEditor {
                     }
                 }
             }
+            LevelAction::SetWaypointCurve(light, waypoint, curve) => {
+                self.set_waypoint_curve(light, waypoint, curve)
+            }
             LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
             LevelAction::MoveWaypoint(light, waypoint, pos) => {
                 self.move_waypoint(light, waypoint, pos)
@@ -277,6 +282,35 @@ impl LevelEditor {
         };
 
         change_pos.apply(&mut frame.translation);
+    }
+
+    fn set_waypoint_curve(
+        &mut self,
+        light_id: LightId,
+        waypoint_id: WaypointId,
+        curve: Option<TrajectoryInterpolation>,
+    ) {
+        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
+            return;
+        };
+
+        let Event::Light(event) = &mut timed_event.event else {
+            return;
+        };
+
+        match waypoint_id {
+            WaypointId::Initial => {
+                if let Some(curve) = curve {
+                    event.light.movement.curve = curve;
+                }
+            }
+            WaypointId::Frame(frame) => {
+                let Some(frame) = event.light.movement.key_frames.get_mut(frame) else {
+                    return;
+                };
+                frame.change_curve = curve;
+            }
+        }
     }
 
     fn select_waypoint(&mut self, waypoint_id: WaypointId) {

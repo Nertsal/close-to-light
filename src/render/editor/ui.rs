@@ -174,6 +174,12 @@ impl EditorRender {
         self.ui.draw_button(&ui.waypoint_delete, theme, framebuffer);
         self.ui.draw_value(&ui.waypoint_scale, framebuffer);
         self.ui.draw_value(&ui.waypoint_angle, framebuffer);
+        self.ui.draw_dropdown(
+            &ui.waypoint_curve,
+            self.font_size * 0.2,
+            &mut self.mask,
+            framebuffer,
+        );
 
         {
             // Timeline

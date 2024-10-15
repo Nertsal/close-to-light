@@ -7,6 +7,8 @@ pub struct Movement {
     /// Time (in beats) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
+    #[serde(default)]
+    pub curve: TrajectoryInterpolation,
     pub key_frames: VecDeque<MoveFrame>,
 }
 
@@ -169,6 +171,7 @@ impl Default for Movement {
             fade_in: r32(1.0),
             fade_out: r32(1.0),
             initial: Transform::default(),
+            curve: TrajectoryInterpolation::default(),
             key_frames: VecDeque::new(),
         }
     }
@@ -199,6 +202,13 @@ impl Movement {
         match id {
             WaypointId::Initial => Some(self.initial),
             WaypointId::Frame(i) => self.key_frames.get(i).map(|frame| frame.transform),
+        }
+    }
+
+    pub fn get_curve(&self, id: WaypointId) -> Option<Option<TrajectoryInterpolation>> {
+        match id {
+            WaypointId::Initial => Some(Some(self.curve)),
+            WaypointId::Frame(i) => self.key_frames.get(i).map(|frame| frame.change_curve),
         }
     }
 
@@ -311,6 +321,7 @@ impl Movement {
     pub fn bake(&self) -> Interpolation<Transform> {
         bake_movement(
             self.initial,
+            self.curve,
             self.frames_iter()
                 .map(|frame| (frame.transform, frame.change_curve)),
         )
@@ -319,6 +330,7 @@ impl Movement {
 
 pub fn bake_movement<T: 'static + Interpolatable>(
     initial: T,
+    initial_curve: TrajectoryInterpolation,
     keyframes: impl IntoIterator<Item = (T, Option<TrajectoryInterpolation>)>,
 ) -> Interpolation<T> {
     let points = std::iter::once((initial, None)).chain(keyframes);
@@ -332,7 +344,7 @@ pub fn bake_movement<T: 'static + Interpolatable>(
     };
 
     let mut segments = vec![];
-    let mut current_curve = TrajectoryInterpolation::Linear;
+    let mut current_curve = initial_curve;
     let mut current_segment = vec![]; // TODO: smallvec
     for (point, curve) in points {
         current_segment.push(point.clone());

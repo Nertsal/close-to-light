@@ -32,7 +32,7 @@ impl<T: 'static + Interpolatable> Bezier<T> {
 }
 
 fn sample<T: Interpolatable>(points: &[T], t: f32) -> T {
-    let n = points.len();
+    let n = points.len().saturating_sub(1);
     (0..=n)
         .map(|i| {
             let p = points[i].clone();

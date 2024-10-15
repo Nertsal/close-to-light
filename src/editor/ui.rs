@@ -73,7 +73,7 @@ impl EditorUI {
 
         let mut actions = vec![];
 
-        let font_size = screen.height() * 0.04;
+        let font_size = screen.height() * 0.035;
         let layout_size = screen.height() * 0.03;
 
         context.font_size = font_size;

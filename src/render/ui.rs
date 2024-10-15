@@ -668,6 +668,41 @@ impl UiRender {
         }
     }
 
+    pub fn draw_dropdown<T>(
+        &self,
+        dropdown: &DropdownWidget<T>,
+        outline_width: f32,
+        masked: &mut MaskedRender,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        if !dropdown.state.visible {
+            return;
+        }
+
+        let theme = self.context.get_options().theme;
+        self.draw_text(&dropdown.name, framebuffer);
+        self.draw_text(&dropdown.value_text, framebuffer);
+
+        let mut main = dropdown.dropdown_state.position;
+        let height = main.height() * dropdown.dropdown_window.show.time.get_ratio();
+        if height > outline_width * 2.0 {
+            let main = main.cut_top(height);
+            self.draw_window(
+                masked,
+                main,
+                None,
+                outline_width,
+                theme,
+                framebuffer,
+                |framebuffer| {
+                    for item in &dropdown.dropdown_items {
+                        self.draw_text(item, framebuffer);
+                    }
+                },
+            );
+        }
+    }
+
     pub fn fill_quad(
         &self,
         position: Aabb2<f32>,

@@ -74,6 +74,7 @@ pub struct EditorEditWidget {
     pub waypoint_scale: ValueWidget<f32>,
     /// Angle in degrees.
     pub waypoint_angle: ValueWidget<f32>,
+    pub waypoint_curve: DropdownWidget<Option<TrajectoryInterpolation>>,
 
     pub current_beat: TextWidget,
     pub timeline: TimelineWidget,
@@ -127,6 +128,19 @@ impl EditorEditWidget {
             waypoint_delete: ButtonWidget::new("delete"),
             waypoint_scale: ValueWidget::new_range("Scale", 1.0, 0.25..=10.0, 0.25),
             waypoint_angle: ValueWidget::new_circle("Angle", 0.0, 360.0, 15.0),
+            waypoint_curve: DropdownWidget::new(
+                "Curve",
+                0,
+                [
+                    ("Continue", None),
+                    ("Linear", Some(TrajectoryInterpolation::Linear)),
+                    (
+                        "Spline",
+                        Some(TrajectoryInterpolation::Spline { tension: r32(0.1) }),
+                    ),
+                    ("Bezier", Some(TrajectoryInterpolation::Bezier)),
+                ],
+            ),
 
             current_beat: TextWidget::default().aligned(vec2(0.5, 0.0)),
             timeline: TimelineWidget::new(context.clone()),
@@ -490,6 +504,19 @@ impl StatefulWidget for EditorEditWidget {
                                 .update(&self.waypoint_angle.state, "Q/E", context);
 
                             actions.push(LevelAction::SetSelectedFrame(new_frame).into());
+
+                            let curve = bar.cut_top(value_height);
+                            bar.cut_top(spacing);
+                            if let Some(mut value) = light.light.movement.get_curve(selected) {
+                                self.waypoint_curve.show();
+                                self.waypoint_curve.update(curve, context, &mut value);
+                                actions.push(
+                                    LevelAction::SetWaypointCurve(waypoints.light, selected, value)
+                                        .into(),
+                                );
+                            } else {
+                                self.waypoint_curve.hide();
+                            }
 
                             if self.prev_waypoint.state.clicked {
                                 if let Some(id) = selected.prev() {
