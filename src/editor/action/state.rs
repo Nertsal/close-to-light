@@ -169,10 +169,14 @@ impl EditorState {
                             if let Some(next) = light.light.movement.key_frames.get_mut(next_i) {
                                 next.lerp_time -= delta;
                             }
+
+                            level_editor.save_state(HistoryLabel::MoveWaypointTime(
+                                waypoints.light,
+                                waypoint,
+                            ));
                         }
                     }
                 }
-                level_editor.save_state(HistoryLabel::Scroll);
                 return;
             }
         }

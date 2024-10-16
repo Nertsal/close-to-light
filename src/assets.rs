@@ -97,6 +97,8 @@ pub struct Sprites {
     pub mod_hidden: Rc<ugli::Texture>,
     #[load(options(filter = "ugli::Filter::Nearest"))]
     pub value_knob: Rc<ugli::Texture>,
+    #[load(options(filter = "ugli::Filter::Nearest"))]
+    pub dropdown: Rc<ugli::Texture>,
 }
 
 #[derive(geng::asset::Load)]

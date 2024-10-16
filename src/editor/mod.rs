@@ -73,7 +73,13 @@ pub enum DragTarget {
 pub enum HistoryLabel {
     #[default]
     Unknown,
-    Scroll,
+    FadeIn(LightId),
+    FadeOut(LightId),
+    Rotate(LightId, WaypointId),
+    Scale(LightId, WaypointId),
+    MoveLight(LightId),
+    MoveWaypoint(LightId, WaypointId),
+    MoveWaypointTime(LightId, WaypointId),
     // Drag,
 }
 

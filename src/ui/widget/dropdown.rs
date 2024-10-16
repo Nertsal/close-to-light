@@ -63,7 +63,7 @@ impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
         self.state.update(position, context);
         let mut main = position;
 
-        let name = main.split_top(0.5);
+        let name = main.split_left(0.5);
         let value = main;
 
         // TODO: limit height and allow scroll

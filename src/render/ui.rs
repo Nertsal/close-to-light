@@ -682,6 +682,12 @@ impl UiRender {
         let theme = self.context.get_options().theme;
         self.draw_text(&dropdown.name, framebuffer);
         self.draw_text(&dropdown.value_text, framebuffer);
+        self.draw_texture(
+            Aabb2::point(dropdown.value_text.state.position.align_pos(vec2(1.0, 0.5))),
+            &self.context.assets.sprites.dropdown,
+            theme.light,
+            framebuffer,
+        );
 
         let mut main = dropdown.dropdown_state.position;
         let height = main.height() * dropdown.dropdown_window.show.time.get_ratio();

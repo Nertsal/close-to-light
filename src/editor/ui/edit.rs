@@ -537,6 +537,7 @@ impl StatefulWidget for EditorEditWidget {
             self.waypoint_delete.hide();
             self.waypoint_scale.hide();
             self.waypoint_angle.hide();
+            self.waypoint_curve.hide();
         }
 
         {

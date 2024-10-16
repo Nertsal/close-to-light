@@ -163,7 +163,6 @@ impl LevelEditor {
             LevelAction::NewWaypoint => self.new_waypoint(),
             LevelAction::ScaleLight(delta) => {
                 self.place_scale = (self.place_scale + delta).clamp(r32(0.2), r32(2.0));
-                self.save_state(HistoryLabel::Scroll);
             }
             LevelAction::ScaleWaypoint(delta) => {
                 if let Some(waypoints) = &self.level_state.waypoints {
@@ -172,7 +171,7 @@ impl LevelEditor {
                             if let Event::Light(light) = &mut event.event {
                                 if let Some(frame) = light.light.movement.get_frame_mut(selected) {
                                     frame.scale = (frame.scale + delta).clamp(r32(0.2), r32(2.0));
-                                    self.save_state(HistoryLabel::Scroll);
+                                    self.save_state(HistoryLabel::Scale(waypoints.light, selected));
                                 }
                             }
                         }
@@ -184,7 +183,7 @@ impl LevelEditor {
                     if let Event::Light(light) = &mut event.event {
                         let movement = &mut light.light.movement;
                         movement.change_fade_out(movement.fade_out + change);
-                        self.save_state(HistoryLabel::Scroll);
+                        self.save_state(HistoryLabel::FadeOut(id));
                     }
                 }
             }
@@ -195,7 +194,7 @@ impl LevelEditor {
                         let from = movement.fade_in;
                         movement.change_fade_in(movement.fade_in + change);
                         event.beat -= movement.fade_in - from;
-                        self.save_state(HistoryLabel::Scroll);
+                        self.save_state(HistoryLabel::FadeIn(id));
                     }
                 }
             }
@@ -238,6 +237,10 @@ impl LevelEditor {
                 self.move_waypoint(light, waypoint, pos)
             }
         }
+
+        // In case some action forgot to save the state,
+        // we save it with the default label
+        self.save_state(default());
     }
 
     fn move_light(
@@ -261,6 +264,8 @@ impl LevelEditor {
         for frame in &mut event.light.movement.key_frames {
             change_pos.apply(&mut frame.transform.translation);
         }
+
+        self.save_state(HistoryLabel::MoveLight(light_id));
     }
 
     fn move_waypoint(
@@ -282,6 +287,7 @@ impl LevelEditor {
         };
 
         change_pos.apply(&mut frame.translation);
+        self.save_state(HistoryLabel::MoveWaypoint(light_id, waypoint_id));
     }
 
     fn set_waypoint_curve(
@@ -302,6 +308,7 @@ impl LevelEditor {
             WaypointId::Initial => {
                 if let Some(curve) = curve {
                     event.light.movement.curve = curve;
+                    self.save_state(default());
                 }
             }
             WaypointId::Frame(frame) => {
@@ -309,6 +316,7 @@ impl LevelEditor {
                     return;
                 };
                 frame.change_curve = curve;
+                self.save_state(default());
             }
         }
     }
@@ -337,22 +345,25 @@ impl LevelEditor {
 
     fn rotate(&mut self, delta: Angle<Coord>) {
         self.place_rotation += delta;
-        if let Some(frame) = self.level_state.waypoints.as_ref().and_then(|waypoints| {
-            waypoints.selected.and_then(|selected| {
-                self.level
-                    .events
-                    .get_mut(waypoints.light.event)
-                    .and_then(|event| {
-                        if let Event::Light(event) = &mut event.event {
-                            event.light.movement.get_frame_mut(selected)
-                        } else {
-                            None
-                        }
-                    })
-            })
-        }) {
-            frame.rotation += delta;
-        }
+
+        let Some(waypoints) = &self.level_state.waypoints else {
+            return;
+        };
+        let Some(selected) = waypoints.selected else {
+            return;
+        };
+        let Some(event) = self.level.events.get_mut(waypoints.light.event) else {
+            return;
+        };
+        let Event::Light(event) = &mut event.event else {
+            return;
+        };
+        let Some(frame) = event.light.movement.get_frame_mut(selected) else {
+            return;
+        };
+
+        frame.rotation += delta;
+        self.save_state(HistoryLabel::Rotate(waypoints.light, selected));
     }
 
     fn toggle_danger(&mut self) {
