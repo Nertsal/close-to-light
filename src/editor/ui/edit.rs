@@ -357,7 +357,7 @@ impl StatefulWidget for EditorEditWidget {
                     self.waypoint.hide();
                 }
                 Some(event) => {
-                    let selected_id = level_editor
+                    let light_id = level_editor
                         .selected_light
                         .expect("light selected without id 0_0");
                     if let Event::Light(light) = &event.event {
@@ -386,7 +386,7 @@ impl StatefulWidget for EditorEditWidget {
                         bar.cut_top(spacing);
                         update!(self.light_danger, danger_pos);
                         if self.light_danger.state.clicked {
-                            actions.push(LevelAction::ToggleDanger.into());
+                            actions.push(LevelAction::ToggleDanger(light_id).into());
                         }
                         self.light_danger.checked = light.danger;
                         self.tooltip.update(&self.light_danger.state, "D", context);
@@ -398,8 +398,7 @@ impl StatefulWidget for EditorEditWidget {
                             let from = fade;
                             update!(self.light_fade_in, fade_in, &mut fade);
                             context.update_focus(self.light_fade_in.state.hovered);
-                            actions
-                                .push(LevelAction::ChangeFadeIn(selected_id, fade - from).into());
+                            actions.push(LevelAction::ChangeFadeIn(light_id, fade - from).into());
                         }
 
                         {
@@ -409,8 +408,7 @@ impl StatefulWidget for EditorEditWidget {
                             let from = fade;
                             update!(self.light_fade_out, fade_out, &mut fade);
                             context.update_focus(self.light_fade_out.state.hovered);
-                            actions
-                                .push(LevelAction::ChangeFadeOut(selected_id, fade - from).into());
+                            actions.push(LevelAction::ChangeFadeOut(light_id, fade - from).into());
                         }
 
                         bar.cut_top(layout_size * 1.5);
@@ -426,7 +424,7 @@ impl StatefulWidget for EditorEditWidget {
 
                         // Delayed actions
                         if self.light_delete.text.state.clicked {
-                            actions.push(LevelAction::DeleteSelectedLight.into());
+                            actions.push(LevelAction::DeleteLight(light_id).into());
                         }
                     }
                 }
@@ -480,7 +478,9 @@ impl StatefulWidget for EditorEditWidget {
                             let delete = bar.cut_top(button_height);
                             self.waypoint_delete.update(delete, context);
                             if self.waypoint_delete.text.state.clicked {
-                                actions.push(LevelAction::DeleteSelectedWaypoint.into());
+                                actions.push(
+                                    LevelAction::DeleteWaypoint(waypoints.light, selected).into(),
+                                );
                             }
                             self.tooltip
                                 .update(&self.waypoint_delete.text.state, "X", context);
@@ -503,7 +503,10 @@ impl StatefulWidget for EditorEditWidget {
                             self.tooltip
                                 .update(&self.waypoint_angle.state, "Q/E", context);
 
-                            actions.push(LevelAction::SetSelectedFrame(new_frame).into());
+                            actions.push(
+                                LevelAction::SetWaypointFrame(waypoints.light, selected, new_frame)
+                                    .into(),
+                            );
 
                             let curve = bar.cut_top(value_height);
                             bar.cut_top(spacing);

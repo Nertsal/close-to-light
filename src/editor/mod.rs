@@ -196,14 +196,6 @@ impl LevelEditor {
         editor
     }
 
-    fn delete_light_selected(&mut self) -> bool {
-        let Some(id) = self.selected_light else {
-            return false;
-        };
-        self.delete_light(id);
-        true
-    }
-
     fn delete_light(&mut self, id: LightId) {
         if id.event >= self.level.events.len() {
             return;
@@ -213,49 +205,35 @@ impl LevelEditor {
         self.save_state(default());
     }
 
-    fn delete_waypoint_selected(&mut self) -> bool {
-        let Some(waypoints) = &self.level_state.waypoints else {
-            return false;
-        };
-        let Some(id) = waypoints.selected else {
-            return false;
-        };
-        self.delete_waypoint(id);
-        true
-    }
-
-    fn delete_waypoint(&mut self, id: WaypointId) {
-        let Some(waypoints) = &mut self.level_state.waypoints else {
+    fn delete_waypoint(&mut self, light: LightId, waypoint: WaypointId) {
+        let Some(timed_event) = self.level.events.get_mut(light.event) else {
             return;
         };
-        let Some(event) = self.level.events.get_mut(waypoints.light.event) else {
+        let Event::Light(event) = &mut timed_event.event else {
             return;
         };
-        let Event::Light(light) = &mut event.event else {
-            return;
-        };
-        match id {
+        match waypoint {
             WaypointId::Initial => {
-                match light.light.movement.key_frames.pop_front() {
+                match event.light.movement.key_frames.pop_front() {
                     None => {
                         // No waypoints -> delete the whole event
-                        if waypoints.light.event < self.level.events.len() {
-                            self.level.events.swap_remove(waypoints.light.event);
+                        if light.event < self.level.events.len() {
+                            self.level.events.swap_remove(light.event);
                             self.level_state.waypoints = None;
                             self.state = State::Idle;
                         }
                     }
                     Some(frame) => {
                         // Make the first frame the initial position
-                        light.light.movement.initial = frame.transform;
-                        event.beat += frame.lerp_time;
+                        event.light.movement.initial = frame.transform;
+                        timed_event.beat += frame.lerp_time;
                     }
                 }
             }
             WaypointId::Frame(i) => {
-                if let Some(frame) = light.light.movement.key_frames.remove(i) {
+                if let Some(frame) = event.light.movement.key_frames.remove(i) {
                     // Offset the next one
-                    if let Some(next) = light.light.movement.key_frames.get_mut(i) {
+                    if let Some(next) = event.light.movement.key_frames.get_mut(i) {
                         next.lerp_time += frame.lerp_time;
                     }
                 }
@@ -774,12 +752,8 @@ impl LevelEditor {
     // }
 
     fn new_waypoint(&mut self) {
-        // Deselect
-        if let Some(waypoints) = &mut self.level_state.waypoints {
-            waypoints.selected = None;
-        }
+        self.execute(LevelAction::DeselectWaypoint);
 
-        // Create new
         if let State::Waypoints { state, .. } = &mut self.state {
             *state = WaypointsState::New;
         }

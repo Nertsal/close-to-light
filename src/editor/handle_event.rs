@@ -67,16 +67,52 @@ impl EditorState {
                     }
                 }
                 geng::Key::X => {
-                    actions.push(LevelAction::DeleteSelected.into());
+                    if let Some(level_editor) = &self.editor.level_edit {
+                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            if let Some(waypoint) = waypoints.selected {
+                                actions.push(
+                                    LevelAction::DeleteWaypoint(waypoints.light, waypoint).into(),
+                                );
+                            }
+                        } else if let Some(light) = level_editor.selected_light {
+                            actions.push(LevelAction::DeleteLight(light).into());
+                        }
+                    }
                 }
                 geng::Key::S if ctrl => {
                     actions.push(EditorAction::Save.into());
                 }
                 geng::Key::Q => {
-                    actions.push(LevelAction::Rotate(Angle::from_degrees(r32(15.0))).into());
+                    if let Some(level_editor) = &self.editor.level_edit {
+                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            if let Some(selected) = waypoints.selected {
+                                actions.push(
+                                    LevelAction::RotateWaypoint(
+                                        waypoints.light,
+                                        selected,
+                                        Angle::from_degrees(r32(15.0)),
+                                    )
+                                    .into(),
+                                );
+                            }
+                        }
+                    }
                 }
                 geng::Key::E => {
-                    actions.push(LevelAction::Rotate(Angle::from_degrees(r32(-15.0))).into());
+                    if let Some(level_editor) = &self.editor.level_edit {
+                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            if let Some(selected) = waypoints.selected {
+                                actions.push(
+                                    LevelAction::RotateWaypoint(
+                                        waypoints.light,
+                                        selected,
+                                        Angle::from_degrees(r32(-15.0)),
+                                    )
+                                    .into(),
+                                );
+                            }
+                        }
+                    }
                 }
                 geng::Key::Z if ctrl => {
                     if shift {
@@ -89,7 +125,13 @@ impl EditorState {
                     actions.push(EditorAction::ToggleUI.into());
                 }
                 geng::Key::D => {
-                    actions.push(LevelAction::ToggleDanger.into());
+                    if let Some(level_editor) = &self.editor.level_edit {
+                        if let State::Place { .. } = level_editor.state {
+                            actions.push(LevelAction::ToggleDangerPlacement.into());
+                        } else if let Some(light) = level_editor.selected_light {
+                            actions.push(LevelAction::ToggleDanger(light).into());
+                        }
+                    }
                 }
                 geng::Key::W => {
                     actions.push(LevelAction::ToggleWaypointsView.into());
@@ -146,12 +188,17 @@ impl EditorState {
                             ..
                         } = level_editor.state
                         {
-                            // Scale light
+                            // Scale light or waypoint placement
                             let delta = scroll * r32(0.1);
-                            actions.push(LevelAction::ScaleLight(delta).into());
-                        } else if level_editor.level_state.waypoints.is_some() {
-                            let delta = scroll * r32(0.1);
-                            actions.push(LevelAction::ScaleWaypoint(delta).into());
+                            actions.push(LevelAction::ScalePlacement(delta).into());
+                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            if let Some(selected) = waypoints.selected {
+                                let delta = scroll * r32(0.1);
+                                actions.push(
+                                    LevelAction::ScaleWaypoint(waypoints.light, selected, delta)
+                                        .into(),
+                                );
+                            }
                         } else if let Some(id) = level_editor.selected_light {
                             // Control fade time
                             let change = scroll * self.editor.config.scroll_slow;
