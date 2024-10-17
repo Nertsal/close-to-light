@@ -33,6 +33,7 @@ pub enum LevelAction {
     RotateWaypoint(LightId, WaypointId, Angle<Coord>),
     ScaleWaypoint(LightId, WaypointId, Coord),
     SetWaypointFrame(LightId, WaypointId, Transform),
+    SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
     MoveWaypoint(LightId, WaypointId, Change<vec2<Coord>>),
 }
@@ -100,6 +101,7 @@ impl LevelAction {
             LevelAction::SetName(_) => false,
             LevelAction::SetWaypointFrame(..) => false,
             LevelAction::SetWaypointCurve(..) => false,
+            LevelAction::SetWaypointInterpolation(..) => false,
             LevelAction::MoveLight(_, time, position) => {
                 time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
@@ -224,6 +226,9 @@ impl LevelEditor {
             LevelAction::SetWaypointCurve(light, waypoint, curve) => {
                 self.set_waypoint_curve(light, waypoint, curve)
             }
+            LevelAction::SetWaypointInterpolation(light, waypoint, interpolation) => {
+                self.set_waypoint_interpolation(light, waypoint, interpolation)
+            }
             LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
             LevelAction::MoveWaypoint(light, waypoint, pos) => {
                 self.move_waypoint(light, waypoint, pos)
@@ -298,16 +303,41 @@ impl LevelEditor {
 
         match waypoint_id {
             WaypointId::Initial => {
-                if let Some(curve) = curve {
-                    event.light.movement.curve = curve;
-                    self.save_state(default());
-                }
+                // Invalid
             }
             WaypointId::Frame(frame) => {
                 let Some(frame) = event.light.movement.key_frames.get_mut(frame) else {
                     return;
                 };
                 frame.change_curve = curve;
+                self.save_state(default());
+            }
+        }
+    }
+
+    fn set_waypoint_interpolation(
+        &mut self,
+        light_id: LightId,
+        waypoint_id: WaypointId,
+        interpolation: MoveInterpolation,
+    ) {
+        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
+            return;
+        };
+
+        let Event::Light(event) = &mut timed_event.event else {
+            return;
+        };
+
+        match waypoint_id {
+            WaypointId::Initial => {
+                // Invalid
+            }
+            WaypointId::Frame(frame) => {
+                let Some(frame) = event.light.movement.key_frames.get_mut(frame) else {
+                    return;
+                };
+                frame.interpolation = interpolation;
                 self.save_state(default());
             }
         }

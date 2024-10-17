@@ -7,8 +7,6 @@ pub struct Movement {
     /// Time (in beats) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
-    #[serde(default)]
-    pub curve: TrajectoryInterpolation,
     pub key_frames: VecDeque<MoveFrame>,
 }
 
@@ -17,10 +15,10 @@ pub struct MoveFrame {
     /// How long (in beats) should the interpolation from the last frame to that frame last.
     pub lerp_time: Time,
     /// Interpolation to use when moving towards this frame.
+    #[serde(default)]
     pub interpolation: MoveInterpolation,
-    /// Whether to start a new curve starting from this frame.
-    /// Is set to `None`, the curve will either continue the previous type,
-    /// or continue as linear in the case of bezier.
+    /// Whether to start a new curve going towards this frame and further.
+    /// Is set to `None`, the curve will either continue the previous type.
     pub change_curve: Option<TrajectoryInterpolation>,
     pub transform: Transform,
 }
@@ -171,7 +169,6 @@ impl Default for Movement {
             fade_in: r32(1.0),
             fade_out: r32(1.0),
             initial: Transform::default(),
-            curve: TrajectoryInterpolation::default(),
             key_frames: VecDeque::new(),
         }
     }
@@ -205,10 +202,16 @@ impl Movement {
         }
     }
 
-    pub fn get_curve(&self, id: WaypointId) -> Option<Option<TrajectoryInterpolation>> {
+    pub fn get_interpolation(
+        &self,
+        id: WaypointId,
+    ) -> Option<(MoveInterpolation, Option<TrajectoryInterpolation>)> {
         match id {
-            WaypointId::Initial => Some(Some(self.curve)),
-            WaypointId::Frame(i) => self.key_frames.get(i).map(|frame| frame.change_curve),
+            WaypointId::Initial => None,
+            WaypointId::Frame(i) => self
+                .key_frames
+                .get(i)
+                .map(|frame| (frame.interpolation, frame.change_curve)),
         }
     }
 
@@ -321,7 +324,7 @@ impl Movement {
     pub fn bake(&self) -> Interpolation<Transform> {
         bake_movement(
             self.initial,
-            self.curve,
+            TrajectoryInterpolation::default(),
             self.frames_iter()
                 .map(|frame| (frame.transform, frame.change_curve)),
         )
@@ -335,7 +338,7 @@ pub fn bake_movement<T: 'static + Interpolatable>(
 ) -> Interpolation<T> {
     let points = std::iter::once((initial, None)).chain(keyframes);
 
-    let mk_segment = |curve, segment: &[_]| match curve {
+    let mk_segment = |curve, segment: &[T]| match curve {
         TrajectoryInterpolation::Linear => InterpolationSegment::linear(segment),
         TrajectoryInterpolation::Spline { tension } => {
             InterpolationSegment::spline(segment, tension.as_f32())
@@ -347,13 +350,15 @@ pub fn bake_movement<T: 'static + Interpolatable>(
     let mut current_curve = initial_curve;
     let mut current_segment = vec![]; // TODO: smallvec
     for (point, curve) in points {
-        current_segment.push(point.clone());
         if let Some(new_curve) = curve {
             if !current_segment.is_empty() {
                 segments.push(mk_segment(current_curve, &current_segment));
+                current_segment = vec![current_segment.last().unwrap().clone()];
             }
-            current_segment = vec![point];
+            current_segment.push(point);
             current_curve = new_curve;
+        } else {
+            current_segment.push(point);
         }
     }
 

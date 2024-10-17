@@ -75,6 +75,7 @@ pub struct EditorEditWidget {
     /// Angle in degrees.
     pub waypoint_angle: ValueWidget<f32>,
     pub waypoint_curve: DropdownWidget<Option<TrajectoryInterpolation>>,
+    pub waypoint_interpolation: DropdownWidget<MoveInterpolation>,
 
     pub current_beat: TextWidget,
     pub timeline: TimelineWidget,
@@ -141,6 +142,16 @@ impl EditorEditWidget {
                     ("Bezier", Some(TrajectoryInterpolation::Bezier)),
                 ],
             ),
+            waypoint_interpolation: DropdownWidget::new(
+                "Interpolation",
+                0,
+                [
+                    ("Linear", MoveInterpolation::Linear),
+                    ("Smoothstep", MoveInterpolation::Smoothstep),
+                    ("EaseIn", MoveInterpolation::EaseIn),
+                    ("EaseOut", MoveInterpolation::EaseOut),
+                ],
+            ),
 
             current_beat: TextWidget::default().aligned(vec2(0.5, 0.0)),
             timeline: TimelineWidget::new(context.clone()),
@@ -195,8 +206,8 @@ impl StatefulWidget for EditorEditWidget {
         let mut main = main
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
             .extend_up(-layout_size);
-        let mut left_bar = main.cut_left(font_size * 5.0);
-        let mut right_bar = main.cut_right(font_size * 5.0);
+        let mut left_bar = main.cut_left(layout_size * 7.0);
+        let mut right_bar = main.cut_right(layout_size * 7.0);
 
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
@@ -508,17 +519,45 @@ impl StatefulWidget for EditorEditWidget {
                                     .into(),
                             );
 
-                            let curve = bar.cut_top(value_height);
+                            let curve = bar.cut_top(button_height);
                             bar.cut_top(spacing);
-                            if let Some(mut value) = light.light.movement.get_curve(selected) {
+                            let interpolation = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
+                            if let Some((mut move_interpolation, mut curve_interpolation)) =
+                                light.light.movement.get_interpolation(selected)
+                            {
                                 self.waypoint_curve.show();
-                                self.waypoint_curve.update(curve, context, &mut value);
+                                self.waypoint_curve.update(
+                                    curve,
+                                    context,
+                                    &mut curve_interpolation,
+                                );
                                 actions.push(
-                                    LevelAction::SetWaypointCurve(waypoints.light, selected, value)
-                                        .into(),
+                                    LevelAction::SetWaypointCurve(
+                                        waypoints.light,
+                                        selected,
+                                        curve_interpolation,
+                                    )
+                                    .into(),
+                                );
+
+                                self.waypoint_interpolation.show();
+                                self.waypoint_interpolation.update(
+                                    interpolation,
+                                    context,
+                                    &mut move_interpolation,
+                                );
+                                actions.push(
+                                    LevelAction::SetWaypointInterpolation(
+                                        waypoints.light,
+                                        selected,
+                                        move_interpolation,
+                                    )
+                                    .into(),
                                 );
                             } else {
                                 self.waypoint_curve.hide();
+                                self.waypoint_interpolation.hide();
                             }
 
                             if self.prev_waypoint.state.clicked {
@@ -541,6 +580,7 @@ impl StatefulWidget for EditorEditWidget {
             self.waypoint_scale.hide();
             self.waypoint_angle.hide();
             self.waypoint_curve.hide();
+            self.waypoint_interpolation.hide();
         }
 
         {

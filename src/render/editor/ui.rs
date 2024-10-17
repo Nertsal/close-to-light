@@ -180,6 +180,12 @@ impl EditorRender {
             &mut self.mask,
             framebuffer,
         );
+        self.ui.draw_dropdown(
+            &ui.waypoint_interpolation,
+            self.font_size * 0.2,
+            &mut self.mask,
+            framebuffer,
+        );
 
         {
             // Timeline

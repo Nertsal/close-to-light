@@ -197,7 +197,7 @@ impl EditorRender {
                     };
 
                     // A dashed line moving through the waypoints to show general direction
-                    const RESOLUTION: usize = 5;
+                    const RESOLUTION: usize = 10;
                     // TODO: cache curve
                     let curve = event.light.movement.bake();
                     let mut positions: Vec<draw2d::ColoredVertex> = curve
