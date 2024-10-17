@@ -202,10 +202,7 @@ impl LevelEditor {
                 self.execute(LevelAction::DeselectWaypoint);
                 self.selected_light = None;
             }
-            LevelAction::SelectLight(id) => {
-                self.level_state.waypoints = None;
-                self.selected_light = Some(id);
-            }
+            LevelAction::SelectLight(id) => self.select_light(id),
             LevelAction::SelectWaypoint(id) => self.select_waypoint(id),
             LevelAction::DeselectWaypoint => {
                 if let Some(waypoints) = &mut self.level_state.waypoints {
@@ -341,6 +338,12 @@ impl LevelEditor {
                 self.save_state(default());
             }
         }
+    }
+
+    fn select_light(&mut self, light_id: LightId) {
+        self.level_state.waypoints = None;
+        self.state = State::Idle;
+        self.selected_light = Some(light_id);
     }
 
     fn select_waypoint(&mut self, waypoint_id: WaypointId) {
