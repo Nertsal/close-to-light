@@ -276,8 +276,45 @@ impl EditorRender {
                                 continue;
                             }
 
+                            if point.actual != point.control {
+                                self.util.draw_outline(
+                                    &point.control,
+                                    0.025,
+                                    crate::util::with_alpha(color, alpha),
+                                    &level_editor.model.camera,
+                                    &mut pixel_buffer,
+                                );
+
+                                // Connect control and actual with a line
+                                let color = crate::util::with_alpha(color, alpha * 0.75);
+                                let mut from = draw2d::ColoredVertex {
+                                    a_pos: point.control.position.as_f32(),
+                                    a_color: color,
+                                };
+                                let to = draw2d::ColoredVertex {
+                                    a_pos: point.actual.position.as_f32(),
+                                    a_color: color,
+                                };
+
+                                let period = options.dash_length + options.space_length;
+                                let speed = 1.0;
+                                let t = ((level_editor.real_time.as_f32() * speed) / period)
+                                    .fract()
+                                    * period;
+                                from.a_pos += (to.a_pos - from.a_pos).normalize_or_zero() * t;
+                                self.util.draw_dashed_chain(
+                                    &[from, to],
+                                    &util::DashRenderOptions {
+                                        width: options.width * 0.5,
+                                        ..options
+                                    },
+                                    &level_editor.model.camera,
+                                    &mut pixel_buffer,
+                                );
+                            }
+
                             self.util.draw_outline(
-                                &point.collider,
+                                &point.actual,
                                 0.05,
                                 crate::util::with_alpha(color, alpha),
                                 &level_editor.model.camera,
@@ -286,7 +323,7 @@ impl EditorRender {
                             let text_color = crate::util::with_alpha(THEME.light, alpha);
                             self.util.draw_text_with(
                                 format!("{}", i + 1),
-                                point.collider.position,
+                                point.control.position,
                                 TextRenderOptions::new(1.5).color(text_color),
                                 Some(util::additive()),
                                 &level_editor.model.camera,
@@ -304,7 +341,7 @@ impl EditorRender {
                             if let Some(beat) = beat_time {
                                 self.util.draw_text_with(
                                     format!("at {}", beat),
-                                    point.collider.position - vec2(0.0, 0.6).as_r32(),
+                                    point.control.position - vec2(0.0, 0.6).as_r32(),
                                     TextRenderOptions::new(0.6).color(text_color),
                                     Some(util::additive()),
                                     &level_editor.model.camera,

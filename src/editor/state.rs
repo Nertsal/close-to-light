@@ -54,7 +54,8 @@ pub struct Waypoint {
     /// Index of the original keyframe.
     /// `None` when placing a new waypoint.
     pub original: Option<WaypointId>,
-    pub collider: Collider,
+    pub control: Collider,
+    pub actual: Collider,
 }
 
 impl EditorLevelState {

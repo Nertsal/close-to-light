@@ -818,16 +818,24 @@ impl LevelEditor {
                         d <= MAX_VISIBILITY
                     };
 
+                    // TODO: use cached
+                    let curve = light_event.light.movement.bake();
                     let mut points: Vec<_> = light_event
                         .light
                         .movement
                         .timed_positions()
-                        .map(|(i, trans, time)| {
+                        .map(|(i, trans_control, time)| {
+                            let trans_actual = match i {
+                                WaypointId::Initial => curve.get(0, Time::ZERO),
+                                WaypointId::Frame(i) => curve.get(i, Time::ONE),
+                            }
+                            .unwrap_or(trans_control); // Should be unreachable, but just in case
                             (
                                 Waypoint {
                                     visible: visible(time),
                                     original: Some(i),
-                                    collider: base_collider.transformed(trans),
+                                    control: base_collider.transformed(trans_control),
+                                    actual: base_collider.transformed(trans_actual),
                                 },
                                 time,
                             )
@@ -835,8 +843,8 @@ impl LevelEditor {
                         .collect();
                     points.sort_by_key(|(point, time)| {
                         (
-                            point.collider.position.x,
-                            point.collider.position.y,
+                            point.control.position.x,
+                            point.control.position.y,
                             (event_time + *time - self.current_beat).abs(),
                         )
                     });
@@ -844,9 +852,9 @@ impl LevelEditor {
                     {
                         let mut points = points.iter_mut();
                         if let Some(last) = points.next() {
-                            let mut last = last.0.collider.position;
+                            let mut last = last.0.control.position;
                             for (point, _) in points {
-                                let pos = point.collider.position;
+                                let pos = point.control.position;
                                 if last == pos {
                                     point.visible = false;
                                 }
@@ -863,17 +871,19 @@ impl LevelEditor {
                         let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
                             Ok(i) | Err(i) => i,
                         };
+                        let control = base_collider.transformed(Transform {
+                            translation: cursor_world_pos_snapped,
+                            rotation: self.place_rotation,
+                            scale: self.place_scale,
+                        });
                         points.insert(
                             i,
                             (
                                 Waypoint {
                                     visible: true,
                                     original: None,
-                                    collider: base_collider.transformed(Transform {
-                                        translation: cursor_world_pos_snapped,
-                                        rotation: self.place_rotation,
-                                        scale: self.place_scale,
-                                    }),
+                                    actual: control.clone(),
+                                    control,
                                 },
                                 new_time,
                             ),
@@ -883,7 +893,9 @@ impl LevelEditor {
                     let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
 
                     let hovered = points.iter().position(|point| {
-                        point.visible && point.collider.contains(cursor_world_pos)
+                        point.visible
+                            && (point.control.contains(cursor_world_pos)
+                                || point.actual.contains(cursor_world_pos))
                     });
 
                     waypoints = Some(Waypoints {
