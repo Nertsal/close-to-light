@@ -179,8 +179,6 @@ impl EditorRender {
                     // TODO: adapt to movement density
                     /// How many beats away are the waypoints still visible
                     const VISIBILITY: f32 = 5.0;
-                    /// Waypoints past this time-distance are not rendered at all
-                    const MAX_VISIBILITY: f32 = 15.0;
                     /// The minimum transparency level of waypoints outside visibility
                     const MIN_ALPHA: f32 = 0.05;
                     // Calculate the waypoint visibility at the given relative timestamp
@@ -189,9 +187,6 @@ impl EditorRender {
                             - level_editor.current_beat)
                             .abs()
                             .as_f32();
-                        if d > MAX_VISIBILITY {
-                            return 0.0;
-                        }
                         let d = d / VISIBILITY;
                         (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
                     };

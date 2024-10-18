@@ -805,11 +805,19 @@ impl LevelEditor {
         let mut waypoints = None;
         if let State::Waypoints { light_id, state } = &self.state {
             let light_id = *light_id;
-            if let Some(event) = self.level.events.get(light_id.event) {
-                if let Event::Light(light_event) = &event.event {
-                    let event_time = event.beat + light_event.telegraph.precede_time;
+            if let Some(timed_event) = self.level.events.get(light_id.event) {
+                if let Event::Light(light_event) = &timed_event.event {
+                    let event_time = timed_event.beat + light_event.telegraph.precede_time;
                     // If some waypoints overlap, render the temporaly closest one
                     let base_collider = Collider::new(vec2::ZERO, light_event.light.shape);
+
+                    /// Waypoints past this time-distance are not rendered at all
+                    const MAX_VISIBILITY: f32 = 15.0;
+                    let visible = |beat: Time| {
+                        let d = (event_time + beat - self.current_beat).abs().as_f32();
+                        d <= MAX_VISIBILITY
+                    };
+
                     let mut points: Vec<_> = light_event
                         .light
                         .movement
@@ -817,7 +825,7 @@ impl LevelEditor {
                         .map(|(i, trans, time)| {
                             (
                                 Waypoint {
-                                    visible: true,
+                                    visible: visible(time),
                                     original: Some(i),
                                     collider: base_collider.transformed(trans),
                                 },
