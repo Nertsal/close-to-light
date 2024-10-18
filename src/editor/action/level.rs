@@ -457,6 +457,7 @@ impl LevelEditor {
         let event_i = self.level.events.len();
         self.level.events.push(event);
 
+        self.selected_light = Some(LightId { event: event_i });
         self.state = State::Waypoints {
             light_id: LightId { event: event_i },
             state: WaypointsState::New,
