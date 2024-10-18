@@ -116,7 +116,7 @@ impl LevelEditor {
             return;
         }
 
-        // log::debug!("action LevelAction::{:?}", action);
+        // log::trace!("LevelAction::{:?}", action);
         match action {
             LevelAction::DeleteLight(light) => self.delete_light(light),
             LevelAction::DeleteWaypoint(light, waypoint) => self.delete_waypoint(light, waypoint),

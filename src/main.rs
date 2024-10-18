@@ -62,22 +62,25 @@ fn main() {
     let opts: Opts = batbox::cli::parse();
 
     let mut builder = logger::builder();
-    builder.filter_level(
-        if let Some(level) = opts.log.as_deref().or(option_env!("LOG")) {
-            match level {
-                "debug" => log::LevelFilter::Debug,
-                "info" => log::LevelFilter::Info,
-                "warn" => log::LevelFilter::Warn,
-                "error" => log::LevelFilter::Error,
-                "off" => log::LevelFilter::Off,
-                _ => panic!("invalid log level string"),
-            }
-        } else if cfg!(debug_assertions) {
-            log::LevelFilter::Debug
-        } else {
-            log::LevelFilter::Info
-        },
-    );
+    builder
+        .filter_level(
+            if let Some(level) = opts.log.as_deref().or(option_env!("LOG")) {
+                match level {
+                    "trace" => log::LevelFilter::Trace,
+                    "debug" => log::LevelFilter::Debug,
+                    "info" => log::LevelFilter::Info,
+                    "warn" => log::LevelFilter::Warn,
+                    "error" => log::LevelFilter::Error,
+                    "off" => log::LevelFilter::Off,
+                    _ => panic!("invalid log level string"),
+                }
+            } else if cfg!(debug_assertions) {
+                log::LevelFilter::Debug
+            } else {
+                log::LevelFilter::Info
+            },
+        )
+        .filter_module("calloop", log::LevelFilter::Debug);
     logger::init_with(builder).expect("failed to init logger");
     geng::setup_panic_handler();
 

@@ -104,7 +104,7 @@ impl EditorState {
                 }
             }
 
-            level_editor.save_state(default());
+            level_editor.flush_changes();
         }
     }
 

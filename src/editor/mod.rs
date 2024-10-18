@@ -1,12 +1,14 @@
 mod action;
 mod config;
 mod handle_event;
+mod history;
 mod state;
 mod ui;
 
 pub use self::{
     action::*,
     config::*,
+    history::*,
     state::{State, *},
     ui::*,
 };
@@ -69,29 +71,6 @@ pub enum DragTarget {
     },
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HistoryLabel {
-    #[default]
-    Unknown,
-    FadeIn(LightId),
-    FadeOut(LightId),
-    Rotate(LightId, WaypointId),
-    Scale(LightId, WaypointId),
-    MoveLight(LightId),
-    MoveWaypoint(LightId, WaypointId),
-    MoveWaypointTime(LightId, WaypointId),
-    // Drag,
-}
-
-impl HistoryLabel {
-    pub fn should_merge(&self, other: &Self) -> bool {
-        match self {
-            Self::Unknown => false,
-            _ => self == other,
-        }
-    }
-}
-
 pub struct LevelEditor {
     pub context: Context,
     /// Static (initial) version of the level.
@@ -107,12 +86,7 @@ pub struct LevelEditor {
     pub real_time: Time,
     pub selected_light: Option<LightId>,
 
-    /// State that will be saved in the undo stack.
-    /// (Not every operation gets saved)
-    pub buffer_state: Level,
-    pub buffer_label: HistoryLabel,
-    pub undo_stack: Vec<Level>,
-    pub redo_stack: Vec<Level>,
+    pub history: History,
 
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
@@ -183,10 +157,7 @@ impl LevelEditor {
             was_scrolling_time: false,
             scrolling_time: false,
             dynamic_segment: None,
-            buffer_state: level.level.data.clone(),
-            buffer_label: HistoryLabel::default(),
-            undo_stack: Vec::new(),
-            redo_stack: Vec::new(),
+            history: History::new(&level.level.data),
             level: level.level.data.clone(),
             name: level.level.meta.name.to_string(),
             static_level: level,
@@ -669,11 +640,11 @@ impl LevelEditor {
             State::Playing { .. } => {}
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
-                if let Some(mut level) = self.undo_stack.pop() {
+                if let Some(mut level) = self.history.undo_stack.pop() {
                     std::mem::swap(&mut level, &mut self.level);
-                    self.redo_stack.push(level);
-                    self.buffer_state = self.level.clone();
-                    self.buffer_label = HistoryLabel::default();
+                    self.history.redo_stack.push(level);
+                    self.history.buffer_state = self.level.clone();
+                    self.history.buffer_label = HistoryLabel::default();
                 }
             }
         }
@@ -684,42 +655,28 @@ impl LevelEditor {
             State::Playing { .. } => {}
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
-                if let Some(mut level) = self.redo_stack.pop() {
+                if let Some(mut level) = self.history.redo_stack.pop() {
                     std::mem::swap(&mut level, &mut self.level);
-                    self.undo_stack.push(level);
-                    self.buffer_state = self.level.clone();
-                    self.buffer_label = HistoryLabel::default();
+                    self.history.undo_stack.push(level);
+                    self.history.buffer_state = self.level.clone();
+                    self.history.buffer_label = HistoryLabel::default();
                 }
             }
         }
     }
 
+    /// Save level changes to the history.
+    #[track_caller]
     fn save_state(&mut self, label: HistoryLabel) {
-        if self.buffer_label.should_merge(&label) || self.level == self.buffer_state {
-            // State did not change or changes should be merged
-            return;
-        }
+        self.history.save_state(&self.level, label);
+        log::trace!("save_state called by {}", std::panic::Location::caller());
+    }
 
-        // if let Some(level) = self.editor.undo_stack.last() {
-        //     if level == &self.editor.level {
-        //         // State did not change - ignore
-        //         return;
-        //     }
-        // }
-
-        // Push the change
-        self.buffer_label = label;
-        let mut state = self.level.clone();
-        std::mem::swap(&mut state, &mut self.buffer_state);
-
-        self.undo_stack.push(state);
-        // TODO: limit capacity
-        self.redo_stack.clear();
-
-        log::debug!(
-            "Saved old state to the stack, starting new buffer {:?}",
-            label
-        );
+    /// Flush all buffered changes to the undo stack, if there are any.
+    #[track_caller]
+    fn flush_changes(&mut self) {
+        self.history.flush(&self.level);
+        log::trace!("flush_changes called by {}", std::panic::Location::caller());
     }
 
     // TODO: reimplement with smooth transition or smth
