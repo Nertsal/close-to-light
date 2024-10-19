@@ -84,7 +84,16 @@ impl EditorState {
                 }
                 geng::Key::Q => {
                     if let Some(level_editor) = &self.editor.level_edit {
-                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                        if let State::Place { .. }
+                        | State::Waypoints {
+                            state: WaypointsState::New,
+                            ..
+                        } = &level_editor.state
+                        {
+                            actions.push(
+                                LevelAction::RotatePlacement(Angle::from_degrees(r32(15.0))).into(),
+                            );
+                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
                             if let Some(selected) = waypoints.selected {
                                 actions.push(
                                     LevelAction::RotateWaypoint(
@@ -100,7 +109,17 @@ impl EditorState {
                 }
                 geng::Key::E => {
                     if let Some(level_editor) = &self.editor.level_edit {
-                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                        if let State::Place { .. }
+                        | State::Waypoints {
+                            state: WaypointsState::New,
+                            ..
+                        } = &level_editor.state
+                        {
+                            actions.push(
+                                LevelAction::RotatePlacement(Angle::from_degrees(r32(-15.0)))
+                                    .into(),
+                            );
+                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
                             if let Some(selected) = waypoints.selected {
                                 actions.push(
                                     LevelAction::RotateWaypoint(

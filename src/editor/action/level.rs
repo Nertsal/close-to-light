@@ -10,10 +10,11 @@ pub enum LevelAction {
     ToggleWaypointsView,
     StopPlaying,
     StartPlaying,
+    ScalePlacement(Coord),
+    RotatePlacement(Angle<Coord>),
 
     // Light actions
     NewLight(Shape),
-    ScalePlacement(Coord),
     ToggleDangerPlacement,
     PlaceLight(vec2<Coord>),
     DeleteLight(LightId),
@@ -87,6 +88,7 @@ impl LevelAction {
             LevelAction::StartPlaying => false,
             LevelAction::NewLight(_) => false,
             LevelAction::ScalePlacement(delta) => *delta == Coord::ZERO,
+            LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
             LevelAction::ToggleDangerPlacement => false,
             LevelAction::PlaceLight(_) => false,
             LevelAction::NewWaypoint => false,
@@ -160,6 +162,9 @@ impl LevelEditor {
             }
             LevelAction::ScalePlacement(delta) => {
                 self.place_scale = (self.place_scale + delta).clamp(r32(0.2), r32(2.0));
+            }
+            LevelAction::RotatePlacement(delta) => {
+                self.place_rotation += delta;
             }
             LevelAction::ToggleDangerPlacement => {
                 if let State::Place { danger, .. } = &mut self.state {
