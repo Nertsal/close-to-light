@@ -198,9 +198,8 @@ impl EditorRender {
 
                     // A dashed line moving through the waypoints to show general direction
                     const NUM_POINTS: usize = 25;
-                    let num_points =
-                        NUM_POINTS * event.light.movement.key_frames.len().saturating_sub(1);
-                    let period = event.light.movement.movement_duration();
+                    let num_points = NUM_POINTS * event.light.movement.key_frames.len();
+                    let period = event.light.movement.movement_duration().max(r32(0.01)); // NOTE: avoid dividing by 0
                     let speed = r32(4.0).recip();
                     let positions: Vec<draw2d::ColoredVertex> = (0..num_points)
                         .map(|i| {
