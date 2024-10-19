@@ -509,6 +509,54 @@ impl UtilRender {
         }
     }
 
+    pub fn draw_dashed_movement(
+        &self,
+        chain: &[draw2d::ColoredVertex],
+        options: &DashRenderOptions,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let vertices: Vec<_> = chain
+            .windows(2)
+            .flat_map(|segment| {
+                let (a, b) = (segment[0], segment[1]);
+                let delta = b.a_pos - a.a_pos;
+                let delta_len = delta.len();
+                let direction = if delta_len.approx_eq(&0.0) {
+                    return None;
+                } else {
+                    delta / delta_len
+                };
+                let b = draw2d::ColoredVertex {
+                    a_pos: a.a_pos + direction * options.dash_length,
+                    a_color: Color::lerp(a.a_color, b.a_color, options.dash_length / delta_len),
+                };
+                Some(build_segment(a, b, options.width))
+            })
+            .flatten()
+            .collect();
+
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.solid,
+            ugli::DrawMode::Triangles,
+            &ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), vertices),
+            (
+                ugli::uniforms! {
+                    u_color: Rgba::WHITE,
+                    u_framebuffer_size: framebuffer_size,
+                    u_model_matrix: mat3::identity(),
+                },
+                camera.uniforms(framebuffer_size.map(|x| x as f32)),
+            ),
+            ugli::DrawParameters {
+                blend_mode: None,
+                ..Default::default()
+            },
+        );
+    }
+
     pub fn draw_dashed_chain(
         &self,
         chain: &[draw2d::ColoredVertex],

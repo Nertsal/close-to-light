@@ -180,40 +180,38 @@ impl EditorRender {
                     /// How many beats away are the waypoints still visible
                     const VISIBILITY: f32 = 5.0;
                     /// The minimum transparency level of waypoints outside visibility
-                    const MIN_ALPHA: f32 = 0.05;
+                    const MIN_ALPHA: f32 = 0.2;
+                    /// Waypoints past this time-distance are not rendered at all
+                    const MAX_VISIBILITY: f32 = 15.0;
                     // Calculate the waypoint visibility at the given relative timestamp
                     let visibility = |beat: Time| {
                         let d = (timed_event.beat + event.telegraph.precede_time + beat
                             - level_editor.current_beat)
                             .abs()
                             .as_f32();
+                        if d > MAX_VISIBILITY {
+                            return 0.0;
+                        }
                         let d = d / VISIBILITY;
                         (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
                     };
 
                     // A dashed line moving through the waypoints to show general direction
-                    const RESOLUTION: usize = 10;
-                    // TODO: cache curve
-                    let curve = event.light.movement.bake();
-                    let mut positions: Vec<draw2d::ColoredVertex> = curve
-                        .get_path(RESOLUTION)
-                        .enumerate()
-                        .filter_map(|(i, transform)| {
-                            let movement = &event.light.movement;
-                            let segment = i / RESOLUTION;
-                            let t = (i % RESOLUTION) as f32 / RESOLUTION as f32;
-                            let a = movement
-                                .get_time(WaypointId::Frame(segment).prev().unwrap())
-                                .unwrap_or(Time::ZERO);
-                            let b = movement
-                                .get_time(WaypointId::Frame(segment))
-                                .unwrap_or(Time::ZERO);
-                            let beat = a + (b - a) * r32(t);
-                            let alpha = visibility(beat);
-                            (alpha > 0.01).then_some(draw2d::ColoredVertex {
-                                a_pos: transform.translation.as_f32(),
+                    const NUM_POINTS: usize = 25;
+                    let num_points =
+                        NUM_POINTS * event.light.movement.key_frames.len().saturating_sub(1);
+                    let period = event.light.movement.movement_duration();
+                    let speed = r32(4.0).recip();
+                    let positions: Vec<draw2d::ColoredVertex> = (0..num_points)
+                        .map(|i| {
+                            let t = r32(i as f32 / num_points as f32);
+                            let t = (level_editor.real_time / period * speed + t).fract() * period;
+                            let t = t + event.light.movement.fade_in;
+                            let alpha = visibility(t);
+                            draw2d::ColoredVertex {
+                                a_pos: event.light.movement.get(t).translation.as_f32(), // TODO: check performance
                                 a_color: crate::util::with_alpha(color, alpha),
-                            })
+                            }
                         })
                         .collect();
 
@@ -223,20 +221,7 @@ impl EditorRender {
                         space_length: 0.2,
                     };
 
-                    positions.dedup_by(|a, b| {
-                        (a.a_pos - b.a_pos).len_sqr()
-                            < (options.dash_length + options.space_length).sqr()
-                    });
-
-                    if let Some(&to) = positions.get(1) {
-                        let pos = positions.first_mut().unwrap();
-                        let period = options.dash_length + options.space_length;
-                        let speed = 1.0;
-                        let t =
-                            ((level_editor.real_time.as_f32() * speed) / period).fract() * period;
-                        pos.a_pos += (to.a_pos - pos.a_pos).normalize_or_zero() * t;
-                    }
-                    self.util.draw_dashed_chain(
+                    self.util.draw_dashed_movement(
                         &positions,
                         &options,
                         &level_editor.model.camera,
