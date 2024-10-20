@@ -890,13 +890,17 @@ impl LevelEditor {
                         );
                     }
 
+                    let hovered = points
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, (point, _))| {
+                            point.visible
+                                && (point.control.contains(cursor_world_pos)
+                                    || point.actual.contains(cursor_world_pos))
+                        })
+                        .min_by_key(|(_, (_, time))| (self.current_beat - event_time - *time).abs())
+                        .map(|(i, _)| i);
                     let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
-
-                    let hovered = points.iter().position(|point| {
-                        point.visible
-                            && (point.control.contains(cursor_world_pos)
-                                || point.actual.contains(cursor_world_pos))
-                    });
 
                     waypoints = Some(Waypoints {
                         light: light_id,
