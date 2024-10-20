@@ -9,7 +9,7 @@ pub enum EditorAction {
     ToggleUI,
     ToggleGrid,
     ToggleGridSnap,
-    DeleteLevel,
+    DeleteLevel(usize),
     NewLevel,
     ChangeLevel(usize),
     MoveLevelLow(usize),
@@ -51,7 +51,9 @@ impl Editor {
                 self.render_options.show_grid = !self.render_options.show_grid
             }
             EditorAction::ToggleGridSnap => self.snap_to_grid = !self.snap_to_grid,
-            EditorAction::DeleteLevel => self.delete_active_level(),
+            EditorAction::DeleteLevel(i) => {
+                self.popup_confirm(ConfirmAction::DeleteLevel(i), "delete this difficulty")
+            }
             EditorAction::NewLevel => self.create_new_level(),
             EditorAction::ChangeLevel(i) => self.change_level(i),
             EditorAction::MoveLevelLow(i) => self.move_level_low(i),

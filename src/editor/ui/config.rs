@@ -128,7 +128,8 @@ impl StatefulWidget for EditorConfigWidget {
             self.level_delete.show();
             self.level_delete.update(delete, context);
             if self.level_delete.text.state.clicked {
-                actions.push(EditorAction::DeleteLevel.into());
+                let index = level_editor.static_level.level_index;
+                actions.push(EditorAction::DeleteLevel(index).into());
             }
         } else {
             self.level_name.hide();

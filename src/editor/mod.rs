@@ -25,6 +25,7 @@ use crate::{
 pub enum ConfirmAction {
     ExitUnsaved,
     ChangeLevelUnsaved(usize),
+    DeleteLevel(usize),
 }
 
 pub struct EditorState {
@@ -443,11 +444,12 @@ impl geng::State for EditorState {
 }
 
 impl Editor {
-    fn delete_active_level(&mut self) {
-        let Some(level_editor) = self.level_edit.take() else {
-            return;
-        };
-        let level_index = level_editor.static_level.level_index;
+    fn delete_level(&mut self, level_index: usize) {
+        if let Some(level_editor) = &self.level_edit {
+            if level_index == level_editor.static_level.level_index {
+                self.level_edit = None;
+            }
+        }
 
         if !(0..self.group.cached.data.levels.len()).contains(&level_index) {
             log::error!(
@@ -630,6 +632,7 @@ impl Editor {
         match popup.action {
             ConfirmAction::ExitUnsaved => self.exit(),
             ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
+            ConfirmAction::DeleteLevel(index) => self.delete_level(index),
         }
     }
 }

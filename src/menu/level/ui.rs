@@ -207,7 +207,10 @@ impl MenuUI {
                     state.edit_level(group, Some(level));
                 }
                 LevelSelectAction::DeleteLevel(group, level) => {
-                    self.context.local.delete_level(group, level);
+                    state.popup_confirm(
+                        ConfirmAction::DeleteLevel(group, level),
+                        "delete this difficulty",
+                    );
                 }
                 LevelSelectAction::EditGroup(group) => {
                     state.edit_level(group, None);

@@ -19,6 +19,7 @@ use crate::{
 pub enum ConfirmAction {
     DeleteMusic(Id),
     DeleteGroup(Index),
+    DeleteLevel(Index, usize),
     SyncDiscard,
     DownloadRecommended,
     SyncUpload,
@@ -168,6 +169,9 @@ impl MenuState {
         match popup.action {
             ConfirmAction::DeleteMusic(id) => self.context.local.delete_music(id),
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
+            ConfirmAction::DeleteLevel(group, level) => {
+                self.context.local.delete_level(group, level)
+            }
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync {
                     if let Some(client) = self.leaderboard.client.clone() {
