@@ -153,6 +153,8 @@ impl EditorState {
                                 next_time.map_or(r32(100.0), |time| time - min_lerp - beat);
 
                             delta = delta.min(max_delta);
+                            // Align to quarter beats
+                            delta = ((delta.as_f32() * 4.0).round() / 4.0).as_r32();
 
                             match waypoint {
                                 WaypointId::Initial => event.beat += delta,
