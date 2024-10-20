@@ -495,18 +495,23 @@ impl LevelEditor {
             rotation: self.place_rotation,
             scale: self.place_scale,
         };
+        let mut interpolation = MoveInterpolation::default(); // TODO: use the same as other waypoints
+        let mut change_curve = None;
         match i.checked_sub(1) {
             None => {
                 // Replace initial
                 std::mem::swap(&mut light.light.movement.initial, &mut transform);
+                std::mem::swap(&mut light.light.movement.interpolation, &mut interpolation);
+                change_curve = Some(light.light.movement.curve);
+                light.light.movement.curve = TrajectoryInterpolation::default();
 
                 // Extra time for fade in and telegraph
                 let time =
                     self.current_beat - light.light.movement.fade_in - light.telegraph.precede_time;
                 light.light.movement.key_frames.push_front(MoveFrame {
                     lerp_time: event.beat - time,
-                    interpolation: MoveInterpolation::default(), // TODO: use the same as other waypoints
-                    change_curve: None,
+                    interpolation,
+                    change_curve,
                     transform,
                 });
                 event.beat = time;
@@ -522,8 +527,8 @@ impl LevelEditor {
                         i,
                         MoveFrame {
                             lerp_time,
-                            interpolation: MoveInterpolation::default(), // TODO: use the same as other waypoints
-                            change_curve: None,
+                            interpolation,
+                            change_curve,
                             transform,
                         },
                     );
