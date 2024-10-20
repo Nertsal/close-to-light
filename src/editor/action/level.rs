@@ -305,7 +305,7 @@ impl LevelEditor {
 
         match waypoint_id {
             WaypointId::Initial => {
-                // Invalid
+                event.light.movement.curve = curve.unwrap_or_default();
             }
             WaypointId::Frame(frame) => {
                 let Some(frame) = event.light.movement.key_frames.get_mut(frame) else {
@@ -333,7 +333,7 @@ impl LevelEditor {
 
         match waypoint_id {
             WaypointId::Initial => {
-                // Invalid
+                event.light.movement.interpolation = interpolation;
             }
             WaypointId::Frame(frame) => {
                 let Some(frame) = event.light.movement.key_frames.get_mut(frame) else {

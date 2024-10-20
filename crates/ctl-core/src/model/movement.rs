@@ -7,18 +7,22 @@ pub struct Movement {
     /// Time (in beats) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
+    #[serde(default)]
+    pub interpolation: MoveInterpolation,
+    #[serde(default)]
+    pub curve: TrajectoryInterpolation,
     pub key_frames: VecDeque<MoveFrame>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MoveFrame {
-    /// How long (in beats) should the interpolation from the last frame to that frame last.
+    /// How long (in beats) should the interpolation from the last frame to this frame last.
     pub lerp_time: Time,
-    /// Interpolation to use when moving towards this frame.
+    /// Interpolation to use when moving away from this frame to the next.
     #[serde(default)]
     pub interpolation: MoveInterpolation,
-    /// Whether to start a new curve going towards this frame and further.
-    /// Is set to `None`, the curve will either continue the previous type.
+    /// Whether to start a new curve going towards from this frame further.
+    /// If set to `None`, the curve will continue as the previous type.
     pub change_curve: Option<TrajectoryInterpolation>,
     pub transform: Transform,
 }
@@ -169,6 +173,8 @@ impl Default for Movement {
             fade_in: r32(1.0),
             fade_out: r32(1.0),
             initial: Transform::default(),
+            interpolation: MoveInterpolation::default(),
+            curve: TrajectoryInterpolation::default(),
             key_frames: VecDeque::new(),
         }
     }
@@ -207,7 +213,7 @@ impl Movement {
         id: WaypointId,
     ) -> Option<(MoveInterpolation, Option<TrajectoryInterpolation>)> {
         match id {
-            WaypointId::Initial => None,
+            WaypointId::Initial => Some((self.interpolation, Some(self.curve))),
             WaypointId::Frame(i) => self
                 .key_frames
                 .get(i)
@@ -271,6 +277,7 @@ impl Movement {
         let interpolation = self.bake();
 
         // Find the target frame
+        let mut move_interp = self.interpolation;
         for (i, frame) in self.frames_iter().enumerate() {
             if time <= frame.lerp_time {
                 // Apply frame's move interpolation
@@ -279,11 +286,12 @@ impl Movement {
                 } else {
                     Time::ONE
                 };
-                let time = frame.interpolation.apply(time);
+                let time = move_interp.apply(time);
                 return interpolation.get(i, time).unwrap_or(from);
             }
             time -= frame.lerp_time;
             from = frame.transform;
+            move_interp = frame.interpolation;
         }
 
         // Fade out
@@ -324,7 +332,7 @@ impl Movement {
     pub fn bake(&self) -> Interpolation<Transform> {
         bake_movement(
             self.initial,
-            TrajectoryInterpolation::default(),
+            self.curve,
             self.frames_iter()
                 .map(|frame| (frame.transform, frame.change_curve)),
         )
@@ -352,10 +360,10 @@ pub fn bake_movement<T: 'static + Interpolatable>(
     for (point, curve) in points {
         if let Some(new_curve) = curve {
             if !current_segment.is_empty() {
+                current_segment.push(point.clone());
                 segments.push(mk_segment(current_curve, &current_segment));
-                current_segment = vec![current_segment.last().unwrap().clone()];
             }
-            current_segment.push(point);
+            current_segment = vec![point];
             current_curve = new_curve;
         } else {
             current_segment.push(point);

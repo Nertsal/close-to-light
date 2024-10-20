@@ -205,6 +205,8 @@ impl From<Level> for crate::Level {
                                     fade_in: light.light.movement.fade_in,
                                     fade_out: light.light.movement.fade_out,
                                     initial: light.light.movement.initial.into(),
+                                    interpolation: crate::MoveInterpolation::default(),
+                                    curve: crate::TrajectoryInterpolation::default(),
                                     key_frames: light
                                         .light
                                         .movement
