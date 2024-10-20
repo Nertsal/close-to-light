@@ -220,6 +220,7 @@ impl EditorState {
                             }
                         } else if let Some(id) = level_editor.selected_light {
                             // Control fade time
+                            let scroll = scroll.as_f32() as Time;
                             let change = scroll * self.editor.config.scroll_slow;
                             let action = if shift {
                                 LevelAction::ChangeFadeOut(id, change)
@@ -229,6 +230,7 @@ impl EditorState {
                             actions.push(action.into());
                         }
                     } else {
+                        let scroll = scroll.as_f32() as Time;
                         actions.push(EditorStateAction::ScrollTime(scroll * scroll_speed));
                     }
                 }
@@ -313,7 +315,7 @@ impl EditorState {
                 actions.push(
                     LevelAction::MoveLight(
                         light,
-                        Change::Set(level_editor.current_beat - drag.from_beat + initial_time),
+                        Change::Set(level_editor.current_time - drag.from_beat + initial_time),
                         Change::Set(
                             initial_translation + self.editor.cursor_world_pos_snapped
                                 - drag.from_world,

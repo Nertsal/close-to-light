@@ -22,7 +22,7 @@ impl<T: 'static + Interpolatable> Bezier<T> {
 
     /// Returns a smoothed point.
     /// `t` is expected to be in range `0..=1`.
-    pub fn get(&self, interval: usize, t: Time) -> Option<T> {
+    pub fn get(&self, interval: usize, t: FloatTime) -> Option<T> {
         let degree = self.points.len().saturating_sub(1);
         let t = (t.as_f32() + interval as f32) / degree as f32;
 

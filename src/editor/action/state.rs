@@ -64,9 +64,10 @@ impl EditorState {
             EditorStateAction::TimelineScroll(scroll) => {
                 if let Some(level_editor) = &self.editor.level_edit {
                     let timeline = &mut self.ui.edit.timeline;
-                    let delta = -scroll * r32(30.0 / timeline.get_scale());
+                    let delta = -scroll.as_f32() * 30.0 / timeline.get_scale();
+                    let delta = (delta * TIME_IN_FLOAT_TIME as f32).round() as Time;
                     let current = -timeline.get_scroll();
-                    let delta = if delta > Time::ZERO {
+                    let delta = if delta > 0 {
                         delta.min(current)
                     } else {
                         -delta.abs().min(
@@ -120,7 +121,7 @@ impl EditorState {
             from_screen: self.ui_context.cursor.position,
             from_world: self.editor.cursor_world_pos_snapped,
             from_real_time: level_editor.real_time,
-            from_beat: level_editor.current_beat,
+            from_beat: level_editor.current_time,
             target,
         });
     }
@@ -148,13 +149,13 @@ impl EditorState {
                             let next = WaypointId::Frame(next_i);
                             let next_time = light.light.movement.get_time(next);
 
-                            let min_lerp = r32(0.25);
-                            let max_delta =
-                                next_time.map_or(r32(100.0), |time| time - min_lerp - beat);
+                            let min_lerp = 50;
+                            let max_delta = next_time
+                                .map_or(50 * TIME_IN_FLOAT_TIME, |time| time - min_lerp - beat);
 
                             delta = delta.min(max_delta);
-                            // Align to quarter beats
-                            delta = ((delta.as_f32() * 4.0).round() / 4.0).as_r32();
+                            // TODO: snap to beat
+                            // delta = ((delta * 4.0).round() / 4.0).as_r32();
 
                             match waypoint {
                                 WaypointId::Initial => event.beat += delta,

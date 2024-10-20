@@ -9,7 +9,7 @@ const GROUP_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 const GROUPS_PER_USER: usize = 5;
 const GROUPS_PER_USER_PER_SONG: usize = 1;
 /// seconds
-const LEVEL_MIN_DURATION: f32 = 30.0;
+const LEVEL_MIN_DURATION: i64 = 30;
 
 pub fn route(router: Router) -> Router {
     router
@@ -475,8 +475,8 @@ fn validate_group(group: &LevelSet<LevelFull>) -> Result<()> {
     for level in &group.levels {
         // TODO: check realtime
         // but i think the format will change to use realtime inside the level
-        let duration = level.data.last_beat().as_f32();
-        if dbg!(duration) < LEVEL_MIN_DURATION {
+        let duration = level.data.last_beat();
+        if duration < LEVEL_MIN_DURATION * ctl_core::types::TIME_IN_FLOAT_TIME {
             return Err(RequestError::LevelTooSmall);
         }
     }

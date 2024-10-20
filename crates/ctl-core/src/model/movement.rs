@@ -40,7 +40,7 @@ pub enum MoveInterpolation {
 
 impl MoveInterpolation {
     /// Applies the interpolation function to a value between 0 and 1.
-    pub fn apply(&self, t: Time) -> Time {
+    pub fn apply(&self, t: FloatTime) -> FloatTime {
         match self {
             Self::Linear => t,
             Self::Smoothstep => smoothstep(t),
@@ -126,9 +126,9 @@ impl Interpolatable for Transform {
 }
 
 impl MoveFrame {
-    pub fn scale(lerp_time: impl Float, scale: impl Float) -> Self {
+    pub fn scale(lerp_time: Time, scale: impl Float) -> Self {
         Self {
-            lerp_time: lerp_time.as_r32(),
+            lerp_time,
             interpolation: MoveInterpolation::default(),
             change_curve: None,
             transform: Transform::scale(scale),
@@ -152,7 +152,7 @@ impl Transform {
         }
     }
 
-    pub fn lerp(&self, target: &Self, t: Time) -> Self {
+    pub fn lerp(&self, target: &Self, t: FloatTime) -> Self {
         Self {
             translation: self.translation + (target.translation - self.translation) * t,
             rotation: self.rotation + self.rotation.angle_to(target.rotation) * t,
@@ -170,8 +170,8 @@ impl Default for Transform {
 impl Default for Movement {
     fn default() -> Self {
         Self {
-            fade_in: r32(1.0),
-            fade_out: r32(1.0),
+            fade_in: TIME_IN_FLOAT_TIME,
+            fade_out: TIME_IN_FLOAT_TIME,
             initial: Transform::default(),
             interpolation: MoveInterpolation::default(),
             curve: TrajectoryInterpolation::default(),
@@ -249,9 +249,9 @@ impl Movement {
 
         let lerp = |from: Transform, to, time, duration, interpolation: MoveInterpolation| {
             let t = if duration > Time::ZERO {
-                time / duration
+                FloatTime::new(time as f32 / duration as f32)
             } else {
-                Time::ONE
+                FloatTime::ONE
             };
             let t = interpolation.apply(t);
             from.lerp(&to, t)
@@ -282,9 +282,9 @@ impl Movement {
             if time <= frame.lerp_time {
                 // Apply frame's move interpolation
                 let time = if frame.lerp_time > Time::ZERO {
-                    time / frame.lerp_time
+                    FloatTime::new(time as f32 / frame.lerp_time as f32)
                 } else {
-                    Time::ONE
+                    FloatTime::ONE
                 };
                 let time = move_interp.apply(time);
                 return interpolation.get(i, time).unwrap_or(from);
@@ -321,11 +321,11 @@ impl Movement {
     }
 
     pub fn change_fade_out(&mut self, target: Time) {
-        self.fade_out = target.clamp(r32(0.25), r32(25.0));
+        self.fade_out = target.clamp(TIME_IN_FLOAT_TIME / 10, TIME_IN_FLOAT_TIME * 50);
     }
 
     pub fn change_fade_in(&mut self, target: Time) {
-        self.fade_in = target.clamp(r32(0.25), r32(25.0));
+        self.fade_in = target.clamp(TIME_IN_FLOAT_TIME / 10, TIME_IN_FLOAT_TIME * 50);
     }
 
     /// Bakes the interpolation path based on the keypoints.

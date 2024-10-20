@@ -586,7 +586,7 @@ impl StatefulWidget for EditorEditWidget {
         {
             let current_beat = bottom_bar.cut_top(font_size * 1.0);
             update!(self.current_beat, current_beat);
-            self.current_beat.text = format!("Beat: {:.2}", level_editor.current_beat).into();
+            self.current_beat.text = format!("Beat: {:.2}", level_editor.current_time).into();
 
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
@@ -600,14 +600,14 @@ impl StatefulWidget for EditorEditWidget {
             if self.timeline.clickable.pressed {
                 let time = self.timeline.get_cursor_time();
                 actions.push(EditorStateAction::ScrollTime(
-                    time - level_editor.current_beat,
+                    time - level_editor.current_time,
                 ));
             }
             let replay = level_editor
                 .dynamic_segment
                 .as_ref()
                 .map(|replay| replay.current_beat);
-            self.timeline.update_time(level_editor.current_beat, replay);
+            self.timeline.update_time(level_editor.current_time, replay);
 
             let select = context.mods.ctrl;
             if select {

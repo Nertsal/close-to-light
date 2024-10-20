@@ -146,86 +146,82 @@ impl Default for Movement {
     }
 }
 
-impl From<LevelSet> for crate::LevelSet {
-    fn from(value: LevelSet) -> Self {
-        Self {
-            id: value.id,
-            music: value.music,
-            owner: crate::UserInfo {
-                id: value.owner.id,
-                name: value.owner.name,
-            },
-            levels: value
-                .levels
-                .into_iter()
-                .map(|level| {
-                    Rc::new(crate::LevelFull {
-                        meta: crate::LevelInfo {
-                            id: level.meta.id,
-                            name: level.meta.name,
-                            authors: level
-                                .meta
-                                .authors
-                                .into_iter()
-                                .map(|user| crate::UserInfo {
-                                    id: user.id,
-                                    name: user.name,
-                                })
-                                .collect(),
-                            hash: level.meta.hash, // TODO: should i recalculate the hash?
-                        },
-                        data: level.data.into(),
-                    })
+pub fn convert_group(beat_time: crate::FloatTime, value: LevelSet) -> crate::LevelSet {
+    crate::LevelSet {
+        id: value.id,
+        music: value.music,
+        owner: crate::UserInfo {
+            id: value.owner.id,
+            name: value.owner.name,
+        },
+        levels: value
+            .levels
+            .into_iter()
+            .map(|level| {
+                Rc::new(crate::LevelFull {
+                    meta: crate::LevelInfo {
+                        id: level.meta.id,
+                        name: level.meta.name,
+                        authors: level
+                            .meta
+                            .authors
+                            .into_iter()
+                            .map(|user| crate::UserInfo {
+                                id: user.id,
+                                name: user.name,
+                            })
+                            .collect(),
+                        hash: level.meta.hash, // TODO: should i recalculate the hash?
+                    },
+                    data: convert_level(beat_time, level.data),
                 })
-                .collect(),
-        }
+            })
+            .collect(),
     }
 }
 
-impl From<Level> for crate::Level {
-    fn from(value: Level) -> Self {
-        Self {
-            events: value
-                .events
-                .into_iter()
-                .map(|event| crate::TimedEvent {
-                    beat: event.beat,
-                    event: match event.event {
-                        Event::Light(light) => crate::Event::Light(crate::LightEvent {
-                            light: crate::LightSerde {
-                                danger: light.light.danger,
-                                shape: match light.light.shape {
-                                    Shape::Circle { radius } => crate::Shape::Circle { radius },
-                                    Shape::Line { width } => crate::Shape::Line { width },
-                                    Shape::Rectangle { width, height } => {
-                                        crate::Shape::Rectangle { width, height }
-                                    }
-                                },
-                                movement: crate::Movement {
-                                    fade_in: light.light.movement.fade_in,
-                                    fade_out: light.light.movement.fade_out,
-                                    initial: light.light.movement.initial.into(),
-                                    interpolation: crate::MoveInterpolation::default(),
-                                    curve: crate::TrajectoryInterpolation::default(),
-                                    key_frames: light
-                                        .light
-                                        .movement
-                                        .key_frames
-                                        .into_iter()
-                                        .map(From::from)
-                                        .collect(),
-                                },
+fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
+    crate::Level {
+        events: value
+            .events
+            .into_iter()
+            .map(|event| crate::TimedEvent {
+                beat: convert_time(beat_time, event.beat),
+                event: match event.event {
+                    Event::Light(light) => crate::Event::Light(crate::LightEvent {
+                        light: crate::LightSerde {
+                            danger: light.light.danger,
+                            shape: match light.light.shape {
+                                Shape::Circle { radius } => crate::Shape::Circle { radius },
+                                Shape::Line { width } => crate::Shape::Line { width },
+                                Shape::Rectangle { width, height } => {
+                                    crate::Shape::Rectangle { width, height }
+                                }
                             },
-                            telegraph: crate::Telegraph {
-                                precede_time: light.telegraph.precede_time,
-                                speed: light.telegraph.speed,
+                            movement: crate::Movement {
+                                fade_in: convert_time(beat_time, light.light.movement.fade_in),
+                                fade_out: convert_time(beat_time, light.light.movement.fade_out),
+                                initial: light.light.movement.initial.into(),
+                                interpolation: crate::MoveInterpolation::default(),
+                                curve: crate::TrajectoryInterpolation::default(),
+                                key_frames: light
+                                    .light
+                                    .movement
+                                    .key_frames
+                                    .into_iter()
+                                    .map(|frame| convert_frame(beat_time, frame))
+                                    .collect(),
                             },
-                        }),
-                        Event::PaletteSwap => crate::Event::PaletteSwap,
-                    },
-                })
-                .collect(),
-        }
+                        },
+                        telegraph: crate::Telegraph {
+                            precede_time: convert_time(beat_time, light.telegraph.precede_time),
+                            speed: light.telegraph.speed,
+                        },
+                    }),
+                    Event::PaletteSwap => crate::Event::PaletteSwap,
+                },
+            })
+            .collect(),
     }
 }
 
@@ -239,13 +235,15 @@ impl From<Transform> for crate::Transform {
     }
 }
 
-impl From<MoveFrame> for crate::MoveFrame {
-    fn from(value: MoveFrame) -> Self {
-        Self {
-            lerp_time: value.lerp_time,
-            interpolation: crate::MoveInterpolation::default(),
-            change_curve: None, // Linear
-            transform: value.transform.into(),
-        }
+fn convert_frame(beat_time: crate::FloatTime, value: MoveFrame) -> crate::MoveFrame {
+    crate::MoveFrame {
+        lerp_time: convert_time(beat_time, value.lerp_time),
+        interpolation: crate::MoveInterpolation::default(),
+        change_curve: None, // Linear
+        transform: value.transform.into(),
     }
+}
+
+fn convert_time(beat_time: crate::FloatTime, time: crate::FloatTime) -> crate::Time {
+    crate::convert_time(beat_time * time)
 }

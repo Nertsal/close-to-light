@@ -142,7 +142,9 @@ impl MusicManager {
     }
 
     pub fn play_from_beat(&self, music: &CachedMusic, beat: Time) {
-        let time = Duration::from_secs_f64((beat * music.meta.beat_time()).as_f32() as f64);
+        let time = Duration::from_secs_f64(
+            beat as f64 * ctl_client::core::types::TIME_IN_FLOAT_TIME as f64,
+        );
         self.play_from(music, time)
     }
 }

@@ -186,7 +186,7 @@ impl EditorRender {
                     // Calculate the waypoint visibility at the given relative timestamp
                     let visibility = |beat: Time| {
                         let d = (timed_event.beat + event.telegraph.precede_time + beat
-                            - level_editor.current_beat)
+                            - level_editor.current_time)
                             .abs()
                             .as_f32();
                         if d > MAX_VISIBILITY {
@@ -315,7 +315,7 @@ impl EditorRender {
                             );
 
                             let beat_time =
-                                point.original.map_or(Some(level_editor.current_beat), |_| {
+                                point.original.map_or(Some(level_editor.current_time), |_| {
                                     original.map(|(original_beat, original, relative_beat)| {
                                         original_beat
                                             + original.telegraph.precede_time

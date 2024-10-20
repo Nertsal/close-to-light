@@ -94,8 +94,8 @@ impl LevelAction {
             LevelAction::NewWaypoint => false,
             LevelAction::PlaceWaypoint(_) => false,
             LevelAction::ScaleWaypoint(_, _, delta) => *delta == Coord::ZERO,
-            LevelAction::ChangeFadeOut(_, delta) => *delta == Coord::ZERO,
-            LevelAction::ChangeFadeIn(_, delta) => *delta == Coord::ZERO,
+            LevelAction::ChangeFadeOut(_, delta) => *delta == 0,
+            LevelAction::ChangeFadeIn(_, delta) => *delta == 0,
             LevelAction::DeselectLight => false,
             LevelAction::SelectLight(_) => false,
             LevelAction::SelectWaypoint(_) => false,
@@ -136,21 +136,21 @@ impl LevelEditor {
                     old_state,
                 } = &self.state
                 {
-                    self.current_beat = *start_beat;
+                    self.current_time = *start_beat;
                     self.state = *old_state.clone();
                     self.context.music.stop();
                 }
             }
             LevelAction::StartPlaying => {
                 self.state = State::Playing {
-                    start_beat: self.current_beat,
+                    start_beat: self.current_time,
                     old_state: Box::new(self.state.clone()),
                 };
-                // TODO: future proof in case level beat time is not constant
-                self.real_time = self.current_beat * self.static_level.group.music.meta.beat_time();
+                self.real_time =
+                    FloatTime::new(self.current_time as f32 * TIME_IN_FLOAT_TIME as f32);
                 self.context.music.play_from(
                     &self.static_level.group.music,
-                    time::Duration::from_secs_f64(self.real_time.as_f32() as f64),
+                    time::Duration::from_secs_f64(self.real_time.as_f32().into()),
                 );
             }
             LevelAction::NewLight(shape) => {
@@ -451,7 +451,7 @@ impl LevelEditor {
         };
 
         // extra time for the fade in and telegraph
-        let start_beat = self.current_beat;
+        let start_beat = self.current_time;
         let beat = start_beat - light.light.movement.fade_in - light.telegraph.precede_time;
         let event = commit_light(light.clone());
         let event = TimedEvent {
@@ -507,7 +507,7 @@ impl LevelEditor {
 
                 // Extra time for fade in and telegraph
                 let time =
-                    self.current_beat - light.light.movement.fade_in - light.telegraph.precede_time;
+                    self.current_time - light.light.movement.fade_in - light.telegraph.precede_time;
                 light.light.movement.key_frames.push_front(MoveFrame {
                     lerp_time: event.beat - time,
                     interpolation,
@@ -521,7 +521,7 @@ impl LevelEditor {
                 let last = light.light.movement.timed_positions().nth(i);
                 if let Some((_, _, last_time)) = last {
                     let last_time = event.beat + light.telegraph.precede_time + last_time;
-                    let lerp_time = self.current_beat - last_time;
+                    let lerp_time = self.current_time - last_time;
 
                     light.light.movement.key_frames.insert(
                         i,

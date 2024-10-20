@@ -21,7 +21,7 @@ struct Interval<T> {
 
 impl<T: Interpolatable> Interval<T> {
     /// Returns a point on the curve interval.
-    pub fn get(&self, t: Time) -> T {
+    pub fn get(&self, t: FloatTime) -> T {
         let p0 = self.point_start.clone();
         let p1 = self.point_end.clone();
         let m0 = self.tangent_start.clone();
@@ -49,7 +49,7 @@ impl<T: 'static + Interpolatable> Spline<T> {
 
     /// Returns a point on the spline on the given interval.
     /// Returns `None` if there are no points.
-    pub fn get(&self, interval: usize, t: Time) -> Option<T> {
+    pub fn get(&self, interval: usize, t: FloatTime) -> Option<T> {
         let interval = self.intervals.get(interval)?;
         Some(interval.get(t))
     }

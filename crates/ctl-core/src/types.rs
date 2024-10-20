@@ -1,9 +1,47 @@
 use geng::prelude::*;
 
-pub type Id = u32;
-pub type Time = R32;
+pub type Id = u32; // TODO: migrate to u64
+pub type Time = i64;
+pub type FloatTime = R32;
 pub type Coord = R32;
 pub type Name = Arc<str>;
+
+/// How many time units there are in a single second.
+/// 1000 means that each time unit is a millisecond.
+pub const TIME_IN_FLOAT_TIME: Time = 1000;
+
+pub fn convert_time(time: FloatTime) -> Time {
+    (time.as_f32() / TIME_IN_FLOAT_TIME as f32).round() as Time
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct BeatTime {
+    /// 1 unit is 1/16 of a beat (typically a 1/64th note).
+    units: Time,
+}
+
+impl BeatTime {
+    /// From whole beats.
+    pub fn from_beats(beats: Time) -> Self {
+        Self { units: beats * 64 }
+    }
+
+    /// From quarter beats.
+    pub fn from_4ths(quarters: Time) -> Self {
+        Self {
+            units: quarters * 16,
+        }
+    }
+
+    /// From 1/16th beats.
+    pub fn from_16ths(units: Time) -> Self {
+        Self { units }
+    }
+
+    pub fn as_millis(&self, beat_time: Time) -> Time {
+        self.units * beat_time / 16
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelSet<L = Rc<LevelFull>> {
@@ -15,7 +53,7 @@ pub struct LevelSet<L = Rc<LevelFull>> {
 
 impl<T: Serialize> LevelSet<T> {
     pub fn calculate_hash(&self) -> String {
-        let bytes = bincode::serialize(self).expect("group should be serializable");
+        let bytes = cbor4ii::serde::to_vec(Vec::new(), self).expect("group should be serializable");
         crate::util::calculate_hash(&bytes)
     }
 }
@@ -47,7 +85,7 @@ pub struct MusicInfo {
     pub original: bool,
     pub name: Name,
     pub romanized: Name,
-    pub bpm: R32,
+    pub bpm: FloatTime,
     pub authors: Vec<ArtistInfo>,
 }
 
@@ -82,7 +120,7 @@ impl GroupInfo {
 
 impl MusicInfo {
     /// Returns the duration (in seconds) of a single beat.
-    pub fn beat_time(&self) -> Time {
+    pub fn beat_time(&self) -> FloatTime {
         r32(60.0) / self.bpm
     }
 

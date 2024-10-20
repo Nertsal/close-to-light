@@ -12,7 +12,7 @@ pub struct Interpolation<T> {
 }
 
 impl<T: 'static + Interpolatable> Interpolation<T> {
-    pub fn get(&self, mut interval: usize, t: Time) -> Option<T> {
+    pub fn get(&self, mut interval: usize, t: FloatTime) -> Option<T> {
         self.segments
             .iter()
             .find(|segment| {
@@ -29,13 +29,13 @@ impl<T: 'static + Interpolatable> Interpolation<T> {
     pub fn get_path(&self, resolution: usize) -> impl Iterator<Item = T> + '_ {
         self.segments
             .first()
-            .and_then(|segment| segment.get(0, Time::ZERO))
+            .and_then(|segment| segment.get(0, FloatTime::ZERO))
             .into_iter()
             .chain(self.segments.iter().flat_map(move |segment| {
                 (0..segment.num_intervals()).flat_map(move |interval| {
                     (1..=resolution).flat_map(move |i| {
                         let t = i as f32 / resolution as f32;
-                        segment.get(interval, r32(t))
+                        segment.get(interval, FloatTime::new(t))
                     })
                 })
             }))
@@ -71,7 +71,7 @@ impl<T: 'static + Interpolatable> InterpolationSegment<T> {
     }
 
     /// Get an interpolated value on the given interval.
-    pub fn get(&self, interval: usize, t: Time) -> Option<T> {
+    pub fn get(&self, interval: usize, t: FloatTime) -> Option<T> {
         match self {
             Self::Linear(points) => {
                 let a = points.get(interval)?.clone();

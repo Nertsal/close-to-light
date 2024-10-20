@@ -1553,6 +1553,7 @@ dependencies = [
 name = "ctl-core"
 version = "0.1.0"
 dependencies = [
+ "cbor4ii",
  "data-encoding",
  "geng",
  "geng-utils",

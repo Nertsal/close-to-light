@@ -49,7 +49,7 @@ pub struct Drag {
     pub moved: bool,
     pub from_screen: vec2<f32>,
     pub from_world: vec2<Coord>,
-    pub from_real_time: Time,
+    pub from_real_time: FloatTime,
     pub from_beat: Time,
     pub target: DragTarget,
 }
@@ -83,8 +83,8 @@ pub struct LevelEditor {
     /// Simulation model.
     pub model: Model,
     pub level_state: EditorLevelState,
-    pub current_beat: Time,
-    pub real_time: Time,
+    pub current_time: Time,
+    pub real_time: FloatTime,
     pub selected_light: Option<LightId>,
 
     pub history: History,
@@ -149,7 +149,7 @@ impl LevelEditor {
         let mut editor = Self {
             context,
             level_state: EditorLevelState::default(),
-            current_beat: Time::ZERO,
+            current_time: Time::ZERO,
             real_time: Time::ZERO,
             selected_light: None,
             place_rotation: Angle::ZERO,
@@ -295,7 +295,7 @@ impl EditorState {
                     if let Event::Light(light) = &event.event {
                         // Set current time to align with the selected waypoint
                         if let Some(time) = light.light.movement.get_time(waypoint) {
-                            level_editor.current_beat =
+                            level_editor.current_time =
                                 event.beat + light.telegraph.precede_time + time;
                         }
                     }
@@ -311,7 +311,7 @@ impl EditorState {
                 // Play some music
                 self.context.music.play_from_beat(
                     &level_editor.static_level.group.music,
-                    level_editor.current_beat,
+                    level_editor.current_time,
                 );
                 self.editor.music_timer = level_editor.static_level.group.music.meta.beat_time()
                     * self.editor.config.playback_duration;
@@ -322,7 +322,7 @@ impl EditorState {
         level_editor.scrolling_time = false;
 
         if let State::Playing { .. } = level_editor.state {
-            level_editor.current_beat =
+            level_editor.current_time =
                 level_editor.real_time / level_editor.static_level.group.music.meta.beat_time();
         } else if let Some(replay) = &mut level_editor.dynamic_segment {
             replay.current_beat +=
@@ -361,7 +361,7 @@ impl EditorState {
         };
 
         let level = crate::game::PlayLevel {
-            start_time: level_editor.current_beat
+            start_time: level_editor.current_time
                 * level_editor.static_level.group.music.meta.beat_time(), // TODO: nonlinear time
             level: Rc::new(LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
@@ -740,10 +740,10 @@ impl LevelEditor {
         let margin = r32(1000.0);
         let min = Time::ZERO;
         let max = margin + self.level.last_beat();
-        let target = (self.current_beat + delta).clamp(min, max);
+        let target = (self.current_time + delta).clamp(min, max);
 
         // Align with quarter beats
-        self.current_beat = ((target.as_f32() * 4.0).round() / 4.0).as_r32();
+        self.current_time = ((target.as_f32() * 4.0).round() / 4.0).as_r32();
 
         self.scrolling_time = true;
 
@@ -761,9 +761,9 @@ impl LevelEditor {
     ) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
-            (None, Some(self.current_beat))
+            (None, Some(self.current_time))
         } else {
-            let time = self.current_beat;
+            let time = self.current_time;
             let dynamic = if visualize_beat {
                 if let Some(replay) = &self.dynamic_segment {
                     Some(replay.current_beat)
@@ -817,7 +817,7 @@ impl LevelEditor {
                     /// Waypoints past this time-distance are not rendered at all
                     const MAX_VISIBILITY: f32 = 15.0;
                     let visible = |beat: Time| {
-                        let d = (event_time + beat - self.current_beat).abs().as_f32();
+                        let d = (event_time + beat - self.current_time).abs().as_f32();
                         d <= MAX_VISIBILITY
                     };
 
@@ -848,7 +848,7 @@ impl LevelEditor {
                         (
                             point.control.position.x,
                             point.control.position.y,
-                            (event_time + *time - self.current_beat).abs(),
+                            (event_time + *time - self.current_time).abs(),
                         )
                     });
 
@@ -870,7 +870,7 @@ impl LevelEditor {
                     if let WaypointsState::New = state {
                         // NOTE: assuming that positions don't go backwards in time
                         // Insert a new waypoint at current time
-                        let new_time = self.current_beat - event_time;
+                        let new_time = self.current_time - event_time;
                         let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
                             Ok(i) | Err(i) => i,
                         };
@@ -901,7 +901,7 @@ impl LevelEditor {
                                 && (point.control.contains(cursor_world_pos)
                                     || point.actual.contains(cursor_world_pos))
                         })
-                        .min_by_key(|(_, (_, time))| (self.current_beat - event_time - *time).abs())
+                        .min_by_key(|(_, (_, time))| (self.current_time - event_time - *time).abs())
                         .map(|(i, _)| i);
                     let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
 

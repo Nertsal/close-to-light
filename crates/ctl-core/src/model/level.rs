@@ -93,7 +93,7 @@ impl LightSerde {
 impl Default for Telegraph {
     fn default() -> Self {
         Self {
-            precede_time: Time::new(1.0),
+            precede_time: TIME_IN_FLOAT_TIME,
             speed: Coord::new(1.0),
         }
     }

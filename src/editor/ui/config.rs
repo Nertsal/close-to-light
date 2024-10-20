@@ -5,10 +5,9 @@ pub struct EditorConfigWidget {
     pub state: WidgetState,
 
     pub timing: TextWidget,
-    pub bpm: ValueWidget<Time>,
+    pub bpm: ValueWidget<FloatTime>,
     // pub tempo:
-    pub offset: ValueWidget<Time>,
-
+    // pub offset: ValueWidget<Time>,
     pub music: TextWidget,
     pub level: TextWidget,
     pub level_name: InputWidget,
@@ -19,11 +18,11 @@ pub struct EditorConfigWidget {
 
     pub timeline: TextWidget,
     /// Normal time scroll.
-    pub scroll_by: ValueWidget<Time>, // TODO: 1/4 instead of 0.25
+    pub scroll_by: ValueWidget<BeatTime>, // TODO: 1/4 instead of 0.25
     /// Slow time scroll.
-    pub shift_scroll: ValueWidget<Time>,
+    pub shift_scroll: ValueWidget<BeatTime>,
     /// Fast time scroll.
-    pub alt_scroll: ValueWidget<Time>,
+    pub alt_scroll: ValueWidget<BeatTime>,
     // pub snap_to: CheckboxWidget,
 }
 
@@ -35,8 +34,7 @@ impl EditorConfigWidget {
 
             timing: TextWidget::new("Timing"),
             bpm: ValueWidget::new_range("BPM", r32(150.0), r32(60.0)..=r32(240.0), r32(1.0)), // TODO: different
-            offset: ValueWidget::new_range("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
-
+            // offset: ValueWidget::new_range("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
             music: TextWidget::new("Music"),
             level: TextWidget::new("Difficulty"),
             level_name: InputWidget::new(""),
