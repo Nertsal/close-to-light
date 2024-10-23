@@ -19,7 +19,7 @@ pub struct Game {
     debug_mode: bool,
 
     framebuffer_size: vec2<usize>,
-    delta_time: Time,
+    delta_time: FloatTime,
 
     active_touch: Option<u64>,
     ui: GameUI,
@@ -149,7 +149,7 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
         self.delta_time = delta_time;
 
         self.context
@@ -207,7 +207,7 @@ impl geng::State for Game {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
 
         let pos = self.ui_context.cursor.position;
         let game_pos = geng_utils::layout::fit_aabb(

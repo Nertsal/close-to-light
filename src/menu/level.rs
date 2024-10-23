@@ -35,8 +35,8 @@ pub struct LevelMenu {
     masked: MaskedRender,
 
     framebuffer_size: vec2<usize>,
-    last_delta_time: Time,
-    time: Time,
+    last_delta_time: FloatTime,
+    time: FloatTime,
 
     ui: MenuUI,
     ui_focused: bool,
@@ -209,8 +209,8 @@ impl LevelMenu {
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
 
             framebuffer_size: vec2(1, 1),
-            last_delta_time: Time::ONE,
-            time: Time::ZERO,
+            last_delta_time: FloatTime::ONE,
+            time: FloatTime::ZERO,
 
             ui: MenuUI::new(context.clone()),
             ui_focused: false,
@@ -295,7 +295,7 @@ impl LevelMenu {
 
         self.context.music.stop();
         self.ui_context.cursor.reset();
-        self.play_button.hover_time.set(Time::ZERO);
+        self.play_button.hover_time.set(FloatTime::ZERO);
 
         let future = {
             let context = self.context.clone();
@@ -325,7 +325,7 @@ impl LevelMenu {
         self.state.leaderboard.status = LeaderboardStatus::None;
     }
 
-    fn update_active_music(&mut self, delta_time: Time) {
+    fn update_active_music(&mut self, delta_time: FloatTime) {
         let delta_time = delta_time.as_f32();
         if let Some(current_music) = &mut self.state.selected_music {
             if let Some(switch_music) = self.state.switch_music {
@@ -362,7 +362,7 @@ impl LevelMenu {
         }
     }
 
-    fn update_active_group(&mut self, delta_time: Time) {
+    fn update_active_group(&mut self, delta_time: FloatTime) {
         let delta_time = delta_time.as_f32();
         if let Some(current_group) = &mut self.state.selected_group {
             if let Some(switch_group) = self.state.switch_group {
@@ -405,7 +405,7 @@ impl LevelMenu {
         }
     }
 
-    fn update_active_level(&mut self, delta_time: Time) {
+    fn update_active_level(&mut self, delta_time: FloatTime) {
         let delta_time = delta_time.as_f32();
         if let Some(current_level) = &mut self.state.selected_level {
             if let Some(switch_level) = self.state.switch_level {
@@ -604,12 +604,12 @@ impl geng::State for LevelMenu {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
         self.state.player.update_tail(delta_time);
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
 
         self.context

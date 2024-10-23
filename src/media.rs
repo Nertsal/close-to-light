@@ -9,7 +9,7 @@ pub struct MediaState {
     dither: DitherRender,
     text: String,
     theme: Theme,
-    time: Time,
+    time: FloatTime,
     camera: Camera2d,
 }
 
@@ -20,7 +20,7 @@ impl MediaState {
             dither: DitherRender::new(&context.geng, &context.assets),
             text: String::new(),
             theme: Theme::default(),
-            time: Time::ZERO,
+            time: FloatTime::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -61,7 +61,7 @@ impl geng::State for MediaState {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
     }
 }

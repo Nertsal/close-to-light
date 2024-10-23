@@ -18,22 +18,22 @@ pub struct PlayerConfig {
 #[serde(default)]
 pub struct HealthConfig {
     /// Max health value.
-    pub max: Time,
+    pub max: FloatTime,
     /// How fast health decreases per second in darkness.
-    pub dark_decrease_rate: Time,
+    pub dark_decrease_rate: FloatTime,
     /// How fast health decreases per second in danger.
-    pub danger_decrease_rate: Time,
+    pub danger_decrease_rate: FloatTime,
     /// How much health restores per second while in light.
-    pub restore_rate: Time,
+    pub restore_rate: FloatTime,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct WaypointsConfig {
     pub show: bool,
-    pub sustain_time: Time,
-    pub fade_time: Time,
-    pub sustain_scale: Time,
+    pub sustain_time: FloatTime,
+    pub fade_time: FloatTime,
+    pub sustain_scale: Coord,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

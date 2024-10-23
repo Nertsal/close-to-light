@@ -209,7 +209,7 @@ impl LevelCache {
         }
 
         {
-            let groups = self.fs.load_groups_all().await?;
+            let groups = self.fs.load_groups_all(&self.inner.borrow().music).await?;
             let group_loaders = groups
                 .into_iter()
                 .map(|(path, group)| self.insert_group(path, group));

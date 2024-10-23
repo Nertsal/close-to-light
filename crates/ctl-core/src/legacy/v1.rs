@@ -186,7 +186,7 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
             .events
             .into_iter()
             .map(|event| crate::TimedEvent {
-                beat: convert_time(beat_time, event.beat),
+                time: convert_time(beat_time, event.beat),
                 event: match event.event {
                     Event::Light(light) => crate::Event::Light(crate::LightEvent {
                         light: crate::LightSerde {
@@ -245,5 +245,5 @@ fn convert_frame(beat_time: crate::FloatTime, value: MoveFrame) -> crate::MoveFr
 }
 
 fn convert_time(beat_time: crate::FloatTime, time: crate::FloatTime) -> crate::Time {
-    crate::convert_time(beat_time * time)
+    crate::seconds_to_time(beat_time * time)
 }

@@ -63,8 +63,8 @@ pub struct EditorEditWidget {
     pub light: TextWidget,
     pub light_delete: ButtonWidget,
     pub light_danger: CheckboxWidget,
-    pub light_fade_in: ValueWidget<Time>,
-    pub light_fade_out: ValueWidget<Time>,
+    pub light_fade_in: ValueWidget<FloatTime>,
+    pub light_fade_out: ValueWidget<FloatTime>,
 
     pub waypoint: ButtonWidget,
     pub prev_waypoint: IconButtonWidget,
@@ -111,15 +111,15 @@ impl EditorEditWidget {
             light_danger: CheckboxWidget::new("Danger"),
             light_fade_in: ValueWidget::new_range(
                 "Fade in",
-                r32(1.0),
-                r32(0.25)..=r32(25.0),
-                r32(0.25),
+                r32(0.5),
+                r32(0.25)..=r32(10.0),
+                r32(0.1),
             ),
             light_fade_out: ValueWidget::new_range(
                 "Fade out",
-                r32(1.0),
-                r32(0.25)..=r32(25.0),
-                r32(0.25),
+                r32(0.5),
+                r32(0.25)..=r32(10.0),
+                r32(0.1),
             ),
 
             waypoint: ButtonWidget::new("Waypoints"),
@@ -405,21 +405,31 @@ impl StatefulWidget for EditorEditWidget {
                         {
                             let fade_in = bar.cut_top(value_height);
                             bar.cut_top(spacing);
-                            let mut fade = light.movement.fade_in;
-                            let from = fade;
+                            let mut fade = time_to_seconds(light.movement.fade_in);
                             update!(self.light_fade_in, fade_in, &mut fade);
                             context.update_focus(self.light_fade_in.state.hovered);
-                            actions.push(LevelAction::ChangeFadeIn(light_id, fade - from).into());
+                            actions.push(
+                                LevelAction::ChangeFadeIn(
+                                    light_id,
+                                    Change::Set(seconds_to_time(fade)),
+                                )
+                                .into(),
+                            );
                         }
 
                         {
                             let fade_out = bar.cut_top(value_height);
                             bar.cut_top(spacing);
-                            let mut fade = light.movement.fade_out;
-                            let from = fade;
+                            let mut fade = time_to_seconds(light.movement.fade_out);
                             update!(self.light_fade_out, fade_out, &mut fade);
                             context.update_focus(self.light_fade_out.state.hovered);
-                            actions.push(LevelAction::ChangeFadeOut(light_id, fade - from).into());
+                            actions.push(
+                                LevelAction::ChangeFadeOut(
+                                    light_id,
+                                    Change::Set(seconds_to_time(fade)),
+                                )
+                                .into(),
+                            );
                         }
 
                         bar.cut_top(layout_size * 1.5);
@@ -606,7 +616,7 @@ impl StatefulWidget for EditorEditWidget {
             let replay = level_editor
                 .dynamic_segment
                 .as_ref()
-                .map(|replay| replay.current_beat);
+                .map(|replay| replay.current_time);
             self.timeline.update_time(level_editor.current_time, replay);
 
             let select = context.mods.ctrl;

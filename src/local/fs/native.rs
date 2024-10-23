@@ -47,7 +47,9 @@ async fn load_music(geng: &Geng, path: PathBuf) -> Result<CachedMusic> {
     res
 }
 
-pub async fn load_groups_all() -> Result<Vec<(PathBuf, LevelSet)>> {
+pub async fn load_groups_all(
+    music: &HashMap<Id, Rc<CachedMusic>>,
+) -> Result<Vec<(PathBuf, LevelSet)>> {
     let groups_path = fs::all_groups_path();
     if !groups_path.exists() {
         return Ok(Vec::new());
@@ -72,7 +74,8 @@ pub async fn load_groups_all() -> Result<Vec<(PathBuf, LevelSet)>> {
             let bytes = file::load_bytes(&path)
                 .await
                 .with_context(|| "when loading file")?;
-            let group: LevelSet = decode_group(&bytes).with_context(|| "when deserializing")?;
+            let group: LevelSet =
+                decode_group(music, &bytes).with_context(|| "when deserializing")?;
             anyhow::Ok((path, group))
         }
         .await

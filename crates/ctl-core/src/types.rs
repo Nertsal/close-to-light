@@ -10,8 +10,12 @@ pub type Name = Arc<str>;
 /// 1000 means that each time unit is a millisecond.
 pub const TIME_IN_FLOAT_TIME: Time = 1000;
 
-pub fn convert_time(time: FloatTime) -> Time {
+pub fn seconds_to_time(time: FloatTime) -> Time {
     (time.as_f32() / TIME_IN_FLOAT_TIME as f32).round() as Time
+}
+
+pub fn time_to_seconds(time: Time) -> FloatTime {
+    FloatTime::new(time as f32 * TIME_IN_FLOAT_TIME as f32)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -21,15 +25,35 @@ pub struct BeatTime {
 }
 
 impl BeatTime {
+    const UNITS_PER_BEAT: Time = 16;
+    /// A whole beat (typically a 1/4th note)
+    pub const WHOLE: Self = Self {
+        units: Self::UNITS_PER_BEAT,
+    };
+    /// A half beat (typically a 1/8th note)
+    pub const HALF: Self = Self {
+        units: Self::UNITS_PER_BEAT / 2,
+    };
+    /// A quarter beat (typically a 1/16th note)
+    pub const QUARTER: Self = Self {
+        units: Self::UNITS_PER_BEAT / 4,
+    };
+    /// An eighth beat (typically a 1/32th note)
+    pub const EIGHTH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 8,
+    };
+
     /// From whole beats.
     pub fn from_beats(beats: Time) -> Self {
-        Self { units: beats * 64 }
+        Self {
+            units: beats * Self::UNITS_PER_BEAT,
+        }
     }
 
     /// From quarter beats.
     pub fn from_4ths(quarters: Time) -> Self {
         Self {
-            units: quarters * 16,
+            units: quarters * (Self::UNITS_PER_BEAT / 4),
         }
     }
 
@@ -39,7 +63,17 @@ impl BeatTime {
     }
 
     pub fn as_millis(&self, beat_time: Time) -> Time {
-        self.units * beat_time / 16
+        self.units * beat_time / Self::UNITS_PER_BEAT
+    }
+}
+
+impl Mul<Time> for BeatTime {
+    type Output = Self;
+
+    fn mul(self, rhs: Time) -> Self::Output {
+        Self {
+            units: self.units * rhs,
+        }
     }
 }
 
@@ -119,11 +153,6 @@ impl GroupInfo {
 }
 
 impl MusicInfo {
-    /// Returns the duration (in seconds) of a single beat.
-    pub fn beat_time(&self) -> FloatTime {
-        r32(60.0) / self.bpm
-    }
-
     /// Return the list of authors in a readable string format.
     pub fn authors(&self) -> String {
         let authors = self.authors.iter().map(|author| author.name.as_ref());

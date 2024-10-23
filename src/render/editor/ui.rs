@@ -92,7 +92,7 @@ impl EditorRender {
 
         self.ui.draw_text(&ui.timing, framebuffer);
         self.ui.draw_value(&ui.bpm, framebuffer);
-        self.ui.draw_value(&ui.offset, framebuffer);
+        // self.ui.draw_value(&ui.offset, framebuffer);
 
         self.ui.draw_text(&ui.music, framebuffer);
         self.ui.draw_text(&ui.level, framebuffer);
@@ -114,9 +114,9 @@ impl EditorRender {
         }
 
         self.ui.draw_text(&ui.timeline, framebuffer);
-        self.ui.draw_value(&ui.scroll_by, framebuffer);
-        self.ui.draw_value(&ui.shift_scroll, framebuffer);
-        self.ui.draw_value(&ui.alt_scroll, framebuffer);
+        // self.ui.draw_value(&ui.scroll_by, framebuffer);
+        // self.ui.draw_value(&ui.shift_scroll, framebuffer);
+        // self.ui.draw_value(&ui.alt_scroll, framebuffer);
     }
 
     fn draw_tab_edit(&mut self, editor: &Editor, ui: &EditorEditWidget) {

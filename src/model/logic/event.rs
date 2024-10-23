@@ -18,7 +18,7 @@ impl Model {
                 let position = self.player.collider.position;
                 self.rhythms.push(Rhythm {
                     position,
-                    time: Bounded::new_zero(self.level.group.music.meta.beat_time()),
+                    time: Bounded::new_zero(TIME_IN_FLOAT_TIME / 2),
                     perfect,
                 });
             }

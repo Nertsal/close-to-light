@@ -2,9 +2,9 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Movement {
-    /// Time (in beats) to spend fading into the initial position.
+    /// Time (in milliseconds) to spend fading into the initial position.
     pub fade_in: Time,
-    /// Time (in beats) to spend fading out of the last keyframe.
+    /// Time (in milliseconds) to spend fading out of the last keyframe.
     pub fade_out: Time,
     pub initial: Transform,
     #[serde(default)]
@@ -126,9 +126,9 @@ impl Interpolatable for Transform {
 }
 
 impl MoveFrame {
-    pub fn scale(lerp_time: Time, scale: impl Float) -> Self {
+    pub fn scale(lerp_time: impl Float, scale: impl Float) -> Self {
         Self {
-            lerp_time,
+            lerp_time: seconds_to_time(FloatTime::new(lerp_time.as_f32())),
             interpolation: MoveInterpolation::default(),
             change_curve: None,
             transform: Transform::scale(scale),

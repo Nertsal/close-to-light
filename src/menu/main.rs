@@ -24,7 +24,7 @@ pub struct MainMenu {
     cursor_world_pos: vec2<Coord>,
     camera: Camera2d,
 
-    time: Time,
+    time: FloatTime,
     play_button: HoverButton,
     player: Player,
 
@@ -60,7 +60,7 @@ impl MainMenu {
                 fov: 10.0,
             },
 
-            time: Time::ZERO,
+            time: FloatTime::ZERO,
             play_button: HoverButton::new(
                 Collider {
                     position: vec2(0.0, 0.0).as_r32(),
@@ -105,7 +105,7 @@ impl geng::State for MainMenu {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
 
         self.context
@@ -140,7 +140,7 @@ impl geng::State for MainMenu {
         self.player
             .update_distance_simple(&self.play_button.base_collider);
         if self.play_button.hover_time.is_max() {
-            self.play_button.hover_time.set_ratio(Time::ZERO);
+            self.play_button.hover_time.set_ratio(FloatTime::ZERO);
             self.play();
         }
 
@@ -148,7 +148,7 @@ impl geng::State for MainMenu {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
         self.player.update_tail(delta_time);
     }
 

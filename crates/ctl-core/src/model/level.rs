@@ -10,7 +10,7 @@ pub struct Level {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TimedEvent {
     /// The beat on which the event should happen.
-    pub beat: Time,
+    pub time: Time,
     pub event: Event,
 }
 
@@ -40,7 +40,7 @@ pub struct LightEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Telegraph {
-    /// How long (in beats) before the event should the telegraph occur.
+    /// How long (in milliseconds) before the event should the telegraph occur.
     pub precede_time: Time,
     /// How fast the telegraph is.
     pub speed: Coord,
@@ -51,11 +51,11 @@ impl Level {
         Self { events: Vec::new() }
     }
 
-    /// Calculate the last beat when anything happens.
-    pub fn last_beat(&self) -> Time {
+    /// Calculate the last time when anything happens.
+    pub fn last_time(&self) -> Time {
         self.events
             .iter()
-            .map(|event| event.beat + event.duration())
+            .map(|event| event.time + event.duration())
             .max()
             .unwrap_or(Time::ZERO)
     }

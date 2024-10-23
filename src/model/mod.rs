@@ -8,10 +8,10 @@ pub use self::{level::*, options::*, player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 
-const COYOTE_TIME: f32 = 0.1;
-const BUFFER_TIME: f32 = 0.1;
+const COYOTE_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
+const BUFFER_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
 
-pub type Lifetime = Bounded<Time>;
+pub type Lifetime = Bounded<FloatTime>;
 
 #[derive(Debug, Clone)]
 pub enum GameEvent {
@@ -32,12 +32,12 @@ impl HoverButton {
             base_collider: collider,
             hover_time: Lifetime::new_zero(hover_time.as_r32()),
             animation: Movement {
-                fade_in: r32(0.0),
+                fade_in: seconds_to_time(r32(0.0)),
                 initial: Transform::scale(2.25),
-                key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
+                key_frames: vec![MoveFrame::scale(0.2, 5.0), MoveFrame::scale(0.1, 75.0)].into(),
                 interpolation: MoveInterpolation::Smoothstep,
                 curve: TrajectoryInterpolation::Linear,
-                fade_out: r32(0.2),
+                fade_out: seconds_to_time(r32(0.1)),
             },
             clicked: false,
         }
@@ -49,7 +49,7 @@ impl HoverButton {
         self.hover_time.get_ratio().as_f32() > 0.6
     }
 
-    pub fn update(&mut self, hovering: bool, delta_time: Time) {
+    pub fn update(&mut self, hovering: bool, delta_time: FloatTime) {
         let scale = if self.is_fading() {
             self.clicked = false;
             1.0
@@ -70,14 +70,14 @@ pub enum State {
     /// Wait for the player to hover the light and some additional time.
     Starting {
         /// Time until we can start the game.
-        start_timer: Time,
+        start_timer: FloatTime,
         /// Time to start playing music from.
         music_start_time: Time,
     },
     Playing,
     Lost {
         /// The time of death.
-        death_beat_time: Time,
+        death_exact_time: Time,
     },
     Finished,
 }
@@ -121,11 +121,11 @@ pub struct Model {
     /// Waypoint rhythms.
     pub rhythms: Vec<Rhythm>,
 
-    pub real_time: Time,
+    pub real_time: FloatTime,
     /// Time since the last state change.
-    pub switch_time: Time,
-    /// Current time with beats as measure.
-    pub beat_time: Time,
+    pub switch_time: FloatTime,
+    /// Current exact time in milliseconds.
+    pub exact_time: Time,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -180,7 +180,7 @@ impl Model {
 
             level_state: LevelState::default(),
             state: State::Starting {
-                start_timer: Time::ZERO, // reset during init
+                start_timer: FloatTime::ZERO, // reset during init
                 music_start_time: Time::ZERO,
             },
             score: Score::new(level.config.modifiers.multiplier()),
@@ -188,9 +188,9 @@ impl Model {
             last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
             rhythms: Vec::new(),
 
-            beat_time: Time::ZERO,
-            real_time: Time::ZERO,
-            switch_time: Time::ZERO,
+            exact_time: Time::ZERO,
+            real_time: FloatTime::ZERO,
+            switch_time: FloatTime::ZERO,
 
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),

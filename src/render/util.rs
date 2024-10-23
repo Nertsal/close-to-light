@@ -258,7 +258,7 @@ impl UtilRender {
         let fade_in = 0.25;
         let fade_out = 0.5;
 
-        let t = light.closest_waypoint.0.as_f32();
+        let t = time_to_seconds(light.closest_waypoint.0).as_f32();
         let t = (t / fade_in + 1.0).min(1.0 - t / fade_out).max(0.0);
         let radius = r32(t * radius_max);
 
@@ -492,7 +492,7 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let t = button.hover_time.get_ratio();
-        let scale = button.animation.get(t).scale;
+        let scale = button.animation.get(seconds_to_time(t)).scale;
         let collider = button
             .base_collider
             .transformed(Transform { scale, ..default() });

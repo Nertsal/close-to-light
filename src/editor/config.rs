@@ -4,8 +4,8 @@ use super::*;
 #[load(serde = "ron")]
 pub struct EditorConfig {
     pub grid: GridConfig,
-    /// How much of the music to playback when scrolling.
-    pub playback_duration: Time,
+    /// How much of the music to playback when scrolling (in seconds).
+    pub playback_duration: FloatTime,
     pub scroll_slow: Time,
     pub scroll_normal: Time,
     pub scroll_fast: Time,

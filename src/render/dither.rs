@@ -58,7 +58,7 @@ impl DitherRender {
         self.noise = noise;
     }
 
-    pub fn finish(&mut self, time: Time, theme: &Theme) -> ugli::Framebuffer {
+    pub fn finish(&mut self, time: FloatTime, theme: &Theme) -> ugli::Framebuffer {
         let mut other_framebuffer =
             geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
 

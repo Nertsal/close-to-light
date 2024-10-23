@@ -103,7 +103,7 @@ impl GameRender {
             } else {
                 THEME.danger
             };
-            let t = rhythm.time.get_ratio().as_f32();
+            let t = rhythm.time.clone().map(|t| t as f32).get_ratio();
 
             let scale = r32(crate::util::smoothstep(1.0 - t));
             let mut visual = model

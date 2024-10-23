@@ -4,7 +4,7 @@ use super::*;
 #[derive(Debug)]
 pub struct LevelState {
     /// The time at which the render has been done.
-    beat_time: Time,
+    time: Time,
     /// The time after which events are not rendered.
     ignore_after: Option<Time>,
     /// Whether the palette should be swapped.
@@ -17,7 +17,7 @@ pub struct LevelState {
 impl Default for LevelState {
     fn default() -> Self {
         Self {
-            beat_time: Time::ZERO,
+            time: Time::ZERO,
             ignore_after: None,
             swap_palette: false,
             lights: Vec::new(),
@@ -31,11 +31,11 @@ impl LevelState {
     pub fn render(
         level: &Level,
         config: &LevelConfig,
-        beat_time: Time,
+        time: Time,
         ignore_after: Option<Time>,
     ) -> Self {
         let mut state = Self {
-            beat_time,
+            time,
             ignore_after,
             swap_palette: false,
             lights: Vec::new(),
@@ -55,18 +55,18 @@ impl LevelState {
         event_id: Option<usize>,
         config: &LevelConfig,
     ) {
-        if self.beat_time < event.beat {
+        if self.time < event.time {
             self.is_finished = false;
             return;
         }
 
         if let Some(time) = self.ignore_after {
-            if event.beat > time {
+            if event.time > time {
                 return;
             }
         }
 
-        let time = self.beat_time - event.beat;
+        let time = self.time - event.time;
 
         match &event.event {
             Event::PaletteSwap => self.swap_palette = !self.swap_palette,
@@ -101,8 +101,8 @@ pub fn render_light(
         main_tele.light.collider = base_light.collider.transformed(transform);
 
         if config.waypoints.show {
-            let sustain_time = config.waypoints.sustain_time;
-            let fade_time = config.waypoints.fade_time;
+            let sustain_time = seconds_to_time(config.waypoints.sustain_time);
+            let fade_time = seconds_to_time(config.waypoints.fade_time);
             let sustain_scale = config.waypoints.sustain_scale;
 
             let mut last_pos = movement.initial.translation;
@@ -116,13 +116,13 @@ pub fn render_light(
                         && (Time::ZERO..sustain_time + fade_time).contains(&relative_time))
                     .then(|| {
                         let scale = if relative_time < sustain_time {
-                            let t = relative_time / sustain_time;
+                            let t = r32(relative_time as f32 / sustain_time as f32);
                             sustain_scale
-                                + crate::util::smoothstep(Time::ONE - t)
+                                + crate::util::smoothstep(FloatTime::ONE - t)
                                     * (Coord::ONE - sustain_scale)
                         } else {
-                            let t = (relative_time - sustain_time) / fade_time;
-                            sustain_scale * crate::util::smoothstep(Time::ONE - t)
+                            let t = r32((relative_time - sustain_time) as f32 / fade_time as f32);
+                            sustain_scale * crate::util::smoothstep(FloatTime::ONE - t)
                         };
                         transform.scale *= scale;
                         let mut tele = base_tele.clone();

@@ -177,35 +177,35 @@ impl EditorRender {
                     };
 
                     // TODO: adapt to movement density
-                    /// How many beats away are the waypoints still visible
-                    const VISIBILITY: f32 = 5.0;
+                    /// How much time away are the waypoints still visible
+                    const VISIBILITY: Time = TIME_IN_FLOAT_TIME * 5;
                     /// The minimum transparency level of waypoints outside visibility
                     const MIN_ALPHA: f32 = 0.2;
                     /// Waypoints past this time-distance are not rendered at all
-                    const MAX_VISIBILITY: f32 = 15.0;
+                    const MAX_VISIBILITY: Time = TIME_IN_FLOAT_TIME * 15;
                     // Calculate the waypoint visibility at the given relative timestamp
                     let visibility = |beat: Time| {
-                        let d = (timed_event.beat + event.telegraph.precede_time + beat
+                        let d = (timed_event.time + event.telegraph.precede_time + beat
                             - level_editor.current_time)
-                            .abs()
-                            .as_f32();
+                            .abs();
                         if d > MAX_VISIBILITY {
                             return 0.0;
                         }
-                        let d = d / VISIBILITY;
+                        let d = d as f32 / VISIBILITY as f32;
                         (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
                     };
 
                     // A dashed line moving through the waypoints to show general direction
                     const NUM_POINTS: usize = 25;
                     let num_points = NUM_POINTS * event.light.movement.key_frames.len();
-                    let period = event.light.movement.movement_duration().max(r32(0.01)); // NOTE: avoid dividing by 0
+                    let period =
+                        time_to_seconds(event.light.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
                     let speed = r32(4.0).recip();
                     let positions: Vec<draw2d::ColoredVertex> = (0..num_points)
                         .map(|i| {
                             let t = r32(i as f32 / num_points as f32);
                             let t = (level_editor.real_time / period * speed + t).fract() * period;
-                            let t = t + event.light.movement.fade_in;
+                            let t = seconds_to_time(t) + event.light.movement.fade_in;
                             let alpha = visibility(t);
                             draw2d::ColoredVertex {
                                 a_pos: event.light.movement.get(t).translation.as_f32(), // TODO: check performance
@@ -251,7 +251,7 @@ impl EditorRender {
                                         if let Event::Light(light) = &event.event {
                                             let beat = light.light.movement.get_time(i)?;
                                             alpha = visibility(beat);
-                                            return Some((event.beat, light, beat));
+                                            return Some((event.time, light, beat));
                                         }
                                         None
                                     })

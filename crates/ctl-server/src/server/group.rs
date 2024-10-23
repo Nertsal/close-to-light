@@ -475,7 +475,7 @@ fn validate_group(group: &LevelSet<LevelFull>) -> Result<()> {
     for level in &group.levels {
         // TODO: check realtime
         // but i think the format will change to use realtime inside the level
-        let duration = level.data.last_beat();
+        let duration = level.data.last_time();
         if duration < LEVEL_MIN_DURATION * ctl_core::types::TIME_IN_FLOAT_TIME {
             return Err(RequestError::LevelTooSmall);
         }

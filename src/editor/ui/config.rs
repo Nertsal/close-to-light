@@ -17,12 +17,13 @@ pub struct EditorConfigWidget {
     pub all_level_names: Vec<(IconWidget, IconWidget, TextWidget)>,
 
     pub timeline: TextWidget,
-    /// Normal time scroll.
-    pub scroll_by: ValueWidget<BeatTime>, // TODO: 1/4 instead of 0.25
-    /// Slow time scroll.
-    pub shift_scroll: ValueWidget<BeatTime>,
-    /// Fast time scroll.
-    pub alt_scroll: ValueWidget<BeatTime>,
+    // TODO scroll time
+    // /// Normal time scroll.
+    // pub scroll_by: ValueWidget<BeatTime>,
+    // /// Slow time scroll.
+    // pub shift_scroll: ValueWidget<BeatTime>,
+    // /// Fast time scroll.
+    // pub alt_scroll: ValueWidget<BeatTime>,
     // pub snap_to: CheckboxWidget,
 }
 
@@ -44,24 +45,24 @@ impl EditorConfigWidget {
             all_level_names: Vec::new(),
 
             timeline: TextWidget::new("Timeline"),
-            scroll_by: ValueWidget::new_range(
-                "Scroll by",
-                r32(1.0),
-                r32(0.25)..=r32(4.0),
-                r32(0.25),
-            ),
-            shift_scroll: ValueWidget::new_range(
-                "Shift scroll",
-                r32(0.25),
-                r32(0.125)..=r32(1.0),
-                r32(0.125),
-            ),
-            alt_scroll: ValueWidget::new_range(
-                "Alt scroll",
-                r32(10.0),
-                r32(1.0)..=r32(20.0),
-                r32(0.5),
-            ),
+            // scroll_by: ValueWidget::new_range(
+            //     "Scroll by",
+            //     BeatTime::WHOLE,
+            //     BeatTime::QUARTER..=BeatTime::WHOLE * 4,
+            //     BeatTime::QUARTER,
+            // ),
+            // shift_scroll: ValueWidget::new_range(
+            //     "Shift scroll",
+            //     BeatTime::QUARTER,
+            //     BeatTime::EIGHTH..=BeatTime::WHOLE,
+            //     BeatTime::EIGHTH,
+            // ),
+            // alt_scroll: ValueWidget::new_range(
+            //     "Alt scroll",
+            //     BeatTime::WHOLE * 10,
+            //     BeatTime::WHOLE..=BeatTime::WHOLE * 20,
+            //     BeatTime::HALF,
+            // ),
         }
     }
 }
@@ -233,20 +234,21 @@ impl StatefulWidget for EditorConfigWidget {
         let timeline = bar.cut_top(context.font_size);
         self.timeline.update(timeline, context);
 
-        let mut config = state.config.clone();
+        // TODO: scroll time
+        // let mut config = state.config.clone();
 
-        let scroll_by = bar.cut_top(context.font_size);
-        self.scroll_by
-            .update(scroll_by, context, &mut config.scroll_normal);
+        // let scroll_by = bar.cut_top(context.font_size);
+        // self.scroll_by
+        //     .update(scroll_by, context, &mut config.scroll_normal);
 
-        let shift_scroll = bar.cut_top(context.font_size);
-        self.shift_scroll
-            .update(shift_scroll, context, &mut config.scroll_slow);
+        // let shift_scroll = bar.cut_top(context.font_size);
+        // self.shift_scroll
+        //     .update(shift_scroll, context, &mut config.scroll_slow);
 
-        let alt_scroll = bar.cut_top(context.font_size);
-        self.alt_scroll
-            .update(alt_scroll, context, &mut config.scroll_fast);
+        // let alt_scroll = bar.cut_top(context.font_size);
+        // self.alt_scroll
+        //     .update(alt_scroll, context, &mut config.scroll_fast);
 
-        actions.push(EditorAction::SetConfig(config).into());
+        // actions.push(EditorAction::SetConfig(config).into());
     }
 }

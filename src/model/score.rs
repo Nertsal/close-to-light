@@ -62,7 +62,7 @@ impl Score {
 
     /// Update the score given current player state.
     #[must_use]
-    pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
+    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> Vec<GameEvent> {
         let events = self.metrics.update(player, delta_time);
         self.calculated = CalculatedScore::from_metrics(&self.metrics, self.multiplier);
         events
@@ -106,7 +106,7 @@ impl ScoreMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
+    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> Vec<GameEvent> {
         let mut events = Vec::new();
         if player.is_keyframe {
             events.extend(self.discrete.update(player));
@@ -156,7 +156,7 @@ impl DynamicMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, delta_time: Time) -> Vec<GameEvent> {
+    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> Vec<GameEvent> {
         let events = Vec::new();
 
         self.frames += 1;

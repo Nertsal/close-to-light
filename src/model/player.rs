@@ -5,7 +5,7 @@ pub struct Player {
     pub info: UserInfo,
     pub shake: vec2<Coord>,
     pub collider: Collider,
-    pub health: Bounded<Time>,
+    pub health: Bounded<FloatTime>,
 
     /// Whether currently perfectly inside the center of the light.
     /// Controlled by the collider.
@@ -38,7 +38,7 @@ pub enum LitState {
 }
 
 impl Player {
-    pub fn new(collider: Collider, health: Time) -> Self {
+    pub fn new(collider: Collider, health: FloatTime) -> Self {
         Self {
             info: UserInfo {
                 id: 0,
@@ -69,7 +69,7 @@ impl Player {
         }
     }
 
-    pub fn update_tail(&mut self, delta_time: Time) {
+    pub fn update_tail(&mut self, delta_time: FloatTime) {
         for tail in &mut self.tail {
             tail.lifetime.change(-delta_time);
         }
@@ -147,8 +147,8 @@ impl Player {
 
     pub fn update_light_distance(&mut self, light: &Light, last_rhythm: (usize, WaypointId)) {
         let (time, waypoint) = light.closest_waypoint;
-        let at_waypoint = time.as_f32() > -COYOTE_TIME
-            && time.as_f32() < BUFFER_TIME
+        let at_waypoint = time > -COYOTE_TIME
+            && time < BUFFER_TIME
             && light
                 .event_id
                 .map_or(false, |event| last_rhythm != (event, waypoint));

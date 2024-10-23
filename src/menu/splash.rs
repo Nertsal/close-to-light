@@ -9,7 +9,7 @@ pub struct SplashScreen {
 
     util: UtilRender,
 
-    time: Time,
+    time: FloatTime,
 }
 
 impl SplashScreen {
@@ -17,7 +17,7 @@ impl SplashScreen {
         Self {
             util: UtilRender::new(context.clone()),
 
-            time: Time::ZERO,
+            time: FloatTime::ZERO,
 
             context,
             client: client.cloned(),
@@ -72,7 +72,7 @@ trigger seizures for people with photosensitive epilepsy
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
 
         if self.time.as_f32() > TRANSITION_TIME {

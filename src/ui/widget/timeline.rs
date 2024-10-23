@@ -28,9 +28,9 @@ pub struct TimelineWidget {
 
     /// Render scale in pixels per beat.
     scale: f32,
-    /// The scrolloff in beats.
+    /// The scrolloff in exact time.
     scroll: Time,
-    raw_current_beat: Time,
+    raw_current_time: Time,
     raw_left: Option<Time>,
     raw_right: Option<Time>,
     raw_replay: Option<Time>,
@@ -70,7 +70,7 @@ impl TimelineWidget {
 
             scale: 15.0,
             scroll: Time::ZERO,
-            raw_current_beat: Time::ZERO,
+            raw_current_time: Time::ZERO,
             raw_left: None,
             raw_right: None,
             raw_replay: None,
@@ -92,7 +92,7 @@ impl TimelineWidget {
         // scroll so that current beat stays in-place
         let min = self.state.position.min.x;
         let current = self.current_beat.position.center().x;
-        self.scroll = r32(current - min) / r32(new_scale) - self.raw_current_beat;
+        self.scroll = ((current - min) / (new_scale)) as Time - self.raw_current_time;
 
         self.scale = new_scale;
         self.reload(None);
@@ -105,7 +105,7 @@ impl TimelineWidget {
     // }
 
     pub fn visible_scroll(&self) -> Time {
-        r32(self.state.position.width() / self.scale)
+        (self.state.position.width() / self.scale) as Time
     }
 
     pub fn get_scroll(&self) -> Time {
@@ -118,33 +118,33 @@ impl TimelineWidget {
     }
 
     pub fn update_time(&mut self, current_beat: Time, replay: Option<Time>) {
-        self.raw_current_beat = current_beat;
+        self.raw_current_time = current_beat;
         self.raw_replay = replay;
         self.reload(None);
 
-        // Auto scroll if current beat goes off screen
+        // Auto scroll if current time goes off screen
         let margin = 50.0;
-        let margin_beats = r32(margin / self.scale);
+        let margin_time = margin / self.scale;
 
         let min = margin;
         let max = self.state.position.width() - margin;
         let current = self.current_beat.position.center().x - self.state.position.min.x;
-        if current < min && self.raw_current_beat > margin_beats {
-            self.scroll(r32((min - current) / self.scale));
+        if current < min && self.raw_current_time as f32 > margin_time {
+            self.scroll(((min - current) / self.scale) as Time);
         } else if current > max {
-            self.scroll(r32((max - current) / self.scale));
+            self.scroll(((max - current) / self.scale) as Time);
         }
         self.reload(None);
     }
 
     pub fn start_selection(&mut self) {
-        self.raw_left = Some(self.raw_current_beat);
+        self.raw_left = Some(self.raw_current_time);
         self.reload(None);
     }
 
     /// Finishes the selection and returns the left and right boundaries in ascending order.
     pub fn end_selection(&mut self) -> (Time, Time) {
-        let right = self.raw_current_beat;
+        let right = self.raw_current_time;
         self.raw_right = Some(right);
         self.reload(None);
 
@@ -164,7 +164,7 @@ impl TimelineWidget {
 
     fn reload(&mut self, mut editor: Option<(&LevelEditor, &mut Vec<LevelAction>)>) {
         let render_time = |time: Time| {
-            let pos = (time + self.scroll).as_f32() * self.scale;
+            let pos = (time + self.scroll) as f32 * self.scale;
             let pos = vec2(
                 self.state.position.min.x + pos,
                 self.state.position.center().y,
@@ -172,7 +172,7 @@ impl TimelineWidget {
             Aabb2::point(pos).extend_symmetric(vec2(0.1, 0.5) * self.context.font_size / 2.0)
         };
         self.current_beat
-            .update(render_time(self.raw_current_beat), &self.context);
+            .update(render_time(self.raw_current_time), &self.context);
 
         self.lights.clear();
         self.waypoints.clear();
@@ -180,7 +180,7 @@ impl TimelineWidget {
         let height = self.context.font_size * 0.4;
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light) = &event.event {
-                let time = event.beat + light.telegraph.precede_time;
+                let time = event.time + light.telegraph.precede_time;
                 let light_id = LightId { event: i };
                 if Some(light_id) == self.selected_light {
                     let from = render_time(time).center();
@@ -243,7 +243,8 @@ impl TimelineWidget {
     }
 
     pub fn get_cursor_time(&self) -> Time {
-        r32((self.context.cursor.position.x - self.state.position.min.x) / self.scale) - self.scroll
+        ((self.context.cursor.position.x - self.state.position.min.x) / self.scale) as Time
+            - self.scroll
     }
 }
 

@@ -15,10 +15,10 @@ pub const THEME: Theme = Theme {
     highlight: Color::BLUE,
 };
 
-pub fn smooth_button(button: &HoverButton, time: Time) -> HoverButton {
+pub fn smooth_button(button: &HoverButton, time: FloatTime) -> HoverButton {
     // Appear at 1.0
     // Fade in until 2.0
-    let t = (time - Time::ONE).clamp(Time::ZERO, Time::ONE);
+    let t = (time - FloatTime::ONE).clamp(FloatTime::ZERO, FloatTime::ONE);
     let t = crate::util::smoothstep(t);
 
     let mut button = button.clone();

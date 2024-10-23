@@ -71,7 +71,7 @@ impl EditorState {
                         delta.min(current)
                     } else {
                         -delta.abs().min(
-                            level_editor.level.last_beat() - timeline.visible_scroll() - current,
+                            level_editor.level.last_time() - timeline.visible_scroll() - current,
                         )
                     };
                     timeline.scroll(delta);
@@ -158,7 +158,7 @@ impl EditorState {
                             // delta = ((delta * 4.0).round() / 4.0).as_r32();
 
                             match waypoint {
-                                WaypointId::Initial => event.beat += delta,
+                                WaypointId::Initial => event.time += delta,
                                 WaypointId::Frame(i) => {
                                     if let Some(frame) = light.light.movement.key_frames.get_mut(i)
                                     {

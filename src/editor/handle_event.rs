@@ -223,9 +223,9 @@ impl EditorState {
                             let scroll = scroll.as_f32() as Time;
                             let change = scroll * self.editor.config.scroll_slow;
                             let action = if shift {
-                                LevelAction::ChangeFadeOut(id, change)
+                                LevelAction::ChangeFadeOut(id, Change::Add(change))
                             } else {
-                                LevelAction::ChangeFadeIn(id, change)
+                                LevelAction::ChangeFadeIn(id, Change::Add(change))
                             };
                             actions.push(action.into());
                         }
@@ -367,7 +367,7 @@ impl EditorState {
                             let target = DragTarget::Light {
                                 double,
                                 light: LightId { event },
-                                initial_time: e.beat,
+                                initial_time: e.time,
                                 initial_translation: light.light.movement.initial.translation,
                             };
                             actions.push(EditorStateAction::StartDrag(target));

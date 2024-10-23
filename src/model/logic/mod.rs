@@ -5,26 +5,27 @@ use super::*;
 impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
-        log::info!("Starting at the requested time {:.2}...", target_time);
-        self.beat_time = target_time / self.level.group.music.meta.beat_time();
-        self.player.health.set_ratio(Time::ONE);
+        log::info!("Starting at the requested time {}...", target_time);
+        self.exact_time = target_time;
+        self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
             music_start_time: target_time,
         };
     }
 
-    pub fn update(&mut self, player_target: vec2<Coord>, delta_time: Time) {
+    pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime) {
         self.context.music.set_volume(self.options.volume.music());
 
-        self.update_rhythm(delta_time);
+        let exact_delta = seconds_to_time(delta_time);
+        self.update_rhythm(exact_delta);
 
         // Move
         self.player.collider.position = player_target;
 
         if let State::Starting { .. } = self.state {
         } else {
-            self.beat_time += delta_time / self.level.group.music.meta.beat_time();
+            self.exact_time += exact_delta;
         }
 
         self.real_time += delta_time;
@@ -45,13 +46,15 @@ impl Model {
 
         // Update level state
         let ignore_time = match self.state {
-            State::Lost { death_beat_time } => Some(death_beat_time),
+            State::Lost {
+                death_exact_time: death_beat_time,
+            } => Some(death_beat_time),
             _ => None,
         };
         self.level_state = LevelState::render(
             &self.level.level.data,
             &self.level.config,
-            self.beat_time,
+            self.exact_time,
             ignore_time,
         );
 
@@ -74,8 +77,8 @@ impl Model {
                         // because otherwise we cannot detect a miss
                         // as both will get set to `None` at the same frame
                         // (allows for unpunished late entrance)
-                        let time = light.closest_waypoint.0.as_f32();
-                        time < 0.0 && (time > -COYOTE_TIME || pass && time > -COYOTE_TIME * 2.0)
+                        let time = light.closest_waypoint.0;
+                        time < 0 && (time > -COYOTE_TIME || pass && time > -COYOTE_TIME * 2)
                     })
                     .map(|light| (id, light.closest_waypoint.1))
             })
@@ -103,7 +106,7 @@ impl Model {
             } => {
                 let music_start_time = *music_start_time;
                 *start_timer -= delta_time;
-                if *start_timer <= Time::ZERO && self.player.is_perfect {
+                if *start_timer <= FloatTime::ZERO && self.player.is_perfect {
                     self.start(music_start_time);
                 }
             }
@@ -144,7 +147,7 @@ impl Model {
                     }
                 }
             }
-            _ if self.switch_time > Time::ONE => {
+            _ if self.switch_time > FloatTime::ONE => {
                 // 1 second before the UI is active
                 let hovering = self
                     .restart_button
@@ -208,7 +211,7 @@ impl Model {
         self.state = State::Playing;
         self.context.music.play_from(
             &self.level.group.music,
-            time::Duration::from_secs_f64(music_start_time.as_f32() as f64),
+            time::Duration::from_secs_f64(time_to_seconds(music_start_time).as_f32().into()),
         );
     }
 
@@ -216,16 +219,16 @@ impl Model {
         self.save_highscore();
         self.state = State::Finished;
         self.context.music.stop();
-        self.switch_time = Time::ZERO;
+        self.switch_time = FloatTime::ZERO;
         self.get_leaderboard(true);
     }
 
     pub fn lose(&mut self) {
         self.save_highscore();
         self.state = State::Lost {
-            death_beat_time: self.beat_time,
+            death_exact_time: self.exact_time,
         };
-        self.switch_time = Time::ZERO;
+        self.switch_time = FloatTime::ZERO;
         self.get_leaderboard(false);
     }
 

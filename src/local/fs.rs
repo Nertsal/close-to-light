@@ -59,7 +59,10 @@ impl Controller {
         }
     }
 
-    pub async fn load_groups_all(&self) -> Result<Vec<(PathBuf, LevelSet)>> {
+    pub async fn load_groups_all(
+        &self,
+        music: &HashMap<Id, Rc<CachedMusic>>,
+    ) -> Result<Vec<(PathBuf, LevelSet)>> {
         log::debug!("Loading all local groups");
 
         #[cfg(target_arch = "wasm32")]
@@ -74,7 +77,7 @@ impl Controller {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            native::load_groups_all().await
+            native::load_groups_all(music).await
         }
     }
 
@@ -239,16 +242,19 @@ impl CachedGroup {
     }
 }
 
-fn decode_group(bytes: &[u8]) -> Result<LevelSet> {
+fn decode_group(music: &HashMap<Id, Rc<CachedMusic>>, bytes: &[u8]) -> Result<LevelSet> {
     match cbor4ii::serde::from_slice(bytes) {
         Ok(value) => Ok(value),
         Err(err) => {
             // Try legacy version, for backwards compatibility
             if let Ok(value) = bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(bytes)
             {
-                return Ok(value.into());
+                if let Some(music) = music.get(&value.music) {
+                    let beat_time = r32(60.0) / music.meta.bpm;
+                    let value = ctl_client::core::legacy::v1::convert_group(beat_time, value);
+                    return Ok(value);
+                }
             }
-
             Err(err.into())
         }
     }

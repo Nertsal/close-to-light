@@ -36,7 +36,7 @@ pub struct EditorState {
     render: EditorRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
-    delta_time: Time,
+    delta_time: FloatTime,
     ui: EditorUI,
     ui_focused: bool,
     ui_context: UiContext,
@@ -119,7 +119,7 @@ pub struct Editor {
 
     pub grid_size: Coord,
     pub view_zoom: f32,
-    pub music_timer: Time,
+    pub music_timer: FloatTime,
     pub snap_to_grid: bool,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
@@ -132,10 +132,10 @@ pub struct Editor {
 
 #[derive(Debug)]
 pub struct Replay {
-    pub start_beat: Time,
-    pub end_beat: Time,
-    pub current_beat: Time,
-    pub speed: Time,
+    pub start_time: Time,
+    pub end_time: Time,
+    pub current_time: Time,
+    pub speed: FloatTime,
 }
 
 impl LevelEditor {
@@ -150,7 +150,7 @@ impl LevelEditor {
             context,
             level_state: EditorLevelState::default(),
             current_time: Time::ZERO,
-            real_time: Time::ZERO,
+            real_time: FloatTime::ZERO,
             selected_light: None,
             place_rotation: Angle::ZERO,
             place_scale: Coord::ONE,
@@ -198,7 +198,7 @@ impl LevelEditor {
                     Some(frame) => {
                         // Make the first frame the initial position
                         event.light.movement.initial = frame.transform;
-                        timed_event.beat += frame.lerp_time;
+                        timed_event.time += frame.lerp_time;
                     }
                 }
             }
@@ -249,7 +249,7 @@ impl EditorState {
                 visualize_beat: true,
                 show_only_selected: false,
                 snap_to_grid: true,
-                music_timer: Time::ZERO,
+                music_timer: FloatTime::ZERO,
 
                 group,
                 level_edit: None,
@@ -271,7 +271,7 @@ impl EditorState {
         (pos / self.editor.grid_size).map(Coord::round) * self.editor.grid_size
     }
 
-    fn update_level_editor(&mut self, delta_time: Time) {
+    fn update_level_editor(&mut self, delta_time: FloatTime) {
         let Some(level_editor) = &mut self.editor.level_edit else {
             return;
         };
@@ -282,9 +282,9 @@ impl EditorState {
 
         level_editor.real_time += delta_time;
 
-        if self.editor.music_timer > Time::ZERO {
+        if self.editor.music_timer > FloatTime::ZERO {
             self.editor.music_timer -= delta_time;
-            if self.editor.music_timer <= Time::ZERO {
+            if self.editor.music_timer <= FloatTime::ZERO {
                 self.context.music.stop();
             }
         }
@@ -296,7 +296,7 @@ impl EditorState {
                         // Set current time to align with the selected waypoint
                         if let Some(time) = light.light.movement.get_time(waypoint) {
                             level_editor.current_time =
-                                event.beat + light.telegraph.precede_time + time;
+                                event.time + light.telegraph.precede_time + time;
                         }
                     }
                 }
@@ -313,8 +313,7 @@ impl EditorState {
                     &level_editor.static_level.group.music,
                     level_editor.current_time,
                 );
-                self.editor.music_timer = level_editor.static_level.group.music.meta.beat_time()
-                    * self.editor.config.playback_duration;
+                self.editor.music_timer = self.editor.config.playback_duration;
             }
             level_editor.was_scrolling_time = false;
         }
@@ -322,13 +321,11 @@ impl EditorState {
         level_editor.scrolling_time = false;
 
         if let State::Playing { .. } = level_editor.state {
-            level_editor.current_time =
-                level_editor.real_time / level_editor.static_level.group.music.meta.beat_time();
+            level_editor.current_time = seconds_to_time(level_editor.real_time);
         } else if let Some(replay) = &mut level_editor.dynamic_segment {
-            replay.current_beat +=
-                replay.speed * delta_time / level_editor.static_level.group.music.meta.beat_time();
-            if replay.current_beat > replay.end_beat {
-                replay.current_beat = replay.start_beat;
+            replay.current_time += seconds_to_time(replay.speed * delta_time);
+            if replay.current_time > replay.end_time {
+                replay.current_time = replay.start_time;
             }
         }
 
@@ -361,8 +358,7 @@ impl EditorState {
         };
 
         let level = crate::game::PlayLevel {
-            start_time: level_editor.current_time
-                * level_editor.static_level.group.music.meta.beat_time(), // TODO: nonlinear time
+            start_time: level_editor.current_time,
             level: Rc::new(LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
                 data: level_editor.level.clone(),
@@ -388,7 +384,7 @@ impl geng::State for EditorState {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.delta_time = delta_time;
 
         self.context
@@ -737,13 +733,13 @@ impl LevelEditor {
     }
 
     fn scroll_time(&mut self, delta: Time) {
-        let margin = r32(1000.0);
+        let margin = 100 * TIME_IN_FLOAT_TIME;
         let min = Time::ZERO;
-        let max = margin + self.level.last_beat();
+        let max = margin + self.level.last_time();
         let target = (self.current_time + delta).clamp(min, max);
 
-        // Align with quarter beats
-        self.current_time = ((target.as_f32() * 4.0).round() / 4.0).as_r32();
+        // TODO: align with quarter beats
+        self.current_time = target;
 
         self.scrolling_time = true;
 
@@ -766,12 +762,9 @@ impl LevelEditor {
             let time = self.current_time;
             let dynamic = if visualize_beat {
                 if let Some(replay) = &self.dynamic_segment {
-                    Some(replay.current_beat)
+                    Some(replay.current_time)
                 } else {
-                    Some(
-                        time + (self.real_time / self.static_level.group.music.meta.beat_time())
-                            .fract(),
-                    )
+                    Some(time + seconds_to_time(self.real_time))
                 }
             } else {
                 None
@@ -810,14 +803,14 @@ impl LevelEditor {
             let light_id = *light_id;
             if let Some(timed_event) = self.level.events.get(light_id.event) {
                 if let Event::Light(light_event) = &timed_event.event {
-                    let event_time = timed_event.beat + light_event.telegraph.precede_time;
+                    let event_time = timed_event.time + light_event.telegraph.precede_time;
                     // If some waypoints overlap, render the temporaly closest one
                     let base_collider = Collider::new(vec2::ZERO, light_event.light.shape);
 
                     /// Waypoints past this time-distance are not rendered at all
-                    const MAX_VISIBILITY: f32 = 15.0;
+                    const MAX_VISIBILITY: Time = 5 * TIME_IN_FLOAT_TIME;
                     let visible = |beat: Time| {
-                        let d = (event_time + beat - self.current_time).abs().as_f32();
+                        let d = (event_time + beat - self.current_time).abs();
                         d <= MAX_VISIBILITY
                     };
 
@@ -829,8 +822,8 @@ impl LevelEditor {
                         .timed_positions()
                         .map(|(i, trans_control, time)| {
                             let trans_actual = match i {
-                                WaypointId::Initial => curve.get(0, Time::ZERO),
-                                WaypointId::Frame(i) => curve.get(i, Time::ONE),
+                                WaypointId::Initial => curve.get(0, FloatTime::ZERO),
+                                WaypointId::Frame(i) => curve.get(i, FloatTime::ONE),
                             }
                             .unwrap_or(trans_control); // Should be unreachable, but just in case
                             (

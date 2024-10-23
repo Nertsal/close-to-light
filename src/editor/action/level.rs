@@ -21,8 +21,8 @@ pub enum LevelAction {
     SelectLight(LightId),
     DeselectLight,
     ToggleDanger(LightId),
-    ChangeFadeOut(LightId, Time),
-    ChangeFadeIn(LightId, Time),
+    ChangeFadeOut(LightId, Change<Time>),
+    ChangeFadeIn(LightId, Change<Time>),
     MoveLight(LightId, Change<Time>, Change<vec2<Coord>>),
 
     // Waypoint actions
@@ -46,10 +46,10 @@ pub enum Change<T> {
 }
 
 impl<T: Sub<Output = T>> Change<T> {
-    pub fn into_delta(self, reference_value: T) -> Self {
+    pub fn into_delta(self, reference_value: T) -> T {
         match self {
-            Change::Add(_) => self,
-            Change::Set(target_value) => Change::Add(target_value.sub(reference_value)),
+            Change::Add(delta) => delta,
+            Change::Set(target_value) => target_value.sub(reference_value),
         }
     }
 }
@@ -94,8 +94,8 @@ impl LevelAction {
             LevelAction::NewWaypoint => false,
             LevelAction::PlaceWaypoint(_) => false,
             LevelAction::ScaleWaypoint(_, _, delta) => *delta == Coord::ZERO,
-            LevelAction::ChangeFadeOut(_, delta) => *delta == 0,
-            LevelAction::ChangeFadeIn(_, delta) => *delta == 0,
+            LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
+            LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
             LevelAction::DeselectLight => false,
             LevelAction::SelectLight(_) => false,
             LevelAction::SelectWaypoint(_) => false,
@@ -187,7 +187,9 @@ impl LevelEditor {
                 if let Some(event) = self.level.events.get_mut(id.event) {
                     if let Event::Light(light) = &mut event.event {
                         let movement = &mut light.light.movement;
-                        movement.change_fade_out(movement.fade_out + change);
+                        let mut value = movement.fade_out;
+                        change.apply(&mut value);
+                        movement.change_fade_out(value);
                         self.save_state(HistoryLabel::FadeOut(id));
                     }
                 }
@@ -197,8 +199,9 @@ impl LevelEditor {
                     if let Event::Light(light) = &mut event.event {
                         let movement = &mut light.light.movement;
                         let from = movement.fade_in;
+                        let change = change.into_delta(from);
                         movement.change_fade_in(movement.fade_in + change);
-                        event.beat -= movement.fade_in - from;
+                        event.time -= movement.fade_in - from;
                         self.save_state(HistoryLabel::FadeIn(id));
                     }
                 }
@@ -256,9 +259,10 @@ impl LevelEditor {
             return;
         };
 
-        change_time.apply(&mut timed_event.beat);
+        change_time.apply(&mut timed_event.time);
 
-        let change_pos = change_pos.into_delta(event.light.movement.initial.translation);
+        let change_pos =
+            Change::Add(change_pos.into_delta(event.light.movement.initial.translation));
         change_pos.apply(&mut event.light.movement.initial.translation);
         for frame in &mut event.light.movement.key_frames {
             change_pos.apply(&mut frame.transform.translation);
@@ -455,7 +459,7 @@ impl LevelEditor {
         let beat = start_beat - light.light.movement.fade_in - light.telegraph.precede_time;
         let event = commit_light(light.clone());
         let event = TimedEvent {
-            beat,
+            time: beat,
             event: Event::Light(event),
         };
 
@@ -509,18 +513,18 @@ impl LevelEditor {
                 let time =
                     self.current_time - light.light.movement.fade_in - light.telegraph.precede_time;
                 light.light.movement.key_frames.push_front(MoveFrame {
-                    lerp_time: event.beat - time,
+                    lerp_time: event.time - time,
                     interpolation,
                     change_curve,
                     transform,
                 });
-                event.beat = time;
+                event.time = time;
             }
             Some(i) => {
                 // Insert keyframe
                 let last = light.light.movement.timed_positions().nth(i);
                 if let Some((_, _, last_time)) = last {
-                    let last_time = event.beat + light.telegraph.precede_time + last_time;
+                    let last_time = event.time + light.telegraph.precede_time + last_time;
                     let lerp_time = self.current_time - last_time;
 
                     light.light.movement.key_frames.insert(
