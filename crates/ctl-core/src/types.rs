@@ -11,17 +11,36 @@ pub type Name = Arc<str>;
 pub const TIME_IN_FLOAT_TIME: Time = 1000;
 
 pub fn seconds_to_time(time: FloatTime) -> Time {
-    (time.as_f32() / TIME_IN_FLOAT_TIME as f32).round() as Time
+    (time.as_f32() * TIME_IN_FLOAT_TIME as f32).round() as Time
 }
 
 pub fn time_to_seconds(time: Time) -> FloatTime {
-    FloatTime::new(time as f32 * TIME_IN_FLOAT_TIME as f32)
+    FloatTime::new(time as f32 / TIME_IN_FLOAT_TIME as f32)
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(transparent)]
+struct BeatTimeSerde(FloatTime);
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(from = "BeatTimeSerde", into = "BeatTimeSerde")]
 pub struct BeatTime {
     /// 1 unit is 1/16 of a beat (typically a 1/64th note).
     units: Time,
+}
+
+impl From<BeatTime> for BeatTimeSerde {
+    fn from(value: BeatTime) -> Self {
+        Self(r32(value.units as f32 / BeatTime::UNITS_PER_BEAT as f32))
+    }
+}
+
+impl From<BeatTimeSerde> for BeatTime {
+    fn from(value: BeatTimeSerde) -> Self {
+        Self {
+            units: (value.0.as_f32() * BeatTime::UNITS_PER_BEAT as f32).round() as Time,
+        }
+    }
 }
 
 impl BeatTime {

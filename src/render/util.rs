@@ -255,8 +255,9 @@ impl UtilRender {
         // Waypoint visual
         let radius_max = 0.2;
         let width = 0.05;
-        let fade_in = 0.25;
-        let fade_out = 0.5;
+        let beat_time = 60.0 / 150.0; // TODO: real bpm
+        let fade_in = 0.25 * beat_time;
+        let fade_out = 0.5 * beat_time;
 
         let t = time_to_seconds(light.closest_waypoint.0).as_f32();
         let t = (t / fade_in + 1.0).min(1.0 - t / fade_out).max(0.0);

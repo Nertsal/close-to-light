@@ -6,9 +6,9 @@ pub struct EditorConfig {
     pub grid: GridConfig,
     /// How much of the music to playback when scrolling (in seconds).
     pub playback_duration: FloatTime,
-    pub scroll_slow: Time,
-    pub scroll_normal: Time,
-    pub scroll_fast: Time,
+    pub scroll_slow: BeatTime,
+    pub scroll_normal: BeatTime,
+    pub scroll_fast: BeatTime,
     pub theme: EditorTheme,
     pub shapes: Vec<Shape>,
 }

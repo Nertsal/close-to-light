@@ -50,6 +50,8 @@ impl EditorState {
         } else {
             self.editor.config.scroll_normal
         };
+        let beat_time = seconds_to_time(r32(60.0) / level_editor.static_level.group.music.meta.bpm); // TODO scroll time
+        let scroll_speed = scroll_speed.as_millis(beat_time); // TODO: well beat time may change as we scroll
 
         match event {
             geng::Event::KeyPress { key } => match key {
@@ -221,7 +223,8 @@ impl EditorState {
                         } else if let Some(id) = level_editor.selected_light {
                             // Control fade time
                             let scroll = scroll.as_f32() as Time;
-                            let change = scroll * self.editor.config.scroll_slow;
+                            let change =
+                                scroll * self.editor.config.scroll_slow.as_millis(beat_time);
                             let action = if shift {
                                 LevelAction::ChangeFadeOut(id, Change::Add(change))
                             } else {
