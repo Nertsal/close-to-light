@@ -201,7 +201,7 @@ impl EditorRender {
                     let period =
                         time_to_seconds(event.light.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
                     let speed = r32(4.0).recip();
-                    let positions: Vec<draw2d::ColoredVertex> = (0..num_points)
+                    let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
                         .map(|i| {
                             let t = r32(i as f32 / num_points as f32);
                             let t = (level_editor.real_time / period * speed + t).fract() * period;
