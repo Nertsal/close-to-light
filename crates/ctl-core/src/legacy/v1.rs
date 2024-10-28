@@ -222,6 +222,9 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
                 },
             })
             .collect(),
+        timing: crate::Timing {
+            points: vec![crate::TimingPoint { time: 0, beat_time }],
+        },
     }
 }
 

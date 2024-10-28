@@ -738,8 +738,8 @@ impl LevelEditor {
         let max = margin + self.level.last_time();
         let target = (self.current_time + delta).clamp(min, max);
 
-        // TODO: align with quarter beats
-        self.current_time = target;
+        // TODO: customize snap
+        self.current_time = self.level.timing.snap_to_beat(target, BeatTime::QUARTER);
 
         self.scrolling_time = true;
 
@@ -778,6 +778,7 @@ impl LevelEditor {
                     .and_then(|id| self.level.events.get(id.event))
                     .map(|selected| Level {
                         events: vec![selected.clone()],
+                        timing: self.level.timing.clone(), // TODO: cheaper clone
                     })
             })
             .flatten();

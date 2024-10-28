@@ -138,10 +138,6 @@ impl EditorState {
                     if let Event::Light(light) = &mut event.event {
                         // Move temporaly
                         if let Some(beat) = light.light.movement.get_time(waypoint) {
-                            // let current = self.editor.current_beat
-                            //     - (event.beat + light.telegraph.precede_time);
-                            // let delta = current - beat;
-
                             let next_i = match waypoint {
                                 WaypointId::Initial => 0,
                                 WaypointId::Frame(i) => i + 1,
@@ -154,15 +150,21 @@ impl EditorState {
                                 .map_or(50 * TIME_IN_FLOAT_TIME, |time| time - min_lerp - beat);
 
                             delta = delta.min(max_delta);
-                            // TODO: snap to beat
-                            // delta = ((delta * 4.0).round() / 4.0).as_r32();
+                            let snap = |time: Time| {
+                                // TODO: customize snap
+                                level_editor
+                                    .level
+                                    .timing
+                                    .snap_to_beat(time, BeatTime::QUARTER)
+                            };
 
                             match waypoint {
-                                WaypointId::Initial => event.time += delta,
+                                WaypointId::Initial => event.time = snap(event.time + delta),
                                 WaypointId::Frame(i) => {
                                     if let Some(frame) = light.light.movement.key_frames.get_mut(i)
                                     {
                                         let target = (frame.lerp_time + delta).max(min_lerp);
+                                        let target = snap(target);
                                         delta = target - frame.lerp_time;
                                         frame.lerp_time = target;
                                     }

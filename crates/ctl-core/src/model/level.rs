@@ -5,11 +5,27 @@ use super::*;
 #[serde(default)]
 pub struct Level {
     pub events: Vec<TimedEvent>,
+    pub timing: Timing,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Timing {
+    /// Points are assumed to be sorted by time.
+    pub points: Vec<TimingPoint>,
+}
+
+/// A timing point.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TimingPoint {
+    /// The time from which this timing applies.
+    pub time: Time,
+    /// Time for a single beat (in seconds).
+    pub beat_time: FloatTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TimedEvent {
-    /// The beat on which the event should happen.
+    /// The time on which the event should happen.
     pub time: Time,
     pub event: Event,
 }
@@ -48,7 +64,10 @@ pub struct Telegraph {
 
 impl Level {
     pub fn new() -> Self {
-        Self { events: Vec::new() }
+        Self {
+            events: Vec::new(),
+            timing: Timing::default(),
+        }
     }
 
     /// Calculate the last time when anything happens.
@@ -63,6 +82,38 @@ impl Level {
     pub fn calculate_hash(&self) -> String {
         let bytes = bincode::serialize(self).expect("level should be serializable");
         crate::util::calculate_hash(&bytes)
+    }
+}
+
+impl Timing {
+    pub fn get_timing(&self, time: Time) -> TimingPoint {
+        let i = match self
+            .points
+            .binary_search_by_key(&time, |timing| timing.time)
+        {
+            Ok(i) => i,
+            Err(0) => {
+                // There are no timing points smh
+                return TimingPoint {
+                    time: 0,
+                    beat_time: r32(60.0 / 150.0),
+                };
+            }
+            Err(i) => i.saturating_sub(1),
+        };
+        self.points
+            .get(i)
+            .expect("already checked for no timings available")
+            .clone()
+    }
+
+    pub fn snap_to_beat(&self, time: Time, snap: BeatTime) -> Time {
+        let timing = self.get_timing(time);
+        let delta = time_to_seconds(time - timing.time);
+        let snap_time = snap.as_secs(timing.beat_time);
+        let delta = (delta / snap_time).round() * snap_time;
+        let delta = seconds_to_time(delta);
+        timing.time + delta
     }
 }
 
