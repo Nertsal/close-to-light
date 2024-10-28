@@ -46,6 +46,13 @@ impl GameRender {
 
         let camera = &model.camera;
         let theme = &model.options.theme;
+        let beat_time = model
+            .level
+            .level
+            .data
+            .timing
+            .get_timing(model.exact_time)
+            .beat_time;
 
         if !model.level.config.modifiers.sudden {
             // Telegraphs
@@ -68,8 +75,14 @@ impl GameRender {
                 } else {
                     THEME.light
                 };
-                self.util
-                    .draw_light(light, color, THEME.dark, camera, &mut framebuffer);
+                self.util.draw_light(
+                    light,
+                    color,
+                    THEME.dark,
+                    beat_time,
+                    camera,
+                    &mut framebuffer,
+                );
             }
         }
 

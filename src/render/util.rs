@@ -247,6 +247,7 @@ impl UtilRender {
         light: &Light,
         color: Color,
         dark_color: Color,
+        beat_time: FloatTime,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -255,7 +256,7 @@ impl UtilRender {
         // Waypoint visual
         let radius_max = 0.2;
         let width = 0.05;
-        let beat_time = 60.0 / 150.0; // TODO: real bpm
+        let beat_time = beat_time.as_f32();
         let fade_in = 0.25 * beat_time;
         let fade_out = 0.5 * beat_time;
 
