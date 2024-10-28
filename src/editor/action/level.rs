@@ -132,22 +132,21 @@ impl LevelEditor {
             LevelAction::Cancel => self.cancel(),
             LevelAction::StopPlaying => {
                 if let State::Playing {
-                    start_beat,
+                    start_time,
                     old_state,
                 } = &self.state
                 {
-                    self.current_time = *start_beat;
+                    self.current_time = *start_time;
                     self.state = *old_state.clone();
                     self.context.music.stop();
                 }
             }
             LevelAction::StartPlaying => {
                 self.state = State::Playing {
-                    start_beat: self.current_time,
+                    start_time: self.current_time,
                     old_state: Box::new(self.state.clone()),
                 };
-                self.real_time =
-                    FloatTime::new(self.current_time as f32 * TIME_IN_FLOAT_TIME as f32);
+                self.real_time = time_to_seconds(self.current_time);
                 self.context.music.play_from(
                     &self.static_level.group.music,
                     time::Duration::from_secs_f64(self.real_time.as_f32().into()),

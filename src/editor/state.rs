@@ -9,7 +9,7 @@ pub enum State {
         danger: bool,
     },
     Playing {
-        start_beat: Time,
+        start_time: Time,
         old_state: Box<State>,
     },
     /// Control waypoints of an existing event.

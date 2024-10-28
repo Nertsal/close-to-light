@@ -764,7 +764,8 @@ impl LevelEditor {
                 if let Some(replay) = &self.dynamic_segment {
                     Some(replay.current_time)
                 } else {
-                    Some(time + seconds_to_time(self.real_time))
+                    // TODO: customize dynamic visual
+                    Some(time + seconds_to_time(self.real_time.fract()))
                 }
             } else {
                 None
