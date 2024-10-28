@@ -68,7 +68,7 @@ impl TimelineWidget {
             selected: WidgetState::new(),
             waypoints: Vec::new(),
 
-            scale: 15.0,
+            scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
             raw_left: None,
@@ -92,7 +92,7 @@ impl TimelineWidget {
         // scroll so that current beat stays in-place
         let min = self.state.position.min.x;
         let current = self.current_beat.position.center().x;
-        self.scroll = ((current - min) / (new_scale)) as Time - self.raw_current_time;
+        self.scroll = ((current - min) / new_scale) as Time - self.raw_current_time;
 
         self.scale = new_scale;
         self.reload(None);

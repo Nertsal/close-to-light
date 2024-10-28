@@ -80,7 +80,7 @@ impl EditorState {
             EditorStateAction::TimelineZoom(scroll) => {
                 let timeline = &mut self.ui.edit.timeline;
                 let zoom = timeline.get_scale();
-                let zoom = (zoom + scroll.as_f32()).clamp(5.0, 50.0);
+                let zoom = (zoom + scroll.as_f32() * 0.05).clamp(0.05, 0.75);
                 timeline.rescale(zoom);
             }
             EditorStateAction::EndDrag => self.end_drag(),
