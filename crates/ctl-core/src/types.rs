@@ -81,9 +81,8 @@ impl BeatTime {
         Self { units }
     }
 
-    pub fn as_millis(&self, beat_time: Time) -> Time {
-        // TODO: check precision error
-        self.units * beat_time / Self::UNITS_PER_BEAT
+    pub fn as_time(&self, beat_time: FloatTime) -> Time {
+        seconds_to_time(self.as_secs(beat_time))
     }
 
     pub fn as_secs(&self, beat_time: FloatTime) -> FloatTime {
