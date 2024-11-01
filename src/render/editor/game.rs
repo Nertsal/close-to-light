@@ -57,7 +57,7 @@ impl EditorRender {
                     let check = |a: Option<usize>| -> bool { a == Some(event_id) };
                     let base_color = if level_editor.level.events.get(event_id).map_or(false, |e| {
                         match &e.event {
-                            Event::Light(event) => event.light.danger,
+                            Event::Light(event) => event.danger,
                             _ => false,
                         }
                     }) {
@@ -170,7 +170,7 @@ impl EditorRender {
             let light_id = *light_id;
             if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
                 if let Event::Light(event) = &timed_event.event {
-                    let color = if event.light.danger {
+                    let color = if event.danger {
                         danger_color
                     } else {
                         light_color
@@ -185,9 +185,7 @@ impl EditorRender {
                     const MAX_VISIBILITY: Time = TIME_IN_FLOAT_TIME * 15;
                     // Calculate the waypoint visibility at the given relative timestamp
                     let visibility = |beat: Time| {
-                        let d = (timed_event.time + event.telegraph.precede_time + beat
-                            - level_editor.current_time)
-                            .abs();
+                        let d = (timed_event.time + beat - level_editor.current_time).abs();
                         if d > MAX_VISIBILITY {
                             return 0.0;
                         }
@@ -197,18 +195,17 @@ impl EditorRender {
 
                     // A dashed line moving through the waypoints to show general direction
                     const NUM_POINTS: usize = 25;
-                    let num_points = NUM_POINTS * event.light.movement.key_frames.len();
-                    let period =
-                        time_to_seconds(event.light.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
+                    let num_points = NUM_POINTS * event.movement.key_frames.len();
+                    let period = time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
                     let speed = r32(4.0).recip();
                     let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
                         .map(|i| {
                             let t = r32(i as f32 / num_points as f32);
                             let t = (level_editor.real_time / period * speed + t).fract() * period;
-                            let t = seconds_to_time(t) + event.light.movement.fade_in;
+                            let t = seconds_to_time(t) + event.movement.fade_in;
                             let alpha = visibility(t);
                             draw2d::ColoredVertex {
-                                a_pos: event.light.movement.get(t).translation.as_f32(), // TODO: check performance
+                                a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance
                                 a_color: crate::util::with_alpha(color, alpha),
                             }
                         })
@@ -249,9 +246,9 @@ impl EditorRender {
                                     .get(waypoints.light.event)
                                     .and_then(|event| {
                                         if let Event::Light(light) = &event.event {
-                                            let beat = light.light.movement.get_time(i)?;
+                                            let beat = light.movement.get_time(i)?;
                                             alpha = visibility(beat);
-                                            return Some((event.time, light, beat));
+                                            return Some((event.time, beat));
                                         }
                                         None
                                     })
@@ -316,10 +313,8 @@ impl EditorRender {
 
                             let beat_time =
                                 point.original.map_or(Some(level_editor.current_time), |_| {
-                                    original.map(|(original_beat, original, relative_beat)| {
-                                        original_beat
-                                            + original.telegraph.precede_time
-                                            + relative_beat
+                                    original.map(|(original_beat, relative_beat)| {
+                                        original_beat + relative_beat
                                     })
                                 });
                             if let Some(beat) = beat_time {

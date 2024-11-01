@@ -137,13 +137,13 @@ impl EditorState {
                 if let Some(event) = level_editor.level.events.get_mut(waypoints.light.event) {
                     if let Event::Light(light) = &mut event.event {
                         // Move temporaly
-                        if let Some(beat) = light.light.movement.get_time(waypoint) {
+                        if let Some(beat) = light.movement.get_time(waypoint) {
                             let next_i = match waypoint {
                                 WaypointId::Initial => 0,
                                 WaypointId::Frame(i) => i + 1,
                             };
                             let next = WaypointId::Frame(next_i);
-                            let next_time = light.light.movement.get_time(next);
+                            let next_time = light.movement.get_time(next);
 
                             let min_lerp = 50;
                             let max_delta = next_time
@@ -161,8 +161,7 @@ impl EditorState {
                             match waypoint {
                                 WaypointId::Initial => event.time = snap(event.time + delta),
                                 WaypointId::Frame(i) => {
-                                    if let Some(frame) = light.light.movement.key_frames.get_mut(i)
-                                    {
+                                    if let Some(frame) = light.movement.key_frames.get_mut(i) {
                                         let target = (frame.lerp_time + delta).max(min_lerp);
                                         let target = snap(target);
                                         delta = target - frame.lerp_time;
@@ -171,7 +170,7 @@ impl EditorState {
                                 }
                             }
 
-                            if let Some(next) = light.light.movement.key_frames.get_mut(next_i) {
+                            if let Some(next) = light.movement.key_frames.get_mut(next_i) {
                                 next.lerp_time -= delta;
                             }
 

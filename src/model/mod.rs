@@ -1,10 +1,9 @@
-mod level;
 mod logic;
 mod options;
 mod player;
 mod score;
 
-pub use self::{level::*, options::*, player::*, score::*};
+pub use self::{options::*, player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 

@@ -180,11 +180,11 @@ impl TimelineWidget {
         let height = self.context.font_size * 0.4;
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light) = &event.event {
-                let time = event.time + light.telegraph.precede_time;
+                let time = event.time;
                 let light_id = LightId { event: i };
                 if Some(light_id) == self.selected_light {
                     let from = render_time(time).center();
-                    let to = render_time(time + light.light.movement.total_duration())
+                    let to = render_time(time + light.movement.total_duration())
                         .center()
                         .x;
                     let selected = Aabb2::point(from)
@@ -194,7 +194,7 @@ impl TimelineWidget {
                     self.selected.update(selected, &self.context);
 
                     let size = vec2(0.25, 0.5) * self.context.font_size;
-                    for (waypoint_id, _, offset) in light.light.movement.timed_positions() {
+                    for (waypoint_id, _, offset) in light.movement.timed_positions() {
                         let mut state = WidgetState::new();
                         let position = render_time(time + offset).center();
                         let position = Aabb2::point(position).extend_symmetric(size / 2.0);

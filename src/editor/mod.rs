@@ -186,7 +186,7 @@ impl LevelEditor {
         };
         match waypoint {
             WaypointId::Initial => {
-                match event.light.movement.key_frames.pop_front() {
+                match event.movement.key_frames.pop_front() {
                     None => {
                         // No waypoints -> delete the whole event
                         if light.event < self.level.events.len() {
@@ -197,15 +197,15 @@ impl LevelEditor {
                     }
                     Some(frame) => {
                         // Make the first frame the initial position
-                        event.light.movement.initial = frame.transform;
+                        event.movement.initial = frame.transform;
                         timed_event.time += frame.lerp_time;
                     }
                 }
             }
             WaypointId::Frame(i) => {
-                if let Some(frame) = event.light.movement.key_frames.remove(i) {
+                if let Some(frame) = event.movement.key_frames.remove(i) {
                     // Offset the next one
-                    if let Some(next) = event.light.movement.key_frames.get_mut(i) {
+                    if let Some(next) = event.movement.key_frames.get_mut(i) {
                         next.lerp_time += frame.lerp_time;
                     }
                 }
@@ -294,9 +294,8 @@ impl EditorState {
                 if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
                     if let Event::Light(light) = &event.event {
                         // Set current time to align with the selected waypoint
-                        if let Some(time) = light.light.movement.get_time(waypoint) {
-                            level_editor.current_time =
-                                event.time + light.telegraph.precede_time + time;
+                        if let Some(time) = light.movement.get_time(waypoint) {
+                            level_editor.current_time = event.time + time;
                         }
                     }
                 }
@@ -805,9 +804,9 @@ impl LevelEditor {
             let light_id = *light_id;
             if let Some(timed_event) = self.level.events.get(light_id.event) {
                 if let Event::Light(light_event) = &timed_event.event {
-                    let event_time = timed_event.time + light_event.telegraph.precede_time;
+                    let event_time = timed_event.time;
                     // If some waypoints overlap, render the temporaly closest one
-                    let base_collider = Collider::new(vec2::ZERO, light_event.light.shape);
+                    let base_collider = Collider::new(vec2::ZERO, light_event.shape);
 
                     /// Waypoints past this time-distance are not rendered at all
                     const MAX_VISIBILITY: Time = 5 * TIME_IN_FLOAT_TIME;
@@ -817,9 +816,8 @@ impl LevelEditor {
                     };
 
                     // TODO: use cached
-                    let curve = light_event.light.movement.bake();
+                    let curve = light_event.movement.bake();
                     let mut points: Vec<_> = light_event
-                        .light
                         .movement
                         .timed_positions()
                         .map(|(i, trans_control, time)| {

@@ -372,8 +372,6 @@ impl StatefulWidget for EditorEditWidget {
                         .selected_light
                         .expect("light selected without id 0_0");
                     if let Event::Light(light) = &event.event {
-                        let light = &light.light;
-
                         self.light.show();
                         self.light_delete.show();
                         self.light_danger.show();
@@ -457,8 +455,8 @@ impl StatefulWidget for EditorEditWidget {
             if let Some(selected) = waypoints.selected {
                 if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
                     if let Event::Light(light) = &event.event {
-                        let frames = light.light.movement.key_frames.len();
-                        if let Some(frame) = light.light.movement.get_frame(selected) {
+                        let frames = light.movement.key_frames.len();
+                        if let Some(frame) = light.movement.get_frame(selected) {
                             // Waypoint
                             waypoint = true;
                             self.prev_waypoint.show();
@@ -534,7 +532,7 @@ impl StatefulWidget for EditorEditWidget {
                             let interpolation = bar.cut_top(button_height);
                             bar.cut_top(spacing);
                             if let Some((mut move_interpolation, mut curve_interpolation)) =
-                                light.light.movement.get_interpolation(selected)
+                                light.movement.get_interpolation(selected)
                             {
                                 self.waypoint_curve.show();
                                 self.waypoint_curve.update(

@@ -55,11 +55,6 @@ impl LevelState {
         event_id: Option<usize>,
         config: &LevelConfig,
     ) {
-        if self.time < event.time {
-            self.is_finished = false;
-            return;
-        }
-
         if let Some(time) = self.ignore_after {
             if event.time > time {
                 return;
@@ -69,9 +64,19 @@ impl LevelState {
         let time = self.time - event.time;
 
         match &event.event {
-            Event::PaletteSwap => self.swap_palette = !self.swap_palette,
-            Event::Light(event) => {
-                let (telegraph, light) = render_light(event, time, event_id, config);
+            Event::PaletteSwap => {
+                if self.time < event.time {
+                    self.is_finished = false;
+                    return;
+                }
+                self.swap_palette = !self.swap_palette
+            }
+            Event::Light(light) => {
+                if self.time < event.time - config.telegraph.precede_time {
+                    self.is_finished = false;
+                    return;
+                }
+                let (telegraph, light) = render_light(light, time, event_id, config);
                 self.telegraphs.extend(telegraph);
                 self.lights.extend(light);
             }
@@ -87,16 +92,27 @@ pub fn render_light(
     event_id: Option<usize>,
     config: &LevelConfig,
 ) -> (Vec<LightTelegraph>, Option<Light>) {
-    let movement = &event.light.movement;
-    let base_light = event.light.clone().instantiate(event_id);
-    let base_tele = base_light.clone().into_telegraph(event.telegraph.clone());
-    let duration = event.light.movement.total_duration();
+    let movement = &event.movement;
+    let base_light = event.clone().instantiate(event_id);
+    let base_tele = base_light.clone().into_telegraph(&config.telegraph);
+    let duration = event.movement.total_duration();
+
+    // Light
+    let light = (relative_time > Time::ZERO && relative_time < duration).then(|| {
+        let transform = event.movement.get(relative_time);
+        let mut main_light = base_tele.light.clone();
+        main_light.collider = base_light.collider.transformed(transform);
+        let (id, _, closest_time) = event.movement.closest_waypoint(relative_time);
+        main_light.closest_waypoint = (closest_time - relative_time, id);
+        main_light
+    });
 
     // Telegraph
+    let relative_time = relative_time + config.telegraph.precede_time;
     let telegraphs = if relative_time > duration {
         vec![]
     } else {
-        let transform = event.light.movement.get(relative_time);
+        let transform = event.movement.get(relative_time);
         let mut main_tele = base_tele.clone();
         main_tele.light.collider = base_light.collider.transformed(transform);
 
@@ -138,17 +154,6 @@ pub fn render_light(
             vec![main_tele]
         }
     };
-
-    // Light
-    let relative_time = relative_time - event.telegraph.precede_time;
-    let light = (relative_time > Time::ZERO && relative_time < duration).then(|| {
-        let transform = event.light.movement.get(relative_time);
-        let mut main_light = base_tele.light;
-        main_light.collider = base_light.collider.transformed(transform);
-        let (id, _, closest_time) = event.light.movement.closest_waypoint(relative_time);
-        main_light.closest_waypoint = (closest_time - relative_time, id);
-        main_light
-    });
 
     (telegraphs, light)
 }

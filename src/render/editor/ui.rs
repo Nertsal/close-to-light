@@ -261,7 +261,7 @@ impl EditorRender {
                 } else if level_editor.level.events.get(id.event).map_or(
                     false,
                     |event| match &event.event {
-                        Event::Light(light) => light.light.danger,
+                        Event::Light(light) => light.danger,
                         _ => false,
                     },
                 ) {

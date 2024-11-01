@@ -27,7 +27,7 @@ pub struct LightTelegraph {
 }
 
 impl Light {
-    pub fn into_telegraph(self, telegraph: Telegraph) -> LightTelegraph {
+    pub fn into_telegraph(self, telegraph: &TelegraphConfig) -> LightTelegraph {
         LightTelegraph {
             light: self,
             speed: telegraph.speed,

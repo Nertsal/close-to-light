@@ -6,7 +6,16 @@ pub struct LevelConfig {
     pub player: PlayerConfig,
     pub health: HealthConfig,
     pub waypoints: WaypointsConfig,
+    pub telegraph: TelegraphConfig,
     pub modifiers: LevelModifiers,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TelegraphConfig {
+    /// How long before the event should the telegraph occur.
+    pub precede_time: Time,
+    /// Speed multiplier on the telegraph compared to the light itself.
+    pub speed: Coord,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -122,6 +131,15 @@ impl Default for LevelModifiers {
             nofail: false,
             sudden: false,
             hidden: false,
+        }
+    }
+}
+
+impl Default for TelegraphConfig {
+    fn default() -> Self {
+        Self {
+            precede_time: TIME_IN_FLOAT_TIME / 2,
+            speed: Coord::new(1.0),
         }
     }
 }

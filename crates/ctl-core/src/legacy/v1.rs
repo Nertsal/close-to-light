@@ -186,36 +186,37 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
             .events
             .into_iter()
             .map(|event| crate::TimedEvent {
-                time: convert_time(beat_time, event.beat),
+                time: convert_time(
+                    beat_time,
+                    event.beat
+                        + match &event.event {
+                            Event::Light(light) => light.telegraph.precede_time,
+                            Event::PaletteSwap => r32(0.0),
+                        },
+                ),
                 event: match event.event {
                     Event::Light(light) => crate::Event::Light(crate::LightEvent {
-                        light: crate::LightSerde {
-                            danger: light.light.danger,
-                            shape: match light.light.shape {
-                                Shape::Circle { radius } => crate::Shape::Circle { radius },
-                                Shape::Line { width } => crate::Shape::Line { width },
-                                Shape::Rectangle { width, height } => {
-                                    crate::Shape::Rectangle { width, height }
-                                }
-                            },
-                            movement: crate::Movement {
-                                fade_in: convert_time(beat_time, light.light.movement.fade_in),
-                                fade_out: convert_time(beat_time, light.light.movement.fade_out),
-                                initial: light.light.movement.initial.into(),
-                                interpolation: crate::MoveInterpolation::default(),
-                                curve: crate::TrajectoryInterpolation::default(),
-                                key_frames: light
-                                    .light
-                                    .movement
-                                    .key_frames
-                                    .into_iter()
-                                    .map(|frame| convert_frame(beat_time, frame))
-                                    .collect(),
-                            },
+                        danger: light.light.danger,
+                        shape: match light.light.shape {
+                            Shape::Circle { radius } => crate::Shape::Circle { radius },
+                            Shape::Line { width } => crate::Shape::Line { width },
+                            Shape::Rectangle { width, height } => {
+                                crate::Shape::Rectangle { width, height }
+                            }
                         },
-                        telegraph: crate::Telegraph {
-                            precede_time: convert_time(beat_time, light.telegraph.precede_time),
-                            speed: light.telegraph.speed,
+                        movement: crate::Movement {
+                            fade_in: convert_time(beat_time, light.light.movement.fade_in),
+                            fade_out: convert_time(beat_time, light.light.movement.fade_out),
+                            initial: light.light.movement.initial.into(),
+                            interpolation: crate::MoveInterpolation::default(),
+                            curve: crate::TrajectoryInterpolation::default(),
+                            key_frames: light
+                                .light
+                                .movement
+                                .key_frames
+                                .into_iter()
+                                .map(|frame| convert_frame(beat_time, frame))
+                                .collect(),
                         },
                     }),
                     Event::PaletteSwap => crate::Event::PaletteSwap,

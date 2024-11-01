@@ -1555,6 +1555,7 @@ version = "0.1.0"
 dependencies = [
  "cbor4ii",
  "data-encoding",
+ "enum-iterator",
  "geng",
  "geng-utils",
  "parry2d",

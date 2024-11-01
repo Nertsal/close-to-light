@@ -374,7 +374,7 @@ impl EditorState {
                                 double,
                                 light: LightId { event },
                                 initial_time: e.time,
-                                initial_translation: light.light.movement.initial.translation,
+                                initial_translation: light.movement.initial.translation,
                             };
                             actions.push(EditorStateAction::StartDrag(target));
                         }
@@ -399,9 +399,7 @@ impl EditorState {
                                     level_editor.level.events.get(waypoints.light.event)
                                 {
                                     if let Event::Light(event) = &event.event {
-                                        if let Some(frame) =
-                                            event.light.movement.get_frame(waypoint)
-                                        {
+                                        if let Some(frame) = event.movement.get_frame(waypoint) {
                                             actions
                                                 .push(LevelAction::SelectWaypoint(waypoint).into());
                                             let initial_translation = frame.translation;
