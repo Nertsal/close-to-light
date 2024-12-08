@@ -77,7 +77,6 @@ pub struct EditorEditWidget {
     pub waypoint_curve: DropdownWidget<Option<TrajectoryInterpolation>>,
     pub waypoint_interpolation: DropdownWidget<MoveInterpolation>,
 
-    pub current_beat: TextWidget,
     pub timeline: TimelineWidget,
 }
 
@@ -123,9 +122,9 @@ impl EditorEditWidget {
             ),
 
             waypoint: ButtonWidget::new("Waypoints"),
-            prev_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_left),
+            prev_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_left.texture),
             current_waypoint: TextWidget::new("0"),
-            next_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_right),
+            next_waypoint: IconButtonWidget::new_normal(&assets.sprites.arrow_right.texture),
             waypoint_delete: ButtonWidget::new("delete"),
             waypoint_scale: ValueWidget::new_range("Scale", 1.0, 0.25..=10.0, 0.25),
             waypoint_angle: ValueWidget::new_circle("Angle", 0.0, 360.0, 15.0),
@@ -153,7 +152,6 @@ impl EditorEditWidget {
                 ],
             ),
 
-            current_beat: TextWidget::default().aligned(vec2(0.5, 0.0)),
             timeline: TimelineWidget::new(context.clone()),
         }
     }
@@ -592,10 +590,6 @@ impl StatefulWidget for EditorEditWidget {
         }
 
         {
-            let current_beat = bottom_bar.cut_top(font_size * 1.0);
-            update!(self.current_beat, current_beat);
-            self.current_beat.text = format!("Beat: {:.2}", level_editor.current_time).into();
-
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let was_pressed = self.timeline.state.pressed;
 
@@ -605,37 +599,51 @@ impl StatefulWidget for EditorEditWidget {
                 actions.extend(state.1.into_iter().map(Into::into));
             }
 
-            if self.timeline.clickable.pressed {
+            if self.timeline.mainline.state.pressed {
                 let time = self.timeline.get_cursor_time();
                 actions.push(EditorStateAction::ScrollTime(
                     time - level_editor.current_time,
                 ));
             }
-            let replay = level_editor
-                .dynamic_segment
-                .as_ref()
-                .map(|replay| replay.current_time);
-            self.timeline.update_time(level_editor.current_time, replay);
-
-            let select = context.mods.ctrl;
-            if select {
-                if !was_pressed && self.timeline.state.pressed {
-                    self.timeline.start_selection();
-                } else if was_pressed && !self.timeline.state.pressed {
-                    let (start_beat, end_beat) = self.timeline.end_selection();
-                    if start_beat != end_beat {
-                        // TODO
-                        // level_editor.dynamic_segment = Some(Replay {
-                        //     start_beat,
-                        //     end_beat,
-                        //     current_beat: start_beat,
-                        //     speed: Time::ONE,
-                        // });
-                    }
-                }
-            }
+            self.timeline.update_time(level_editor.current_time);
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
         }
     }
 }
+
+// TODO: move to layout (we have scroll in context)
+// if shift && self.ui.edit.timeline.state.hovered {
+//     actions.push(EditorStateAction::TimelineScroll(scroll));
+// } else if ctrl {
+//     if self.ui.edit.timeline.state.hovered {
+//         // Zoom on the timeline
+//         actions.push(EditorStateAction::TimelineZoom(scroll));
+//     } else if let State::Place { .. }
+//     | State::Waypoints {
+//         state: WaypointsState::New,
+//         ..
+//     } = level_editor.state
+//     {
+//         // Scale light or waypoint placement
+//         let delta = scroll * r32(0.1);
+//         actions.push(LevelAction::ScalePlacement(delta).into());
+//     } else if let Some(waypoints) = &level_editor.level_state.waypoints {
+//         if let Some(selected) = waypoints.selected {
+//             let delta = scroll * r32(0.1);
+//             actions.push(
+//                 LevelAction::ScaleWaypoint(waypoints.light, selected, delta)
+//                     .into(),
+//             );
+//         }
+//     } else if let Some(id) = level_editor.selected_light {
+//         // Control fade time
+//         let scroll = scroll.as_f32() as Time;
+//         let change = scroll * self.editor.config.scroll_slow.as_time(beat_time);
+//         let action = if shift {
+//             LevelAction::ChangeFadeOut(id, Change::Add(change))
+//         } else {
+//             LevelAction::ChangeFadeIn(id, Change::Add(change))
+//         };
+//         actions.push(action.into());
+//     }

@@ -1,84 +1,91 @@
-use crate::ui::layout::AreaOps;
+use crate::ui::{geometry::Geometry, layout::AreaOps};
 
 use super::*;
 
 impl EditorRender {
-    pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &EditorUI) {
+    pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &UiContext) {
         let framebuffer =
             &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = editor.context.get_options().theme;
+        // let theme = editor.context.get_options().theme;
         self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
-        let font_size = ui.screen.position.height() * 0.04;
+        let mut geometry = Geometry::new();
+        ui.state.iter_widgets(|w| {
+            geometry.merge(w.draw(ui));
+        });
 
-        if ui.config.state.visible {
-            self.draw_tab_config(editor, &ui.config);
-        }
+        self.util.draw_geometry(geometry, camera, framebuffer);
 
-        if ui.edit.state.visible {
-            let framebuffer =
-                &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        // let font_size = ui.screen.position.height() * 0.04;
 
-            // Game border
-            let width = 5.0;
-            self.util.draw_outline(
-                &Collider::aabb(ui.game.position.extend_uniform(width).map(r32)),
-                width,
-                theme.light,
-                camera,
-                framebuffer,
-            );
+        // if ui.config.state.visible {
+        //     self.draw_tab_config(editor, &ui.config);
+        // }
 
-            self.draw_tab_edit(editor, &ui.edit);
-        }
+        // if ui.edit.state.visible {
+        //     let framebuffer =
+        //         &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
-        let framebuffer =
-            &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        //     // Game border
+        //     let width = 5.0;
+        //     self.util.draw_outline(
+        //         &Collider::aabb(ui.game.position.extend_uniform(width).map(r32)),
+        //         width,
+        //         theme.light,
+        //         camera,
+        //         framebuffer,
+        //     );
 
-        self.ui.draw_toggle_button(
-            &ui.tab_edit.text,
-            ui.edit.state.visible,
-            false,
-            theme,
-            framebuffer,
-        );
-        self.ui.draw_toggle_button(
-            &ui.tab_config.text,
-            ui.config.state.visible,
-            false,
-            theme,
-            framebuffer,
-        );
+        //     self.draw_tab_edit(editor, &ui.edit);
+        // }
 
-        self.ui.draw_button(&ui.exit, theme, framebuffer);
+        // let framebuffer =
+        //     &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
-        if ui.help_text.state.visible {
-            let width = font_size * 0.1;
-            let pos = Aabb2::from_corners(
-                ui.help.state.position.top_left() + vec2(-1.0, 1.0) * 2.0 * width,
-                ui.help_text.state.position.bottom_right(),
-            );
-            self.ui.draw_quad(pos, theme.dark, framebuffer);
-            self.ui.draw_outline(pos, width, theme.light, framebuffer);
-        }
-        self.ui.draw_icon(&ui.help, theme, framebuffer);
-        self.ui.draw_text(&ui.help_text, framebuffer);
+        // self.ui.draw_toggle_button(
+        //     &ui.tab_edit.text,
+        //     ui.edit.state.visible,
+        //     false,
+        //     theme,
+        //     framebuffer,
+        // );
+        // self.ui.draw_toggle_button(
+        //     &ui.tab_config.text,
+        //     ui.config.state.visible,
+        //     false,
+        //     theme,
+        //     framebuffer,
+        // );
 
-        self.ui.draw_text(&ui.unsaved, framebuffer);
-        self.ui.draw_button(&ui.save, theme, framebuffer);
+        // self.ui.draw_button(&ui.exit, theme, framebuffer);
 
-        if let Some(ui) = &ui.confirm {
-            self.ui.draw_confirm(
-                ui,
-                self.font_size * 0.2,
-                editor.context.get_options().theme,
-                &mut self.mask,
-                framebuffer,
-            );
-        }
+        // if ui.help_text.state.visible {
+        //     let width = font_size * 0.1;
+        //     let pos = Aabb2::from_corners(
+        //         ui.help.state.position.top_left() + vec2(-1.0, 1.0) * 2.0 * width,
+        //         ui.help_text.state.position.bottom_right(),
+        //     );
+        //     self.ui.draw_quad(pos, theme.dark, framebuffer);
+        //     self.ui.draw_outline(pos, width, theme.light, framebuffer);
+        // }
+        // self.ui.draw_icon(&ui.help, theme, framebuffer);
+        // self.ui.draw_text(&ui.help_text, framebuffer);
+
+        // self.ui.draw_text(&ui.unsaved, framebuffer);
+        // self.ui.draw_button(&ui.save, theme, framebuffer);
+
+        // if let Some(ui) = &ui.confirm {
+        //     self.ui.draw_confirm(
+        //         ui,
+        //         self.font_size * 0.2,
+        //         editor.context.get_options().theme,
+        //         &mut self.mask,
+        //         framebuffer,
+        //     );
+        // }
     }
 
     fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {
@@ -190,30 +197,12 @@ impl EditorRender {
 
         {
             // Timeline
-            self.ui.draw_text(&ui.current_beat, framebuffer);
-
             let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
-            let bar = ui.timeline.bar.position;
+            let bar = ui.timeline.mainline.bar.position;
             quad(bar, theme.light);
 
-            if ui.timeline.left.visible {
-                // Selected area
-                let from = ui.timeline.left.position;
-                let to = if ui.timeline.right.visible {
-                    ui.timeline.right.position
-                } else {
-                    ui.timeline.current_beat.position
-                };
-                quad(
-                    Aabb2::point(from.center())
-                        .extend_right(to.center().x - from.center().x)
-                        .extend_symmetric(vec2(0.0, from.height() * 0.8) / 2.0),
-                    Color::GRAY,
-                );
-            }
-
-            if ui.timeline.selected.visible {
-                quad(ui.timeline.selected.position, theme.highlight);
+            if ui.timeline.selected_line.state.visible {
+                quad(ui.timeline.selected_line.bar.position, theme.highlight);
             }
 
             let triangle = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
@@ -255,25 +244,29 @@ impl EditorRender {
             };
 
             // All lights
-            for (id, light) in ui.timeline.lights.values().flatten() {
-                let color = if level_editor.selected_light == Some(*id) {
+            for light in ui.timeline.lights.values().flatten() {
+                let color = if level_editor.selected_light == Some(light.id) {
                     theme.highlight
-                } else if level_editor.level.events.get(id.event).map_or(
-                    false,
-                    |event| match &event.event {
+                } else if level_editor
+                    .level
+                    .events
+                    .get(light.id.event)
+                    .map_or(false, |event| match &event.event {
                         Event::Light(light) => light.danger,
                         _ => false,
-                    },
-                ) {
+                    })
+                {
                     theme.danger
                 } else {
                     theme.light
                 };
-                triangle(light.position, color, framebuffer);
-            }
-            // Waypoints
-            for (_, waypoint) in &ui.timeline.waypoints {
-                diamond(waypoint.position, theme.highlight, framebuffer);
+                triangle(light.state.position, color, framebuffer);
+
+                if let Some(waypoints) = &light.waypoints {
+                    for (_id, waypoint) in &waypoints.points {
+                        diamond(waypoint.position, theme.light, framebuffer);
+                    }
+                }
             }
 
             // // Selected light timespan
@@ -306,22 +299,7 @@ impl EditorRender {
             // }
 
             let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
-
-            // Selected bounds
-            if ui.timeline.left.visible {
-                quad(ui.timeline.left.position, Color::GRAY);
-            }
-            if ui.timeline.right.visible {
-                quad(ui.timeline.right.position, Color::GRAY);
-            }
-
-            if ui.timeline.replay.visible {
-                quad(
-                    ui.timeline.replay.position,
-                    Color::try_from("#aaa").unwrap(),
-                );
-            }
-            quad(ui.timeline.current_beat.position, theme.light);
+            quad(ui.timeline.current.position, theme.light);
         }
 
         // Tooltip

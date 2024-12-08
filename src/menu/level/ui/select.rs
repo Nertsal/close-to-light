@@ -468,7 +468,7 @@ impl AddItemWidget {
     }
 }
 
-impl Widget for AddItemWidget {
+impl WidgetOld for AddItemWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
@@ -512,7 +512,7 @@ impl ItemMusicWidget {
         Self {
             state: WidgetState::new(),
             menu,
-            edited: IconWidget::new(&assets.sprites.star),
+            edited: IconWidget::new(&assets.sprites.star.texture),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             music,
         }
@@ -572,8 +572,8 @@ impl ItemGroupWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
             state: WidgetState::new(),
-            edited: IconWidget::new(&assets.sprites.star),
-            local: IconWidget::new(&assets.sprites.local),
+            edited: IconWidget::new(&assets.sprites.star.texture),
+            local: IconWidget::new(&assets.sprites.local.texture),
             menu: ItemMenuWidget::new(assets),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             index,
@@ -668,8 +668,8 @@ impl ItemLevelWidget {
         menu.sync.hide();
         Self {
             state: WidgetState::new(),
-            edited: IconWidget::new(&assets.sprites.star),
-            local: IconWidget::new(&assets.sprites.local),
+            edited: IconWidget::new(&assets.sprites.star.texture),
+            local: IconWidget::new(&assets.sprites.local.texture),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             group,
             index,
@@ -768,7 +768,7 @@ impl NewMenuWidget {
     }
 }
 
-impl Widget for NewMenuWidget {
+impl WidgetOld for NewMenuWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
@@ -812,14 +812,14 @@ impl ItemMenuWidget {
         Self {
             window: UiWindow::new((), 0.15),
             state: WidgetState::new(),
-            sync: IconButtonWidget::new_normal(&assets.sprites.reset),
-            edit: IconButtonWidget::new_normal(&assets.sprites.edit),
-            delete: IconButtonWidget::new_danger(&assets.sprites.trash),
+            sync: IconButtonWidget::new_normal(&assets.sprites.reset.texture),
+            edit: IconButtonWidget::new_normal(&assets.sprites.edit.texture),
+            delete: IconButtonWidget::new_danger(&assets.sprites.trash.texture),
         }
     }
 }
 
-impl Widget for ItemMenuWidget {
+impl WidgetOld for ItemMenuWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }

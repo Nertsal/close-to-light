@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::ui::UiContext;
+use crate::ui::{geometry::Geometry, UiContext};
 
 pub struct UtilRender {
     context: Context,
@@ -77,6 +77,65 @@ impl UtilRender {
         Self {
             unit_quad: geng_utils::geometry::unit_quad_geometry(context.geng.ugli()),
             context,
+        }
+    }
+
+    pub fn draw_geometry(
+        &self,
+        geometry: Geometry,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let framebuffer_size = framebuffer.size().as_f32();
+
+        // Triangles
+        let triangles =
+            ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), geometry.triangles);
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.solid,
+            ugli::DrawMode::Triangles,
+            &triangles,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: mat3::identity(),
+                    u_color: Color::WHITE,
+                },
+                camera.uniforms(framebuffer_size),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                ..default()
+            },
+        );
+
+        // Textures
+        for textured in geometry.textures {
+            let triangles =
+                ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), textured.triangles);
+            ugli::draw(
+                framebuffer,
+                &self.context.assets.shaders.texture,
+                ugli::DrawMode::Triangles,
+                &triangles,
+                (
+                    ugli::uniforms! {
+                        u_texture: &*textured.texture,
+                        u_model_matrix: mat3::identity(),
+                        u_color: Color::WHITE,
+                    },
+                    camera.uniforms(framebuffer_size),
+                ),
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+            );
+        }
+
+        // Text
+        for text in geometry.text {
+            self.draw_text(text.text, text.position, text.options, camera, framebuffer);
         }
     }
 
@@ -304,6 +363,7 @@ impl UtilRender {
                 mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
             ),
         };
+        let texture = &*texture.texture;
         let transform = mat3::translate(collider.position.as_f32())
             * mat3::rotate(collider.rotation.map(Coord::as_f32))
             * transform;

@@ -2,9 +2,9 @@ use super::{mask::MaskedRender, util::UtilRender, *};
 
 use crate::ui::{layout::AreaOps, widget::*};
 
-pub fn pixel_scale(framebuffer: &ugli::Framebuffer) -> f32 {
+pub fn pixel_scale(framebuffer_size: vec2<usize>) -> f32 {
     const TARGET_SIZE: vec2<usize> = vec2(640, 360);
-    let size = framebuffer.size().as_f32();
+    let size = framebuffer_size.as_f32();
     let ratio = size / TARGET_SIZE.as_f32();
     ratio.x.min(ratio.y)
 }
@@ -104,7 +104,7 @@ impl UiRender {
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let size = texture.size().as_f32() * pixel_scale(framebuffer);
+        let size = texture.size().as_f32() * pixel_scale(framebuffer.size());
         let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
         self.context.geng.draw2d().textured_quad(
             framebuffer,
@@ -122,7 +122,7 @@ impl UiRender {
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let scale = pixel_scale(framebuffer);
+        let scale = pixel_scale(framebuffer.size());
         let (texture, real_width) = if width < 2.0 * scale {
             (&self.context.assets.sprites.border_thinner, 1.0 * scale)
         } else if width < 4.0 * scale {
@@ -182,7 +182,7 @@ impl UiRender {
                         icon.state.position,
                         theme.get_color(bg.color),
                         texture,
-                        pixel_scale(framebuffer),
+                        pixel_scale(framebuffer.size()),
                         &geng::PixelPerfectCamera,
                         framebuffer,
                     );
@@ -652,7 +652,7 @@ impl UiRender {
                 let angle = zero_angle + angle;
 
                 let texture = &self.context.assets.sprites.value_knob;
-                let size = texture.size().as_f32() * pixel_scale(framebuffer);
+                let size = texture.size().as_f32() * pixel_scale(framebuffer.size());
 
                 let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
                 self.context.geng.draw2d().draw2d(
@@ -718,7 +718,7 @@ impl UiRender {
         let size = position.size();
         let size = size.x.min(size.y);
 
-        let scale = ui::pixel_scale(framebuffer);
+        let scale = ui::pixel_scale(framebuffer.size());
 
         let texture = if size < 48.0 * scale {
             &self.context.assets.sprites.fill_thin

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ctl_client::core::types::MusicInfo;
 use geng::prelude::*;
 
@@ -25,80 +27,63 @@ pub struct Fonts {
 
 #[derive(geng::asset::Load)]
 pub struct Sprites {
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub title: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub linear_gradient: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub radial_gradient: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub button_next: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub button_prev: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub button_close: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub border: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub border_thin: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub border_thinner: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub fill: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub fill_thin: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub circle: ugli::Texture,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub help: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub reset: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub head: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub edit: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub download: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub goto: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub trash: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub settings: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub discord: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub star: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub local: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub dotdotdot: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub arrow_up: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub arrow_down: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub arrow_left: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub arrow_right: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub pause: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub confirm: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub discard: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub loading: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub mod_nofail: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub mod_sudden: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub mod_hidden: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub value_knob: Rc<ugli::Texture>,
-    #[load(options(filter = "ugli::Filter::Nearest"))]
-    pub dropdown: Rc<ugli::Texture>,
+    pub title: PixelTexture,
+    pub linear_gradient: PixelTexture,
+    pub radial_gradient: PixelTexture,
+    pub button_next: PixelTexture,
+    pub button_prev: PixelTexture,
+    pub button_close: PixelTexture,
+    pub border: PixelTexture,
+    pub border_thin: PixelTexture,
+    pub border_thinner: PixelTexture,
+    pub fill: PixelTexture,
+    pub fill_thin: PixelTexture,
+    pub circle: PixelTexture,
+    pub help: PixelTexture,
+    pub reset: PixelTexture,
+    pub head: PixelTexture,
+    pub edit: PixelTexture,
+    pub download: PixelTexture,
+    pub goto: PixelTexture,
+    pub trash: PixelTexture,
+    pub settings: PixelTexture,
+    pub discord: PixelTexture,
+    pub star: PixelTexture,
+    pub local: PixelTexture,
+    pub dotdotdot: PixelTexture,
+    pub arrow_up: PixelTexture,
+    pub arrow_down: PixelTexture,
+    pub arrow_left: PixelTexture,
+    pub arrow_right: PixelTexture,
+    pub pause: PixelTexture,
+    pub confirm: PixelTexture,
+    pub discard: PixelTexture,
+    pub loading: PixelTexture,
+    pub mod_nofail: PixelTexture,
+    pub mod_sudden: PixelTexture,
+    pub mod_hidden: PixelTexture,
+    pub value_knob: PixelTexture,
+    pub dropdown: PixelTexture,
+    pub timeline: TimelineAssets,
+}
+
+#[derive(geng::asset::Load)]
+pub struct TimelineAssets {
+    pub arrow: PixelTexture,
+    pub dots: PixelTexture,
+    pub waypoint: PixelTexture,
+
+    pub circle: PixelTexture,
+    pub circle_fill: PixelTexture,
+    pub square: PixelTexture,
+    pub square_fill: PixelTexture,
+    pub triangle: PixelTexture,
+    pub triangle_fill: PixelTexture,
+
+    pub tick_big: PixelTexture,
+    pub tick_mid: PixelTexture,
+    pub tick_smol: PixelTexture,
+    pub tick_tiny: PixelTexture,
 }
 
 #[derive(geng::asset::Load)]
@@ -123,6 +108,53 @@ pub struct DitherAssets {
     pub dither3: ugli::Texture,
 }
 
+#[derive(Clone)]
+pub struct PixelTexture {
+    pub path: PathBuf,
+    pub texture: Rc<ugli::Texture>,
+}
+
+impl Deref for PixelTexture {
+    type Target = ugli::Texture;
+
+    fn deref(&self) -> &Self::Target {
+        &self.texture
+    }
+}
+
+impl Debug for PixelTexture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PixelTexture")
+            .field("path", &self.path)
+            .field("texture", &"<texture data>")
+            .finish()
+    }
+}
+
+impl geng::asset::Load for PixelTexture {
+    type Options = <ugli::Texture as geng::asset::Load>::Options;
+
+    fn load(
+        manager: &geng::asset::Manager,
+        path: &std::path::Path,
+        options: &Self::Options,
+    ) -> geng::asset::Future<Self> {
+        let path = path.to_owned();
+        let texture = ugli::Texture::load(manager, &path, options);
+        async move {
+            let mut texture = texture.await?;
+            texture.set_filter(ugli::Filter::Nearest);
+            Ok(Self {
+                path,
+                texture: Rc::new(texture),
+            })
+        }
+        .boxed_local()
+    }
+
+    const DEFAULT_EXT: Option<&'static str> = Some("png");
+}
+
 fn dither_pattern(texture: &mut ugli::Texture) {
     texture.set_wrap_mode(ugli::WrapMode::Repeat);
     texture.set_filter(ugli::Filter::Nearest);
@@ -141,9 +173,9 @@ impl Assets {
 
     pub fn get_modifier(&self, modifier: Modifier) -> &Rc<ugli::Texture> {
         match modifier {
-            Modifier::NoFail => &self.sprites.mod_nofail,
-            Modifier::Sudden => &self.sprites.mod_sudden,
-            Modifier::Hidden => &self.sprites.mod_hidden,
+            Modifier::NoFail => &self.sprites.mod_nofail.texture,
+            Modifier::Sudden => &self.sprites.mod_sudden.texture,
+            Modifier::Hidden => &self.sprites.mod_hidden.texture,
         }
     }
 }

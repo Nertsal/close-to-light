@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::prelude::ThemeColor;
+use crate::model::ThemeColor;
 
 use ctl_client::core::types::Name;
 
@@ -15,15 +15,44 @@ impl ButtonWidget {
             text: TextWidget::new(text),
         }
     }
+
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        self.text.update(position, context);
+        self.text.options.color = context.theme().dark;
+    }
 }
 
-impl Widget for ButtonWidget {
+impl WidgetOld for ButtonWidget {
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.text.update(position, context);
+    }
+
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.text.state
     }
+}
 
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.text.update(position, context);
+impl Widget for ButtonWidget {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let theme = context.theme();
+        let state = &self.text.state;
+        let width = self.text.options.size * 0.2;
+
+        let position = state.position;
+        let mut geometry = if state.pressed {
+            context
+                .geometry
+                .quad_fill(position.extend_uniform(-width * 1.5), theme.light)
+        } else if state.hovered {
+            context
+                .geometry
+                .quad_fill(position.extend_uniform(-width), theme.light)
+        } else {
+            context.geometry.quad_fill(position, theme.light)
+        };
+
+        geometry.merge(self.text.draw(context));
+        geometry
     }
 }
 
@@ -65,7 +94,7 @@ impl IconButtonWidget {
     }
 }
 
-impl Widget for IconButtonWidget {
+impl WidgetOld for IconButtonWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
@@ -112,7 +141,7 @@ impl ToggleWidget {
     }
 }
 
-impl Widget for ToggleWidget {
+impl WidgetOld for ToggleWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.text.state
     }

@@ -3,46 +3,65 @@ use super::*;
 use crate::{
     editor::{LevelAction, LevelEditor, LightId},
     prelude::*,
+    ui::UiState,
 };
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub struct TimelineWidget {
     context: UiContext,
     pub state: WidgetState,
-    pub clickable: WidgetState,
-    pub bar: WidgetState,
 
-    pub current_beat: WidgetState,
+    pub lights: BTreeMap<Time, Vec<TimelineLight>>,
+    pub mainline: MainBar,
+    pub selected_line: SelectedBar,
 
-    /// Start of the selection.
-    pub left: WidgetState,
-    /// End of the selection.
-    pub right: WidgetState,
-    /// Replay current position.
-    pub replay: WidgetState,
+    pub current: WidgetState,
 
-    pub lights: BTreeMap<Time, Vec<(LightId, WidgetState)>>,
-    pub selected: WidgetState,
-    pub waypoints: Vec<(WaypointId, WidgetState)>,
-
+    // pub lights: BTreeMap<Time, Vec<(LightId, WidgetState)>>,
+    // pub waypoints: Vec<(WaypointId, WidgetState)>,
     /// Render scale in pixels per beat.
     scale: f32,
     /// The scrolloff in exact time.
     scroll: Time,
     raw_current_time: Time,
-    raw_left: Option<Time>,
-    raw_right: Option<Time>,
-    raw_replay: Option<Time>,
     level: Level, // TODO: reuse existing
     selected_light: Option<LightId>,
     selected_waypoint: Option<WaypointId>,
+}
+
+pub struct TimelineLight {
+    pub id: LightId,
+    pub state: WidgetState,
+    pub waypoints: Option<TimelineWaypoints>,
+}
+
+pub struct TimelineWaypoints {
+    pub min: Time,
+    pub max: Time,
+    pub points: Vec<(WaypointId, WidgetState)>,
+}
+
+#[derive(Default)]
+pub struct MainBar {
+    pub state: WidgetState,
+    pub bar: WidgetState,
+    pub ticks: BTreeSet<Time>,
+}
+
+#[derive(Default)]
+pub struct SelectedBar {
+    pub state: WidgetState,
+    pub bar: WidgetState,
+    pub points: BTreeMap<Time, (WaypointId, WidgetState)>,
 }
 
 impl TimelineWidget {
     pub fn new(context: Context) -> Self {
         Self {
             context: UiContext {
+                state: UiState::new(),
+                geometry: crate::ui::geometry::GeometryContext::new(context.assets.clone()),
                 font: context.geng.default_font().clone(),
                 screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
                 layout_size: 1.0,
@@ -55,25 +74,16 @@ impl TimelineWidget {
                 context,
             },
             state: default(),
-            clickable: default(),
-            bar: default(),
-
-            current_beat: default(),
-
-            left: default(),
-            right: default(),
-            replay: default(),
 
             lights: BTreeMap::new(),
-            selected: WidgetState::new(),
-            waypoints: Vec::new(),
+            mainline: default(),
+            selected_line: default(),
+
+            current: default(),
 
             scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
-            raw_left: None,
-            raw_right: None,
-            raw_replay: None,
             level: Level::new(),
             selected_light: None,
             selected_waypoint: None,
@@ -91,7 +101,7 @@ impl TimelineWidget {
 
         // scroll so that current beat stays in-place
         let min = self.state.position.min.x;
-        let current = self.current_beat.position.center().x;
+        let current = self.current.position.center().x;
         self.scroll = ((current - min) / new_scale) as Time - self.raw_current_time;
 
         self.scale = new_scale;
@@ -117,9 +127,8 @@ impl TimelineWidget {
         self.reload(None);
     }
 
-    pub fn update_time(&mut self, current_beat: Time, replay: Option<Time>) {
+    pub fn update_time(&mut self, current_beat: Time) {
         self.raw_current_time = current_beat;
-        self.raw_replay = replay;
         self.reload(None);
 
         // Auto scroll if current time goes off screen
@@ -128,7 +137,7 @@ impl TimelineWidget {
 
         let min = margin;
         let max = self.state.position.width() - margin;
-        let current = self.current_beat.position.center().x - self.state.position.min.x;
+        let current = self.current.position.center().x - self.state.position.min.x;
         if current < min && self.raw_current_time as f32 > margin_time {
             self.scroll(((min - current) / self.scale) as Time);
         } else if current > max {
@@ -137,30 +146,7 @@ impl TimelineWidget {
         self.reload(None);
     }
 
-    pub fn start_selection(&mut self) {
-        self.raw_left = Some(self.raw_current_time);
-        self.reload(None);
-    }
-
-    /// Finishes the selection and returns the left and right boundaries in ascending order.
-    pub fn end_selection(&mut self) -> (Time, Time) {
-        let right = self.raw_current_time;
-        self.raw_right = Some(right);
-        self.reload(None);
-
-        let left = self.raw_left.unwrap_or(right);
-        if left < right {
-            (left, right)
-        } else {
-            (right, left)
-        }
-    }
-
-    pub fn clear_selection(&mut self) {
-        self.raw_left = None;
-        self.raw_right = None;
-        self.reload(None);
-    }
+    // fn reload2(&mut self,)
 
     fn reload(&mut self, mut editor: Option<(&LevelEditor, &mut Vec<LevelAction>)>) {
         let render_time = |time: Time| {
@@ -171,64 +157,63 @@ impl TimelineWidget {
             );
             Aabb2::point(pos).extend_symmetric(vec2(0.1, 0.5) * self.context.font_size / 2.0)
         };
-        self.current_beat
-            .update(render_time(self.raw_current_time), &self.context);
 
-        self.lights.clear();
-        self.waypoints.clear();
-        self.selected.hide();
+        let current = render_time(self.raw_current_time);
+
+        self.current.update(current, &self.context);
+
         let height = self.context.font_size * 0.4;
-        for (i, event) in self.level.events.iter().enumerate() {
-            if let Event::Light(light) = &event.event {
-                let time = event.time;
-                let light_id = LightId { event: i };
-                if Some(light_id) == self.selected_light {
-                    let from = render_time(time).center();
-                    let to = render_time(time + light.movement.total_duration())
-                        .center()
-                        .x;
-                    let selected = Aabb2::point(from)
-                        .extend_right(to - from.x)
-                        .extend_symmetric(vec2(0.0, 0.1) * self.context.font_size / 2.0);
-                    self.selected.show();
-                    self.selected.update(selected, &self.context);
+        // for (i, event) in self.level.events.iter().enumerate() {
+        //     if let Event::Light(light) = &event.event {
+        //         let time = event.time;
+        //         let light_id = LightId { event: i };
+        //         if Some(light_id) == self.selected_light {
+        //             let from = render_time(time).center();
+        //             let to = render_time(time + light.movement.total_duration())
+        //                 .center()
+        //                 .x;
+        //             let selected = Aabb2::point(from)
+        //                 .extend_right(to - from.x)
+        //                 .extend_symmetric(vec2(0.0, 0.1) * self.context.font_size / 2.0);
+        //             self.selected.show();
+        //             self.selected.update(selected, &self.context);
 
-                    let size = vec2(0.25, 0.5) * self.context.font_size;
-                    for (waypoint_id, _, offset) in light.movement.timed_positions() {
-                        let mut state = WidgetState::new();
-                        let position = render_time(time + offset).center();
-                        let position = Aabb2::point(position).extend_symmetric(size / 2.0);
-                        state.update(position, &self.context);
-                        if state.clicked {
-                            if let Some((_editor, actions)) = &mut editor {
-                                actions.extend([
-                                    LevelAction::SelectLight(light_id),
-                                    LevelAction::SelectWaypoint(waypoint_id),
-                                ]);
-                            }
-                        }
-                        self.waypoints.push((waypoint_id, state));
-                    }
-                }
+        //             let size = vec2(0.25, 0.5) * self.context.font_size;
+        //             for (waypoint_id, _, offset) in light.movement.timed_positions() {
+        //                 let mut state = WidgetState::new();
+        //                 let position = render_time(time + offset).center();
+        //                 let position = Aabb2::point(position).extend_symmetric(size / 2.0);
+        //                 state.update(position, &self.context);
+        //                 if state.clicked {
+        //                     if let Some((_editor, actions)) = &mut editor {
+        //                         actions.extend([
+        //                             LevelAction::SelectLight(light_id),
+        //                             LevelAction::SelectWaypoint(waypoint_id),
+        //                         ]);
+        //                     }
+        //                 }
+        //                 self.waypoints.push((waypoint_id, state));
+        //             }
+        //         }
 
-                let lights = self.lights.entry(time).or_default();
+        //         let lights = self.lights.entry(time).or_default();
 
-                let mut state = WidgetState::new();
-                let position = render_time(time).center();
-                let position = Aabb2::point(position)
-                    .extend_symmetric(vec2(height, 0.0) / 2.0)
-                    .extend_down(height)
-                    .translate(-vec2(0.0, height * (lights.len() as f32 + 0.2)));
-                state.update(position, &self.context);
-                if state.clicked {
-                    if let Some((_editor, actions)) = &mut editor {
-                        actions.extend([LevelAction::SelectLight(light_id)]);
-                    }
-                }
+        //         let mut state = WidgetState::new();
+        //         let position = render_time(time).center();
+        //         let position = Aabb2::point(position)
+        //             .extend_symmetric(vec2(height, 0.0) / 2.0)
+        //             .extend_down(height)
+        //             .translate(-vec2(0.0, height * (lights.len() as f32 + 0.2)));
+        //         state.update(position, &self.context);
+        //         if state.clicked {
+        //             if let Some((_editor, actions)) = &mut editor {
+        //                 actions.extend([LevelAction::SelectLight(light_id)]);
+        //             }
+        //         }
 
-                lights.push((light_id, state));
-            }
-        }
+        //         lights.push((light_id, state));
+        //     }
+        // }
 
         let render_option = |widget: &mut WidgetState, time: Option<Time>| match time {
             Some(time) => {
@@ -237,9 +222,6 @@ impl TimelineWidget {
             }
             None => widget.hide(),
         };
-        render_option(&mut self.left, self.raw_left);
-        render_option(&mut self.right, self.raw_right);
-        render_option(&mut self.replay, self.raw_replay);
     }
 
     pub fn get_cursor_time(&self) -> Time {
@@ -262,12 +244,13 @@ impl StatefulWidget for TimelineWidget {
         (state, actions): &mut Self::State<'_>,
     ) {
         self.state.update(position, context);
+
         let clickable =
             position.extend_symmetric(vec2(0.0, context.font_size * 0.2 - position.height()) / 2.0);
-        self.clickable.update(clickable, context);
         let bar = Aabb2::point(clickable.center())
             .extend_symmetric(vec2(clickable.width(), context.font_size * 0.1) / 2.0);
-        self.bar.update(bar, context);
+        self.mainline.state.update(clickable, context);
+        self.mainline.bar.update(bar, context);
 
         self.context = context.clone();
         self.level = state.level.clone();

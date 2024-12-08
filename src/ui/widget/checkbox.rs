@@ -19,7 +19,7 @@ impl CheckboxWidget {
     }
 }
 
-impl Widget for CheckboxWidget {
+impl WidgetOld for CheckboxWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }

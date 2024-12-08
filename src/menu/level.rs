@@ -10,7 +10,7 @@ use crate::{
     local::CachedMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
-        widget::{ConfirmPopup, Widget},
+        widget::{ConfirmPopup, WidgetOld},
         ShowTime, UiContext, WidgetRequest,
     },
 };

@@ -193,36 +193,41 @@ impl EditorRender {
                         (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
                     };
 
-                    // A dashed line moving through the waypoints to show general direction
-                    const NUM_POINTS: usize = 25;
-                    let num_points = NUM_POINTS * event.movement.key_frames.len();
-                    let period = time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
-                    let speed = r32(4.0).recip();
-                    let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
-                        .map(|i| {
-                            let t = r32(i as f32 / num_points as f32);
-                            let t = (level_editor.real_time / period * speed + t).fract() * period;
-                            let t = seconds_to_time(t) + event.movement.fade_in;
-                            let alpha = visibility(t);
-                            draw2d::ColoredVertex {
-                                a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance
-                                a_color: crate::util::with_alpha(color, alpha),
-                            }
-                        })
-                        .collect();
-
                     let options = util::DashRenderOptions {
                         width: 0.15,
                         dash_length: 0.1,
                         space_length: 0.2,
                     };
 
-                    self.util.draw_dashed_movement(
-                        &positions,
-                        &options,
-                        &level_editor.model.camera,
-                        &mut pixel_buffer,
-                    );
+                    let num_points = event.movement.key_frames.len();
+                    if num_points > 0 {
+                        // A dashed line moving through the waypoints to show general direction
+                        const NUM_POINTS: usize = 25;
+                        let num_points = NUM_POINTS * num_points;
+                        let period =
+                            time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
+                        let speed = r32(4.0).recip();
+                        let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
+                            .map(|i| {
+                                let t = r32(i as f32 / num_points as f32);
+                                let t =
+                                    (level_editor.real_time / period * speed + t).fract() * period;
+                                let t = seconds_to_time(t) + event.movement.fade_in;
+                                let alpha = visibility(t);
+                                draw2d::ColoredVertex {
+                                    a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance
+                                    a_color: crate::util::with_alpha(color, alpha),
+                                }
+                            })
+                            .collect();
+
+                        self.util.draw_dashed_movement(
+                            &positions,
+                            &options,
+                            &level_editor.model.camera,
+                            &mut pixel_buffer,
+                        );
+                    }
 
                     if let Some(waypoints) = &level_editor.level_state.waypoints {
                         // Draw waypoints themselves

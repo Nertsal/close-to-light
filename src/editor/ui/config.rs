@@ -158,8 +158,8 @@ impl StatefulWidget for EditorConfigWidget {
                 .iter()
                 .map(|name| {
                     (
-                        IconWidget::new(&self.assets.sprites.arrow_up),
-                        IconWidget::new(&self.assets.sprites.arrow_down),
+                        IconWidget::new(&self.assets.sprites.arrow_up.texture),
+                        IconWidget::new(&self.assets.sprites.arrow_down.texture),
                         TextWidget::new(name.clone()),
                     )
                 })

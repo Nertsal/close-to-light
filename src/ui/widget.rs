@@ -20,11 +20,39 @@ pub use self::{
     notification::*, options::*, profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
 };
 
-use super::{context::*, window::*};
+use super::{context::*, geometry::Geometry, window::*};
+
+use std::any::Any;
 
 use geng::prelude::*;
 
-pub trait Widget {
+pub trait Widget: WidgetToAny {
+    fn draw(&self, context: &UiContext) -> Geometry;
+}
+
+impl<T: 'static + Widget> Widget for Vec<T> {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        self.iter()
+            .map(|w| w.draw(context))
+            .fold(Geometry::new(), |mut acc, g| {
+                acc.merge(g);
+                acc
+            })
+    }
+}
+
+#[doc(hidden)]
+pub trait WidgetToAny {
+    fn to_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl<T: Any> WidgetToAny for T {
+    fn to_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+pub trait WidgetOld {
     /// Update position and related properties.
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext);
     /// Get a mutable reference to the root state.

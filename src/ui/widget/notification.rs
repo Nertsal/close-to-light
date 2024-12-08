@@ -33,7 +33,7 @@ impl NotificationsWidget {
     }
 }
 
-impl Widget for NotificationsWidget {
+impl WidgetOld for NotificationsWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
@@ -107,12 +107,12 @@ impl NotificationWidget {
             offset_y: Lerp::new_smooth(0.3, 0.0, 0.0),
             state: WidgetState::new(),
             text: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
-            confirm: IconButtonWidget::new_normal(&assets.sprites.confirm),
+            confirm: IconButtonWidget::new_normal(&assets.sprites.confirm.texture),
         }
     }
 }
 
-impl Widget for NotificationWidget {
+impl WidgetOld for NotificationWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }

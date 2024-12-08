@@ -235,7 +235,7 @@ impl MainUI {
         Self {
             screen: WidgetState::new(),
             join_community: TextWidget::new("Join our community!"),
-            join_discord: IconButtonWidget::new_normal(&context.assets.sprites.discord),
+            join_discord: IconButtonWidget::new_normal(&context.assets.sprites.discord.texture),
             profile: ProfileWidget::new(&context.assets),
         }
     }

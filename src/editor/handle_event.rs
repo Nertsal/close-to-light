@@ -31,7 +31,7 @@ impl EditorState {
             }
         }
 
-        if !self.ui.edit.state.visible {
+        if self.editor.tab != EditorTab::Edit {
             return actions;
         }
         let Some(level_editor) = &self.editor.level_edit else {
@@ -66,11 +66,7 @@ impl EditorState {
                     actions.push(EditorStateAction::ScrollTime(scroll_speed));
                 }
                 geng::Key::F => {
-                    if ctrl {
-                        actions.push(EditorStateAction::ClearTimelineSelection);
-                    } else {
-                        actions.push(EditorAction::ToggleDynamicVisual.into());
-                    }
+                    actions.push(EditorAction::ToggleDynamicVisual.into());
                 }
                 geng::Key::X => {
                     if let Some(level_editor) = &self.editor.level_edit {
@@ -199,46 +195,10 @@ impl EditorState {
             },
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
-                if !self.ui_focused && self.ui.edit.state.visible {
+                if !self.ui_focused && self.editor.tab == EditorTab::Edit {
                     let scroll = r32(delta.signum());
-                    if shift && self.ui.edit.timeline.state.hovered {
-                        actions.push(EditorStateAction::TimelineScroll(scroll));
-                    } else if ctrl {
-                        if self.ui.edit.timeline.state.hovered {
-                            // Zoom on the timeline
-                            actions.push(EditorStateAction::TimelineZoom(scroll));
-                        } else if let State::Place { .. }
-                        | State::Waypoints {
-                            state: WaypointsState::New,
-                            ..
-                        } = level_editor.state
-                        {
-                            // Scale light or waypoint placement
-                            let delta = scroll * r32(0.1);
-                            actions.push(LevelAction::ScalePlacement(delta).into());
-                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
-                            if let Some(selected) = waypoints.selected {
-                                let delta = scroll * r32(0.1);
-                                actions.push(
-                                    LevelAction::ScaleWaypoint(waypoints.light, selected, delta)
-                                        .into(),
-                                );
-                            }
-                        } else if let Some(id) = level_editor.selected_light {
-                            // Control fade time
-                            let scroll = scroll.as_f32() as Time;
-                            let change = scroll * self.editor.config.scroll_slow.as_time(beat_time);
-                            let action = if shift {
-                                LevelAction::ChangeFadeOut(id, Change::Add(change))
-                            } else {
-                                LevelAction::ChangeFadeIn(id, Change::Add(change))
-                            };
-                            actions.push(action.into());
-                        }
-                    } else {
-                        let scroll = scroll.as_f32() as Time;
-                        actions.push(EditorStateAction::ScrollTime(scroll * scroll_speed));
-                    }
+                    let scroll = scroll.as_f32() as Time;
+                    actions.push(EditorStateAction::ScrollTime(scroll * scroll_speed));
                 }
             }
             geng::Event::MousePress { button } => match button {

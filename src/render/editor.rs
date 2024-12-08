@@ -9,7 +9,10 @@ use super::{
     *,
 };
 
-use crate::editor::{State, *};
+use crate::{
+    editor::{State, *},
+    ui::UiContext,
+};
 
 pub struct EditorRender {
     geng: Geng,
@@ -53,7 +56,7 @@ impl EditorRender {
     pub fn draw_editor(
         &mut self,
         editor: &Editor,
-        ui: &EditorUI,
+        ui: &UiContext,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         ugli::clear(
@@ -64,40 +67,40 @@ impl EditorRender {
         );
 
         self.mask.update_size(framebuffer.size());
-        geng_utils::texture::update_texture_size(
-            &mut self.game_texture,
-            ui.screen.position.size().map(|x| x.round() as usize),
-            self.geng.ugli(),
-        );
+        // geng_utils::texture::update_texture_size(
+        //     &mut self.game_texture,
+        //     ui.screen.position.size().map(|x| x.round() as usize),
+        //     self.geng.ugli(),
+        // );
         geng_utils::texture::update_texture_size(
             &mut self.ui_texture,
             framebuffer.size(),
             self.geng.ugli(),
         );
 
-        self.draw_game(editor, ui.edit.state.visible);
+        // self.draw_game(editor, ui.edit.state.visible);
         if !editor.render_options.hide_ui {
             self.draw_ui(editor, ui);
         }
 
         let camera = &geng::PixelPerfectCamera;
 
-        if ui.edit.state.visible {
-            let mut masked = self.mask.start();
-            masked.mask_quad(if editor.render_options.hide_ui {
-                ui.screen.position
-            } else {
-                ui.game.position
-            });
-            self.geng.draw2d().textured_quad(
-                &mut masked.color,
-                camera,
-                ui.screen.position,
-                &self.game_texture,
-                Color::WHITE,
-            );
-            self.mask.draw(draw_parameters(), framebuffer);
-        }
+        // if ui.edit.state.visible {
+        //     let mut masked = self.mask.start();
+        //     masked.mask_quad(if editor.render_options.hide_ui {
+        //         ui.screen.position
+        //     } else {
+        //         ui.game.position
+        //     });
+        //     self.geng.draw2d().textured_quad(
+        //         &mut masked.color,
+        //         camera,
+        //         ui.screen.position,
+        //         &self.game_texture,
+        //         Color::WHITE,
+        //     );
+        //     self.mask.draw(draw_parameters(), framebuffer);
+        // }
 
         if !editor.render_options.hide_ui {
             self.geng.draw2d().textured_quad(

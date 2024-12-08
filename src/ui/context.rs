@@ -1,3 +1,5 @@
+use super::{geometry::GeometryContext, state::UiState};
+
 use crate::prelude::{Context, Theme};
 
 use geng::prelude::*;
@@ -75,17 +77,22 @@ impl CursorContext {
 #[derive(Clone)]
 pub struct UiContext {
     pub context: Context,
+    pub geometry: GeometryContext,
     pub font: Rc<geng::Font>,
+
+    pub state: UiState,
+    pub cursor: CursorContext,
+
+    pub text_edit: TextEdit,
+    /// Active key modifiers.
+    pub mods: KeyModifiers,
+    /// Whether the widget can use the cursor position to get focus.
+    pub can_focus: bool,
+
+    pub delta_time: f32,
     pub screen: Aabb2<f32>,
     pub layout_size: f32,
     pub font_size: f32,
-    /// Whether the widget can use the cursor position to get focus.
-    pub can_focus: bool,
-    pub cursor: CursorContext,
-    pub text_edit: TextEdit,
-    pub delta_time: f32,
-    /// Active key modifiers.
-    pub mods: KeyModifiers,
 }
 
 #[derive(Clone)]
@@ -163,6 +170,8 @@ impl TextEdit {
 impl UiContext {
     pub fn new(context: Context) -> Self {
         Self {
+            state: UiState::new(),
+            geometry: GeometryContext::new(context.assets.clone()),
             font: context.geng.default_font().clone(),
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,

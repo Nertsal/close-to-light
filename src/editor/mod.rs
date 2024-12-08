@@ -37,7 +37,7 @@ pub struct EditorState {
     editor: Editor,
     framebuffer_size: vec2<usize>,
     delta_time: FloatTime,
-    ui: EditorUI,
+    ui: EditorUi,
     ui_focused: bool,
     ui_context: UiContext,
     drag: Option<Drag>,
@@ -100,9 +100,12 @@ pub struct LevelEditor {
     /// Whether currently scrolling through time.
     /// Used as a hack to not replay the music every frame.
     pub scrolling_time: bool,
+}
 
-    /// If `Some`, specifies the segment of the level to replay dynamically.
-    pub dynamic_segment: Option<Replay>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditorTab {
+    Edit,
+    Config,
 }
 
 pub struct Editor {
@@ -114,7 +117,8 @@ pub struct Editor {
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
-    /// Whether to exit the game on the next frame.
+    pub tab: EditorTab,
+    /// Whether to exit the editor on the next frame.
     pub exit: bool,
 
     pub grid_size: Coord,
@@ -128,14 +132,6 @@ pub struct Editor {
 
     pub group: PlayGroup,
     pub level_edit: Option<LevelEditor>,
-}
-
-#[derive(Debug)]
-pub struct Replay {
-    pub start_time: Time,
-    pub end_time: Time,
-    pub current_time: Time,
-    pub speed: FloatTime,
 }
 
 impl LevelEditor {
@@ -157,7 +153,6 @@ impl LevelEditor {
             state: State::Idle,
             was_scrolling_time: false,
             scrolling_time: false,
-            dynamic_segment: None,
             history: History::new(&level.level.data),
             level: level.level.data.clone(),
             name: level.level.meta.name.to_string(),
@@ -227,7 +222,7 @@ impl EditorState {
             render: EditorRender::new(context.clone()),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
-            ui: EditorUI::new(context.clone()),
+            ui: EditorUi::new(context.clone()),
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
             drag: None,
@@ -242,6 +237,7 @@ impl EditorState {
 
                 confirm_popup: None,
 
+                tab: EditorTab::Edit,
                 exit: false,
 
                 grid_size: r32(10.0) / config.grid.height,
@@ -321,11 +317,6 @@ impl EditorState {
 
         if let State::Playing { .. } = level_editor.state {
             level_editor.current_time = seconds_to_time(level_editor.real_time);
-        } else if let Some(replay) = &mut level_editor.dynamic_segment {
-            replay.current_time += seconds_to_time(replay.speed * delta_time);
-            if replay.current_time > replay.end_time {
-                replay.current_time = replay.start_time;
-            }
         }
 
         level_editor.render_lights(
@@ -336,11 +327,11 @@ impl EditorState {
         );
 
         let pos = self.ui_context.cursor.position;
-        let pos = pos - self.ui.screen.position.bottom_left();
+        let pos = pos - self.ui_context.screen.bottom_left();
         let pos = level_editor
             .model
             .camera
-            .screen_to_world(self.ui.screen.position.size(), pos)
+            .screen_to_world(self.ui_context.screen.size(), pos)
             .as_r32();
         self.editor.cursor_world_pos = pos;
         self.editor.cursor_world_pos_snapped = if self.editor.snap_to_grid {
@@ -420,6 +411,8 @@ impl geng::State for EditorState {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(Color::BLACK), None, None);
 
+        self.ui_context.state.frame_start();
+        self.ui_context.geometry.update(framebuffer.size());
         let (can_focus, actions) = self.ui.layout(
             &self.editor,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
@@ -434,7 +427,8 @@ impl geng::State for EditorState {
         if let Some(level_editor) = &mut self.editor.level_edit {
             level_editor.model.camera.fov = 10.0 / self.editor.view_zoom;
         }
-        self.render.draw_editor(&self.editor, &self.ui, framebuffer);
+        self.render
+            .draw_editor(&self.editor, &self.ui_context, framebuffer);
     }
 }
 
@@ -620,7 +614,7 @@ impl Editor {
     }
 
     /// Confirm the popup action and execute it.
-    fn confirm_action(&mut self, _ui: &mut EditorUI) {
+    fn confirm_action(&mut self, _ui: &mut EditorUi) {
         let Some(popup) = self.confirm_popup.take() else {
             return;
         };
@@ -760,12 +754,8 @@ impl LevelEditor {
         } else {
             let time = self.current_time;
             let dynamic = if visualize_beat {
-                if let Some(replay) = &self.dynamic_segment {
-                    Some(replay.current_time)
-                } else {
-                    // TODO: customize dynamic visual
-                    Some(time + seconds_to_time(self.real_time.fract()))
-                }
+                // TODO: customize dynamic visual
+                Some(time + seconds_to_time(self.real_time.fract()))
             } else {
                 None
             };

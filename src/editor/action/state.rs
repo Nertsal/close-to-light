@@ -9,7 +9,6 @@ pub enum EditorStateAction {
     UpdateTextEdit(String),
     CursorMove(vec2<f32>),
     WheelScroll(f32),
-    ClearTimelineSelection,
     StartPlaytest,
     TimelineScroll(Coord),
     TimelineZoom(Coord),
@@ -53,12 +52,6 @@ impl EditorState {
             }
             EditorStateAction::WheelScroll(delta) => {
                 self.ui_context.cursor.scroll += delta;
-            }
-            EditorStateAction::ClearTimelineSelection => {
-                if let Some(level_editor) = &mut self.editor.level_edit {
-                    level_editor.dynamic_segment = None;
-                }
-                self.ui.edit.timeline.clear_selection();
             }
             EditorStateAction::StartPlaytest => self.play_game(),
             EditorStateAction::TimelineScroll(scroll) => {

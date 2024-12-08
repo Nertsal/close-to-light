@@ -98,7 +98,7 @@ impl InputWidget {
     }
 }
 
-impl Widget for InputWidget {
+impl WidgetOld for InputWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }

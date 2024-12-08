@@ -33,7 +33,7 @@ impl IconWidget {
     }
 }
 
-impl Widget for IconWidget {
+impl WidgetOld for IconWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }

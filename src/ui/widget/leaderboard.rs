@@ -43,7 +43,7 @@ impl LeaderboardWidget {
             assets: assets.clone(),
             window: UiWindow::new((), 0.3).reload_skip(),
             // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
-            reload: IconButtonWidget::new_normal(&assets.sprites.reset),
+            reload: IconButtonWidget::new_normal(&assets.sprites.reset.texture),
             show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("login to submit scores"),
@@ -145,7 +145,7 @@ impl LeaderboardWidget {
     }
 }
 
-impl Widget for LeaderboardWidget {
+impl WidgetOld for LeaderboardWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
@@ -266,7 +266,7 @@ impl LeaderboardEntryWidget {
     }
 }
 
-impl Widget for LeaderboardEntryWidget {
+impl WidgetOld for LeaderboardEntryWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
