@@ -217,9 +217,9 @@ impl EditorEditUi {
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
         let button_height = font_size * 1.2;
-        let value_height = font_size * 2.0;
+        let value_height = font_size * 1.4;
 
-        let tooltip = context.state.get_or(|| TooltipWidget::new());
+        let tooltip = context.state.get_or(TooltipWidget::new);
 
         {
             let mut bar = left_bar;
@@ -317,17 +317,17 @@ impl EditorEditUi {
             //     editor.view_waypoints();
             // }
 
-            // let zoom = bar.cut_top(value_height);
-            // bar.cut_top(spacing);
-            // let slider = context
-            //     .state
-            //     .get_or(|| SliderWidget::new("Zoom", editor.view_zoom, 0.5..=2.0, 0.25));
-            // {
-            //     let mut view_zoom = editor.view_zoom;
-            //     slider.update(zoom, context, &mut view_zoom);
-            //     actions.push(EditorAction::SetViewZoom(view_zoom).into());
-            // }
-            // context.update_focus(slider.state.hovered);
+            let zoom = bar.cut_top(value_height);
+            bar.cut_top(spacing);
+            let slider = context
+                .state
+                .get_or(|| ValueWidget::new_range("Zoom", editor.view_zoom, 0.5..=2.0, 0.25));
+            {
+                let mut view_zoom = editor.view_zoom;
+                slider.update(zoom, context, &mut view_zoom);
+                actions.push(EditorAction::SetViewZoom(view_zoom).into());
+            }
+            context.update_focus(slider.state.hovered);
 
             bar.cut_top(layout_size * 1.5);
             left_bar = bar;

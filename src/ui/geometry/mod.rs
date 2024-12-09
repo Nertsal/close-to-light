@@ -97,7 +97,8 @@ impl GeometryContext {
         }
     }
 
-    pub fn nine_slice(&self, pos: Aabb2<f32>, color: Color, texture: PixelTexture) -> Geometry {
+    pub fn nine_slice(&self, pos: Aabb2<f32>, color: Color, texture: &PixelTexture) -> Geometry {
+        let texture = texture.clone();
         let whole = Aabb2::ZERO.extend_positive(vec2::splat(1.0));
 
         // TODO: configurable
@@ -155,6 +156,28 @@ impl GeometryContext {
         }
     }
 
+    pub fn quad(&self, position: Aabb2<f32>, color: Color) -> Geometry {
+        let [a, b, c, d] = position.corners();
+        let a = (a, vec2(0.0, 0.0));
+        let b = (b, vec2(1.0, 0.0));
+        let c = (c, vec2(1.0, 1.0));
+        let d = (d, vec2(0.0, 1.0));
+        let triangles = [a, b, c, a, c, d]
+            .into_iter()
+            .map(|(a_pos, a_vt)| GeometryTriangleVertex {
+                a_pos,
+                a_color: color,
+                a_vt,
+            })
+            .collect();
+
+        Geometry {
+            triangles,
+            textures: vec![],
+            text: vec![],
+        }
+    }
+
     pub fn quad_fill(&self, position: Aabb2<f32>, color: Color) -> Geometry {
         let size = position.size();
         let size = size.x.min(size.y);
@@ -163,7 +186,7 @@ impl GeometryContext {
         } else {
             &self.assets.sprites.fill
         };
-        self.nine_slice(position, color, texture.clone())
+        self.nine_slice(position, color, texture)
     }
 
     pub fn quad_outline(&self, position: Aabb2<f32>, width: f32, color: Color) -> Geometry {
@@ -174,10 +197,46 @@ impl GeometryContext {
         } else {
             (&self.assets.sprites.border, 4.0 * self.pixel_scale)
         };
-        self.nine_slice(
-            position.extend_uniform(real_width - width),
-            color,
-            texture.clone(),
-        )
+        self.nine_slice(position.extend_uniform(real_width - width), color, texture)
+    }
+
+    /// Pixel perfect texture
+    pub fn texture_pp(
+        &self,
+        center: vec2<f32>,
+        color: Color,
+        scale: f32,
+        texture: &PixelTexture,
+    ) -> Geometry {
+        let texture = texture.clone();
+
+        let size = texture.size() * (self.pixel_scale * scale).round() as usize;
+        let position = geng_utils::pixel::pixel_perfect_aabb(
+            center,
+            vec2(0.5, 0.5),
+            size,
+            &geng::PixelPerfectCamera,
+            self.framebuffer_size.as_f32(),
+        );
+
+        let [a, b, c, d] = position.corners();
+        let a = (a, vec2(0.0, 0.0));
+        let b = (b, vec2(1.0, 0.0));
+        let c = (c, vec2(1.0, 1.0));
+        let d = (d, vec2(0.0, 1.0));
+        let triangles = [a, b, c, a, c, d]
+            .into_iter()
+            .map(|(a_pos, a_vt)| GeometryTriangleVertex {
+                a_pos,
+                a_color: color,
+                a_vt,
+            })
+            .collect();
+
+        Geometry {
+            triangles: vec![],
+            textures: vec![GeometryTexture { texture, triangles }],
+            text: vec![],
+        }
     }
 }

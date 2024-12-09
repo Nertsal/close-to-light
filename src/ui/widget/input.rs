@@ -51,8 +51,8 @@ impl InputWidget {
     pub fn new(name: impl Into<Name>) -> Self {
         Self {
             state: WidgetState::new(),
-            name: TextWidget::new(name).aligned(vec2(0.5, 0.5)),
-            text: TextWidget::new("").aligned(vec2(0.5, 0.5)),
+            name: TextWidget::new(name),
+            text: TextWidget::new(""),
             edit_id: None,
             raw: String::new(),
             editing: false,
@@ -124,11 +124,19 @@ impl InputWidget {
             false
         };
 
+        let theme = context.theme();
+        self.text.options.color = if self.editing {
+            theme.light
+        } else {
+            theme.highlight
+        };
+
         let mut main = position;
 
         if self.layout_vertical {
             if !self.name.text.is_empty() {
                 let name = main.split_top(0.5);
+                self.name.align(vec2(0.5, 0.5));
                 self.name.update(name, context);
             }
             self.text.align(vec2(0.5, 0.5));
@@ -137,6 +145,7 @@ impl InputWidget {
             if !self.name.text.is_empty() {
                 let name_width = (context.layout_size * 5.0).min(main.width() / 2.0);
                 let name = main.cut_left(name_width);
+                self.name.align(vec2(0.0, 0.5));
                 self.name.update(name, context);
                 self.text.align(vec2(1.0, 0.5));
             } else {
@@ -149,8 +158,14 @@ impl InputWidget {
 
 impl Widget for InputWidget {
     fn draw(&self, context: &UiContext) -> Geometry {
+        let theme = context.theme();
         let mut geometry = self.name.draw(context);
         geometry.merge(self.text.draw(context));
+        if self.editing {
+            let mut pos = self.text.state.position;
+            let underline = pos.cut_bottom(pos.height() * 0.05);
+            geometry.merge(context.geometry.quad(underline, theme.highlight));
+        }
         geometry
     }
 }

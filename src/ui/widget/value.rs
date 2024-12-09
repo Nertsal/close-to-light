@@ -23,7 +23,7 @@ impl<T: Float> ValueWidget<T> {
     pub fn new(text: impl Into<Name>, value: T, control: ValueControl<T>, scroll_by: T) -> Self {
         Self {
             state: WidgetState::new(),
-            value_text: InputWidget::new(text).vertical().format(InputFormat::Float),
+            value_text: InputWidget::new(text).format(InputFormat::Float),
             control_state: WidgetState::new(),
             value,
             control,
@@ -65,8 +65,8 @@ impl<T: Float> ValueWidget<T> {
         self.state.update(position, context);
         let mut main = position;
 
-        let control_width = main.height() / 2.0;
-        let control = main.cut_right(control_width);
+        let control_height = context.font_size * 0.2;
+        let control = main.cut_bottom(control_height);
         self.control_state.update(control, context);
 
         // Drag value
@@ -78,7 +78,7 @@ impl<T: Float> ValueWidget<T> {
             let pos = convert(context.cursor.position);
             match self.control {
                 ValueControl::Slider { min, max } => {
-                    let t = (pos.y + 0.5).clamp(0.0, 1.0);
+                    let t = (pos.x + 0.5).clamp(0.0, 1.0);
                     self.value = min + (max - min) * T::from_f32(t);
                 }
                 ValueControl::Circle { period, .. } => {
@@ -116,5 +116,50 @@ impl<T: Float> ValueWidget<T> {
         }
 
         *state = self.value;
+    }
+}
+
+impl<T: 'static + Float> Widget for ValueWidget<T> {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let theme = context.theme();
+        let mut geometry = self.value_text.draw(context);
+
+        let quad = self.control_state.position;
+        let width = quad.height() * 0.05;
+        let quad = quad.extend_uniform(-width);
+        match self.control {
+            ValueControl::Slider { min, max } => {
+                let t = (self.value - min) / (max - min);
+                let mut fill = quad;
+                let fill = fill.cut_left(fill.width() * t.as_f32());
+
+                let tick = |t: f32| quad.align_pos(vec2(t, 0.5));
+
+                geometry.merge(context.geometry.texture_pp(
+                    tick(0.0),
+                    theme.highlight,
+                    0.5,
+                    &context.context.assets.sprites.timeline.tick_smol,
+                ));
+                geometry.merge(context.geometry.texture_pp(
+                    tick(t.as_f32()),
+                    theme.highlight,
+                    0.5,
+                    &context.context.assets.sprites.timeline.tick_tiny,
+                ));
+                geometry.merge(context.geometry.texture_pp(
+                    tick(1.0),
+                    theme.light,
+                    0.5,
+                    &context.context.assets.sprites.timeline.tick_smol,
+                ));
+
+                geometry.merge(context.geometry.quad(quad, theme.light));
+                geometry.merge(context.geometry.quad(fill, theme.highlight));
+            }
+            ValueControl::Circle { zero_angle, period } => todo!(),
+        }
+
+        geometry
     }
 }
