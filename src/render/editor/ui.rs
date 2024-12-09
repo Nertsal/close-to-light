@@ -1,4 +1,4 @@
-use crate::ui::{geometry::Geometry, layout::AreaOps};
+use crate::ui::geometry::Geometry;
 
 use super::*;
 
@@ -88,233 +88,233 @@ impl EditorRender {
         // }
     }
 
-    fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {
-        if !ui.state.visible {
-            return;
-        }
+    // fn draw_tab_config(&mut self, editor: &Editor, ui: &EditorConfigWidget) {
+    //     if !ui.state.visible {
+    //         return;
+    //     }
 
-        let framebuffer =
-            &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
-        let theme = editor.context.get_options().theme;
+    //     let framebuffer =
+    //         &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+    //     let theme = editor.context.get_options().theme;
 
-        self.ui.draw_text(&ui.timing, framebuffer);
-        self.ui.draw_value(&ui.bpm, framebuffer);
-        // self.ui.draw_value(&ui.offset, framebuffer);
+    //     self.ui.draw_text(&ui.timing, framebuffer);
+    //     self.ui.draw_value(&ui.bpm, framebuffer);
+    //     // self.ui.draw_value(&ui.offset, framebuffer);
 
-        self.ui.draw_text(&ui.music, framebuffer);
-        self.ui.draw_text(&ui.level, framebuffer);
-        self.ui.draw_input(&ui.level_name, framebuffer);
-        self.ui.draw_button(&ui.level_delete, theme, framebuffer);
-        self.ui.draw_button(&ui.level_create, theme, framebuffer);
-        self.ui.draw_text(&ui.all_levels, framebuffer);
+    //     self.ui.draw_text(&ui.music, framebuffer);
+    //     self.ui.draw_text(&ui.level, framebuffer);
+    //     self.ui.draw_input(&ui.level_name, framebuffer);
+    //     self.ui.draw_button(&ui.level_delete, theme, framebuffer);
+    //     self.ui.draw_button(&ui.level_create, theme, framebuffer);
+    //     self.ui.draw_text(&ui.all_levels, framebuffer);
 
-        let active = editor
-            .level_edit
-            .as_ref()
-            .map(|editor| editor.static_level.level_index);
-        for (i, (up, down, level)) in ui.all_level_names.iter().enumerate() {
-            let selected = active == Some(i);
-            self.ui.draw_icon(up, theme, framebuffer);
-            self.ui.draw_icon(down, theme, framebuffer);
-            self.ui
-                .draw_toggle_button(level, selected, false, theme, framebuffer);
-        }
+    //     let active = editor
+    //         .level_edit
+    //         .as_ref()
+    //         .map(|editor| editor.static_level.level_index);
+    //     for (i, (up, down, level)) in ui.all_level_names.iter().enumerate() {
+    //         let selected = active == Some(i);
+    //         self.ui.draw_icon(up, theme, framebuffer);
+    //         self.ui.draw_icon(down, theme, framebuffer);
+    //         self.ui
+    //             .draw_toggle_button(level, selected, false, theme, framebuffer);
+    //     }
 
-        self.ui.draw_text(&ui.timeline, framebuffer);
-        // self.ui.draw_value(&ui.scroll_by, framebuffer);
-        // self.ui.draw_value(&ui.shift_scroll, framebuffer);
-        // self.ui.draw_value(&ui.alt_scroll, framebuffer);
-    }
+    //     self.ui.draw_text(&ui.timeline, framebuffer);
+    //     // self.ui.draw_value(&ui.scroll_by, framebuffer);
+    //     // self.ui.draw_value(&ui.shift_scroll, framebuffer);
+    //     // self.ui.draw_value(&ui.alt_scroll, framebuffer);
+    // }
 
-    fn draw_tab_edit(&mut self, editor: &Editor, ui: &EditorEditWidget) {
-        if !ui.state.visible {
-            return;
-        }
+    // fn draw_tab_edit(&mut self, editor: &Editor, ui: &EditorEditUi) {
+    //     if !ui.state.visible {
+    //         return;
+    //     }
 
-        let framebuffer =
-            &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+    //     let framebuffer =
+    //         &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
 
-        let Some(level_editor) = &editor.level_edit else {
-            self.ui.draw_text(&ui.warn_select_level, framebuffer);
-            return;
-        };
+    //     let Some(level_editor) = &editor.level_edit else {
+    //         self.ui.draw_text(&ui.warn_select_level, framebuffer);
+    //         return;
+    //     };
 
-        let theme = editor.context.get_options().theme;
+    //     let theme = editor.context.get_options().theme;
 
-        let camera = &geng::PixelPerfectCamera;
+    //     let camera = &geng::PixelPerfectCamera;
 
-        // Event
-        self.ui.draw_text(&ui.new_event, framebuffer);
-        // self.ui.draw_button(&ui.new_palette, theme, framebuffer);
-        self.ui.draw_button(&ui.new_circle, theme, framebuffer);
-        self.ui.draw_button(&ui.new_line, theme, framebuffer);
-        self.ui.draw_button(&ui.new_waypoint, theme, framebuffer);
+    //     // Event
+    //     self.ui.draw_text(&ui.new_event, framebuffer);
+    //     // self.ui.draw_button(&ui.new_palette, theme, framebuffer);
+    //     self.ui.draw_button(&ui.new_circle, theme, framebuffer);
+    //     self.ui.draw_button(&ui.new_line, theme, framebuffer);
+    //     self.ui.draw_button(&ui.new_waypoint, theme, framebuffer);
 
-        // View
-        self.ui.draw_text(&ui.view, framebuffer);
-        self.ui
-            .draw_checkbox(&ui.show_only_selected, theme, framebuffer);
-        self.ui
-            .draw_checkbox(&ui.visualize_beat, theme, framebuffer);
-        self.ui.draw_checkbox(&ui.show_grid, theme, framebuffer);
-        self.ui.draw_value(&ui.view_zoom, framebuffer);
+    //     // View
+    //     self.ui.draw_text(&ui.view, framebuffer);
+    //     self.ui
+    //         .draw_checkbox(&ui.show_only_selected, theme, framebuffer);
+    //     self.ui
+    //         .draw_checkbox(&ui.visualize_beat, theme, framebuffer);
+    //     self.ui.draw_checkbox(&ui.show_grid, theme, framebuffer);
+    //     self.ui.draw_value(&ui.view_zoom, framebuffer);
 
-        // Placement
-        self.ui.draw_text(&ui.placement, framebuffer);
-        self.ui.draw_checkbox(&ui.snap_grid, theme, framebuffer);
-        self.ui.draw_value(&ui.grid_size, framebuffer);
+    //     // Placement
+    //     self.ui.draw_text(&ui.placement, framebuffer);
+    //     self.ui.draw_checkbox(&ui.snap_grid, theme, framebuffer);
+    //     self.ui.draw_value(&ui.grid_size, framebuffer);
 
-        // Light
-        self.ui.draw_text(&ui.light, framebuffer);
-        self.ui.draw_button(&ui.light_delete, theme, framebuffer);
-        self.ui.draw_checkbox(&ui.light_danger, theme, framebuffer);
-        self.ui.draw_value(&ui.light_fade_in, framebuffer);
-        self.ui.draw_value(&ui.light_fade_out, framebuffer);
+    //     // Light
+    //     self.ui.draw_text(&ui.light, framebuffer);
+    //     self.ui.draw_button(&ui.light_delete, theme, framebuffer);
+    //     self.ui.draw_checkbox(&ui.light_danger, theme, framebuffer);
+    //     self.ui.draw_value(&ui.light_fade_in, framebuffer);
+    //     self.ui.draw_value(&ui.light_fade_out, framebuffer);
 
-        // Waypoints
-        self.ui.draw_button(&ui.waypoint, theme, framebuffer);
-        self.ui
-            .draw_icon_button(&ui.prev_waypoint, theme, framebuffer);
-        self.ui
-            .draw_icon_button(&ui.next_waypoint, theme, framebuffer);
-        self.ui.draw_text(&ui.current_waypoint, framebuffer);
-        self.ui.draw_button(&ui.waypoint_delete, theme, framebuffer);
-        self.ui.draw_value(&ui.waypoint_scale, framebuffer);
-        self.ui.draw_value(&ui.waypoint_angle, framebuffer);
+    //     // Waypoints
+    //     self.ui.draw_button(&ui.waypoint, theme, framebuffer);
+    //     self.ui
+    //         .draw_icon_button(&ui.prev_waypoint, theme, framebuffer);
+    //     self.ui
+    //         .draw_icon_button(&ui.next_waypoint, theme, framebuffer);
+    //     self.ui.draw_text(&ui.current_waypoint, framebuffer);
+    //     self.ui.draw_button(&ui.waypoint_delete, theme, framebuffer);
+    //     self.ui.draw_value(&ui.waypoint_scale, framebuffer);
+    //     self.ui.draw_value(&ui.waypoint_angle, framebuffer);
 
-        self.ui.draw_dropdown(
-            &ui.waypoint_curve,
-            self.font_size * 0.2,
-            &mut self.mask,
-            framebuffer,
-        );
-        self.ui.draw_dropdown(
-            &ui.waypoint_interpolation,
-            self.font_size * 0.2,
-            &mut self.mask,
-            framebuffer,
-        );
+    //     self.ui.draw_dropdown(
+    //         &ui.waypoint_curve,
+    //         self.font_size * 0.2,
+    //         &mut self.mask,
+    //         framebuffer,
+    //     );
+    //     self.ui.draw_dropdown(
+    //         &ui.waypoint_interpolation,
+    //         self.font_size * 0.2,
+    //         &mut self.mask,
+    //         framebuffer,
+    //     );
 
-        {
-            // Timeline
-            let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
-            let bar = ui.timeline.mainline.bar.position;
-            quad(bar, theme.light);
+    //     {
+    //         // Timeline
+    //         let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
+    //         let bar = ui.timeline.mainline.bar.position;
+    //         quad(bar, theme.light);
 
-            if ui.timeline.selected_line.state.visible {
-                quad(ui.timeline.selected_line.bar.position, theme.highlight);
-            }
+    //         if ui.timeline.selected_line.state.visible {
+    //             quad(ui.timeline.selected_line.bar.position, theme.highlight);
+    //         }
 
-            let triangle = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
-                let vertices = [
-                    aabb.align_pos(vec2(0.5, 1.0)),
-                    aabb.bottom_left(),
-                    aabb.bottom_right(),
-                ]
-                .map(|a_pos| draw2d::ColoredVertex {
-                    a_pos,
-                    a_color: Rgba::WHITE,
-                });
-                self.geng.draw2d().draw(
-                    framebuffer,
-                    camera,
-                    &vertices,
-                    color,
-                    ugli::DrawMode::Triangles,
-                );
-            };
-            let diamond = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
-                let vertices = [
-                    aabb.align_pos(vec2(0.0, 0.5)),
-                    aabb.align_pos(vec2(0.5, 0.0)),
-                    aabb.align_pos(vec2(1.0, 0.5)),
-                    aabb.align_pos(vec2(0.5, 1.0)),
-                ]
-                .map(|a_pos| draw2d::ColoredVertex {
-                    a_pos,
-                    a_color: Rgba::WHITE,
-                });
-                self.geng.draw2d().draw(
-                    framebuffer,
-                    camera,
-                    &vertices,
-                    color,
-                    ugli::DrawMode::TriangleFan,
-                );
-            };
+    //         let triangle = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
+    //             let vertices = [
+    //                 aabb.align_pos(vec2(0.5, 1.0)),
+    //                 aabb.bottom_left(),
+    //                 aabb.bottom_right(),
+    //             ]
+    //             .map(|a_pos| draw2d::ColoredVertex {
+    //                 a_pos,
+    //                 a_color: Rgba::WHITE,
+    //             });
+    //             self.geng.draw2d().draw(
+    //                 framebuffer,
+    //                 camera,
+    //                 &vertices,
+    //                 color,
+    //                 ugli::DrawMode::Triangles,
+    //             );
+    //         };
+    //         let diamond = |aabb: Aabb2<f32>, color, framebuffer: &mut ugli::Framebuffer| {
+    //             let vertices = [
+    //                 aabb.align_pos(vec2(0.0, 0.5)),
+    //                 aabb.align_pos(vec2(0.5, 0.0)),
+    //                 aabb.align_pos(vec2(1.0, 0.5)),
+    //                 aabb.align_pos(vec2(0.5, 1.0)),
+    //             ]
+    //             .map(|a_pos| draw2d::ColoredVertex {
+    //                 a_pos,
+    //                 a_color: Rgba::WHITE,
+    //             });
+    //             self.geng.draw2d().draw(
+    //                 framebuffer,
+    //                 camera,
+    //                 &vertices,
+    //                 color,
+    //                 ugli::DrawMode::TriangleFan,
+    //             );
+    //         };
 
-            // All lights
-            for light in ui.timeline.lights.values().flatten() {
-                let color = if level_editor.selected_light == Some(light.id) {
-                    theme.highlight
-                } else if level_editor
-                    .level
-                    .events
-                    .get(light.id.event)
-                    .map_or(false, |event| match &event.event {
-                        Event::Light(light) => light.danger,
-                        _ => false,
-                    })
-                {
-                    theme.danger
-                } else {
-                    theme.light
-                };
-                triangle(light.state.position, color, framebuffer);
+    //         // All lights
+    //         for light in ui.timeline.lights.values().flatten() {
+    //             let color = if level_editor.selected_light == Some(light.id) {
+    //                 theme.highlight
+    //             } else if level_editor
+    //                 .level
+    //                 .events
+    //                 .get(light.id.event)
+    //                 .map_or(false, |event| match &event.event {
+    //                     Event::Light(light) => light.danger,
+    //                     _ => false,
+    //                 })
+    //             {
+    //                 theme.danger
+    //             } else {
+    //                 theme.light
+    //             };
+    //             triangle(light.state.position, color, framebuffer);
 
-                if let Some(waypoints) = &light.waypoints {
-                    for (_id, waypoint) in &waypoints.points {
-                        diamond(waypoint.position, theme.light, framebuffer);
-                    }
-                }
-            }
+    //             if let Some(waypoints) = &light.waypoints {
+    //                 for (_id, waypoint) in &waypoints.points {
+    //                     diamond(waypoint.position, theme.light, framebuffer);
+    //                 }
+    //             }
+    //         }
 
-            // // Selected light timespan
-            // let event = if let State::Waypoints { event, .. } = level_editor.state {
-            //     Some(event)
-            // } else {
-            //     level_editor.selected_light.map(|id| id.event)
-            // };
-            // if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
-            //     let from_time = event.beat;
-            //     if let Event::Light(event) = &event.event {
-            //         let from_time = from_time + event.telegraph.precede_time;
-            //         let to_time = from_time + event.light.movement.total_duration();
+    //         // // Selected light timespan
+    //         // let event = if let State::Waypoints { event, .. } = level_editor.state {
+    //         //     Some(event)
+    //         // } else {
+    //         //     level_editor.selected_light.map(|id| id.event)
+    //         // };
+    //         // if let Some(event) = event.and_then(|i| level_editor.level.events.get(i)) {
+    //         //     let from_time = event.beat;
+    //         //     if let Event::Light(event) = &event.event {
+    //         //         let from_time = from_time + event.telegraph.precede_time;
+    //         //         let to_time = from_time + event.light.movement.total_duration();
 
-            //         let from = ui.timeline.time_to_screen(from_time);
-            //         let to = ui.timeline.time_to_screen(to_time);
-            //         let timespan = Aabb2::point(from)
-            //             .extend_right(to.x - from.x)
-            //             .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
-            //         quad(timespan, theme.highlight);
+    //         //         let from = ui.timeline.time_to_screen(from_time);
+    //         //         let to = ui.timeline.time_to_screen(to_time);
+    //         //         let timespan = Aabb2::point(from)
+    //         //             .extend_right(to.x - from.x)
+    //         //             .extend_symmetric(vec2(0.0, 0.2 * font_size) / 2.0);
+    //         //         quad(timespan, theme.highlight);
 
-            //         for (_, _, time) in event.light.movement.timed_positions() {
-            //             let time = from_time + time;
-            //             let point = ui.timeline.time_to_screen(time);
-            //             let timespan =
-            //                 Aabb2::point(point).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
-            //             quad(timespan, theme.highlight);
-            //         }
-            //     }
-            // }
+    //         //         for (_, _, time) in event.light.movement.timed_positions() {
+    //         //             let time = from_time + time;
+    //         //             let point = ui.timeline.time_to_screen(time);
+    //         //             let timespan =
+    //         //                 Aabb2::point(point).extend_symmetric(vec2(0.05, 0.4) * font_size / 2.0);
+    //         //             quad(timespan, theme.highlight);
+    //         //         }
+    //         //     }
+    //         // }
 
-            let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
-            quad(ui.timeline.current.position, theme.light);
-        }
+    //         let mut quad = |aabb, color| self.geng.draw2d().quad(framebuffer, camera, aabb, color);
+    //         quad(ui.timeline.current.position, theme.light);
+    //     }
 
-        // Tooltip
-        if ui.tooltip.state.visible {
-            let position = ui.tooltip.state.position;
-            let width = self.font_size * 0.1;
-            self.ui.fill_quad(
-                position.extend_uniform(width / 2.0),
-                theme.dark,
-                framebuffer,
-            );
-            self.ui.draw_text(&ui.tooltip.title, framebuffer);
-            self.ui.draw_text(&ui.tooltip.text, framebuffer);
-            self.ui
-                .draw_outline(position, width, theme.light, framebuffer);
-        }
-    }
+    //     // Tooltip
+    //     if ui.tooltip.state.visible {
+    //         let position = ui.tooltip.state.position;
+    //         let width = self.font_size * 0.1;
+    //         self.ui.fill_quad(
+    //             position.extend_uniform(width / 2.0),
+    //             theme.dark,
+    //             framebuffer,
+    //         );
+    //         self.ui.draw_text(&ui.tooltip.title, framebuffer);
+    //         self.ui.draw_text(&ui.tooltip.text, framebuffer);
+    //         self.ui
+    //             .draw_outline(position, width, theme.light, framebuffer);
+    //     }
+    // }
 }

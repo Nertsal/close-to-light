@@ -10,8 +10,8 @@ pub enum EditorStateAction {
     CursorMove(vec2<f32>),
     WheelScroll(f32),
     StartPlaytest,
-    TimelineScroll(Coord),
-    TimelineZoom(Coord),
+    // TimelineScroll(Coord),
+    // TimelineZoom(Coord),
     EndDrag,
     StartDrag(DragTarget),
     ConfirmPopupAction,
@@ -42,7 +42,7 @@ impl EditorState {
                 self.ui_context.text_edit.stop();
             }
             EditorStateAction::UpdateTextEdit(text) => {
-                self.ui_context.text_edit.text = text;
+                self.ui_context.text_edit.set_text(text);
             }
             EditorStateAction::CursorMove(position) => {
                 self.ui_context.cursor.cursor_move(position);
@@ -54,28 +54,28 @@ impl EditorState {
                 self.ui_context.cursor.scroll += delta;
             }
             EditorStateAction::StartPlaytest => self.play_game(),
-            EditorStateAction::TimelineScroll(scroll) => {
-                if let Some(level_editor) = &self.editor.level_edit {
-                    let timeline = &mut self.ui.edit.timeline;
-                    let delta = -scroll.as_f32() * 30.0 / timeline.get_scale();
-                    let delta = (delta * TIME_IN_FLOAT_TIME as f32).round() as Time;
-                    let current = -timeline.get_scroll();
-                    let delta = if delta > 0 {
-                        delta.min(current)
-                    } else {
-                        -delta.abs().min(
-                            level_editor.level.last_time() - timeline.visible_scroll() - current,
-                        )
-                    };
-                    timeline.scroll(delta);
-                }
-            }
-            EditorStateAction::TimelineZoom(scroll) => {
-                let timeline = &mut self.ui.edit.timeline;
-                let zoom = timeline.get_scale();
-                let zoom = (zoom + scroll.as_f32() * 0.05).clamp(0.05, 0.75);
-                timeline.rescale(zoom);
-            }
+            // EditorStateAction::TimelineScroll(scroll) => {
+            //     if let Some(level_editor) = &self.editor.level_edit {
+            //         let timeline = &mut self.ui.edit.timeline;
+            //         let delta = -scroll.as_f32() * 30.0 / timeline.get_scale();
+            //         let delta = (delta * TIME_IN_FLOAT_TIME as f32).round() as Time;
+            //         let current = -timeline.get_scroll();
+            //         let delta = if delta > 0 {
+            //             delta.min(current)
+            //         } else {
+            //             -delta.abs().min(
+            //                 level_editor.level.last_time() - timeline.visible_scroll() - current,
+            //             )
+            //         };
+            //         timeline.scroll(delta);
+            //     }
+            // }
+            // EditorStateAction::TimelineZoom(scroll) => {
+            //     let timeline = &mut self.ui.edit.timeline;
+            //     let zoom = timeline.get_scale();
+            //     let zoom = (zoom + scroll.as_f32() * 0.05).clamp(0.05, 0.75);
+            //     timeline.rescale(zoom);
+            // }
             EditorStateAction::EndDrag => self.end_drag(),
             EditorStateAction::StartDrag(target) => self.start_drag(target),
             EditorStateAction::ConfirmPopupAction => self.editor.confirm_action(&mut self.ui),

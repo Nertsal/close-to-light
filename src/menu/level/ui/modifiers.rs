@@ -10,7 +10,7 @@ pub struct ModifiersWidget {
     pub body: WidgetState,
     pub description: Vec<TextWidget>,
     pub description_lerp: Lerp<f32>,
-    pub mods: Vec<(ToggleWidget, IconWidget, Modifier)>,
+    pub mods: Vec<(ToggleButtonWidget, IconWidget, Modifier)>,
     pub score_multiplier: TextWidget,
     pub separator: WidgetState,
 }
@@ -28,7 +28,7 @@ impl ModifiersWidget {
             mods: enum_iterator::all::<Modifier>()
                 .map(|modifier| {
                     (
-                        ToggleWidget::new_deselectable(format!("{}", modifier)),
+                        ToggleButtonWidget::new_deselectable(format!("{}", modifier)),
                         IconWidget::new(assets.get_modifier(modifier)),
                         modifier,
                     )

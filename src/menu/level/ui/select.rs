@@ -5,9 +5,9 @@ use super::*;
 pub struct LevelSelectUI {
     // geng: Geng,
     assets: Rc<Assets>,
-    pub tab_music: ToggleWidget,
-    pub tab_groups: ToggleWidget,
-    pub tab_levels: ToggleWidget,
+    pub tab_music: ToggleButtonWidget,
+    pub tab_groups: ToggleButtonWidget,
+    pub tab_levels: ToggleButtonWidget,
     pub separator: WidgetState,
 
     pub add_music: TextWidget,
@@ -40,9 +40,9 @@ impl LevelSelectUI {
         let mut ui = Self {
             // geng: geng.clone(),
             assets: assets.clone(),
-            tab_music: ToggleWidget::new("Music"),
-            tab_groups: ToggleWidget::new("Group"),
-            tab_levels: ToggleWidget::new("Difficulty"),
+            tab_music: ToggleButtonWidget::new("Music"),
+            tab_groups: ToggleButtonWidget::new("Group"),
+            tab_levels: ToggleButtonWidget::new("Difficulty"),
             separator: WidgetState::new(),
 
             add_music: TextWidget::new("+"),
@@ -489,7 +489,7 @@ impl WidgetOld for AddItemWidget {
             self.menu.update(position, context);
         }
         if self.menu.state.hovered {
-            context.can_focus = false;
+            context.update_focus(true);
         }
     }
 }
@@ -531,7 +531,7 @@ impl ItemMusicWidget {
         }
         self.menu.update(position, context);
         if self.menu.state.hovered {
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         self.state.update(position, context);
@@ -613,7 +613,7 @@ impl ItemGroupWidget {
         }
         self.menu.update(position, context);
         if self.menu.state.hovered {
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         self.state.update(position, context);
@@ -719,7 +719,7 @@ impl ItemLevelWidget {
         }
         self.menu.update(position, context);
         if self.menu.state.hovered {
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         self.state.update(position, context);

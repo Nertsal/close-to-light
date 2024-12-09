@@ -113,7 +113,7 @@ impl WidgetState {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
-        if self.visible && context.can_focus {
+        if self.visible && context.can_focus() {
             self.hovered = self.position.contains(context.cursor.position);
             let was_pressed = self.pressed;
             // TODO: check for mouse being pressed and then dragged onto the widget

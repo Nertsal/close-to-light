@@ -573,7 +573,7 @@ impl geng::State for LevelMenu {
                 key: geng::Key::F11,
             } => self.context.geng.window().toggle_fullscreen(),
             geng::Event::EditText(text) => {
-                self.ui_context.text_edit.text = text;
+                self.ui_context.text_edit.set_text(text);
             }
             geng::Event::KeyPress {
                 key: geng::Key::Escape,

@@ -428,7 +428,7 @@ impl geng::State for EditorState {
             level_editor.model.camera.fov = 10.0 / self.editor.view_zoom;
         }
         self.render
-            .draw_editor(&self.editor, &self.ui_context, framebuffer);
+            .draw_editor(&self.editor, &self.ui, &self.ui_context, framebuffer);
     }
 }
 

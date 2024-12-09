@@ -562,7 +562,7 @@ impl UiRender {
 
     pub fn draw_toggle_widget(
         &self,
-        toggle: &ToggleWidget,
+        toggle: &ToggleButtonWidget,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -616,7 +616,6 @@ impl UiRender {
         self.draw_quad(state.position.extend_uniform(-width), bg_color, framebuffer);
 
         for text in texts {
-            self.draw_text_colored(text, fg_color, framebuffer);
             self.draw_text_colored(text, fg_color, framebuffer);
         }
 

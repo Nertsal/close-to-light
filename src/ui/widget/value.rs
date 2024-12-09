@@ -59,21 +59,8 @@ impl<T: Float> ValueWidget<T> {
             scroll_by,
         )
     }
-}
 
-impl<T: Float> StatefulWidget for ValueWidget<T> {
-    type State<'a> = T;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut T) {
         self.value = *state;
         self.state.update(position, context);
         let mut main = position;

@@ -81,7 +81,7 @@ impl InputWidget {
     //     }
     // }
 
-    pub fn sync(&mut self, text: &str, context: &mut UiContext) {
+    pub fn sync(&mut self, text: &str, context: &UiContext) {
         if self.raw == text {
             return;
         }
@@ -96,14 +96,8 @@ impl InputWidget {
             self.edit_id = Some(context.text_edit.edit(&self.raw));
         }
     }
-}
 
-impl WidgetOld for InputWidget {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
 
         if self.state.clicked {
@@ -114,8 +108,8 @@ impl WidgetOld for InputWidget {
             .edit_id
             .map_or(false, |id| context.text_edit.is_active(id))
         {
-            if self.raw != context.text_edit.text {
-                self.raw.clone_from(&context.text_edit.text);
+            if self.raw != context.text_edit.get_text() {
+                self.raw = context.text_edit.get_text();
                 self.raw = self.format.fix(&self.raw);
                 self.edit_id = Some(context.text_edit.edit(&self.raw));
 
@@ -150,5 +144,13 @@ impl WidgetOld for InputWidget {
             }
             self.text.update(main, context);
         }
+    }
+}
+
+impl Widget for InputWidget {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let mut geometry = self.name.draw(context);
+        geometry.merge(self.text.draw(context));
+        geometry
     }
 }

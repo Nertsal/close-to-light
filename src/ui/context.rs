@@ -87,7 +87,7 @@ pub struct UiContext {
     /// Active key modifiers.
     pub mods: KeyModifiers,
     /// Whether the widget can use the cursor position to get focus.
-    pub can_focus: bool,
+    pub can_focus: RefCell<bool>,
 
     pub delta_time: f32,
     pub screen: Aabb2<f32>,
@@ -96,11 +96,13 @@ pub struct UiContext {
 }
 
 #[derive(Clone)]
-pub struct TextEdit {
+pub struct TextEdit(Rc<RefCell<TextEditImpl>>);
+
+struct TextEditImpl {
     geng: Option<Geng>,
     /// Counter for the number of text edits.
     counter: usize,
-    pub text: String,
+    text: String,
 }
 
 impl Debug for TextEdit {
@@ -113,55 +115,68 @@ impl Debug for TextEdit {
 
 impl TextEdit {
     pub fn new(geng: &Geng) -> Self {
-        Self {
+        Self(Rc::new(RefCell::new(TextEditImpl {
             geng: Some(geng.clone()),
             counter: 0,
             text: String::new(),
-        }
+        })))
     }
 
     pub fn empty() -> Self {
-        Self {
+        Self(Rc::new(RefCell::new(TextEditImpl {
             geng: None,
             counter: 0,
             text: String::new(),
-        }
+        })))
+    }
+
+    pub fn get_text(&self) -> String {
+        self.0.borrow().text.clone()
+    }
+
+    pub fn set_text(&self, text: String) {
+        self.0.borrow_mut().text = text;
     }
 
     /// Starts the text edit and returns the id.
-    pub fn edit(&mut self, text: &str) -> usize {
-        if let Some(geng) = &self.geng {
+    pub fn edit(&self, text: &str) -> usize {
+        let mut inner = self.0.borrow_mut();
+        if let Some(geng) = inner.geng.clone() {
             if geng.window().is_editing_text() {
                 geng.window().stop_text_edit();
-                self.counter += 1;
+                inner.counter += 1;
             }
             geng.window().start_text_edit(text);
-            text.clone_into(&mut self.text);
-            self.counter
+            text.clone_into(&mut inner.text);
+            inner.counter
         } else {
             0
         }
     }
 
     /// Stop editing text.
-    pub fn stop(&mut self) {
-        if let Some(geng) = &self.geng {
+    pub fn stop(&self) {
+        let mut inner = self.0.borrow_mut();
+        if let Some(geng) = &inner.geng {
             if !geng.window().is_editing_text() {
                 return;
             }
             geng.window().stop_text_edit();
-            self.counter += 1;
+            inner.counter += 1;
         }
     }
 
     /// Check if the id is an active edit.
     pub fn is_active(&self, id: usize) -> bool {
-        self.geng.is_some() && id == self.counter
+        let inner = self.0.borrow();
+        inner.geng.is_some() && id == inner.counter
     }
 
     /// Check if there is an active edit.
     pub fn any_active(&self) -> bool {
-        self.geng
+        self.0
+            .borrow()
+            .geng
             .as_ref()
             .map_or(false, |geng| geng.window().is_editing_text())
     }
@@ -176,7 +191,7 @@ impl UiContext {
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,
             font_size: 1.0,
-            can_focus: true,
+            can_focus: true.into(),
             cursor: CursorContext::new(),
             text_edit: TextEdit::new(&context.geng),
             delta_time: 0.1,
@@ -198,9 +213,18 @@ impl UiContext {
         }
     }
 
+    pub fn can_focus(&self) -> bool {
+        *self.can_focus.borrow()
+    }
+
+    pub fn reset_focus(&self) {
+        *self.can_focus.borrow_mut() = true;
+    }
+
     /// Update `can_focus` property given another widget's focus.
-    pub fn update_focus(&mut self, focus: bool) {
-        self.can_focus = self.can_focus && !focus;
+    pub fn update_focus(&self, take_focus: bool) {
+        let mut focus = self.can_focus.borrow_mut();
+        *focus = *focus && !take_focus;
     }
 
     /// Should be called before layout.
@@ -218,7 +242,7 @@ impl UiContext {
     /// Should be called after the layout.
     /// Reset accumulators to prepare for the next frame.
     pub fn frame_end(&mut self) {
-        self.can_focus = true;
+        self.reset_focus();
         self.cursor.scroll = 0.0
     }
 }

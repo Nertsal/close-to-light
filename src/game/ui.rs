@@ -65,6 +65,6 @@ impl GameUI {
             self.leaderboard.hide();
         }
 
-        !context.can_focus
+        !context.can_focus()
     }
 }

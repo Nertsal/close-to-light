@@ -186,7 +186,7 @@ impl MenuUI {
             }
 
             // NOTE: Everything below `explore` cannot get focused
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         let action = self.level_select.update(left, state, context);
@@ -303,6 +303,6 @@ impl MenuUI {
             }
         }
 
-        !context.can_focus
+        !context.can_focus()
     }
 }

@@ -6,6 +6,12 @@ use ctl_client::core::types::Name;
 use geng_utils::bounded::Bounded;
 
 pub struct SliderWidget {
+    // pub state: WidgetState,
+    // pub value_text: InputWidget,
+    // pub control_state: WidgetState,
+    // pub value: T,
+    // pub control: ValueControl<T>,
+    // pub scroll_by: T,
     pub state: WidgetState,
     pub text: TextWidget,
     pub bar: WidgetState,
@@ -28,21 +34,8 @@ impl SliderWidget {
             options: TextRenderOptions::default(),
         }
     }
-}
 
-impl StatefulWidget for SliderWidget {
-    type State<'a> = Bounded<f32>;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Bounded<f32>) {
         self.state.update(position, context);
 
         self.options.update(context);
@@ -80,5 +73,20 @@ impl StatefulWidget for SliderWidget {
             let t = t.clamp(0.0, 1.0);
             state.set_ratio(t);
         }
+    }
+}
+
+impl Widget for SliderWidget {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let theme = context.theme();
+        let mut geometry = self.text.draw(context);
+        geometry.merge(self.value.draw(context));
+        geometry.merge(context.geometry.quad_fill(self.bar.position, theme.light));
+        geometry.merge(
+            context
+                .geometry
+                .quad_fill(self.head.position, theme.highlight),
+        );
+        geometry
     }
 }

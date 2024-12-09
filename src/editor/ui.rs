@@ -18,7 +18,7 @@ F1 - Hide UI
 
 pub struct EditorUi {
     pub game: WidgetState,
-    pub edit: EditorEditWidget,
+    pub edit: EditorEditUi,
     // pub config: EditorConfigWidget,
 }
 
@@ -26,7 +26,7 @@ impl EditorUi {
     pub fn new(context: Context) -> Self {
         Self {
             game: default(),
-            edit: EditorEditWidget::new(context),
+            edit: EditorEditUi::new(context),
         }
     }
 
@@ -92,9 +92,10 @@ impl EditorUi {
 
         let mut top_bar = main.cut_top(font_size * 1.5);
 
-        let exit = top_bar.cut_left(layout_size * 5.0);
-
-        let button = context.state.get_or(|| ButtonWidget::new("Exit"));
+        let exit = top_bar.cut_right(layout_size * 3.0);
+        let button = context
+            .state
+            .get_or(|| ButtonWidget::new("Exit").color(ThemeColor::Danger));
         button.update(exit, context);
         if button.text.state.clicked {
             if editor.is_changed() {
@@ -109,6 +110,16 @@ impl EditorUi {
                 actions.push(EditorStateAction::Exit);
             }
         }
+
+        let save = top_bar.cut_left(layout_size * 4.0);
+        let button = context
+            .state
+            .get_or(|| ButtonWidget::new("Save").color(ThemeColor::Highlight));
+        button.update(save, context);
+        if button.text.state.clicked {
+            actions.push(EditorAction::Save.into());
+        }
+        top_bar.cut_left(layout_size);
 
         // let help = top_bar.cut_left(layout_size * 3.0);
         // self.help.update(help, context);
@@ -130,27 +141,21 @@ impl EditorUi {
         //     self.help_text.hide();
         // }
 
-        // let tabs = [&mut self.tab_edit, &mut self.tab_config];
-        // let tab = Aabb2::point(top_bar.bottom_left())
-        //     .extend_positive(vec2(layout_size * 5.0, top_bar.height()));
-        // let tabs_pos = tab.stack(vec2(tab.width() + layout_size, 0.0), tabs.len());
-        // for (tab, pos) in tabs.into_iter().zip(tabs_pos) {
-        //     tab.update(pos, context);
-        // }
+        let tab_edit = context.state.get_or(|| ToggleButtonWidget::new("Edit"));
+        tab_edit.selected = matches!(editor.tab, EditorTab::Edit);
+        tab_edit.update(top_bar.cut_left(layout_size * 5.0), context);
+        top_bar.cut_left(layout_size);
 
-        // if self.tab_edit.text.state.clicked {
-        //     self.edit.show();
-        //     self.config.hide();
-        // } else if self.tab_config.text.state.clicked {
-        //     self.edit.hide();
-        //     self.config.show();
-        // }
+        let tab_config = context.state.get_or(|| ToggleButtonWidget::new("Config"));
+        tab_config.selected = matches!(editor.tab, EditorTab::Config);
+        tab_config.update(top_bar.cut_left(layout_size * 5.0), context);
+        top_bar.cut_left(layout_size);
 
-        // let save = top_bar.cut_right(layout_size * 5.0);
-        // self.save.update(save, context);
-        // if self.save.text.state.clicked {
-        //     actions.push(EditorAction::Save.into());
-        // }
+        if tab_edit.text.state.clicked {
+            actions.push(EditorAction::SwitchTab(EditorTab::Edit).into())
+        } else if tab_config.text.state.clicked {
+            actions.push(EditorAction::SwitchTab(EditorTab::Config).into());
+        }
 
         // let unsaved = top_bar.cut_right(layout_size * 10.0);
         // if editor.is_changed() {
@@ -160,16 +165,17 @@ impl EditorUi {
         //     self.unsaved.hide();
         // }
 
-        // let main = main.extend_down(-layout_size);
-        let mut state = (editor, actions);
-        // if self.edit.state.visible {
-        //     self.edit.update(main, context, &mut state);
-        // }
-        // if self.config.state.visible {
-        //     self.config
-        //         .update(main.extend_up(-3.0 * layout_size), context, &mut state);
-        // }
+        let main = main.extend_down(-layout_size);
+        match editor.tab {
+            EditorTab::Edit => {
+                self.edit.layout(main, context, editor, &mut actions);
+            }
+            EditorTab::Config => {
+                // self.config
+                //     .layout(main.extend_up(-3.0 * layout_size), context, &mut state);
+            }
+        }
 
-        (context.can_focus, state.1)
+        (context.can_focus(), actions)
     }
 }

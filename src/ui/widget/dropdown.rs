@@ -77,7 +77,7 @@ impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
         };
         self.dropdown_state.update(dropdown, context);
 
-        let focus = context.can_focus;
+        let focus = context.can_focus();
         let can_select =
             focus && self.dropdown_window.show.time.is_max() && self.dropdown_state.hovered;
 
@@ -95,7 +95,7 @@ impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
         }
 
         if can_select {
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         self.name.update(name, context);
@@ -110,6 +110,8 @@ impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
         }
         self.dropdown_window.update(context.delta_time);
 
-        context.can_focus = focus;
+        if focus {
+            context.reset_focus();
+        }
     }
 }

@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum EditorAction {
     Level(LevelAction),
+    SwitchTab(EditorTab),
     ToggleDynamicVisual,
     ToggleShowOnlySelected,
     Save,
@@ -41,6 +42,7 @@ impl Editor {
                     );
                 }
             }
+            EditorAction::SwitchTab(tab) => self.tab = tab,
             EditorAction::ToggleDynamicVisual => self.visualize_beat = !self.visualize_beat,
             EditorAction::ToggleShowOnlySelected => {
                 self.show_only_selected = !self.show_only_selected
