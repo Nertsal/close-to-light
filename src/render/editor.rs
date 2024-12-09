@@ -24,6 +24,7 @@ pub struct EditorRender {
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
+    ui_depth: ugli::Renderbuffer<ugli::DepthComponent>,
     font_size: f32,
 }
 
@@ -37,6 +38,7 @@ impl EditorRender {
         let mut game_texture = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
         game_texture.set_filter(ugli::Filter::Nearest);
         let mut ui_texture = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
+        let ui_depth = ugli::Renderbuffer::new(context.geng.ugli(), vec2(1, 1));
         ui_texture.set_filter(ugli::Filter::Nearest);
 
         Self {
@@ -49,6 +51,7 @@ impl EditorRender {
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
+            ui_depth,
             font_size: 1.0,
         }
     }
@@ -73,11 +76,12 @@ impl EditorRender {
             context.screen.size().map(|x| x.round() as usize),
             self.geng.ugli(),
         );
-        geng_utils::texture::update_texture_size(
-            &mut self.ui_texture,
-            framebuffer.size(),
-            self.geng.ugli(),
-        );
+        if self.ui_texture.size() != framebuffer.size() {
+            self.ui_texture =
+                ugli::Texture::new_with(self.geng.ugli(), framebuffer.size(), |_| Rgba::BLACK);
+            self.ui_depth = ugli::Renderbuffer::new(self.geng.ugli(), framebuffer.size());
+            self.ui_texture.set_filter(ugli::Filter::Nearest);
+        }
 
         let edit_tab = matches!(editor.tab, EditorTab::Edit);
         self.draw_game(editor, edit_tab);

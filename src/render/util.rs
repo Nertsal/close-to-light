@@ -93,7 +93,7 @@ impl UtilRender {
             ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), geometry.triangles);
         ugli::draw(
             framebuffer,
-            &self.context.assets.shaders.solid,
+            &self.context.assets.shaders.solid_ui,
             ugli::DrawMode::Triangles,
             &triangles,
             (
@@ -105,6 +105,7 @@ impl UtilRender {
             ),
             ugli::DrawParameters {
                 blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                depth_func: Some(ugli::DepthFunc::Less),
                 ..default()
             },
         );
@@ -115,7 +116,7 @@ impl UtilRender {
                 ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), textured.triangles);
             ugli::draw(
                 framebuffer,
-                &self.context.assets.shaders.texture,
+                &self.context.assets.shaders.texture_ui,
                 ugli::DrawMode::Triangles,
                 &triangles,
                 (
@@ -128,6 +129,7 @@ impl UtilRender {
                 ),
                 ugli::DrawParameters {
                     blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    depth_func: Some(ugli::DepthFunc::Less),
                     ..default()
                 },
             );
@@ -135,7 +137,19 @@ impl UtilRender {
 
         // Text
         for text in geometry.text {
-            self.draw_text(text.text, text.position, text.options, camera, framebuffer);
+            self.draw_text_with(
+                text.text,
+                text.position,
+                text.z_index,
+                text.options,
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    depth_func: Some(ugli::DepthFunc::LessOrEqual),
+                    ..default()
+                },
+                camera,
+                framebuffer,
+            );
         }
     }
 
@@ -234,8 +248,12 @@ impl UtilRender {
         self.draw_text_with(
             text,
             position,
+            0.0,
             options,
-            Some(ugli::BlendMode::straight_alpha()),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                ..default()
+            },
             camera,
             framebuffer,
         )
@@ -245,8 +263,9 @@ impl UtilRender {
         &self,
         text: impl AsRef<str>,
         position: vec2<impl Float>,
+        z_index: f32,
         options: TextRenderOptions,
-        mode: Option<ugli::BlendMode>,
+        params: ugli::DrawParameters,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -283,6 +302,7 @@ impl UtilRender {
                     (
                         ugli::uniforms! {
                             u_texture: texture,
+                            u_z: z_index,
                             u_model_matrix: transform,
                             u_color: options.color,
                             u_smooth: 0.0,
@@ -291,11 +311,7 @@ impl UtilRender {
                         },
                         camera.uniforms(framebuffer_size.map(|x| x as f32)),
                     ),
-                    ugli::DrawParameters {
-                        blend_mode: mode,
-                        depth_func: None,
-                        ..Default::default()
-                    },
+                    params,
                 );
             },
         );

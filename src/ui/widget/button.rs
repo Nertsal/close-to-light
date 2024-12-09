@@ -45,9 +45,11 @@ impl Widget for ButtonWidget {
         let state = &self.text.state;
         let width = self.text.options.size * 0.2;
 
+        let mut geometry = self.text.draw(context);
+
         let position = state.position;
         let bg_color = theme.get_color(self.bg_color);
-        let mut geometry = if state.pressed {
+        geometry.merge(if state.pressed {
             context
                 .geometry
                 .quad_fill(position.extend_uniform(-width), bg_color)
@@ -57,9 +59,8 @@ impl Widget for ButtonWidget {
                 .quad_fill(position.extend_uniform(-width * 0.5), bg_color)
         } else {
             context.geometry.quad_fill(position, bg_color)
-        };
+        });
 
-        geometry.merge(self.text.draw(context));
         geometry
     }
 }
@@ -239,17 +240,17 @@ impl Widget for ToggleWidget {
         let theme = context.theme();
         let width = self.text.options.size * 0.1;
         let mut geometry = self.text.draw(context);
+        geometry.merge(
+            context
+                .geometry
+                .quad_outline(self.tick.position, width, theme.light),
+        );
         if self.checked {
             geometry.merge(context.geometry.quad_fill(
                 self.tick.position.extend_uniform(-width),
                 theme.get_color(self.checked_color),
             ));
         }
-        geometry.merge(
-            context
-                .geometry
-                .quad_outline(self.tick.position, width, theme.light),
-        );
         geometry
     }
 }

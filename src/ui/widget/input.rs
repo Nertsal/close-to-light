@@ -124,13 +124,6 @@ impl InputWidget {
             false
         };
 
-        let theme = context.theme();
-        self.text.options.color = if self.editing {
-            theme.light
-        } else {
-            theme.highlight
-        };
-
         let mut main = position;
 
         if self.layout_vertical {
@@ -153,6 +146,13 @@ impl InputWidget {
             }
             self.text.update(main, context);
         }
+
+        let theme = context.theme();
+        self.text.options.color = if self.editing {
+            theme.highlight
+        } else {
+            theme.light
+        };
     }
 }
 
@@ -162,8 +162,9 @@ impl Widget for InputWidget {
         let mut geometry = self.name.draw(context);
         geometry.merge(self.text.draw(context));
         if self.editing {
-            let mut pos = self.text.state.position;
-            let underline = pos.cut_bottom(pos.height() * 0.05);
+            let pos = self.text.state.position;
+            let underline = Aabb2::point(pos.center() - vec2(0.0, context.font_size * 0.5))
+                .extend_symmetric(vec2(pos.width(), context.font_size * 0.1) / 2.0);
             geometry.merge(context.geometry.quad(underline, theme.highlight));
         }
         geometry

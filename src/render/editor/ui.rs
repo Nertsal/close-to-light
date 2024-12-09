@@ -4,13 +4,16 @@ use super::*;
 
 impl EditorRender {
     pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &UiContext) {
-        let framebuffer =
-            &mut geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+        let framebuffer = &mut ugli::Framebuffer::new(
+            self.geng.ugli(),
+            ugli::ColorAttachment::Texture(&mut self.ui_texture),
+            ugli::DepthAttachment::Renderbuffer(&mut self.ui_depth),
+        );
         // let theme = editor.context.get_options().theme;
         self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
-        ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+        ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), Some(1.0), None);
 
         let mut geometry = Geometry::new();
         ui.state.iter_widgets(|w| {

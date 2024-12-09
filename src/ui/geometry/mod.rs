@@ -12,6 +12,7 @@ pub struct GeometryContext {
     pub assets: Rc<Assets>,
     pub framebuffer_size: vec2<usize>,
     pub pixel_scale: f32,
+    z_index: RefCell<i32>,
     // TODO: texture atlas i guess
 }
 
@@ -23,16 +24,10 @@ pub struct Geometry {
     pub text: Vec<GeometryText>,
 }
 
-// TODO: z index
-// pub struct WithZIndex<T> {
-//     pub z_index: i32,
-//     pub geometry: T,
-// }
-
 #[derive(ugli::Vertex, Debug, Clone, Copy, PartialEq)]
 pub struct GeometryTriangleVertex {
     // /// Vertex z-index
-    // pub a_z: f32,
+    pub a_z: f32,
     /// Vertex position
     pub a_pos: vec2<f32>,
     /// Vertex color
@@ -49,6 +44,7 @@ pub struct GeometryTexture {
 
 #[derive(Debug)]
 pub struct GeometryText {
+    pub z_index: f32,
     pub text: Name,
     pub position: vec2<f32>,
     pub options: TextRenderOptions,
@@ -72,12 +68,21 @@ impl GeometryContext {
             assets,
             framebuffer_size: vec2(1, 1),
             pixel_scale: 1.0,
+            z_index: 0.into(),
         }
     }
 
     pub fn update(&mut self, framebuffer_size: vec2<usize>) {
         self.framebuffer_size = framebuffer_size;
         self.pixel_scale = crate::render::ui::pixel_scale(self.framebuffer_size);
+        *self.z_index.get_mut() = 0;
+    }
+
+    fn next_z_index(&self) -> f32 {
+        let mut index = self.z_index.borrow_mut();
+        let current = *index;
+        *index += 1;
+        (current as f32) * 1e-5
     }
 
     pub fn text(
@@ -90,6 +95,7 @@ impl GeometryContext {
             triangles: vec![],
             textures: vec![],
             text: vec![GeometryText {
+                z_index: self.next_z_index(),
                 text,
                 position,
                 options,
@@ -98,6 +104,7 @@ impl GeometryContext {
     }
 
     pub fn nine_slice(&self, pos: Aabb2<f32>, color: Color, texture: &PixelTexture) -> Geometry {
+        let z_index = self.next_z_index();
         let texture = texture.clone();
         let whole = Aabb2::ZERO.extend_positive(vec2::splat(1.0));
 
@@ -140,6 +147,7 @@ impl GeometryContext {
                         },
                     );
                     GeometryTriangleVertex {
+                        a_z: z_index,
                         a_pos,
                         a_color: color,
                         a_vt,
@@ -157,6 +165,8 @@ impl GeometryContext {
     }
 
     pub fn quad(&self, position: Aabb2<f32>, color: Color) -> Geometry {
+        let z_index = self.next_z_index();
+
         let [a, b, c, d] = position.corners();
         let a = (a, vec2(0.0, 0.0));
         let b = (b, vec2(1.0, 0.0));
@@ -165,6 +175,7 @@ impl GeometryContext {
         let triangles = [a, b, c, a, c, d]
             .into_iter()
             .map(|(a_pos, a_vt)| GeometryTriangleVertex {
+                a_z: z_index,
                 a_pos,
                 a_color: color,
                 a_vt,
@@ -208,6 +219,7 @@ impl GeometryContext {
         scale: f32,
         texture: &PixelTexture,
     ) -> Geometry {
+        let z_index = self.next_z_index();
         let texture = texture.clone();
 
         let size = texture.size() * (self.pixel_scale * scale).round() as usize;
@@ -227,6 +239,7 @@ impl GeometryContext {
         let triangles = [a, b, c, a, c, d]
             .into_iter()
             .map(|(a_pos, a_vt)| GeometryTriangleVertex {
+                a_z: z_index,
                 a_pos,
                 a_color: color,
                 a_vt,

@@ -310,8 +310,12 @@ impl EditorRender {
                             self.util.draw_text_with(
                                 format!("{}", i + 1),
                                 point.control.position,
+                                0.0,
                                 TextRenderOptions::new(1.5).color(text_color),
-                                Some(util::additive()),
+                                ugli::DrawParameters {
+                                    blend_mode: Some(util::additive()),
+                                    ..default()
+                                },
                                 &level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
@@ -326,8 +330,12 @@ impl EditorRender {
                                 self.util.draw_text_with(
                                     format!("at {}", beat),
                                     point.control.position - vec2(0.0, 0.6).as_r32(),
+                                    0.0,
                                     TextRenderOptions::new(0.6).color(text_color),
-                                    Some(util::additive()),
+                                    ugli::DrawParameters {
+                                        blend_mode: Some(util::additive()),
+                                        ..default()
+                                    },
                                     &level_editor.model.camera,
                                     &mut pixel_buffer,
                                 );
