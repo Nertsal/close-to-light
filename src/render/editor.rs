@@ -4,7 +4,6 @@ mod ui;
 use super::{
     dither::DitherRender,
     mask::MaskedRender,
-    ui::UiRender,
     util::{TextRenderOptions, UtilRender},
     *,
 };
@@ -19,7 +18,6 @@ pub struct EditorRender {
     // assets: Rc<Assets>,
     dither: DitherRender,
     util: UtilRender,
-    ui: UiRender,
     mask: MaskedRender,
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
@@ -46,7 +44,6 @@ impl EditorRender {
             // assets: assets.clone(),
             dither: DitherRender::new(&context.geng, &context.assets),
             util: UtilRender::new(context.clone()),
-            ui: UiRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
@@ -90,6 +87,7 @@ impl EditorRender {
         }
 
         let camera = &geng::PixelPerfectCamera;
+        let theme = context.theme();
 
         if edit_tab {
             let mut masked = self.mask.start();
@@ -106,6 +104,16 @@ impl EditorRender {
                 Color::WHITE,
             );
             self.mask.draw(draw_parameters(), framebuffer);
+
+            // Game border
+            let width = 5.0;
+            self.util.draw_outline(
+                &Collider::aabb(ui.game.position.extend_uniform(width).map(r32)),
+                width,
+                theme.light,
+                camera,
+                framebuffer,
+            );
         }
 
         if !editor.render_options.hide_ui {

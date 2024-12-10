@@ -364,6 +364,9 @@ impl EditorRender {
                 geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
             ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
 
+            let grid_thick = 5.0; // in pixels
+            let grid_thin = 3.0; // in pixels
+
             // Grid
             if options.show_grid {
                 let color = Rgba {
@@ -379,42 +382,48 @@ impl EditorRender {
                 )
                 .map(|x| (x / 2.0 / grid_size).ceil() as i64);
                 let thick = editor.config.grid.thick_every as i64;
+
+                let buffer_size = ui_buffer.size().as_f32();
+                let ppp = |pos| {
+                    let camera = &level_editor.model.camera;
+                    let pos = camera_world_to_screen(pos, camera, buffer_size);
+                    pos.map(f32::floor)
+                };
+
                 for x in -view.x..=view.x {
                     // Vertical
                     let width = if thick > 0 && x % thick == 0 {
-                        0.05
+                        grid_thick
                     } else {
-                        0.02
+                        grid_thin
                     };
                     let x = x as f32;
                     let y = view.y as f32;
+
+                    let segment =
+                        Segment(ppp(vec2(x, -y) * grid_size), ppp(vec2(x, y) * grid_size));
                     self.geng.draw2d().draw2d(
                         &mut ui_buffer,
-                        &level_editor.model.camera,
-                        &draw2d::Segment::new(
-                            Segment(vec2(x, -y) * grid_size, vec2(x, y) * grid_size),
-                            width,
-                            color,
-                        ),
+                        &geng::PixelPerfectCamera,
+                        &draw2d::Segment::new(segment, width, color),
                     );
                 }
                 for y in -view.y..=view.y {
                     // Horizontal
                     let width = if thick > 0 && y % thick == 0 {
-                        0.05
+                        grid_thick
                     } else {
-                        0.01
+                        grid_thin
                     };
                     let y = y as f32;
                     let x = view.x as f32;
+
+                    let segment =
+                        Segment(ppp(vec2(-x, y) * grid_size), ppp(vec2(x, y) * grid_size));
                     self.geng.draw2d().draw2d(
                         &mut ui_buffer,
-                        &level_editor.model.camera,
-                        &draw2d::Segment::new(
-                            Segment(vec2(-x, y) * grid_size, vec2(x, y) * grid_size),
-                            width,
-                            color,
-                        ),
+                        &geng::PixelPerfectCamera,
+                        &draw2d::Segment::new(segment, width, color),
                     );
                 }
             }
@@ -424,4 +433,20 @@ impl EditorRender {
                 .draw(&geng::PixelPerfectCamera, &self.geng, game_buffer);
         }
     }
+}
+
+fn camera_world_to_screen(
+    pos: vec2<f32>,
+    camera: &impl geng::AbstractCamera2d,
+    framebuffer_size: vec2<f32>,
+) -> vec2<f32> {
+    let pos = (camera.projection_matrix(framebuffer_size) * camera.view_matrix()) * pos.extend(1.0);
+    let pos = pos.xy() / pos.z;
+    // if pos.x.abs() > 1.0 || pos.y.abs() > 1.0 {
+    //     return None;
+    // }
+    vec2(
+        (pos.x + 1.0) / 2.0 * framebuffer_size.x,
+        (pos.y + 1.0) / 2.0 * framebuffer_size.y,
+    )
 }

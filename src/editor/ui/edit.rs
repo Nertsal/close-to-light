@@ -217,6 +217,7 @@ impl EditorEditUi {
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
         let button_height = font_size * 1.2;
+        let delete_width = font_size * 3.5;
         let value_height = font_size * 1.2;
 
         let tooltip = context.state.get_or(TooltipWidget::new);
@@ -253,18 +254,20 @@ impl EditorEditUi {
                 //     level_editor.palette_swap();
                 // }
 
-                let circle = bar.cut_top(button_height);
+                let new_light_width = font_size * 3.0;
+
+                let circle = bar.cut_top(button_height).cut_left(new_light_width);
                 bar.cut_top(spacing);
-                let button = context.state.get_or(|| ButtonWidget::new("New circle"));
+                let button = context.state.get_or(|| ButtonWidget::new("Circle"));
                 button.update(circle, context);
                 if button.text.state.clicked {
                     actions.push(LevelAction::NewLight(Shape::circle(r32(1.0))).into());
                 }
                 tooltip.update(&button.text.state, "1", context);
 
-                let line = bar.cut_top(button_height);
+                let line = bar.cut_top(button_height).cut_left(new_light_width);
                 bar.cut_top(spacing);
-                let button = context.state.get_or(|| ButtonWidget::new("New line"));
+                let button = context.state.get_or(|| ButtonWidget::new("Line"));
                 button.update(line, context);
                 if button.text.state.clicked {
                     actions.push(LevelAction::NewLight(Shape::line(r32(1.0))).into());
@@ -398,7 +401,7 @@ impl EditorEditUi {
                     text.update(light_pos, context);
                     text.options.size = title_size;
 
-                    let delete = bar.cut_top(button_height);
+                    let delete = bar.cut_top(button_height).cut_left(delete_width);
                     let button = context
                         .state
                         .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
@@ -549,7 +552,7 @@ impl EditorEditUi {
                             text.text = (i + 1).to_string().into();
 
                             // Delete
-                            let delete = bar.cut_top(button_height);
+                            let delete = bar.cut_top(button_height).cut_left(delete_width);
                             let button = context
                                 .state
                                 .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
