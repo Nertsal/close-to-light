@@ -512,7 +512,7 @@ impl ItemMusicWidget {
         Self {
             state: WidgetState::new(),
             menu,
-            edited: IconWidget::new(&assets.sprites.star.texture),
+            edited: IconWidget::new(&assets.sprites.star),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             music,
         }
@@ -572,8 +572,8 @@ impl ItemGroupWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
             state: WidgetState::new(),
-            edited: IconWidget::new(&assets.sprites.star.texture),
-            local: IconWidget::new(&assets.sprites.local.texture),
+            edited: IconWidget::new(&assets.sprites.star),
+            local: IconWidget::new(&assets.sprites.local),
             menu: ItemMenuWidget::new(assets),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             index,
@@ -668,8 +668,8 @@ impl ItemLevelWidget {
         menu.sync.hide();
         Self {
             state: WidgetState::new(),
-            edited: IconWidget::new(&assets.sprites.star.texture),
-            local: IconWidget::new(&assets.sprites.local.texture),
+            edited: IconWidget::new(&assets.sprites.star),
+            local: IconWidget::new(&assets.sprites.local),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             group,
             index,
@@ -812,9 +812,9 @@ impl ItemMenuWidget {
         Self {
             window: UiWindow::new((), 0.15),
             state: WidgetState::new(),
-            sync: IconButtonWidget::new_normal(&assets.sprites.reset.texture),
-            edit: IconButtonWidget::new_normal(&assets.sprites.edit.texture),
-            delete: IconButtonWidget::new_danger(&assets.sprites.trash.texture),
+            sync: IconButtonWidget::new_normal(&assets.sprites.reset),
+            edit: IconButtonWidget::new_normal(&assets.sprites.edit),
+            delete: IconButtonWidget::new_danger(&assets.sprites.trash),
         }
     }
 }

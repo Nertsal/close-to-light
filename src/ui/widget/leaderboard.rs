@@ -43,7 +43,7 @@ impl LeaderboardWidget {
             assets: assets.clone(),
             window: UiWindow::new((), 0.3).reload_skip(),
             // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
-            reload: IconButtonWidget::new_normal(&assets.sprites.reset.texture),
+            reload: IconButtonWidget::new_normal(&assets.sprites.reset),
             show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("login to submit scores"),

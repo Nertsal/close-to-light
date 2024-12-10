@@ -61,7 +61,7 @@ impl SyncWidget {
 
             window: UiWindow::new((), 0.3),
             hold: WidgetState::new(),
-            close: IconButtonWidget::new_close_button(&assets.sprites.button_close.texture),
+            close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             title: TextWidget::new("Synchronizing level"),
             status: TextWidget::new("Offline"),
             upload: TextWidget::new("Upload to the server"),

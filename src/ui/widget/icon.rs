@@ -1,11 +1,11 @@
 use super::*;
 
-use crate::prelude::ThemeColor;
+use crate::{assets::PixelTexture, prelude::ThemeColor};
 
 #[derive(Clone)]
 pub struct IconWidget {
     pub state: WidgetState,
-    pub texture: Rc<ugli::Texture>,
+    pub texture: PixelTexture,
     pub color: ThemeColor,
     pub background: Option<IconBackground>,
 }
@@ -23,13 +23,17 @@ pub enum IconBackgroundKind {
 }
 
 impl IconWidget {
-    pub fn new(texture: &Rc<ugli::Texture>) -> Self {
+    pub fn new(texture: &PixelTexture) -> Self {
         Self {
             state: WidgetState::new(),
             texture: texture.clone(),
             color: ThemeColor::Light,
             background: None,
         }
+    }
+
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        self.state.update(position, context);
     }
 }
 
@@ -40,5 +44,44 @@ impl WidgetOld for IconWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+    }
+}
+
+impl Widget for IconWidget {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let theme = context.theme();
+        let mut geometry = context.geometry.texture_pp(
+            self.state.position.center(),
+            theme.get_color(self.color),
+            0.5,
+            &self.texture,
+        );
+
+        if let Some(bg) = &self.background {
+            match bg.kind {
+                IconBackgroundKind::NineSlice => {
+                    let texture = //if width < 5.0 {
+                        &context.context.assets.sprites.fill_thin;
+                    // } else {
+                    //     &self.assets.sprites.fill
+                    // };
+                    geometry.merge(context.geometry.nine_slice(
+                        self.state.position,
+                        theme.get_color(bg.color),
+                        texture,
+                    ));
+                }
+                IconBackgroundKind::Circle => {
+                    geometry.merge(context.geometry.texture_pp(
+                        self.state.position.center(),
+                        theme.get_color(bg.color),
+                        0.5,
+                        &context.context.assets.sprites.circle,
+                    ));
+                }
+            }
+        }
+
+        geometry
     }
 }

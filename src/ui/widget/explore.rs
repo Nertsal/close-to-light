@@ -91,8 +91,8 @@ impl ExploreWidget {
             tab_music: TextWidget::new("Music"),
             tab_levels: TextWidget::new("Levels"),
 
-            reload: IconButtonWidget::new_normal(&assets.sprites.reset.texture),
-            close: IconButtonWidget::new_close_button(&assets.sprites.button_close.texture),
+            reload: IconButtonWidget::new_normal(&assets.sprites.reset),
+            close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
             separator: WidgetState::new(),
 
             music: ExploreMusicWidget::new(assets),
@@ -245,12 +245,10 @@ impl ExploreLevelsWidget {
                             let mut widget = LevelItemWidget {
                                 state: WidgetState::new(),
                                 download: IconButtonWidget::new_normal(
-                                    &self.assets.sprites.download.texture,
+                                    &self.assets.sprites.download,
                                 ),
-                                downloading: IconWidget::new(&self.assets.sprites.loading.texture),
-                                goto: IconButtonWidget::new_normal(
-                                    &self.assets.sprites.goto.texture,
-                                ),
+                                downloading: IconWidget::new(&self.assets.sprites.loading),
+                                goto: IconButtonWidget::new_normal(&self.assets.sprites.goto),
                                 name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
                                     "by {} mapped by {}",
@@ -496,11 +494,11 @@ impl MusicItemWidget {
     pub fn new(assets: &Rc<Assets>, info: &MusicInfo) -> Self {
         let mut widget = Self {
             state: WidgetState::new(),
-            download: IconButtonWidget::new_normal(&assets.sprites.download.texture),
-            downloading: IconWidget::new(&assets.sprites.loading.texture),
-            play: IconButtonWidget::new_normal(&assets.sprites.button_next.texture),
-            pause: IconButtonWidget::new_normal(&assets.sprites.pause.texture),
-            goto: IconButtonWidget::new_normal(&assets.sprites.goto.texture),
+            download: IconButtonWidget::new_normal(&assets.sprites.download),
+            downloading: IconWidget::new(&assets.sprites.loading),
+            play: IconButtonWidget::new_normal(&assets.sprites.button_next),
+            pause: IconButtonWidget::new_normal(&assets.sprites.pause),
+            goto: IconButtonWidget::new_normal(&assets.sprites.goto),
             name: TextWidget::new(info.name.clone()),
             author: TextWidget::new(
                 itertools::Itertools::intersperse(

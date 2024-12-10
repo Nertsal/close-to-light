@@ -11,6 +11,44 @@ pub trait AreaOps {
 
     fn set(&mut self, s: Area);
 
+    fn square_longside(&self) -> Area {
+        let area = self.get();
+        let d = area.width() - area.height();
+        if d > 0.0 {
+            Area {
+                min: vec2(area.min.x, area.min.y - d / 2.0),
+                max: vec2(area.max.x, area.max.y + d / 2.0),
+            }
+        } else {
+            let d = -d;
+            Area {
+                min: vec2(area.min.x - d / 2.0, area.min.y),
+                max: vec2(area.max.x + d / 2.0, area.max.y),
+            }
+        }
+    }
+
+    fn square_shortside(&self) -> Area {
+        let area = self.get();
+        let d = area.width() - area.height();
+        if d > 0.0 {
+            Area {
+                min: vec2(area.min.x + d / 2.0, area.min.y),
+                max: vec2(area.max.x - d / 2.0, area.max.y),
+            }
+        } else {
+            let d = -d;
+            Area {
+                min: vec2(area.min.x, area.min.y + d / 2.0),
+                max: vec2(area.max.x, area.max.y - d / 2.0),
+            }
+        }
+    }
+
+    fn zero_size(&self, align: vec2<f32>) -> Area {
+        Area::point(self.align_pos(align))
+    }
+
     fn cut_left(&mut self, width: f32) -> Area {
         let left = self.get().extend_right(width - self.get().width());
         self.set(self.get().extend_left(-width));

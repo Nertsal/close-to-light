@@ -31,7 +31,9 @@ pub struct Sprites {
     pub linear_gradient: PixelTexture,
     pub radial_gradient: PixelTexture,
     pub button_next: PixelTexture,
+    pub button_next_hollow: PixelTexture,
     pub button_prev: PixelTexture,
+    pub button_prev_hollow: PixelTexture,
     pub button_close: PixelTexture,
     pub border: PixelTexture,
     pub border_thin: PixelTexture,
@@ -173,11 +175,11 @@ impl Assets {
             .context("failed to load assets")
     }
 
-    pub fn get_modifier(&self, modifier: Modifier) -> &Rc<ugli::Texture> {
+    pub fn get_modifier(&self, modifier: Modifier) -> &PixelTexture {
         match modifier {
-            Modifier::NoFail => &self.sprites.mod_nofail.texture,
-            Modifier::Sudden => &self.sprites.mod_sudden.texture,
-            Modifier::Hidden => &self.sprites.mod_hidden.texture,
+            Modifier::NoFail => &self.sprites.mod_nofail,
+            Modifier::Sudden => &self.sprites.mod_sudden,
+            Modifier::Hidden => &self.sprites.mod_hidden,
         }
     }
 }

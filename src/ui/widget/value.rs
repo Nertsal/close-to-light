@@ -3,6 +3,7 @@ use super::*;
 use crate::ui::layout::AreaOps;
 
 use ctl_client::core::types::Name;
+use geng_utils::conversions::Vec2RealConversions;
 
 pub struct ValueWidget<T> {
     pub state: WidgetState,
@@ -154,10 +155,25 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
                     &context.context.assets.sprites.timeline.tick_smol,
                 ));
 
-                geometry.merge(context.geometry.quad(quad, theme.light));
                 geometry.merge(context.geometry.quad(fill, theme.highlight));
+                geometry.merge(context.geometry.quad(quad, theme.light));
             }
-            ValueControl::Circle { zero_angle, period } => todo!(),
+            ValueControl::Circle { zero_angle, period } => {
+                let angle =
+                    Angle::from_radians((self.value / period).as_f32() * std::f32::consts::TAU);
+                let angle = zero_angle + angle;
+
+                let texture = &context.context.assets.sprites.value_knob;
+                let size = texture.size().as_f32() * context.geometry.pixel_scale;
+
+                let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+                geometry.merge(context.geometry.texture(
+                    pos,
+                    mat3::rotate_around(pos.center(), angle),
+                    theme.light,
+                    texture,
+                ));
+            }
         }
 
         geometry

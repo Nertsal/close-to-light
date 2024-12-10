@@ -217,10 +217,11 @@ impl EditorEditUi {
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
         let button_height = font_size * 1.2;
-        let value_height = font_size * 1.4;
+        let value_height = font_size * 1.2;
 
         let tooltip = context.state.get_or(TooltipWidget::new);
 
+        // Event
         {
             let mut bar = left_bar;
 
@@ -272,6 +273,12 @@ impl EditorEditUi {
             }
 
             bar.cut_top(layout_size * 1.5);
+            left_bar = bar;
+        }
+
+        // View
+        {
+            let mut bar = left_bar;
 
             let view = bar.cut_top(title_size);
             bar.cut_top(spacing);
@@ -331,6 +338,304 @@ impl EditorEditUi {
 
             bar.cut_top(layout_size * 1.5);
             left_bar = bar;
+        }
+
+        // Placement
+        {
+            let mut bar = left_bar;
+
+            let placement = bar.cut_top(title_size);
+            let text = context
+                .state
+                .get_or(|| TextWidget::new("Placement").aligned(vec2(0.0, 0.5)));
+            text.update(placement, context);
+            text.options.size = title_size;
+
+            let grid_snap = bar.cut_top(font_size);
+            bar.cut_top(spacing);
+            let button = context.state.get_or(|| ToggleWidget::new("Snap to grid"));
+            button.update(grid_snap, context);
+            if button.state.clicked {
+                actions.push(EditorAction::ToggleGridSnap.into());
+            }
+            button.checked = editor.snap_to_grid;
+            tooltip.update(&button.state, "~", context);
+
+            let grid_size = bar.cut_top(value_height);
+            bar.cut_top(spacing);
+            {
+                let mut value = 10.0 / editor.grid_size.as_f32();
+                let slider = context
+                    .state
+                    .get_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0));
+                slider.update(grid_size, context, &mut value);
+                actions.push(EditorAction::SetGridSize(r32(10.0 / value)).into());
+                context.update_focus(slider.state.hovered);
+            }
+
+            bar.cut_top(layout_size * 1.5);
+            left_bar = bar;
+        }
+
+        // Light
+        {
+            let selected = level_editor
+                .selected_light
+                .and_then(|i| level_editor.level.events.get(i.event))
+                .filter(|event| matches!(event.event, Event::Light(_)));
+
+            if let Some(event) = selected {
+                let light_id = level_editor
+                    .selected_light
+                    .expect("light selected without id 0_0");
+                if let Event::Light(light) = &event.event {
+                    let mut bar = right_bar;
+
+                    let light_pos = bar.cut_top(title_size);
+                    let text = context
+                        .state
+                        .get_or(|| TextWidget::new("Light").aligned(vec2(0.0, 0.5)));
+                    text.update(light_pos, context);
+                    text.options.size = title_size;
+
+                    let delete = bar.cut_top(button_height);
+                    let button = context
+                        .state
+                        .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+                    button.update(delete, context);
+                    tooltip.update(&button.text.state, "X", context);
+                    if button.text.state.clicked {
+                        actions.push(LevelAction::DeleteLight(light_id).into());
+                    }
+
+                    let danger_pos = bar.cut_top(button_height);
+                    bar.cut_top(spacing);
+                    let button = context
+                        .state
+                        .get_or(|| ToggleWidget::new("Danger").color(ThemeColor::Danger));
+                    button.update(danger_pos, context);
+                    if button.state.clicked {
+                        actions.push(LevelAction::ToggleDanger(light_id).into());
+                    }
+                    button.checked = light.danger;
+                    tooltip.update(&button.state, "D", context);
+
+                    {
+                        let fade_in = bar.cut_top(value_height);
+                        bar.cut_top(spacing);
+                        let mut fade = time_to_seconds(light.movement.fade_in);
+                        let slider = context.state.get_or(|| {
+                            ValueWidget::new_range("Fade in", fade, r32(0.25)..=r32(10.0), r32(0.1))
+                        });
+                        slider.update(fade_in, context, &mut fade);
+                        context.update_focus(slider.state.hovered);
+                        actions.push(
+                            LevelAction::ChangeFadeIn(light_id, Change::Set(seconds_to_time(fade)))
+                                .into(),
+                        );
+                    }
+
+                    {
+                        let fade_out = bar.cut_top(value_height);
+                        bar.cut_top(spacing);
+                        let mut fade = time_to_seconds(light.movement.fade_out);
+                        let slider = context.state.get_or(|| {
+                            ValueWidget::new_range(
+                                "Fade out",
+                                fade,
+                                r32(0.25)..=r32(10.0),
+                                r32(0.1),
+                            )
+                        });
+                        slider.update(fade_out, context, &mut fade);
+                        context.update_focus(slider.state.hovered);
+                        actions.push(
+                            LevelAction::ChangeFadeOut(
+                                light_id,
+                                Change::Set(seconds_to_time(fade)),
+                            )
+                            .into(),
+                        );
+                    }
+
+                    bar.cut_top(layout_size * 1.5);
+
+                    let waypoints = bar.cut_top(title_size);
+                    let button = context.state.get_or(|| ToggleWidget::new("Waypoints"));
+                    button.update(waypoints, context);
+                    button.text.options.size = title_size;
+                    button.checked = matches!(level_editor.state, State::Waypoints { .. });
+                    if button.state.clicked {
+                        actions.push(LevelAction::ToggleWaypointsView.into());
+                    }
+
+                    bar.cut_top(spacing);
+                    right_bar = bar;
+                }
+            }
+        }
+
+        if let Some(waypoints) = &level_editor.level_state.waypoints {
+            if let Some(selected) = waypoints.selected {
+                if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
+                    if let Event::Light(light) = &event.event {
+                        let frames = light.movement.key_frames.len();
+                        if let Some(frame) = light.movement.get_frame(selected) {
+                            // Waypoint
+                            let mut bar = right_bar;
+
+                            let mut current = bar.cut_top(font_size);
+                            let mut current = current.cut_left(font_size * 3.0);
+
+                            // Previous waypoint
+                            let prev = current
+                                .cut_left(current.height() * 0.6)
+                                .zero_size(vec2(0.5, 0.5))
+                                .extend_uniform(font_size * 0.7);
+                            if let WaypointId::Initial = selected {
+                                let button = context.state.get_or(|| {
+                                    IconWidget::new(
+                                        &context.context.assets.sprites.button_prev_hollow,
+                                    )
+                                });
+                                button.update(prev, context);
+                            } else {
+                                let button = context.state.get_or(|| {
+                                    IconButtonWidget::new_normal(
+                                        &context.context.assets.sprites.button_prev,
+                                    )
+                                });
+                                button.update(prev, context);
+                                if button.state.clicked {
+                                    if let Some(id) = selected.prev() {
+                                        actions.push(LevelAction::SelectWaypoint(id).into());
+                                    }
+                                }
+                            };
+
+                            let i = match selected {
+                                WaypointId::Initial => 0,
+                                WaypointId::Frame(i) => i + 1,
+                            };
+
+                            // Next waypoint
+                            let next = current
+                                .cut_right(current.height() * 0.6)
+                                .zero_size(vec2(0.5, 0.5))
+                                .extend_uniform(font_size * 0.7);
+                            if i >= frames {
+                                let button = context.state.get_or(|| {
+                                    IconWidget::new(
+                                        &context.context.assets.sprites.button_next_hollow,
+                                    )
+                                });
+                                button.update(next, context);
+                            } else {
+                                let button = context.state.get_or(|| {
+                                    IconButtonWidget::new_normal(
+                                        &context.context.assets.sprites.button_next,
+                                    )
+                                });
+                                button.update(next, context);
+                                if button.state.clicked {
+                                    actions
+                                        .push(LevelAction::SelectWaypoint(selected.next()).into());
+                                }
+                            }
+
+                            // Current waypoint
+                            let text = context.state.get_or(|| TextWidget::new("0"));
+                            text.update(current, context);
+                            text.text = (i + 1).to_string().into();
+
+                            // Delete
+                            let delete = bar.cut_top(button_height);
+                            let button = context
+                                .state
+                                .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+                            button.update(delete, context);
+                            if button.text.state.clicked {
+                                actions.push(
+                                    LevelAction::DeleteWaypoint(waypoints.light, selected).into(),
+                                );
+                            }
+                            tooltip.update(&button.text.state, "X", context);
+
+                            let mut new_frame = frame;
+
+                            let scale = bar.cut_top(value_height);
+                            bar.cut_top(spacing);
+                            let mut value = frame.scale.as_f32();
+                            let slider = context.state.get_or(|| {
+                                ValueWidget::new_range("Scale", value, 0.25..=10.0, 0.25)
+                            });
+                            slider.update(scale, context, &mut value);
+                            new_frame.scale = r32(value);
+                            context.update_focus(slider.state.hovered);
+
+                            let angle = bar.cut_top(value_height);
+                            bar.cut_top(spacing);
+                            let mut value = frame.rotation.as_degrees().as_f32();
+                            let slider = context
+                                .state
+                                .get_or(|| ValueWidget::new_circle("Angle", value, 360.0, 1.0));
+                            slider.update(angle, context, &mut value);
+                            new_frame.rotation = Angle::from_degrees(r32(value.round()));
+                            context.update_focus(slider.state.hovered);
+                            tooltip.update(&slider.state, "Q/E", context);
+
+                            actions.push(
+                                LevelAction::SetWaypointFrame(waypoints.light, selected, new_frame)
+                                    .into(),
+                            );
+
+                            // let curve = bar.cut_top(button_height);
+                            // bar.cut_top(spacing);
+                            // let interpolation = bar.cut_top(button_height);
+                            // bar.cut_top(spacing);
+                            // if let Some((mut move_interpolation, mut curve_interpolation)) =
+                            //     light.movement.get_interpolation(selected)
+                            // {
+                            //     self.waypoint_curve.show();
+                            //     self.waypoint_curve.update(
+                            //         curve,
+                            //         context,
+                            //         &mut curve_interpolation,
+                            //     );
+                            //     actions.push(
+                            //         LevelAction::SetWaypointCurve(
+                            //             waypoints.light,
+                            //             selected,
+                            //             curve_interpolation,
+                            //         )
+                            //         .into(),
+                            //     );
+
+                            //     self.waypoint_interpolation.show();
+                            //     self.waypoint_interpolation.update(
+                            //         interpolation,
+                            //         context,
+                            //         &mut move_interpolation,
+                            //     );
+                            //     actions.push(
+                            //         LevelAction::SetWaypointInterpolation(
+                            //             waypoints.light,
+                            //             selected,
+                            //             move_interpolation,
+                            //         )
+                            //         .into(),
+                            //     );
+                            // } else {
+                            //     self.waypoint_curve.hide();
+                            //     self.waypoint_interpolation.hide();
+                            // }
+
+                            bar.cut_top(spacing);
+                            right_bar = bar;
+                        }
+                    }
+                }
+            }
         }
     }
 }

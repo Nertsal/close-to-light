@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{model::ThemeColor, ui::layout::AreaOps};
+use crate::{assets::PixelTexture, model::ThemeColor, ui::layout::AreaOps};
 
 use ctl_client::core::types::Name;
 
@@ -74,7 +74,7 @@ pub struct IconButtonWidget {
 
 impl IconButtonWidget {
     pub fn new(
-        texture: &Rc<ugli::Texture>,
+        texture: &PixelTexture,
         light_color: ThemeColor,
         bg_kind: IconBackgroundKind,
     ) -> Self {
@@ -90,25 +90,19 @@ impl IconButtonWidget {
         }
     }
 
-    pub fn new_normal(texture: &Rc<ugli::Texture>) -> Self {
+    pub fn new_normal(texture: &PixelTexture) -> Self {
         Self::new(texture, ThemeColor::Light, IconBackgroundKind::NineSlice)
     }
 
-    pub fn new_danger(texture: &Rc<ugli::Texture>) -> Self {
+    pub fn new_danger(texture: &PixelTexture) -> Self {
         Self::new(texture, ThemeColor::Danger, IconBackgroundKind::NineSlice)
     }
 
-    pub fn new_close_button(texture: &Rc<ugli::Texture>) -> Self {
+    pub fn new_close_button(texture: &PixelTexture) -> Self {
         Self::new(texture, ThemeColor::Danger, IconBackgroundKind::Circle)
     }
-}
 
-impl WidgetOld for IconButtonWidget {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
         self.icon.update(position, context);
 
@@ -122,6 +116,22 @@ impl WidgetOld for IconButtonWidget {
         if let Some(bg) = &mut self.icon.background {
             bg.color = dark;
         }
+    }
+}
+
+impl WidgetOld for IconButtonWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.update(position, context)
+    }
+}
+
+impl Widget for IconButtonWidget {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        self.icon.draw(context)
     }
 }
 
@@ -228,8 +238,10 @@ impl ToggleWidget {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         let mut main = position;
         self.state.update(main, context);
-        let size = main.height();
-        let tick = main.cut_right(size).extend_uniform(-size / 5.0);
+        let size = main.height() * 3.0 / 5.0;
+        let tick = main
+            .cut_right(size)
+            .extend_symmetric(vec2(0.0, size - main.height()) / 2.0);
         self.tick.update(tick, context);
         self.text.update(main, context);
     }

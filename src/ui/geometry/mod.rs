@@ -85,6 +85,7 @@ impl GeometryContext {
         (current as f32) * 1e-5
     }
 
+    #[must_use]
     pub fn text(
         &self,
         text: Arc<str>,
@@ -103,6 +104,7 @@ impl GeometryContext {
         }
     }
 
+    #[must_use]
     pub fn nine_slice(&self, pos: Aabb2<f32>, color: Color, texture: &PixelTexture) -> Geometry {
         let z_index = self.next_z_index();
         let texture = texture.clone();
@@ -164,6 +166,7 @@ impl GeometryContext {
         }
     }
 
+    #[must_use]
     pub fn quad(&self, position: Aabb2<f32>, color: Color) -> Geometry {
         let z_index = self.next_z_index();
 
@@ -200,6 +203,7 @@ impl GeometryContext {
         self.nine_slice(position, color, texture)
     }
 
+    #[must_use]
     pub fn quad_outline(&self, position: Aabb2<f32>, width: f32, color: Color) -> Geometry {
         let (texture, real_width) = if width < 2.0 * self.pixel_scale {
             (&self.assets.sprites.border_thinner, 1.0 * self.pixel_scale)
@@ -211,25 +215,16 @@ impl GeometryContext {
         self.nine_slice(position.extend_uniform(real_width - width), color, texture)
     }
 
-    /// Pixel perfect texture
-    pub fn texture_pp(
+    #[must_use]
+    pub fn texture(
         &self,
-        center: vec2<f32>,
+        position: Aabb2<f32>,
+        transform: mat3<f32>,
         color: Color,
-        scale: f32,
         texture: &PixelTexture,
     ) -> Geometry {
         let z_index = self.next_z_index();
         let texture = texture.clone();
-
-        let size = texture.size() * (self.pixel_scale * scale).round() as usize;
-        let position = geng_utils::pixel::pixel_perfect_aabb(
-            center,
-            vec2(0.5, 0.5),
-            size,
-            &geng::PixelPerfectCamera,
-            self.framebuffer_size.as_f32(),
-        );
 
         let [a, b, c, d] = position.corners();
         let a = (a, vec2(0.0, 0.0));
@@ -240,7 +235,7 @@ impl GeometryContext {
             .into_iter()
             .map(|(a_pos, a_vt)| GeometryTriangleVertex {
                 a_z: z_index,
-                a_pos,
+                a_pos: (transform * a_pos.extend(1.0)).into_2d(),
                 a_color: color,
                 a_vt,
             })
@@ -251,5 +246,26 @@ impl GeometryContext {
             textures: vec![GeometryTexture { texture, triangles }],
             text: vec![],
         }
+    }
+
+    /// Pixel perfect texture
+    #[must_use]
+    pub fn texture_pp(
+        &self,
+        center: vec2<f32>,
+        color: Color,
+        scale: f32,
+        texture: &PixelTexture,
+    ) -> Geometry {
+        let size = texture.size() * (self.pixel_scale * scale).round() as usize;
+        let position = geng_utils::pixel::pixel_perfect_aabb(
+            center,
+            vec2(0.5, 0.5),
+            size,
+            &geng::PixelPerfectCamera,
+            self.framebuffer_size.as_f32(),
+        );
+
+        self.texture(position, mat3::identity(), color, texture)
     }
 }
