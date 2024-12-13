@@ -18,7 +18,7 @@ jobs:
           LEADERBOARD_URL: ${{ secrets.LEADERBOARD_URL }}
           LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts (web)
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: web
           path: target/geng
@@ -48,7 +48,7 @@ jobs:
           toolchain: stable
           profile: minimal
       - name: Install cargo-geng
-        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --force
+        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --rev b2655fd973409f990e7967b37ce8a349b44eda31
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -58,7 +58,7 @@ jobs:
           LEADERBOARD_URL: ${{ secrets.LEADERBOARD_URL }}
           LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.channel }}
           path: target/geng
@@ -76,7 +76,7 @@ jobs:
       url: https://nertsal.github.io/close-to-light
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Deploy GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -96,7 +96,7 @@ jobs:
       url: https://nertsal.github.io/close-to-light/dev
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Deploy GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -106,14 +106,14 @@ jobs:
 
   deploy-itch:
     name: Deploy Itch
-    if: github.ref == 'refs/heads/main' && github.repository_owner == 'nertsal'
+    if: github.ref == 'refs/heads/release/itch' && github.repository_owner == 'nertsal'
     runs-on: ubuntu-latest
     needs:
       - build-web
       - build-native
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Upload itch.io (Web)
         uses: josephbmanley/butler-publish-itchio-action@master
         env:
