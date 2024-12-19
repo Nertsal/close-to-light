@@ -73,6 +73,7 @@ impl EditorEditUi {
     pub fn layout(
         &mut self,
         position: Aabb2<f32>,
+        game_position: Aabb2<f32>,
         context: &UiContext,
         editor: &Editor,
         actions: &mut Vec<EditorStateAction>,
@@ -94,7 +95,7 @@ impl EditorEditUi {
         let font_size = context.font_size;
         let layout_size = context.layout_size;
 
-        let bottom_bar = main.cut_bottom(layout_size * 3.0);
+        let bottom_bar = main.cut_bottom(game_position.min.y - 6.0 - main.min.y);
         let mut bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
 
         let mut main = main
@@ -554,26 +555,29 @@ impl EditorEditUi {
             }
         }
 
-        // {
-        //     let timeline = bottom_bar.cut_top(font_size * 1.0);
-        //     let was_pressed = self.timeline.state.pressed;
+        {
+            let timeline = bottom_bar.cut_top(font_size * 1.0);
+            let linetime = context
+                .state
+                .get_or(|| TimelineWidget::new(context.context.clone()));
+            let was_pressed = linetime.state.pressed;
 
-        //     {
-        //         let mut state = (level_editor, vec![]);
-        //         update!(self.timeline, timeline, &mut state);
-        //         actions.extend(state.1.into_iter().map(Into::into));
-        //     }
+            {
+                let mut timeline_actions = vec![];
+                linetime.update(timeline, context, level_editor, &mut timeline_actions);
+                actions.extend(timeline_actions.into_iter().map(Into::into));
+            }
 
-        //     if self.timeline.mainline.state.pressed {
-        //         let time = self.timeline.get_cursor_time();
-        //         actions.push(EditorStateAction::ScrollTime(
-        //             time - level_editor.current_time,
-        //         ));
-        //     }
-        //     self.timeline.update_time(level_editor.current_time);
+            if linetime.main_line.pressed {
+                let time = linetime.get_cursor_time();
+                actions.push(EditorStateAction::ScrollTime(
+                    time - level_editor.current_time,
+                ));
+            }
+            linetime.update_time(level_editor.current_time);
 
-        //     // self.timeline.auto_scale(level_editor.level.last_beat());
-        // }
+            // self.timeline.auto_scale(level_editor.level.last_beat());
+        }
 
         let _ = left_bar;
         let _ = right_bar;

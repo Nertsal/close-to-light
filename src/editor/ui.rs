@@ -169,7 +169,8 @@ impl EditorUi {
         let main = main.extend_down(-layout_size);
         match editor.tab {
             EditorTab::Edit => {
-                self.edit.layout(main, context, editor, &mut actions);
+                self.edit
+                    .layout(main, self.game.position, context, editor, &mut actions);
             }
             EditorTab::Config => {
                 self.config.layout(

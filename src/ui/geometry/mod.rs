@@ -9,7 +9,7 @@ use geng_utils::conversions::Vec2RealConversions;
 
 #[derive(Clone)]
 pub struct GeometryContext {
-    pub assets: Rc<Assets>,
+    assets: Rc<Assets>,
     pub framebuffer_size: vec2<usize>,
     pub pixel_scale: f32,
     z_index: RefCell<i32>,
@@ -303,6 +303,27 @@ impl GeometryContext {
         texture: &PixelTexture,
     ) -> Geometry {
         let size = texture.size() * (self.pixel_scale * scale).round() as usize;
+        let position = geng_utils::pixel::pixel_perfect_aabb(
+            center,
+            vec2(0.5, 0.5),
+            size,
+            &geng::PixelPerfectCamera,
+            self.framebuffer_size.as_f32(),
+        );
+
+        self.texture(position, mat3::identity(), color, texture)
+    }
+
+    /// Pixel perfect texture
+    #[must_use]
+    pub fn texture_pp_at(
+        &self,
+        center: vec2<f32>,
+        color: Color,
+        pixels_per_unit: usize,
+        texture: &PixelTexture,
+    ) -> Geometry {
+        let size = texture.size() * pixels_per_unit;
         let position = geng_utils::pixel::pixel_perfect_aabb(
             center,
             vec2(0.5, 0.5),

@@ -72,6 +72,7 @@ pub struct Sprites {
 #[derive(geng::asset::Load)]
 pub struct TimelineAssets {
     pub arrow: PixelTexture,
+    pub current_arrow: PixelTexture,
     pub dots: PixelTexture,
     pub waypoint: PixelTexture,
 
