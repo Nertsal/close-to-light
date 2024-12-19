@@ -8,6 +8,14 @@ pub struct Bezier<T> {
 
 impl<T: 'static + Interpolatable> Bezier<T> {
     pub fn new(points: &[T]) -> Self {
+        // To avoid NaN issues with uniform transform calculation
+        if points.len() <= 2 {
+            return Self {
+                points: points.to_vec(),
+                uniform_transform: Box::new(|t| t),
+            };
+        }
+
         let sample = |t: f32| sample(points, t);
         let uniform_transform = Box::new(calculate_uniform_transformation(&sample));
         Self {
@@ -24,15 +32,21 @@ impl<T: 'static + Interpolatable> Bezier<T> {
     /// `t` is expected to be in range `0..=1`.
     pub fn get(&self, interval: usize, t: FloatTime) -> Option<T> {
         let degree = self.points.len().saturating_sub(1);
-        let t = (t.as_f32() + interval as f32) / degree as f32;
+        if degree == 0 {
+            return self.points.first().cloned();
+        }
 
+        let t = (t.as_f32() + interval as f32) / degree as f32;
         let t = (self.uniform_transform)(t);
         Some(sample(&self.points, t))
     }
 }
 
 fn sample<T: Interpolatable>(points: &[T], t: f32) -> T {
-    let n = points.len().saturating_sub(1);
+    let n = points
+        .len()
+        .checked_sub(1)
+        .expect("cannot sample an empty array");
     (0..=n)
         .map(|i| {
             let p = points[i].clone();
