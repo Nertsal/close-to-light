@@ -19,14 +19,15 @@ F1 - Hide UI
 pub struct EditorUi {
     pub game: WidgetState,
     pub edit: EditorEditUi,
-    // pub config: EditorConfigWidget,
+    pub config: EditorConfigUi,
 }
 
 impl EditorUi {
-    pub fn new(context: Context) -> Self {
+    pub fn new(_context: Context) -> Self {
         Self {
             game: default(),
-            edit: EditorEditUi::new(context),
+            edit: EditorEditUi::new(),
+            config: EditorConfigUi::new(),
         }
     }
 
@@ -171,8 +172,12 @@ impl EditorUi {
                 self.edit.layout(main, context, editor, &mut actions);
             }
             EditorTab::Config => {
-                // self.config
-                //     .layout(main.extend_up(-3.0 * layout_size), context, &mut state);
+                self.config.layout(
+                    main.extend_up(-3.0 * layout_size),
+                    context,
+                    editor,
+                    &mut actions,
+                );
             }
         }
 
