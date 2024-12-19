@@ -20,7 +20,8 @@ impl EditorRender {
             geometry.merge(w.draw(ui));
         });
 
-        self.util.draw_geometry(geometry, camera, framebuffer);
+        self.util
+            .draw_geometry(&mut self.mask_stack, geometry, camera, framebuffer);
 
         // let font_size = ui.screen.position.height() * 0.04;
 

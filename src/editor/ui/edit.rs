@@ -592,46 +592,70 @@ impl EditorEditUi {
                                     .into(),
                             );
 
-                            // let curve = bar.cut_top(button_height);
-                            // bar.cut_top(spacing);
-                            // let interpolation = bar.cut_top(button_height);
-                            // bar.cut_top(spacing);
-                            // if let Some((mut move_interpolation, mut curve_interpolation)) =
-                            //     light.movement.get_interpolation(selected)
-                            // {
-                            //     self.waypoint_curve.show();
-                            //     self.waypoint_curve.update(
-                            //         curve,
-                            //         context,
-                            //         &mut curve_interpolation,
-                            //     );
-                            //     actions.push(
-                            //         LevelAction::SetWaypointCurve(
-                            //             waypoints.light,
-                            //             selected,
-                            //             curve_interpolation,
-                            //         )
-                            //         .into(),
-                            //     );
+                            // Interpolation
+                            let curve = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
+                            let interpolation = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
 
-                            //     self.waypoint_interpolation.show();
-                            //     self.waypoint_interpolation.update(
-                            //         interpolation,
-                            //         context,
-                            //         &mut move_interpolation,
-                            //     );
-                            //     actions.push(
-                            //         LevelAction::SetWaypointInterpolation(
-                            //             waypoints.light,
-                            //             selected,
-                            //             move_interpolation,
-                            //         )
-                            //         .into(),
-                            //     );
-                            // } else {
-                            //     self.waypoint_curve.hide();
-                            //     self.waypoint_interpolation.hide();
-                            // }
+                            if let Some((mut move_interpolation, mut curve_interpolation)) =
+                                light.movement.get_interpolation(selected)
+                            {
+                                let waypoint_curve = context.state.get_or(|| {
+                                    DropdownWidget::new(
+                                        "Curve",
+                                        0,
+                                        [
+                                            ("Continue", None),
+                                            ("Linear", Some(TrajectoryInterpolation::Linear)),
+                                            (
+                                                "Spline",
+                                                Some(TrajectoryInterpolation::Spline {
+                                                    tension: r32(0.1),
+                                                }),
+                                            ),
+                                            ("Bezier", Some(TrajectoryInterpolation::Bezier)),
+                                        ],
+                                    )
+                                });
+
+                                let waypoint_interpolation = context.state.get_or(|| {
+                                    DropdownWidget::new(
+                                        "Interpolation",
+                                        0,
+                                        [
+                                            ("Linear", MoveInterpolation::Linear),
+                                            ("Smoothstep", MoveInterpolation::Smoothstep),
+                                            ("EaseIn", MoveInterpolation::EaseIn),
+                                            ("EaseOut", MoveInterpolation::EaseOut),
+                                        ],
+                                    )
+                                });
+
+                                waypoint_curve.update(curve, context, &mut curve_interpolation);
+                                actions.push(
+                                    LevelAction::SetWaypointCurve(
+                                        waypoints.light,
+                                        selected,
+                                        curve_interpolation,
+                                    )
+                                    .into(),
+                                );
+
+                                waypoint_interpolation.update(
+                                    interpolation,
+                                    context,
+                                    &mut move_interpolation,
+                                );
+                                actions.push(
+                                    LevelAction::SetWaypointInterpolation(
+                                        waypoints.light,
+                                        selected,
+                                        move_interpolation,
+                                    )
+                                    .into(),
+                                );
+                            }
 
                             bar.cut_top(spacing);
                             right_bar = bar;

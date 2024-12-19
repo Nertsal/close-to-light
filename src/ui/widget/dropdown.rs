@@ -16,7 +16,7 @@ pub struct DropdownWidget<T> {
     pub dropdown_items: Vec<TextWidget>,
 }
 
-impl<T> DropdownWidget<T> {
+impl<T: PartialEq + Clone> DropdownWidget<T> {
     pub fn new(
         text: impl Into<Name>,
         value: usize,
@@ -28,8 +28,8 @@ impl<T> DropdownWidget<T> {
             .collect();
         Self {
             state: WidgetState::new(),
-            name: TextWidget::new(text),
-            value_text: TextWidget::new("<value>"),
+            name: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
+            value_text: TextWidget::new("<value>").aligned(vec2(1.0, 0.5)),
             value,
             dropdown_state: WidgetState::new(),
             dropdown_window: UiWindow::new((), 0.2),
@@ -40,21 +40,8 @@ impl<T> DropdownWidget<T> {
             options,
         }
     }
-}
 
-impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
-    type State<'a> = T;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut T) {
         self.value = self
             .options
             .iter()
@@ -109,9 +96,53 @@ impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
             self.dropdown_window.request = Some(WidgetRequest::Open);
         }
         self.dropdown_window.update(context.delta_time);
+    }
+}
 
-        if focus {
-            context.reset_focus();
+impl<T: 'static> Widget for DropdownWidget<T> {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let outline_width = context.font_size * 0.1;
+        let theme = context.theme();
+
+        let mut geometry = self.name.draw(context);
+
+        let mut bounds = self.dropdown_state.position;
+        let height = bounds.height() * self.dropdown_window.show.time.get_ratio();
+        if height > outline_width * 2.0 {
+            let bounds = bounds.cut_top(height);
+            let mut window = Geometry::new();
+            for text in &self.dropdown_items {
+                window.merge(text.draw(context));
+            }
+            window.merge(context.geometry.quad_fill(bounds, theme.dark));
+            geometry.merge(context.geometry.masked(bounds, window));
+            geometry.merge(
+                context
+                    .geometry
+                    .quad_outline(bounds, outline_width, theme.light),
+            );
+            geometry.change_z_index(100);
+        } else {
+            geometry.merge(self.value_text.draw(context));
         }
+
+        geometry
+    }
+}
+
+impl<T: PartialEq + Clone> StatefulWidget for DropdownWidget<T> {
+    type State<'a> = T;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
+        self.update(position, context, state)
     }
 }

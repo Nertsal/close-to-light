@@ -1,3 +1,5 @@
+use mask::MaskedStack;
+
 use super::*;
 
 use crate::ui::{geometry::Geometry, UiContext};
@@ -82,11 +84,37 @@ impl UtilRender {
 
     pub fn draw_geometry(
         &self,
+        masked: &mut MaskedStack,
         geometry: Geometry,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let framebuffer_size = framebuffer.size().as_f32();
+
+        // Masked
+        let mut frame = masked.pop_mask();
+        for masked_geometry in geometry.masked {
+            let mut masking = frame.start();
+            self.draw_geometry(masked, masked_geometry.geometry, camera, &mut masking.color);
+            // self.circle_with_cut(
+            //     &mut masking.color,
+            //     camera,
+            //     mat3::translate(masked_geometry.clip_rect.center()) * mat3::scale_uniform(50.0),
+            //     Color::CYAN,
+            //     0.5,
+            // );
+            masking.mask_quad(masked_geometry.clip_rect);
+            frame.draw(
+                masked_geometry.z_index,
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    depth_func: Some(ugli::DepthFunc::Less),
+                    ..default()
+                },
+                framebuffer,
+            );
+        }
+        masked.return_mask(frame);
 
         // Triangles
         let triangles =

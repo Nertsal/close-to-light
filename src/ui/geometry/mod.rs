@@ -22,6 +22,14 @@ pub struct Geometry {
     // TODO: texture atlas and move to triangles
     pub textures: Vec<GeometryTexture>,
     pub text: Vec<GeometryText>,
+    pub masked: Vec<MaskedGeometry>,
+}
+
+#[derive(Debug)]
+pub struct MaskedGeometry {
+    pub z_index: f32,
+    pub clip_rect: Aabb2<f32>,
+    pub geometry: Geometry,
 }
 
 #[derive(ugli::Vertex, Debug, Clone, Copy, PartialEq)]
@@ -59,6 +67,46 @@ impl Geometry {
         self.triangles.extend(other.triangles);
         self.textures.extend(other.textures);
         self.text.extend(other.text);
+        self.masked.extend(other.masked);
+    }
+
+    pub fn change_z_index(&mut self, delta: usize) {
+        let delta = -(delta as f32) * 1e-5;
+        for masked in &mut self.masked {
+            masked.z_index += delta;
+        }
+        for v in &mut self.triangles {
+            v.a_z += delta;
+        }
+        for texture in &mut self.textures {
+            for v in &mut texture.triangles {
+                v.a_z += delta;
+            }
+        }
+        for text in &mut self.text {
+            text.z_index += delta;
+        }
+    }
+
+    fn triangles(triangles: Vec<GeometryTriangleVertex>) -> Self {
+        Self {
+            triangles,
+            ..default()
+        }
+    }
+
+    fn texture(texture: GeometryTexture) -> Self {
+        Self {
+            textures: vec![texture],
+            ..default()
+        }
+    }
+
+    fn text(text: GeometryText) -> Self {
+        Self {
+            text: vec![text],
+            ..default()
+        }
     }
 }
 
@@ -86,22 +134,30 @@ impl GeometryContext {
     }
 
     #[must_use]
+    pub fn masked(&self, clip_rect: Aabb2<f32>, geometry: Geometry) -> Geometry {
+        Geometry {
+            masked: vec![MaskedGeometry {
+                z_index: self.next_z_index(),
+                clip_rect,
+                geometry,
+            }],
+            ..default()
+        }
+    }
+
+    #[must_use]
     pub fn text(
         &self,
         text: Arc<str>,
         position: vec2<f32>,
         options: TextRenderOptions,
     ) -> Geometry {
-        Geometry {
-            triangles: vec![],
-            textures: vec![],
-            text: vec![GeometryText {
-                z_index: self.next_z_index(),
-                text,
-                position,
-                options,
-            }],
-        }
+        Geometry::text(GeometryText {
+            z_index: self.next_z_index(),
+            text,
+            position,
+            options,
+        })
     }
 
     #[must_use]
@@ -159,11 +215,7 @@ impl GeometryContext {
             })
             .collect();
 
-        Geometry {
-            triangles: vec![],
-            textures: vec![GeometryTexture { texture, triangles }],
-            text: vec![],
-        }
+        Geometry::texture(GeometryTexture { texture, triangles })
     }
 
     #[must_use]
@@ -185,13 +237,10 @@ impl GeometryContext {
             })
             .collect();
 
-        Geometry {
-            triangles,
-            textures: vec![],
-            text: vec![],
-        }
+        Geometry::triangles(triangles)
     }
 
+    #[must_use]
     pub fn quad_fill(&self, position: Aabb2<f32>, color: Color) -> Geometry {
         let size = position.size();
         let size = size.x.min(size.y);
@@ -241,11 +290,7 @@ impl GeometryContext {
             })
             .collect();
 
-        Geometry {
-            triangles: vec![],
-            textures: vec![GeometryTexture { texture, triangles }],
-            text: vec![],
-        }
+        Geometry::texture(GeometryTexture { texture, triangles })
     }
 
     /// Pixel perfect texture

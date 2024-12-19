@@ -1,6 +1,8 @@
 mod game;
 mod ui;
 
+use mask::MaskedStack;
+
 use super::{
     dither::DitherRender,
     mask::MaskedRender,
@@ -19,6 +21,7 @@ pub struct EditorRender {
     dither: DitherRender,
     util: UtilRender,
     mask: MaskedRender,
+    mask_stack: MaskedStack,
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
@@ -45,6 +48,7 @@ impl EditorRender {
             dither: DitherRender::new(&context.geng, &context.assets),
             util: UtilRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            mask_stack: MaskedStack::new(&context.geng, &context.assets, vec2(1, 1)),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
@@ -68,6 +72,7 @@ impl EditorRender {
         );
 
         self.mask.update_size(framebuffer.size());
+        self.mask_stack.update_size(framebuffer.size());
         geng_utils::texture::update_texture_size(
             &mut self.game_texture,
             context.screen.size().map(|x| x.round() as usize),

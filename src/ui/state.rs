@@ -4,7 +4,7 @@ use std::{cell::UnsafeCell, panic::Location};
 
 use geng::prelude::*;
 
-type UiId = Location<'static>;
+type UiId = (Location<'static>, usize);
 
 #[derive(Clone, Default)]
 pub struct UiState(Rc<RefCell<State>>);
@@ -32,8 +32,8 @@ impl UiState {
     #[track_caller]
     #[allow(clippy::mut_from_ref)]
     pub fn get_or<T: 'static + Widget>(&self, default: impl FnOnce() -> T) -> &mut T {
-        let &id = Location::caller();
         let mut inner = self.0.borrow_mut();
+        let id = (*Location::caller(), inner.active.len());
         inner.active.insert(id);
 
         let entry = inner
