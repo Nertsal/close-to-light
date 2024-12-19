@@ -158,13 +158,13 @@ impl EditorUi {
             actions.push(EditorAction::SwitchTab(EditorTab::Config).into());
         }
 
-        // let unsaved = top_bar.cut_right(layout_size * 10.0);
-        // if editor.is_changed() {
-        //     self.unsaved.show();
-        //     self.unsaved.update(unsaved, context);
-        // } else {
-        //     self.unsaved.hide();
-        // }
+        let unsaved = top_bar.cut_right(font_size * 10.0);
+        if editor.is_changed() {
+            let text = context
+                .state
+                .get_or(|| TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)));
+            text.update(unsaved, context);
+        }
 
         let main = main.extend_down(-layout_size);
         match editor.tab {
