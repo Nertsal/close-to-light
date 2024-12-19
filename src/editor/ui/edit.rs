@@ -583,39 +583,3 @@ impl EditorEditUi {
         let _ = right_bar;
     }
 }
-
-// TODO: move to layout (we have scroll in context)
-// if shift && self.ui.edit.timeline.state.hovered {
-//     actions.push(EditorStateAction::TimelineScroll(scroll));
-// } else if ctrl {
-//     if self.ui.edit.timeline.state.hovered {
-//         // Zoom on the timeline
-//         actions.push(EditorStateAction::TimelineZoom(scroll));
-//     } else if let State::Place { .. }
-//     | State::Waypoints {
-//         state: WaypointsState::New,
-//         ..
-//     } = level_editor.state
-//     {
-//         // Scale light or waypoint placement
-//         let delta = scroll * r32(0.1);
-//         actions.push(LevelAction::ScalePlacement(delta).into());
-//     } else if let Some(waypoints) = &level_editor.level_state.waypoints {
-//         if let Some(selected) = waypoints.selected {
-//             let delta = scroll * r32(0.1);
-//             actions.push(
-//                 LevelAction::ScaleWaypoint(waypoints.light, selected, delta)
-//                     .into(),
-//             );
-//         }
-//     } else if let Some(id) = level_editor.selected_light {
-//         // Control fade time
-//         let scroll = scroll.as_f32() as Time;
-//         let change = scroll * self.editor.config.scroll_slow.as_time(beat_time);
-//         let action = if shift {
-//             LevelAction::ChangeFadeOut(id, Change::Add(change))
-//         } else {
-//             LevelAction::ChangeFadeIn(id, Change::Add(change))
-//         };
-//         actions.push(action.into());
-//     }
