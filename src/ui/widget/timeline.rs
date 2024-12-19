@@ -202,34 +202,37 @@ impl TimelineWidget {
                 // }
 
                 // Light icon
-                if occupied.insert(time) {
-                    let light = render_time(&self.lights_line, time);
-                    let texture = match light_event.shape {
-                        Shape::Circle { .. } => &sprites.circle,
-                        Shape::Line { .. } => &sprites.square,
-                        Shape::Rectangle { .. } => &sprites.square,
-                    };
-                    let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
-                    icon.update(light, &self.context);
-                    icon.icon.color = if is_selected {
-                        ThemeColor::Highlight
-                    } else if light_event.danger {
-                        ThemeColor::Danger
-                    } else {
-                        ThemeColor::Light
-                    };
-                    icon.icon.texture = texture.clone();
-                    if icon.state.clicked {
-                        if let Some((_editor, actions)) = &mut editor {
-                            actions.extend([LevelAction::SelectLight(light_id)]);
+                let visible = (time + self.scroll).abs() < self.visible_scroll() / 2;
+                if visible {
+                    if occupied.insert(time) {
+                        let light = render_time(&self.lights_line, time);
+                        let texture = match light_event.shape {
+                            Shape::Circle { .. } => &sprites.circle,
+                            Shape::Line { .. } => &sprites.square,
+                            Shape::Rectangle { .. } => &sprites.square,
+                        };
+                        let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
+                        icon.update(light, &self.context);
+                        icon.color = if is_selected {
+                            ThemeColor::Highlight
+                        } else if light_event.danger {
+                            ThemeColor::Danger
+                        } else {
+                            ThemeColor::Light
+                        };
+                        icon.texture = texture.clone();
+                        if icon.state.clicked {
+                            if let Some((_editor, actions)) = &mut editor {
+                                actions.extend([LevelAction::SelectLight(light_id)]);
+                            }
                         }
+                    } else {
+                        // Dots to indicate there are more light in that position
+                        let dots = render_time(&self.extra_line, time);
+                        let texture = &sprites.dots;
+                        let icon = self.context.state.get_or(|| IconWidget::new(texture));
+                        icon.update(dots, &self.context);
                     }
-                } else {
-                    // Dots to indicate there are more light in that position
-                    let dots = render_time(&self.extra_line, time);
-                    let texture = &sprites.dots;
-                    let icon = self.context.state.get_or(|| IconWidget::new(texture));
-                    icon.update(dots, &self.context);
                 }
             }
         }
@@ -435,14 +438,16 @@ impl Widget for IconWidget {
 #[derive(Clone)]
 struct IconButtonWidget {
     state: WidgetState,
-    icon: IconWidget,
+    texture: PixelTexture,
+    color: ThemeColor,
 }
 
 impl IconButtonWidget {
     pub fn new(texture: &PixelTexture) -> Self {
         Self {
             state: WidgetState::new(),
-            icon: IconWidget::new(texture),
+            texture: texture.clone(),
+            color: ThemeColor::Light,
         }
     }
 
@@ -458,7 +463,7 @@ impl Widget for IconButtonWidget {
         let outline_width = pixel_scale as f32 * 3.0;
         let mut geometry = Geometry::new();
 
-        let mut fg_color = theme.get_color(self.icon.color);
+        let mut fg_color = theme.get_color(self.color);
         let mut bg_color = theme.dark;
         if self.state.hovered {
             std::mem::swap(&mut fg_color, &mut bg_color);
@@ -468,7 +473,7 @@ impl Widget for IconButtonWidget {
             self.state.position.center(),
             fg_color,
             pixel_scale,
-            &self.icon.texture,
+            &self.texture,
         ));
         geometry.merge(
             context
