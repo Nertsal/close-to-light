@@ -48,7 +48,7 @@ impl EditorRender {
             dither: DitherRender::new(&context.geng, &context.assets),
             util: UtilRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
-            mask_stack: MaskedStack::new(&context.geng, &context.assets, vec2(1, 1)),
+            mask_stack: MaskedStack::new(&context.geng, &context.assets),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,

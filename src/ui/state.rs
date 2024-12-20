@@ -1,6 +1,6 @@
 use super::widget::Widget;
 
-use std::{cell::UnsafeCell, panic::Location};
+use std::{cell::UnsafeCell, collections::BTreeMap, panic::Location};
 
 use geng::prelude::*;
 
@@ -12,7 +12,8 @@ pub struct UiState(Rc<RefCell<State>>);
 #[derive(Default)]
 struct State {
     active: HashSet<UiId>,
-    widgets: HashMap<UiId, UnsafeCell<Box<dyn Widget>>>, // TODO: check memory leakage
+    // NOTE: BTreeMap to have consistent iteration order
+    widgets: BTreeMap<UiId, UnsafeCell<Box<dyn Widget>>>, // TODO: check memory leakage
 }
 
 impl UiState {

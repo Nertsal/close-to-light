@@ -14,7 +14,6 @@ pub struct MaskFrame {
     geng: Geng,
     assets: Rc<Assets>,
     unit_quad: Rc<ugli::VertexBuffer<draw2d::TexturedVertex>>,
-    depth: f32,
     mask_texture: ugli::Texture,
     color_texture: ugli::Texture,
     depth_buffer: ugli::Renderbuffer<ugli::DepthComponent>,
@@ -27,7 +26,7 @@ pub struct MaskingFrame<'a> {
 }
 
 impl MaskedStack {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, texture_size: vec2<usize>) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
@@ -52,7 +51,6 @@ impl MaskedStack {
             geng: self.geng.clone(),
             assets: self.assets.clone(),
             unit_quad: self.unit_quad.clone(),
-            depth: 1.0,
             mask_texture,
             color_texture,
             depth_buffer,

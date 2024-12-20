@@ -70,7 +70,7 @@ impl Geometry {
         self.masked.extend(other.masked);
     }
 
-    pub fn change_z_index(&mut self, delta: usize) {
+    pub fn change_z_index(&mut self, delta: isize) {
         let delta = -(delta as f32) * 1e-5;
         for masked in &mut self.masked {
             masked.z_index += delta;

@@ -89,6 +89,9 @@ impl UtilRender {
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        // log::debug!("Rendering geometry:");
+        // log::debug!("^- triangles: {}", geometry.triangles.len() / 3);
+
         let framebuffer_size = framebuffer.size().as_f32();
 
         // Masked

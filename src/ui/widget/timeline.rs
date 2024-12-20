@@ -20,6 +20,8 @@ pub struct TimelineWidget {
     pub lights_line: WidgetState,
     pub main_line: WidgetState,
     pub highlight_line: WidgetState,
+    highlight_bar: Option<HighlightBar>,
+    dots: Vec<vec2<f32>>,
 
     // pub lights: BTreeMap<Time, Vec<TimelineLight>>,
     // pub mainline: MainBar,
@@ -39,31 +41,12 @@ pub struct TimelineWidget {
     selected_waypoint: Option<WaypointId>,
 }
 
-// pub struct TimelineLight {
-//     pub id: LightId,
-//     pub state: WidgetState,
-//     pub waypoints: Option<TimelineWaypoints>,
-// }
-
-// pub struct TimelineWaypoints {
-//     pub min: Time,
-//     pub max: Time,
-//     pub points: Vec<(WaypointId, WidgetState)>,
-// }
-
-// #[derive(Default)]
-// pub struct MainBar {
-//     pub state: WidgetState,
-//     pub bar: WidgetState,
-//     pub ticks: BTreeSet<Time>,
-// }
-
-// #[derive(Default)]
-// pub struct SelectedBar {
-//     pub state: WidgetState,
-//     pub bar: WidgetState,
-//     pub points: BTreeMap<Time, (WaypointId, WidgetState)>,
-// }
+struct HighlightBar {
+    from_time: Time,
+    from: vec2<f32>,
+    to_time: Time,
+    to: vec2<f32>,
+}
 
 impl TimelineWidget {
     pub fn new(context: Context) -> Self {
@@ -88,12 +71,9 @@ impl TimelineWidget {
             lights_line: default(),
             main_line: default(),
             highlight_line: default(),
+            highlight_bar: None,
+            dots: Vec::new(),
 
-            // lights: BTreeMap::new(),
-            // mainline: default(),
-            // selected_line: default(),
-
-            // current: default(),
             scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
@@ -162,50 +142,137 @@ impl TimelineWidget {
             )
         };
 
-        // let height = self.context.font_size * 0.4;
+        // Check highlight bounds
+        self.highlight_bar = self
+            .selected_light
+            .and_then(|id| self.level.events.get(id.event))
+            .and_then(|event| {
+                if let Event::Light(light) = &event.event {
+                    let from_time = event.time;
+                    let from = render_time(&self.highlight_line, from_time).center();
+                    let to_time = event.time + light.movement.total_duration();
+                    let to = render_time(&self.highlight_line, to_time).center();
+                    Some(HighlightBar {
+                        from_time,
+                        from,
+                        to_time,
+                        to,
+                    })
+                } else {
+                    None
+                }
+            });
+
         // Render events on the timeline
         let mut occupied = BTreeSet::new();
+        self.dots.clear();
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light_event) = &event.event {
-                let time = event.time + light_event.movement.fade_in;
+                let time = event.time;
                 let light_id = LightId { event: i };
                 let is_selected = Some(light_id) == self.selected_light;
 
                 // Selected light waypoints
-                // if is_selected {
-                //     let from = render_time(time).center();
-                //     let to = render_time(time + light.movement.total_duration())
-                //         .center()
-                //         .x;
-                //     let selected = Aabb2::point(from)
-                //         .extend_right(to - from.x)
-                //         .extend_symmetric(vec2(0.0, 0.1) * self.context.font_size / 2.0);
-                //     self.selected.show();
-                //     self.selected.update(selected, &self.context);
+                if is_selected {
+                    let from_time = time;
+                    let from = render_time(&self.highlight_line, from_time).center();
+                    let to_time = time + light_event.movement.total_duration();
+                    let to = render_time(&self.highlight_line, to_time).center();
 
-                //     let size = vec2(0.25, 0.5) * self.context.font_size;
-                //     for (waypoint_id, _, offset) in light.movement.timed_positions() {
-                //         let mut state = WidgetState::new();
-                //         let position = render_time(time + offset).center();
-                //         let position = Aabb2::point(position).extend_symmetric(size / 2.0);
-                //         state.update(position, &self.context);
-                //         if state.clicked {
-                //             if let Some((_editor, actions)) = &mut editor {
-                //                 actions.extend([
-                //                     LevelAction::SelectLight(light_id),
-                //                     LevelAction::SelectWaypoint(waypoint_id),
-                //                 ]);
-                //             }
-                //         }
-                //         self.waypoints.push((waypoint_id, state));
-                //     }
-                // }
+                    let size = vec2(4.0, 16.0) * PPU as f32;
+
+                    // Fade in
+                    let position = Aabb2::point(from).extend_symmetric(size / 2.0);
+                    let tick = self.context.state.get_or(|| {
+                        IconButtonWidget::new(&sprites.tick_smol)
+                            .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                    });
+                    tick.update(position, &self.context);
+
+                    // Fade out
+                    let position = Aabb2::point(to).extend_symmetric(size / 2.0);
+                    let tick = self.context.state.get_or(|| {
+                        IconButtonWidget::new(&sprites.tick_smol)
+                            .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                    });
+                    tick.update(position, &self.context);
+
+                    let mut last_dot_time = from_time;
+                    let mut connect_dots = |time: Time| {
+                        // TODO: variable timing within this segment
+                        let timing = self.level.timing.get_timing(from_time);
+
+                        let resolution = 4.0; // Ticks per beat
+                        let step = timing.beat_time / r32(resolution);
+                        let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
+                            .floor() as usize;
+                        let dots = (0..=dots).map(|i| {
+                            let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                            render_time(&self.lights_line, time).center()
+                        });
+
+                        self.dots.extend(dots);
+                        last_dot_time = time;
+                    };
+
+                    let last_id =
+                        WaypointId::Frame(light_event.movement.key_frames.len().saturating_sub(1));
+                    for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
+                        let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
+                        // connect_dots(time + offset);
+
+                        // Icon
+                        let position = render_time(&self.lights_line, time + offset).center();
+                        let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                        let icon = self
+                            .context
+                            .state
+                            .get_or(|| IconButtonWidget::new(&sprites.waypoint));
+                        icon.color = if is_waypoint_selected {
+                            ThemeColor::Highlight
+                        } else {
+                            ThemeColor::Light
+                        };
+                        icon.update(position, &self.context);
+
+                        // Tick
+                        let position = render_time(&self.highlight_line, time + offset).center();
+                        let position = Aabb2::point(position).extend_symmetric(size / 2.0);
+                        let texture = match waypoint_id {
+                            WaypointId::Initial => &sprites.tick_big,
+                            WaypointId::Frame(_) if waypoint_id == last_id => &sprites.tick_mid,
+                            WaypointId::Frame(_) => &sprites.tick_smol,
+                        };
+                        let tick = self.context.state.get_or(|| {
+                            IconButtonWidget::new(texture)
+                                .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                        });
+                        tick.update(position, &self.context);
+                        if icon.state.clicked || tick.state.clicked {
+                            if let Some((_editor, actions)) = &mut editor {
+                                actions.extend([
+                                    LevelAction::SelectLight(light_id),
+                                    LevelAction::SelectWaypoint(waypoint_id),
+                                ]);
+                            }
+                        }
+                    }
+
+                    connect_dots(time + light_event.movement.total_duration());
+                }
 
                 // Light icon
-                let visible = (time + self.scroll).abs() < self.visible_scroll() / 2;
+                let light_time = time + light_event.movement.fade_in;
+                let visible =
+                    !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                 if visible {
-                    if occupied.insert(time) {
-                        let light = render_time(&self.lights_line, time);
+                    if self
+                        .highlight_bar
+                        .as_ref()
+                        .map_or(true, |bar| !(bar.from_time..=bar.to_time).contains(&time))
+                        && occupied.insert(light_time)
+                    {
+                        let light = render_time(&self.lights_line, light_time);
                         let texture = match light_event.shape {
                             Shape::Circle { .. } => &sprites.circle,
                             Shape::Line { .. } => &sprites.square,
@@ -228,7 +295,7 @@ impl TimelineWidget {
                         }
                     } else {
                         // Dots to indicate there are more light in that position
-                        let dots = render_time(&self.extra_line, time);
+                        let dots = render_time(&self.extra_line, light_time);
                         let texture = &sprites.dots;
                         let icon = self.context.state.get_or(|| IconWidget::new(texture));
                         icon.update(dots, &self.context);
@@ -250,15 +317,24 @@ impl TimelineWidget {
         state: &LevelEditor,
         actions: &mut Vec<LevelAction>,
     ) {
+        self.context = context.clone();
+        self.level = state.level.clone();
+        self.selected_light = state.selected_light;
+        self.selected_waypoint = state
+            .level_state
+            .waypoints
+            .as_ref()
+            .and_then(|waypoints| waypoints.selected);
+
         self.state.update(position, context);
         let pixel = PPU as f32;
 
-        let ceiling = position.cut_top(pixel * 5.0);
+        let ceiling = position.cut_top(pixel * 3.0);
         self.ceiling.update(ceiling, context);
 
         let extra = position.cut_top(pixel * 3.0);
         self.extra_line.update(extra, context);
-        position.cut_top(pixel * 3.0);
+        position.cut_top(pixel * 2.0);
 
         let lights = position.cut_top(pixel * 16.0);
         self.lights_line.update(lights, context);
@@ -274,15 +350,6 @@ impl TimelineWidget {
 
         let highlight = position.cut_top(pixel * 16.0);
         self.highlight_line.update(highlight, context);
-
-        self.context = context.clone();
-        self.level = state.level.clone();
-        self.selected_light = state.selected_light;
-        self.selected_waypoint = state
-            .level_state
-            .waypoints
-            .as_ref()
-            .and_then(|waypoints| waypoints.selected);
 
         // if self.main_line.hovered {
         //     let scroll = self.context.cursor.scroll;
@@ -342,6 +409,17 @@ impl Widget for TimelineWidget {
 
         let mut geometry = Geometry::new();
 
+        for &dot in &self.dots {
+            let dot = geng_utils::pixel::pixel_perfect_aabb(
+                dot,
+                vec2(0.5, 0.5),
+                vec2::splat(pixel_scale * 2),
+                &geng::PixelPerfectCamera,
+                context.geometry.framebuffer_size.as_f32(),
+            );
+            geometry.merge(context.geometry.quad(dot, theme.light));
+        }
+
         {
             let texture = &sprites.current_arrow;
             let size = texture.size() * pixel_scale;
@@ -361,37 +439,18 @@ impl Widget for TimelineWidget {
             ));
         }
 
-        // geometry.merge(context.geometry.texture_pp_at(
-        //     self.extra_line.position.center(),
-        //     theme.light,
-        //     pixel_scale,
-        //     &sprites.dots,
-        // ));
-
-        // geometry.merge(context.geometry.texture_pp_at(
-        //     self.lights_line.position.center(),
-        //     theme.light,
-        //     pixel_scale,
-        //     &sprites.circle,
-        // ));
-        // geometry.merge(context.geometry.texture_pp_at(
-        //     self.lights_line.position.center(),
-        //     theme.highlight,
-        //     pixel_scale,
-        //     &sprites.circle_fill,
-        // ));
-
-        // geometry.merge(context.geometry.texture_pp_at(
-        //     self.main_line.position.center(),
-        //     theme.highlight,
-        //     pixel_scale,
-        //     &sprites.tick_big,
-        // ));
-
         let main_bar = self.main_line.position;
         let main_bar = main_bar.align_aabb(vec2(main_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
         geometry.merge(context.geometry.quad(main_bar, theme.light));
 
+        if let Some(bar) = &self.highlight_bar {
+            let highlight_bar = Aabb2::from_corners(bar.from, bar.to);
+            let highlight_bar =
+                highlight_bar.align_aabb(vec2(highlight_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
+            geometry.merge(context.geometry.quad(highlight_bar, theme.light));
+        }
+
+        geometry.change_z_index(-100);
         geometry
     }
 }
@@ -435,11 +494,18 @@ impl Widget for IconWidget {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum HighlightMode {
+    SwapColors,
+    Color(ThemeColor),
+}
+
 #[derive(Clone)]
 struct IconButtonWidget {
     state: WidgetState,
     texture: PixelTexture,
     color: ThemeColor,
+    highlight: HighlightMode,
 }
 
 impl IconButtonWidget {
@@ -448,7 +514,13 @@ impl IconButtonWidget {
             state: WidgetState::new(),
             texture: texture.clone(),
             color: ThemeColor::Light,
+            highlight: HighlightMode::SwapColors,
         }
+    }
+
+    pub fn highlight(mut self, mode: HighlightMode) -> Self {
+        self.highlight = mode;
+        self
     }
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
@@ -465,21 +537,36 @@ impl Widget for IconButtonWidget {
 
         let mut fg_color = theme.get_color(self.color);
         let mut bg_color = theme.dark;
-        if self.state.hovered {
-            std::mem::swap(&mut fg_color, &mut bg_color);
-        }
 
-        geometry.merge(context.geometry.texture_pp_at(
-            self.state.position.center(),
-            fg_color,
-            pixel_scale,
-            &self.texture,
-        ));
-        geometry.merge(
-            context
-                .geometry
-                .quad_fill(self.state.position.extend_uniform(outline_width), bg_color),
-        );
+        match self.highlight {
+            HighlightMode::SwapColors => {
+                if self.state.hovered {
+                    std::mem::swap(&mut fg_color, &mut bg_color);
+                }
+                geometry.merge(context.geometry.texture_pp_at(
+                    self.state.position.center(),
+                    fg_color,
+                    pixel_scale,
+                    &self.texture,
+                ));
+                geometry.merge(
+                    context
+                        .geometry
+                        .quad_fill(self.state.position.extend_uniform(outline_width), bg_color),
+                );
+            }
+            HighlightMode::Color(highlight) => {
+                if self.state.hovered {
+                    fg_color = theme.get_color(highlight);
+                }
+                geometry.merge(context.geometry.texture_pp_at(
+                    self.state.position.center(),
+                    fg_color,
+                    pixel_scale,
+                    &self.texture,
+                ));
+            }
+        }
 
         geometry
     }

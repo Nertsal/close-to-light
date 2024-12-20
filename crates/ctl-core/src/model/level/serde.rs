@@ -79,11 +79,16 @@ impl Timing {
         {
             Ok(i) => i,
             Err(0) => {
-                // There are no timing points smh
-                return TimingPoint {
-                    time: 0,
-                    beat_time: r32(60.0 / 150.0),
-                };
+                // Assume timing before 0 is the same as the first timing point
+                if self.points.is_empty() {
+                    // no timing points smh
+                    // log::error!("level has no timing points");
+                    return TimingPoint {
+                        time: 0,
+                        beat_time: r32(60.0 / 150.0),
+                    };
+                }
+                0
             }
             Err(i) => i.saturating_sub(1),
         };
