@@ -51,6 +51,7 @@ struct HighlightBar {
 
 impl TimelineWidget {
     pub fn new(context: Context) -> Self {
+        log::info!("new timeline");
         Self {
             context: UiContext {
                 state: UiState::new(),
@@ -289,7 +290,7 @@ impl TimelineWidget {
                         } else if !self.context.can_focus() || !self.context.cursor.down {
                             self.dragging_waypoint = false;
                         }
-                        if self.dragging_waypoint && dbg!(is_waypoint_selected) {
+                        if self.dragging_waypoint && is_waypoint_selected {
                             let time = unrender_time(self.context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap);
                             let time = crate::editor::Change::Set(time);
