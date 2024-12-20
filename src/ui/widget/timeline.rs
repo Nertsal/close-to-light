@@ -148,6 +148,9 @@ impl TimelineWidget {
             ((pos - self.main_line.position.center().x) / self.scale).round() as Time - self.scroll
         };
 
+        // TODO: customize snap
+        let snap = BeatTime::QUARTER;
+
         // Check highlight bounds
         self.highlight_bar = self
             .selected_light
@@ -196,8 +199,7 @@ impl TimelineWidget {
                     if tick.state.pressed {
                         // Drag fade in
                         let target = unrender_time(self.context.cursor.position.x);
-                        // TODO: customize snap
-                        let target = editor.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+                        let target = editor.level.timing.snap_to_beat(target, snap);
                         let fade_in = event.time + light_event.movement.fade_in - target;
                         actions.push(LevelAction::ChangeFadeIn(
                             light_id,
@@ -216,7 +218,7 @@ impl TimelineWidget {
                         // Drag fade out
                         let target = unrender_time(self.context.cursor.position.x);
                         // TODO: customize snap
-                        let target = editor.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+                        let target = editor.level.timing.snap_to_beat(target, snap);
                         let fade_out = target - to_time + light_event.movement.fade_out;
                         actions.push(LevelAction::ChangeFadeOut(
                             light_id,
@@ -244,7 +246,14 @@ impl TimelineWidget {
 
                     let last_id =
                         WaypointId::Frame(light_event.movement.key_frames.len().saturating_sub(1));
-                    for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
+                    // NOTE: sort by selected waypoint, so that the selected one is always the first widget
+                    // that way when dragging it on the timeline and it gets reordered
+                    // the widget state remains relevant
+                    for (waypoint_id, _, offset) in light_event
+                        .movement
+                        .timed_positions()
+                        .sorted_by_key(|(id, _, _)| Some(*id) != self.selected_waypoint)
+                    {
                         let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
                         // connect_dots(time + offset);
 
@@ -281,6 +290,15 @@ impl TimelineWidget {
                                 LevelAction::SelectLight(light_id),
                                 LevelAction::SelectWaypoint(waypoint_id),
                             ]);
+                        } else if icon.state.pressed || tick.state.pressed {
+                            let time = unrender_time(self.context.cursor.position.x);
+                            let time = editor.level.timing.snap_to_beat(time, snap);
+                            let time = crate::editor::Change::Set(time);
+                            actions.push(LevelAction::MoveWaypointTime(
+                                light_id,
+                                waypoint_id,
+                                time,
+                            ));
                         }
                     }
 
@@ -328,8 +346,11 @@ impl TimelineWidget {
     }
 
     pub fn get_cursor_time(&self) -> Time {
-        ((self.context.cursor.position.x - self.state.position.min.x) / self.scale) as Time
-            - self.scroll
+        self.get_time_at(self.context.cursor.position.x)
+    }
+
+    fn get_time_at(&self, pos: f32) -> Time {
+        ((pos - self.state.position.center().x) / self.scale) as Time - self.scroll
     }
 
     pub fn update(

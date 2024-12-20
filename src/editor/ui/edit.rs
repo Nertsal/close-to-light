@@ -568,7 +568,7 @@ impl EditorEditUi {
                 actions.extend(timeline_actions.into_iter().map(Into::into));
             }
 
-            if linetime.main_line.pressed {
+            if linetime.main_line.clicked {
                 let time = linetime.get_cursor_time();
                 actions.push(EditorStateAction::ScrollTime(
                     time - level_editor.current_time,

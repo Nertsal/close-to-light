@@ -37,6 +37,7 @@ pub enum LevelAction {
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
     MoveWaypoint(LightId, WaypointId, Change<vec2<Coord>>),
+    MoveWaypointTime(LightId, WaypointId, Change<Time>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -108,6 +109,7 @@ impl LevelAction {
                 time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
             LevelAction::MoveWaypoint(_, _, position) => position.is_noop(&vec2::ZERO),
+            LevelAction::MoveWaypointTime(_, _, time) => time.is_noop(&Time::ZERO),
         }
     }
 }
@@ -237,6 +239,9 @@ impl LevelEditor {
             LevelAction::MoveWaypoint(light, waypoint, pos) => {
                 self.move_waypoint(light, waypoint, pos)
             }
+            LevelAction::MoveWaypointTime(light, waypoint, time) => {
+                self.move_waypoint_time(light, waypoint, time)
+            }
         }
 
         // In case some action forgot to save the state,
@@ -289,6 +294,105 @@ impl LevelEditor {
 
         change_pos.apply(&mut frame.translation);
         self.save_state(HistoryLabel::MoveWaypoint(light_id, waypoint_id));
+    }
+
+    fn move_waypoint_time(
+        &mut self,
+        light_id: LightId,
+        waypoint_id: WaypointId,
+        change_time: Change<Time>,
+    ) {
+        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
+            return;
+        };
+
+        let Event::Light(event) = &mut timed_event.event else {
+            return;
+        };
+
+        // Update time
+        let mut frames: Vec<_> = event
+            .movement
+            .timed_positions()
+            .map(|(id, transform, mut time)| {
+                time += timed_event.time;
+                if id == waypoint_id {
+                    change_time.apply(&mut time);
+                }
+                (id, transform, time)
+            })
+            .collect();
+
+        // Sort frames by absolute time
+        frames.sort_by_key(|(_, _, time)| *time);
+
+        // Check if some frames have same time - invalid reorder
+        if frames.iter().tuple_windows().any(|(a, b)| a.2 == b.2) {
+            // Invalid reorder
+            return;
+        }
+
+        // Reorder frames to fit the new time
+        let mut frames = frames.into_iter();
+        let mut fixed_movement = event.movement.clone();
+        let mut last_time = Time::ZERO;
+        let mut fix_selection = true;
+
+        // Initial frame is treated specially
+        if let Some((original_id, transform, time)) = frames.next() {
+            let fixed_id = WaypointId::Initial;
+            if fix_selection && self.selected_light == Some(light_id) {
+                if let Some(waypoints) = &mut self.level_state.waypoints {
+                    if waypoints.selected == Some(original_id) {
+                        waypoints.selected = Some(fixed_id);
+                        fix_selection = false;
+                    }
+                }
+            }
+
+            // TODO: config option to keep curves at waypoints
+            // let (interpolation, curve) = event
+            //     .movement
+            //     .get_interpolation(fixed_id)
+            //     .expect("invalid waypoint id when fixing");
+            fixed_movement.initial = transform;
+            // fixed_movement.interpolation = interpolation;
+            // fixed_movement.curve = curve.unwrap_or_default();
+            timed_event.time = time - event.movement.fade_in;
+            last_time = time;
+        }
+
+        // Update all other frames
+        for (i, (original_id, transform, time)) in frames.enumerate() {
+            let fixed_id = WaypointId::Frame(i);
+            if fix_selection && self.selected_light == Some(light_id) {
+                if let Some(waypoints) = &mut self.level_state.waypoints {
+                    if waypoints.selected == Some(original_id) {
+                        waypoints.selected = Some(fixed_id);
+                        fix_selection = false;
+                    }
+                }
+            }
+
+            // TODO: config option to keep curves at waypoints
+            // let (interpolation, curve) = event
+            //     .movement
+            //     .get_interpolation(fixed_id)
+            //     .expect("invalid waypoint id when fixing");
+            let fixed_frame = fixed_movement
+                .key_frames
+                .get_mut(i)
+                .expect("invalid waypoint index when fixing");
+            fixed_frame.transform = transform;
+            // fixed_frame.interpolation = interpolation;
+            // fixed_frame.curve = curve;
+            fixed_frame.lerp_time = time - last_time;
+            last_time = time;
+        }
+
+        event.movement = fixed_movement;
+
+        self.save_state(HistoryLabel::MoveWaypointTime(light_id, waypoint_id));
     }
 
     fn set_waypoint_curve(

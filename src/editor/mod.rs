@@ -285,18 +285,19 @@ impl EditorState {
             }
         }
 
-        if let Some(waypoints) = &level_editor.level_state.waypoints {
-            if let Some(waypoint) = waypoints.selected {
-                if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
-                    if let Event::Light(light) = &event.event {
-                        // Set current time to align with the selected waypoint
-                        if let Some(time) = light.movement.get_time(waypoint) {
-                            level_editor.current_time = event.time + time;
-                        }
-                    }
-                }
-            }
-        }
+        // TODO: maybe config option?
+        // if let Some(waypoints) = &level_editor.level_state.waypoints {
+        //     if let Some(waypoint) = waypoints.selected {
+        //         if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
+        //             if let Event::Light(light) = &event.event {
+        //                 // Set current time to align with the selected waypoint
+        //                 if let Some(time) = light.movement.get_time(waypoint) {
+        //                     level_editor.current_time = event.time + time;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         if level_editor.scrolling_time {
             level_editor.was_scrolling_time = true;

@@ -119,64 +119,11 @@ impl EditorState {
         });
     }
 
-    fn scroll_time(&mut self, mut delta: Time) {
+    // TODO: LevelAction
+    fn scroll_time(&mut self, delta: Time) {
         let Some(level_editor) = &mut self.editor.level_edit else {
             return;
         };
-
-        if let Some(waypoints) = &level_editor.level_state.waypoints {
-            if let Some(waypoint) = waypoints.selected {
-                // Move waypoint in time
-                if let Some(event) = level_editor.level.events.get_mut(waypoints.light.event) {
-                    if let Event::Light(light) = &mut event.event {
-                        // Move temporaly
-                        if let Some(beat) = light.movement.get_time(waypoint) {
-                            let next_i = match waypoint {
-                                WaypointId::Initial => 0,
-                                WaypointId::Frame(i) => i + 1,
-                            };
-                            let next = WaypointId::Frame(next_i);
-                            let next_time = light.movement.get_time(next);
-
-                            let min_lerp = 50;
-                            let max_delta = next_time
-                                .map_or(50 * TIME_IN_FLOAT_TIME, |time| time - min_lerp - beat);
-
-                            delta = delta.min(max_delta);
-                            let snap = |time: Time| {
-                                // TODO: customize snap
-                                level_editor
-                                    .level
-                                    .timing
-                                    .snap_to_beat(time, BeatTime::QUARTER)
-                            };
-
-                            match waypoint {
-                                WaypointId::Initial => event.time = snap(event.time + delta),
-                                WaypointId::Frame(i) => {
-                                    if let Some(frame) = light.movement.key_frames.get_mut(i) {
-                                        let target = (frame.lerp_time + delta).max(min_lerp);
-                                        let target = snap(target);
-                                        delta = target - frame.lerp_time;
-                                        frame.lerp_time = target;
-                                    }
-                                }
-                            }
-
-                            if let Some(next) = light.movement.key_frames.get_mut(next_i) {
-                                next.lerp_time -= delta;
-                            }
-
-                            level_editor.save_state(HistoryLabel::MoveWaypointTime(
-                                waypoints.light,
-                                waypoint,
-                            ));
-                        }
-                    }
-                }
-                return;
-            }
-        }
 
         // Scroll current time
         level_editor.scroll_time(delta);
