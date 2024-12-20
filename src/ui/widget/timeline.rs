@@ -22,6 +22,7 @@ pub struct TimelineWidget {
     pub highlight_line: WidgetState,
     highlight_bar: Option<HighlightBar>,
     dots: Vec<vec2<f32>>,
+    ticks: Vec<(vec2<f32>, BeatTime)>,
     dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: bool,
 
@@ -52,7 +53,6 @@ struct HighlightBar {
 
 impl TimelineWidget {
     pub fn new(context: Context) -> Self {
-        log::info!("new timeline");
         Self {
             context: UiContext {
                 state: UiState::new(),
@@ -77,6 +77,7 @@ impl TimelineWidget {
             highlight_line: default(),
             highlight_bar: None,
             dots: Vec::new(),
+            ticks: Vec::new(),
             dragging_light: None,
             dragging_waypoint: false,
 
@@ -366,6 +367,47 @@ impl TimelineWidget {
                 }
             }
         }
+
+        // Main line ticks
+        self.ticks.clear();
+        let points = &self.level.timing.points;
+        for (timing, next) in points
+            .iter()
+            .zip(points.iter().skip(1).map(Some).chain([None]))
+        {
+            let from = timing.time;
+            let until = next.map(|timing| timing.time);
+            for i in 0.. {
+                let offset = r32(i as f32) * timing.beat_time;
+                let time = from + seconds_to_time(offset);
+
+                if -(time + self.scroll) > self.visible_scroll() / 2 {
+                    continue;
+                }
+
+                let mut tick = |offset: BeatTime, marker: BeatTime| {
+                    let offset = (r32(i as f32) + offset.as_beats()) * timing.beat_time;
+                    let time = from + seconds_to_time(offset);
+                    if !until.map_or(false, |limit| time >= limit) {
+                        self.ticks
+                            .push((render_time(&self.main_line, time).center(), marker));
+                    }
+                };
+
+                tick(BeatTime::HALF, BeatTime::HALF);
+                tick(BeatTime::QUARTER, BeatTime::QUARTER);
+                tick(BeatTime::QUARTER * 3, BeatTime::QUARTER);
+
+                if until.map_or(false, |limit| time >= limit)
+                    || time + self.scroll > self.visible_scroll() / 2
+                {
+                    break;
+                }
+
+                self.ticks
+                    .push((render_time(&self.main_line, time).center(), BeatTime::WHOLE));
+            }
+        }
     }
 
     pub fn get_cursor_time(&self) -> Time {
@@ -406,10 +448,6 @@ impl TimelineWidget {
         self.lights_line.update(lights, context);
         position.cut_top(pixel * 4.0);
 
-        // let clickable =
-        //     position.extend_symmetric(vec2(0.0, context.font_size * 0.2 - position.height()) / 2.0);
-        // let bar = Aabb2::point(clickable.center())
-        //     .extend_symmetric(vec2(clickable.width(), context.font_size * 0.1) / 2.0);
         let main = position.cut_top(pixel * 16.0);
         self.main_line.update(main, context);
         position.cut_top(pixel * 4.0);
@@ -484,6 +522,29 @@ impl Widget for TimelineWidget {
                 context.geometry.framebuffer_size.as_f32(),
             );
             geometry.merge(context.geometry.quad(dot, theme.light));
+        }
+
+        for &(pos, beat) in &self.ticks {
+            let (color, texture) = if beat == BeatTime::WHOLE {
+                (theme.light, &sprites.tick_big)
+            } else if beat == BeatTime::HALF {
+                (theme.danger, &sprites.tick_mid)
+            } else if beat == BeatTime::QUARTER {
+                (theme.highlight, &sprites.tick_smol)
+            } else if beat == BeatTime::EIGHTH {
+                (
+                    Color::lerp(theme.highlight, theme.danger, 0.5),
+                    &sprites.tick_tiny,
+                )
+            } else {
+                // Unknown beat separation
+                (theme.danger, &sprites.tick_smol)
+            };
+            geometry.merge(
+                context
+                    .geometry
+                    .texture_pp_at(pos, color, pixel_scale, texture),
+            );
         }
 
         {

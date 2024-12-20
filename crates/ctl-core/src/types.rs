@@ -81,12 +81,16 @@ impl BeatTime {
         Self { units }
     }
 
+    pub fn as_beats(&self) -> R32 {
+        r32(self.units as f32 / Self::UNITS_PER_BEAT as f32)
+    }
+
     pub fn as_time(&self, beat_time: FloatTime) -> Time {
         seconds_to_time(self.as_secs(beat_time))
     }
 
     pub fn as_secs(&self, beat_time: FloatTime) -> FloatTime {
-        FloatTime::new(self.units as f32 / Self::UNITS_PER_BEAT as f32) * beat_time
+        self.as_beats() * beat_time
     }
 }
 
