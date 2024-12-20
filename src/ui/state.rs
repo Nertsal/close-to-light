@@ -13,7 +13,7 @@ pub struct UiState(Rc<RefCell<State>>);
 
 #[derive(Default)]
 struct State {
-    active: HashSet<Id>,
+    active: HashMap<Id, usize>,
     // NOTE: BTreeMap to have consistent iteration order
     widgets: BTreeMap<Id, UnsafeCell<UuidCell>>, // TODO: check memory leakage
 }
@@ -48,7 +48,7 @@ impl UiState {
     pub fn get_or<T: 'static + Widget>(&self, default: impl FnOnce() -> T) -> &mut T {
         let mut inner = self.0.borrow_mut();
         let id = *Location::caller();
-        inner.active.insert(id);
+        *inner.active.entry(id).or_insert(0) += 1;
 
         let entry = inner.widgets.entry(id).or_insert_with(move || {
             UnsafeCell::new(UuidCell {
@@ -83,13 +83,13 @@ impl UiState {
 
     pub fn iter_widgets(&self, mut f: impl FnMut(&dyn Widget)) {
         let inner = self.0.borrow();
-        inner.active.iter().for_each(|id| {
+        inner.active.iter().for_each(|(id, ns)| {
             let w = inner
                 .widgets
                 .get(id)
                 .expect("invalid implementation of UiState: active id is not present in widgets");
             let w = unsafe { &*(w.get()) };
-            for w in &w.widgets {
+            for w in w.widgets.iter().take(*ns) {
                 f(&**w);
             }
         })
