@@ -98,7 +98,7 @@ impl TimelineWidget {
         self.scroll = ((current - min) / new_scale) as Time - self.raw_current_time;
 
         self.scale = new_scale;
-        self.reload(None);
+        // self.reload(None);
     }
 
     // pub fn auto_scale(&mut self, max_beat: Time) {
@@ -117,18 +117,19 @@ impl TimelineWidget {
 
     pub fn scroll(&mut self, delta: Time) {
         self.scroll += delta;
-        self.reload(None);
+        // self.reload(None);
     }
 
     pub fn update_time(&mut self, current_beat: Time) {
         self.raw_current_time = current_beat;
         self.scroll = -current_beat;
-        self.reload(None);
+        // self.reload(None);
     }
 
-    fn reload(&mut self, mut editor: Option<(&LevelEditor, &mut Vec<LevelAction>)>) {
+    fn reload(&mut self, editor: &LevelEditor, actions: &mut Vec<LevelAction>) {
         let sprites = &self.context.context.assets.sprites.timeline;
 
+        // from time to screen position
         let render_time = |line: &WidgetState, time: Time| {
             let size = vec2::splat(18) * PPU;
             let pos = (time + self.scroll) as f32 * self.scale;
@@ -140,6 +141,11 @@ impl TimelineWidget {
                 &geng::PixelPerfectCamera,
                 self.context.geometry.framebuffer_size.as_f32(),
             )
+        };
+
+        // from screen position to time
+        let unrender_time = |pos: f32| {
+            ((pos - self.main_line.position.center().x) / self.scale).round() as Time - self.scroll
         };
 
         // Check highlight bounds
@@ -168,15 +174,14 @@ impl TimelineWidget {
         self.dots.clear();
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light_event) = &event.event {
-                let time = event.time;
                 let light_id = LightId { event: i };
                 let is_selected = Some(light_id) == self.selected_light;
 
                 // Selected light waypoints
                 if is_selected {
-                    let from_time = time;
+                    let from_time = event.time;
                     let from = render_time(&self.highlight_line, from_time).center();
-                    let to_time = time + light_event.movement.total_duration();
+                    let to_time = event.time + light_event.movement.total_duration();
                     let to = render_time(&self.highlight_line, to_time).center();
 
                     let size = vec2(4.0, 16.0) * PPU as f32;
@@ -188,6 +193,17 @@ impl TimelineWidget {
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
                     });
                     tick.update(position, &self.context);
+                    if tick.state.pressed {
+                        // Drag fade in
+                        let target = unrender_time(self.context.cursor.position.x);
+                        // TODO: customize snap
+                        let target = editor.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+                        let fade_in = event.time + light_event.movement.fade_in - target;
+                        actions.push(LevelAction::ChangeFadeIn(
+                            light_id,
+                            crate::editor::Change::Set(fade_in),
+                        ));
+                    }
 
                     // Fade out
                     let position = Aabb2::point(to).extend_symmetric(size / 2.0);
@@ -196,6 +212,17 @@ impl TimelineWidget {
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
                     });
                     tick.update(position, &self.context);
+                    if tick.state.pressed {
+                        // Drag fade out
+                        let target = unrender_time(self.context.cursor.position.x);
+                        // TODO: customize snap
+                        let target = editor.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+                        let fade_out = target - to_time + light_event.movement.fade_out;
+                        actions.push(LevelAction::ChangeFadeOut(
+                            light_id,
+                            crate::editor::Change::Set(fade_out),
+                        ));
+                    }
 
                     let mut last_dot_time = from_time;
                     let mut connect_dots = |time: Time| {
@@ -222,7 +249,7 @@ impl TimelineWidget {
                         // connect_dots(time + offset);
 
                         // Icon
-                        let position = render_time(&self.lights_line, time + offset).center();
+                        let position = render_time(&self.lights_line, event.time + offset).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                         let icon = self
                             .context
@@ -236,7 +263,8 @@ impl TimelineWidget {
                         icon.update(position, &self.context);
 
                         // Tick
-                        let position = render_time(&self.highlight_line, time + offset).center();
+                        let position =
+                            render_time(&self.highlight_line, event.time + offset).center();
                         let position = Aabb2::point(position).extend_symmetric(size / 2.0);
                         let texture = match waypoint_id {
                             WaypointId::Initial => &sprites.tick_big,
@@ -249,28 +277,24 @@ impl TimelineWidget {
                         });
                         tick.update(position, &self.context);
                         if icon.state.clicked || tick.state.clicked {
-                            if let Some((_editor, actions)) = &mut editor {
-                                actions.extend([
-                                    LevelAction::SelectLight(light_id),
-                                    LevelAction::SelectWaypoint(waypoint_id),
-                                ]);
-                            }
+                            actions.extend([
+                                LevelAction::SelectLight(light_id),
+                                LevelAction::SelectWaypoint(waypoint_id),
+                            ]);
                         }
                     }
 
-                    connect_dots(time + light_event.movement.total_duration());
+                    connect_dots(event.time + light_event.movement.total_duration());
                 }
 
                 // Light icon
-                let light_time = time + light_event.movement.fade_in;
+                let light_time = event.time + light_event.movement.fade_in;
                 let visible =
                     !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                 if visible {
-                    if self
-                        .highlight_bar
-                        .as_ref()
-                        .map_or(true, |bar| !(bar.from_time..=bar.to_time).contains(&time))
-                        && occupied.insert(light_time)
+                    if self.highlight_bar.as_ref().map_or(true, |bar| {
+                        !(bar.from_time..=bar.to_time).contains(&light_time)
+                    }) && occupied.insert(light_time)
                     {
                         let light = render_time(&self.lights_line, light_time);
                         let texture = match light_event.shape {
@@ -289,9 +313,7 @@ impl TimelineWidget {
                         };
                         icon.texture = texture.clone();
                         if icon.state.clicked {
-                            if let Some((_editor, actions)) = &mut editor {
-                                actions.extend([LevelAction::SelectLight(light_id)]);
-                            }
+                            actions.extend([LevelAction::SelectLight(light_id)]);
                         }
                     } else {
                         // Dots to indicate there are more light in that position
@@ -360,7 +382,7 @@ impl TimelineWidget {
         //     }
         // }
 
-        self.reload(Some((state, actions)));
+        self.reload(state, actions);
     }
 }
 
