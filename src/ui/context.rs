@@ -89,6 +89,7 @@ pub struct UiContext {
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: RefCell<bool>,
 
+    pub real_time: f32,
     pub delta_time: f32,
     pub screen: Aabb2<f32>,
     pub layout_size: f32,
@@ -194,6 +195,7 @@ impl UiContext {
             can_focus: true.into(),
             cursor: CursorContext::new(),
             text_edit: TextEdit::new(&context.geng),
+            real_time: 0.0,
             delta_time: 0.1,
             mods: KeyModifiers::default(),
             context,
@@ -231,6 +233,7 @@ impl UiContext {
     /// Updates input values.
     // TODO: use window from context
     pub fn update(&mut self, window: &geng::Window, delta_time: f32) {
+        self.real_time += delta_time;
         self.delta_time = delta_time;
         self.cursor.update(
             geng_utils::key::is_key_pressed(window, [geng::MouseButton::Left]),

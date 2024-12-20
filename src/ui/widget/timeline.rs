@@ -4,7 +4,7 @@ use super::*;
 
 use crate::{
     assets::PixelTexture,
-    editor::{LevelAction, LevelEditor, LightId},
+    editor::{Change, LevelAction, LevelEditor, LightId},
     prelude::*,
     ui::{layout::AreaOps, UiState},
 };
@@ -22,6 +22,7 @@ pub struct TimelineWidget {
     pub highlight_line: WidgetState,
     highlight_bar: Option<HighlightBar>,
     dots: Vec<vec2<f32>>,
+    dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: bool,
 
     // pub lights: BTreeMap<Time, Vec<TimelineLight>>,
@@ -62,6 +63,7 @@ impl TimelineWidget {
                 font_size: 1.0,
                 can_focus: true.into(),
                 cursor: CursorContext::new(),
+                real_time: 0.0,
                 delta_time: 0.1,
                 mods: KeyModifiers::default(),
                 text_edit: TextEdit::empty(),
@@ -75,6 +77,7 @@ impl TimelineWidget {
             highlight_line: default(),
             highlight_bar: None,
             dots: Vec::new(),
+            dragging_light: None,
             dragging_waypoint: false,
 
             scale: 0.5,
@@ -183,8 +186,33 @@ impl TimelineWidget {
                 let light_id = LightId { event: i };
                 let is_selected = Some(light_id) == self.selected_light;
 
-                // Selected light waypoints
+                // Selected light's waypoints
                 if is_selected {
+                    if !self.context.can_focus() || !self.context.cursor.down {
+                        match self.dragging_light.take() {
+                            // TODO: unmagic constant - max click shake distance and duration
+                            Some((from, from_time))
+                                if (self.context.cursor.position - from).len_sqr() < 25.0
+                                    && (self.context.real_time - from_time).abs() < 0.5 => {}
+                            Some(_) => {
+                                if is_selected {
+                                    actions.push(LevelAction::DeselectLight);
+                                }
+                            }
+                            None => {}
+                        }
+                    }
+                    if self.dragging_light.is_some() {
+                        let time = unrender_time(self.context.cursor.position.x);
+                        let time = editor.level.timing.snap_to_beat(time, snap)
+                            - light_event.movement.fade_in;
+                        actions.push(LevelAction::MoveLight(
+                            light_id,
+                            Change::Set(time),
+                            Change::Add(vec2::ZERO),
+                        ));
+                    }
+
                     let from_time = event.time;
                     let from = render_time(&self.highlight_line, from_time).center();
                     let to_time = event.time + light_event.movement.total_duration();
@@ -204,10 +232,7 @@ impl TimelineWidget {
                         let target = unrender_time(self.context.cursor.position.x);
                         let target = editor.level.timing.snap_to_beat(target, snap);
                         let fade_in = event.time + light_event.movement.fade_in - target;
-                        actions.push(LevelAction::ChangeFadeIn(
-                            light_id,
-                            crate::editor::Change::Set(fade_in),
-                        ));
+                        actions.push(LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)));
                     }
 
                     // Fade out
@@ -220,13 +245,9 @@ impl TimelineWidget {
                     if tick.state.pressed {
                         // Drag fade out
                         let target = unrender_time(self.context.cursor.position.x);
-                        // TODO: customize snap
                         let target = editor.level.timing.snap_to_beat(target, snap);
                         let fade_out = target - to_time + light_event.movement.fade_out;
-                        actions.push(LevelAction::ChangeFadeOut(
-                            light_id,
-                            crate::editor::Change::Set(fade_out),
-                        ));
+                        actions.push(LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)));
                     }
 
                     let mut last_dot_time = from_time;
@@ -293,7 +314,7 @@ impl TimelineWidget {
                         if self.dragging_waypoint && is_waypoint_selected {
                             let time = unrender_time(self.context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap);
-                            let time = crate::editor::Change::Set(time);
+                            let time = Change::Set(time);
                             actions.push(LevelAction::MoveWaypointTime(
                                 light_id,
                                 waypoint_id,
@@ -331,7 +352,9 @@ impl TimelineWidget {
                         };
                         icon.texture = texture.clone();
                         if icon.state.clicked {
-                            actions.extend([LevelAction::SelectLight(light_id)]);
+                            actions.push(LevelAction::SelectLight(light_id));
+                            self.dragging_light =
+                                Some((self.context.cursor.position, self.context.real_time));
                         }
                     } else {
                         // Dots to indicate there are more light in that position
@@ -490,7 +513,7 @@ impl Widget for TimelineWidget {
             let highlight_bar = Aabb2::from_corners(bar.from, bar.to);
             let highlight_bar =
                 highlight_bar.align_aabb(vec2(highlight_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
-            geometry.merge(context.geometry.quad(highlight_bar, theme.light));
+            geometry.merge(context.geometry.quad(highlight_bar, theme.highlight));
         }
 
         geometry.change_z_index(-100);
