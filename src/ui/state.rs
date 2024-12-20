@@ -4,6 +4,9 @@ use std::{cell::UnsafeCell, collections::BTreeMap, panic::Location};
 
 use geng::prelude::*;
 
+// TODO: actually should be tree position somehow
+// because if we insert variable number of widgets
+// all further ones will get reinitialized
 type UiId = (Location<'static>, usize);
 
 #[derive(Clone, Default)]

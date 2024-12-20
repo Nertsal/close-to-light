@@ -22,6 +22,7 @@ pub struct TimelineWidget {
     pub highlight_line: WidgetState,
     highlight_bar: Option<HighlightBar>,
     dots: Vec<vec2<f32>>,
+    dragging_waypoint: bool,
 
     // pub lights: BTreeMap<Time, Vec<TimelineLight>>,
     // pub mainline: MainBar,
@@ -73,6 +74,7 @@ impl TimelineWidget {
             highlight_line: default(),
             highlight_bar: None,
             dots: Vec::new(),
+            dragging_waypoint: false,
 
             scale: 0.5,
             scroll: Time::ZERO,
@@ -246,24 +248,15 @@ impl TimelineWidget {
 
                     let last_id =
                         WaypointId::Frame(light_event.movement.key_frames.len().saturating_sub(1));
-                    // NOTE: sort by selected waypoint, so that the selected one is always the first widget
-                    // that way when dragging it on the timeline and it gets reordered
-                    // the widget state remains relevant
-                    for (waypoint_id, _, offset) in light_event
-                        .movement
-                        .timed_positions()
-                        .sorted_by_key(|(id, _, _)| Some(*id) != self.selected_waypoint)
-                    {
+                    for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
                         let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
                         // connect_dots(time + offset);
 
                         // Icon
                         let position = render_time(&self.lights_line, event.time + offset).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
-                        let icon = self
-                            .context
-                            .state
-                            .get_or(|| IconButtonWidget::new(&sprites.waypoint));
+                        let texture = &sprites.waypoint;
+                        let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
                         icon.color = if is_waypoint_selected {
                             ThemeColor::Highlight
                         } else {
@@ -285,12 +278,18 @@ impl TimelineWidget {
                                 .highlight(HighlightMode::Color(ThemeColor::Highlight))
                         });
                         tick.update(position, &self.context);
+
+                        // Waypoint drag
                         if icon.state.clicked || tick.state.clicked {
                             actions.extend([
                                 LevelAction::SelectLight(light_id),
                                 LevelAction::SelectWaypoint(waypoint_id),
                             ]);
-                        } else if icon.state.pressed || tick.state.pressed {
+                            self.dragging_waypoint = true;
+                        } else if !self.context.can_focus() || !self.context.cursor.down {
+                            self.dragging_waypoint = false;
+                        }
+                        if self.dragging_waypoint && dbg!(is_waypoint_selected) {
                             let time = unrender_time(self.context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap);
                             let time = crate::editor::Change::Set(time);
