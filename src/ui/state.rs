@@ -72,7 +72,7 @@ impl UiState {
         // Therefore, the reference can be given out for the duration until the same
         // call is reached again.
         // In case this is repeat call, we increment the counter and access the next widget.
-        // This way, no collisions can only happen if the counter is reset (at the beginning of the frame)
+        // This way, collisions can only happen if the counter is reset (at the beginning of the frame)
         // but widgets are still held, which cannot happen because `frame_start` takes a mutable reference.
         let entry = unsafe { &mut *(entry as *mut Box<dyn Widget>) };
         entry

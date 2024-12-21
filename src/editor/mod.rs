@@ -19,6 +19,7 @@ use crate::{
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
     ui::{widget::ConfirmPopup, UiContext},
+    util::{SecondOrderDynamics, SecondOrderState},
 };
 
 #[derive(Debug, Clone)]
@@ -83,7 +84,7 @@ pub struct LevelEditor {
     /// Simulation model.
     pub model: Model,
     pub level_state: EditorLevelState,
-    pub current_time: Time,
+    pub current_time: TimeInterpolation,
     pub real_time: FloatTime,
     pub selected_light: Option<LightId>,
 
@@ -134,6 +135,45 @@ pub struct Editor {
     pub level_edit: Option<LevelEditor>,
 }
 
+pub struct TimeInterpolation {
+    state: SecondOrderState<FloatTime>,
+    pub value: Time,
+    pub target: Time,
+}
+
+impl TimeInterpolation {
+    pub fn new() -> Self {
+        let time = Time::ZERO;
+        Self {
+            state: SecondOrderState::new(SecondOrderDynamics::new(
+                3.0,
+                1.0,
+                0.0,
+                time_to_seconds(time),
+            )),
+            value: time,
+            target: time,
+        }
+    }
+
+    pub fn update(&mut self, delta_time: FloatTime) {
+        self.state.update(delta_time.as_f32());
+        self.value = seconds_to_time(self.state.current);
+    }
+
+    pub fn scroll_time(&mut self, change: Change<Time>) {
+        change.apply(&mut self.target);
+        self.state.target = time_to_seconds(self.target);
+    }
+
+    pub fn snap_to(&mut self, time: Time) {
+        self.value = time;
+        self.target = time;
+        self.state.current = time_to_seconds(self.value);
+        self.state.target = time_to_seconds(self.target);
+    }
+}
+
 impl LevelEditor {
     pub fn new(
         context: Context,
@@ -145,7 +185,7 @@ impl LevelEditor {
         let mut editor = Self {
             context,
             level_state: EditorLevelState::default(),
-            current_time: Time::ZERO,
+            current_time: TimeInterpolation::new(),
             real_time: FloatTime::ZERO,
             selected_light: None,
             place_rotation: Angle::ZERO,
@@ -277,6 +317,7 @@ impl EditorState {
             .set_volume(level_editor.model.options.volume.music());
 
         level_editor.real_time += delta_time;
+        level_editor.current_time.update(delta_time);
 
         if self.editor.music_timer > FloatTime::ZERO {
             self.editor.music_timer -= delta_time;
@@ -307,7 +348,7 @@ impl EditorState {
                 // Play some music
                 self.context.music.play_from_beat(
                     &level_editor.static_level.group.music,
-                    level_editor.current_time,
+                    level_editor.current_time.value,
                 );
                 self.editor.music_timer = self.editor.config.playback_duration;
             }
@@ -317,7 +358,9 @@ impl EditorState {
         level_editor.scrolling_time = false;
 
         if let State::Playing { .. } = level_editor.state {
-            level_editor.current_time = seconds_to_time(level_editor.real_time);
+            level_editor
+                .current_time
+                .snap_to(seconds_to_time(level_editor.real_time));
         }
 
         level_editor.render_lights(
@@ -349,7 +392,7 @@ impl EditorState {
         };
 
         let level = crate::game::PlayLevel {
-            start_time: level_editor.current_time,
+            start_time: level_editor.current_time.value,
             level: Rc::new(LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
                 data: level_editor.level.clone(),
@@ -730,10 +773,12 @@ impl LevelEditor {
         let margin = 100 * TIME_IN_FLOAT_TIME;
         let min = Time::ZERO;
         let max = margin + self.level.last_time();
-        let target = (self.current_time + delta).clamp(min, max);
+        let target = (self.current_time.target + delta).clamp(min, max);
 
         // TODO: customize snap
-        self.current_time = self.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+        self.current_time.scroll_time(Change::Set(
+            self.level.timing.snap_to_beat(target, BeatTime::QUARTER),
+        ));
 
         self.scrolling_time = true;
 
@@ -751,9 +796,9 @@ impl LevelEditor {
     ) {
         let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
             // TODO: self.music.play_position()
-            (None, Some(self.current_time))
+            (None, Some(self.current_time.value))
         } else {
-            let time = self.current_time;
+            let time = self.current_time.value;
             let dynamic = if visualize_beat {
                 // TODO: customize dynamic visual
                 Some(time + seconds_to_time(self.real_time.fract()))
@@ -802,7 +847,7 @@ impl LevelEditor {
                     /// Waypoints past this time-distance are not rendered at all
                     const MAX_VISIBILITY: Time = 5 * TIME_IN_FLOAT_TIME;
                     let visible = |beat: Time| {
-                        let d = (event_time + beat - self.current_time).abs();
+                        let d = (event_time + beat - self.current_time.value).abs();
                         d <= MAX_VISIBILITY
                     };
 
@@ -832,7 +877,7 @@ impl LevelEditor {
                         (
                             point.control.position.x,
                             point.control.position.y,
-                            (event_time + *time - self.current_time).abs(),
+                            (event_time + *time - self.current_time.value).abs(),
                         )
                     });
 
@@ -854,7 +899,7 @@ impl LevelEditor {
                     if let WaypointsState::New = state {
                         // NOTE: assuming that positions don't go backwards in time
                         // Insert a new waypoint at current time
-                        let new_time = self.current_time - event_time;
+                        let new_time = self.current_time.value - event_time;
                         let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
                             Ok(i) | Err(i) => i,
                         };
@@ -885,7 +930,9 @@ impl LevelEditor {
                                 && (point.control.contains(cursor_world_pos)
                                     || point.actual.contains(cursor_world_pos))
                         })
-                        .min_by_key(|(_, (_, time))| (self.current_time - event_time - *time).abs())
+                        .min_by_key(|(_, (_, time))| {
+                            (self.current_time.value - event_time - *time).abs()
+                        })
                         .map(|(i, _)| i);
                     let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
 

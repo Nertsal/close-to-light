@@ -12,6 +12,7 @@ pub enum LevelAction {
     StartPlaying,
     ScalePlacement(Coord),
     RotatePlacement(Angle<Coord>),
+    ScrollTime(Time),
 
     // Light actions
     NewLight(Shape),
@@ -90,6 +91,7 @@ impl LevelAction {
             LevelAction::NewLight(_) => false,
             LevelAction::ScalePlacement(delta) => *delta == Coord::ZERO,
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
+            LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
             LevelAction::ToggleDangerPlacement => false,
             LevelAction::PlaceLight(_) => false,
             LevelAction::NewWaypoint => false,
@@ -138,17 +140,17 @@ impl LevelEditor {
                     old_state,
                 } = &self.state
                 {
-                    self.current_time = *start_time;
+                    self.current_time.snap_to(*start_time);
                     self.state = *old_state.clone();
                     self.context.music.stop();
                 }
             }
             LevelAction::StartPlaying => {
                 self.state = State::Playing {
-                    start_time: self.current_time,
+                    start_time: self.current_time.value,
                     old_state: Box::new(self.state.clone()),
                 };
-                self.real_time = time_to_seconds(self.current_time);
+                self.real_time = time_to_seconds(self.current_time.value);
                 self.context.music.play_from(
                     &self.static_level.group.music,
                     time::Duration::from_secs_f64(self.real_time.as_f32().into()),
@@ -166,6 +168,9 @@ impl LevelEditor {
             }
             LevelAction::RotatePlacement(delta) => {
                 self.place_rotation += delta;
+            }
+            LevelAction::ScrollTime(delta) => {
+                self.scroll_time(delta);
             }
             LevelAction::ToggleDangerPlacement => {
                 if let State::Place { danger, .. } = &mut self.state {
@@ -552,9 +557,10 @@ impl LevelEditor {
             danger,
         };
 
-        // extra time for the fade in and telegraph
-        let start_beat = self.current_time;
-        let beat = start_beat - light.movement.fade_in;
+        // NOTE: target to make sure it is snapped to the beat
+        // assume time interpolation doesn't take long, so not visually weird
+        let start_beat = self.current_time.target;
+        let beat = start_beat - light.movement.fade_in; // extra time for the fade in and telegraph
         let event = commit_light(light.clone());
         let event = TimedEvent {
             time: beat,
@@ -607,8 +613,9 @@ impl LevelEditor {
                 change_curve = Some(light.movement.curve);
                 light.movement.curve = TrajectoryInterpolation::default();
 
-                // Extra time for fade in
-                let time = self.current_time - light.movement.fade_in;
+                // NOTE: target to make sure it is snapped to the beat
+                // assume time interpolation doesn't take long, so not visually weird
+                let time = self.current_time.target - light.movement.fade_in; // Extra time for fade in
                 light.movement.key_frames.push_front(MoveFrame {
                     lerp_time: event.time - time,
                     interpolation,
@@ -622,7 +629,9 @@ impl LevelEditor {
                 let last = light.movement.timed_positions().nth(i);
                 if let Some((_, _, last_time)) = last {
                     let last_time = event.time + last_time;
-                    let lerp_time = self.current_time - last_time;
+                    // NOTE: target to make sure it is snapped to the beat
+                    // assume time interpolation doesn't take long, so not visually weird
+                    let lerp_time = self.current_time.target - last_time;
 
                     light.movement.key_frames.insert(
                         i,

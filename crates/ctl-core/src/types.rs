@@ -26,6 +26,7 @@ struct BeatTimeSerde(FloatTime);
 #[serde(from = "BeatTimeSerde", into = "BeatTimeSerde")]
 pub struct BeatTime {
     /// 1 unit is 1/16 of a beat (typically a 1/64th note).
+    // TODO: do 1/48 or 1/60 to support thirds
     units: Time,
 }
 

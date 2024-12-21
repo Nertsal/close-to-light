@@ -53,17 +53,17 @@ impl EditorState {
         let beat_time = level_editor
             .level
             .timing
-            .get_timing(level_editor.current_time)
+            .get_timing(level_editor.current_time.target)
             .beat_time;
         let scroll_speed = scroll_speed.as_time(beat_time); // TODO: well beat time may change as we scroll
 
         match event {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => {
-                    actions.push(EditorStateAction::ScrollTime(-scroll_speed));
+                    actions.push(LevelAction::ScrollTime(-scroll_speed).into());
                 }
                 geng::Key::ArrowRight => {
-                    actions.push(EditorStateAction::ScrollTime(scroll_speed));
+                    actions.push(LevelAction::ScrollTime(scroll_speed).into());
                 }
                 geng::Key::F => {
                     actions.push(EditorAction::ToggleDynamicVisual.into());
@@ -198,7 +198,7 @@ impl EditorState {
                 if !self.ui_focused && self.editor.tab == EditorTab::Edit {
                     let scroll = r32(delta.signum());
                     let scroll = scroll.as_f32() as Time;
-                    actions.push(EditorStateAction::ScrollTime(scroll * scroll_speed));
+                    actions.push(LevelAction::ScrollTime(scroll * scroll_speed).into());
                 }
             }
             geng::Event::MousePress { button } => match button {
@@ -281,7 +281,9 @@ impl EditorState {
                 actions.push(
                     LevelAction::MoveLight(
                         light,
-                        Change::Set(level_editor.current_time - drag.from_beat + initial_time),
+                        Change::Set(
+                            level_editor.current_time.target - drag.from_beat + initial_time,
+                        ),
                         Change::Set(
                             initial_translation + self.editor.cursor_world_pos_snapped
                                 - drag.from_world,

@@ -185,7 +185,7 @@ impl EditorRender {
                     const MAX_VISIBILITY: Time = TIME_IN_FLOAT_TIME * 15;
                     // Calculate the waypoint visibility at the given relative timestamp
                     let visibility = |beat: Time| {
-                        let d = (timed_event.time + beat - level_editor.current_time).abs();
+                        let d = (timed_event.time + beat - level_editor.current_time.value).abs();
                         if d > MAX_VISIBILITY {
                             return 0.0;
                         }
@@ -320,12 +320,14 @@ impl EditorRender {
                                 &mut pixel_buffer,
                             );
 
-                            let beat_time =
-                                point.original.map_or(Some(level_editor.current_time), |_| {
+                            let beat_time = point.original.map_or(
+                                Some(level_editor.current_time.target),
+                                |_| {
                                     original.map(|(original_beat, relative_beat)| {
                                         original_beat + relative_beat
                                     })
-                                });
+                                },
+                            );
                             if let Some(beat) = beat_time {
                                 self.util.draw_text_with(
                                     format!("at {}", beat),

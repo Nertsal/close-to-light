@@ -3,7 +3,6 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum EditorStateAction {
     Exit,
-    ScrollTime(Time),
     Editor(EditorAction),
     StopTextEdit,
     UpdateTextEdit(String),
@@ -36,7 +35,6 @@ impl EditorState {
             EditorStateAction::Exit => {
                 self.transition = Some(geng::state::Transition::Pop);
             }
-            EditorStateAction::ScrollTime(delta) => self.scroll_time(delta),
             EditorStateAction::Editor(action) => self.editor.execute(action),
             EditorStateAction::StopTextEdit => {
                 self.ui_context.text_edit.stop();
@@ -114,18 +112,8 @@ impl EditorState {
             from_screen: self.ui_context.cursor.position,
             from_world: self.editor.cursor_world_pos_snapped,
             from_real_time: level_editor.real_time,
-            from_beat: level_editor.current_time,
+            from_beat: level_editor.current_time.target,
             target,
         });
-    }
-
-    // TODO: LevelAction
-    fn scroll_time(&mut self, delta: Time) {
-        let Some(level_editor) = &mut self.editor.level_edit else {
-            return;
-        };
-
-        // Scroll current time
-        level_editor.scroll_time(delta);
     }
 }

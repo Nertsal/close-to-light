@@ -568,13 +568,13 @@ impl EditorEditUi {
                 actions.extend(timeline_actions.into_iter().map(Into::into));
             }
 
+            // TODO: move to timeline
             if linetime.main_line.clicked {
                 let time = linetime.get_cursor_time();
-                actions.push(EditorStateAction::ScrollTime(
-                    time - level_editor.current_time,
-                ));
+                actions
+                    .push(LevelAction::ScrollTime(time - level_editor.current_time.target).into());
             }
-            linetime.update_time(level_editor.current_time);
+            linetime.update_time(level_editor.current_time.value);
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
         }
