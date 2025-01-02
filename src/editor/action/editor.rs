@@ -20,6 +20,7 @@ pub enum EditorAction {
     SetConfig(EditorConfig),
     SetViewZoom(f32),
     SetGridSize(Coord),
+    ScrollTimeBy(ScrollSpeed, i64),
 }
 
 impl From<LevelAction> for EditorAction {
@@ -65,6 +66,9 @@ impl Editor {
             EditorAction::SetConfig(config) => self.config = config,
             EditorAction::SetViewZoom(zoom) => self.view_zoom = zoom,
             EditorAction::SetGridSize(size) => self.grid_size = size,
+            EditorAction::ScrollTimeBy(speed, scroll) => {
+                self.scroll_time_by(speed, scroll);
+            }
         }
     }
 }

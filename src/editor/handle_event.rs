@@ -44,26 +44,20 @@ impl EditorState {
         let alt = window.is_key_pressed(geng::Key::AltLeft);
 
         let scroll_speed = if shift {
-            self.editor.config.scroll_slow
+            ScrollSpeed::Slow
         } else if alt {
-            self.editor.config.scroll_fast
+            ScrollSpeed::Fast
         } else {
-            self.editor.config.scroll_normal
+            ScrollSpeed::Normal
         };
-        let beat_time = level_editor
-            .level
-            .timing
-            .get_timing(level_editor.current_time.target)
-            .beat_time;
-        let scroll_speed = scroll_speed.as_time(beat_time); // TODO: well beat time may change as we scroll
 
         match event {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => {
-                    actions.push(LevelAction::ScrollTime(-scroll_speed).into());
+                    actions.push(EditorAction::ScrollTimeBy(scroll_speed, -1).into());
                 }
                 geng::Key::ArrowRight => {
-                    actions.push(LevelAction::ScrollTime(scroll_speed).into());
+                    actions.push(EditorAction::ScrollTimeBy(scroll_speed, 1).into());
                 }
                 geng::Key::F => {
                     actions.push(EditorAction::ToggleDynamicVisual.into());
@@ -195,10 +189,11 @@ impl EditorState {
             },
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
-                if !self.ui_focused && self.editor.tab == EditorTab::Edit {
-                    let scroll = r32(delta.signum());
-                    let scroll = scroll.as_f32() as Time;
-                    actions.push(LevelAction::ScrollTime(scroll * scroll_speed).into());
+                if !self.ui_focused && self.ui.game.hovered {
+                    let scroll = delta.round() as i64;
+                    // let scroll = r32(delta.signum());
+                    // let scroll = scroll.as_f32() as Time;
+                    actions.push(EditorAction::ScrollTimeBy(scroll_speed, scroll).into());
                 }
             }
             geng::Event::MousePress { button } => match button {

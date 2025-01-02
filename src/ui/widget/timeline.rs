@@ -4,7 +4,7 @@ use super::*;
 
 use crate::{
     assets::PixelTexture,
-    editor::{Change, LevelAction, LevelEditor, LightId},
+    editor::{Change, EditorAction, LevelAction, LevelEditor, LightId, ScrollSpeed},
     prelude::*,
     ui::{layout::AreaOps, UiState},
 };
@@ -133,7 +133,7 @@ impl TimelineWidget {
         // self.reload(None);
     }
 
-    fn reload(&mut self, editor: &LevelEditor, actions: &mut Vec<LevelAction>) {
+    fn reload(&mut self, editor: &LevelEditor, actions: &mut Vec<EditorAction>) {
         let sprites = &self.context.context.assets.sprites.timeline;
 
         // from time to screen position
@@ -197,7 +197,7 @@ impl TimelineWidget {
                                     && (self.context.real_time - from_time).abs() < 0.5 => {}
                             Some(_) => {
                                 if is_selected {
-                                    actions.push(LevelAction::DeselectLight);
+                                    actions.push(LevelAction::DeselectLight.into());
                                 }
                             }
                             None => {}
@@ -207,11 +207,14 @@ impl TimelineWidget {
                         let time = unrender_time(self.context.cursor.position.x);
                         let time = editor.level.timing.snap_to_beat(time, snap)
                             - light_event.movement.fade_in;
-                        actions.push(LevelAction::MoveLight(
-                            light_id,
-                            Change::Set(time),
-                            Change::Add(vec2::ZERO),
-                        ));
+                        actions.push(
+                            LevelAction::MoveLight(
+                                light_id,
+                                Change::Set(time),
+                                Change::Add(vec2::ZERO),
+                            )
+                            .into(),
+                        );
                     }
 
                     let from_time = event.time;
@@ -233,7 +236,8 @@ impl TimelineWidget {
                         let target = unrender_time(self.context.cursor.position.x);
                         let target = editor.level.timing.snap_to_beat(target, snap);
                         let fade_in = event.time + light_event.movement.fade_in - target;
-                        actions.push(LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)));
+                        actions
+                            .push(LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)).into());
                     }
 
                     // Fade out
@@ -248,7 +252,9 @@ impl TimelineWidget {
                         let target = unrender_time(self.context.cursor.position.x);
                         let target = editor.level.timing.snap_to_beat(target, snap);
                         let fade_out = target - to_time + light_event.movement.fade_out;
-                        actions.push(LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)));
+                        actions.push(
+                            LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)).into(),
+                        );
                     }
 
                     let mut last_dot_time = from_time;
@@ -305,8 +311,8 @@ impl TimelineWidget {
                         // Waypoint drag
                         if icon.state.clicked || tick.state.clicked {
                             actions.extend([
-                                LevelAction::SelectLight(light_id),
-                                LevelAction::SelectWaypoint(waypoint_id),
+                                LevelAction::SelectLight(light_id).into(),
+                                LevelAction::SelectWaypoint(waypoint_id).into(),
                             ]);
                             self.dragging_waypoint = true;
                         } else if !self.context.can_focus() || !self.context.cursor.down {
@@ -316,11 +322,9 @@ impl TimelineWidget {
                             let time = unrender_time(self.context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap);
                             let time = Change::Set(time);
-                            actions.push(LevelAction::MoveWaypointTime(
-                                light_id,
-                                waypoint_id,
-                                time,
-                            ));
+                            actions.push(
+                                LevelAction::MoveWaypointTime(light_id, waypoint_id, time).into(),
+                            );
                         }
                     }
 
@@ -353,7 +357,7 @@ impl TimelineWidget {
                         };
                         icon.texture = texture.clone();
                         if icon.state.clicked {
-                            actions.push(LevelAction::SelectLight(light_id));
+                            actions.push(LevelAction::SelectLight(light_id).into());
                             self.dragging_light =
                                 Some((self.context.cursor.position, self.context.real_time));
                         }
@@ -423,7 +427,7 @@ impl TimelineWidget {
         mut position: Aabb2<f32>,
         context: &UiContext,
         state: &LevelEditor,
-        actions: &mut Vec<LevelAction>,
+        actions: &mut Vec<EditorAction>,
     ) {
         self.context = context.clone();
         self.level = state.level.clone();
@@ -455,6 +459,14 @@ impl TimelineWidget {
         let highlight = position.cut_top(pixel * 16.0);
         self.highlight_line.update(highlight, context);
 
+        // TODO: unduplicate code from handle_event
+        let scroll_speed = if context.mods.shift {
+            ScrollSpeed::Slow
+        } else if context.mods.alt {
+            ScrollSpeed::Fast
+        } else {
+            ScrollSpeed::Normal
+        };
         // if self.main_line.hovered {
         //     let scroll = self.context.cursor.scroll;
         //     if context.mods.shift {
@@ -464,45 +476,47 @@ impl TimelineWidget {
         //     }
         // }
 
+        if self.state.hovered {
+            actions.push(EditorAction::ScrollTimeBy(
+                scroll_speed,
+                context.cursor.scroll.round() as i64,
+            ));
+        }
+        // else if context.mods.ctrl {
+        //     if self.ui.edit.timeline.state.hovered {
+        //         // Zoom on the timeline
+        //         actions.push(LevelAction::TimelineZoom(scroll));
+        //     } else if let State::Place { .. }
+        //     | State::Waypoints {
+        //         state: WaypointsState::New,
+        //         ..
+        //     } = level_editor.state
+        //     {
+        //         // Scale light or waypoint placement
+        //         let delta = scroll * r32(0.1);
+        //         actions.push(LevelAction::ScalePlacement(delta).into());
+        //     } else if let Some(waypoints) = &level_editor.level_state.waypoints {
+        //         if let Some(selected) = waypoints.selected {
+        //             let delta = scroll * r32(0.1);
+        //             actions
+        //                 .push(LevelAction::ScaleWaypoint(waypoints.light, selected, delta).into());
+        //         }
+        //     } else if let Some(id) = level_editor.selected_light {
+        //         // Control fade time
+        //         let scroll = scroll.as_f32() as Time;
+        //         let change = scroll * self.editor.config.scroll_slow.as_time(beat_time);
+        //         let action = if shift {
+        //             LevelAction::ChangeFadeOut(id, Change::Add(change))
+        //         } else {
+        //             LevelAction::ChangeFadeIn(id, Change::Add(change))
+        //         };
+        //         actions.push(action.into());
+        //     }
+        // }
+
         self.reload(state, actions);
     }
 }
-
-// TODO: move to layout (we have scroll in context)
-// if shift && self.ui.edit.timeline.state.hovered {
-//     actions.push(EditorStateAction::TimelineScroll(scroll));
-// } else if ctrl {
-//     if self.ui.edit.timeline.state.hovered {
-//         // Zoom on the timeline
-//         actions.push(EditorStateAction::TimelineZoom(scroll));
-//     } else if let State::Place { .. }
-//     | State::Waypoints {
-//         state: WaypointsState::New,
-//         ..
-//     } = level_editor.state
-//     {
-//         // Scale light or waypoint placement
-//         let delta = scroll * r32(0.1);
-//         actions.push(LevelAction::ScalePlacement(delta).into());
-//     } else if let Some(waypoints) = &level_editor.level_state.waypoints {
-//         if let Some(selected) = waypoints.selected {
-//             let delta = scroll * r32(0.1);
-//             actions.push(
-//                 LevelAction::ScaleWaypoint(waypoints.light, selected, delta)
-//                     .into(),
-//             );
-//         }
-//     } else if let Some(id) = level_editor.selected_light {
-//         // Control fade time
-//         let scroll = scroll.as_f32() as Time;
-//         let change = scroll * self.editor.config.scroll_slow.as_time(beat_time);
-//         let action = if shift {
-//             LevelAction::ChangeFadeOut(id, Change::Add(change))
-//         } else {
-//             LevelAction::ChangeFadeIn(id, Change::Add(change))
-//         };
-//         actions.push(action.into());
-//     }
 
 impl Widget for TimelineWidget {
     fn draw(&self, context: &UiContext) -> Geometry {

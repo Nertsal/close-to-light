@@ -109,6 +109,13 @@ pub enum EditorTab {
     Config,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ScrollSpeed {
+    Slow,
+    Normal,
+    Fast,
+}
+
 pub struct Editor {
     pub context: Context,
     pub config: EditorConfig,
@@ -667,6 +674,27 @@ impl Editor {
             ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
             ConfirmAction::DeleteLevel(index) => self.delete_level(index),
         }
+    }
+
+    fn scroll_time_by(&mut self, scroll_speed: ScrollSpeed, scroll: i64) {
+        let Some(level_editor) = &mut self.level_edit else {
+            return;
+        };
+
+        let scroll_speed = match scroll_speed {
+            ScrollSpeed::Slow => self.config.scroll_slow,
+            ScrollSpeed::Normal => self.config.scroll_normal,
+            ScrollSpeed::Fast => self.config.scroll_fast,
+        };
+        let scroll = scroll_speed * scroll;
+        let beat_time = level_editor
+            .level
+            .timing
+            .get_timing(level_editor.current_time.target)
+            .beat_time;
+        let scroll = scroll.as_time(beat_time); // TODO: well beat time may change as we scroll
+
+        level_editor.scroll_time(scroll);
     }
 }
 
