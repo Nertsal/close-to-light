@@ -13,6 +13,7 @@ pub enum LevelAction {
     ScalePlacement(Coord),
     RotatePlacement(Angle<Coord>),
     ScrollTime(Time),
+    TimelineZoom(f32),
 
     // Light actions
     NewLight(Shape),
@@ -112,6 +113,7 @@ impl LevelAction {
             }
             LevelAction::MoveWaypoint(_, _, position) => position.is_noop(&vec2::ZERO),
             LevelAction::MoveWaypointTime(_, _, time) => time.is_noop(&Time::ZERO),
+            LevelAction::TimelineZoom(_) => false,
         }
     }
 }
@@ -246,6 +248,10 @@ impl LevelEditor {
             }
             LevelAction::MoveWaypointTime(light, waypoint, time) => {
                 self.move_waypoint_time(light, waypoint, time)
+            }
+            LevelAction::TimelineZoom(zoom) => {
+                let target = zoom.clamp(16.0.recip(), 2.0);
+                self.timeline_zoom.target = r32(target);
             }
         }
 

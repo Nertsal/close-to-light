@@ -85,6 +85,7 @@ pub struct LevelEditor {
     pub model: Model,
     pub level_state: EditorLevelState,
     pub current_time: TimeInterpolation,
+    pub timeline_zoom: SecondOrderState<R32>,
     pub real_time: FloatTime,
     pub selected_light: Option<LightId>,
 
@@ -193,6 +194,7 @@ impl LevelEditor {
             context,
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(),
+            timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(1.0))),
             real_time: FloatTime::ZERO,
             selected_light: None,
             place_rotation: Angle::ZERO,
@@ -325,6 +327,7 @@ impl EditorState {
 
         level_editor.real_time += delta_time;
         level_editor.current_time.update(delta_time);
+        level_editor.timeline_zoom.update(delta_time.as_f32());
 
         if self.editor.music_timer > FloatTime::ZERO {
             self.editor.music_timer -= delta_time;

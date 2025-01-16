@@ -575,6 +575,7 @@ impl EditorEditUi {
                     .push(LevelAction::ScrollTime(time - level_editor.current_time.target).into());
             }
             linetime.update_time(level_editor.current_time.value);
+            linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
         }

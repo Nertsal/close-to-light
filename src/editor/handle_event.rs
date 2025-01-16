@@ -190,9 +190,7 @@ impl EditorState {
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
                 if !self.ui_focused && self.ui.game.hovered {
-                    let scroll = delta.round() as i64;
-                    // let scroll = r32(delta.signum());
-                    // let scroll = scroll.as_f32() as Time;
+                    let scroll = delta.signum() as i64;
                     actions.push(EditorAction::ScrollTimeBy(scroll_speed, scroll).into());
                 }
             }

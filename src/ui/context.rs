@@ -51,6 +51,14 @@ impl CursorContext {
         }
     }
 
+    pub fn scroll_dir(&self) -> i64 {
+        if self.scroll == 0.0 {
+            0
+        } else {
+            self.scroll.signum() as i64
+        }
+    }
+
     pub fn cursor_move(&mut self, pos: vec2<f32>) {
         self.next_position = pos;
     }

@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use super::*;
 
 use crate::{
@@ -8,6 +6,8 @@ use crate::{
     prelude::*,
     ui::{layout::AreaOps, UiState},
 };
+
+use std::collections::BTreeSet;
 
 /// Pixels per unit
 const PPU: usize = 2;
@@ -99,19 +99,12 @@ impl TimelineWidget {
             return;
         }
 
-        // scroll so that current beat stays in-place
-        let min = self.state.position.min.x;
-        let current = self.main_line.position.center().x;
-        self.scroll = ((current - min) / new_scale) as Time - self.raw_current_time;
-
         self.scale = new_scale;
-        // self.reload(None);
     }
 
     // pub fn auto_scale(&mut self, max_beat: Time) {
     //     let scale = self.state.position.width() / max_beat.as_f32().max(1.0);
     //     self.scale = scale;
-    //     self.reload();
     // }
 
     pub fn visible_scroll(&self) -> Time {
@@ -124,13 +117,11 @@ impl TimelineWidget {
 
     pub fn scroll(&mut self, delta: Time) {
         self.scroll += delta;
-        // self.reload(None);
     }
 
     pub fn update_time(&mut self, current_beat: Time) {
         self.raw_current_time = current_beat;
         self.scroll = -current_beat;
-        // self.reload(None);
     }
 
     fn reload(&mut self, editor: &LevelEditor, actions: &mut Vec<EditorAction>) {
@@ -467,52 +458,25 @@ impl TimelineWidget {
         } else {
             ScrollSpeed::Normal
         };
-        // if self.main_line.hovered {
-        //     let scroll = self.context.cursor.scroll;
-        //     if context.mods.shift {
-        //         self.scroll(scroll);
-        //     } else if context.mods.ctrl {
-        //         self.rescale(self.scale + scroll);
-        //     }
-        // }
 
         if self.state.hovered {
-            actions.push(EditorAction::ScrollTimeBy(
-                scroll_speed,
-                context.cursor.scroll.round() as i64,
-            ));
+            let delta = context.cursor.scroll_dir();
+            if delta != 0 {
+                if context.mods.ctrl {
+                    // Zoom on the timeline
+                    let delta = delta as f32;
+                    actions.push(
+                        LevelAction::TimelineZoom(
+                            state.timeline_zoom.target.as_f32() * 2.0.powf(delta),
+                        )
+                        .into(),
+                    );
+                } else {
+                    // Scroll on the timeline
+                    actions.push(EditorAction::ScrollTimeBy(scroll_speed, delta));
+                }
+            }
         }
-        // else if context.mods.ctrl {
-        //     if self.ui.edit.timeline.state.hovered {
-        //         // Zoom on the timeline
-        //         actions.push(LevelAction::TimelineZoom(scroll));
-        //     } else if let State::Place { .. }
-        //     | State::Waypoints {
-        //         state: WaypointsState::New,
-        //         ..
-        //     } = level_editor.state
-        //     {
-        //         // Scale light or waypoint placement
-        //         let delta = scroll * r32(0.1);
-        //         actions.push(LevelAction::ScalePlacement(delta).into());
-        //     } else if let Some(waypoints) = &level_editor.level_state.waypoints {
-        //         if let Some(selected) = waypoints.selected {
-        //             let delta = scroll * r32(0.1);
-        //             actions
-        //                 .push(LevelAction::ScaleWaypoint(waypoints.light, selected, delta).into());
-        //         }
-        //     } else if let Some(id) = level_editor.selected_light {
-        //         // Control fade time
-        //         let scroll = scroll.as_f32() as Time;
-        //         let change = scroll * self.editor.config.scroll_slow.as_time(beat_time);
-        //         let action = if shift {
-        //             LevelAction::ChangeFadeOut(id, Change::Add(change))
-        //         } else {
-        //             LevelAction::ChangeFadeIn(id, Change::Add(change))
-        //         };
-        //         actions.push(action.into());
-        //     }
-        // }
 
         self.reload(state, actions);
     }
