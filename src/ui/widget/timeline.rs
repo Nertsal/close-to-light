@@ -429,7 +429,7 @@ impl TimelineWidget {
             .as_ref()
             .and_then(|waypoints| waypoints.selected);
 
-        self.state.update(position, context);
+        let state_top = position.max.y;
         let pixel = PPU as f32;
 
         let ceiling = position.cut_top(pixel * 3.0);
@@ -459,6 +459,11 @@ impl TimelineWidget {
             ScrollSpeed::Normal
         };
 
+        let state_full = Aabb2 {
+            min: vec2(position.min.x, position.max.y),
+            max: vec2(position.max.x, state_top),
+        };
+        self.state.update(state_full, context);
         if self.state.hovered {
             let delta = context.cursor.scroll_dir();
             if delta != 0 {
@@ -476,6 +481,11 @@ impl TimelineWidget {
                     actions.push(EditorAction::ScrollTimeBy(scroll_speed, delta));
                 }
             }
+        }
+
+        if self.main_line.clicked {
+            let time = self.get_cursor_time();
+            actions.push(LevelAction::ScrollTime(time - state.current_time.target).into());
         }
 
         self.reload(state, actions);

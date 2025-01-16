@@ -560,7 +560,6 @@ impl EditorEditUi {
             let linetime = context
                 .state
                 .get_or(|| TimelineWidget::new(context.context.clone()));
-            let was_pressed = linetime.state.pressed;
 
             {
                 let mut timeline_actions = vec![];
@@ -568,12 +567,6 @@ impl EditorEditUi {
                 actions.extend(timeline_actions.into_iter().map(Into::into));
             }
 
-            // TODO: move to timeline
-            if linetime.main_line.clicked {
-                let time = linetime.get_cursor_time();
-                actions
-                    .push(LevelAction::ScrollTime(time - level_editor.current_time.target).into());
-            }
             linetime.update_time(level_editor.current_time.value);
             linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 
