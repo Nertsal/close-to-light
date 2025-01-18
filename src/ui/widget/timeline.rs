@@ -5,15 +5,19 @@ use crate::{
     editor::{Change, EditorAction, LevelAction, LevelEditor, LightId, ScrollSpeed},
     prelude::*,
     ui::{layout::AreaOps, UiState},
+    util::{SecondOrderDynamics, SecondOrderState},
 };
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 /// Pixels per unit
 const PPU: usize = 2;
+const LIGHT_LINE_WIDTH: f32 = 16.0;
+const LIGHT_LINE_SPACE: f32 = 4.0;
 
 pub struct TimelineWidget {
     context: UiContext,
+    expansion: SecondOrderState<f32>,
     pub state: WidgetState,
     pub ceiling: WidgetState,
     pub extra_line: WidgetState,
@@ -26,14 +30,6 @@ pub struct TimelineWidget {
     dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: bool,
 
-    // pub lights: BTreeMap<Time, Vec<TimelineLight>>,
-    // pub mainline: MainBar,
-    // pub selected_line: SelectedBar,
-
-    // pub current: WidgetState,
-
-    // pub lights: BTreeMap<Time, Vec<(LightId, WidgetState)>>,
-    // pub waypoints: Vec<(WaypointId, WidgetState)>,
     /// Render scale in pixels per beat.
     scale: f32,
     /// The scrolloff in exact time.
@@ -69,6 +65,7 @@ impl TimelineWidget {
                 text_edit: TextEdit::empty(),
                 context,
             },
+            expansion: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 1.0, 0.0)),
             state: default(),
             ceiling: default(),
             extra_line: default(),
@@ -90,10 +87,6 @@ impl TimelineWidget {
         }
     }
 
-    pub fn get_scale(&self) -> f32 {
-        self.scale
-    }
-
     pub fn rescale(&mut self, new_scale: f32) {
         if new_scale.approx_eq(&0.0) {
             return;
@@ -111,14 +104,6 @@ impl TimelineWidget {
         (self.state.position.width() / self.scale) as Time
     }
 
-    pub fn get_scroll(&self) -> Time {
-        self.scroll
-    }
-
-    pub fn scroll(&mut self, delta: Time) {
-        self.scroll += delta;
-    }
-
     pub fn update_time(&mut self, current_beat: Time) {
         self.raw_current_time = current_beat;
         self.scroll = -current_beat;
@@ -128,10 +113,10 @@ impl TimelineWidget {
         let sprites = &self.context.context.assets.sprites.timeline;
 
         // from time to screen position
-        let render_time = |line: &WidgetState, time: Time| {
+        let render_at = |center: vec2<f32>, time: Time| {
             let size = vec2::splat(18) * PPU;
             let pos = (time + self.scroll) as f32 * self.scale;
-            let pos = line.position.center() + vec2(pos, 0.0);
+            let pos = center + vec2(pos, 0.0);
             geng_utils::pixel::pixel_perfect_aabb(
                 pos,
                 vec2(0.5, 0.5),
@@ -139,6 +124,16 @@ impl TimelineWidget {
                 &geng::PixelPerfectCamera,
                 self.context.geometry.framebuffer_size.as_f32(),
             )
+        };
+        let render_time = |line: &WidgetState, time: Time| render_at(line.position.center(), time);
+        let render_light = |time: Time, i: usize| {
+            let pos = self.lights_line.position.align_pos(vec2(0.5, 0.0))
+                + vec2(
+                    0.0,
+                    (LIGHT_LINE_WIDTH * 0.5 + ((LIGHT_LINE_WIDTH + LIGHT_LINE_SPACE) * i as f32))
+                        * PPU as f32,
+                );
+            render_at(pos, time)
         };
 
         // from screen position to time
@@ -171,8 +166,14 @@ impl TimelineWidget {
             });
 
         // Render events on the timeline
-        let mut occupied = BTreeSet::new();
+        let mut occupied = BTreeMap::new();
         self.dots.clear();
+        let focus = {
+            let mut focus = self.context.can_focus.borrow_mut();
+            let f = *focus;
+            *focus = self.state.hovered;
+            f
+        };
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light_event) = &event.event {
                 let light_id = LightId { event: i };
@@ -218,6 +219,7 @@ impl TimelineWidget {
                     // Fade in
                     let position = Aabb2::point(from).extend_symmetric(size / 2.0);
                     let tick = self.context.state.get_or(|| {
+                        // TODO: somehow mask this with other stuff
                         IconButtonWidget::new(&sprites.tick_smol)
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
                     });
@@ -234,6 +236,7 @@ impl TimelineWidget {
                     // Fade out
                     let position = Aabb2::point(to).extend_symmetric(size / 2.0);
                     let tick = self.context.state.get_or(|| {
+                        // TODO: somehow mask this with other stuff
                         IconButtonWidget::new(&sprites.tick_smol)
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
                     });
@@ -259,7 +262,7 @@ impl TimelineWidget {
                             .floor() as usize;
                         let dots = (0..=dots).map(|i| {
                             let time = last_dot_time + seconds_to_time(step * r32(i as f32));
-                            render_time(&self.lights_line, time).center()
+                            render_light(time, 0).center()
                         });
 
                         self.dots.extend(dots);
@@ -273,9 +276,10 @@ impl TimelineWidget {
                         // connect_dots(time + offset);
 
                         // Icon
-                        let position = render_time(&self.lights_line, event.time + offset).center();
+                        let position = render_light(event.time + offset, 0).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                         let texture = &sprites.waypoint;
+                        // TODO: somehow mask this with other stuff
                         let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
                         icon.color = if is_waypoint_selected {
                             ThemeColor::Highlight
@@ -294,6 +298,7 @@ impl TimelineWidget {
                             WaypointId::Frame(_) => &sprites.tick_smol,
                         };
                         let tick = self.context.state.get_or(|| {
+                            // TODO: somehow mask this with other stuff
                             IconButtonWidget::new(texture)
                                 .highlight(HighlightMode::Color(ThemeColor::Highlight))
                         });
@@ -327,16 +332,25 @@ impl TimelineWidget {
                 let visible =
                     !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                 if visible {
-                    if self.highlight_bar.as_ref().map_or(true, |bar| {
-                        !(bar.from_time..=bar.to_time).contains(&light_time)
-                    }) && occupied.insert(light_time)
-                    {
-                        let light = render_time(&self.lights_line, light_time);
+                    let dots = if self.highlight_bar.as_ref().map_or(false, |bar| {
+                        (bar.from_time..=bar.to_time).contains(&light_time)
+                    }) {
+                        1
+                    } else {
+                        *occupied
+                            .entry(light_time)
+                            .and_modify(|x| *x += 1)
+                            .or_insert(0)
+                    };
+
+                    if dots as f32 <= self.expansion.current + 0.9 {
+                        let light = render_light(light_time, dots);
                         let texture = match light_event.shape {
                             Shape::Circle { .. } => &sprites.circle,
                             Shape::Line { .. } => &sprites.square,
                             Shape::Rectangle { .. } => &sprites.square,
                         };
+                        // TODO: somehow mask this with other stuff
                         let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
                         icon.update(light, &self.context);
                         icon.color = if is_selected {
@@ -356,12 +370,19 @@ impl TimelineWidget {
                         // Dots to indicate there are more light in that position
                         let dots = render_time(&self.extra_line, light_time);
                         let texture = &sprites.dots;
+                        // TODO: somehow mask this with other stuff
                         let icon = self.context.state.get_or(|| IconWidget::new(texture));
                         icon.update(dots, &self.context);
                     }
                 }
             }
         }
+
+        self.expansion.target = if self.state.hovered {
+            occupied.into_values().max().unwrap_or(0) as f32
+        } else {
+            0.0
+        };
 
         // Main line ticks
         self.ticks.clear();
@@ -403,6 +424,8 @@ impl TimelineWidget {
                     .push((render_time(&self.main_line, time).center(), BeatTime::WHOLE));
             }
         }
+
+        *self.context.can_focus.borrow_mut() = focus;
     }
 
     pub fn get_cursor_time(&self) -> Time {
@@ -415,12 +438,13 @@ impl TimelineWidget {
 
     pub fn update(
         &mut self,
-        mut position: Aabb2<f32>,
+        position: Aabb2<f32>,
         context: &UiContext,
         state: &LevelEditor,
         actions: &mut Vec<EditorAction>,
     ) {
         self.context = context.clone();
+        self.expansion.update(context.delta_time);
         self.level = state.level.clone();
         self.selected_light = state.selected_light;
         self.selected_waypoint = state
@@ -429,8 +453,11 @@ impl TimelineWidget {
             .as_ref()
             .and_then(|waypoints| waypoints.selected);
 
-        let state_top = position.max.y;
         let pixel = PPU as f32;
+
+        let expansion = self.expansion.current * pixel * (LIGHT_LINE_WIDTH + LIGHT_LINE_SPACE);
+        let mut position = position.extend_up(expansion);
+        let state_top = position.max.y;
 
         let ceiling = position.cut_top(pixel * 3.0);
         self.ceiling.update(ceiling, context);
@@ -439,7 +466,7 @@ impl TimelineWidget {
         self.extra_line.update(extra, context);
         position.cut_top(pixel * 2.0);
 
-        let lights = position.cut_top(pixel * 16.0);
+        let lights = position.cut_top(pixel * LIGHT_LINE_WIDTH + expansion);
         self.lights_line.update(lights, context);
         position.cut_top(pixel * 4.0);
 
@@ -484,6 +511,8 @@ impl TimelineWidget {
         }
 
         self.reload(state, actions);
+
+        context.update_focus(self.state.hovered); // Take focus
     }
 }
 
@@ -559,6 +588,20 @@ impl Widget for TimelineWidget {
                 highlight_bar.align_aabb(vec2(highlight_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
             geometry.merge(context.geometry.quad(highlight_bar, theme.highlight));
         }
+
+        let position = self.state.position;
+        geometry = context.geometry.masked(position, geometry);
+        let width = pixel * 2.0;
+        geometry.merge(context.geometry.quad_outline(
+            position.extend_uniform(width),
+            width,
+            theme.light,
+        ));
+        geometry.merge(
+            context
+                .geometry
+                .quad_fill(position.extend_uniform(width * 3.0), theme.dark),
+        );
 
         geometry.change_z_index(-100);
         geometry
