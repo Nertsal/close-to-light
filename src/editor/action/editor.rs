@@ -64,7 +64,10 @@ impl Editor {
             EditorAction::PopupConfirm(action, message) => self.popup_confirm(action, message),
             EditorAction::ClosePopup => self.confirm_popup = None,
             EditorAction::SetConfig(config) => self.config = config,
-            EditorAction::SetViewZoom(zoom) => self.view_zoom = zoom,
+            EditorAction::SetViewZoom(zoom) => {
+                // TODO: undupe with ui slider settings
+                self.view_zoom = zoom.clamp(0.5, 2.0);
+            }
             EditorAction::SetGridSize(size) => self.grid_size = size,
             EditorAction::ScrollTimeBy(speed, scroll) => {
                 self.scroll_time_by(speed, scroll);

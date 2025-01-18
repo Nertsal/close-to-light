@@ -470,12 +470,7 @@ impl TimelineWidget {
                 if context.mods.ctrl {
                     // Zoom on the timeline
                     let delta = delta as f32;
-                    actions.push(
-                        LevelAction::TimelineZoom(
-                            state.timeline_zoom.target.as_f32() * 2.0.powf(delta),
-                        )
-                        .into(),
-                    );
+                    actions.push(LevelAction::TimelineZoom(Change::Add(delta)).into());
                 } else {
                     // Scroll on the timeline
                     actions.push(EditorAction::ScrollTimeBy(scroll_speed, delta));

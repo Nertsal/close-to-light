@@ -190,8 +190,16 @@ impl EditorState {
             geng::Event::Wheel { delta } => {
                 let delta = delta as f32;
                 if !self.ui_focused && self.ui.game.hovered {
-                    let scroll = delta.signum() as i64;
-                    actions.push(EditorAction::ScrollTimeBy(scroll_speed, scroll).into());
+                    if ctrl {
+                        // Zoom view in/out
+                        let delta = delta.signum() * 0.25;
+                        actions
+                            .push(EditorAction::SetViewZoom(self.editor.view_zoom + delta).into());
+                    } else {
+                        // Scroll time
+                        let scroll = delta.signum() as i64;
+                        actions.push(EditorAction::ScrollTimeBy(scroll_speed, scroll).into());
+                    }
                 }
             }
             geng::Event::MousePress { button } => match button {
