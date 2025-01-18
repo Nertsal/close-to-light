@@ -1,8 +1,8 @@
 use super::*;
 
-use crate::ui::layout::AreaOps;
+use crate::{ui::layout::AreaOps, util::SecondOrderState};
 
-use ctl_client::core::types::Name;
+use ctl_client::core::{prelude::Interpolatable, types::Name};
 use geng_utils::conversions::Vec2RealConversions;
 
 pub struct ValueWidget<T> {
@@ -20,7 +20,7 @@ pub enum ValueControl<T> {
     Circle { zero_angle: Angle, period: T },
 }
 
-impl<T: Float> ValueWidget<T> {
+impl<T: Float + Interpolatable> ValueWidget<T> {
     pub fn new(text: impl Into<Name>, value: T, control: ValueControl<T>, scroll_by: T) -> Self {
         Self {
             state: WidgetState::new(),
@@ -62,7 +62,21 @@ impl<T: Float> ValueWidget<T> {
     }
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut T) {
-        self.value = *state;
+        self.update_impl(position, context, *state, state)
+    }
+
+    pub fn update_dynamic(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &UiContext,
+        state: &mut SecondOrderState<T>,
+    ) {
+        self.update_impl(position, context, state.current, &mut state.target)
+    }
+
+    fn update_impl(&mut self, position: Aabb2<f32>, context: &UiContext, value: T, state: &mut T) {
+        self.value = value;
+        let mut target = *state;
         self.state.update(position, context);
         let mut main = position;
 
@@ -80,43 +94,43 @@ impl<T: Float> ValueWidget<T> {
             match self.control {
                 ValueControl::Slider { min, max } => {
                     let t = (pos.x + 0.5).clamp(0.0, 1.0);
-                    self.value = min + (max - min) * T::from_f32(t);
+                    target = min + (max - min) * T::from_f32(t);
                 }
                 ValueControl::Circle { period, .. } => {
                     let last_pos = convert(context.cursor.last_position);
                     let delta = last_pos.arg().angle_to(pos.arg()).as_radians();
                     let delta = T::from_f32(delta / std::f32::consts::TAU) * period;
-                    self.value += delta;
+                    target += delta;
                 }
             }
         } else if self.control_state.hovered && context.cursor.scroll != 0.0 {
             // Scroll value
             let delta = T::from_f32(context.cursor.scroll.signum()) * self.scroll_by;
-            self.value += delta;
+            target += delta;
         }
 
         self.value_text.update(main, context);
         if self.value_text.editing {
             if let Ok(typed_value) = self.value_text.raw.parse::<f32>() {
-                self.value = T::from_f32(typed_value);
+                target = T::from_f32(typed_value);
             } // TODO: check error
         }
 
         // Check bounds
         match self.control {
-            ValueControl::Slider { min, max } => self.value = self.value.clamp_range(min..=max),
+            ValueControl::Slider { min, max } => target = target.clamp_range(min..=max),
             ValueControl::Circle { .. } => {}
         }
 
         // TODO: better formatting with decimal points
         let precision = T::from_f32(100.0);
-        self.value = (self.value * precision).round() / precision;
+        target = (target * precision).round() / precision;
 
         if !self.value_text.editing {
-            self.value_text.sync(&format!("{}", self.value), context);
+            self.value_text.sync(&format!("{}", target), context);
         }
 
-        *state = self.value;
+        *state = target;
     }
 }
 

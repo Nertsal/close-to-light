@@ -2,6 +2,7 @@ use super::*;
 
 use ctl_client::core::prelude::Interpolatable;
 
+#[derive(Debug, Clone)]
 pub struct SecondOrderState<T> {
     pub target: T,
     pub current: T,
@@ -26,6 +27,7 @@ impl<T: Interpolatable + Copy> SecondOrderState<T> {
 /// `y + k1 * dy/dt + k2 * dy^2/d^2t = x + k3 * dx/dt`.
 ///
 /// Inspired by <https://youtu.be/KPoeNZZ6H4s>
+#[derive(Debug, Clone)]
 pub struct SecondOrderDynamics<T> {
     xp: T,
     y: T,

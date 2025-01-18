@@ -131,7 +131,7 @@ pub struct Editor {
     pub exit: bool,
 
     pub grid_size: Coord,
-    pub view_zoom: f32,
+    pub view_zoom: SecondOrderState<f32>,
     pub music_timer: FloatTime,
     pub snap_to_grid: bool,
     /// Whether to visualize the lights' movement for the current beat.
@@ -290,7 +290,7 @@ impl EditorState {
                 exit: false,
 
                 grid_size: r32(10.0) / config.grid.height,
-                view_zoom: 1.0,
+                view_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 1.0, 1.0)),
                 visualize_beat: true,
                 show_only_selected: false,
                 snap_to_grid: true,
@@ -442,6 +442,7 @@ impl geng::State for EditorState {
 
         self.ui_context
             .update(self.context.geng.window(), delta_time.as_f32());
+        self.editor.view_zoom.update(delta_time.as_f32());
 
         for action in self.update_drag() {
             self.execute(action);
@@ -479,7 +480,7 @@ impl geng::State for EditorState {
         }
 
         if let Some(level_editor) = &mut self.editor.level_edit {
-            level_editor.model.camera.fov = 10.0 / self.editor.view_zoom;
+            level_editor.model.camera.fov = 10.0 / self.editor.view_zoom.current;
         }
         self.render
             .draw_editor(&self.editor, &self.ui, &self.ui_context, framebuffer);

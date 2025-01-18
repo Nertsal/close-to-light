@@ -205,43 +205,6 @@ impl UiRender {
         );
     }
 
-    pub fn draw_checkbox(
-        &self,
-        widget: &CheckboxWidget,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        if !widget.state.visible {
-            return;
-        }
-
-        let camera = &geng::PixelPerfectCamera;
-        let size = widget.state.position.height();
-
-        let checkbox = widget.check.position;
-        if widget.checked {
-            let checkbox = checkbox.extend_uniform(-size * 0.05);
-            for (a, b) in [
-                (checkbox.bottom_left(), checkbox.top_right()),
-                (checkbox.top_left(), checkbox.bottom_right()),
-            ] {
-                self.context.geng.draw2d().draw2d(
-                    framebuffer,
-                    camera,
-                    &draw2d::Segment::new(Segment(a, b), size * 0.07, theme.light),
-                );
-            }
-        }
-        self.util.draw_outline(
-            &Collider::aabb(checkbox.map(r32)),
-            size * 0.1,
-            theme.light,
-            camera,
-            framebuffer,
-        );
-        self.draw_text(&widget.text, framebuffer);
-    }
-
     // TODO: as text render option
     pub fn draw_text_wrapped(&self, widget: &TextWidget, framebuffer: &mut ugli::Framebuffer) {
         if !widget.state.visible {
@@ -345,57 +308,6 @@ impl UiRender {
                 slider.head.position,
                 color,
             );
-        }
-    }
-
-    pub fn draw_button(
-        &self,
-        widget: &ButtonWidget,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let state = &widget.text.state;
-        if !state.visible {
-            return;
-        }
-
-        let options = &widget.text.options;
-        let position = widget.text.state.position;
-        let width = options.size * 0.2;
-
-        let mut text_color = theme.light;
-        if state.pressed {
-            self.fill_quad(position, theme.light, framebuffer);
-            text_color = theme.dark;
-        } else if state.hovered {
-            self.fill_quad(position.extend_uniform(width), theme.light, framebuffer);
-            text_color = theme.dark;
-        } else {
-            self.draw_outline(position, width, theme.light, framebuffer);
-        };
-
-        self.draw_text_colored(&widget.text, text_color, framebuffer);
-    }
-
-    pub fn draw_input(&self, widget: &InputWidget, framebuffer: &mut ugli::Framebuffer) {
-        if !widget.state.visible {
-            return;
-        }
-        let theme = self.context.get_options().theme;
-
-        self.draw_text(&widget.name, framebuffer);
-        let color = if widget.editing {
-            theme.highlight
-        } else {
-            theme.light
-        };
-        self.draw_text_colored(&widget.text, color, framebuffer);
-
-        if !widget.editing && widget.state.hovered {
-            // Underline
-            let mut pos = widget.text.state.position;
-            let underline = pos.cut_bottom(pos.height() * 0.05);
-            self.draw_quad(underline, theme.highlight, framebuffer);
         }
     }
 
@@ -620,92 +532,6 @@ impl UiRender {
         }
 
         self.draw_outline(state.position, width, theme.light, framebuffer);
-    }
-
-    pub fn draw_value<T: Float>(
-        &self,
-        value: &ValueWidget<T>,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        if !value.state.visible {
-            return;
-        }
-
-        let theme = self.context.get_options().theme;
-        self.draw_input(&value.value_text, framebuffer);
-
-        let quad = value.control_state.position;
-        let width = quad.height() * 0.05;
-        let quad = quad.extend_uniform(-width);
-        match value.control {
-            ValueControl::Slider { min, max } => {
-                let t = (value.value - min) / (max - min);
-                let mut fill = quad.extend_uniform(-width);
-                let fill = fill.cut_bottom(fill.height() * t.as_f32());
-                self.draw_quad(fill, theme.highlight, framebuffer);
-                self.draw_outline(quad, width, theme.light, framebuffer);
-            }
-            ValueControl::Circle { zero_angle, period } => {
-                let angle =
-                    Angle::from_radians((value.value / period).as_f32() * std::f32::consts::TAU);
-                let angle = zero_angle + angle;
-
-                let texture = &self.context.assets.sprites.value_knob;
-                let size = texture.size().as_f32() * pixel_scale(framebuffer.size());
-
-                let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
-                self.context.geng.draw2d().draw2d(
-                    framebuffer,
-                    &geng::PixelPerfectCamera,
-                    &draw2d::TexturedQuad::unit_colored(&**texture, theme.light).transform(
-                        mat3::translate(pos.center())
-                            * mat3::rotate(angle)
-                            * mat3::scale(pos.size() / 2.0),
-                    ),
-                );
-            }
-        }
-    }
-
-    pub fn draw_dropdown<T>(
-        &self,
-        dropdown: &DropdownWidget<T>,
-        outline_width: f32,
-        masked: &mut MaskedRender,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        if !dropdown.state.visible {
-            return;
-        }
-
-        let theme = self.context.get_options().theme;
-        self.draw_text(&dropdown.name, framebuffer);
-        self.draw_text(&dropdown.value_text, framebuffer);
-        self.draw_texture(
-            Aabb2::point(dropdown.value_text.state.position.align_pos(vec2(1.0, 0.5))),
-            &self.context.assets.sprites.dropdown,
-            theme.light,
-            framebuffer,
-        );
-
-        let mut main = dropdown.dropdown_state.position;
-        let height = main.height() * dropdown.dropdown_window.show.time.get_ratio();
-        if height > outline_width * 2.0 {
-            let main = main.cut_top(height);
-            self.draw_window(
-                masked,
-                main,
-                None,
-                outline_width,
-                theme,
-                framebuffer,
-                |framebuffer| {
-                    for item in &dropdown.dropdown_items {
-                        self.draw_text(item, framebuffer);
-                    }
-                },
-            );
-        }
     }
 
     pub fn fill_quad(

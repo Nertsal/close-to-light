@@ -193,8 +193,7 @@ impl EditorState {
                     if ctrl {
                         // Zoom view in/out
                         let delta = delta.signum() * 0.25;
-                        actions
-                            .push(EditorAction::SetViewZoom(self.editor.view_zoom + delta).into());
+                        actions.push(EditorAction::SetViewZoom(Change::Add(delta)).into());
                     } else {
                         // Scroll time
                         let scroll = delta.signum() as i64;

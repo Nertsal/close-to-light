@@ -18,7 +18,7 @@ pub enum EditorAction {
     PopupConfirm(ConfirmAction, Name),
     ClosePopup,
     SetConfig(EditorConfig),
-    SetViewZoom(f32),
+    SetViewZoom(Change<f32>),
     SetGridSize(Coord),
     ScrollTimeBy(ScrollSpeed, i64),
 }
@@ -64,9 +64,11 @@ impl Editor {
             EditorAction::PopupConfirm(action, message) => self.popup_confirm(action, message),
             EditorAction::ClosePopup => self.confirm_popup = None,
             EditorAction::SetConfig(config) => self.config = config,
-            EditorAction::SetViewZoom(zoom) => {
+            EditorAction::SetViewZoom(change) => {
                 // TODO: undupe with ui slider settings
-                self.view_zoom = zoom.clamp(0.5, 2.0);
+                let mut zoom = self.view_zoom.target;
+                change.apply(&mut zoom);
+                self.view_zoom.target = zoom.clamp(0.5, 2.0);
             }
             EditorAction::SetGridSize(size) => self.grid_size = size,
             EditorAction::ScrollTimeBy(speed, scroll) => {

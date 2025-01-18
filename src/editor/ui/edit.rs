@@ -219,13 +219,13 @@ impl EditorEditUi {
 
             let zoom = bar.cut_top(value_height);
             bar.cut_top(spacing);
-            let slider = context
-                .state
-                .get_or(|| ValueWidget::new_range("Zoom", editor.view_zoom, 0.5..=2.0, 0.25));
+            let slider = context.state.get_or(|| {
+                ValueWidget::new_range("Zoom", editor.view_zoom.target, 0.5..=2.0, 0.25)
+            });
             {
-                let mut view_zoom = editor.view_zoom;
-                slider.update(zoom, context, &mut view_zoom);
-                actions.push(EditorAction::SetViewZoom(view_zoom).into());
+                let mut view_zoom = editor.view_zoom.clone();
+                slider.update_dynamic(zoom, context, &mut view_zoom);
+                actions.push(EditorAction::SetViewZoom(Change::Set(view_zoom.target)).into());
             }
             context.update_focus(slider.state.hovered);
 
