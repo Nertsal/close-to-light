@@ -88,6 +88,7 @@ pub struct LevelEditor {
     pub timeline_zoom: SecondOrderState<R32>,
     pub real_time: FloatTime,
     pub selected_light: Option<LightId>,
+    pub timeline_light_hover: Option<LightId>,
 
     pub history: History,
 
@@ -197,6 +198,7 @@ impl LevelEditor {
             timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(0.5))),
             real_time: FloatTime::ZERO,
             selected_light: None,
+            timeline_light_hover: None,
             place_rotation: Angle::ZERO,
             place_scale: Coord::ONE,
             state: State::Idle,
@@ -857,13 +859,17 @@ impl LevelEditor {
         let dynamic_level = dynamic_time
             .map(|time| LevelState::render(level, &self.model.level.config, time, None));
 
-        let mut hovered_light = None;
-        if let State::Idle = self.state {
-            if let Some(level) = &static_level {
-                hovered_light = level
-                    .lights
-                    .iter()
-                    .position(|light| light.collider.contains(cursor_world_pos));
+        let mut hovered_light = self.timeline_light_hover.take();
+        if hovered_light.is_none() {
+            if let State::Idle = self.state {
+                if let Some(level) = &static_level {
+                    hovered_light = level
+                        .lights
+                        .iter()
+                        .find(|light| light.collider.contains(cursor_world_pos))
+                        .and_then(|light| light.event_id)
+                        .map(|event| LightId { event });
+                }
             }
         }
 

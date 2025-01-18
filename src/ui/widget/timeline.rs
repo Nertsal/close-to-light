@@ -361,6 +361,9 @@ impl TimelineWidget {
                             ThemeColor::Light
                         };
                         icon.texture = texture.clone();
+                        if icon.state.hovered {
+                            actions.push(LevelAction::HoverLight(light_id).into());
+                        }
                         if icon.state.clicked {
                             actions.push(LevelAction::SelectLight(light_id).into());
                             self.dragging_light =

@@ -26,6 +26,7 @@ pub enum LevelAction {
     ChangeFadeOut(LightId, Change<Time>),
     ChangeFadeIn(LightId, Change<Time>),
     MoveLight(LightId, Change<Time>, Change<vec2<Coord>>),
+    HoverLight(LightId),
 
     // Waypoint actions
     NewWaypoint,
@@ -111,6 +112,7 @@ impl LevelAction {
             LevelAction::MoveLight(_, time, position) => {
                 time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
+            LevelAction::HoverLight(_) => false,
             LevelAction::MoveWaypoint(_, _, position) => position.is_noop(&vec2::ZERO),
             LevelAction::MoveWaypointTime(_, _, time) => time.is_noop(&Time::ZERO),
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
@@ -243,6 +245,9 @@ impl LevelEditor {
                 self.set_waypoint_interpolation(light, waypoint, interpolation)
             }
             LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
+            LevelAction::HoverLight(light) => {
+                self.timeline_light_hover = Some(light);
+            }
             LevelAction::MoveWaypoint(light, waypoint, pos) => {
                 self.move_waypoint(light, waypoint, pos)
             }

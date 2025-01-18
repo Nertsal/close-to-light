@@ -32,7 +32,7 @@ pub struct EditorLevelState {
     /// Dynamic level state showing the upcoming animations.
     pub dynamic_level: Option<LevelState>,
     /// Index of the hovered static light.
-    pub hovered_light: Option<usize>,
+    pub hovered_light: Option<LightId>,
     pub waypoints: Option<Waypoints>,
 }
 
@@ -68,13 +68,7 @@ impl EditorLevelState {
 
     /// Returns the index of the hovered event (if any).
     pub fn hovered_event(&self) -> Option<usize> {
-        self.hovered_light
-            .and_then(|i| {
-                self.static_level
-                    .as_ref()
-                    .and_then(|level| level.lights.get(i))
-            })
-            .and_then(|l| l.event_id)
+        self.hovered_light.map(|id| id.event)
     }
 }
 
