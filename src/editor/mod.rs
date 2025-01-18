@@ -194,7 +194,7 @@ impl LevelEditor {
             context,
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(),
-            timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(1.0))),
+            timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(0.5))),
             real_time: FloatTime::ZERO,
             selected_light: None,
             place_rotation: Angle::ZERO,
