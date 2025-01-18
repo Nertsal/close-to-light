@@ -401,7 +401,7 @@ impl EditorEditUi {
                                 button.update(prev, context);
                                 if button.state.clicked {
                                     if let Some(id) = selected.prev() {
-                                        actions.push(LevelAction::SelectWaypoint(id).into());
+                                        actions.push(LevelAction::SelectWaypoint(id, true).into());
                                     }
                                 }
                             };
@@ -431,8 +431,9 @@ impl EditorEditUi {
                                 });
                                 button.update(next, context);
                                 if button.state.clicked {
-                                    actions
-                                        .push(LevelAction::SelectWaypoint(selected.next()).into());
+                                    actions.push(
+                                        LevelAction::SelectWaypoint(selected.next(), true).into(),
+                                    );
                                 }
                             }
 

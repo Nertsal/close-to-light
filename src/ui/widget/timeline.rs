@@ -303,7 +303,7 @@ impl TimelineWidget {
                         if icon.state.clicked || tick.state.clicked {
                             actions.extend([
                                 LevelAction::SelectLight(light_id).into(),
-                                LevelAction::SelectWaypoint(waypoint_id).into(),
+                                LevelAction::SelectWaypoint(waypoint_id, false).into(),
                             ]);
                             self.dragging_waypoint = true;
                         } else if !self.context.can_focus() || !self.context.cursor.down {

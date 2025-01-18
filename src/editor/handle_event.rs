@@ -362,8 +362,9 @@ impl EditorState {
                                 {
                                     if let Event::Light(event) = &event.event {
                                         if let Some(frame) = event.movement.get_frame(waypoint) {
-                                            actions
-                                                .push(LevelAction::SelectWaypoint(waypoint).into());
+                                            actions.push(
+                                                LevelAction::SelectWaypoint(waypoint, false).into(),
+                                            );
                                             let initial_translation = frame.translation;
                                             actions.push(EditorStateAction::StartDrag(
                                                 DragTarget::Waypoint {

@@ -31,7 +31,7 @@ pub enum LevelAction {
     NewWaypoint,
     PlaceWaypoint(vec2<Coord>),
     DeleteWaypoint(LightId, WaypointId),
-    SelectWaypoint(WaypointId),
+    SelectWaypoint(WaypointId, bool),
     DeselectWaypoint,
     RotateWaypoint(LightId, WaypointId, Angle<Coord>),
     ScaleWaypoint(LightId, WaypointId, Coord),
@@ -102,7 +102,7 @@ impl LevelAction {
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
             LevelAction::DeselectLight => false,
             LevelAction::SelectLight(_) => false,
-            LevelAction::SelectWaypoint(_) => false,
+            LevelAction::SelectWaypoint(_, _) => false,
             LevelAction::DeselectWaypoint => false,
             LevelAction::SetName(_) => false,
             LevelAction::SetWaypointFrame(..) => false,
@@ -219,7 +219,7 @@ impl LevelEditor {
                 self.selected_light = None;
             }
             LevelAction::SelectLight(id) => self.select_light(id),
-            LevelAction::SelectWaypoint(id) => self.select_waypoint(id),
+            LevelAction::SelectWaypoint(id, move_time) => self.select_waypoint(id, move_time),
             LevelAction::DeselectWaypoint => {
                 if let Some(waypoints) = &mut self.level_state.waypoints {
                     waypoints.selected = None;
@@ -473,8 +473,24 @@ impl LevelEditor {
         self.selected_light = Some(light_id);
     }
 
-    fn select_waypoint(&mut self, waypoint_id: WaypointId) {
+    fn select_waypoint(&mut self, waypoint_id: WaypointId, move_time: bool) {
         let Some(light_id) = self.selected_light else {
+            return;
+        };
+
+        let Some(waypoint_time) =
+            self.level
+                .events
+                .get(light_id.event)
+                .and_then(|event| match &event.event {
+                    Event::Light(light) => light
+                        .movement
+                        .get_time(waypoint_id)
+                        .map(|time| event.time + time),
+                    _ => None,
+                })
+        else {
+            // Invalid waypoint id
             return;
         };
 
@@ -492,6 +508,12 @@ impl LevelEditor {
                 hovered: None,
                 selected: Some(waypoint_id),
             });
+        }
+
+        if move_time {
+            self.execute(LevelAction::ScrollTime(
+                waypoint_time - self.current_time.target,
+            ));
         }
     }
 
