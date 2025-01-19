@@ -45,7 +45,7 @@ impl From<BeatTimeSerde> for BeatTime {
 }
 
 impl BeatTime {
-    const UNITS_PER_BEAT: Time = 16;
+    pub const UNITS_PER_BEAT: Time = 16;
     /// A whole beat (typically a 1/4th note)
     pub const WHOLE: Self = Self {
         units: Self::UNITS_PER_BEAT,
@@ -80,6 +80,10 @@ impl BeatTime {
     /// From 1/16th beats.
     pub fn from_16ths(units: Time) -> Self {
         Self { units }
+    }
+
+    pub fn units(&self) -> Time {
+        self.units
     }
 
     pub fn as_beats(&self) -> R32 {

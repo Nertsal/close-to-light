@@ -427,6 +427,8 @@ impl TimelineWidget {
                     .push((render_time(&self.main_line, time).center(), BeatTime::WHOLE));
             }
         }
+        self.ticks
+            .sort_by_key(|(_, t)| t.units() % BeatTime::UNITS_PER_BEAT);
 
         *self.context.can_focus.borrow_mut() = focus;
     }
