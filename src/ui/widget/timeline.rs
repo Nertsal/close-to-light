@@ -507,6 +507,10 @@ impl TimelineWidget {
                 }
             }
         }
+        if self.state.right_clicked {
+            // TODO: maybe more specific to actual timeline actions
+            actions.push(LevelAction::Cancel.into());
+        }
 
         if self.main_line.clicked {
             let time = self.get_cursor_time();
