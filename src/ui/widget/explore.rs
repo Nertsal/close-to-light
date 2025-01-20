@@ -485,7 +485,7 @@ impl StatefulWidget for LevelItemWidget {
         self.name.update(name, context);
         self.name.align(vec2(0.0, 0.0));
 
-        self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
+        self.author.update(author, &context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.0, 1.0));
     }
 }
@@ -591,7 +591,7 @@ impl StatefulWidget for MusicItemWidget {
         self.name.update(name, context);
         self.name.align(vec2(0.0, 0.0));
 
-        self.author.update(author, &mut context.scale_font(0.6)); // TODO: better
+        self.author.update(author, &context.scale_font(0.6)); // TODO: better
         self.author.align(vec2(0.0, 1.0));
     }
 }

@@ -177,7 +177,7 @@ impl WidgetOld for LeaderboardWidget {
 
         let title = main.cut_top(context.font_size * 1.2);
         if self.show_title {
-            self.title.update(title, &mut context.scale_font(1.1)); // TODO: better
+            self.title.update(title, &context.scale_font(1.1)); // TODO: better
         }
 
         let subtitle = main.cut_top(context.font_size * 1.0);

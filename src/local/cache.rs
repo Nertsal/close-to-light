@@ -197,7 +197,7 @@ impl LevelCache {
     }
 
     async fn load_all(&self) -> Result<()> {
-        {
+        let music = {
             let music = self.fs.load_music_all().await?;
             let mut inner = self.inner.borrow_mut();
             inner.music.extend(
@@ -206,15 +206,19 @@ impl LevelCache {
                     .map(|music| (music.meta.id, Rc::new(music))),
             );
             log::debug!("loaded music: {:?}", inner.music);
-        }
+
+            // NOTE: To not hold &inner.music across an await point for load_groups_all
+            std::mem::take(&mut inner.music)
+        };
 
         {
-            let groups = self.fs.load_groups_all(&self.inner.borrow().music).await?;
+            let groups = self.fs.load_groups_all(&music).await?;
             let group_loaders = groups
                 .into_iter()
                 .map(|(path, group)| self.insert_group(path, group));
             let groups = future::join_all(group_loaders).await;
             let mut inner = self.inner.borrow_mut();
+            inner.music.extend(music);
             for (music, group) in groups.into_iter().flatten() {
                 if let Some(music) = music {
                     inner.music.insert(music.meta.id, music);

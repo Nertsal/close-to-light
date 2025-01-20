@@ -112,7 +112,7 @@ impl ModifiersWidget {
             self.score_multiplier.text =
                 format!("Score x{:.2}", state.config.modifiers.multiplier()).into();
             self.score_multiplier
-                .update(multipler, &mut context.scale_font(0.7));
+                .update(multipler, &context.scale_font(0.7));
 
             let separator = main.cut_bottom(1.0 * context.layout_size);
             let separator = separator.align_aabb(

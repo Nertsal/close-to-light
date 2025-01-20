@@ -3,7 +3,6 @@ use super::*;
 #[derive(Debug, Clone)]
 pub struct Player {
     pub info: UserInfo,
-    pub shake: vec2<Coord>,
     pub collider: Collider,
     pub health: Bounded<FloatTime>,
 
@@ -44,7 +43,6 @@ impl Player {
                 id: 0,
                 name: "you".into(),
             },
-            shake: vec2::ZERO,
             collider,
             health: Bounded::new_max(health),
 

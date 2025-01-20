@@ -548,7 +548,7 @@ impl ItemMusicWidget {
             }
         }
 
-        self.text.update(position, &mut context.scale_font(0.9));
+        self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
         if self.menu.delete.state.clicked {
@@ -630,7 +630,7 @@ impl ItemGroupWidget {
             }
         }
 
-        self.text.update(position, &mut context.scale_font(0.9));
+        self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
         if self.menu.edit.state.clicked {
@@ -736,7 +736,7 @@ impl ItemLevelWidget {
             }
         }
 
-        self.text.update(position, &mut context.scale_font(0.9));
+        self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
         if self.menu.edit.state.clicked {
@@ -791,7 +791,7 @@ impl WidgetOld for NewMenuWidget {
             .align_aabb(item_size, vec2(0.5, 1.0));
         let positions = item.stack(vec2(0.0, -item.height() - spacing), rows.len());
         for (widget, pos) in rows.into_iter().zip(positions) {
-            widget.update(pos, &mut context.scale_font(0.7));
+            widget.update(pos, &context.scale_font(0.7));
         }
 
         context.update_focus(self.state.hovered);

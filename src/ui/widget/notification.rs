@@ -132,6 +132,6 @@ impl WidgetOld for NotificationWidget {
         self.confirm.update(confirm, context);
 
         let text = main.extend_uniform(-context.layout_size * 0.5);
-        self.text.update(text, &mut context.scale_font(0.7));
+        self.text.update(text, &context.scale_font(0.7));
     }
 }
