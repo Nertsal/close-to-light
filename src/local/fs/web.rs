@@ -51,7 +51,10 @@ pub async fn load_music_all(rexie: &Rexie, geng: &Geng) -> Result<Vec<CachedMusi
     Ok(items)
 }
 
-pub async fn load_groups_all(rexie: &Rexie) -> Result<Vec<(PathBuf, LevelSet)>> {
+pub async fn load_groups_all(
+    rexie: &Rexie,
+    music: &HashMap<Id, Rc<CachedMusic>>,
+) -> Result<Vec<(PathBuf, LevelSet)>> {
     let transaction = rexie.transaction(&["groups"], TransactionMode::ReadOnly)?;
 
     let groups = transaction.store("groups")?;
@@ -65,7 +68,7 @@ pub async fn load_groups_all(rexie: &Rexie) -> Result<Vec<(PathBuf, LevelSet)>> 
 
         let data = BASE64_STANDARD.decode(&item.data).unwrap(); // TODO dont panic
 
-        let group: LevelSet = decode_group(&data).unwrap();
+        let group: LevelSet = decode_group(music, &data).unwrap();
 
         items.push((path, group));
     }

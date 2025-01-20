@@ -67,7 +67,7 @@ impl Controller {
 
         #[cfg(target_arch = "wasm32")]
         {
-            match web::load_groups_all(&self.rexie).await {
+            match web::load_groups_all(&self.rexie, music).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
                     log::error!("failed to load groups from web file system: {:?}", err);
