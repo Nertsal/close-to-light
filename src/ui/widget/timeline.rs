@@ -687,6 +687,7 @@ impl IconButtonWidget {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
+        context.update_focus(self.state.hovered);
     }
 }
 
