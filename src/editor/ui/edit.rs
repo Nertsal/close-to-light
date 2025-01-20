@@ -146,23 +146,22 @@ impl EditorEditUi {
 
                 let new_light_width = font_size * 3.0;
 
-                let circle = bar.cut_top(button_height).cut_left(new_light_width);
-                bar.cut_top(spacing);
-                let button = context.state.get_or(|| ButtonWidget::new("Circle"));
-                button.update(circle, context);
-                if button.text.state.clicked {
-                    actions.push(LevelAction::NewLight(Shape::circle(r32(1.0))).into());
+                for (i, shape) in editor.config.shapes.iter().enumerate() {
+                    let new_shape = bar.cut_top(button_height).cut_left(new_light_width);
+                    bar.cut_top(spacing);
+                    let button = context.state.get_or(|| {
+                        ButtonWidget::new(match shape {
+                            Shape::Circle { .. } => "Circle",
+                            Shape::Line { .. } => "Line",
+                            Shape::Rectangle { .. } => "Rectangle",
+                        })
+                    });
+                    button.update(new_shape, context);
+                    if button.text.state.clicked {
+                        actions.push(LevelAction::NewLight(*shape).into());
+                    }
+                    tooltip.update(&button.text.state, format!("{}", i + 1), context);
                 }
-                tooltip.update(&button.text.state, "1", context);
-
-                let line = bar.cut_top(button_height).cut_left(new_light_width);
-                bar.cut_top(spacing);
-                let button = context.state.get_or(|| ButtonWidget::new("Line"));
-                button.update(line, context);
-                if button.text.state.clicked {
-                    actions.push(LevelAction::NewLight(Shape::line(r32(1.0))).into());
-                }
-                tooltip.update(&button.text.state, "2", context);
             }
 
             bar.cut_top(layout_size * 1.5);
