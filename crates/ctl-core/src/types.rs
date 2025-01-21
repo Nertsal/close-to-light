@@ -82,6 +82,11 @@ impl BeatTime {
         Self { units }
     }
 
+    /// From atomic units as defined by [`BeatTime::UNITS_PER_BEAT`].
+    pub fn from_units(units: Time) -> Self {
+        Self { units }
+    }
+
     pub fn units(&self) -> Time {
         self.units
     }
@@ -96,6 +101,38 @@ impl BeatTime {
 
     pub fn as_secs(&self, beat_time: FloatTime) -> FloatTime {
         self.as_beats() * beat_time
+    }
+}
+
+impl Add<Self> for BeatTime {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            units: self.units + rhs.units,
+        }
+    }
+}
+
+impl AddAssign<Self> for BeatTime {
+    fn add_assign(&mut self, rhs: Self) {
+        self.units += rhs.units;
+    }
+}
+
+impl Sub<Self> for BeatTime {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            units: self.units - rhs.units,
+        }
+    }
+}
+
+impl SubAssign<Self> for BeatTime {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.units -= rhs.units;
     }
 }
 

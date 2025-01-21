@@ -20,15 +20,16 @@ pub struct InputWidget {
 #[derive(Debug, Clone, Copy)]
 pub enum InputFormat {
     Any,
-    // Integer,
+    Integer,
     Float,
+    Ratio,
 }
 
 impl InputFormat {
     pub fn fix(&self, s: &str) -> String {
         match self {
             InputFormat::Any => s.to_owned(),
-            // InputFormat::Integer => s.replace(|c: char| !c.is_ascii_digit(), ""),
+            InputFormat::Integer => s.replace(|c: char| !c.is_ascii_digit(), ""),
             InputFormat::Float => {
                 let (s, negative) = match s.strip_prefix("-") {
                     Some(s) => (s, true),
@@ -42,6 +43,17 @@ impl InputFormat {
                     s = "-".to_string() + &s;
                 }
                 s
+            }
+            InputFormat::Ratio => {
+                let fix_num = |s| InputFormat::Integer.fix(s);
+
+                if let Some((num, den)) = s.split_once('/') {
+                    let mut s = fix_num(num);
+                    s.push('/');
+                    s += &fix_num(den);
+                    return s;
+                }
+                fix_num(s)
             }
         }
     }

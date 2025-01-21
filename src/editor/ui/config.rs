@@ -1,23 +1,8 @@
+use crate::ui::geometry::Geometry;
+
 use super::*;
 
 pub struct EditorConfigUi {
-    // pub assets: Rc<Assets>,
-    // pub state: WidgetState,
-
-    // pub timing: TextWidget,
-    // pub bpm: ValueWidget<FloatTime>,
-    // // pub tempo:
-    // // pub offset: ValueWidget<Time>,
-    // pub music: TextWidget,
-    // pub level: TextWidget,
-    // pub level_name: InputWidget,
-    // pub level_delete: ButtonWidget,
-    // pub level_create: ButtonWidget,
-    // pub all_levels: TextWidget,
-    // pub all_level_names: Vec<(IconWidget, IconWidget, TextWidget)>,
-
-    // pub timeline: TextWidget,
-
     // TODO scroll time
     // /// Normal time scroll.
     // pub scroll_by: ValueWidget<BeatTime>,
@@ -30,42 +15,7 @@ pub struct EditorConfigUi {
 
 impl EditorConfigUi {
     pub fn new() -> Self {
-        Self {
-            // assets: assets.clone(),
-            // state: WidgetState::new(),
-
-            // timing: TextWidget::new("Timing"),
-            // bpm: ValueWidget::new_range("BPM", r32(150.0), r32(60.0)..=r32(240.0), r32(1.0)), // TODO: different
-            // // offset: ValueWidget::new_range("Offset", r32(0.0), r32(-10.0)..=r32(10.0), r32(0.1)),
-            // music: TextWidget::new("Music"),
-            // level: TextWidget::new("Difficulty"),
-            // level_name: InputWidget::new(""),
-            // level_delete: ButtonWidget::new("Delete"),
-            // level_create: ButtonWidget::new("Create"),
-            // all_levels: TextWidget::new("All Dificulties"),
-            // all_level_names: Vec::new(),
-
-            // timeline: TextWidget::new("Timeline"),
-
-            // scroll_by: ValueWidget::new_range(
-            //     "Scroll by",
-            //     BeatTime::WHOLE,
-            //     BeatTime::QUARTER..=BeatTime::WHOLE * 4,
-            //     BeatTime::QUARTER,
-            // ),
-            // shift_scroll: ValueWidget::new_range(
-            //     "Shift scroll",
-            //     BeatTime::QUARTER,
-            //     BeatTime::EIGHTH..=BeatTime::WHOLE,
-            //     BeatTime::EIGHTH,
-            // ),
-            // alt_scroll: ValueWidget::new_range(
-            //     "Alt scroll",
-            //     BeatTime::WHOLE * 10,
-            //     BeatTime::WHOLE..=BeatTime::WHOLE * 20,
-            //     BeatTime::HALF,
-            // ),
-        }
+        Self {}
     }
 
     pub fn layout(
@@ -75,8 +25,6 @@ impl EditorConfigUi {
         editor: &Editor,
         actions: &mut Vec<EditorStateAction>,
     ) {
-        // self.state.update(position, context);
-
         let main = position;
 
         let width = context.layout_size * 7.0;
@@ -217,28 +165,180 @@ impl EditorConfigUi {
                 }
             }
         }
+
+        // Timeline
+        {
+            let mut bar = columns[2];
+            let timeline = bar.cut_top(context.font_size);
+            let title = context.state.get_or(|| TextWidget::new("Timeline"));
+            title.update(timeline, context);
+
+            let mut config = editor.config.clone();
+            let value_height = context.font_size * 1.2;
+            let spacing = context.font_size * 0.3;
+
+            let scroll_by = bar.cut_top(value_height);
+            bar.cut_top(spacing);
+            let value = context.state.get_or(|| {
+                BeatValueWidget::new(
+                    "Scroll by",
+                    BeatTime::WHOLE,
+                    BeatTime::QUARTER..=BeatTime::WHOLE * 4,
+                    BeatTime::QUARTER,
+                )
+            });
+            value.update(scroll_by, context, &mut config.scroll_normal);
+
+            let shift_scroll = bar.cut_top(value_height);
+            bar.cut_top(spacing);
+            let value = context.state.get_or(|| {
+                BeatValueWidget::new(
+                    "Shift scroll",
+                    BeatTime::QUARTER,
+                    BeatTime::EIGHTH..=BeatTime::WHOLE,
+                    BeatTime::EIGHTH,
+                )
+            });
+            value.update(shift_scroll, context, &mut config.scroll_slow);
+
+            let alt_scroll = bar.cut_top(value_height);
+            bar.cut_top(spacing);
+            let value = context.state.get_or(|| {
+                BeatValueWidget::new(
+                    "Alt scroll",
+                    BeatTime::WHOLE * 10,
+                    BeatTime::WHOLE..=BeatTime::WHOLE * 20,
+                    BeatTime::HALF,
+                )
+            });
+            value.update(alt_scroll, context, &mut config.scroll_fast);
+
+            actions.push(EditorAction::SetConfig(config).into());
+        }
     }
 }
 
-// let mut bar = columns[2];
-// let timeline = bar.cut_top(context.font_size);
-// self.timeline.update(timeline, context);
+pub struct BeatValueWidget {
+    pub state: WidgetState,
+    pub value_text: InputWidget,
+    pub control_state: WidgetState,
+    pub range: RangeInclusive<BeatTime>,
+    pub value: BeatTime,
+    pub scroll_by: BeatTime,
+}
 
-// // TODO: scroll time
-// // let mut config = state.config.clone();
+impl BeatValueWidget {
+    pub fn new(
+        text: impl Into<Name>,
+        value: BeatTime,
+        range: RangeInclusive<BeatTime>,
+        scroll_by: BeatTime,
+    ) -> Self {
+        Self {
+            state: WidgetState::new(),
+            value_text: InputWidget::new(text).format(InputFormat::Ratio),
+            control_state: WidgetState::new(),
+            range,
+            value,
+            scroll_by,
+        }
+    }
 
-// // let scroll_by = bar.cut_top(context.font_size);
-// // self.scroll_by
-// //     .update(scroll_by, context, &mut config.scroll_normal);
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut BeatTime) {
+        self.value = *state;
+        let mut target = *state;
+        self.state.update(position, context);
+        let mut main = position;
 
-// // let shift_scroll = bar.cut_top(context.font_size);
-// // self.shift_scroll
-// //     .update(shift_scroll, context, &mut config.scroll_slow);
+        let control_height = context.font_size * 0.2;
+        let control = main.cut_bottom(control_height);
+        self.control_state.update(control, context);
+        let (min, max) = (*self.range.start(), *self.range.end());
 
-// // let alt_scroll = bar.cut_top(context.font_size);
-// // self.alt_scroll
-// //     .update(alt_scroll, context, &mut config.scroll_fast);
+        // Drag value
+        if self.control_state.pressed {
+            // (0,0) in the center, range -0.5..=0.5
+            let convert = |pos| {
+                (pos - self.control_state.position.center()) / self.control_state.position.size()
+            };
+            let pos = convert(context.cursor.position);
+            let t = (pos.x + 0.5).clamp(0.0, 1.0);
+            let steps = (max - min).units() as f32 / self.scroll_by.units() as f32 * t;
+            target = min + self.scroll_by * steps.round() as Time;
+        } else if self.control_state.hovered && context.cursor.scroll != 0.0 {
+            // Scroll value
+            let delta = self.scroll_by * context.cursor.scroll.signum() as Time;
+            target += delta;
+        }
 
-// // actions.push(EditorAction::SetConfig(config).into());
-//     }
-// }
+        self.value_text.update(main, context);
+        if self.value_text.editing {
+            // TODO: handle errors
+            if let Some((num, den)) = self.value_text.raw.split_once('/') {
+                if let Ok(num) = num.parse::<Time>() {
+                    if let Ok(den) = den.parse::<Time>() {
+                        if 16 % den == 0 {
+                            let units = num * (16 / den);
+                            target = BeatTime::from_units(units);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check bounds
+        target = target.clamp_range(min..=max);
+
+        if !self.value_text.editing {
+            let value = Ratio::new_raw(target.units(), BeatTime::UNITS_PER_BEAT).reduced();
+            self.value_text
+                .sync(&format!("{}/{}", value.numer(), value.denom()), context);
+        }
+
+        *state = target;
+    }
+}
+
+impl Widget for BeatValueWidget {
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let theme = context.theme();
+        let mut geometry = self.value_text.draw(context);
+
+        let quad = self.control_state.position;
+        let width = quad.height() * 0.05;
+        let quad = quad.extend_uniform(-width);
+
+        {
+            let (min, max) = (*self.range.start(), *self.range.end());
+            let t = (self.value - min).units() as f32 / (max - min).units() as f32;
+            let mut fill = quad;
+            let fill = fill.cut_left(fill.width() * t);
+
+            let tick = |t: f32| quad.align_pos(vec2(t, 0.5));
+
+            geometry.merge(context.geometry.texture_pp(
+                tick(0.0),
+                theme.highlight,
+                0.5,
+                &context.context.assets.sprites.timeline.tick_smol,
+            ));
+            geometry.merge(context.geometry.texture_pp(
+                tick(t),
+                theme.highlight,
+                0.5,
+                &context.context.assets.sprites.timeline.tick_tiny,
+            ));
+            geometry.merge(context.geometry.texture_pp(
+                tick(1.0),
+                theme.light,
+                0.5,
+                &context.context.assets.sprites.timeline.tick_smol,
+            ));
+
+            geometry.merge(context.geometry.quad(fill, theme.highlight));
+            geometry.merge(context.geometry.quad(quad, theme.light));
+        }
+
+        geometry
+    }
+}
