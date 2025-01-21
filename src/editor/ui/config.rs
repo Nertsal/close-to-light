@@ -2,16 +2,7 @@ use crate::ui::geometry::Geometry;
 
 use super::*;
 
-pub struct EditorConfigUi {
-    // TODO scroll time
-    // /// Normal time scroll.
-    // pub scroll_by: ValueWidget<BeatTime>,
-    // /// Slow time scroll.
-    // pub shift_scroll: ValueWidget<BeatTime>,
-    // /// Fast time scroll.
-    // pub alt_scroll: ValueWidget<BeatTime>,
-    // pub snap_to: CheckboxWidget,
-}
+pub struct EditorConfigUi {}
 
 impl EditorConfigUi {
     pub fn new() -> Self {
