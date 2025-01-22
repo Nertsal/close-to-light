@@ -293,7 +293,7 @@ impl TimelineWidget {
                                 LevelAction::SelectWaypoint(waypoint_id, false).into(),
                             ]);
                             self.dragging_waypoint = true;
-                        } else if !self.context.can_focus() || !self.context.cursor.down {
+                        } else if !self.context.cursor.down {
                             self.dragging_waypoint = false;
                         }
                         if self.dragging_waypoint && is_waypoint_selected {
