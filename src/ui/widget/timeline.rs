@@ -396,11 +396,17 @@ impl TimelineWidget {
         {
             let from = timing.time;
             let until = next.map(|timing| timing.time);
-            for i in 0.. {
+            for i in 0i32.. {
                 let offset = r32(i as f32) * timing.beat_time;
                 let time = from + seconds_to_time(offset);
 
-                if -(time + self.scroll) > self.visible_scroll() / 2 {
+                let mut check_time = -(time + self.scroll);
+                if time < -self.scroll {
+                    // NOTE: technically imprecise calculation of the next beat timing
+                    // but this is strictly for visualization so it doesn't matter much
+                    check_time -= seconds_to_time(timing.beat_time);
+                }
+                if check_time > self.visible_scroll() / 2 {
                     continue;
                 }
 
