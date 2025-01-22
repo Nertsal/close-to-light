@@ -1,6 +1,9 @@
 use super::{mask::MaskedRender, util::UtilRender, *};
 
-use crate::ui::{layout::AreaOps, widget::*};
+use crate::{
+    ui::{layout::AreaOps, widget::*},
+    util::SubTexture,
+};
 
 pub fn pixel_scale(framebuffer_size: vec2<usize>) -> f32 {
     const TARGET_SIZE: vec2<usize> = vec2(640, 360);
@@ -115,6 +118,22 @@ impl UiRender {
         );
     }
 
+    pub fn draw_subtexture(
+        &self,
+        quad: Aabb2<f32>,
+        texture: &SubTexture,
+        color: Color,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let size = texture.size().as_f32() * pixel_scale(framebuffer.size());
+        let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+        self.context.geng.draw2d().draw2d(
+            framebuffer,
+            &geng::PixelPerfectCamera,
+            &draw2d::TexturedQuad::colored(pos, &*texture.texture, color).sub_texture(texture.uv),
+        );
+    }
+
     pub fn draw_outline(
         &self,
         quad: Aabb2<f32>,
@@ -197,7 +216,7 @@ impl UiRender {
                 }
             }
         }
-        self.draw_texture(
+        self.draw_subtexture(
             icon.state.position,
             &icon.texture,
             theme.get_color(icon.color),

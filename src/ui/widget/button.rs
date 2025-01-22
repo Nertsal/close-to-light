@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{assets::PixelTexture, model::ThemeColor, ui::layout::AreaOps};
+use crate::{model::ThemeColor, ui::layout::AreaOps, util::SubTexture};
 
 use ctl_client::core::types::Name;
 
@@ -73,11 +73,7 @@ pub struct IconButtonWidget {
 }
 
 impl IconButtonWidget {
-    pub fn new(
-        texture: &PixelTexture,
-        light_color: ThemeColor,
-        bg_kind: IconBackgroundKind,
-    ) -> Self {
+    pub fn new(texture: SubTexture, light_color: ThemeColor, bg_kind: IconBackgroundKind) -> Self {
         let mut icon = IconWidget::new(texture);
         icon.background = Some(IconBackground {
             color: ThemeColor::Dark,
@@ -90,15 +86,15 @@ impl IconButtonWidget {
         }
     }
 
-    pub fn new_normal(texture: &PixelTexture) -> Self {
+    pub fn new_normal(texture: SubTexture) -> Self {
         Self::new(texture, ThemeColor::Light, IconBackgroundKind::NineSlice)
     }
 
-    pub fn new_danger(texture: &PixelTexture) -> Self {
+    pub fn new_danger(texture: SubTexture) -> Self {
         Self::new(texture, ThemeColor::Danger, IconBackgroundKind::NineSlice)
     }
 
-    pub fn new_close_button(texture: &PixelTexture) -> Self {
+    pub fn new_close_button(texture: SubTexture) -> Self {
         Self::new(texture, ThemeColor::Danger, IconBackgroundKind::Circle)
     }
 

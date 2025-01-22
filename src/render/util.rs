@@ -142,29 +142,27 @@ impl UtilRender {
         );
 
         // Textures
-        for textured in geometry.textures {
-            let triangles =
-                ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), textured.triangles);
-            ugli::draw(
-                framebuffer,
-                &self.context.assets.shaders.texture_ui,
-                ugli::DrawMode::Triangles,
-                &triangles,
-                (
-                    ugli::uniforms! {
-                        u_texture: &*textured.texture,
-                        u_model_matrix: mat3::identity(),
-                        u_color: Color::WHITE,
-                    },
-                    camera.uniforms(framebuffer_size),
-                ),
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    depth_func: Some(ugli::DepthFunc::Less),
-                    ..default()
+        let triangles =
+            ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), geometry.textures);
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.texture_ui,
+            ugli::DrawMode::Triangles,
+            &triangles,
+            (
+                ugli::uniforms! {
+                    u_texture: self.context.assets.atlas.texture(),
+                    u_model_matrix: mat3::identity(),
+                    u_color: Color::WHITE,
                 },
-            );
-        }
+                camera.uniforms(framebuffer_size),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                depth_func: Some(ugli::DepthFunc::Less),
+                ..default()
+            },
+        );
 
         // Text
         for text in geometry.text {

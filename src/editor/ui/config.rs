@@ -138,7 +138,7 @@ impl EditorConfigUi {
                 if i > 0 && (up_hover || !down_hover) {
                     let icon_up = context
                         .state
-                        .get_or(|| IconWidget::new(&context.context.assets.sprites.arrow_up));
+                        .get_or(|| IconWidget::new(context.context.assets.atlas.arrow_up()));
                     icon_up.update(up, context);
                     if icon_up.state.clicked {
                         actions.push(EditorAction::MoveLevelLow(i).into());
@@ -148,7 +148,7 @@ impl EditorConfigUi {
                 if i < max && (down_hover || !up_hover) {
                     let icon_down = context
                         .state
-                        .get_or(|| IconWidget::new(&context.context.assets.sprites.arrow_down));
+                        .get_or(|| IconWidget::new(context.context.assets.atlas.arrow_down()));
                     icon_down.update(down, context);
                     if icon_down.state.clicked {
                         actions.push(EditorAction::MoveLevelHigh(i).into());
@@ -311,19 +311,19 @@ impl Widget for BeatValueWidget {
                 tick(0.0),
                 theme.highlight,
                 0.5,
-                &context.context.assets.sprites.timeline.tick_smol,
+                &context.context.assets.atlas.timeline_tick_smol(),
             ));
             geometry.merge(context.geometry.texture_pp(
                 tick(t),
                 theme.highlight,
                 0.5,
-                &context.context.assets.sprites.timeline.tick_tiny,
+                &context.context.assets.atlas.timeline_tick_tiny(),
             ));
             geometry.merge(context.geometry.texture_pp(
                 tick(1.0),
                 theme.light,
                 0.5,
-                &context.context.assets.sprites.timeline.tick_smol,
+                &context.context.assets.atlas.timeline_tick_smol(),
             ));
 
             geometry.merge(context.geometry.quad(fill, theme.highlight));

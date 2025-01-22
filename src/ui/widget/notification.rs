@@ -107,7 +107,7 @@ impl NotificationWidget {
             offset_y: Lerp::new_smooth(0.3, 0.0, 0.0),
             state: WidgetState::new(),
             text: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
-            confirm: IconButtonWidget::new_normal(&assets.sprites.confirm),
+            confirm: IconButtonWidget::new_normal(assets.atlas.confirm()),
         }
     }
 }

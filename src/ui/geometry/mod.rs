@@ -1,11 +1,10 @@
-use crate::{
-    assets::{Assets, PixelTexture},
-    render::util::TextRenderOptions,
-};
+use crate::{assets::Assets, render::util::TextRenderOptions, util::SubTexture};
 
 use ctl_client::core::{prelude::Color, types::Name};
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
+
+use super::layout::AreaOps;
 
 #[derive(Clone)]
 pub struct GeometryContext {
@@ -19,8 +18,8 @@ pub struct GeometryContext {
 #[derive(Default, Debug)]
 pub struct Geometry {
     pub triangles: Vec<GeometryTriangleVertex>,
-    // TODO: texture atlas and move to triangles
-    pub textures: Vec<GeometryTexture>,
+    // TODO: combine with triangles (requires having one white pixel for non-texture triangles)
+    pub textures: Vec<GeometryTriangleVertex>,
     pub text: Vec<GeometryText>,
     pub masked: Vec<MaskedGeometry>,
 }
@@ -42,12 +41,6 @@ pub struct GeometryTriangleVertex {
     pub a_color: Color,
     /// Texture coordinates (when using a texture)
     pub a_vt: vec2<f32>,
-}
-
-#[derive(Debug)]
-pub struct GeometryTexture {
-    pub texture: PixelTexture,
-    pub triangles: Vec<GeometryTriangleVertex>,
 }
 
 #[derive(Debug)]
@@ -78,10 +71,8 @@ impl Geometry {
         for v in &mut self.triangles {
             v.a_z += delta;
         }
-        for texture in &mut self.textures {
-            for v in &mut texture.triangles {
-                v.a_z += delta;
-            }
+        for v in &mut self.textures {
+            v.a_z += delta;
         }
         for text in &mut self.text {
             text.z_index += delta;
@@ -95,9 +86,9 @@ impl Geometry {
         }
     }
 
-    fn texture(texture: GeometryTexture) -> Self {
+    fn texture(triangles: Vec<GeometryTriangleVertex>) -> Self {
         Self {
-            textures: vec![texture],
+            textures: triangles,
             ..default()
         }
     }
@@ -161,9 +152,9 @@ impl GeometryContext {
     }
 
     #[must_use]
-    pub fn nine_slice(&self, pos: Aabb2<f32>, color: Color, texture: &PixelTexture) -> Geometry {
+    pub fn nine_slice(&self, pos: Aabb2<f32>, color: Color, texture: &SubTexture) -> Geometry {
         let z_index = self.next_z_index();
-        let texture = texture.clone();
+        let texture_quad = texture.uv;
         let whole = Aabb2::ZERO.extend_positive(vec2::splat(1.0));
 
         // TODO: configurable
@@ -172,7 +163,8 @@ impl GeometryContext {
             max: vec2(0.7, 0.7),
         };
 
-        let size = mid.min * texture.size().as_f32() * self.pixel_scale;
+        let size =
+            mid.min * texture_quad.size() * texture.texture.size().as_f32() * self.pixel_scale;
         let size = vec2(size.x.min(pos.width()), size.y.min(pos.height()));
 
         let tl = Aabb2::from_corners(mid.top_left(), whole.top_left());
@@ -208,14 +200,14 @@ impl GeometryContext {
                         a_z: z_index,
                         a_pos,
                         a_color: color,
-                        a_vt,
+                        a_vt: texture_quad.align_pos(a_vt),
                     }
                 });
                 [a, b, c, a, c, d]
             })
             .collect();
 
-        Geometry::texture(GeometryTexture { texture, triangles })
+        Geometry::texture(triangles)
     }
 
     #[must_use]
@@ -245,9 +237,9 @@ impl GeometryContext {
         let size = position.size();
         let size = size.x.min(size.y);
         let texture = if size < 48.0 * self.pixel_scale {
-            &self.assets.sprites.fill_thin
+            &self.assets.atlas.fill_thin()
         } else {
-            &self.assets.sprites.fill
+            &self.assets.atlas.fill()
         };
         self.nine_slice(position, color, texture)
     }
@@ -255,11 +247,11 @@ impl GeometryContext {
     #[must_use]
     pub fn quad_outline(&self, position: Aabb2<f32>, width: f32, color: Color) -> Geometry {
         let (texture, real_width) = if width < 2.0 * self.pixel_scale {
-            (&self.assets.sprites.border_thinner, 1.0 * self.pixel_scale)
+            (&self.assets.atlas.border_thinner(), 1.0 * self.pixel_scale)
         } else if width < 4.0 * self.pixel_scale {
-            (&self.assets.sprites.border_thin, 2.0 * self.pixel_scale)
+            (&self.assets.atlas.border_thin(), 2.0 * self.pixel_scale)
         } else {
-            (&self.assets.sprites.border, 4.0 * self.pixel_scale)
+            (&self.assets.atlas.border(), 4.0 * self.pixel_scale)
         };
         self.nine_slice(position.extend_uniform(real_width - width), color, texture)
     }
@@ -270,10 +262,9 @@ impl GeometryContext {
         position: Aabb2<f32>,
         transform: mat3<f32>,
         color: Color,
-        texture: &PixelTexture,
+        texture: &SubTexture,
     ) -> Geometry {
         let z_index = self.next_z_index();
-        let texture = texture.clone();
 
         let [a, b, c, d] = position.corners();
         let a = (a, vec2(0.0, 0.0));
@@ -286,11 +277,11 @@ impl GeometryContext {
                 a_z: z_index,
                 a_pos: (transform * a_pos.extend(1.0)).into_2d(),
                 a_color: color,
-                a_vt,
+                a_vt: texture.uv.align_pos(a_vt),
             })
             .collect();
 
-        Geometry::texture(GeometryTexture { texture, triangles })
+        Geometry::texture(triangles)
     }
 
     /// Pixel perfect texture
@@ -300,9 +291,10 @@ impl GeometryContext {
         center: vec2<f32>,
         color: Color,
         scale: f32,
-        texture: &PixelTexture,
+        texture: &SubTexture,
     ) -> Geometry {
-        let size = texture.size() * (self.pixel_scale * scale).round() as usize;
+        let size = (texture.uv.size() * texture.texture.size().as_f32() * self.pixel_scale * scale)
+            .map(|x| x.round() as usize);
         let position = geng_utils::pixel::pixel_perfect_aabb(
             center,
             vec2(0.5, 0.5),
@@ -321,7 +313,7 @@ impl GeometryContext {
         center: vec2<f32>,
         color: Color,
         pixels_per_unit: usize,
-        texture: &PixelTexture,
+        texture: &SubTexture,
     ) -> Geometry {
         let size = texture.size() * pixels_per_unit;
         let position = geng_utils::pixel::pixel_perfect_aabb(

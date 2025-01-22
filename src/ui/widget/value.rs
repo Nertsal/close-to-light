@@ -154,19 +154,19 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
                     tick(0.0),
                     theme.highlight,
                     0.5,
-                    &context.context.assets.sprites.timeline.tick_smol,
+                    &context.context.assets.atlas.timeline_tick_smol(),
                 ));
                 geometry.merge(context.geometry.texture_pp(
                     tick(t.as_f32()),
                     theme.highlight,
                     0.5,
-                    &context.context.assets.sprites.timeline.tick_tiny,
+                    &context.context.assets.atlas.timeline_tick_tiny(),
                 ));
                 geometry.merge(context.geometry.texture_pp(
                     tick(1.0),
                     theme.light,
                     0.5,
-                    &context.context.assets.sprites.timeline.tick_smol,
+                    &context.context.assets.atlas.timeline_tick_smol(),
                 ));
 
                 geometry.merge(context.geometry.quad(fill, theme.highlight));
@@ -177,7 +177,7 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
                     Angle::from_radians((self.value / period).as_f32() * std::f32::consts::TAU);
                 let angle = zero_angle + angle;
 
-                let texture = &context.context.assets.sprites.value_knob;
+                let texture = context.context.assets.atlas.value_knob();
                 let size = texture.size().as_f32() * context.geometry.pixel_scale;
 
                 let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
@@ -185,7 +185,7 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
                     pos,
                     mat3::rotate_around(pos.center(), angle),
                     theme.light,
-                    texture,
+                    &texture,
                 ));
             }
         }

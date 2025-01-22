@@ -42,7 +42,7 @@ impl MenuUI {
 
         Self {
             screen: WidgetState::new(),
-            ctl_logo: IconWidget::new(&assets.sprites.title),
+            ctl_logo: IconWidget::new(assets.atlas.title()),
             separator: WidgetState::new(),
 
             options: OptionsButtonWidget::new(assets, 0.25),

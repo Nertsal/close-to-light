@@ -387,14 +387,14 @@ impl EditorEditUi {
                             if let WaypointId::Initial = selected {
                                 let button = context.state.get_or(|| {
                                     IconWidget::new(
-                                        &context.context.assets.sprites.button_prev_hollow,
+                                        context.context.assets.atlas.button_prev_hollow(),
                                     )
                                 });
                                 button.update(prev, context);
                             } else {
                                 let button = context.state.get_or(|| {
                                     IconButtonWidget::new_normal(
-                                        &context.context.assets.sprites.button_prev,
+                                        context.context.assets.atlas.button_prev(),
                                     )
                                 });
                                 button.update(prev, context);
@@ -418,14 +418,14 @@ impl EditorEditUi {
                             if i >= frames {
                                 let button = context.state.get_or(|| {
                                     IconWidget::new(
-                                        &context.context.assets.sprites.button_next_hollow,
+                                        context.context.assets.atlas.button_next_hollow(),
                                     )
                                 });
                                 button.update(next, context);
                             } else {
                                 let button = context.state.get_or(|| {
                                     IconButtonWidget::new_normal(
-                                        &context.context.assets.sprites.button_next,
+                                        context.context.assets.atlas.button_next(),
                                     )
                                 });
                                 button.update(next, context);

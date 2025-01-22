@@ -287,8 +287,12 @@ impl GameRender {
                     .world_to_screen(framebuffer.size().as_f32(), position.center())
                 {
                     let texture = self.context.assets.get_modifier(modifier);
-                    self.ui
-                        .draw_texture(Aabb2::point(position), texture, theme.light, framebuffer);
+                    self.ui.draw_subtexture(
+                        Aabb2::point(position),
+                        &texture,
+                        theme.light,
+                        framebuffer,
+                    );
                 }
             }
 

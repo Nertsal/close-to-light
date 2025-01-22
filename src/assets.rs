@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use ctl_client::core::types::MusicInfo;
 use geng::prelude::*;
 
-use crate::prelude::Modifier;
+use crate::{prelude::Modifier, util::SubTexture};
 
 #[derive(geng::asset::Load)]
 pub struct MusicAssets {
@@ -15,6 +15,7 @@ pub struct MusicAssets {
 #[derive(geng::asset::Load)]
 pub struct Assets {
     pub sprites: Sprites,
+    pub atlas: Rc<SpritesAtlas>,
     pub dither: DitherAssets,
     pub shaders: Shaders,
     pub fonts: Fonts,
@@ -30,64 +31,74 @@ pub struct Sprites {
     pub title: PixelTexture,
     pub linear_gradient: PixelTexture,
     pub radial_gradient: PixelTexture,
-    pub button_next: PixelTexture,
-    pub button_next_hollow: PixelTexture,
-    pub button_prev: PixelTexture,
-    pub button_prev_hollow: PixelTexture,
-    pub button_close: PixelTexture,
     pub border: PixelTexture,
     pub border_thin: PixelTexture,
     pub border_thinner: PixelTexture,
     pub fill: PixelTexture,
     pub fill_thin: PixelTexture,
     pub circle: PixelTexture,
-    pub help: PixelTexture,
-    pub reset: PixelTexture,
-    pub head: PixelTexture,
-    pub edit: PixelTexture,
-    pub download: PixelTexture,
-    pub goto: PixelTexture,
-    pub trash: PixelTexture,
-    pub settings: PixelTexture,
-    pub discord: PixelTexture,
-    pub star: PixelTexture,
-    pub local: PixelTexture,
-    pub dotdotdot: PixelTexture,
-    pub arrow_up: PixelTexture,
-    pub arrow_down: PixelTexture,
-    pub arrow_left: PixelTexture,
-    pub arrow_right: PixelTexture,
-    pub pause: PixelTexture,
-    pub confirm: PixelTexture,
-    pub discard: PixelTexture,
-    pub loading: PixelTexture,
-    pub mod_nofail: PixelTexture,
-    pub mod_sudden: PixelTexture,
-    pub mod_hidden: PixelTexture,
-    pub value_knob: PixelTexture,
-    pub dropdown: PixelTexture,
-    pub timeline: TimelineAssets,
 }
 
-#[derive(geng::asset::Load)]
-pub struct TimelineAssets {
-    pub arrow: PixelTexture,
-    pub current_arrow: PixelTexture,
-    pub dots: PixelTexture,
-    pub waypoint: PixelTexture,
+ctl_derive::texture_atlas!(pub SpritesAtlas {
+    title,
+    linear_gradient,
+    radial_gradient,
+    button_next,
+    button_next_hollow,
+    button_prev,
+    button_prev_hollow,
+    button_close,
+    border,
+    border_thin,
+    border_thinner,
+    fill,
+    fill_thin,
+    circle,
+    help,
+    reset,
+    head,
+    edit,
+    download,
+    goto,
+    trash,
+    settings,
+    discord,
+    star,
+    local,
+    dotdotdot,
+    arrow_up,
+    arrow_down,
+    arrow_left,
+    arrow_right,
+    pause,
+    confirm,
+    discard,
+    loading,
+    mod_nofail,
+    mod_sudden,
+    mod_hidden,
+    value_knob,
+    dropdown,
 
-    pub circle: PixelTexture,
-    pub circle_fill: PixelTexture,
-    pub square: PixelTexture,
-    pub square_fill: PixelTexture,
-    pub triangle: PixelTexture,
-    pub triangle_fill: PixelTexture,
+    timeline: {
+        arrow,
+        current_arrow,
+        dots,
+        waypoint,
 
-    pub tick_big: PixelTexture,
-    pub tick_mid: PixelTexture,
-    pub tick_smol: PixelTexture,
-    pub tick_tiny: PixelTexture,
-}
+        circle,
+        circle_fill,
+        square,
+        square_fill,
+        triangle,
+        triangle_fill,
+
+        tick_big,
+        tick_mid,
+        tick_smol,
+        tick_tiny
+    }
+});
 
 #[derive(geng::asset::Load)]
 pub struct Shaders {
@@ -176,11 +187,11 @@ impl Assets {
             .context("failed to load assets")
     }
 
-    pub fn get_modifier(&self, modifier: Modifier) -> &PixelTexture {
+    pub fn get_modifier(&self, modifier: Modifier) -> SubTexture {
         match modifier {
-            Modifier::NoFail => &self.sprites.mod_nofail,
-            Modifier::Sudden => &self.sprites.mod_sudden,
-            Modifier::Hidden => &self.sprites.mod_hidden,
+            Modifier::NoFail => self.atlas.mod_nofail(),
+            Modifier::Sudden => self.atlas.mod_sudden(),
+            Modifier::Hidden => self.atlas.mod_hidden(),
         }
     }
 }

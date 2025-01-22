@@ -29,8 +29,8 @@ impl ConfirmWidget {
             state: WidgetState::new(),
             title: TextWidget::new(title),
             message: TextWidget::new(message),
-            confirm: IconButtonWidget::new_normal(&assets.sprites.confirm),
-            discard: IconButtonWidget::new_normal(&assets.sprites.discard),
+            confirm: IconButtonWidget::new_normal(assets.atlas.confirm()),
+            discard: IconButtonWidget::new_normal(assets.atlas.discard()),
         }
     }
 }

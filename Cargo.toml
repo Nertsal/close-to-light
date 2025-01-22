@@ -7,6 +7,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
+ctl-derive = { path = "crates/ctl-derive" }
 ctl-core = { path = "crates/ctl-core" }
 ctl-client = { path = "crates/ctl-client" }
 
@@ -38,6 +39,11 @@ base64 = "0.22.1"
 async-compat = "0.2.4"
 num-rational = "0.4.2"
 
+# Derive
+darling = "0.20"
+proc-macro2 = "1.0"
+quote = "1.0"
+
 # Server
 axum = { version = "0.7.2", features = ["macros", "multipart"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
@@ -68,6 +74,7 @@ edition.workspace = true
 
 [dependencies]
 ctl-client.workspace = true
+ctl-derive.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true

@@ -21,7 +21,7 @@ impl OptionsButtonWidget {
         Self {
             state: WidgetState::new(),
             open_time: Bounded::new_zero(time),
-            button: IconWidget::new(&assets.sprites.settings),
+            button: IconWidget::new(assets.atlas.settings()),
             options: OptionsWidget::new(
                 assets,
                 Options::default(),

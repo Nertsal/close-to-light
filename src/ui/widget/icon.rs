@@ -1,11 +1,11 @@
 use super::*;
 
-use crate::{assets::PixelTexture, prelude::ThemeColor};
+use crate::{prelude::ThemeColor, util::SubTexture};
 
 #[derive(Clone)]
 pub struct IconWidget {
     pub state: WidgetState,
-    pub texture: PixelTexture,
+    pub texture: SubTexture,
     pub color: ThemeColor,
     pub background: Option<IconBackground>,
 }
@@ -23,7 +23,7 @@ pub enum IconBackgroundKind {
 }
 
 impl IconWidget {
-    pub fn new(texture: &PixelTexture) -> Self {
+    pub fn new(texture: SubTexture) -> Self {
         Self {
             state: WidgetState::new(),
             texture: texture.clone(),
@@ -61,7 +61,7 @@ impl Widget for IconWidget {
             match bg.kind {
                 IconBackgroundKind::NineSlice => {
                     let texture = //if width < 5.0 {
-                        &context.context.assets.sprites.fill_thin;
+                        &context.context.assets.atlas.fill_thin();
                     // } else {
                     //     &self.assets.sprites.fill
                     // };
@@ -76,7 +76,7 @@ impl Widget for IconWidget {
                         self.state.position.center(),
                         theme.get_color(bg.color),
                         0.5,
-                        &context.context.assets.sprites.circle,
+                        &context.context.assets.atlas.circle(),
                     ));
                 }
             }

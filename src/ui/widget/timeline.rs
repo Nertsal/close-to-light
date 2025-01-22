@@ -1,11 +1,10 @@
 use super::*;
 
 use crate::{
-    assets::PixelTexture,
     editor::{Change, EditorAction, LevelAction, LevelEditor, LightId, ScrollSpeed},
     prelude::*,
     ui::{layout::AreaOps, UiState},
-    util::{SecondOrderDynamics, SecondOrderState},
+    util::{SecondOrderDynamics, SecondOrderState, SubTexture},
 };
 
 use std::collections::BTreeMap;
@@ -110,7 +109,7 @@ impl TimelineWidget {
     }
 
     fn reload(&mut self, editor: &LevelEditor, actions: &mut Vec<EditorAction>) {
-        let sprites = &self.context.context.assets.sprites.timeline;
+        let atlas = &self.context.context.assets.atlas;
 
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
@@ -220,7 +219,7 @@ impl TimelineWidget {
                     let position = Aabb2::point(from).extend_symmetric(size / 2.0);
                     let tick = self.context.state.get_or(|| {
                         // TODO: somehow mask this with other stuff
-                        IconButtonWidget::new(&sprites.tick_smol)
+                        IconButtonWidget::new(atlas.timeline_tick_smol())
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
                     });
                     tick.update(position, &self.context);
@@ -237,7 +236,7 @@ impl TimelineWidget {
                     let position = Aabb2::point(to).extend_symmetric(size / 2.0);
                     let tick = self.context.state.get_or(|| {
                         // TODO: somehow mask this with other stuff
-                        IconButtonWidget::new(&sprites.tick_smol)
+                        IconButtonWidget::new(atlas.timeline_tick_smol())
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
                     });
                     tick.update(position, &self.context);
@@ -278,7 +277,7 @@ impl TimelineWidget {
                         // Icon
                         let position = render_light(event.time + offset, 0).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
-                        let texture = &sprites.waypoint;
+                        let texture = atlas.timeline_waypoint();
                         // TODO: somehow mask this with other stuff
                         let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
                         icon.color = if is_waypoint_selected {
@@ -293,9 +292,11 @@ impl TimelineWidget {
                             render_time(&self.highlight_line, event.time + offset).center();
                         let position = Aabb2::point(position).extend_symmetric(size / 2.0);
                         let texture = match waypoint_id {
-                            WaypointId::Initial => &sprites.tick_big,
-                            WaypointId::Frame(_) if waypoint_id == last_id => &sprites.tick_mid,
-                            WaypointId::Frame(_) => &sprites.tick_smol,
+                            WaypointId::Initial => atlas.timeline_tick_big(),
+                            WaypointId::Frame(_) if waypoint_id == last_id => {
+                                atlas.timeline_tick_mid()
+                            }
+                            WaypointId::Frame(_) => atlas.timeline_tick_smol(),
                         };
                         let tick = self.context.state.get_or(|| {
                             // TODO: somehow mask this with other stuff
@@ -346,12 +347,15 @@ impl TimelineWidget {
                     if dots as f32 <= self.expansion.current + 0.9 {
                         let light = render_light(light_time, dots);
                         let texture = match light_event.shape {
-                            Shape::Circle { .. } => &sprites.circle,
-                            Shape::Line { .. } => &sprites.square,
-                            Shape::Rectangle { .. } => &sprites.square,
+                            Shape::Circle { .. } => atlas.timeline_circle(),
+                            Shape::Line { .. } => atlas.timeline_square(),
+                            Shape::Rectangle { .. } => atlas.timeline_square(),
                         };
                         // TODO: somehow mask this with other stuff
-                        let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
+                        let icon = self
+                            .context
+                            .state
+                            .get_or(|| IconButtonWidget::new(texture.clone()));
                         icon.update(light, &self.context);
                         icon.color = if is_selected {
                             ThemeColor::Highlight
@@ -360,7 +364,7 @@ impl TimelineWidget {
                         } else {
                             ThemeColor::Light
                         };
-                        icon.texture = texture.clone();
+                        icon.texture = texture;
                         if icon.state.hovered {
                             actions.push(LevelAction::HoverLight(light_id).into());
                         }
@@ -372,7 +376,7 @@ impl TimelineWidget {
                     } else {
                         // Dots to indicate there are more light in that position
                         let dots = render_time(&self.extra_line, light_time);
-                        let texture = &sprites.dots;
+                        let texture = atlas.timeline_dots();
                         // TODO: somehow mask this with other stuff
                         let icon = self.context.state.get_or(|| IconWidget::new(texture));
                         icon.update(dots, &self.context);
@@ -536,7 +540,7 @@ impl Widget for TimelineWidget {
         let pixel_scale = PPU;
         let pixel = pixel_scale as f32;
         let theme = context.theme();
-        let sprites = &context.context.assets.sprites.timeline;
+        let atlas = &context.context.assets.atlas;
 
         let mut geometry = Geometry::new();
 
@@ -553,19 +557,19 @@ impl Widget for TimelineWidget {
 
         for &(pos, beat) in &self.ticks {
             let (color, texture) = if beat == BeatTime::WHOLE {
-                (theme.light, &sprites.tick_big)
+                (theme.light, &atlas.timeline_tick_big())
             } else if beat == BeatTime::HALF {
-                (theme.danger, &sprites.tick_mid)
+                (theme.danger, &atlas.timeline_tick_mid())
             } else if beat == BeatTime::QUARTER {
-                (theme.highlight, &sprites.tick_smol)
+                (theme.highlight, &atlas.timeline_tick_smol())
             } else if beat == BeatTime::EIGHTH {
                 (
                     Color::lerp(theme.highlight, theme.danger, 0.5),
-                    &sprites.tick_tiny,
+                    &atlas.timeline_tick_tiny(),
                 )
             } else {
                 // Unknown beat separation
-                (theme.danger, &sprites.tick_smol)
+                (theme.danger, &atlas.timeline_tick_smol())
             };
             geometry.merge(
                 context
@@ -575,7 +579,7 @@ impl Widget for TimelineWidget {
         }
 
         {
-            let texture = &sprites.current_arrow;
+            let texture = &atlas.timeline_current_arrow();
             let size = texture.size() * pixel_scale;
             let position = geng_utils::pixel::pixel_perfect_aabb(
                 self.ceiling.position.align_pos(vec2(0.5, 1.0)),
@@ -626,15 +630,15 @@ impl Widget for TimelineWidget {
 #[derive(Clone)]
 struct IconWidget {
     state: WidgetState,
-    texture: PixelTexture,
+    texture: SubTexture,
     color: ThemeColor,
 }
 
 impl IconWidget {
-    pub fn new(texture: &PixelTexture) -> Self {
+    pub fn new(texture: SubTexture) -> Self {
         Self {
             state: default(),
-            texture: texture.clone(),
+            texture,
             color: ThemeColor::Light,
         }
     }
@@ -671,16 +675,16 @@ enum HighlightMode {
 #[derive(Clone)]
 struct IconButtonWidget {
     state: WidgetState,
-    texture: PixelTexture,
+    texture: SubTexture,
     color: ThemeColor,
     highlight: HighlightMode,
 }
 
 impl IconButtonWidget {
-    pub fn new(texture: &PixelTexture) -> Self {
+    pub fn new(texture: SubTexture) -> Self {
         Self {
             state: WidgetState::new(),
-            texture: texture.clone(),
+            texture,
             color: ThemeColor::Light,
             highlight: HighlightMode::SwapColors,
         }

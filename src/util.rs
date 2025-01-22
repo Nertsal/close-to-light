@@ -1,7 +1,8 @@
 mod lerp;
 mod sod;
+mod texture_atlas;
 
-pub use self::{lerp::*, sod::*};
+pub use self::{lerp::*, sod::*, texture_atlas::*};
 
 use geng::prelude::*;
 use geng_utils::bounded::Bounded;

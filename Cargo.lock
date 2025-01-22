@@ -1200,6 +1200,7 @@ dependencies = [
  "bincode",
  "cbor4ii",
  "ctl-client",
+ "ctl-derive",
  "data-encoding",
  "directories",
  "enum-iterator",
@@ -1565,6 +1566,16 @@ dependencies = [
  "serde",
  "sha2",
  "uuid",
+]
+
+[[package]]
+name = "ctl-derive"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "thiserror",
 ]
 
 [[package]]
