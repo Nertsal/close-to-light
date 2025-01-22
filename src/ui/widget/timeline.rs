@@ -250,29 +250,10 @@ impl TimelineWidget {
                         );
                     }
 
-                    let mut last_dot_time = from_time;
-                    let mut connect_dots = |time: Time| {
-                        // TODO: variable timing within this segment
-                        let timing = self.level.timing.get_timing(from_time);
-
-                        let resolution = 4.0; // Ticks per beat
-                        let step = timing.beat_time / r32(resolution);
-                        let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
-                            .floor() as usize;
-                        let dots = (0..=dots).map(|i| {
-                            let time = last_dot_time + seconds_to_time(step * r32(i as f32));
-                            render_light(time, 0).center()
-                        });
-
-                        self.dots.extend(dots);
-                        last_dot_time = time;
-                    };
-
                     let last_id =
                         WaypointId::Frame(light_event.movement.key_frames.len().saturating_sub(1));
                     for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
                         let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
-                        // connect_dots(time + offset);
 
                         // Icon
                         let position = render_light(event.time + offset, 0).center();
@@ -324,9 +305,9 @@ impl TimelineWidget {
                             );
                         }
                     }
-
-                    connect_dots(event.time + light_event.movement.total_duration());
                 }
+
+                let mut is_hovered = false;
 
                 // Light icon
                 let light_time = event.time + light_event.movement.fade_in;
@@ -365,6 +346,7 @@ impl TimelineWidget {
                             ThemeColor::Light
                         };
                         icon.texture = texture;
+                        is_hovered = is_hovered || icon.state.hovered;
                         if icon.state.hovered {
                             actions.push(LevelAction::HoverLight(light_id).into());
                         }
@@ -381,6 +363,39 @@ impl TimelineWidget {
                         let icon = self.context.state.get_or(|| IconWidget::new(texture));
                         icon.update(dots, &self.context);
                     }
+                }
+
+                if !is_selected && is_hovered {
+                    // Waypoints
+                    for (_, _, offset) in light_event.movement.timed_positions() {
+                        // Icon
+                        let position = render_light(event.time + offset, 0).center();
+                        let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                        let texture = atlas.timeline_waypoint();
+                        // TODO: somehow mask this with other stuff
+                        let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
+                        icon.color = ThemeColor::Light;
+                        icon.update(position, &self.context);
+                    }
+                }
+                if is_selected || is_hovered {
+                    // Dots
+                    let last_dot_time = event.time;
+                    let time = event.time + light_event.movement.total_duration();
+
+                    // TODO: variable timing within this segment
+                    let timing = self.level.timing.get_timing(event.time);
+
+                    let resolution = 4.0; // Ticks per beat
+                    let step = timing.beat_time / r32(resolution);
+                    let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
+                        .floor() as usize;
+                    let dots = (0..=dots).map(|i| {
+                        let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                        render_light(time, 0).center()
+                    });
+
+                    self.dots.extend(dots);
                 }
             }
         }
