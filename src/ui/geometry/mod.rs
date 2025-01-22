@@ -101,27 +101,29 @@ impl Geometry {
     }
 }
 
+const DEFAULT_Z: i32 = 1;
+
 impl GeometryContext {
     pub fn new(assets: Rc<Assets>) -> Self {
         Self {
             assets,
             framebuffer_size: vec2(1, 1),
             pixel_scale: 1.0,
-            z_index: 0.into(),
+            z_index: DEFAULT_Z.into(),
         }
     }
 
     pub fn update(&mut self, framebuffer_size: vec2<usize>) {
         self.framebuffer_size = framebuffer_size;
         self.pixel_scale = crate::render::ui::pixel_scale(self.framebuffer_size);
-        *self.z_index.get_mut() = 0;
+        *self.z_index.get_mut() = DEFAULT_Z;
     }
 
     fn next_z_index(&self) -> f32 {
         let mut index = self.z_index.borrow_mut();
         let current = *index;
         *index += 1;
-        (current as f32) * 1e-5
+        (current as f32).log10() * 1e-5
     }
 
     #[must_use]
