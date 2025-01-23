@@ -5,6 +5,7 @@ pub enum LevelAction {
     // Generic actions
     Undo,
     Redo,
+    FlushChanges(Option<HistoryLabel>),
     Cancel,
     SetName(String),
     ToggleWaypointsView,
@@ -34,8 +35,8 @@ pub enum LevelAction {
     DeleteWaypoint(LightId, WaypointId),
     SelectWaypoint(WaypointId, bool),
     DeselectWaypoint,
-    RotateWaypoint(LightId, WaypointId, Angle<Coord>),
-    ScaleWaypoint(LightId, WaypointId, Coord),
+    RotateWaypoint(LightId, WaypointId, Change<Angle<Coord>>),
+    ScaleWaypoint(LightId, WaypointId, Change<Coord>),
     SetWaypointFrame(LightId, WaypointId, Transform),
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
@@ -84,7 +85,8 @@ impl LevelAction {
             LevelAction::DeleteWaypoint(..) => false,
             LevelAction::Undo => false,
             LevelAction::Redo => false,
-            LevelAction::RotateWaypoint(_, _, delta) => *delta == Angle::ZERO,
+            LevelAction::FlushChanges(_) => false,
+            LevelAction::RotateWaypoint(_, _, delta) => delta.is_noop(&Angle::ZERO),
             LevelAction::ToggleDanger(..) => false,
             LevelAction::ToggleWaypointsView => false,
             LevelAction::Cancel => false,
@@ -98,7 +100,7 @@ impl LevelAction {
             LevelAction::PlaceLight(_) => false,
             LevelAction::NewWaypoint => false,
             LevelAction::PlaceWaypoint(_) => false,
-            LevelAction::ScaleWaypoint(_, _, delta) => *delta == Coord::ZERO,
+            LevelAction::ScaleWaypoint(_, _, delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
             LevelAction::DeselectLight => false,
@@ -132,8 +134,13 @@ impl LevelEditor {
             LevelAction::DeleteWaypoint(light, waypoint) => self.delete_waypoint(light, waypoint),
             LevelAction::Undo => self.undo(),
             LevelAction::Redo => self.redo(),
-            LevelAction::RotateWaypoint(light, waypoint, delta) => {
-                self.rotate(light, waypoint, delta)
+            LevelAction::FlushChanges(label) => {
+                if label.map_or(true, |label| self.history.buffer_label == label) {
+                    self.flush_changes()
+                }
+            }
+            LevelAction::RotateWaypoint(light, waypoint, change) => {
+                self.rotate(light, waypoint, change)
             }
             LevelAction::ToggleDanger(light) => self.toggle_danger(light),
             LevelAction::ToggleWaypointsView => self.view_waypoints(),
@@ -183,11 +190,12 @@ impl LevelEditor {
             }
             LevelAction::PlaceLight(position) => self.place_light(position),
             LevelAction::NewWaypoint => self.new_waypoint(),
-            LevelAction::ScaleWaypoint(light_id, waypoint_id, delta) => {
+            LevelAction::ScaleWaypoint(light_id, waypoint_id, change) => {
                 if let Some(event) = self.level.events.get_mut(light_id.event) {
                     if let Event::Light(light) = &mut event.event {
                         if let Some(frame) = light.movement.get_frame_mut(waypoint_id) {
-                            frame.scale = (frame.scale + delta).clamp(r32(0.2), r32(2.0));
+                            change.apply(&mut frame.scale);
+                            frame.scale = frame.scale.clamp(r32(0.2), r32(2.0));
                             self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
                         }
                     }
@@ -522,8 +530,8 @@ impl LevelEditor {
         }
     }
 
-    fn rotate(&mut self, light_id: LightId, waypoint_id: WaypointId, delta: Angle<Coord>) {
-        self.place_rotation += delta;
+    fn rotate(&mut self, light_id: LightId, waypoint_id: WaypointId, change: Change<Angle<Coord>>) {
+        change.apply(&mut self.place_rotation);
 
         let Some(event) = self.level.events.get_mut(light_id.event) else {
             return;
@@ -535,7 +543,7 @@ impl LevelEditor {
             return;
         };
 
-        frame.rotation += delta;
+        change.apply(&mut frame.rotation);
         self.save_state(HistoryLabel::Rotate(light_id, waypoint_id));
     }
 

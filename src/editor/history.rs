@@ -62,6 +62,7 @@ impl History {
     pub fn flush(&mut self, level: &Level) {
         self.buffer_label = HistoryLabel::Unknown;
         self.buffer_state = level.clone();
+        log::debug!("Flushed changes");
     }
 
     /// Save the level without doing any checks.

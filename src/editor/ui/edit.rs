@@ -319,12 +319,22 @@ impl EditorEditUi {
                         let slider = context.state.get_or(|| {
                             ValueWidget::new_range("Fade in", fade, r32(0.25)..=r32(10.0), r32(0.1))
                         });
-                        slider.update(fade_in, context, &mut fade);
-                        context.update_focus(slider.state.hovered);
-                        actions.push(
-                            LevelAction::ChangeFadeIn(light_id, Change::Set(seconds_to_time(fade)))
+                        if slider.update(fade_in, context, &mut fade) {
+                            actions.push(
+                                LevelAction::ChangeFadeIn(
+                                    light_id,
+                                    Change::Set(seconds_to_time(fade)),
+                                )
                                 .into(),
-                        );
+                            );
+                        }
+                        if slider.control_state.released {
+                            actions.push(
+                                LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
+                                    .into(),
+                            );
+                        }
+                        context.update_focus(slider.state.hovered);
                     }
 
                     {
@@ -339,15 +349,22 @@ impl EditorEditUi {
                                 r32(0.1),
                             )
                         });
-                        slider.update(fade_out, context, &mut fade);
+                        if slider.update(fade_out, context, &mut fade) {
+                            actions.push(
+                                LevelAction::ChangeFadeOut(
+                                    light_id,
+                                    Change::Set(seconds_to_time(fade)),
+                                )
+                                .into(),
+                            );
+                        }
+                        if slider.control_state.released {
+                            actions.push(
+                                LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(light_id)))
+                                    .into(),
+                            );
+                        }
                         context.update_focus(slider.state.hovered);
-                        actions.push(
-                            LevelAction::ChangeFadeOut(
-                                light_id,
-                                Change::Set(seconds_to_time(fade)),
-                            )
-                            .into(),
-                        );
                     }
 
                     bar.cut_top(layout_size * 1.5);
@@ -454,16 +471,31 @@ impl EditorEditUi {
                             }
                             tooltip.update(&button.text.state, "X", context);
 
-                            let mut new_frame = frame;
-
                             let scale = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
                             let slider = context.state.get_or(|| {
                                 ValueWidget::new_range("Scale", value, 0.25..=10.0, 0.25)
                             });
-                            slider.update(scale, context, &mut value);
-                            new_frame.scale = r32(value);
+                            if slider.update(scale, context, &mut value) {
+                                actions.push(
+                                    LevelAction::ScaleWaypoint(
+                                        waypoints.light,
+                                        selected,
+                                        Change::Set(r32(value)),
+                                    )
+                                    .into(),
+                                );
+                            }
+                            if slider.control_state.released {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(HistoryLabel::Scale(
+                                        waypoints.light,
+                                        selected,
+                                    )))
+                                    .into(),
+                                );
+                            }
                             context.update_focus(slider.state.hovered);
 
                             let angle = bar.cut_top(value_height);
@@ -472,15 +504,27 @@ impl EditorEditUi {
                             let slider = context
                                 .state
                                 .get_or(|| ValueWidget::new_circle("Angle", value, 360.0, 1.0));
-                            slider.update(angle, context, &mut value);
-                            new_frame.rotation = Angle::from_degrees(r32(value.round()));
+                            if slider.update(angle, context, &mut value) {
+                                actions.push(
+                                    LevelAction::RotateWaypoint(
+                                        waypoints.light,
+                                        selected,
+                                        Change::Set(Angle::from_degrees(r32(value.round()))),
+                                    )
+                                    .into(),
+                                );
+                            }
+                            if slider.control_state.released {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(HistoryLabel::Rotate(
+                                        waypoints.light,
+                                        selected,
+                                    )))
+                                    .into(),
+                                );
+                            }
                             context.update_focus(slider.state.hovered);
                             tooltip.update(&slider.state, "Q/E", context);
-
-                            actions.push(
-                                LevelAction::SetWaypointFrame(waypoints.light, selected, new_frame)
-                                    .into(),
-                            );
 
                             // Interpolation
                             let curve = bar.cut_top(button_height);

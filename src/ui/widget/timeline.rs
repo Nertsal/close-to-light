@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    editor::{Change, EditorAction, LevelAction, LevelEditor, LightId, ScrollSpeed},
+    editor::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId, ScrollSpeed},
     prelude::*,
     ui::{layout::AreaOps, UiState},
     util::{SecondOrderDynamics, SecondOrderState, SubTexture},
@@ -231,6 +231,11 @@ impl TimelineWidget {
                         actions
                             .push(LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)).into());
                     }
+                    if tick.state.released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id))).into(),
+                        );
+                    }
 
                     // Fade out
                     let position = Aabb2::point(to).extend_symmetric(size / 2.0);
@@ -247,6 +252,11 @@ impl TimelineWidget {
                         let fade_out = target - to_time + light_event.movement.fade_out;
                         actions.push(
                             LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)).into(),
+                        );
+                    }
+                    if tick.state.released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(light_id))).into(),
                         );
                     }
 
@@ -294,6 +304,14 @@ impl TimelineWidget {
                             ]);
                             self.dragging_waypoint = true;
                         } else if !self.context.cursor.down {
+                            if self.dragging_waypoint {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(
+                                        HistoryLabel::MoveWaypointTime(light_id, waypoint_id),
+                                    ))
+                                    .into(),
+                                );
+                            }
                             self.dragging_waypoint = false;
                         }
                         if self.dragging_waypoint && is_waypoint_selected {

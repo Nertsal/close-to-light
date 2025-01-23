@@ -95,7 +95,7 @@ impl EditorState {
                                     LevelAction::RotateWaypoint(
                                         waypoints.light,
                                         selected,
-                                        Angle::from_degrees(r32(15.0)),
+                                        Change::Add(Angle::from_degrees(r32(15.0))),
                                     )
                                     .into(),
                                 );
@@ -121,7 +121,7 @@ impl EditorState {
                                     LevelAction::RotateWaypoint(
                                         waypoints.light,
                                         selected,
-                                        Angle::from_degrees(r32(-15.0)),
+                                        Change::Add(Angle::from_degrees(r32(-15.0))),
                                     )
                                     .into(),
                                 );

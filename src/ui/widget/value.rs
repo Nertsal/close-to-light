@@ -61,7 +61,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         )
     }
 
-    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut T) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut T) -> bool {
         self.update_impl(position, context, *state, state)
     }
 
@@ -70,11 +70,17 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         position: Aabb2<f32>,
         context: &UiContext,
         state: &mut SecondOrderState<T>,
-    ) {
+    ) -> bool {
         self.update_impl(position, context, state.current, &mut state.target)
     }
 
-    fn update_impl(&mut self, position: Aabb2<f32>, context: &UiContext, value: T, state: &mut T) {
+    fn update_impl(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &UiContext,
+        value: T,
+        state: &mut T,
+    ) -> bool {
         self.value = value;
         let mut target = *state;
         self.state.update(position, context);
@@ -85,7 +91,8 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         self.control_state.update(control, context);
 
         // Drag value
-        if self.control_state.pressed {
+        let controlling = self.control_state.pressed;
+        if controlling {
             // (0,0) in the center, range -0.5..=0.5
             let convert = |pos| {
                 (pos - self.control_state.position.center()) / self.control_state.position.size()
@@ -131,6 +138,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         }
 
         *state = target;
+        controlling
     }
 }
 
