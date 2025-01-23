@@ -199,14 +199,14 @@ impl EditorRender {
                         space_length: 0.2,
                     };
 
-                    let num_points = event.movement.key_frames.len();
-                    if num_points > 0 {
-                        // A dashed line moving through the waypoints to show general direction
-                        const NUM_POINTS: usize = 25;
-                        let num_points = NUM_POINTS * num_points;
+                    // A dashed line moving through the waypoints to show general direction
+                    const POINTS_DENSITY: f32 = 5.0;
+                    let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
+                        .round() as usize;
+                    if !event.movement.key_frames.is_empty() && num_points > 0 {
                         let period =
                             time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
-                        let speed = r32(4.0).recip();
+                        let speed = r32(1.0 / 8.0); // game time per real time
                         let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
                             .map(|i| {
                                 let t = r32(i as f32 / num_points as f32);

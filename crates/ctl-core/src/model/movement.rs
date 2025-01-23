@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -318,6 +320,17 @@ impl Movement {
             .iter()
             .map(|frame| frame.lerp_time)
             .fold(Time::ZERO, Add::add)
+    }
+
+    /// Returns the total distance that a light will travel following this movement.
+    pub fn total_distance(&self) -> Coord {
+        // TODO: cached bake
+        let interpolation = self.bake();
+        interpolation
+            .get_path(5)
+            .tuple_windows()
+            .map(|(a, b)| (b.translation - a.translation).len())
+            .fold(Coord::ZERO, |a, b| a + b)
     }
 
     pub fn change_fade_out(&mut self, target: Time) {
