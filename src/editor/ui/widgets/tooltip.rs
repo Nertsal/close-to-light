@@ -46,10 +46,6 @@ impl TooltipWidget {
 
 impl Widget for TooltipWidget {
     fn draw(&self, context: &UiContext) -> Geometry {
-        if self.state.visible {
-            return Geometry::new();
-        }
-
         let position = self.state.position;
         let theme = context.theme();
         let width = context.font_size * 0.1;
