@@ -11,12 +11,11 @@ mod profile;
 mod slider;
 mod sync;
 mod text;
-mod timeline;
 mod value;
 
 pub use self::{
     button::*, confirm::*, dropdown::*, explore::*, icon::*, input::*, leaderboard::*,
-    notification::*, options::*, profile::*, slider::*, sync::*, text::*, timeline::*, value::*,
+    notification::*, options::*, profile::*, slider::*, sync::*, text::*, value::*,
 };
 
 use super::{context::*, geometry::Geometry, window::*};

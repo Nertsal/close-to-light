@@ -1,6 +1,8 @@
 mod config;
 mod edit;
+mod widgets;
 
+use self::widgets::*;
 pub use self::{config::*, edit::*};
 
 use super::*;
