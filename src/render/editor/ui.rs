@@ -1,9 +1,9 @@
-use crate::ui::geometry::Geometry;
+use crate::ui::{geometry::Geometry, widget::Widget};
 
 use super::*;
 
 impl EditorRender {
-    pub(super) fn draw_ui(&mut self, editor: &Editor, ui: &UiContext) {
+    pub(super) fn draw_ui(&mut self, editor_ui: &EditorUi, ui: &UiContext) {
         let framebuffer = &mut ugli::Framebuffer::new(
             self.geng.ugli(),
             ugli::ColorAttachment::Texture(&mut self.ui_texture),
@@ -19,6 +19,8 @@ impl EditorRender {
         ui.state.iter_widgets(|w| {
             geometry.merge(w.draw(ui));
         });
+
+        geometry.merge(editor_ui.context_menu.draw(ui));
 
         self.util
             .draw_geometry(&mut self.mask_stack, geometry, camera, framebuffer);

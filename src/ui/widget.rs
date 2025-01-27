@@ -25,6 +25,7 @@ use std::any::Any;
 use geng::prelude::*;
 
 pub trait Widget: WidgetToAny {
+    #[must_use]
     fn draw(&self, context: &UiContext) -> Geometry;
 }
 

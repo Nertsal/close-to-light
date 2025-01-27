@@ -4,6 +4,7 @@ use super::*;
 pub enum EditorStateAction {
     Exit,
     Editor(EditorAction),
+    Cancel,
     StopTextEdit,
     UpdateTextEdit(String),
     CursorMove(vec2<f32>),
@@ -14,6 +15,8 @@ pub enum EditorStateAction {
     EndDrag,
     StartDrag(DragTarget),
     ConfirmPopupAction,
+    ContextMenu(vec2<f32>, Vec<(Name, EditorStateAction)>),
+    CloseContextMenu,
 }
 
 impl From<EditorAction> for EditorStateAction {
@@ -36,6 +39,7 @@ impl EditorState {
                 self.transition = Some(geng::state::Transition::Pop);
             }
             EditorStateAction::Editor(action) => self.editor.execute(action),
+            EditorStateAction::Cancel => self.cancel(),
             EditorStateAction::StopTextEdit => {
                 self.ui_context.text_edit.stop();
             }
@@ -77,6 +81,12 @@ impl EditorState {
             EditorStateAction::EndDrag => self.end_drag(),
             EditorStateAction::StartDrag(target) => self.start_drag(target),
             EditorStateAction::ConfirmPopupAction => self.editor.confirm_action(&mut self.ui),
+            EditorStateAction::ContextMenu(position, options) => {
+                self.ui.context_menu = ContextMenuWidget::new(position, options);
+            }
+            EditorStateAction::CloseContextMenu => {
+                self.ui.context_menu.close();
+            }
         }
     }
 
@@ -115,5 +125,13 @@ impl EditorState {
             from_beat: level_editor.current_time.target,
             target,
         });
+    }
+
+    fn cancel(&mut self) {
+        if self.ui.context_menu.is_open() {
+            self.ui.context_menu.close();
+        } else {
+            self.execute(LevelAction::Cancel.into());
+        }
     }
 }

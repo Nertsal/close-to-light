@@ -159,7 +159,7 @@ impl EditorState {
                     }
                 }
                 geng::Key::Escape => {
-                    actions.push(LevelAction::Cancel.into());
+                    actions.push(EditorStateAction::Cancel);
                 }
                 geng::Key::Space => {
                     if let State::Playing { .. } = &level_editor.state {
@@ -201,13 +201,9 @@ impl EditorState {
                     }
                 }
             }
-            geng::Event::MousePress { button } => match button {
-                geng::MouseButton::Left => actions.extend(self.cursor_down()),
-                geng::MouseButton::Middle => {}
-                geng::MouseButton::Right => {
-                    actions.push(LevelAction::Cancel.into());
-                }
-            },
+            geng::Event::MousePress { button } => {
+                actions.extend(self.cursor_down(button));
+            }
             geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
             } => actions.extend(self.cursor_up()),
@@ -243,7 +239,12 @@ impl EditorState {
         actions
     }
 
-    fn cursor_down(&self) -> Vec<EditorStateAction> {
+    fn cursor_down(&self, button: geng::MouseButton) -> Vec<EditorStateAction> {
+        let mut actions = Vec::new();
+        if let geng::MouseButton::Right = button {
+            actions.push(EditorStateAction::CloseContextMenu);
+        }
+
         if self
             .ui
             .game
@@ -251,10 +252,10 @@ impl EditorState {
             .contains(self.ui_context.cursor.position)
             || self.editor.render_options.hide_ui
         {
-            self.game_cursor_down()
-        } else {
-            vec![]
+            actions.extend(self.game_cursor_down(button));
         }
+
+        actions
     }
 
     fn cursor_up(&self) -> Vec<EditorStateAction> {
@@ -315,7 +316,7 @@ impl EditorState {
         actions
     }
 
-    fn game_cursor_down(&self) -> Vec<EditorStateAction> {
+    fn game_cursor_down(&self, button: geng::MouseButton) -> Vec<EditorStateAction> {
         let mut actions = vec![];
 
         let Some(level_editor) = &self.editor.level_edit else {
@@ -332,13 +333,27 @@ impl EditorState {
                     let double = level_editor.selected_light == Some(light_id);
                     if let Some(e) = level_editor.level.events.get(event) {
                         if let Event::Light(light) = &e.event {
-                            let target = DragTarget::Light {
-                                double,
-                                light: LightId { event },
-                                initial_time: e.time,
-                                initial_translation: light.movement.initial.translation,
-                            };
-                            actions.push(EditorStateAction::StartDrag(target));
+                            match button {
+                                geng::MouseButton::Left => {
+                                    let target = DragTarget::Light {
+                                        double,
+                                        light: LightId { event },
+                                        initial_time: e.time,
+                                        initial_translation: light.movement.initial.translation,
+                                    };
+                                    actions.push(EditorStateAction::StartDrag(target));
+                                }
+                                geng::MouseButton::Middle => {}
+                                geng::MouseButton::Right => {
+                                    actions.push(EditorStateAction::ContextMenu(
+                                        self.ui_context.cursor.position,
+                                        vec![(
+                                            "Delete".into(),
+                                            LevelAction::DeleteLight(light_id).into(),
+                                        )],
+                                    ));
+                                }
+                            }
                         }
                     }
                 } else {
@@ -347,7 +362,10 @@ impl EditorState {
                 }
             }
             State::Place { .. } => {
-                actions.push(LevelAction::PlaceLight(self.editor.cursor_world_pos_snapped).into());
+                if let geng::MouseButton::Left = button {
+                    actions
+                        .push(LevelAction::PlaceLight(self.editor.cursor_world_pos_snapped).into());
+                }
             }
             State::Playing { .. } => {}
             State::Waypoints { state, .. } => match state {
@@ -362,17 +380,28 @@ impl EditorState {
                                 {
                                     if let Event::Light(event) = &event.event {
                                         if let Some(frame) = event.movement.get_frame(waypoint) {
-                                            actions.push(
-                                                LevelAction::SelectWaypoint(waypoint, false).into(),
-                                            );
-                                            let initial_translation = frame.translation;
-                                            actions.push(EditorStateAction::StartDrag(
-                                                DragTarget::Waypoint {
-                                                    light: waypoints.light,
-                                                    waypoint,
-                                                    initial_translation,
-                                                },
-                                            ));
+                                            match button {
+                                                geng::MouseButton::Left => {
+                                                    actions.push(
+                                                        LevelAction::SelectWaypoint(
+                                                            waypoint, false,
+                                                        )
+                                                        .into(),
+                                                    );
+                                                    let initial_translation = frame.translation;
+                                                    actions.push(EditorStateAction::StartDrag(
+                                                        DragTarget::Waypoint {
+                                                            light: waypoints.light,
+                                                            waypoint,
+                                                            initial_translation,
+                                                        },
+                                                    ));
+                                                }
+                                                geng::MouseButton::Middle => {}
+                                                geng::MouseButton::Right => {
+                                                    // TODO: context menu
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -384,9 +413,11 @@ impl EditorState {
                     }
                 }
                 WaypointsState::New => {
-                    actions.push(
-                        LevelAction::PlaceWaypoint(self.editor.cursor_world_pos_snapped).into(),
-                    );
+                    if let geng::MouseButton::Left = button {
+                        actions.push(
+                            LevelAction::PlaceWaypoint(self.editor.cursor_world_pos_snapped).into(),
+                        );
+                    }
                 }
             },
         }

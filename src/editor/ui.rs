@@ -2,7 +2,7 @@ mod config;
 mod edit;
 mod widgets;
 
-use self::widgets::*;
+pub(super) use self::widgets::*;
 pub use self::{config::*, edit::*};
 
 use super::*;
@@ -22,6 +22,7 @@ pub struct EditorUi {
     pub game: WidgetState,
     pub edit: EditorEditUi,
     pub config: EditorConfigUi,
+    pub context_menu: ContextMenuWidget,
 }
 
 impl EditorUi {
@@ -30,6 +31,7 @@ impl EditorUi {
             game: default(),
             edit: EditorEditUi::new(),
             config: EditorConfigUi::new(),
+            context_menu: ContextMenuWidget::empty(), // TODO: persistent widget in UI state
         }
     }
 
@@ -51,6 +53,8 @@ impl EditorUi {
         context.screen = screen;
 
         // self.screen.update(screen, context);
+
+        self.context_menu.update(&mut actions, context);
 
         {
             let max_size = screen.size() * 0.75;

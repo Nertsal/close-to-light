@@ -88,7 +88,7 @@ impl EditorRender {
         let edit_tab = matches!(editor.tab, EditorTab::Edit);
         self.draw_game(editor, edit_tab);
         if !editor.render_options.hide_ui {
-            self.draw_ui(editor, context);
+            self.draw_ui(ui, context);
         }
 
         let camera = &geng::PixelPerfectCamera;
