@@ -18,6 +18,7 @@ pub struct LevelEditor {
     pub timeline_light_hover: Option<LightId>,
 
     pub history: History,
+    pub clipboard: Clipboard,
 
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
@@ -42,20 +43,26 @@ impl LevelEditor {
     ) -> Self {
         let mut editor = Self {
             context,
+            level: level.level.data.clone(),
+            name: level.level.meta.name.to_string(),
+
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(),
             timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(0.5))),
             real_time: FloatTime::ZERO,
             selected_light: None,
             timeline_light_hover: None,
+
+            history: History::new(&level.level.data),
+            clipboard: Clipboard::new(),
+
             place_rotation: Angle::ZERO,
             place_scale: Coord::ONE,
+
             state: State::Idle,
             was_scrolling_time: false,
             scrolling_time: false,
-            history: History::new(&level.level.data),
-            level: level.level.data.clone(),
-            name: level.level.meta.name.to_string(),
+
             static_level: level,
             model,
         };
@@ -155,6 +162,27 @@ impl LevelEditor {
     pub fn flush_changes(&mut self) {
         self.history.flush(&self.level);
         log::trace!("flush_changes called by {}", std::panic::Location::caller());
+    }
+
+    pub fn copy(&mut self) {
+        if let Some(id) = self.selected_light {
+            self.execute(LevelAction::CopyLight(id));
+        }
+    }
+
+    pub fn paste(&mut self) {
+        let Some(item) = self.clipboard.paste() else {
+            return;
+        };
+
+        match item {
+            ClipboardItem::Light(light) => {
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target - light.movement.fade_in,
+                    event: Event::Light(light),
+                });
+            }
+        }
     }
 
     // TODO: reimplement with smooth transition or smth

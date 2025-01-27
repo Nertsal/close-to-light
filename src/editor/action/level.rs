@@ -5,6 +5,8 @@ pub enum LevelAction {
     // Generic actions
     Undo,
     Redo,
+    Copy,
+    Paste,
     FlushChanges(Option<HistoryLabel>),
     Cancel,
     SetName(String),
@@ -17,6 +19,7 @@ pub enum LevelAction {
     TimelineZoom(Change<f32>),
 
     // Light actions
+    CopyLight(LightId),
     NewLight(Shape),
     ToggleDangerPlacement,
     PlaceLight(vec2<Coord>),
@@ -81,43 +84,48 @@ impl LevelAction {
     /// Whether the action has no effect.
     pub fn is_noop(&self) -> bool {
         match self {
-            LevelAction::DeleteLight(..) => false,
-            LevelAction::DeleteWaypoint(..) => false,
             LevelAction::Undo => false,
             LevelAction::Redo => false,
+            LevelAction::Copy => false,
+            LevelAction::Paste => false,
             LevelAction::FlushChanges(_) => false,
-            LevelAction::RotateWaypoint(_, _, delta) => delta.is_noop(&Angle::ZERO),
-            LevelAction::ToggleDanger(..) => false,
-            LevelAction::ToggleWaypointsView => false,
             LevelAction::Cancel => false,
+            LevelAction::SetName(_) => false,
+            LevelAction::ToggleWaypointsView => false,
             LevelAction::StopPlaying => false,
             LevelAction::StartPlaying => false,
-            LevelAction::NewLight(_) => false,
             LevelAction::ScalePlacement(delta) => *delta == Coord::ZERO,
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
             LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
+            LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
+
+            LevelAction::CopyLight(_) => false,
+            LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
             LevelAction::PlaceLight(_) => false,
-            LevelAction::NewWaypoint => false,
-            LevelAction::PlaceWaypoint(_) => false,
-            LevelAction::ScaleWaypoint(_, _, delta) => delta.is_noop(&Coord::ZERO),
+            LevelAction::DeleteLight(..) => false,
+            LevelAction::SelectLight(_) => false,
+            LevelAction::DeselectLight => false,
+            LevelAction::ToggleDanger(..) => false,
             LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
-            LevelAction::DeselectLight => false,
-            LevelAction::SelectLight(_) => false,
-            LevelAction::SelectWaypoint(_, _) => false,
-            LevelAction::DeselectWaypoint => false,
-            LevelAction::SetName(_) => false,
-            LevelAction::SetWaypointFrame(..) => false,
-            LevelAction::SetWaypointCurve(..) => false,
-            LevelAction::SetWaypointInterpolation(..) => false,
             LevelAction::MoveLight(_, time, position) => {
                 time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
             LevelAction::HoverLight(_) => false,
+
+            LevelAction::NewWaypoint => false,
+            LevelAction::PlaceWaypoint(_) => false,
+            LevelAction::DeleteWaypoint(..) => false,
+            LevelAction::SelectWaypoint(_, _) => false,
+            LevelAction::DeselectWaypoint => false,
+            LevelAction::RotateWaypoint(_, _, delta) => delta.is_noop(&Angle::ZERO),
+            LevelAction::ScaleWaypoint(_, _, delta) => delta.is_noop(&Coord::ZERO),
+            LevelAction::SetWaypointFrame(..) => false,
+            LevelAction::SetWaypointInterpolation(..) => false,
+            LevelAction::SetWaypointCurve(..) => false,
             LevelAction::MoveWaypoint(_, _, position) => position.is_noop(&vec2::ZERO),
             LevelAction::MoveWaypointTime(_, _, time) => time.is_noop(&Time::ZERO),
-            LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
         }
     }
 }
@@ -130,21 +138,18 @@ impl LevelEditor {
 
         // log::trace!("LevelAction::{:?}", action);
         match action {
-            LevelAction::DeleteLight(light) => self.delete_light(light),
-            LevelAction::DeleteWaypoint(light, waypoint) => self.delete_waypoint(light, waypoint),
             LevelAction::Undo => self.undo(),
             LevelAction::Redo => self.redo(),
+            LevelAction::Copy => self.copy(),
+            LevelAction::Paste => self.paste(),
             LevelAction::FlushChanges(label) => {
                 if label.map_or(true, |label| self.history.buffer_label == label) {
                     self.flush_changes()
                 }
             }
-            LevelAction::RotateWaypoint(light, waypoint, change) => {
-                self.rotate(light, waypoint, change)
-            }
-            LevelAction::ToggleDanger(light) => self.toggle_danger(light),
-            LevelAction::ToggleWaypointsView => self.view_waypoints(),
             LevelAction::Cancel => self.cancel(),
+            LevelAction::SetName(name) => self.name = name,
+            LevelAction::ToggleWaypointsView => self.view_waypoints(),
             LevelAction::StopPlaying => {
                 if let State::Playing {
                     start_time,
@@ -167,13 +172,6 @@ impl LevelEditor {
                     time::Duration::from_secs_f64(self.real_time.as_f32().into()),
                 );
             }
-            LevelAction::NewLight(shape) => {
-                self.execute(LevelAction::DeselectLight);
-                self.state = State::Place {
-                    shape,
-                    danger: false,
-                };
-            }
             LevelAction::ScalePlacement(delta) => {
                 self.place_scale = (self.place_scale + delta).clamp(r32(0.2), r32(2.0));
             }
@@ -183,24 +181,43 @@ impl LevelEditor {
             LevelAction::ScrollTime(delta) => {
                 self.scroll_time(delta);
             }
+            LevelAction::TimelineZoom(change) => {
+                let mut zoom = self.timeline_zoom.target.as_f32();
+                zoom = match change {
+                    Change::Add(delta) => zoom * 2.0.powf(delta),
+                    Change::Set(zoom) => zoom,
+                };
+                let target = zoom.clamp(16.0.recip(), 2.0);
+                self.timeline_zoom.target = r32(target);
+            }
+
+            LevelAction::CopyLight(id) => {
+                if let Some(event) = self.level.events.get(id.event) {
+                    if let Event::Light(light) = &event.event {
+                        self.clipboard.copy(ClipboardItem::Light(light.clone()));
+                    }
+                }
+            }
+            LevelAction::NewLight(shape) => {
+                self.execute(LevelAction::DeselectLight);
+                self.state = State::Place {
+                    shape,
+                    danger: false,
+                };
+            }
             LevelAction::ToggleDangerPlacement => {
                 if let State::Place { danger, .. } = &mut self.state {
                     *danger = !*danger;
                 }
             }
             LevelAction::PlaceLight(position) => self.place_light(position),
-            LevelAction::NewWaypoint => self.new_waypoint(),
-            LevelAction::ScaleWaypoint(light_id, waypoint_id, change) => {
-                if let Some(event) = self.level.events.get_mut(light_id.event) {
-                    if let Event::Light(light) = &mut event.event {
-                        if let Some(frame) = light.movement.get_frame_mut(waypoint_id) {
-                            change.apply(&mut frame.scale);
-                            frame.scale = frame.scale.clamp(r32(0.2), r32(2.0));
-                            self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
-                        }
-                    }
-                }
+            LevelAction::DeleteLight(light) => self.delete_light(light),
+            LevelAction::SelectLight(id) => self.select_light(id),
+            LevelAction::DeselectLight => {
+                self.execute(LevelAction::DeselectWaypoint);
+                self.selected_light = None;
             }
+            LevelAction::ToggleDanger(light) => self.toggle_danger(light),
             LevelAction::ChangeFadeOut(id, change) => {
                 if let Some(event) = self.level.events.get_mut(id.event) {
                     if let Event::Light(light) = &mut event.event {
@@ -224,19 +241,34 @@ impl LevelEditor {
                     }
                 }
             }
-            LevelAction::DeselectLight => {
-                self.execute(LevelAction::DeselectWaypoint);
-                self.selected_light = None;
+            LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
+            LevelAction::HoverLight(light) => {
+                self.timeline_light_hover = Some(light);
             }
-            LevelAction::SelectLight(id) => self.select_light(id),
+
+            LevelAction::NewWaypoint => self.new_waypoint(),
+            LevelAction::PlaceWaypoint(position) => self.place_waypoint(position),
+            LevelAction::DeleteWaypoint(light, waypoint) => self.delete_waypoint(light, waypoint),
             LevelAction::SelectWaypoint(id, move_time) => self.select_waypoint(id, move_time),
             LevelAction::DeselectWaypoint => {
                 if let Some(waypoints) = &mut self.level_state.waypoints {
                     waypoints.selected = None;
                 }
             }
-            LevelAction::PlaceWaypoint(position) => self.place_waypoint(position),
-            LevelAction::SetName(name) => self.name = name,
+            LevelAction::RotateWaypoint(light, waypoint, change) => {
+                self.rotate(light, waypoint, change)
+            }
+            LevelAction::ScaleWaypoint(light_id, waypoint_id, change) => {
+                if let Some(event) = self.level.events.get_mut(light_id.event) {
+                    if let Event::Light(light) = &mut event.event {
+                        if let Some(frame) = light.movement.get_frame_mut(waypoint_id) {
+                            change.apply(&mut frame.scale);
+                            frame.scale = frame.scale.clamp(r32(0.2), r32(2.0));
+                            self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
+                        }
+                    }
+                }
+            }
             LevelAction::SetWaypointFrame(light_id, waypoint_id, frame) => {
                 if let Some(event) = self.level.events.get_mut(light_id.event) {
                     if let Event::Light(light) = &mut event.event {
@@ -246,30 +278,17 @@ impl LevelEditor {
                     }
                 }
             }
-            LevelAction::SetWaypointCurve(light, waypoint, curve) => {
-                self.set_waypoint_curve(light, waypoint, curve)
-            }
             LevelAction::SetWaypointInterpolation(light, waypoint, interpolation) => {
                 self.set_waypoint_interpolation(light, waypoint, interpolation)
             }
-            LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
-            LevelAction::HoverLight(light) => {
-                self.timeline_light_hover = Some(light);
+            LevelAction::SetWaypointCurve(light, waypoint, curve) => {
+                self.set_waypoint_curve(light, waypoint, curve)
             }
             LevelAction::MoveWaypoint(light, waypoint, pos) => {
                 self.move_waypoint(light, waypoint, pos)
             }
             LevelAction::MoveWaypointTime(light, waypoint, time) => {
                 self.move_waypoint_time(light, waypoint, time)
-            }
-            LevelAction::TimelineZoom(change) => {
-                let mut zoom = self.timeline_zoom.target.as_f32();
-                zoom = match change {
-                    Change::Add(delta) => zoom * 2.0.powf(delta),
-                    Change::Set(zoom) => zoom,
-                };
-                let target = zoom.clamp(16.0.recip(), 2.0);
-                self.timeline_zoom.target = r32(target);
             }
         }
 

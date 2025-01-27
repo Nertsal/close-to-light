@@ -1,5 +1,7 @@
 use super::*;
 
+const MIN_SIZE: f32 = 5.0;
+
 pub struct ContextMenuWidget {
     pub extension: SecondOrderState<f32>,
     pub state: WidgetState,
@@ -54,12 +56,19 @@ impl ContextMenuWidget {
     }
 
     pub fn update(&mut self, actions: &mut Vec<EditorStateAction>, context: &UiContext) {
+        self.extension.update(context.delta_time);
+
         let size = vec2(7.0, -1.6 * self.options.len() as f32) * context.font_size;
         let position = self.state.position.top_left();
         let position = Aabb2::from_corners(position, position + size);
-        self.state.update(position, context);
 
-        self.extension.update(context.delta_time);
+        let mut state = position;
+        let state = state.cut_top(self.extension.current * state.height());
+        if state.width() < MIN_SIZE || state.height() < MIN_SIZE {
+            return;
+        }
+
+        self.state.update(state, context);
 
         let position = position.extend_uniform(-context.font_size * 0.2);
         let rows = position.split_rows(self.options.len());
@@ -100,7 +109,6 @@ impl Widget for ContextMenuWidget {
         let mut position = self.state.position;
         let position = position.cut_top(self.extension.current * position.height());
 
-        const MIN_SIZE: f32 = 5.0;
         if position.height() < MIN_SIZE || position.width() < MIN_SIZE {
             return Geometry::new();
         }

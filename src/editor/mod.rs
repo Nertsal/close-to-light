@@ -1,4 +1,5 @@
 mod action;
+mod clipboard;
 mod config;
 mod group;
 mod handle_event;
@@ -9,6 +10,7 @@ mod ui;
 
 pub use self::{
     action::*,
+    clipboard::*,
     config::*,
     group::*,
     history::*,

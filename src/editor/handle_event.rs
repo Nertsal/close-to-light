@@ -59,6 +59,12 @@ impl EditorState {
                 geng::Key::ArrowRight => {
                     actions.push(EditorAction::ScrollTimeBy(scroll_speed, 1).into());
                 }
+                geng::Key::C if ctrl => {
+                    actions.push(LevelAction::Copy.into());
+                }
+                geng::Key::V if ctrl => {
+                    actions.push(LevelAction::Paste.into());
+                }
                 geng::Key::F => {
                     actions.push(EditorAction::ToggleDynamicVisual.into());
                 }
@@ -344,10 +350,17 @@ impl EditorState {
                                 geng::MouseButton::Right => {
                                     actions.push(EditorStateAction::ContextMenu(
                                         self.ui_context.cursor.position,
-                                        vec![(
-                                            "Delete".into(),
-                                            LevelAction::DeleteLight(light_id).into(),
-                                        )],
+                                        vec![
+                                            (
+                                                "Copy light".into(),
+                                                LevelAction::CopyLight(light_id).into(),
+                                            ),
+                                            ("Paste".into(), LevelAction::Paste.into()),
+                                            (
+                                                "Delete".into(),
+                                                LevelAction::DeleteLight(light_id).into(),
+                                            ),
+                                        ],
                                     ));
                                 }
                             }
@@ -356,6 +369,12 @@ impl EditorState {
                 } else {
                     // Deselect
                     actions.push(LevelAction::DeselectLight.into());
+                    if let geng::MouseButton::Right = button {
+                        actions.push(EditorStateAction::ContextMenu(
+                            self.ui_context.cursor.position,
+                            vec![("Paste".into(), LevelAction::Paste.into())],
+                        ));
+                    }
                 }
             }
             State::Place { .. } => {
