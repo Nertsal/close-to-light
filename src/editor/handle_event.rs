@@ -240,10 +240,7 @@ impl EditorState {
     }
 
     fn cursor_down(&self, button: geng::MouseButton) -> Vec<EditorStateAction> {
-        let mut actions = Vec::new();
-        if let geng::MouseButton::Right = button {
-            actions.push(EditorStateAction::CloseContextMenu);
-        }
+        let mut actions = vec![EditorStateAction::CloseContextMenu];
 
         if self
             .ui
