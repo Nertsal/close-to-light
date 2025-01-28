@@ -33,10 +33,10 @@ impl HoverButton {
             animation: Movement {
                 fade_in: seconds_to_time(r32(0.0)),
                 initial: Transform::scale(2.25),
-                key_frames: vec![MoveFrame::scale(0.2, 5.0), MoveFrame::scale(0.1, 75.0)].into(),
+                key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
                 interpolation: MoveInterpolation::Smoothstep,
                 curve: TrajectoryInterpolation::Linear,
-                fade_out: seconds_to_time(r32(0.1)),
+                fade_out: seconds_to_time(r32(0.2)),
             },
             clicked: false,
         }

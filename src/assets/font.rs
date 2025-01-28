@@ -1,8 +1,8 @@
 use super::*;
 
-// use crate::render::util::TextRenderOptions;
+use crate::render::util::TextRenderOptions;
 
-// use geng_utils::conversions::Vec2RealConversions;
+use geng_utils::conversions::Vec2RealConversions;
 
 #[derive(ugli::Vertex, Debug, Clone, Copy)]
 struct Vertex {
@@ -204,53 +204,58 @@ impl Font {
         );
     }
 
-    // pub fn draw(
-    //     &self,
-    //     framebuffer: &mut ugli::Framebuffer,
-    //     camera: &impl geng::AbstractCamera2d,
-    //     text: impl AsRef<str>,
-    //     position: vec2<impl Float>,
-    //     mut options: TextRenderOptions,
-    // ) {
-    //     let text = text.as_ref();
-    //     let framebuffer_size = framebuffer.size().as_f32();
+    pub fn draw(
+        &self,
+        framebuffer: &mut ugli::Framebuffer,
+        camera: &impl geng::AbstractCamera2d,
+        text: impl AsRef<str>,
+        position: vec2<impl Float>,
+        mut options: TextRenderOptions,
+    ) {
+        let text = text.as_ref();
+        let framebuffer_size = framebuffer.size().as_f32();
 
-    //     let position = position.map(Float::as_f32);
-    //     let position = crate::util::world_to_screen(camera, framebuffer_size, position);
+        let position = position.map(Float::as_f32);
+        let position = crate::util::world_to_screen(camera, framebuffer_size, position);
 
-    //     let scale = crate::util::world_to_screen(
-    //         camera,
-    //         framebuffer_size,
-    //         vec2::splat(std::f32::consts::FRAC_1_SQRT_2),
-    //     ) - crate::util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
-    //     options.size *= scale.len() * 0.6; // TODO: could rescale all dependent code but whatever
+        let scale = crate::util::world_to_screen(
+            camera,
+            framebuffer_size,
+            vec2::splat(std::f32::consts::FRAC_1_SQRT_2),
+        ) - crate::util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
+        options.size *= scale.len();
+        let font_size = options.size * 0.6; // TODO: could rescale all dependent code but whatever
 
-    //     let measure = self.measure(text, options.size);
-    //     let size = measure.size();
-    //     let align = size * (options.align - vec2::splat(0.5)); // Centered by default
-    //     let descent = -self.descent * options.size;
-    //     let align = vec2(
-    //         measure.center().x + align.x,
-    //         descent + (measure.max.y - descent) * options.align.y,
-    //     );
+        let mut position = position;
+        for line in text.lines() {
+            let measure = self.measure(line, font_size);
+            let size = measure.size();
+            let align = size * (options.align - vec2::splat(0.5)); // Centered by default
+            let descent = -self.descent() * font_size;
+            let align = vec2(
+                measure.center().x + align.x,
+                descent + (measure.max.y - descent) * options.align.y,
+            );
 
-    //     let transform =
-    //         mat3::translate(position) * mat3::rotate(options.rotation) * mat3::translate(-align);
+            let transform = mat3::translate(position)
+                * mat3::rotate(options.rotation)
+                * mat3::translate(-align);
 
-    //     self.draw_with(
-    //         framebuffer,
-    //         text,
-    //         0.0,
-    //         options.size,
-    //         options.color,
-    //         transform,
-    //         ugli::DrawParameters {
-    //             depth_func: None,
-    //             blend_mode: Some(ugli::BlendMode::straight_alpha()),
-    //             ..default()
-    //         },
-    //     );
-    // }
+            self.draw_with(
+                framebuffer,
+                line,
+                0.0,
+                font_size,
+                options.color,
+                transform,
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    ..default()
+                },
+            );
+            position.y -= options.size; // NOTE: larger than text size to space out better
+        }
+    }
 }
 
 impl geng::asset::Load for Font {

@@ -311,29 +311,35 @@ impl UtilRender {
             framebuffer_size,
             vec2::splat(std::f32::consts::FRAC_1_SQRT_2),
         ) - crate::util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
-        options.size *= scale.len() * 0.6; // TODO: could rescale all dependent code but whatever
+        options.size *= scale.len();
+        let font_size = options.size * 0.6; // TODO: could rescale all dependent code but whatever
 
-        let measure = font.measure(text, options.size);
-        let size = measure.size();
-        let align = size * (options.align - vec2::splat(0.5)); // Centered by default
-        let descent = -font.descent() * options.size;
-        let align = vec2(
-            measure.center().x + align.x,
-            descent + (measure.max.y - descent) * options.align.y,
-        );
+        let mut position = position;
+        for line in text.lines() {
+            let measure = font.measure(line, font_size);
+            let size = measure.size();
+            let align = size * (options.align - vec2::splat(0.5)); // Centered by default
+            let descent = -font.descent() * font_size;
+            let align = vec2(
+                measure.center().x + align.x,
+                descent + (measure.max.y - descent) * options.align.y,
+            );
 
-        let transform =
-            mat3::translate(position) * mat3::rotate(options.rotation) * mat3::translate(-align);
+            let transform = mat3::translate(position)
+                * mat3::rotate(options.rotation)
+                * mat3::translate(-align);
 
-        font.draw_with(
-            framebuffer,
-            text,
-            z_index,
-            options.size,
-            options.color,
-            transform,
-            params,
-        );
+            font.draw_with(
+                framebuffer,
+                line,
+                z_index,
+                font_size,
+                options.color,
+                transform,
+                params.clone(),
+            );
+            position.y -= options.size; // NOTE: larger than text size to space out better
+        }
     }
 
     pub fn draw_light(
@@ -595,7 +601,7 @@ impl UtilRender {
             .transformed(Transform { scale, ..default() });
         self.draw_light_gradient(&collider, theme.light, camera, framebuffer);
 
-        if t.as_f32() < 0.5 {
+        if !button.is_fading() {
             self.draw_text(
                 text,
                 collider.position,

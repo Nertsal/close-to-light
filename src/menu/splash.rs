@@ -57,7 +57,6 @@ impl geng::State for SplashScreen {
         );
         let warning = "
 This game contains flashing lights which might
-
 trigger seizures for people with photosensitive epilepsy
             ";
         self.util.draw_text(
@@ -84,8 +83,11 @@ trigger seizures for people with photosensitive epilepsy
     }
 
     fn handle_event(&mut self, event: geng::Event) {
-        if geng_utils::key::is_event_press(&event, [geng::Key::Space]) {
-            self.time = r32(TRANSITION_TIME - 1.0);
+        match event {
+            geng::Event::KeyPress { .. } | geng::Event::MousePress { .. } => {
+                self.time = self.time.max(r32(TRANSITION_TIME - 1.0));
+            }
+            _ => (),
         }
     }
 }

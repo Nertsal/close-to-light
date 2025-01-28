@@ -6,8 +6,41 @@ use std::path::PathBuf;
 
 use ctl_client::core::types::MusicInfo;
 use geng::prelude::*;
+use geng_utils::gif::GifFrame;
 
 use crate::{prelude::Modifier, util::SubTexture};
+
+#[derive(geng::asset::Load)]
+pub struct LoadingAssets {
+    #[load(path = "sprites/title.png", options(filter = "ugli::Filter::Nearest"))]
+    pub title: ugli::Texture,
+    #[load(path = "fonts/pixel.ttf")]
+    pub font: Font,
+    #[load(load_with = "load_gif(&manager, &base_path.join(\"sprites/loading_background.gif\"))")]
+    pub background: Vec<GifFrame>,
+}
+
+fn load_gif(
+    manager: &geng::asset::Manager,
+    path: &std::path::Path,
+) -> geng::asset::Future<Vec<GifFrame>> {
+    let manager = manager.clone();
+    let path = path.to_owned();
+    async move {
+        geng_utils::gif::load_gif(
+            &manager,
+            &path,
+            geng_utils::gif::GifOptions {
+                frame: geng::asset::TextureOptions {
+                    filter: ugli::Filter::Nearest,
+                    ..Default::default()
+                },
+            },
+        )
+        .await
+    }
+    .boxed_local()
+}
 
 #[derive(geng::asset::Load)]
 pub struct MusicAssets {
