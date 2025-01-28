@@ -50,6 +50,7 @@ impl EditorEditUi {
         let value_height = font_size * 1.2;
 
         let tooltip = context.state.get_or(TooltipWidget::new);
+        tooltip.visible = false;
 
         // Event
         {

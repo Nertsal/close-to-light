@@ -6,6 +6,7 @@ use ctl_client::core::types::Name;
 
 #[derive(Debug, Clone)]
 pub struct TooltipWidget {
+    pub visible: bool,
     pub state: WidgetState,
     pub title: TextWidget,
     pub text: TextWidget,
@@ -13,10 +14,9 @@ pub struct TooltipWidget {
 
 impl TooltipWidget {
     pub fn new() -> Self {
-        let mut state = WidgetState::new();
-        state.hide();
         Self {
-            state,
+            visible: false,
+            state: WidgetState::new(),
             title: TextWidget::new("shortcut"),
             text: TextWidget::new("tip").aligned(vec2(0.5, 0.0)),
         }
@@ -26,7 +26,8 @@ impl TooltipWidget {
         if !anchor.hovered {
             return;
         }
-        self.state.show();
+        self.visible = true;
+
         let mut position = Aabb2::point(anchor.position.top_right())
             .extend_positive(vec2::splat(context.font_size * 1.5));
         if position.max.x >= context.screen.max.x {
@@ -46,6 +47,10 @@ impl TooltipWidget {
 
 impl Widget for TooltipWidget {
     fn draw(&self, context: &UiContext) -> Geometry {
+        if !self.visible {
+            return Geometry::new();
+        }
+
         let position = self.state.position;
         let theme = context.theme();
         let width = context.font_size * 0.1;
