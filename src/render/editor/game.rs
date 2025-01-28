@@ -166,32 +166,39 @@ impl EditorRender {
         }
         let mut pixel_buffer = draw_game!(1.0);
 
-        if let State::Waypoints { light_id, .. } = &level_editor.state {
-            let light_id = *light_id;
+        // TODO: adapt to movement density
+        /// How much time away are the waypoints still visible
+        const VISIBILITY: Time = TIME_IN_FLOAT_TIME * 5;
+        /// The minimum transparency level of waypoints outside visibility
+        const MIN_ALPHA: f32 = 0.2;
+        /// Waypoints past this time-distance are not rendered at all
+        const MAX_VISIBILITY: Time = TIME_IN_FLOAT_TIME * 15;
+        // Calculate the waypoint visibility at the given relative timestamp
+        let visibility = |timed_event: &TimedEvent, beat: Time| {
+            let d = (timed_event.time + beat - level_editor.current_time.value).abs();
+            if d > MAX_VISIBILITY {
+                return 0.0;
+            }
+            let d = d as f32 / VISIBILITY as f32;
+            (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
+        };
+
+        if let Some(light_id) = level_editor.selected_light {
             if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
+                let visibility = |beat| visibility(timed_event, beat);
+
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.danger {
                         danger_color
                     } else {
                         light_color
                     };
-
-                    // TODO: adapt to movement density
-                    /// How much time away are the waypoints still visible
-                    const VISIBILITY: Time = TIME_IN_FLOAT_TIME * 5;
-                    /// The minimum transparency level of waypoints outside visibility
-                    const MIN_ALPHA: f32 = 0.2;
-                    /// Waypoints past this time-distance are not rendered at all
-                    const MAX_VISIBILITY: Time = TIME_IN_FLOAT_TIME * 15;
-                    // Calculate the waypoint visibility at the given relative timestamp
-                    let visibility = |beat: Time| {
-                        let d = (timed_event.time + beat - level_editor.current_time.value).abs();
-                        if d > MAX_VISIBILITY {
-                            return 0.0;
-                        }
-                        let d = d as f32 / VISIBILITY as f32;
-                        (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
+                    let alpha = if let State::Waypoints { .. } = level_editor.state {
+                        1.0
+                    } else {
+                        0.5
                     };
+                    let color = crate::util::with_alpha(color, alpha);
 
                     let options = util::DashRenderOptions {
                         width: 0.15,
@@ -228,6 +235,27 @@ impl EditorRender {
                             &mut pixel_buffer,
                         );
                     }
+                }
+            }
+        }
+
+        if let State::Waypoints { light_id, .. } = &level_editor.state {
+            let light_id = *light_id;
+            if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
+                let visibility = |beat| visibility(timed_event, beat);
+
+                if let Event::Light(event) = &timed_event.event {
+                    let color = if event.danger {
+                        danger_color
+                    } else {
+                        light_color
+                    };
+
+                    let options = util::DashRenderOptions {
+                        width: 0.15,
+                        dash_length: 0.1,
+                        space_length: 0.2,
+                    };
 
                     if let Some(waypoints) = &level_editor.level_state.waypoints {
                         // Draw waypoints themselves
