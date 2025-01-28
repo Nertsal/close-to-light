@@ -63,9 +63,7 @@ impl WidgetOld for TextWidget {
 impl TextWidget {
     pub fn draw_colored(&self, context: &UiContext, color: Color) -> Geometry {
         let font = &context.context.assets.fonts.pixel;
-        let measure = font
-            .measure(&self.text, vec2::splat(geng::TextAlign::CENTER))
-            .unwrap_or(Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)));
+        let measure = font.measure(&self.text, 1.0);
 
         let size = self.state.position.size();
         let right = vec2(size.x, 0.0).rotate(self.options.rotation).x;

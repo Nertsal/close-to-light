@@ -11,7 +11,7 @@ pub struct GeometryContext {
     assets: Rc<Assets>,
     pub framebuffer_size: vec2<usize>,
     pub pixel_scale: f32,
-    z_index: RefCell<i32>,
+    z_index: RefCell<f32>,
     // TODO: texture atlas i guess
 }
 
@@ -101,7 +101,7 @@ impl Geometry {
     }
 }
 
-const DEFAULT_Z: i32 = 1;
+const DEFAULT_Z: f32 = 0.0;
 
 impl GeometryContext {
     pub fn new(assets: Rc<Assets>) -> Self {
@@ -122,8 +122,8 @@ impl GeometryContext {
     fn next_z_index(&self) -> f32 {
         let mut index = self.z_index.borrow_mut();
         let current = *index;
-        *index += 1;
-        (current as f32).log10() * 1e-5
+        *index = f32::from_bits(current.to_bits() + 1);
+        current
     }
 
     #[must_use]

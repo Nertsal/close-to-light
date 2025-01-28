@@ -294,56 +294,45 @@ impl UtilRender {
         text: impl AsRef<str>,
         position: vec2<impl Float>,
         z_index: f32,
-        options: TextRenderOptions,
+        mut options: TextRenderOptions,
         params: ugli::DrawParameters,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let text = text.as_ref();
         let font = &self.context.assets.fonts.pixel;
-
-        let measure = font
-            .measure(text, vec2::splat(geng::TextAlign::CENTER))
-            .unwrap_or(Aabb2::ZERO.extend_positive(vec2::splat(1.0)));
-        let size = measure.size();
-        let align = size * (options.align - vec2::splat(0.5)); // Centered by default
-        let align = vec2(measure.center().x, 0.0) + align;
+        let framebuffer_size = framebuffer.size().as_f32();
 
         let position = position.map(Float::as_f32);
-        let transform = mat3::translate(position.map(Float::as_f32))
-            * mat3::scale_uniform(options.size * 0.6) // TODO: figure out what that 0.6 is lmao
-            * mat3::translate(-align.rotate(options.rotation))
-            * mat3::rotate_around(vec2(measure.center().x, 0.0), options.rotation);
+        let position = crate::util::world_to_screen(camera, framebuffer_size, position);
 
-        let framebuffer_size = framebuffer.size();
+        let scale = crate::util::world_to_screen(
+            camera,
+            framebuffer_size,
+            vec2::splat(std::f32::consts::FRAC_1_SQRT_2),
+        ) - crate::util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
+        options.size *= scale.len() * 0.6; // TODO: could rescale all dependent code but whatever
+
+        let measure = font.measure(text, options.size);
+        let size = measure.size();
+        let align = size * (options.align - vec2::splat(0.5)); // Centered by default
+        let descent = -font.descent() * options.size;
+        let align = vec2(
+            measure.center().x + align.x,
+            descent + (measure.max.y - descent) * options.align.y,
+        );
+
+        let transform =
+            mat3::translate(position) * mat3::rotate(options.rotation) * mat3::translate(-align);
 
         font.draw_with(
+            framebuffer,
             text,
-            vec2::splat(geng::TextAlign::CENTER),
-            |glyphs, texture| {
-                ugli::draw(
-                    framebuffer,
-                    &self.context.assets.shaders.sdf,
-                    ugli::DrawMode::TriangleFan,
-                    ugli::instanced(
-                        &self.unit_quad,
-                        &ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), glyphs.to_vec()),
-                    ),
-                    (
-                        ugli::uniforms! {
-                            u_texture: texture,
-                            u_z: z_index,
-                            u_model_matrix: transform,
-                            u_color: options.color,
-                            u_smooth: 0.0,
-                            u_outline_dist: 0.0 / font.max_distance(),
-                            u_outline_color: Color::TRANSPARENT_BLACK,
-                        },
-                        camera.uniforms(framebuffer_size.map(|x| x as f32)),
-                    ),
-                    params,
-                );
-            },
+            z_index,
+            options.size,
+            options.color,
+            transform,
+            params,
         );
     }
 

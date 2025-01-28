@@ -4,6 +4,8 @@ mod texture_atlas;
 
 pub use self::{lerp::*, sod::*, texture_atlas::*};
 
+use crate::assets::Font;
+
 use geng::prelude::*;
 use geng_utils::bounded::Bounded;
 
@@ -17,7 +19,7 @@ pub fn with_alpha(mut color: Rgba<f32>, alpha: f32) -> Rgba<f32> {
     color
 }
 
-pub fn wrap_text(font: &geng::Font, text: &str, target_width: f32) -> Vec<String> {
+pub fn wrap_text(font: &Font, text: &str, target_width: f32) -> Vec<String> {
     let mut lines = Vec::new();
     for source_line in text.lines() {
         let mut line = String::new();
@@ -26,15 +28,7 @@ pub fn wrap_text(font: &geng::Font, text: &str, target_width: f32) -> Vec<String
                 line += word;
                 continue;
             }
-            if font
-                .measure(
-                    &(line.clone() + " " + word),
-                    vec2::splat(geng::TextAlign::CENTER),
-                )
-                .unwrap_or(Aabb2::ZERO)
-                .width()
-                > target_width
-            {
+            if font.measure(&(line.clone() + " " + word), 1.0).width() > target_width {
                 lines.push(line);
                 line = word.to_string();
             } else {
@@ -47,4 +41,17 @@ pub fn wrap_text(font: &geng::Font, text: &str, target_width: f32) -> Vec<String
         }
     }
     lines
+}
+
+pub fn world_to_screen(
+    camera: &impl geng::AbstractCamera2d,
+    framebuffer_size: vec2<f32>,
+    pos: vec2<f32>,
+) -> vec2<f32> {
+    let pos = (camera.projection_matrix(framebuffer_size) * camera.view_matrix()) * pos.extend(1.0);
+    let pos = pos.xy() / pos.z;
+    vec2(
+        (pos.x + 1.0) / 2.0 * framebuffer_size.x,
+        (pos.y + 1.0) / 2.0 * framebuffer_size.y,
+    )
 }

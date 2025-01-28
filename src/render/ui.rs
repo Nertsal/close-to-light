@@ -268,9 +268,7 @@ impl UiRender {
         let mut widget = widget.clone();
 
         let font = &self.context.assets.fonts.pixel;
-        let measure = font
-            .measure(&widget.text, vec2::splat(geng::TextAlign::CENTER))
-            .unwrap_or(Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)));
+        let measure = font.measure(&widget.text, 1.0);
 
         let size = widget.state.position.size();
         let right = vec2(size.x, 0.0).rotate(widget.options.rotation).x;

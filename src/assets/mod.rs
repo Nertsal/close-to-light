@@ -1,3 +1,7 @@
+mod font;
+
+pub use self::font::Font;
+
 use std::path::PathBuf;
 
 use ctl_client::core::types::MusicInfo;
@@ -23,7 +27,8 @@ pub struct Assets {
 
 #[derive(geng::asset::Load)]
 pub struct Fonts {
-    pub pixel: geng::Font,
+    pub default: Rc<Font>,
+    pub pixel: Rc<Font>,
 }
 
 #[derive(geng::asset::Load)]
@@ -103,7 +108,6 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
 
 #[derive(geng::asset::Load)]
 pub struct Shaders {
-    pub sdf: ugli::Program,
     pub solid: ugli::Program,
     pub light: ugli::Program,
     pub masked: ugli::Program,

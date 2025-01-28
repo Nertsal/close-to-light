@@ -1,6 +1,9 @@
 use super::{geometry::GeometryContext, state::UiState};
 
-use crate::prelude::{Context, Theme};
+use crate::{
+    assets::Font,
+    prelude::{Context, Theme},
+};
 
 use geng::prelude::*;
 
@@ -86,7 +89,7 @@ impl CursorContext {
 pub struct UiContext {
     pub context: Context,
     pub geometry: GeometryContext,
-    pub font: Rc<geng::Font>,
+    pub font: Rc<Font>,
 
     pub state: UiState,
     pub cursor: CursorContext,
@@ -196,7 +199,7 @@ impl UiContext {
         Self {
             state: UiState::new(),
             geometry: GeometryContext::new(context.assets.clone()),
-            font: context.geng.default_font().clone(),
+            font: context.assets.fonts.default.clone(),
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,
             font_size: 1.0,

@@ -53,7 +53,7 @@ impl TimelineWidget {
             context: UiContext {
                 state: UiState::new(),
                 geometry: crate::ui::geometry::GeometryContext::new(context.assets.clone()),
-                font: context.geng.default_font().clone(),
+                font: context.assets.fonts.default.clone(),
                 screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
                 layout_size: 1.0,
                 font_size: 1.0,
@@ -388,7 +388,7 @@ impl TimelineWidget {
 
                 if !is_selected && is_hovered {
                     // Waypoints
-                    for (_, _, offset) in light_event.movement.timed_positions() {
+                    for (_, _, offset) in light_event.movement.timed_positions().skip(1) {
                         // Icon
                         let position = render_light(event.time + offset, 0).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
