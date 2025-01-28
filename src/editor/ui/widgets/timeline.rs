@@ -25,6 +25,7 @@ pub struct TimelineWidget {
     pub highlight_line: WidgetState,
     highlight_bar: Option<HighlightBar>,
     dots: Vec<vec2<f32>>,
+    marks: Vec<(vec2<f32>, Color)>,
     ticks: Vec<(vec2<f32>, BeatTime)>,
     dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: bool,
@@ -73,6 +74,7 @@ impl TimelineWidget {
             highlight_line: default(),
             highlight_bar: None,
             dots: Vec::new(),
+            marks: Vec::new(),
             ticks: Vec::new(),
             dragging_light: None,
             dragging_waypoint: false,
@@ -110,6 +112,7 @@ impl TimelineWidget {
 
     fn reload(&mut self, editor: &LevelEditor, actions: &mut Vec<EditorAction>) {
         let atlas = &self.context.context.assets.atlas;
+        let theme = self.context.theme();
 
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
@@ -473,6 +476,18 @@ impl TimelineWidget {
         self.ticks
             .sort_by_key(|(_, t)| t.units() % BeatTime::UNITS_PER_BEAT);
 
+        // Time marks
+        self.marks.clear();
+        if let Some(level) = &editor.level_state.dynamic_level {
+            let pos = render_time(&self.main_line, level.time()).center();
+            self.marks
+                .push((pos, Color::lerp(theme.dark, theme.light, 0.5)));
+        }
+        if let Some(level) = &editor.level_state.static_level {
+            let pos = render_time(&self.main_line, level.time()).center();
+            self.marks.push((pos, theme.light));
+        }
+
         *self.context.can_focus.borrow_mut() = focus;
     }
 
@@ -639,6 +654,16 @@ impl Widget for TimelineWidget {
             let highlight_bar =
                 highlight_bar.align_aabb(vec2(highlight_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
             geometry.merge(context.geometry.quad(highlight_bar, theme.highlight));
+        }
+
+        // Time marks
+        for &(pos, color) in &self.marks {
+            let texture = atlas.timeline_time_mark();
+            geometry.merge(
+                context
+                    .geometry
+                    .texture_pp_at(pos, color, pixel_scale, &texture),
+            );
         }
 
         let position = self.state.position;

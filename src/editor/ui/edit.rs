@@ -565,15 +565,14 @@ impl EditorEditUi {
             let linetime = context
                 .state
                 .get_or(|| TimelineWidget::new(context.context.clone()));
+            linetime.update_time(level_editor.current_time.value);
+            linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 
             {
                 let mut timeline_actions = vec![];
                 linetime.update(timeline, context, level_editor, &mut timeline_actions);
                 actions.extend(timeline_actions.into_iter().map(Into::into));
             }
-
-            linetime.update_time(level_editor.current_time.value);
-            linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
         }

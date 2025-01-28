@@ -28,6 +28,11 @@ impl Default for LevelState {
 }
 
 impl LevelState {
+    /// The time at which the render has been done.
+    pub fn time(&self) -> Time {
+        self.time
+    }
+
     pub fn render(
         level: &Level,
         config: &LevelConfig,
