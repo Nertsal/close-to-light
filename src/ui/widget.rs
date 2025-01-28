@@ -1,3 +1,4 @@
+mod beat_time;
 mod button;
 mod confirm;
 mod dropdown;
@@ -14,8 +15,8 @@ mod text;
 mod value;
 
 pub use self::{
-    button::*, confirm::*, dropdown::*, explore::*, icon::*, input::*, leaderboard::*,
-    notification::*, options::*, profile::*, slider::*, sync::*, text::*, value::*,
+    beat_time::*, button::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
+    leaderboard::*, notification::*, options::*, profile::*, slider::*, sync::*, text::*, value::*,
 };
 
 use super::{context::*, geometry::Geometry, window::*};

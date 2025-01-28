@@ -91,7 +91,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         self.control_state.update(control, context);
 
         // Drag value
-        let controlling = self.control_state.pressed;
+        let mut controlling = self.control_state.pressed;
         if controlling {
             // (0,0) in the center, range -0.5..=0.5
             let convert = |pos| {
@@ -110,8 +110,9 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
                     target += delta;
                 }
             }
-        } else if self.control_state.hovered && context.cursor.scroll != 0.0 {
+        } else if self.state.hovered && context.cursor.scroll != 0.0 {
             // Scroll value
+            controlling = true;
             let delta = T::from_f32(context.cursor.scroll.signum()) * self.scroll_by;
             target += delta;
         }

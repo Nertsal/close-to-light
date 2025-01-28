@@ -52,6 +52,9 @@ impl EditorEditUi {
         let tooltip = context.state.get_or(TooltipWidget::new);
         tooltip.visible = false;
 
+        // TODO: customize snap
+        let snap = BeatTime::QUARTER;
+
         // Event
         {
             let mut bar = left_bar;
@@ -252,18 +255,29 @@ impl EditorEditUi {
                     button.checked = light.danger;
                     tooltip.update(&button.state, "D", context);
 
+                    let timing = &level_editor.level.timing;
+
                     {
+                        let timing_point = timing.get_timing(event.time);
                         let fade_in = bar.cut_top(value_height);
                         bar.cut_top(spacing);
-                        let mut fade = time_to_seconds(light.movement.fade_in);
+                        let mut fade = BeatTime::from_beats_float(
+                            time_to_seconds(light.movement.fade_in) / timing_point.beat_time,
+                        );
                         let slider = context.state.get_or(|| {
-                            ValueWidget::new_range("Fade in", fade, r32(0.25)..=r32(10.0), r32(0.1))
+                            BeatValueWidget::new(
+                                "Fade in",
+                                fade,
+                                BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                snap,
+                            )
                         });
+                        slider.scroll_by = snap;
                         if slider.update(fade_in, context, &mut fade) {
                             actions.push(
                                 LevelAction::ChangeFadeIn(
                                     light_id,
-                                    Change::Set(seconds_to_time(fade)),
+                                    Change::Set(fade.as_time(timing_point.beat_time)),
                                 )
                                 .into(),
                             );
@@ -278,22 +292,29 @@ impl EditorEditUi {
                     }
 
                     {
+                        let to_time = event.time
+                            + light.movement.fade_in
+                            + light.movement.movement_duration();
+                        let timing_point = timing.get_timing(to_time);
                         let fade_out = bar.cut_top(value_height);
                         bar.cut_top(spacing);
-                        let mut fade = time_to_seconds(light.movement.fade_out);
+                        let mut fade = BeatTime::from_beats_float(
+                            time_to_seconds(light.movement.fade_out) / timing_point.beat_time,
+                        );
                         let slider = context.state.get_or(|| {
-                            ValueWidget::new_range(
+                            BeatValueWidget::new(
                                 "Fade out",
                                 fade,
-                                r32(0.25)..=r32(10.0),
-                                r32(0.1),
+                                BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                snap,
                             )
                         });
+                        slider.scroll_by = snap;
                         if slider.update(fade_out, context, &mut fade) {
                             actions.push(
                                 LevelAction::ChangeFadeOut(
                                     light_id,
-                                    Change::Set(seconds_to_time(fade)),
+                                    Change::Set(fade.as_time(timing_point.beat_time)),
                                 )
                                 .into(),
                             );

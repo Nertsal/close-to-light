@@ -4,4 +4,3 @@ pub use ctl_client::core::prelude::*;
 
 pub use generational_arena::{Arena, Index};
 pub use itertools::Itertools;
-pub use num_rational::Ratio;

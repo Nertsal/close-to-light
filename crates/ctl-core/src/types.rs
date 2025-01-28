@@ -46,6 +46,7 @@ impl From<BeatTimeSerde> for BeatTime {
 
 impl BeatTime {
     pub const UNITS_PER_BEAT: Time = 16;
+
     /// A whole beat (typically a 1/4th note)
     pub const WHOLE: Self = Self {
         units: Self::UNITS_PER_BEAT,
@@ -62,11 +63,19 @@ impl BeatTime {
     pub const EIGHTH: Self = Self {
         units: Self::UNITS_PER_BEAT / 8,
     };
+    pub const ZERO: Self = Self { units: 0 };
 
     /// From whole beats.
     pub fn from_beats(beats: Time) -> Self {
         Self {
             units: beats * Self::UNITS_PER_BEAT,
+        }
+    }
+
+    /// Approximate exact beat time from fractional beats.
+    pub fn from_beats_float(beats: FloatTime) -> Self {
+        Self {
+            units: (beats.as_f32() * Self::UNITS_PER_BEAT as f32).round() as Time,
         }
     }
 

@@ -334,11 +334,11 @@ impl Movement {
     }
 
     pub fn change_fade_out(&mut self, target: Time) {
-        self.fade_out = target.clamp(TIME_IN_FLOAT_TIME / 10, TIME_IN_FLOAT_TIME * 50);
+        self.fade_out = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
     }
 
     pub fn change_fade_in(&mut self, target: Time) {
-        self.fade_in = target.clamp(TIME_IN_FLOAT_TIME / 10, TIME_IN_FLOAT_TIME * 50);
+        self.fade_in = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
     }
 
     /// Bakes the interpolation path based on the keypoints.
