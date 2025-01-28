@@ -51,6 +51,8 @@ impl EditorState {
             ScrollSpeed::Normal
         };
 
+        let rotate_by = Angle::from_degrees(r32(15.0));
+
         match event {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::ArrowLeft => {
@@ -84,57 +86,8 @@ impl EditorState {
                 geng::Key::S if ctrl => {
                     actions.push(EditorAction::Save.into());
                 }
-                geng::Key::Q => {
-                    if let Some(level_editor) = &self.editor.level_edit {
-                        if let State::Place { .. }
-                        | State::Waypoints {
-                            state: WaypointsState::New,
-                            ..
-                        } = &level_editor.state
-                        {
-                            actions.push(
-                                LevelAction::RotatePlacement(Angle::from_degrees(r32(15.0))).into(),
-                            );
-                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
-                            if let Some(selected) = waypoints.selected {
-                                actions.push(
-                                    LevelAction::RotateWaypoint(
-                                        waypoints.light,
-                                        selected,
-                                        Change::Add(Angle::from_degrees(r32(15.0))),
-                                    )
-                                    .into(),
-                                );
-                            }
-                        }
-                    }
-                }
-                geng::Key::E => {
-                    if let Some(level_editor) = &self.editor.level_edit {
-                        if let State::Place { .. }
-                        | State::Waypoints {
-                            state: WaypointsState::New,
-                            ..
-                        } = &level_editor.state
-                        {
-                            actions.push(
-                                LevelAction::RotatePlacement(Angle::from_degrees(r32(-15.0)))
-                                    .into(),
-                            );
-                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
-                            if let Some(selected) = waypoints.selected {
-                                actions.push(
-                                    LevelAction::RotateWaypoint(
-                                        waypoints.light,
-                                        selected,
-                                        Change::Add(Angle::from_degrees(r32(-15.0))),
-                                    )
-                                    .into(),
-                                );
-                            }
-                        }
-                    }
-                }
+                geng::Key::Q => self.rotate(&mut actions, rotate_by),
+                geng::Key::E => self.rotate(&mut actions, -rotate_by),
                 geng::Key::Z if ctrl => {
                     if shift {
                         actions.push(LevelAction::Redo.into());
@@ -438,5 +391,44 @@ impl EditorState {
             },
         }
         actions
+    }
+
+    fn rotate(&self, actions: &mut Vec<EditorStateAction>, rotate_by: Angle<Coord>) {
+        let Some(level_editor) = &self.editor.level_edit else {
+            return;
+        };
+
+        if let State::Place { .. }
+        | State::Waypoints {
+            state: WaypointsState::New,
+            ..
+        } = &level_editor.state
+        {
+            actions.push(LevelAction::RotatePlacement(rotate_by).into());
+            return;
+        }
+
+        if let Some(waypoints) = &level_editor.level_state.waypoints {
+            if let Some(selected) = waypoints.selected {
+                actions.push(
+                    LevelAction::RotateWaypoint(waypoints.light, selected, Change::Add(rotate_by))
+                        .into(),
+                );
+                return;
+            }
+        }
+
+        if let Some(selected) = level_editor.selected_light {
+            if let Some(event) = level_editor.level.events.get(selected.event) {
+                if let Event::Light(light) = &event.event {
+                    let time = level_editor.current_time.target - event.time;
+                    let transform = light.movement.get(time);
+                    actions.push(
+                        LevelAction::RotateLightAround(selected, transform.translation, rotate_by)
+                            .into(),
+                    );
+                }
+            }
+        }
     }
 }

@@ -350,6 +350,18 @@ impl Movement {
                 .map(|frame| (frame.transform, frame.change_curve)),
         )
     }
+
+    pub fn rotate_around(&mut self, anchor: vec2<Coord>, delta: Angle<Coord>) {
+        let rotate = |transform: &mut Transform| {
+            transform.translation = anchor + (transform.translation - anchor).rotate(delta);
+            transform.rotation += delta;
+        };
+
+        rotate(&mut self.initial);
+        for frame in &mut self.key_frames {
+            rotate(&mut frame.transform);
+        }
+    }
 }
 
 pub fn bake_movement<T: 'static + Interpolatable>(

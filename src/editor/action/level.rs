@@ -26,6 +26,7 @@ pub enum LevelAction {
     DeleteLight(LightId),
     SelectLight(LightId),
     DeselectLight,
+    RotateLightAround(LightId, vec2<Coord>, Angle<Coord>),
     ToggleDanger(LightId),
     ChangeFadeOut(LightId, Change<Time>),
     ChangeFadeIn(LightId, Change<Time>),
@@ -106,6 +107,7 @@ impl LevelAction {
             LevelAction::DeleteLight(..) => false,
             LevelAction::SelectLight(_) => false,
             LevelAction::DeselectLight => false,
+            LevelAction::RotateLightAround(_, _, delta) => *delta == Angle::ZERO,
             LevelAction::ToggleDanger(..) => false,
             LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
@@ -216,6 +218,9 @@ impl LevelEditor {
             LevelAction::DeselectLight => {
                 self.execute(LevelAction::DeselectWaypoint);
                 self.selected_light = None;
+            }
+            LevelAction::RotateLightAround(light, anchor, delta) => {
+                self.modify_movement(light, |movement| movement.rotate_around(anchor, delta))
             }
             LevelAction::ToggleDanger(light) => self.toggle_danger(light),
             LevelAction::ChangeFadeOut(id, change) => {
@@ -503,6 +508,18 @@ impl LevelEditor {
         self.level_state.waypoints = None;
         self.state = State::Idle;
         self.selected_light = Some(light_id);
+    }
+
+    fn modify_movement(&mut self, light_id: LightId, f: impl FnOnce(&mut Movement)) {
+        let Some(event) = self.level.events.get_mut(light_id.event) else {
+            return;
+        };
+
+        let Event::Light(light) = &mut event.event else {
+            return;
+        };
+
+        f(&mut light.movement);
     }
 
     fn select_waypoint(&mut self, waypoint_id: WaypointId, move_time: bool) {
