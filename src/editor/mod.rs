@@ -126,8 +126,9 @@ impl TimeInterpolation {
     pub fn snap_to(&mut self, time: Time) {
         self.value = time;
         self.target = time;
-        self.state.current = time_to_seconds(self.value);
-        self.state.target = time_to_seconds(self.target);
+        let time = time_to_seconds(self.value);
+        self.state.current = time;
+        self.state.target = time;
     }
 }
 

@@ -209,10 +209,9 @@ impl Model {
 
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
-        self.context.music.play_from(
-            &self.level.group.music,
-            time::Duration::from_secs_f64(time_to_seconds(music_start_time).as_f32().into()),
-        );
+        self.context
+            .music
+            .play_from_beat(&self.level.group.music, music_start_time);
     }
 
     pub fn finish(&mut self) {

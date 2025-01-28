@@ -159,10 +159,13 @@ impl LevelEditor {
             LevelAction::StopPlaying => {
                 if let State::Playing {
                     start_time,
+                    start_target_time,
                     old_state,
                 } = &self.state
                 {
                     self.current_time.snap_to(*start_time);
+                    self.current_time
+                        .scroll_time(Change::Set(*start_target_time));
                     self.state = *old_state.clone();
                     self.context.music.stop();
                 }
@@ -170,6 +173,7 @@ impl LevelEditor {
             LevelAction::StartPlaying => {
                 self.state = State::Playing {
                     start_time: self.current_time.value,
+                    start_target_time: self.current_time.target,
                     old_state: Box::new(self.state.clone()),
                 };
                 self.real_time = time_to_seconds(self.current_time.value);

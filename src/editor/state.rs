@@ -10,6 +10,7 @@ pub enum State {
     },
     Playing {
         start_time: Time,
+        start_target_time: Time,
         old_state: Box<State>,
     },
     /// Control waypoints of an existing event.
