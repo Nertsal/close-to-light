@@ -351,16 +351,34 @@ impl Movement {
         )
     }
 
+    fn modify_transforms(&mut self, mut f: impl FnMut(&mut Transform)) {
+        f(&mut self.initial);
+        for frame in &mut self.key_frames {
+            f(&mut frame.transform);
+        }
+    }
+
     pub fn rotate_around(&mut self, anchor: vec2<Coord>, delta: Angle<Coord>) {
-        let rotate = |transform: &mut Transform| {
+        self.modify_transforms(|transform: &mut Transform| {
             transform.translation = anchor + (transform.translation - anchor).rotate(delta);
             transform.rotation += delta;
-        };
+        })
+    }
 
-        rotate(&mut self.initial);
-        for frame in &mut self.key_frames {
-            rotate(&mut frame.transform);
-        }
+    pub fn flip_horizontal(&mut self, anchor: vec2<Coord>) {
+        self.modify_transforms(|transform: &mut Transform| {
+            transform.translation =
+                anchor + (transform.translation - anchor) * vec2(-Coord::ONE, Coord::ONE);
+            transform.rotation = Angle::from_degrees(r32(180.0)) - transform.rotation;
+        })
+    }
+
+    pub fn flip_vertical(&mut self, anchor: vec2<Coord>) {
+        self.modify_transforms(|transform: &mut Transform| {
+            transform.translation =
+                anchor + (transform.translation - anchor) * vec2(Coord::ONE, -Coord::ONE);
+            transform.rotation = -transform.rotation;
+        })
     }
 }
 

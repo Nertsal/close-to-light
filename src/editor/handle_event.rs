@@ -67,6 +67,16 @@ impl EditorState {
                 geng::Key::V if ctrl => {
                     actions.push(LevelAction::Paste.into());
                 }
+                geng::Key::V if shift => {
+                    if let Some((id, anchor)) = self.get_anchor() {
+                        actions.push(LevelAction::FlipVertical(id, anchor).into());
+                    }
+                }
+                geng::Key::H if shift => {
+                    if let Some((id, anchor)) = self.get_anchor() {
+                        actions.push(LevelAction::FlipHorizontal(id, anchor).into());
+                    }
+                }
                 geng::Key::F => {
                     actions.push(EditorAction::ToggleDynamicVisual.into());
                 }
@@ -301,6 +311,10 @@ impl EditorState {
                                 }
                                 geng::MouseButton::Middle => {}
                                 geng::MouseButton::Right => {
+                                    let anchor = light
+                                        .movement
+                                        .get(level_editor.current_time.target - e.time)
+                                        .translation;
                                     actions.push(EditorStateAction::ContextMenu(
                                         self.ui_context.cursor.position,
                                         vec![
@@ -309,6 +323,15 @@ impl EditorState {
                                                 LevelAction::CopyLight(light_id).into(),
                                             ),
                                             ("Paste".into(), LevelAction::Paste.into()),
+                                            (
+                                                "Flip horizontally".into(),
+                                                LevelAction::FlipHorizontal(light_id, anchor)
+                                                    .into(),
+                                            ),
+                                            (
+                                                "Flip vertically".into(),
+                                                LevelAction::FlipVertical(light_id, anchor).into(),
+                                            ),
                                             (
                                                 "Delete".into(),
                                                 LevelAction::DeleteLight(light_id).into(),
@@ -430,5 +453,19 @@ impl EditorState {
                 }
             }
         }
+    }
+
+    fn get_anchor(&self) -> Option<(LightId, vec2<Coord>)> {
+        let level_editor = self.editor.level_edit.as_ref()?;
+        let id = level_editor.selected_light?;
+        let event = level_editor.level.events.get(id.event)?;
+        let Event::Light(light) = &event.event else {
+            return None;
+        };
+        let anchor = light
+            .movement
+            .get(level_editor.current_time.target - event.time)
+            .translation;
+        Some((id, anchor))
     }
 }

@@ -27,6 +27,8 @@ pub enum LevelAction {
     SelectLight(LightId),
     DeselectLight,
     RotateLightAround(LightId, vec2<Coord>, Angle<Coord>),
+    FlipHorizontal(LightId, vec2<Coord>),
+    FlipVertical(LightId, vec2<Coord>),
     ToggleDanger(LightId),
     ChangeFadeOut(LightId, Change<Time>),
     ChangeFadeIn(LightId, Change<Time>),
@@ -108,6 +110,8 @@ impl LevelAction {
             LevelAction::SelectLight(_) => false,
             LevelAction::DeselectLight => false,
             LevelAction::RotateLightAround(_, _, delta) => *delta == Angle::ZERO,
+            LevelAction::FlipHorizontal(_, _) => false,
+            LevelAction::FlipVertical(_, _) => false,
             LevelAction::ToggleDanger(..) => false,
             LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
@@ -221,6 +225,12 @@ impl LevelEditor {
             }
             LevelAction::RotateLightAround(light, anchor, delta) => {
                 self.modify_movement(light, |movement| movement.rotate_around(anchor, delta))
+            }
+            LevelAction::FlipHorizontal(light, anchor) => {
+                self.modify_movement(light, |movement| movement.flip_horizontal(anchor))
+            }
+            LevelAction::FlipVertical(light, anchor) => {
+                self.modify_movement(light, |movement| movement.flip_vertical(anchor))
             }
             LevelAction::ToggleDanger(light) => self.toggle_danger(light),
             LevelAction::ChangeFadeOut(id, change) => {
