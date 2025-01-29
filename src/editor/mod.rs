@@ -243,11 +243,12 @@ impl EditorState {
         }
 
         let include_cursor = !self.ui_focused
-            && self
-                .ui
-                .game
-                .position
-                .contains(self.editor.cursor_world_pos.as_f32());
+            && (self.editor.render_options.hide_ui
+                || self
+                    .ui
+                    .game
+                    .position
+                    .contains(self.ui_context.cursor.position));
         level_editor.render_lights(
             include_cursor.then_some(self.editor.cursor_world_pos),
             include_cursor.then_some(self.editor.cursor_world_pos_snapped),

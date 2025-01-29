@@ -142,7 +142,7 @@ impl EditorRender {
         }
         let mut pixel_buffer = draw_game!(static_alpha);
 
-        if !options.hide_ui {
+        {
             // Current action
             let shape = match level_editor.state {
                 State::Place { shape, danger } => Some((shape, danger)),
@@ -388,7 +388,7 @@ impl EditorRender {
             game_buffer,
         );
 
-        if !options.hide_ui {
+        {
             // World UI
             let mut ui_buffer =
                 geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());

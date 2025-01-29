@@ -110,16 +110,18 @@ impl EditorRender {
             );
             self.mask.draw(draw_parameters(), framebuffer);
 
-            // Game border
-            let width = 10.0;
-            let mut border = context.geometry.quad_outline(
-                ui.game.position.extend_uniform(5.0),
-                width,
-                theme.light,
-            );
-            border.change_z_index(9999);
-            self.util
-                .draw_geometry(&mut self.mask_stack, border, camera, framebuffer);
+            if !editor.render_options.hide_ui {
+                // Game border
+                let width = 10.0;
+                let mut border = context.geometry.quad_outline(
+                    ui.game.position.extend_uniform(5.0),
+                    width,
+                    theme.light,
+                );
+                border.change_z_index(9999);
+                self.util
+                    .draw_geometry(&mut self.mask_stack, border, camera, framebuffer);
+            }
         }
 
         if !editor.render_options.hide_ui {
