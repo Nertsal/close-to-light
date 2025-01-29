@@ -638,14 +638,16 @@ impl LevelEditor {
             return;
         };
 
-        let movement = Movement {
-            initial: Transform {
+        let start_beat = self.current_time.target;
+        let timing = self.level.timing.get_timing(start_beat);
+        let movement = Movement::new(
+            seconds_to_time(timing.beat_time),
+            Transform {
                 translation: position,
                 rotation: self.place_rotation.normalized_2pi(),
                 scale: self.place_scale,
             },
-            ..default()
-        };
+        );
 
         let light = LightEvent {
             shape,
@@ -653,9 +655,6 @@ impl LevelEditor {
             danger,
         };
 
-        // NOTE: target to make sure it is snapped to the beat
-        // assume time interpolation doesn't take long, so not visually weird
-        let start_beat = self.current_time.target;
         let beat = start_beat - light.movement.fade_in; // extra time for the fade in and telegraph
         let event = commit_light(light.clone());
         let event = TimedEvent {

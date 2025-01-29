@@ -19,26 +19,32 @@ pub use self::{
     leaderboard::*, notification::*, options::*, profile::*, slider::*, sync::*, text::*, value::*,
 };
 
-use super::{context::*, geometry::Geometry, window::*};
+use super::{context::*, geometry::Geometry, window::*, WidgetId};
+
+use crate::simple_widget_state;
 
 use std::any::Any;
 
 use geng::prelude::*;
 
-pub trait Widget: WidgetToAny {
-    #[must_use]
-    fn draw(&self, context: &UiContext) -> Geometry;
+#[macro_export]
+macro_rules! simple_widget_state {
+    () => {
+        fn state_mut(&mut self) -> &mut WidgetState {
+            &mut self.state
+        }
+    };
+    ($path:tt) => {
+        fn state_mut(&mut self) -> &mut WidgetState {
+            &mut self.$path.state
+        }
+    };
 }
 
-impl<T: 'static + Widget> Widget for Vec<T> {
-    fn draw(&self, context: &UiContext) -> Geometry {
-        self.iter()
-            .map(|w| w.draw(context))
-            .fold(Geometry::new(), |mut acc, g| {
-                acc.merge(g);
-                acc
-            })
-    }
+pub trait Widget: WidgetToAny {
+    fn state_mut(&mut self) -> &mut WidgetState;
+    #[must_use]
+    fn draw(&self, context: &UiContext) -> Geometry;
 }
 
 #[doc(hidden)]
@@ -92,6 +98,7 @@ pub trait StatefulWidget {
 
 #[derive(Debug, Clone)]
 pub struct WidgetState {
+    pub id: WidgetId,
     pub position: Aabb2<f32>,
     /// Whether to show the widget.
     pub visible: bool,
@@ -157,6 +164,7 @@ impl WidgetState {
 impl Default for WidgetState {
     fn default() -> Self {
         Self {
+            id: WidgetId::default(),
             position: Aabb2::ZERO.extend_uniform(1.0),
             visible: true,
             hovered: false,

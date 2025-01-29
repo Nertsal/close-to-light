@@ -95,6 +95,7 @@ impl BeatValueWidget {
 }
 
 impl Widget for BeatValueWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let mut geometry = self.value_text.draw(context);

@@ -25,7 +25,7 @@ impl EditorEditUi {
 
             let text = context
                 .state
-                .get_or(|| TextWidget::new("Select or create a difficulty in the Config tab"));
+                .get_root_or(|| TextWidget::new("Select or create a difficulty in the Config tab"));
             text.update(warn, context);
             return;
         };
@@ -49,11 +49,29 @@ impl EditorEditUi {
         let delete_width = font_size * 3.5;
         let value_height = font_size * 1.2;
 
-        let tooltip = context.state.get_or(TooltipWidget::new);
+        let tooltip = context.state.get_root_or(TooltipWidget::new);
         tooltip.visible = false;
 
         // TODO: customize snap
         let snap = BeatTime::QUARTER;
+
+        // Timeline
+        {
+            let timeline = bottom_bar.cut_top(font_size * 1.0);
+            let linetime = context
+                .state
+                .get_root_or(|| TimelineWidget::new(context.context.clone()));
+            linetime.update_time(level_editor.current_time.value);
+            linetime.rescale(level_editor.timeline_zoom.current.as_f32());
+
+            {
+                let mut timeline_actions = vec![];
+                linetime.update(timeline, context, level_editor, &mut timeline_actions);
+                actions.extend(timeline_actions.into_iter().map(Into::into));
+            }
+
+            // self.timeline.auto_scale(level_editor.level.last_beat());
+        }
 
         // Event
         {
@@ -62,14 +80,16 @@ impl EditorEditUi {
             let event = bar.cut_top(title_size);
             let text = context
                 .state
-                .get_or(|| TextWidget::new("Event").aligned(vec2(0.0, 0.5)));
+                .get_root_or(|| TextWidget::new("Event").aligned(vec2(0.0, 0.5)));
             text.update(event, context);
             text.options.size = title_size;
 
             if level_editor.level_state.waypoints.is_some() {
                 let waypoint = bar.cut_top(button_height);
                 bar.cut_top(spacing);
-                let button = context.state.get_or(|| ButtonWidget::new("Add waypoint"));
+                let button = context
+                    .state
+                    .get_root_or(|| ButtonWidget::new("Add waypoint"));
                 button.update(waypoint, context);
                 if button.text.state.clicked {
                     actions.push(LevelAction::NewWaypoint.into());
@@ -92,7 +112,7 @@ impl EditorEditUi {
                 for (i, shape) in editor.config.shapes.iter().enumerate() {
                     let new_shape = bar.cut_top(button_height).cut_left(new_light_width);
                     bar.cut_top(spacing);
-                    let button = context.state.get_or(|| {
+                    let button = context.state.get_root_or(|| {
                         ButtonWidget::new(match shape {
                             Shape::Circle { .. } => "Circle",
                             Shape::Line { .. } => "Line",
@@ -119,13 +139,15 @@ impl EditorEditUi {
             bar.cut_top(spacing);
             let text = context
                 .state
-                .get_or(|| TextWidget::new("View").aligned(vec2(0.0, 0.5)));
+                .get_root_or(|| TextWidget::new("View").aligned(vec2(0.0, 0.5)));
             text.update(view, context);
             text.options.size = title_size;
 
             let selected = bar.cut_top(font_size);
             bar.cut_top(spacing);
-            let toggle = context.state.get_or(|| ToggleWidget::new("Only selected"));
+            let toggle = context
+                .state
+                .get_root_or(|| ToggleWidget::new("Only selected"));
             toggle.update(selected, context);
             if toggle.state.clicked {
                 actions.push(EditorAction::ToggleShowOnlySelected.into());
@@ -134,7 +156,7 @@ impl EditorEditUi {
 
             let dynamic = bar.cut_top(font_size);
             bar.cut_top(spacing);
-            let toggle = context.state.get_or(|| ToggleWidget::new("Dynamic"));
+            let toggle = context.state.get_root_or(|| ToggleWidget::new("Dynamic"));
             toggle.update(dynamic, context);
             if toggle.state.clicked {
                 actions.push(EditorAction::ToggleDynamicVisual.into());
@@ -144,7 +166,7 @@ impl EditorEditUi {
 
             let grid = bar.cut_top(font_size);
             bar.cut_top(spacing);
-            let toggle = context.state.get_or(|| ToggleWidget::new("Show grid"));
+            let toggle = context.state.get_root_or(|| ToggleWidget::new("Show grid"));
             toggle.update(grid, context);
             if toggle.state.clicked {
                 actions.push(EditorAction::ToggleGrid.into());
@@ -161,7 +183,7 @@ impl EditorEditUi {
 
             let zoom = bar.cut_top(value_height);
             bar.cut_top(spacing);
-            let slider = context.state.get_or(|| {
+            let slider = context.state.get_root_or(|| {
                 ValueWidget::new_range("Zoom", editor.view_zoom.target, 0.5..=2.0, 0.25)
             });
             {
@@ -182,13 +204,15 @@ impl EditorEditUi {
             let placement = bar.cut_top(title_size);
             let text = context
                 .state
-                .get_or(|| TextWidget::new("Placement").aligned(vec2(0.0, 0.5)));
+                .get_root_or(|| TextWidget::new("Placement").aligned(vec2(0.0, 0.5)));
             text.update(placement, context);
             text.options.size = title_size;
 
             let grid_snap = bar.cut_top(font_size);
             bar.cut_top(spacing);
-            let button = context.state.get_or(|| ToggleWidget::new("Snap to grid"));
+            let button = context
+                .state
+                .get_root_or(|| ToggleWidget::new("Snap to grid"));
             button.update(grid_snap, context);
             if button.state.clicked {
                 actions.push(EditorAction::ToggleGridSnap.into());
@@ -202,7 +226,7 @@ impl EditorEditUi {
                 let mut value = 10.0 / editor.grid_size.as_f32();
                 let slider = context
                     .state
-                    .get_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0));
+                    .get_root_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0));
                 slider.update(grid_size, context, &mut value);
                 actions.push(EditorAction::SetGridSize(r32(10.0 / value)).into());
                 context.update_focus(slider.state.hovered);
@@ -229,14 +253,14 @@ impl EditorEditUi {
                     let light_pos = bar.cut_top(title_size);
                     let text = context
                         .state
-                        .get_or(|| TextWidget::new("Light").aligned(vec2(0.0, 0.5)));
+                        .get_root_or(|| TextWidget::new("Light").aligned(vec2(0.0, 0.5)));
                     text.update(light_pos, context);
                     text.options.size = title_size;
 
                     let delete = bar.cut_top(button_height).cut_left(delete_width);
                     let button = context
                         .state
-                        .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+                        .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
                     button.update(delete, context);
                     tooltip.update(&button.text.state, "X", context);
                     if button.text.state.clicked {
@@ -247,7 +271,7 @@ impl EditorEditUi {
                     bar.cut_top(spacing);
                     let button = context
                         .state
-                        .get_or(|| ToggleWidget::new("Danger").color(ThemeColor::Danger));
+                        .get_root_or(|| ToggleWidget::new("Danger").color(ThemeColor::Danger));
                     button.update(danger_pos, context);
                     if button.state.clicked {
                         actions.push(LevelAction::ToggleDanger(light_id).into());
@@ -264,7 +288,7 @@ impl EditorEditUi {
                         let mut fade = BeatTime::from_beats_float(
                             time_to_seconds(light.movement.fade_in) / timing_point.beat_time,
                         );
-                        let slider = context.state.get_or(|| {
+                        let slider = context.state.get_root_or(|| {
                             BeatValueWidget::new(
                                 "Fade in",
                                 fade,
@@ -301,7 +325,7 @@ impl EditorEditUi {
                         let mut fade = BeatTime::from_beats_float(
                             time_to_seconds(light.movement.fade_out) / timing_point.beat_time,
                         );
-                        let slider = context.state.get_or(|| {
+                        let slider = context.state.get_root_or(|| {
                             BeatValueWidget::new(
                                 "Fade out",
                                 fade,
@@ -331,7 +355,7 @@ impl EditorEditUi {
                     bar.cut_top(layout_size * 1.5);
 
                     let waypoints = bar.cut_top(title_size);
-                    let button = context.state.get_or(|| ToggleWidget::new("Waypoints"));
+                    let button = context.state.get_root_or(|| ToggleWidget::new("Waypoints"));
                     button.update(waypoints, context);
                     button.text.options.size = title_size;
                     button.checked = matches!(level_editor.state, State::Waypoints { .. });
@@ -363,14 +387,14 @@ impl EditorEditUi {
                                 .zero_size(vec2(0.5, 0.5))
                                 .extend_uniform(font_size * 0.7);
                             if let WaypointId::Initial = selected {
-                                let button = context.state.get_or(|| {
+                                let button = context.state.get_root_or(|| {
                                     IconWidget::new(
                                         context.context.assets.atlas.button_prev_hollow(),
                                     )
                                 });
                                 button.update(prev, context);
                             } else {
-                                let button = context.state.get_or(|| {
+                                let button = context.state.get_root_or(|| {
                                     IconButtonWidget::new_normal(
                                         context.context.assets.atlas.button_prev(),
                                     )
@@ -394,14 +418,14 @@ impl EditorEditUi {
                                 .zero_size(vec2(0.5, 0.5))
                                 .extend_uniform(font_size * 0.7);
                             if i >= frames {
-                                let button = context.state.get_or(|| {
+                                let button = context.state.get_root_or(|| {
                                     IconWidget::new(
                                         context.context.assets.atlas.button_next_hollow(),
                                     )
                                 });
                                 button.update(next, context);
                             } else {
-                                let button = context.state.get_or(|| {
+                                let button = context.state.get_root_or(|| {
                                     IconButtonWidget::new_normal(
                                         context.context.assets.atlas.button_next(),
                                     )
@@ -415,15 +439,15 @@ impl EditorEditUi {
                             }
 
                             // Current waypoint
-                            let text = context.state.get_or(|| TextWidget::new("0"));
+                            let text = context.state.get_root_or(|| TextWidget::new("0"));
                             text.update(current, context);
                             text.text = (i + 1).to_string().into();
 
                             // Delete
                             let delete = bar.cut_top(button_height).cut_left(delete_width);
-                            let button = context
-                                .state
-                                .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+                            let button = context.state.get_root_or(|| {
+                                ButtonWidget::new("Delete").color(ThemeColor::Danger)
+                            });
                             button.update(delete, context);
                             if button.text.state.clicked {
                                 actions.push(
@@ -435,7 +459,7 @@ impl EditorEditUi {
                             let scale = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
-                            let slider = context.state.get_or(|| {
+                            let slider = context.state.get_root_or(|| {
                                 ValueWidget::new_range("Scale", value, 0.25..=10.0, 0.25)
                             });
                             if slider.update(scale, context, &mut value) {
@@ -462,9 +486,9 @@ impl EditorEditUi {
                             let angle = bar.cut_top(value_height);
                             bar.cut_top(spacing);
                             let mut value = frame.rotation.as_degrees().as_f32();
-                            let slider = context
-                                .state
-                                .get_or(|| ValueWidget::new_circle("Angle", value, 360.0, 1.0));
+                            let slider = context.state.get_root_or(|| {
+                                ValueWidget::new_circle("Angle", value, 360.0, 1.0)
+                            });
                             if slider.update(angle, context, &mut value) {
                                 actions.push(
                                     LevelAction::RotateWaypoint(
@@ -496,7 +520,7 @@ impl EditorEditUi {
                             if let Some((mut move_interpolation, mut curve_interpolation)) =
                                 light.movement.get_interpolation(selected)
                             {
-                                let waypoint_curve = context.state.get_or(|| {
+                                let waypoint_curve = context.state.get_root_or(|| {
                                     DropdownWidget::new(
                                         "Curve",
                                         0,
@@ -514,7 +538,7 @@ impl EditorEditUi {
                                     )
                                 });
 
-                                let waypoint_interpolation = context.state.get_or(|| {
+                                let waypoint_interpolation = context.state.get_root_or(|| {
                                     DropdownWidget::new(
                                         "Interpolation",
                                         0,
@@ -558,23 +582,6 @@ impl EditorEditUi {
                     }
                 }
             }
-        }
-
-        {
-            let timeline = bottom_bar.cut_top(font_size * 1.0);
-            let linetime = context
-                .state
-                .get_or(|| TimelineWidget::new(context.context.clone()));
-            linetime.update_time(level_editor.current_time.value);
-            linetime.rescale(level_editor.timeline_zoom.current.as_f32());
-
-            {
-                let mut timeline_actions = vec![];
-                linetime.update(timeline, context, level_editor, &mut timeline_actions);
-                actions.extend(timeline_actions.into_iter().map(Into::into));
-            }
-
-            // self.timeline.auto_scale(level_editor.level.last_beat());
         }
 
         let _ = left_bar;

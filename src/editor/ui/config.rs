@@ -29,13 +29,13 @@ impl EditorConfigUi {
 
         let mut bar = columns[0];
         let timing = bar.cut_top(context.font_size);
-        let text = context.state.get_or(|| TextWidget::new("Timing"));
+        let text = context.state.get_root_or(|| TextWidget::new("Timing"));
         text.update(timing, context);
 
         let bpm = bar.cut_top(context.font_size);
         let slider = context
             .state
-            .get_or(|| TextWidget::new(format!("BPM: {:.1}", editor.group.music.meta.bpm)));
+            .get_root_or(|| TextWidget::new(format!("BPM: {:.1}", editor.group.music.meta.bpm)));
         slider.update(bpm, context);
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
@@ -45,26 +45,26 @@ impl EditorConfigUi {
         let music = bar.cut_top(context.font_size);
         let text = context
             .state
-            .get_or(|| TextWidget::new(format!("Music: {}", editor.group.music.meta.name)));
+            .get_root_or(|| TextWidget::new(format!("Music: {}", editor.group.music.meta.name)));
         text.update(music, context);
 
         bar.cut_top(context.layout_size);
 
         let level = bar.cut_top(context.font_size);
-        let text = context.state.get_or(|| TextWidget::new("Difficulty"));
+        let text = context.state.get_root_or(|| TextWidget::new("Difficulty"));
         text.update(level, context);
 
         let name = bar.cut_top(context.font_size);
         let delete = bar.cut_top(context.font_size);
         if let Some(level_editor) = &editor.level_edit {
-            let input = context.state.get_or(|| InputWidget::new(""));
+            let input = context.state.get_root_or(|| InputWidget::new(""));
             input.sync(&level_editor.name, context);
             input.update(name, context);
             actions.push(LevelAction::SetName(input.raw.clone()).into());
 
             let button = context
                 .state
-                .get_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+                .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
             button.update(delete, context);
             if button.text.state.clicked {
                 let index = level_editor.static_level.level_index;
@@ -73,7 +73,7 @@ impl EditorConfigUi {
         }
 
         let create = bar.cut_top(context.font_size);
-        let button = context.state.get_or(|| ButtonWidget::new("Create"));
+        let button = context.state.get_root_or(|| ButtonWidget::new("Create"));
         button.update(create, context);
         if button.text.state.clicked {
             actions.push(EditorAction::NewLevel.into());
@@ -81,7 +81,9 @@ impl EditorConfigUi {
 
         bar.cut_top(context.layout_size);
         let all = bar.cut_top(context.font_size);
-        let text = context.state.get_or(|| TextWidget::new("All Difficulties"));
+        let text = context
+            .state
+            .get_root_or(|| TextWidget::new("All Difficulties"));
         text.update(all, context);
 
         let names: Vec<_> = editor
@@ -95,7 +97,7 @@ impl EditorConfigUi {
 
         let max = names.len().saturating_sub(1);
         for (i, mut level_name) in names.into_iter().enumerate() {
-            let level = context.state.get_or_default::<TextWidget>();
+            let level = context.state.get_root_or_default::<TextWidget>();
 
             let name = bar.cut_top(context.font_size);
             level.update(name, context);
@@ -136,7 +138,7 @@ impl EditorConfigUi {
                 if i > 0 && (up_hover || !down_hover) {
                     let icon_up = context
                         .state
-                        .get_or(|| IconWidget::new(context.context.assets.atlas.arrow_up()));
+                        .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_up()));
                     icon_up.update(up, context);
                     if icon_up.state.clicked {
                         actions.push(EditorAction::MoveLevelLow(i).into());
@@ -146,7 +148,7 @@ impl EditorConfigUi {
                 if i < max && (down_hover || !up_hover) {
                     let icon_down = context
                         .state
-                        .get_or(|| IconWidget::new(context.context.assets.atlas.arrow_down()));
+                        .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_down()));
                     icon_down.update(down, context);
                     if icon_down.state.clicked {
                         actions.push(EditorAction::MoveLevelHigh(i).into());
@@ -159,7 +161,7 @@ impl EditorConfigUi {
         {
             let mut bar = columns[2];
             let timeline = bar.cut_top(context.font_size);
-            let title = context.state.get_or(|| TextWidget::new("Timeline"));
+            let title = context.state.get_root_or(|| TextWidget::new("Timeline"));
             title.update(timeline, context);
 
             let mut config = editor.config.clone();
@@ -168,7 +170,7 @@ impl EditorConfigUi {
 
             let scroll_by = bar.cut_top(value_height);
             bar.cut_top(spacing);
-            let value = context.state.get_or(|| {
+            let value = context.state.get_root_or(|| {
                 BeatValueWidget::new(
                     "Scroll by",
                     BeatTime::WHOLE,
@@ -180,7 +182,7 @@ impl EditorConfigUi {
 
             let shift_scroll = bar.cut_top(value_height);
             bar.cut_top(spacing);
-            let value = context.state.get_or(|| {
+            let value = context.state.get_root_or(|| {
                 BeatValueWidget::new(
                     "Shift scroll",
                     BeatTime::QUARTER,
@@ -192,7 +194,7 @@ impl EditorConfigUi {
 
             let alt_scroll = bar.cut_top(value_height);
             bar.cut_top(spacing);
-            let value = context.state.get_or(|| {
+            let value = context.state.get_root_or(|| {
                 BeatValueWidget::new(
                     "Alt scroll",
                     BeatTime::WHOLE * 10,

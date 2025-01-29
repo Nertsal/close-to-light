@@ -169,6 +169,7 @@ impl InputWidget {
 }
 
 impl Widget for InputWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let mut geometry = self.name.draw(context);

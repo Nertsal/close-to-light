@@ -66,7 +66,7 @@ impl Editor {
                 authors: Vec::new(),
                 hash: String::new(),
             },
-            data: Level::new(),
+            data: Level::new(self.group.music.meta.bpm),
         }));
 
         if let Some(group) =

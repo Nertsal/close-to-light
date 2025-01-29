@@ -6,12 +6,6 @@ use ctl_client::core::types::Name;
 use geng_utils::bounded::Bounded;
 
 pub struct SliderWidget {
-    // pub state: WidgetState,
-    // pub value_text: InputWidget,
-    // pub control_state: WidgetState,
-    // pub value: T,
-    // pub control: ValueControl<T>,
-    // pub scroll_by: T,
     pub state: WidgetState,
     pub text: TextWidget,
     pub bar: WidgetState,
@@ -77,6 +71,7 @@ impl SliderWidget {
 }
 
 impl Widget for SliderWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let mut geometry = self.text.draw(context);

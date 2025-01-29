@@ -91,6 +91,7 @@ impl TextWidget {
 }
 
 impl Widget for TextWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         self.draw_colored(context, self.options.color)
     }

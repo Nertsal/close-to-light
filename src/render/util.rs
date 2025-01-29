@@ -99,13 +99,6 @@ impl UtilRender {
         for masked_geometry in geometry.masked {
             let mut masking = frame.start();
             self.draw_geometry(masked, masked_geometry.geometry, camera, &mut masking.color);
-            // self.circle_with_cut(
-            //     &mut masking.color,
-            //     camera,
-            //     mat3::translate(masked_geometry.clip_rect.center()) * mat3::scale_uniform(50.0),
-            //     Color::CYAN,
-            //     0.5,
-            // );
             masking.mask_quad(masked_geometry.clip_rect);
             frame.draw(
                 masked_geometry.z_index,
@@ -119,31 +112,26 @@ impl UtilRender {
         }
         masked.return_mask(frame);
 
-        // Triangles
+        // Text
+        for text in geometry.text {
+            self.draw_text_with(
+                text.text,
+                text.position,
+                text.z_index,
+                text.options,
+                ugli::DrawParameters {
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                    depth_func: Some(ugli::DepthFunc::LessOrEqual),
+                    ..default()
+                },
+                camera,
+                framebuffer,
+            );
+        }
+
+        // Triangles & Textures
         let triangles =
             ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), geometry.triangles);
-        ugli::draw(
-            framebuffer,
-            &self.context.assets.shaders.solid_ui,
-            ugli::DrawMode::Triangles,
-            &triangles,
-            (
-                ugli::uniforms! {
-                    u_model_matrix: mat3::identity(),
-                    u_color: Color::WHITE,
-                },
-                camera.uniforms(framebuffer_size),
-            ),
-            ugli::DrawParameters {
-                blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                depth_func: Some(ugli::DepthFunc::Less),
-                ..default()
-            },
-        );
-
-        // Textures
-        let triangles =
-            ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), geometry.textures);
         ugli::draw(
             framebuffer,
             &self.context.assets.shaders.texture_ui,
@@ -163,23 +151,6 @@ impl UtilRender {
                 ..default()
             },
         );
-
-        // Text
-        for text in geometry.text {
-            self.draw_text_with(
-                text.text,
-                text.position,
-                text.z_index,
-                text.options,
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    depth_func: Some(ugli::DepthFunc::LessOrEqual),
-                    ..default()
-                },
-                camera,
-                framebuffer,
-            );
-        }
     }
 
     pub fn draw_nine_slice(

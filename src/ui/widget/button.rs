@@ -40,6 +40,7 @@ impl WidgetOld for ButtonWidget {
 }
 
 impl Widget for ButtonWidget {
+    simple_widget_state!(text);
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let state = &self.text.state;
@@ -126,6 +127,7 @@ impl WidgetOld for IconButtonWidget {
 }
 
 impl Widget for IconButtonWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         self.icon.draw(context)
     }
@@ -185,6 +187,7 @@ impl WidgetOld for ToggleButtonWidget {
 }
 
 impl Widget for ToggleButtonWidget {
+    simple_widget_state!(text);
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let width = self.text.options.size * 0.2;
@@ -244,6 +247,7 @@ impl ToggleWidget {
 }
 
 impl Widget for ToggleWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let width = self.text.options.size * 0.1;

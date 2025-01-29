@@ -12,14 +12,12 @@ pub struct GeometryContext {
     pub framebuffer_size: vec2<usize>,
     pub pixel_scale: f32,
     z_index: RefCell<f32>,
-    // TODO: texture atlas i guess
 }
 
 #[derive(Default, Debug)]
 pub struct Geometry {
+    // TODO: bake text into triangles
     pub triangles: Vec<GeometryTriangleVertex>,
-    // TODO: combine with triangles (requires having one white pixel for non-texture triangles)
-    pub textures: Vec<GeometryTriangleVertex>,
     pub text: Vec<GeometryText>,
     pub masked: Vec<MaskedGeometry>,
 }
@@ -58,7 +56,6 @@ impl Geometry {
 
     pub fn merge(&mut self, other: Self) {
         self.triangles.extend(other.triangles);
-        self.textures.extend(other.textures);
         self.text.extend(other.text);
         self.masked.extend(other.masked);
     }
@@ -71,9 +68,6 @@ impl Geometry {
         for v in &mut self.triangles {
             v.a_z += delta;
         }
-        for v in &mut self.textures {
-            v.a_z += delta;
-        }
         for text in &mut self.text {
             text.z_index += delta;
         }
@@ -82,13 +76,6 @@ impl Geometry {
     fn triangles(triangles: Vec<GeometryTriangleVertex>) -> Self {
         Self {
             triangles,
-            ..default()
-        }
-    }
-
-    fn texture(triangles: Vec<GeometryTriangleVertex>) -> Self {
-        Self {
-            textures: triangles,
             ..default()
         }
     }
@@ -122,7 +109,9 @@ impl GeometryContext {
     fn next_z_index(&self) -> f32 {
         let mut index = self.z_index.borrow_mut();
         let current = *index;
-        *index = f32::from_bits(current.to_bits() + 1);
+        // NOTE: big increment because it seems that the framebuffer loses precision
+        // TODO: figure out proper precision or remove z-index entirely
+        *index = f32::from_bits(current.to_bits() + (1 << 16));
         current
     }
 
@@ -209,21 +198,18 @@ impl GeometryContext {
             })
             .collect();
 
-        Geometry::texture(triangles)
+        Geometry::triangles(triangles)
     }
 
     #[must_use]
     pub fn quad(&self, position: Aabb2<f32>, color: Color) -> Geometry {
         let z_index = self.next_z_index();
 
+        let a_vt = self.assets.atlas.white().uv.bottom_left();
         let [a, b, c, d] = position.corners();
-        let a = (a, vec2(0.0, 0.0));
-        let b = (b, vec2(1.0, 0.0));
-        let c = (c, vec2(1.0, 1.0));
-        let d = (d, vec2(0.0, 1.0));
         let triangles = [a, b, c, a, c, d]
             .into_iter()
-            .map(|(a_pos, a_vt)| GeometryTriangleVertex {
+            .map(|a_pos| GeometryTriangleVertex {
                 a_z: z_index,
                 a_pos,
                 a_color: color,
@@ -283,7 +269,7 @@ impl GeometryContext {
             })
             .collect();
 
-        Geometry::texture(triangles)
+        Geometry::triangles(triangles)
     }
 
     /// Pixel perfect texture

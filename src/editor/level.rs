@@ -66,7 +66,7 @@ impl LevelEditor {
             static_level: level,
             model,
         };
-        editor.render_lights(vec2::ZERO, vec2::ZERO, visualize_beat, show_only_selected);
+        editor.render_lights(None, None, visualize_beat, show_only_selected);
         editor
     }
 
@@ -259,8 +259,8 @@ impl LevelEditor {
 
     pub fn render_lights(
         &mut self,
-        cursor_world_pos: vec2<Coord>,
-        cursor_world_pos_snapped: vec2<Coord>,
+        cursor_world_pos: Option<vec2<Coord>>,
+        cursor_world_pos_snapped: Option<vec2<Coord>>,
         visualize_beat: bool,
         show_only_selected: bool,
     ) {
@@ -299,12 +299,14 @@ impl LevelEditor {
         if hovered_light.is_none() {
             if let State::Idle = self.state {
                 if let Some(level) = &static_level {
-                    hovered_light = level
-                        .lights
-                        .iter()
-                        .find(|light| light.collider.contains(cursor_world_pos))
-                        .and_then(|light| light.event_id)
-                        .map(|event| LightId { event });
+                    hovered_light = cursor_world_pos.and_then(|cursor| {
+                        level
+                            .lights
+                            .iter()
+                            .find(|light| light.collider.contains(cursor))
+                            .and_then(|light| light.event_id)
+                            .map(|event| LightId { event })
+                    });
                 }
             }
         }
@@ -371,43 +373,48 @@ impl LevelEditor {
                     points.sort_by_key(|(point, _)| point.original); // Restore proper order
 
                     if let WaypointsState::New = state {
-                        // NOTE: assuming that positions don't go backwards in time
-                        // Insert a new waypoint at current time
-                        let new_time = self.current_time.value - event_time;
-                        let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
-                            Ok(i) | Err(i) => i,
-                        };
-                        let control = base_collider.transformed(Transform {
-                            translation: cursor_world_pos_snapped,
-                            rotation: self.place_rotation,
-                            scale: self.place_scale,
-                        });
-                        points.insert(
-                            i,
-                            (
-                                Waypoint {
-                                    visible: true,
-                                    original: None,
-                                    actual: control.clone(),
-                                    control,
-                                },
-                                new_time,
-                            ),
-                        );
+                        if let Some(cursor_world_pos_snapped) = cursor_world_pos_snapped {
+                            // NOTE: assuming that positions don't go backwards in time
+                            // Insert a new waypoint at current time
+                            let new_time = self.current_time.value - event_time;
+                            let i = match points.binary_search_by_key(&new_time, |(_, time)| *time)
+                            {
+                                Ok(i) | Err(i) => i,
+                            };
+                            let control = base_collider.transformed(Transform {
+                                translation: cursor_world_pos_snapped,
+                                rotation: self.place_rotation,
+                                scale: self.place_scale,
+                            });
+                            points.insert(
+                                i,
+                                (
+                                    Waypoint {
+                                        visible: true,
+                                        original: None,
+                                        actual: control.clone(),
+                                        control,
+                                    },
+                                    new_time,
+                                ),
+                            );
+                        }
                     }
 
-                    let hovered = points
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, (point, _))| {
-                            point.visible
-                                && (point.control.contains(cursor_world_pos)
-                                    || point.actual.contains(cursor_world_pos))
-                        })
-                        .min_by_key(|(_, (_, time))| {
-                            (self.current_time.value - event_time - *time).abs()
-                        })
-                        .map(|(i, _)| i);
+                    let hovered = cursor_world_pos.and_then(|cursor_world_pos| {
+                        points
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, (point, _))| {
+                                point.visible
+                                    && (point.control.contains(cursor_world_pos)
+                                        || point.actual.contains(cursor_world_pos))
+                            })
+                            .min_by_key(|(_, (_, time))| {
+                                (self.current_time.value - event_time - *time).abs()
+                            })
+                            .map(|(i, _)| i)
+                    });
                     let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
 
                     waypoints = Some(Waypoints {

@@ -171,18 +171,22 @@ impl Default for Transform {
 
 impl Default for Movement {
     fn default() -> Self {
+        Self::new(TIME_IN_FLOAT_TIME / 2, Transform::default())
+    }
+}
+
+impl Movement {
+    pub fn new(fade_time: Time, initial: Transform) -> Self {
         Self {
-            fade_in: TIME_IN_FLOAT_TIME,
-            fade_out: TIME_IN_FLOAT_TIME,
-            initial: Transform::default(),
+            fade_in: fade_time,
+            fade_out: fade_time,
+            initial,
             interpolation: MoveInterpolation::default(),
             curve: TrajectoryInterpolation::default(),
             key_frames: VecDeque::new(),
         }
     }
-}
 
-impl Movement {
     /// Iterate over frames with corrected (accumulated) transforms.
     pub fn frames_iter(&self) -> impl Iterator<Item = &MoveFrame> {
         self.key_frames.iter()

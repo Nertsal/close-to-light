@@ -82,7 +82,7 @@ impl TimelineWidget {
             scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
-            level: Level::new(),
+            level: Level::new(r32(150.0)),
             selected_light: None,
             selected_waypoint: None,
         }
@@ -220,7 +220,7 @@ impl TimelineWidget {
 
                     // Fade in
                     let position = Aabb2::point(from).extend_symmetric(size / 2.0);
-                    let tick = self.context.state.get_or(|| {
+                    let tick = self.context.state.get_or(self.state.id, || {
                         // TODO: somehow mask this with other stuff
                         IconButtonWidget::new(atlas.timeline_tick_smol())
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
@@ -242,7 +242,7 @@ impl TimelineWidget {
 
                     // Fade out
                     let position = Aabb2::point(to).extend_symmetric(size / 2.0);
-                    let tick = self.context.state.get_or(|| {
+                    let tick = self.context.state.get_or(self.state.id, || {
                         // TODO: somehow mask this with other stuff
                         IconButtonWidget::new(atlas.timeline_tick_smol())
                             .highlight(HighlightMode::Color(ThemeColor::Highlight))
@@ -273,7 +273,10 @@ impl TimelineWidget {
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                         let texture = atlas.timeline_waypoint();
                         // TODO: somehow mask this with other stuff
-                        let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
+                        let icon = self
+                            .context
+                            .state
+                            .get_or(self.state.id, || IconButtonWidget::new(texture));
                         icon.color = if is_waypoint_selected {
                             ThemeColor::Highlight
                         } else {
@@ -292,7 +295,7 @@ impl TimelineWidget {
                             }
                             WaypointId::Frame(_) => atlas.timeline_tick_smol(),
                         };
-                        let tick = self.context.state.get_or(|| {
+                        let tick = self.context.state.get_or(self.state.id, || {
                             // TODO: somehow mask this with other stuff
                             IconButtonWidget::new(texture)
                                 .highlight(HighlightMode::Color(ThemeColor::Highlight))
@@ -329,13 +332,14 @@ impl TimelineWidget {
                 }
 
                 let mut is_hovered = false;
+                let mut overlapped = 0;
 
                 // Light icon
                 let light_time = event.time + light_event.movement.fade_in;
                 let visible =
                     !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                 if visible {
-                    let dots = if self.highlight_bar.as_ref().map_or(false, |bar| {
+                    overlapped = if self.highlight_bar.as_ref().map_or(false, |bar| {
                         (bar.from_time..=bar.to_time).contains(&light_time)
                     }) {
                         1
@@ -346,8 +350,8 @@ impl TimelineWidget {
                             .or_insert(0)
                     };
 
-                    if dots as f32 <= self.expansion.current + 0.9 {
-                        let light = render_light(light_time, dots);
+                    if overlapped as f32 <= self.expansion.current + 0.9 {
+                        let light = render_light(light_time, overlapped);
                         let texture = match light_event.shape {
                             Shape::Circle { .. } => atlas.timeline_circle(),
                             Shape::Line { .. } => atlas.timeline_square(),
@@ -357,7 +361,7 @@ impl TimelineWidget {
                         let icon = self
                             .context
                             .state
-                            .get_or(|| IconButtonWidget::new(texture.clone()));
+                            .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
                         icon.update(light, &self.context);
                         icon.color = if is_selected {
                             ThemeColor::Highlight
@@ -377,24 +381,32 @@ impl TimelineWidget {
                                 Some((self.context.cursor.position, self.context.real_time));
                         }
                     } else {
-                        // Dots to indicate there are more light in that position
+                        // Dots to indicate there are more lights in that position
                         let dots = render_time(&self.extra_line, light_time);
                         let texture = atlas.timeline_dots();
                         // TODO: somehow mask this with other stuff
-                        let icon = self.context.state.get_or(|| IconWidget::new(texture));
+                        let icon = self
+                            .context
+                            .state
+                            .get_or(self.state.id, || IconWidget::new(texture));
                         icon.update(dots, &self.context);
                     }
                 }
+
+                let is_hovered = is_hovered || editor.level_state.hovered_light == Some(light_id);
 
                 if !is_selected && is_hovered {
                     // Waypoints
                     for (_, _, offset) in light_event.movement.timed_positions().skip(1) {
                         // Icon
-                        let position = render_light(event.time + offset, 0).center();
+                        let position = render_light(event.time + offset, overlapped).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                         let texture = atlas.timeline_waypoint();
                         // TODO: somehow mask this with other stuff
-                        let icon = self.context.state.get_or(|| IconButtonWidget::new(texture));
+                        let icon = self
+                            .context
+                            .state
+                            .get_or(self.state.id, || IconButtonWidget::new(texture));
                         icon.color = ThemeColor::Light;
                         icon.update(position, &self.context);
                     }
@@ -411,9 +423,10 @@ impl TimelineWidget {
                     let step = timing.beat_time / r32(resolution);
                     let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
                         .floor() as usize;
+                    let overlapped = if is_selected { 0 } else { overlapped };
                     let dots = (0..=dots).map(|i| {
                         let time = last_dot_time + seconds_to_time(step * r32(i as f32));
-                        render_light(time, 0).center()
+                        render_light(time, overlapped).center()
                     });
 
                     self.dots.extend(dots);
@@ -584,6 +597,7 @@ impl TimelineWidget {
 }
 
 impl Widget for TimelineWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let pixel_scale = PPU;
         let pixel = pixel_scale as f32;
@@ -680,7 +694,7 @@ impl Widget for TimelineWidget {
                 .quad_fill(position.extend_uniform(width * 3.0), theme.dark),
         );
 
-        geometry.change_z_index(-100);
+        // geometry.change_z_index(-100);
         geometry
     }
 }
@@ -706,6 +720,7 @@ impl IconWidget {
 }
 
 impl Widget for IconWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let pixel_scale = PPU;
         let theme = context.theme();
@@ -760,6 +775,7 @@ impl IconButtonWidget {
 }
 
 impl Widget for IconButtonWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let pixel_scale = PPU;
         let theme = context.theme();

@@ -7,7 +7,10 @@ pub use self::{config::*, edit::*};
 
 use super::*;
 
-use crate::ui::{layout::AreaOps, widget::*};
+use crate::{
+    simple_widget_state,
+    ui::{layout::AreaOps, widget::*},
+};
 
 const HELP: &str = "
 Scroll / Arrow keys - move through time
@@ -102,7 +105,7 @@ impl EditorUi {
         let exit = top_bar.cut_right(layout_size * 3.0);
         let button = context
             .state
-            .get_or(|| ButtonWidget::new("Exit").color(ThemeColor::Danger));
+            .get_root_or(|| ButtonWidget::new("Exit").color(ThemeColor::Danger));
         button.update(exit, context);
         if button.text.state.clicked {
             if editor.is_changed() {
@@ -121,7 +124,7 @@ impl EditorUi {
         let save = top_bar.cut_left(layout_size * 4.0);
         let button = context
             .state
-            .get_or(|| ButtonWidget::new("Save").color(ThemeColor::Highlight));
+            .get_root_or(|| ButtonWidget::new("Save").color(ThemeColor::Highlight));
         button.update(save, context);
         if button.text.state.clicked {
             actions.push(EditorAction::Save.into());
@@ -148,12 +151,16 @@ impl EditorUi {
         //     self.help_text.hide();
         // }
 
-        let tab_edit = context.state.get_or(|| ToggleButtonWidget::new("Edit"));
+        let tab_edit = context
+            .state
+            .get_root_or(|| ToggleButtonWidget::new("Edit"));
         tab_edit.selected = matches!(editor.tab, EditorTab::Edit);
         tab_edit.update(top_bar.cut_left(layout_size * 5.0), context);
         top_bar.cut_left(layout_size);
 
-        let tab_config = context.state.get_or(|| ToggleButtonWidget::new("Config"));
+        let tab_config = context
+            .state
+            .get_root_or(|| ToggleButtonWidget::new("Config"));
         tab_config.selected = matches!(editor.tab, EditorTab::Config);
         tab_config.update(top_bar.cut_left(layout_size * 5.0), context);
         top_bar.cut_left(layout_size);
@@ -168,7 +175,7 @@ impl EditorUi {
         if editor.is_changed() {
             let text = context
                 .state
-                .get_or(|| TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)));
+                .get_root_or(|| TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)));
             text.update(unsaved, context);
         }
 

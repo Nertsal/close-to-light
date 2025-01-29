@@ -49,10 +49,10 @@ pub struct LightEvent {
 }
 
 impl Level {
-    pub fn new() -> Self {
+    pub fn new(bpm: FloatTime) -> Self {
         Self {
             events: Vec::new(),
-            timing: Timing::default(),
+            timing: Timing::new(bpm),
         }
     }
 
@@ -72,6 +72,15 @@ impl Level {
 }
 
 impl Timing {
+    pub fn new(bpm: FloatTime) -> Self {
+        Self {
+            points: vec![TimingPoint {
+                time: Time::ZERO,
+                beat_time: r32(60.0) / bpm,
+            }],
+        }
+    }
+
     pub fn get_timing(&self, time: Time) -> TimingPoint {
         let i = match self
             .points

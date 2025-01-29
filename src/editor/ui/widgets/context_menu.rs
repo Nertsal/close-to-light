@@ -105,6 +105,7 @@ impl OptionWidget {
 }
 
 impl Widget for ContextMenuWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let mut position = self.state.position;
         let position = position.cut_top(self.extension.current * position.height());
@@ -134,6 +135,7 @@ impl Widget for ContextMenuWidget {
 }
 
 impl Widget for OptionWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let mut geometry = Geometry::new();
         let width = self.text.options.size * 0.1;

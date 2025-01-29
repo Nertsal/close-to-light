@@ -100,6 +100,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
 }
 
 impl<T: 'static> Widget for DropdownWidget<T> {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let outline_width = context.font_size * 0.1;
         let theme = context.theme();

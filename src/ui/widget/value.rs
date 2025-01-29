@@ -144,6 +144,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
 }
 
 impl<T: 'static + Float> Widget for ValueWidget<T> {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let mut geometry = self.value_text.draw(context);

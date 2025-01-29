@@ -46,6 +46,7 @@ impl TooltipWidget {
 }
 
 impl Widget for TooltipWidget {
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         if !self.visible {
             return Geometry::new();

@@ -242,9 +242,15 @@ impl EditorState {
                 .snap_to(seconds_to_time(level_editor.real_time));
         }
 
+        let include_cursor = !self.ui_focused
+            && self
+                .ui
+                .game
+                .position
+                .contains(self.editor.cursor_world_pos.as_f32());
         level_editor.render_lights(
-            self.editor.cursor_world_pos,
-            self.editor.cursor_world_pos_snapped,
+            include_cursor.then_some(self.editor.cursor_world_pos),
+            include_cursor.then_some(self.editor.cursor_world_pos_snapped),
             self.editor.visualize_beat,
             self.editor.show_only_selected,
         );
