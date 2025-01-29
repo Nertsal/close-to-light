@@ -344,11 +344,15 @@ impl geng::State for EditorState {
 
         self.ui_context.state.frame_start();
         self.ui_context.geometry.update(framebuffer.size());
-        let (can_focus, actions) = self.ui.layout(
-            &self.editor,
-            Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-            &mut self.ui_context,
-        );
+        let (can_focus, actions) = if !self.editor.render_options.hide_ui {
+            self.ui.layout(
+                &self.editor,
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                &mut self.ui_context,
+            )
+        } else {
+            (true, vec![])
+        };
         self.ui_focused = !can_focus;
         self.ui_context.frame_end();
         for action in actions {
