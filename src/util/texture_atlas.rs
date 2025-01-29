@@ -28,7 +28,7 @@ impl TextureAtlas {
         let mut width = 0;
         let mut height = 0;
         for texture in textures {
-            width += texture.size().x;
+            width += texture.size().x + 1;
             height = height.max(texture.size().y);
         }
         let mut atlas_texture = ugli::Texture::new_uninitialized(ugli, vec2(width, height));
@@ -51,7 +51,7 @@ impl TextureAtlas {
                     texture.size().y as f32 / height as f32,
                 )),
             );
-            x += texture.size().x;
+            x += texture.size().x + 1; // NOTE: extra space between textures to avoid bleeding
         }
         atlas_texture.set_filter(filter);
         Self {
