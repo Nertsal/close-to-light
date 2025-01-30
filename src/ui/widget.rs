@@ -44,6 +44,11 @@ macro_rules! simple_widget_state {
 pub trait Widget: WidgetToAny {
     fn state_mut(&mut self) -> &mut WidgetState;
     #[must_use]
+    fn draw_top(&self, context: &UiContext) -> Geometry {
+        #![allow(unused_variables)]
+        Geometry::new()
+    }
+    #[must_use]
     fn draw(&self, context: &UiContext) -> Geometry;
 }
 

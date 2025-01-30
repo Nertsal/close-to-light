@@ -219,48 +219,55 @@ impl TimelineWidget {
                     let size = vec2(4.0, 16.0) * PPU as f32;
 
                     // Fade in
-                    let position = Aabb2::point(from).extend_symmetric(size / 2.0);
-                    let tick = self.context.state.get_or(self.state.id, || {
-                        // TODO: somehow mask this with other stuff
-                        IconButtonWidget::new(atlas.timeline_tick_smol())
-                            .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                    });
-                    tick.update(position, &self.context);
-                    if tick.state.pressed {
-                        // Drag fade in
-                        let target = unrender_time(self.context.cursor.position.x);
-                        let target = editor.level.timing.snap_to_beat(target, snap);
-                        let fade_in = event.time + light_event.movement.fade_in - target;
-                        actions
-                            .push(LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)).into());
-                    }
-                    if tick.state.released {
-                        actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id))).into(),
-                        );
+                    if self.state.position.contains(from) {
+                        let position = Aabb2::point(from).extend_symmetric(size / 2.0);
+                        let tick = self.context.state.get_or(self.state.id, || {
+                            // TODO: somehow mask this with other stuff
+                            IconButtonWidget::new(atlas.timeline_tick_smol())
+                                .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                        });
+                        tick.update(position, &self.context);
+                        if tick.state.pressed {
+                            // Drag fade in
+                            let target = unrender_time(self.context.cursor.position.x);
+                            let target = editor.level.timing.snap_to_beat(target, snap);
+                            let fade_in = event.time + light_event.movement.fade_in - target;
+                            actions.push(
+                                LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)).into(),
+                            );
+                        }
+                        if tick.state.released {
+                            actions.push(
+                                LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
+                                    .into(),
+                            );
+                        }
                     }
 
                     // Fade out
-                    let position = Aabb2::point(to).extend_symmetric(size / 2.0);
-                    let tick = self.context.state.get_or(self.state.id, || {
-                        // TODO: somehow mask this with other stuff
-                        IconButtonWidget::new(atlas.timeline_tick_smol())
-                            .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                    });
-                    tick.update(position, &self.context);
-                    if tick.state.pressed {
-                        // Drag fade out
-                        let target = unrender_time(self.context.cursor.position.x);
-                        let target = editor.level.timing.snap_to_beat(target, snap);
-                        let fade_out = target - to_time + light_event.movement.fade_out;
-                        actions.push(
-                            LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)).into(),
-                        );
-                    }
-                    if tick.state.released {
-                        actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(light_id))).into(),
-                        );
+                    if self.state.position.contains(to) {
+                        let position = Aabb2::point(to).extend_symmetric(size / 2.0);
+                        let tick = self.context.state.get_or(self.state.id, || {
+                            // TODO: somehow mask this with other stuff
+                            IconButtonWidget::new(atlas.timeline_tick_smol())
+                                .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                        });
+                        tick.update(position, &self.context);
+                        if tick.state.pressed {
+                            // Drag fade out
+                            let target = unrender_time(self.context.cursor.position.x);
+                            let target = editor.level.timing.snap_to_beat(target, snap);
+                            let fade_out = target - to_time + light_event.movement.fade_out;
+                            actions.push(
+                                LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)).into(),
+                            );
+                        }
+                        if tick.state.released {
+                            actions.push(
+                                LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(light_id)))
+                                    .into(),
+                            );
+                        }
                     }
 
                     let last_id =
@@ -268,8 +275,12 @@ impl TimelineWidget {
                     for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
                         let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
 
-                        // Icon
                         let position = render_light(event.time + offset, 0).center();
+                        if !self.state.position.contains(position) {
+                            continue;
+                        }
+
+                        // Icon
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                         let texture = atlas.timeline_waypoint();
                         // TODO: somehow mask this with other stuff
@@ -400,6 +411,10 @@ impl TimelineWidget {
                     for (_, _, offset) in light_event.movement.timed_positions().skip(1) {
                         // Icon
                         let position = render_light(event.time + offset, overlapped).center();
+                        if !self.state.position.contains(position) {
+                            continue;
+                        }
+
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                         let texture = atlas.timeline_waypoint();
                         // TODO: somehow mask this with other stuff
@@ -424,10 +439,12 @@ impl TimelineWidget {
                     let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
                         .floor() as usize;
                     let overlapped = if is_selected { 0 } else { overlapped };
-                    let dots = (0..=dots).map(|i| {
-                        let time = last_dot_time + seconds_to_time(step * r32(i as f32));
-                        render_light(time, overlapped).center()
-                    });
+                    let dots = (0..=dots)
+                        .map(|i| {
+                            let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                            render_light(time, overlapped).center()
+                        })
+                        .filter(|&pos| self.state.position.contains(pos));
 
                     self.dots.extend(dots);
                 }
@@ -493,12 +510,16 @@ impl TimelineWidget {
         self.marks.clear();
         if let Some(level) = &editor.level_state.dynamic_level {
             let pos = render_time(&self.main_line, level.time()).center();
-            self.marks
-                .push((pos, Color::lerp(theme.dark, theme.light, 0.5)));
+            if self.state.position.contains(pos) {
+                self.marks
+                    .push((pos, Color::lerp(theme.dark, theme.light, 0.5)));
+            }
         }
         if let Some(level) = &editor.level_state.static_level {
             let pos = render_time(&self.main_line, level.time()).center();
-            self.marks.push((pos, theme.light));
+            if self.state.position.contains(pos) {
+                self.marks.push((pos, theme.light));
+            }
         }
 
         *self.context.can_focus.borrow_mut() = focus;
@@ -598,7 +619,7 @@ impl TimelineWidget {
 
 impl Widget for TimelineWidget {
     simple_widget_state!();
-    fn draw(&self, context: &UiContext) -> Geometry {
+    fn draw_top(&self, context: &UiContext) -> Geometry {
         let pixel_scale = PPU;
         let pixel = pixel_scale as f32;
         let theme = context.theme();
@@ -626,18 +647,6 @@ impl Widget for TimelineWidget {
             ));
         }
 
-        // Lifetime dots
-        for &dot in &self.dots {
-            let dot = geng_utils::pixel::pixel_perfect_aabb(
-                dot,
-                vec2(0.5, 0.5),
-                vec2::splat(pixel_scale * 2),
-                &geng::PixelPerfectCamera,
-                context.geometry.framebuffer_size.as_f32(),
-            );
-            geometry.merge(context.geometry.quad(dot, theme.light));
-        }
-
         // Main line ticks
         for &(pos, beat) in &self.ticks {
             let (color, texture) = if beat == BeatTime::WHOLE {
@@ -662,16 +671,60 @@ impl Widget for TimelineWidget {
             );
         }
 
+        let position = self.state.position;
+        geometry = context.geometry.masked(position, geometry);
+        let width = pixel * 2.0;
+        geometry.merge(context.geometry.quad_outline(
+            position.extend_uniform(width),
+            width,
+            theme.light,
+        ));
+
+        geometry
+    }
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let pixel_scale = PPU;
+        let pixel = pixel_scale as f32;
+        let theme = context.theme();
+        let atlas = &context.context.assets.atlas;
+        let bounds = self.state.position;
+
+        let mut geometry = Geometry::new();
+
+        // Lifetime dots
+        for &dot in &self.dots {
+            let dot = geng_utils::pixel::pixel_perfect_aabb(
+                dot,
+                vec2(0.5, 0.5),
+                vec2::splat(pixel_scale * 2),
+                &geng::PixelPerfectCamera,
+                context.geometry.framebuffer_size.as_f32(),
+            );
+            geometry.merge(context.geometry.quad(dot, theme.light));
+        }
+
         // Main
         let main_bar = self.main_line.position;
-        let main_bar = main_bar.align_aabb(vec2(main_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
+        let mut main_bar = main_bar.align_aabb(vec2(main_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
+        main_bar.min = main_bar
+            .min
+            .clamp_coordinates(bounds.min.x..=bounds.max.x, bounds.min.y..=bounds.max.y);
+        main_bar.max = main_bar
+            .max
+            .clamp_coordinates(bounds.min.x..=bounds.max.x, bounds.min.y..=bounds.max.y);
         geometry.merge(context.geometry.quad(main_bar, theme.light));
 
         // Highlight
         if let Some(bar) = &self.highlight_bar {
             let highlight_bar = Aabb2::from_corners(bar.from, bar.to);
-            let highlight_bar =
+            let mut highlight_bar =
                 highlight_bar.align_aabb(vec2(highlight_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
+            highlight_bar.min = highlight_bar
+                .min
+                .clamp_coordinates(bounds.min.x..=bounds.max.x, bounds.min.y..=bounds.max.y);
+            highlight_bar.max = highlight_bar
+                .max
+                .clamp_coordinates(bounds.min.x..=bounds.max.x, bounds.min.y..=bounds.max.y);
             geometry.merge(context.geometry.quad(highlight_bar, theme.highlight));
         }
 
@@ -685,19 +738,13 @@ impl Widget for TimelineWidget {
             );
         }
 
-        let position = self.state.position;
-        geometry = context.geometry.masked(position, geometry);
+        // NOTE: mask is done manually because it weirdly affects the rendering order
         let width = pixel * 2.0;
-        geometry.merge(context.geometry.quad_outline(
-            position.extend_uniform(width),
-            width,
-            theme.light,
-        ));
-        geometry.merge(context.geometry.quad_fill(
-            position.extend_uniform(width),
-            width,
-            theme.dark,
-        ));
+        geometry.merge(
+            context
+                .geometry
+                .quad_fill(bounds.extend_uniform(width), width, theme.dark),
+        );
 
         geometry
     }

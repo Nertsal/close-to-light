@@ -112,17 +112,38 @@ impl UiState {
         widget
     }
 
-    pub fn iter_widgets(&self, mut f: impl FnMut(&dyn Widget)) {
+    pub fn iter_widgets(
+        &self,
+        mut f_pre: impl FnMut(&dyn Widget),
+        mut f_post: impl FnMut(&dyn Widget),
+    ) {
         let inner = self.0.borrow();
-        inner.iter_children(&WidgetId::default(), &mut f)
+        inner.iter_children(&WidgetId::default(), &mut f_pre, &mut f_post)
     }
 }
 
 impl State {
-    fn iter_children(&self, parent: &WidgetId, f: &mut impl FnMut(&dyn Widget)) {
+    fn iter_children(
+        &self,
+        parent: &WidgetId,
+        f_pre: &mut impl FnMut(&dyn Widget),
+        f_post: &mut impl FnMut(&dyn Widget),
+    ) {
         if let Some(children) = self.children.get(parent) {
             for child in children {
-                self.iter_children(child, f);
+                {
+                    let cell = self.widgets.get(&child.0).expect(
+                        "invalid implementation of UiState: active id is not present in widgets",
+                    );
+                    let cell = unsafe { &*(cell.get()) };
+                    let w = cell.widgets.get(child.1).expect(
+                        "invalid implementation of UiState: active id is not present in widgets",
+                    );
+                    f_pre(&**w);
+                }
+
+                self.iter_children(child, f_pre, f_post);
+
                 let cell = self.widgets.get(&child.0).expect(
                     "invalid implementation of UiState: active id is not present in widgets",
                 );
@@ -130,7 +151,7 @@ impl State {
                 let w = cell.widgets.get(child.1).expect(
                     "invalid implementation of UiState: active id is not present in widgets",
                 );
-                f(&**w);
+                f_post(&**w);
             }
         }
     }

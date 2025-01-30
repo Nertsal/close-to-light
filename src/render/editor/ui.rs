@@ -18,9 +18,16 @@ impl EditorRender {
         let mut geometry = Geometry::new();
         geometry.merge(editor_ui.context_menu.draw(ui));
 
-        ui.state.iter_widgets(|w| {
-            geometry.merge(w.draw(ui));
-        });
+        let geometry = RefCell::new(geometry);
+        ui.state.iter_widgets(
+            |w| {
+                geometry.borrow_mut().merge(w.draw_top(ui));
+            },
+            |w| {
+                geometry.borrow_mut().merge(w.draw(ui));
+            },
+        );
+        let geometry = geometry.into_inner();
 
         self.util
             .draw_geometry(&mut self.mask_stack, geometry, camera, framebuffer);
