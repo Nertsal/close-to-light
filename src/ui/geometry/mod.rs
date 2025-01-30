@@ -222,9 +222,11 @@ impl GeometryContext {
 
     #[must_use]
     pub fn quad_fill(&self, position: Aabb2<f32>, width: f32, color: Color) -> Geometry {
-        let (texture, real_width) = if width < 2.0 * self.pixel_scale {
+        let check_size = position.width().min(position.height()) / self.pixel_scale;
+        let check_width = width / self.pixel_scale;
+        let (texture, real_width) = if check_width < 2.0 || check_size < 24.0 {
             (&self.assets.atlas.fill_thinner(), 1.0 * self.pixel_scale)
-        } else if width < 4.0 * self.pixel_scale {
+        } else if check_width < 4.0 || check_size < 48.0 {
             (&self.assets.atlas.fill_thin(), 2.0 * self.pixel_scale)
         } else {
             (&self.assets.atlas.fill(), 4.0 * self.pixel_scale)
@@ -234,9 +236,11 @@ impl GeometryContext {
 
     #[must_use]
     pub fn quad_outline(&self, position: Aabb2<f32>, width: f32, color: Color) -> Geometry {
-        let (texture, real_width) = if width < 2.0 * self.pixel_scale {
+        let check_size = position.width().min(position.height()) / self.pixel_scale;
+        let check_width = width / self.pixel_scale;
+        let (texture, real_width) = if check_width < 2.0 || check_size < 24.0 {
             (&self.assets.atlas.border_thinner(), 1.0 * self.pixel_scale)
-        } else if width < 4.0 * self.pixel_scale {
+        } else if check_width < 4.0 || check_size < 48.0 {
             (&self.assets.atlas.border_thin(), 2.0 * self.pixel_scale)
         } else {
             (&self.assets.atlas.border(), 4.0 * self.pixel_scale)
