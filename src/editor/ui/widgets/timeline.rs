@@ -841,14 +841,24 @@ impl Widget for IconButtonWidget {
                 if self.state.hovered {
                     std::mem::swap(&mut fg_color, &mut bg_color);
                 }
-                geometry.merge(context.geometry.texture_pp_at(
+
+                let size = self.texture.size() * pixel_scale;
+                let position = geng_utils::pixel::pixel_perfect_aabb(
                     self.state.position.center(),
+                    vec2(0.5, 0.5),
+                    size,
+                    &geng::PixelPerfectCamera,
+                    context.geometry.framebuffer_size.as_f32(),
+                );
+
+                geometry.merge(context.geometry.texture(
+                    position,
+                    mat3::identity(),
                     fg_color,
-                    pixel_scale,
                     &self.texture,
                 ));
                 geometry.merge(context.geometry.quad_fill(
-                    self.state.position,
+                    position.extend_uniform(outline_width + pixel_scale as f32),
                     outline_width,
                     bg_color,
                 ));
