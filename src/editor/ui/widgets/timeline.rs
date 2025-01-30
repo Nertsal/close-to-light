@@ -606,6 +606,27 @@ impl Widget for TimelineWidget {
 
         let mut geometry = Geometry::new();
 
+        // Current arrow
+        {
+            let texture = &atlas.timeline_current_arrow();
+            let size = texture.size() * pixel_scale;
+            let position = geng_utils::pixel::pixel_perfect_aabb(
+                self.ceiling.position.align_pos(vec2(0.5, 1.0)),
+                vec2(0.5, 1.0),
+                size,
+                &geng::PixelPerfectCamera,
+                context.geometry.framebuffer_size.as_f32(),
+            );
+
+            geometry.merge(context.geometry.texture(
+                position,
+                mat3::identity(),
+                theme.highlight,
+                texture,
+            ));
+        }
+
+        // Lifetime dots
         for &dot in &self.dots {
             let dot = geng_utils::pixel::pixel_perfect_aabb(
                 dot,
@@ -617,6 +638,7 @@ impl Widget for TimelineWidget {
             geometry.merge(context.geometry.quad(dot, theme.light));
         }
 
+        // Main line ticks
         for &(pos, beat) in &self.ticks {
             let (color, texture) = if beat == BeatTime::WHOLE {
                 (theme.light, &atlas.timeline_tick_big())
@@ -640,29 +662,12 @@ impl Widget for TimelineWidget {
             );
         }
 
-        {
-            let texture = &atlas.timeline_current_arrow();
-            let size = texture.size() * pixel_scale;
-            let position = geng_utils::pixel::pixel_perfect_aabb(
-                self.ceiling.position.align_pos(vec2(0.5, 1.0)),
-                vec2(0.5, 1.0),
-                size,
-                &geng::PixelPerfectCamera,
-                context.geometry.framebuffer_size.as_f32(),
-            );
-
-            geometry.merge(context.geometry.texture(
-                position,
-                mat3::identity(),
-                theme.highlight,
-                texture,
-            ));
-        }
-
+        // Main
         let main_bar = self.main_line.position;
         let main_bar = main_bar.align_aabb(vec2(main_bar.width(), pixel * 4.0), vec2(0.5, 0.5));
         geometry.merge(context.geometry.quad(main_bar, theme.light));
 
+        // Highlight
         if let Some(bar) = &self.highlight_bar {
             let highlight_bar = Aabb2::from_corners(bar.from, bar.to);
             let highlight_bar =
@@ -688,13 +693,12 @@ impl Widget for TimelineWidget {
             width,
             theme.light,
         ));
-        geometry.merge(
-            context
-                .geometry
-                .quad_fill(position.extend_uniform(width * 3.0), theme.dark),
-        );
+        geometry.merge(context.geometry.quad_fill(
+            position.extend_uniform(width),
+            width,
+            theme.dark,
+        ));
 
-        // geometry.change_z_index(-100);
         geometry
     }
 }
@@ -796,11 +800,11 @@ impl Widget for IconButtonWidget {
                     pixel_scale,
                     &self.texture,
                 ));
-                geometry.merge(
-                    context
-                        .geometry
-                        .quad_fill(self.state.position.extend_uniform(outline_width), bg_color),
-                );
+                geometry.merge(context.geometry.quad_fill(
+                    self.state.position,
+                    outline_width,
+                    bg_color,
+                ));
             }
             HighlightMode::Color(highlight) => {
                 if self.state.hovered {

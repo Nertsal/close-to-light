@@ -55,9 +55,7 @@ impl Widget for TooltipWidget {
         let position = self.state.position;
         let theme = context.theme();
         let width = context.font_size * 0.1;
-        let mut geometry = context
-            .geometry
-            .quad_fill(position.extend_uniform(width / 2.0), theme.dark);
+        let mut geometry = context.geometry.quad_fill(position, width, theme.dark);
         geometry.merge(self.title.draw(context));
         geometry.merge(self.text.draw(context));
         geometry.merge(context.geometry.quad_outline(position, width, theme.light));

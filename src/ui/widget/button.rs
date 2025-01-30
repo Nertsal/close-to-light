@@ -53,13 +53,13 @@ impl Widget for ButtonWidget {
         geometry.merge(if state.pressed {
             context
                 .geometry
-                .quad_fill(position.extend_uniform(-width), bg_color)
+                .quad_fill(position.extend_uniform(-width), width, bg_color)
         } else if state.hovered {
             context
                 .geometry
-                .quad_fill(position.extend_uniform(-width * 0.5), bg_color)
+                .quad_fill(position.extend_uniform(-width * 0.5), width, bg_color)
         } else {
-            context.geometry.quad_fill(position, bg_color)
+            context.geometry.quad_fill(position, width, bg_color)
         });
 
         geometry
@@ -199,7 +199,7 @@ impl Widget for ToggleButtonWidget {
 
         let mut geometry = context
             .geometry
-            .quad_fill(self.text.state.position, bg_color);
+            .quad_fill(self.text.state.position, width, bg_color);
         geometry.merge(self.text.draw_colored(context, fg_color));
         geometry.merge(
             context
@@ -259,7 +259,8 @@ impl Widget for ToggleWidget {
         );
         if self.checked {
             geometry.merge(context.geometry.quad_fill(
-                self.tick.position.extend_uniform(-width),
+                self.tick.position,
+                width,
                 theme.get_color(self.checked_color),
             ));
         }

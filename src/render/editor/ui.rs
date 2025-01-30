@@ -16,11 +16,11 @@ impl EditorRender {
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), Some(1.0), None);
 
         let mut geometry = Geometry::new();
+        geometry.merge(editor_ui.context_menu.draw(ui));
+
         ui.state.iter_widgets(|w| {
             geometry.merge(w.draw(ui));
         });
-
-        geometry.merge(editor_ui.context_menu.draw(ui));
 
         self.util
             .draw_geometry(&mut self.mask_stack, geometry, camera, framebuffer);

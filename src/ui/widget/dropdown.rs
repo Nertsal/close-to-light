@@ -115,7 +115,11 @@ impl<T: 'static> Widget for DropdownWidget<T> {
             for text in &self.dropdown_items {
                 window.merge(text.draw(context));
             }
-            window.merge(context.geometry.quad_fill(bounds, theme.dark));
+            window.merge(
+                context
+                    .geometry
+                    .quad_fill(bounds, outline_width, theme.dark),
+            );
             geometry.merge(context.geometry.masked(bounds, window));
             geometry.merge(
                 context

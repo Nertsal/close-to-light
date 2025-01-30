@@ -1,6 +1,6 @@
 use super::*;
 
-const MIN_SIZE: f32 = 5.0;
+const MIN_SIZE: f32 = 20.0;
 
 pub struct ContextMenuWidget {
     pub extension: SecondOrderState<f32>,
@@ -117,20 +117,16 @@ impl Widget for ContextMenuWidget {
         let theme = context.theme();
         let width = context.font_size * 0.2;
 
-        let mut geometry = Geometry::new();
+        let mut window = Geometry::new();
+        window.merge(context.geometry.quad_outline(position, width, theme.light));
+
         for option in &self.options {
-            geometry.merge(option.draw(context));
+            window.merge(option.draw(context));
         }
 
-        let mut geometry = context.geometry.masked(position, geometry);
-        geometry.merge(context.geometry.quad_outline(position, width, theme.light));
-        geometry.merge(
-            context
-                .geometry
-                .quad_fill(position.extend_uniform(width), theme.dark),
-        );
-        geometry.change_z_index(1000);
-        geometry
+        window.merge(context.geometry.quad_fill(position, width, theme.dark));
+
+        context.geometry.masked(position, window)
     }
 }
 
@@ -153,9 +149,9 @@ impl Widget for OptionWidget {
         geometry.merge(if self.state.pressed {
             context
                 .geometry
-                .quad_fill(position.extend_uniform(-width * 0.5), bg_color)
+                .quad_fill(position.extend_uniform(-width * 0.5), width, bg_color)
         } else {
-            context.geometry.quad_fill(position, bg_color)
+            context.geometry.quad_fill(position, width, bg_color)
         });
 
         geometry

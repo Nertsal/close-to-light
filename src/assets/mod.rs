@@ -92,6 +92,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     border_thinner,
     fill,
     fill_thin,
+    fill_thinner,
     circle,
     help,
     reset,

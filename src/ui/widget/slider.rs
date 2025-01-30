@@ -74,13 +74,18 @@ impl Widget for SliderWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
+        let width = context.font_size * 0.1;
         let mut geometry = self.text.draw(context);
         geometry.merge(self.value.draw(context));
-        geometry.merge(context.geometry.quad_fill(self.bar.position, theme.light));
         geometry.merge(
             context
                 .geometry
-                .quad_fill(self.head.position, theme.highlight),
+                .quad_fill(self.bar.position, width, theme.light),
+        );
+        geometry.merge(
+            context
+                .geometry
+                .quad_fill(self.head.position, width, theme.highlight),
         );
         geometry
     }

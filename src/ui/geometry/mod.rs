@@ -221,15 +221,15 @@ impl GeometryContext {
     }
 
     #[must_use]
-    pub fn quad_fill(&self, position: Aabb2<f32>, color: Color) -> Geometry {
-        let size = position.size();
-        let size = size.x.min(size.y);
-        let texture = if size < 48.0 * self.pixel_scale {
-            &self.assets.atlas.fill_thin()
+    pub fn quad_fill(&self, position: Aabb2<f32>, width: f32, color: Color) -> Geometry {
+        let (texture, real_width) = if width < 2.0 * self.pixel_scale {
+            (&self.assets.atlas.fill_thinner(), 1.0 * self.pixel_scale)
+        } else if width < 4.0 * self.pixel_scale {
+            (&self.assets.atlas.fill_thin(), 2.0 * self.pixel_scale)
         } else {
-            &self.assets.atlas.fill()
+            (&self.assets.atlas.fill(), 4.0 * self.pixel_scale)
         };
-        self.nine_slice(position, color, texture)
+        self.nine_slice(position.extend_uniform(real_width - width), color, texture)
     }
 
     #[must_use]
