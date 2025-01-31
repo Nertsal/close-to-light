@@ -164,7 +164,7 @@ impl EditorState {
                         let delta = delta.signum() * 0.25;
                         actions.push(EditorAction::SetViewZoom(Change::Add(delta)).into());
                     } else if shift {
-                        // Scale waypoint
+                        // Scale light or waypoint
                         let delta = r32(delta.signum() * 0.25);
                         if let Some(waypoints) = &level_editor.level_state.waypoints {
                             let light_id = waypoints.light;
@@ -177,7 +177,15 @@ impl EditorState {
                                     )
                                     .into(),
                                 );
+                            } else if let State::Waypoints {
+                                state: WaypointsState::New,
+                                ..
+                            } = level_editor.state
+                            {
+                                actions.push(LevelAction::ScalePlacement(Change::Add(delta)).into())
                             }
+                        } else if let State::Place { .. } = level_editor.state {
+                            actions.push(LevelAction::ScalePlacement(Change::Add(delta)).into())
                         }
                     } else {
                         // Scroll time
@@ -299,7 +307,7 @@ impl EditorState {
                     .into(),
                 );
             }
-            DragTarget::Waypoint {
+            DragTarget::WaypointMove {
                 light,
                 waypoint,
                 initial_translation,
@@ -308,7 +316,6 @@ impl EditorState {
                     LevelAction::MoveWaypoint(
                         light,
                         waypoint,
-                        // Change::Set(level_editor.current_beat - drag.from_beat + initial_time),
                         Change::Set(
                             initial_translation + self.editor.cursor_world_pos_snapped
                                 - drag.from_world,
@@ -316,6 +323,22 @@ impl EditorState {
                     )
                     .into(),
                 );
+            }
+            DragTarget::WaypointScale {
+                light,
+                waypoint,
+                initial_scale,
+                scale_direction,
+            } => {
+                let delta = self.editor.cursor_world_pos - drag.from_world_raw;
+                let delta = vec2::dot(delta, scale_direction);
+                let target = initial_scale + delta;
+                // TODO: scale snap
+                // if self.editor.snap_to_grid {
+                //     target = self.snap_distance_grid(target * r32(2.0)) / r32(2.0);
+                // }
+                actions
+                    .push(LevelAction::ScaleWaypoint(light, waypoint, Change::Set(target)).into());
             }
         }
 
@@ -427,14 +450,29 @@ impl EditorState {
                                                         )
                                                         .into(),
                                                     );
-                                                    let initial_translation = frame.translation;
-                                                    actions.push(EditorStateAction::StartDrag(
-                                                        DragTarget::Waypoint {
-                                                            light: waypoints.light,
-                                                            waypoint,
-                                                            initial_translation,
-                                                        },
-                                                    ));
+                                                    if self.ui_context.mods.shift {
+                                                        let scale_direction =
+                                                            (self.editor.cursor_world_pos
+                                                                - frame.translation)
+                                                                .normalize_or_zero();
+                                                        actions.push(EditorStateAction::StartDrag(
+                                                            DragTarget::WaypointScale {
+                                                                light: waypoints.light,
+                                                                waypoint,
+                                                                initial_scale: frame.scale,
+                                                                scale_direction,
+                                                            },
+                                                        ));
+                                                    } else {
+                                                        let initial_translation = frame.translation;
+                                                        actions.push(EditorStateAction::StartDrag(
+                                                            DragTarget::WaypointMove {
+                                                                light: waypoints.light,
+                                                                waypoint,
+                                                                initial_translation,
+                                                            },
+                                                        ));
+                                                    }
                                                 }
                                                 geng::MouseButton::Middle => {}
                                                 geng::MouseButton::Right => {

@@ -55,6 +55,8 @@ pub struct Drag {
     /// Whether we just clicked or actually starting moving.
     pub moved: bool,
     pub from_screen: vec2<f32>,
+    /// Unsnapped cursor position.
+    pub from_world_raw: vec2<Coord>,
     pub from_world: vec2<Coord>,
     pub from_real_time: FloatTime,
     pub from_beat: Time,
@@ -75,10 +77,16 @@ pub enum DragTarget {
         initial_time: Time,
         initial_translation: vec2<Coord>,
     },
-    Waypoint {
+    WaypointMove {
         light: LightId,
         waypoint: WaypointId,
         initial_translation: vec2<Coord>,
+    },
+    WaypointScale {
+        light: LightId,
+        waypoint: WaypointId,
+        initial_scale: Coord,
+        scale_direction: vec2<Coord>,
     },
 }
 
@@ -187,6 +195,11 @@ impl EditorState {
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
         (pos / self.editor.grid_size).map(Coord::round) * self.editor.grid_size
     }
+
+    // TODO: scale snap
+    // fn snap_distance_grid(&self, distance: Coord) -> Coord {
+    //     self.snap_pos_grid(vec2(distance, Coord::ZERO)).x
+    // }
 
     fn update_level_editor(&mut self, delta_time: FloatTime) {
         let Some(level_editor) = &mut self.editor.level_edit else {

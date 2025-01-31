@@ -120,6 +120,7 @@ impl EditorState {
         self.drag = Some(Drag {
             moved: false,
             from_screen: self.ui_context.cursor.position,
+            from_world_raw: self.editor.cursor_world_pos,
             from_world: self.editor.cursor_world_pos_snapped,
             from_real_time: level_editor.real_time,
             from_beat: level_editor.current_time.target,

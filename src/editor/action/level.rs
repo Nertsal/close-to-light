@@ -13,7 +13,7 @@ pub enum LevelAction {
     ToggleWaypointsView,
     StopPlaying,
     StartPlaying,
-    ScalePlacement(Coord),
+    ScalePlacement(Change<Coord>),
     RotatePlacement(Angle<Coord>),
     ScrollTime(Time),
     TimelineZoom(Change<f32>),
@@ -44,7 +44,6 @@ pub enum LevelAction {
     DeselectWaypoint,
     RotateWaypoint(LightId, WaypointId, Change<Angle<Coord>>),
     ScaleWaypoint(LightId, WaypointId, Change<Coord>),
-    SetWaypointFrame(LightId, WaypointId, Transform),
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
     MoveWaypoint(LightId, WaypointId, Change<vec2<Coord>>),
@@ -98,7 +97,7 @@ impl LevelAction {
             LevelAction::ToggleWaypointsView => false,
             LevelAction::StopPlaying => false,
             LevelAction::StartPlaying => false,
-            LevelAction::ScalePlacement(delta) => *delta == Coord::ZERO,
+            LevelAction::ScalePlacement(delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
             LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
@@ -129,7 +128,6 @@ impl LevelAction {
             LevelAction::DeselectWaypoint => false,
             LevelAction::RotateWaypoint(_, _, delta) => delta.is_noop(&Angle::ZERO),
             LevelAction::ScaleWaypoint(_, _, delta) => delta.is_noop(&Coord::ZERO),
-            LevelAction::SetWaypointFrame(..) => false,
             LevelAction::SetWaypointInterpolation(..) => false,
             LevelAction::SetWaypointCurve(..) => false,
             LevelAction::MoveWaypoint(_, _, position) => position.is_noop(&vec2::ZERO),
@@ -185,7 +183,8 @@ impl LevelEditor {
                 );
             }
             LevelAction::ScalePlacement(delta) => {
-                self.place_scale = (self.place_scale + delta).clamp(r32(0.2), r32(2.0));
+                delta.apply(&mut self.place_scale);
+                self.place_scale = self.place_scale.clamp(r32(0.25), r32(2.0));
             }
             LevelAction::RotatePlacement(delta) => {
                 self.place_rotation += delta;
@@ -289,15 +288,6 @@ impl LevelEditor {
                             change.apply(&mut frame.scale);
                             frame.scale = frame.scale.clamp(r32(0.0), r32(10.0));
                             self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
-                        }
-                    }
-                }
-            }
-            LevelAction::SetWaypointFrame(light_id, waypoint_id, frame) => {
-                if let Some(event) = self.level.events.get_mut(light_id.event) {
-                    if let Event::Light(light) = &mut event.event {
-                        if let Some(old_frame) = light.movement.get_frame_mut(waypoint_id) {
-                            *old_frame = frame;
                         }
                     }
                 }
