@@ -17,6 +17,7 @@ pub enum LevelAction {
     RotatePlacement(Angle<Coord>),
     ScrollTime(Time),
     TimelineZoom(Change<f32>),
+    CameraPan(Change<vec2<f32>>),
 
     // Light actions
     CopyLight(LightId),
@@ -101,6 +102,7 @@ impl LevelAction {
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
             LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
+            LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
 
             LevelAction::CopyLight(_) => false,
             LevelAction::NewLight(_) => false,
@@ -199,6 +201,9 @@ impl LevelEditor {
                 };
                 let target = zoom.clamp(16.0.recip(), 2.0);
                 self.timeline_zoom.target = r32(target);
+            }
+            LevelAction::CameraPan(delta) => {
+                delta.apply(&mut self.model.camera.center);
             }
 
             LevelAction::CopyLight(id) => {

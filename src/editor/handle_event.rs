@@ -173,9 +173,9 @@ impl EditorState {
             geng::Event::MousePress { button } => {
                 actions.extend(self.cursor_down(button));
             }
-            geng::Event::MouseRelease {
-                button: geng::MouseButton::Left,
-            } => actions.extend(self.cursor_up()),
+            geng::Event::MouseRelease { button } => {
+                actions.extend(self.cursor_up(button));
+            }
             _ => {}
         }
         actions
@@ -228,7 +228,7 @@ impl EditorState {
         actions
     }
 
-    fn cursor_up(&self) -> Vec<EditorStateAction> {
+    fn cursor_up(&self, _button: geng::MouseButton) -> Vec<EditorStateAction> {
         vec![EditorStateAction::EndDrag]
     }
 
@@ -243,6 +243,26 @@ impl EditorState {
             return actions;
         };
         match drag.target {
+            DragTarget::Camera { initial_center } => {
+                let camera = &level_editor.model.camera;
+
+                let from = drag.from_screen;
+                let from = camera
+                    .screen_to_world(self.framebuffer_size.as_f32(), from)
+                    .as_r32();
+
+                let to = self.ui_context.cursor.position;
+                let to = camera
+                    .screen_to_world(self.framebuffer_size.as_f32(), to)
+                    .as_r32();
+
+                let mut target = initial_center + from - to;
+                if self.editor.snap_to_grid {
+                    target = self.snap_pos_grid(target);
+                }
+
+                actions.push(LevelAction::CameraPan(Change::Set(target.as_f32())).into());
+            }
             DragTarget::Light {
                 light,
                 initial_time,
@@ -292,6 +312,13 @@ impl EditorState {
         let Some(level_editor) = &self.editor.level_edit else {
             return actions;
         };
+
+        if let geng::MouseButton::Middle = button {
+            actions.push(EditorStateAction::StartDrag(DragTarget::Camera {
+                initial_center: level_editor.model.camera.center.as_r32(),
+            }));
+            return actions;
+        }
 
         match &level_editor.state {
             State::Idle => {

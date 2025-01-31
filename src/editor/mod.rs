@@ -63,6 +63,9 @@ pub struct Drag {
 
 #[derive(Debug, Clone)]
 pub enum DragTarget {
+    Camera {
+        initial_center: vec2<Coord>,
+    },
     /// Move the whole light event through time and space.
     Light {
         /// Whether it was the second click on the light.
