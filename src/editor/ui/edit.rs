@@ -460,7 +460,7 @@ impl EditorEditUi {
                             bar.cut_top(spacing);
                             let mut value = frame.scale.as_f32();
                             let slider = context.state.get_root_or(|| {
-                                ValueWidget::new_range("Scale", value, 0.25..=10.0, 0.25)
+                                ValueWidget::new_range("Scale", value, 0.0..=10.0, 0.25)
                             });
                             if slider.update(scale, context, &mut value) {
                                 actions.push(

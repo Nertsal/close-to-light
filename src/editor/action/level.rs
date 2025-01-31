@@ -282,7 +282,7 @@ impl LevelEditor {
                     if let Event::Light(light) = &mut event.event {
                         if let Some(frame) = light.movement.get_frame_mut(waypoint_id) {
                             change.apply(&mut frame.scale);
-                            frame.scale = frame.scale.clamp(r32(0.2), r32(2.0));
+                            frame.scale = frame.scale.clamp(r32(0.0), r32(10.0));
                             self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
                         }
                     }
