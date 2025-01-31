@@ -45,7 +45,7 @@ impl EditorEditUi {
 
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
-        let button_height = font_size * 1.2;
+        let button_height = font_size * 1.3;
         let delete_width = font_size * 3.5;
         let value_height = font_size * 1.2;
 
@@ -487,7 +487,7 @@ impl EditorEditUi {
                             bar.cut_top(spacing);
                             let mut value = frame.rotation.as_degrees().as_f32();
                             let slider = context.state.get_root_or(|| {
-                                ValueWidget::new_circle("Angle", value, 360.0, 1.0)
+                                ValueWidget::new_circle("Angle", value, 360.0, 15.0)
                             });
                             if slider.update(angle, context, &mut value) {
                                 actions.push(

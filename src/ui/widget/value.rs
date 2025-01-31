@@ -87,24 +87,30 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         let mut main = position;
 
         let control_height = context.font_size * 0.2;
-        let control = main.cut_bottom(control_height);
+        let mut control = main.cut_bottom(control_height);
+
+        if let ValueControl::Circle { .. } = self.control {
+            let texture = context.context.assets.atlas.value_knob();
+            let size = texture.size().as_f32() * context.geometry.pixel_scale;
+            control = crate::ui::layout::align_aabb(size, control, vec2(0.5, 0.5));
+        }
+
         self.control_state.update(control, context);
 
         // Drag value
         let mut controlling = self.control_state.pressed;
         if controlling {
-            // (0,0) in the center, range -0.5..=0.5
-            let convert = |pos| {
-                (pos - self.control_state.position.center()) / self.control_state.position.size()
-            };
-            let pos = convert(context.cursor.position);
             match self.control {
                 ValueControl::Slider { min, max } => {
+                    let pos = (context.cursor.position - self.control_state.position.center())
+                        / self.control_state.position.size();
                     let t = (pos.x + 0.5).clamp(0.0, 1.0);
                     target = min + (max - min) * T::from_f32(t);
                 }
                 ValueControl::Circle { period, .. } => {
-                    let last_pos = convert(context.cursor.last_position);
+                    let pos = context.cursor.position - self.control_state.position.center();
+                    let last_pos =
+                        context.cursor.last_position - self.control_state.position.center();
                     let delta = last_pos.arg().angle_to(pos.arg()).as_radians();
                     let delta = T::from_f32(delta / std::f32::consts::TAU) * period;
                     target += delta;
@@ -116,10 +122,12 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
             let delta = T::from_f32(context.cursor.scroll.signum()) * self.scroll_by;
             target += delta;
         }
+        context.update_focus(controlling);
 
         self.value_text.update(main, context);
         if self.value_text.editing {
             if let Ok(typed_value) = self.value_text.raw.parse::<f32>() {
+                controlling = true;
                 target = T::from_f32(typed_value);
             } // TODO: check error
         }
@@ -188,12 +196,9 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
                 let angle = zero_angle + angle;
 
                 let texture = context.context.assets.atlas.value_knob();
-                let size = texture.size().as_f32() * context.geometry.pixel_scale;
-
-                let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
                 geometry.merge(context.geometry.texture(
-                    pos,
-                    mat3::rotate_around(pos.center(), angle),
+                    quad,
+                    mat3::rotate_around(quad.center(), angle),
                     theme.light,
                     &texture,
                 ));
