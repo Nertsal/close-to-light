@@ -20,17 +20,14 @@ pub struct Light {
 pub struct LightTelegraph {
     /// The light to telegraph.
     pub light: Light,
-    /// How fast the telegraph is.
-    pub speed: Coord,
     /// Time since creation.
     pub lifetime: Time,
 }
 
 impl Light {
-    pub fn into_telegraph(self, telegraph: &TelegraphConfig) -> LightTelegraph {
+    pub fn into_telegraph(self) -> LightTelegraph {
         LightTelegraph {
             light: self,
-            speed: telegraph.speed,
             lifetime: Time::ZERO,
         }
     }

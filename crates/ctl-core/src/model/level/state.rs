@@ -7,6 +7,7 @@ pub struct LevelState {
     time: Time,
     /// The time after which events are not rendered.
     ignore_after: Option<Time>,
+    timing: Timing,
     /// Whether the palette should be swapped.
     pub swap_palette: bool,
     pub lights: Vec<Light>,
@@ -19,6 +20,7 @@ impl Default for LevelState {
         Self {
             time: Time::ZERO,
             ignore_after: None,
+            timing: Timing::default(),
             swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
@@ -42,6 +44,7 @@ impl LevelState {
         let mut state = Self {
             time,
             ignore_after,
+            timing: level.timing.clone(),
             swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
@@ -77,11 +80,12 @@ impl LevelState {
                 self.swap_palette = !self.swap_palette
             }
             Event::Light(light) => {
-                if self.time < event.time - config.telegraph.precede_time {
+                let precede_time = seconds_to_time(self.timing.get_timing(event.time).beat_time);
+                if self.time < event.time - precede_time {
                     self.is_finished = false;
                     return;
                 }
-                let (telegraph, light) = render_light(light, time, event_id, config);
+                let (telegraph, light) = render_light(light, time, event_id, config, precede_time);
                 self.telegraphs.extend(telegraph);
                 self.lights.extend(light);
             }
@@ -96,10 +100,11 @@ pub fn render_light(
     relative_time: Time,
     event_id: Option<usize>,
     config: &LevelConfig,
+    precede_time: Time,
 ) -> (Vec<LightTelegraph>, Option<Light>) {
     let movement = &event.movement;
     let base_light = event.clone().instantiate(event_id);
-    let base_tele = base_light.clone().into_telegraph(&config.telegraph);
+    let base_tele = base_light.clone().into_telegraph();
     let duration = event.movement.total_duration();
 
     // Light
@@ -113,7 +118,7 @@ pub fn render_light(
     });
 
     // Telegraph
-    let relative_time = relative_time + config.telegraph.precede_time;
+    let relative_time = relative_time + precede_time;
     let telegraphs = if relative_time > duration {
         vec![]
     } else {
