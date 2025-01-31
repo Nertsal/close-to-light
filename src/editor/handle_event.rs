@@ -163,6 +163,22 @@ impl EditorState {
                         // Zoom view in/out
                         let delta = delta.signum() * 0.25;
                         actions.push(EditorAction::SetViewZoom(Change::Add(delta)).into());
+                    } else if shift {
+                        // Scale waypoint
+                        let delta = r32(delta.signum() * 0.25);
+                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            let light_id = waypoints.light;
+                            if let Some(waypoint_id) = waypoints.selected {
+                                actions.push(
+                                    LevelAction::ScaleWaypoint(
+                                        light_id,
+                                        waypoint_id,
+                                        Change::Add(delta),
+                                    )
+                                    .into(),
+                                );
+                            }
+                        }
                     } else {
                         // Scroll time
                         let scroll = delta.signum() as i64;
