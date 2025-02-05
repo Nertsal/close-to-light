@@ -154,8 +154,6 @@ pub struct Music {
     sound: Rc<geng::Sound>,
     effect: Option<geng::SoundEffect>,
     volume: f32,
-    /// Stop the music after the timer runs out.
-    pub timer: Time,
 }
 
 impl Drop for Music {
@@ -170,7 +168,6 @@ impl Debug for Music {
             .field("meta", &self.meta)
             // .field("effect", &self.effect)
             .field("volume", &self.volume)
-            .field("timer", &self.timer)
             .finish()
     }
 }
@@ -188,7 +185,6 @@ impl Music {
             sound,
             volume: 0.5,
             effect: None,
-            timer: Time::ZERO,
         }
     }
 
@@ -208,7 +204,6 @@ impl Music {
         if let Some(mut effect) = self.effect.take() {
             effect.stop();
         }
-        self.timer = Time::ZERO;
     }
 
     pub fn play_from(&mut self, time: time::Duration) {

@@ -272,7 +272,7 @@ impl EditorRender {
                             };
 
                             let mut alpha = 1.0;
-                            let original = point.original.and_then(|i| {
+                            let _original = point.original.and_then(|i| {
                                 level_editor
                                     .level
                                     .events
@@ -348,28 +348,28 @@ impl EditorRender {
                                 &mut pixel_buffer,
                             );
 
-                            let beat_time = point.original.map_or(
-                                Some(level_editor.current_time.target),
-                                |_| {
-                                    original.map(|(original_beat, relative_beat)| {
-                                        original_beat + relative_beat
-                                    })
-                                },
-                            );
-                            if let Some(beat) = beat_time {
-                                self.util.draw_text_with(
-                                    format!("at {}", beat),
-                                    point.control.position - vec2(0.0, 0.6).as_r32(),
-                                    0.0,
-                                    TextRenderOptions::new(0.6).color(text_color),
-                                    ugli::DrawParameters {
-                                        blend_mode: Some(util::additive()),
-                                        ..default()
-                                    },
-                                    &level_editor.model.camera,
-                                    &mut pixel_buffer,
-                                );
-                            }
+                            // let beat_time = point.original.map_or(
+                            //     Some(level_editor.current_time.target),
+                            //     |_| {
+                            //         original.map(|(original_beat, relative_beat)| {
+                            //             original_beat + relative_beat
+                            //         })
+                            //     },
+                            // );
+                            // if let Some(beat) = beat_time {
+                            //     self.util.draw_text_with(
+                            //         format!("at {}", beat),
+                            //         point.control.position - vec2(0.0, 0.6).as_r32(),
+                            //         0.0,
+                            //         TextRenderOptions::new(0.6).color(text_color),
+                            //         ugli::DrawParameters {
+                            //             blend_mode: Some(util::additive()),
+                            //             ..default()
+                            //         },
+                            //         &level_editor.model.camera,
+                            //         &mut pixel_buffer,
+                            //     );
+                            // }
                         }
                     }
                 }
