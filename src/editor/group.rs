@@ -200,9 +200,14 @@ impl Editor {
 
     /// Create a popup window with a message for the given action.
     pub fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
+        let title = match action {
+            ConfirmAction::ExitUnsaved => "Exit the editor?",
+            ConfirmAction::ChangeLevelUnsaved(_) => "Switch to another difficulty?",
+            ConfirmAction::DeleteLevel(_) => "Delete this difficulty?",
+        };
         self.confirm_popup = Some(ConfirmPopup {
             action,
-            title: "Are you sure?".into(),
+            title: title.into(),
             message: message.into(),
         });
     }

@@ -114,7 +114,7 @@ impl EditorConfigUi {
                     actions.push(
                         EditorAction::PopupConfirm(
                             ConfirmAction::ChangeLevelUnsaved(i),
-                            "there are unsaved changes".into(),
+                            "unsaved changes will be lost".into(),
                         )
                         .into(),
                     );

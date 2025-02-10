@@ -25,7 +25,9 @@ pub struct EditorUi {
     pub game: WidgetState,
     pub edit: EditorEditUi,
     pub config: EditorConfigUi,
+
     pub context_menu: ContextMenuWidget,
+    pub confirm: Option<ConfirmWidget>,
 }
 
 impl EditorUi {
@@ -35,6 +37,7 @@ impl EditorUi {
             edit: EditorEditUi::new(),
             config: EditorConfigUi::new(),
             context_menu: ContextMenuWidget::empty(), // TODO: persistent widget in UI state
+            confirm: None,                            // TODO: persistent widget in UI state
         }
     }
 
@@ -72,31 +75,31 @@ impl EditorUi {
             self.game.update(game, context);
         }
 
-        // if let Some(confirm) = &mut self.confirm {
-        //     let size = vec2(20.0, 10.0) * layout_size;
-        //     let window = screen.align_aabb(size, vec2(0.5, 0.5));
-        //     confirm.update(window, context);
-        //     if confirm.confirm.state.clicked {
-        //         confirm.window.show.going_up = false;
-        //         actions.push(EditorStateAction::ConfirmPopupAction);
-        //     } else if confirm.discard.state.clicked {
-        //         confirm.window.show.going_up = false;
-        //         actions.push(EditorAction::ClosePopup.into());
-        //     } else if confirm.window.show.time.is_min() {
-        //         self.confirm = None;
-        //     }
+        if let Some(confirm) = &mut self.confirm {
+            let size = vec2(20.0, 10.0) * layout_size;
+            let window = screen.align_aabb(size, vec2(0.5, 0.5));
+            confirm.update(window, context);
+            if confirm.confirm.state.clicked {
+                confirm.window.show.going_up = false;
+                actions.push(EditorStateAction::ConfirmPopupAction);
+            } else if confirm.discard.state.clicked {
+                confirm.window.show.going_up = false;
+                actions.push(EditorAction::ClosePopup.into());
+            } else if confirm.window.show.time.is_min() {
+                self.confirm = None;
+            }
 
-        //     // NOTE: When confirm is active, you cant interact with other widgets
-        //     context.update_focus(true);
-        // } else if let Some(popup) = &editor.confirm_popup {
-        //     let mut confirm = ConfirmWidget::new(
-        //         &editor.context.assets,
-        //         popup.title.clone(),
-        //         popup.message.clone(),
-        //     );
-        //     confirm.window.show.going_up = true;
-        //     self.confirm = Some(confirm);
-        // }
+            // NOTE: When confirm is active, you cant interact with other widgets
+            context.update_focus(true);
+        } else if let Some(popup) = &editor.confirm_popup {
+            let mut confirm = ConfirmWidget::new(
+                &editor.context.assets,
+                popup.title.clone(),
+                popup.message.clone(),
+            );
+            confirm.window.show.going_up = true;
+            self.confirm = Some(confirm);
+        }
 
         let mut main = screen;
 
@@ -112,7 +115,7 @@ impl EditorUi {
                 actions.push(
                     EditorAction::PopupConfirm(
                         ConfirmAction::ExitUnsaved,
-                        "there are unsaved changes".into(),
+                        "unsaved changes will be lost".into(),
                     )
                     .into(),
                 );

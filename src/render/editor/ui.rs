@@ -16,6 +16,9 @@ impl EditorRender {
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), Some(1.0), None);
 
         let mut geometry = Geometry::new();
+        if let Some(widget) = &editor_ui.confirm {
+            geometry.merge(widget.draw(ui));
+        }
         geometry.merge(editor_ui.context_menu.draw(ui));
 
         let geometry = RefCell::new(geometry);

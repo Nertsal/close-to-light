@@ -63,3 +63,46 @@ impl WidgetOld for ConfirmWidget {
         self.message.update(main, context);
     }
 }
+
+impl Widget for ConfirmWidget {
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn draw(&self, context: &UiContext) -> Geometry {
+        let outline_width = context.font_size * 0.1;
+        let theme = context.theme();
+
+        let window = self.state.position;
+        let min_height = outline_width * 10.0;
+        let t = crate::util::smoothstep(self.window.show.time.get_ratio());
+        let height = (t * window.height()).max(min_height);
+
+        let mut in_window = Geometry::new();
+        let title = self.title.state.position;
+        in_window.merge(
+            context
+                .geometry
+                .quad_fill(title, outline_width, theme.light),
+        );
+        in_window.merge(self.title.draw_colored(context, theme.dark));
+        in_window.merge(self.message.draw(context));
+        in_window.merge(self.confirm.icon.draw(context));
+        in_window.merge(self.discard.icon.draw(context));
+
+        let window = window.with_height(height, 1.0);
+        let mut geometry = Geometry::new();
+        geometry.merge(
+            context
+                .geometry
+                .quad_outline(window, outline_width, theme.light),
+        );
+        geometry.merge(
+            context
+                .geometry
+                .quad_fill(window, outline_width, theme.dark),
+        );
+        geometry.merge(context.geometry.masked(window, in_window));
+        geometry
+    }
+}
