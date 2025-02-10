@@ -2,7 +2,7 @@ use super::*;
 
 use crate::ui::layout::AreaOps;
 
-use ctl_client::core::types::Name;
+use ctl_client::core::{prelude::Color, types::Name};
 
 pub struct InputWidget {
     pub state: WidgetState,
@@ -166,14 +166,11 @@ impl InputWidget {
             theme.light
         };
     }
-}
 
-impl Widget for InputWidget {
-    simple_widget_state!();
-    fn draw(&self, context: &UiContext) -> Geometry {
+    pub fn draw_colored(&self, context: &UiContext, color: Color) -> Geometry {
         let theme = context.theme();
-        let mut geometry = self.name.draw(context);
-        geometry.merge(self.text.draw(context));
+        let mut geometry = self.name.draw_colored(context, color);
+        geometry.merge(self.text.draw_colored(context, color));
         if self.editing {
             let pos = self.text.state.position;
             let underline = Aabb2::point(pos.center() - vec2(0.0, context.font_size * 0.5))
@@ -181,5 +178,12 @@ impl Widget for InputWidget {
             geometry.merge(context.geometry.quad(underline, theme.highlight));
         }
         geometry
+    }
+}
+
+impl Widget for InputWidget {
+    simple_widget_state!();
+    fn draw(&self, context: &UiContext) -> Geometry {
+        self.draw_colored(context, self.name.options.color)
     }
 }

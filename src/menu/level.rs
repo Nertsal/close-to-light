@@ -619,8 +619,7 @@ impl geng::State for LevelMenu {
 
         let options = self.context.get_options();
 
-        self.ui_context
-            .update(self.context.geng.window(), delta_time.as_f32());
+        self.ui_context.update(delta_time.as_f32());
 
         if self.ui.explore.state.visible {
             let t = if !self.ui.explore.window.show.going_up

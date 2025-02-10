@@ -251,11 +251,17 @@ impl Widget for ToggleWidget {
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let width = self.text.options.size * 0.1;
-        let mut geometry = self.text.draw(context);
+
+        let mut fg_color = theme.light;
+        if self.state.hovered {
+            fg_color = theme.get_color(self.checked_color);
+        }
+
+        let mut geometry = self.text.draw_colored(context, fg_color);
         geometry.merge(
             context
                 .geometry
-                .quad_outline(self.tick.position, width, theme.light),
+                .quad_outline(self.tick.position, width, fg_color),
         );
         if self.checked {
             geometry.merge(context.geometry.quad_fill(

@@ -155,7 +155,13 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
-        let mut geometry = self.value_text.draw(context);
+
+        let mut fg_color = theme.light;
+        if self.state.hovered {
+            fg_color = theme.highlight;
+        }
+
+        let mut geometry = self.value_text.draw_colored(context, fg_color);
 
         let quad = self.control_state.position;
         let width = quad.height() * 0.05;

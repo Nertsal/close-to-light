@@ -47,7 +47,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             .iter()
             .position(|(_, t)| t == state)
             .unwrap_or(0); // TODO: maybe do smth with the error
-        self.state.update(position, context);
+        let state_position = position;
         let mut main = position;
 
         let name = main.split_left(0.5);
@@ -81,10 +81,17 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             position = position.translate(vec2(0.0, -item_height - spacing));
         }
 
+        if self.dropdown_window.show.time.is_max() {
+            let cancel = context.total_focus();
+            if cancel {
+                self.dropdown_window.request = Some(WidgetRequest::Close);
+            }
+        }
         if can_select {
             context.update_focus(true);
         }
 
+        self.state.update(state_position, context);
         self.name.update(name, context);
         self.value_text.update(value, context);
 
@@ -92,7 +99,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             self.value_text.text = name.clone();
         }
 
-        if self.value_text.state.clicked {
+        if self.state.clicked {
             self.dropdown_window.request = Some(WidgetRequest::Open);
         }
         self.dropdown_window.update(context.delta_time);
@@ -105,7 +112,12 @@ impl<T: 'static> Widget for DropdownWidget<T> {
         let outline_width = context.font_size * 0.1;
         let theme = context.theme();
 
-        let mut geometry = self.name.draw(context);
+        let mut fg_color = theme.light;
+        if self.state.hovered {
+            fg_color = theme.highlight;
+        }
+
+        let mut geometry = self.name.draw_colored(context, fg_color);
 
         let mut bounds = self.dropdown_state.position;
         let height = bounds.height() * self.dropdown_window.show.time.get_ratio();
@@ -128,7 +140,7 @@ impl<T: 'static> Widget for DropdownWidget<T> {
             );
             geometry.change_z_index(100);
         } else {
-            geometry.merge(self.value_text.draw(context));
+            geometry.merge(self.value_text.draw_colored(context, fg_color));
         }
 
         geometry

@@ -100,6 +100,9 @@ pub struct UiContext {
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: RefCell<bool>,
 
+    pub total_focus: RefCell<bool>,
+    pub cancel_focus: RefCell<bool>,
+
     pub real_time: f32,
     pub delta_time: f32,
     pub screen: Aabb2<f32>,
@@ -129,14 +132,6 @@ impl TextEdit {
     pub fn new(geng: &Geng) -> Self {
         Self(Rc::new(RefCell::new(TextEditImpl {
             geng: Some(geng.clone()),
-            counter: 0,
-            text: String::new(),
-        })))
-    }
-
-    pub fn empty() -> Self {
-        Self(Rc::new(RefCell::new(TextEditImpl {
-            geng: None,
             counter: 0,
             text: String::new(),
         })))
@@ -197,18 +192,24 @@ impl TextEdit {
 impl UiContext {
     pub fn new(context: Context) -> Self {
         Self {
-            state: UiState::new(),
             geometry: GeometryContext::new(context.assets.clone()),
             font: context.assets.fonts.default.clone(),
+
+            state: UiState::new(),
+            cursor: CursorContext::new(),
+
+            text_edit: TextEdit::new(&context.geng),
+            mods: KeyModifiers::default(),
+            can_focus: true.into(),
+
+            total_focus: false.into(),
+            cancel_focus: false.into(),
+
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,
             font_size: 1.0,
-            can_focus: true.into(),
-            cursor: CursorContext::new(),
-            text_edit: TextEdit::new(&context.geng),
             real_time: 0.0,
             delta_time: 0.1,
-            mods: KeyModifiers::default(),
             context,
         }
     }
@@ -232,6 +233,7 @@ impl UiContext {
 
     pub fn reset_focus(&self) {
         *self.can_focus.borrow_mut() = true;
+        *self.total_focus.borrow_mut() = false;
     }
 
     /// Update `can_focus` property given another widget's focus.
@@ -240,12 +242,36 @@ impl UiContext {
         *focus = *focus && !take_focus;
     }
 
+    /// Whether any of the widgets requested total focus.
+    pub fn is_totally_focused(&self) -> bool {
+        *self.total_focus.borrow()
+    }
+
+    /// Cancel total widget focus.
+    pub fn cancel_total_focus(&self) {
+        *self.cancel_focus.borrow_mut() = true;
+    }
+
+    /// Request total focus on the widget.
+    /// If a cancel was called since last frame, `true` is returned.
+    pub fn total_focus(&self) -> bool {
+        let mut cancel = self.cancel_focus.borrow_mut();
+        let cancel = std::mem::take(&mut *cancel);
+        if !cancel {
+            *self.total_focus.borrow_mut() = true;
+        }
+        cancel
+    }
+
     /// Should be called before layout.
     /// Updates input values.
     // TODO: use window from context
-    pub fn update(&mut self, window: &geng::Window, delta_time: f32) {
+    pub fn update(&mut self, delta_time: f32) {
+        self.reset_focus();
+
         self.real_time += delta_time;
         self.delta_time = delta_time;
+        let window = self.context.geng.window();
         self.cursor.update(
             geng_utils::key::is_key_pressed(window, [geng::MouseButton::Left]),
             geng_utils::key::is_key_pressed(window, [geng::MouseButton::Right]),
@@ -256,7 +282,7 @@ impl UiContext {
     /// Should be called after the layout.
     /// Reset accumulators to prepare for the next frame.
     pub fn frame_end(&mut self) {
-        self.reset_focus();
+        *self.cancel_focus.borrow_mut() = false;
         self.cursor.scroll = 0.0
     }
 }

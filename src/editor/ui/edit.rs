@@ -58,9 +58,7 @@ impl EditorEditUi {
         // Timeline
         {
             let timeline = bottom_bar.cut_top(font_size * 1.0);
-            let linetime = context
-                .state
-                .get_root_or(|| TimelineWidget::new(context.context.clone()));
+            let linetime = context.state.get_root_or(TimelineWidget::new);
             linetime.update_time(level_editor.current_time.value);
             linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 

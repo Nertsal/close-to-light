@@ -162,8 +162,7 @@ impl geng::State for Game {
             self.model.player.info.id = player;
         }
 
-        self.ui_context
-            .update(self.context.geng.window(), delta_time.as_f32());
+        self.ui_context.update(delta_time.as_f32());
 
         if let Some(transition) = self.model.transition.take() {
             match transition {

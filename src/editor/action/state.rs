@@ -129,7 +129,9 @@ impl EditorState {
     }
 
     fn cancel(&mut self) {
-        if self.ui.context_menu.is_open() {
+        if self.ui_context.is_totally_focused() {
+            self.ui_context.cancel_total_focus();
+        } else if self.ui.context_menu.is_open() {
             self.ui.context_menu.close();
         } else {
             self.execute(LevelAction::Cancel.into());

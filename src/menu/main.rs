@@ -113,8 +113,7 @@ impl geng::State for MainMenu {
             .window()
             .set_cursor_type(geng::CursorType::None);
 
-        self.ui_context
-            .update(self.context.geng.window(), delta_time.as_f32());
+        self.ui_context.update(delta_time.as_f32());
 
         self.context.music.stop(); // TODO: menu music
 
