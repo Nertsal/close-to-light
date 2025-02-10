@@ -405,12 +405,13 @@ impl EditorRender {
                     b: 0.7,
                     a: 0.7,
                 };
-                let grid_size = editor.grid_size.as_f32();
+                let grid_size = editor.grid.cell_size.as_f32();
                 let view = vec2(
                     level_editor.model.camera.fov * ui_buffer.size().as_f32().aspect(),
                     level_editor.model.camera.fov,
-                )
-                .map(|x| (x / 2.0 / grid_size).ceil() as i64);
+                ) / 2.0
+                    / grid_size;
+                let view = view.map(|x| x.ceil() as i64);
                 let thick = editor.config.grid.thick_every as i64;
 
                 let buffer_size = ui_buffer.size().as_f32();

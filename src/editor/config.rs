@@ -15,8 +15,8 @@ pub struct EditorConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GridConfig {
-    /// How many cells are in the grid vertically.
-    pub height: Coord,
+    /// Size of each cell in the grid.
+    pub cell_size: Coord,
     /// Every n'th line of the grid is thick.
     /// If 0, then no lines are thick.
     pub thick_every: usize,

@@ -13,7 +13,7 @@ pub struct Editor {
     /// Whether to exit the editor on the next frame.
     pub exit: bool,
 
-    pub grid_size: Coord,
+    pub grid: Grid,
     pub view_zoom: SecondOrderState<f32>,
     pub music_timer: FloatTime,
     pub snap_to_grid: bool,

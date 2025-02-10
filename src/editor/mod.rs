@@ -1,6 +1,7 @@
 mod action;
 mod clipboard;
 mod config;
+mod grid;
 mod group;
 mod handle_event;
 mod history;
@@ -12,6 +13,7 @@ pub use self::{
     action::*,
     clipboard::*,
     config::*,
+    grid::*,
     group::*,
     history::*,
     level::*,
@@ -169,7 +171,7 @@ impl EditorState {
                 tab: EditorTab::Edit,
                 exit: false,
 
-                grid_size: r32(10.0) / config.grid.height,
+                grid: Grid::new_with(config.grid.clone()),
                 view_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 1.0, 1.0)),
                 visualize_beat: true,
                 show_only_selected: false,
@@ -193,7 +195,7 @@ impl EditorState {
     }
 
     fn snap_pos_grid(&self, pos: vec2<Coord>) -> vec2<Coord> {
-        (pos / self.editor.grid_size).map(Coord::round) * self.editor.grid_size
+        self.editor.grid.snap_pos(pos)
     }
 
     // TODO: scale snap

@@ -221,7 +221,7 @@ impl EditorEditUi {
             let grid_size = bar.cut_top(value_height);
             bar.cut_top(spacing);
             {
-                let mut value = 10.0 / editor.grid_size.as_f32();
+                let mut value = 10.0 / editor.grid.cell_size.as_f32();
                 let slider = context
                     .state
                     .get_root_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0));

@@ -70,7 +70,7 @@ impl Editor {
                 change.apply(&mut zoom);
                 self.view_zoom.target = zoom.clamp(0.5, 2.0);
             }
-            EditorAction::SetGridSize(size) => self.grid_size = size,
+            EditorAction::SetGridSize(size) => self.grid.cell_size = size,
             EditorAction::ScrollTimeBy(speed, scroll) => {
                 self.scroll_time_by(speed, scroll);
             }
