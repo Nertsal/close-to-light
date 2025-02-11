@@ -195,28 +195,6 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
             );
         }
 
-        {
-            let font_size = font_size * 0.9;
-            self.draw_text(
-                framebuffer,
-                camera,
-                "music by IcyLava",
-                screen.align_pos(vec2(0.5, 0.65)) + vec2(7.0, 0.0) * font_size,
-                TextRenderOptions::new(font_size)
-                    .align(vec2(1.0, 0.5))
-                    .color(theme.light),
-            );
-            self.draw_text(
-                framebuffer,
-                camera,
-                "by Nertsal",
-                screen.align_pos(vec2(0.5, 0.65)) - vec2(7.0, 0.0) * font_size,
-                TextRenderOptions::new(font_size)
-                    .align(vec2(0.0, 0.5))
-                    .color(theme.light),
-            );
-        }
-
         // Smol funny text
         // let pos = screen.align_pos(vec2(0.5, 0.0)) + vec2(0.0, 1.0) * font_size;
         // self.draw_text(
