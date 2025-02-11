@@ -56,7 +56,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
         // TODO: limit height and allow scroll
         let item_height = context.font_size;
         let spacing = context.layout_size * 0.5;
-        let dropdown_height = (item_height + spacing) * self.options.len() as f32;
+        let dropdown_height = (item_height + spacing) * self.options.len() as f32 - spacing;
         let floor = (value.max.y - dropdown_height).max(context.screen.min.y);
         let dropdown = Aabb2 {
             min: vec2(value.min.x, floor),
@@ -125,7 +125,28 @@ impl<T: 'static> Widget for DropdownWidget<T> {
             let bounds = bounds.cut_top(height);
             let mut window = Geometry::new();
             for text in &self.dropdown_items {
-                window.merge(text.draw(context));
+                let mut fg_color = theme.light;
+                let mut bg_color = theme.dark;
+
+                if text.state.hovered {
+                    std::mem::swap(&mut fg_color, &mut bg_color);
+                }
+
+                window.merge(text.draw_colored(context, fg_color));
+
+                let position = text.state.position;
+                window.merge(if text.state.pressed {
+                    context.geometry.quad_fill(
+                        position.extend_uniform(-outline_width * 0.5),
+                        outline_width,
+                        bg_color,
+                    )
+                } else {
+                    context
+                        .geometry
+                        .quad_fill(position, outline_width, bg_color)
+                });
+                // window.merge(text.draw(context));
             }
             window.merge(
                 context
