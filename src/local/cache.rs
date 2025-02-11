@@ -215,13 +215,15 @@ impl LevelCache {
             let groups = self.fs.load_groups_all(&music).await?;
             let group_loaders = groups
                 .into_iter()
-                .map(|(path, group)| self.insert_group(path, group));
+                .map(|(path, group)| self.insert_group(path, group, &music));
             let groups = future::join_all(group_loaders).await;
             let mut inner = self.inner.borrow_mut();
             inner.music.extend(music);
             for (music, group) in groups.into_iter().flatten() {
                 if let Some(music) = music {
                     inner.music.insert(music.meta.id, music);
+                } else {
+                    log::warn!("group {:?} loaded without music", group.path);
                 }
                 inner.groups.insert(Rc::new(group));
             }
@@ -271,15 +273,15 @@ impl LevelCache {
     }
 
     pub async fn load_music(&self, path: impl AsRef<std::path::Path>) -> Result<Rc<CachedMusic>> {
+        let path = path.as_ref();
         let res = async {
-            let path = path.as_ref();
             log::debug!("loading music at {:?}", path);
             let music = Rc::new(CachedMusic::load(self.geng.asset_manager(), path).await?);
             Ok(music)
         }
         .await;
         if let Err(err) = &res {
-            log::error!("failed to load music: {:?}", err);
+            log::error!("failed to load music at {:?}: {:?}", path, err);
         }
         res
     }
@@ -288,11 +290,16 @@ impl LevelCache {
         &self,
         group_path: PathBuf,
         group: LevelSet,
+        music: &HashMap<Id, Rc<CachedMusic>>,
     ) -> Result<(Option<Rc<CachedMusic>>, CachedGroup)> {
         let result = async {
             let hash = group.calculate_hash();
 
-            let music = match self.get_music(group.music) {
+            let music = match music
+                .get(&group.music)
+                .cloned()
+                .or_else(|| self.get_music(group.music))
+            {
                 Some(music) => Some(music),
                 None => {
                     let music_path = fs::music_path(group.music);
