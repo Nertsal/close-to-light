@@ -127,6 +127,8 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let _ = secrets;
+
     // Main menu
     if opts.skip_intro {
         let leaderboard = leaderboard::Leaderboard::new(&geng, client.as_ref());

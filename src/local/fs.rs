@@ -44,7 +44,7 @@ impl Controller {
         log::debug!("Loading all local music");
 
         #[cfg(target_arch = "wasm32")]
-        let music = {
+        let music: Result<Vec<CachedMusic>> = {
             match web::load_music_all(&self.rexie, &self.geng).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
@@ -71,7 +71,7 @@ impl Controller {
         log::debug!("Loading all local groups");
 
         #[cfg(target_arch = "wasm32")]
-        let groups = {
+        let groups: Result<Vec<(PathBuf, LevelSet)>> = {
             match web::load_groups_all(&self.rexie, music).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
