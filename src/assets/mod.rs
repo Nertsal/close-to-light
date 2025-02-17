@@ -69,6 +69,7 @@ pub struct Sprites {
     pub title: PixelTexture,
     pub linear_gradient: PixelTexture,
     pub radial_gradient: PixelTexture,
+    pub square_gradient: PixelTexture,
     pub border: PixelTexture,
     pub border_thin: PixelTexture,
     pub border_thinner: PixelTexture,

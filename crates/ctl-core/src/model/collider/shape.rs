@@ -32,6 +32,9 @@ impl Shape {
             }
             .to_parry(),
             Shape::Rectangle { width, height } => {
+                if width == R32::ZERO || height == R32::ZERO {
+                    return Box::new(parry2d::shape::Ball::new(0.0));
+                }
                 let aabb = Aabb2::ZERO.extend_symmetric(vec2(width, height).as_f32() / 2.0);
                 let points = aabb.corners().map(|p| {
                     let vec2(x, y) = p;

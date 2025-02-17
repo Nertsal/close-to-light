@@ -442,56 +442,14 @@ impl EditorState {
                                 {
                                     if let Event::Light(event) = &event.event {
                                         if let Some(frame) = event.movement.get_frame(waypoint) {
-                                            match button {
-                                                geng::MouseButton::Left => {
-                                                    actions.push(
-                                                        LevelAction::SelectWaypoint(
-                                                            waypoint, false,
-                                                        )
-                                                        .into(),
-                                                    );
-                                                    if self.ui_context.mods.shift {
-                                                        let delta = self.editor.cursor_world_pos
-                                                            - frame.translation;
-                                                        let scale_direction = match event.shape {
-                                                            Shape::Circle { .. } => delta,
-                                                            Shape::Line { .. } => {
-                                                                let dir = frame.rotation.unit_vec();
-                                                                let normal = vec2(dir.y, -dir.x);
-                                                                let side = vec2::dot(normal, delta)
-                                                                    .signum();
-                                                                normal * side
-                                                            }
-                                                            Shape::Rectangle { .. } => {
-                                                                todo!()
-                                                            }
-                                                        };
-                                                        let scale_direction =
-                                                            scale_direction.normalize_or_zero();
-                                                        actions.push(EditorStateAction::StartDrag(
-                                                            DragTarget::WaypointScale {
-                                                                light: waypoints.light,
-                                                                waypoint,
-                                                                initial_scale: frame.scale,
-                                                                scale_direction,
-                                                            },
-                                                        ));
-                                                    } else {
-                                                        let initial_translation = frame.translation;
-                                                        actions.push(EditorStateAction::StartDrag(
-                                                            DragTarget::WaypointMove {
-                                                                light: waypoints.light,
-                                                                waypoint,
-                                                                initial_translation,
-                                                            },
-                                                        ));
-                                                    }
-                                                }
-                                                geng::MouseButton::Middle => {}
-                                                geng::MouseButton::Right => {
-                                                    // TODO: context menu
-                                                }
-                                            }
+                                            self.click_waypoint(
+                                                waypoints,
+                                                event,
+                                                waypoint,
+                                                frame,
+                                                button,
+                                                &mut actions,
+                                            );
                                         }
                                     }
                                 }
@@ -512,6 +470,73 @@ impl EditorState {
             },
         }
         actions
+    }
+
+    fn click_waypoint(
+        &self,
+        waypoints: &Waypoints,
+        event: &LightEvent,
+        waypoint: WaypointId,
+        frame: Transform,
+        button: geng::MouseButton,
+        actions: &mut Vec<EditorStateAction>,
+    ) {
+        match button {
+            geng::MouseButton::Left => {
+                actions.push(LevelAction::SelectWaypoint(waypoint, false).into());
+                if self.ui_context.mods.shift {
+                    let delta = self.editor.cursor_world_pos - frame.translation;
+                    let scale_direction = match event.shape {
+                        Shape::Circle { .. } => delta,
+                        Shape::Line { .. } => {
+                            let dir = frame.rotation.unit_vec();
+                            let normal = vec2(dir.y, -dir.x);
+                            let side = vec2::dot(normal, delta).signum();
+                            normal * side
+                        }
+                        Shape::Rectangle { width, height } => {
+                            let delta_pos = delta.rotate(-frame.rotation);
+                            let size = vec2(width, height);
+
+                            let mut angle =
+                                delta_pos.arg().normalized_pi() - Angle::from_degrees(r32(45.0));
+                            if angle.abs() > Angle::from_degrees(r32(90.0)) {
+                                angle -=
+                                    Angle::from_degrees(r32(180.0) * angle.as_radians().signum());
+                            }
+                            let angle = angle + Angle::from_degrees(r32(45.0));
+
+                            let dir = if angle < size.arg().normalized_pi() {
+                                // On the right (vertical) side
+                                frame.rotation.unit_vec()
+                            } else {
+                                // On the top (horizontal) side
+                                frame.rotation.unit_vec().rotate_90()
+                            };
+                            let side = vec2::dot(dir, delta).signum();
+                            dir * side
+                        }
+                    };
+                    actions.push(EditorStateAction::StartDrag(DragTarget::WaypointScale {
+                        light: waypoints.light,
+                        waypoint,
+                        initial_scale: frame.scale,
+                        scale_direction,
+                    }));
+                } else {
+                    let initial_translation = frame.translation;
+                    actions.push(EditorStateAction::StartDrag(DragTarget::WaypointMove {
+                        light: waypoints.light,
+                        waypoint,
+                        initial_translation,
+                    }));
+                }
+            }
+            geng::MouseButton::Middle => {}
+            geng::MouseButton::Right => {
+                // TODO: context menu
+            }
+        }
     }
 
     fn rotate(&self, actions: &mut Vec<EditorStateAction>, rotate_by: Angle<Coord>) {

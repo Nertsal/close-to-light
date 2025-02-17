@@ -371,7 +371,7 @@ impl UtilRender {
                 )
             }
             Shape::Rectangle { width, height } => (
-                &self.context.assets.sprites.linear_gradient,
+                &self.context.assets.sprites.square_gradient,
                 mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
             ),
         };

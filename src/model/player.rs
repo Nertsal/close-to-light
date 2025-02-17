@@ -115,7 +115,27 @@ impl Player {
                 let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
                 (dot.abs(), width / r32(2.0))
             }
-            Shape::Rectangle { .. } => todo!(),
+            Shape::Rectangle { width, height } => {
+                let delta_pos = delta_pos.rotate(-light.rotation);
+                let size = vec2(width, height);
+
+                let mut angle = delta_pos.arg().normalized_pi() - Angle::from_degrees(r32(45.0));
+                if angle.abs() > Angle::from_degrees(r32(90.0)) {
+                    angle -= Angle::from_degrees(r32(180.0) * angle.as_radians().signum());
+                }
+                let angle = angle + Angle::from_degrees(r32(45.0));
+
+                let radius = if angle < size.arg().normalized_pi() {
+                    // On the right (vertical) side
+                    let h = vec2::dot(delta_pos, vec2::UNIT_Y);
+                    vec2(width / r32(2.0), h).len()
+                } else {
+                    // On the top (horizontal) side
+                    let w = vec2::dot(delta_pos, vec2::UNIT_X);
+                    vec2(w, height / r32(2.0)).len()
+                };
+                (delta_pos.len(), radius)
+            }
         };
 
         if raw_distance > max_distance {
