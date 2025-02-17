@@ -451,10 +451,23 @@ impl EditorState {
                                                         .into(),
                                                     );
                                                     if self.ui_context.mods.shift {
+                                                        let delta = self.editor.cursor_world_pos
+                                                            - frame.translation;
+                                                        let scale_direction = match event.shape {
+                                                            Shape::Circle { .. } => delta,
+                                                            Shape::Line { .. } => {
+                                                                let dir = frame.rotation.unit_vec();
+                                                                let normal = vec2(dir.y, -dir.x);
+                                                                let side = vec2::dot(normal, delta)
+                                                                    .signum();
+                                                                normal * side
+                                                            }
+                                                            Shape::Rectangle { .. } => {
+                                                                todo!()
+                                                            }
+                                                        };
                                                         let scale_direction =
-                                                            (self.editor.cursor_world_pos
-                                                                - frame.translation)
-                                                                .normalize_or_zero();
+                                                            scale_direction.normalize_or_zero();
                                                         actions.push(EditorStateAction::StartDrag(
                                                             DragTarget::WaypointScale {
                                                                 light: waypoints.light,
