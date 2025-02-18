@@ -5,8 +5,10 @@ impl EditorRender {
         let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
 
-        let game_buffer =
-            &mut geng_utils::texture::attach_texture(&mut self.game_texture, self.geng.ugli());
+        let game_buffer = &mut geng_utils::texture::attach_texture(
+            &mut self.game_texture,
+            self.context.geng.ugli(),
+        );
 
         if let Some(level_editor) = &editor.level_edit {
             if level_editor.level_state.relevant().swap_palette {
@@ -28,7 +30,7 @@ impl EditorRender {
             ($alpha:expr) => {{
                 self.dither
                     .finish(level_editor.real_time, &theme.transparent());
-                self.geng.draw2d().textured_quad(
+                self.context.geng.draw2d().textured_quad(
                     game_buffer,
                     &geng::PixelPerfectCamera,
                     screen_aabb,
@@ -391,7 +393,7 @@ impl EditorRender {
         {
             // World UI
             let mut ui_buffer =
-                geng_utils::texture::attach_texture(&mut self.ui_texture, self.geng.ugli());
+                geng_utils::texture::attach_texture(&mut self.ui_texture, self.context.geng.ugli());
             ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
 
             let grid_thick = 5.0; // in pixels
@@ -399,12 +401,7 @@ impl EditorRender {
 
             // Grid
             if options.show_grid {
-                let color = Rgba {
-                    r: 0.7,
-                    g: 0.7,
-                    b: 0.7,
-                    a: 0.7,
-                };
+                let color = crate::util::with_alpha(Color::lerp(theme.dark, theme.light, 0.7), 0.8);
                 let grid_size = editor.grid.cell_size.as_f32();
                 let view = vec2(
                     level_editor.model.camera.fov * ui_buffer.size().as_f32().aspect(),
@@ -421,6 +418,12 @@ impl EditorRender {
                     pos.map(f32::floor)
                 };
 
+                let mut grid_geometry = Vec::new();
+                let mk_v = |a_pos| draw2d::ColoredVertex {
+                    a_pos,
+                    a_color: color,
+                };
+
                 for x in -view.x..=view.x {
                     // Vertical
                     let width = if thick > 0 && x % thick == 0 {
@@ -431,13 +434,12 @@ impl EditorRender {
                     let x = x as f32;
                     let y = view.y as f32;
 
-                    let segment =
-                        Segment(ppp(vec2(x, -y) * grid_size), ppp(vec2(x, y) * grid_size));
-                    self.geng.draw2d().draw2d(
-                        &mut ui_buffer,
-                        &geng::PixelPerfectCamera,
-                        &draw2d::Segment::new(segment, width, color),
-                    );
+                    let p1 = ppp(vec2(x, -y) * grid_size);
+                    let p2 = ppp(vec2(x, y) * grid_size);
+                    let normal = (p2 - p1).normalize_or_zero().rotate_90();
+                    let offset = normal * width / 2.0;
+                    let [a, b, c, d] = [p1 + offset, p1 - offset, p2 - offset, p2 + offset];
+                    grid_geometry.extend([a, b, c, a, c, d].map(mk_v));
                 }
                 for y in -view.y..=view.y {
                     // Horizontal
@@ -449,19 +451,36 @@ impl EditorRender {
                     let y = y as f32;
                     let x = view.x as f32;
 
-                    let segment =
-                        Segment(ppp(vec2(-x, y) * grid_size), ppp(vec2(x, y) * grid_size));
-                    self.geng.draw2d().draw2d(
-                        &mut ui_buffer,
-                        &geng::PixelPerfectCamera,
-                        &draw2d::Segment::new(segment, width, color),
-                    );
+                    let p1 = ppp(vec2(-x, y) * grid_size);
+                    let p2 = ppp(vec2(x, y) * grid_size);
+                    let normal = (p2 - p1).normalize_or_zero().rotate_90();
+                    let offset = normal * width / 2.0;
+                    let [a, b, c, d] = [p1 + offset, p1 - offset, p2 - offset, p2 + offset];
+                    grid_geometry.extend([a, b, c, a, c, d].map(mk_v));
                 }
+
+                let grid_geometry =
+                    ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), grid_geometry);
+                let frame_size = ui_buffer.size().as_f32();
+                ugli::draw(
+                    &mut ui_buffer,
+                    &self.context.assets.shaders.solid,
+                    ugli::DrawMode::Triangles,
+                    &grid_geometry,
+                    (
+                        ugli::uniforms! {
+                            u_model_matrix: mat3::identity(),
+                            u_color: Color::WHITE,
+                        },
+                        geng::PixelPerfectCamera.uniforms(frame_size),
+                    ),
+                    draw_parameters(),
+                );
             }
 
             geng_utils::texture::DrawTexture::new(&self.ui_texture)
                 .fit(screen_aabb, vec2(0.5, 0.5))
-                .draw(&geng::PixelPerfectCamera, &self.geng, game_buffer);
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, game_buffer);
         }
     }
 }

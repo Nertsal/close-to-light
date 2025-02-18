@@ -5,7 +5,7 @@ use super::*;
 impl EditorRender {
     pub(super) fn draw_ui(&mut self, editor_ui: &EditorUi, ui: &UiContext) {
         let framebuffer = &mut ugli::Framebuffer::new(
-            self.geng.ugli(),
+            self.context.geng.ugli(),
             ugli::ColorAttachment::Texture(&mut self.ui_texture),
             ugli::DepthAttachment::Renderbuffer(&mut self.ui_depth),
         );

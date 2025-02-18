@@ -16,8 +16,7 @@ use crate::{
 };
 
 pub struct EditorRender {
-    geng: Geng,
-    // assets: Rc<Assets>,
+    context: Context,
     dither: DitherRender,
     util: UtilRender,
     mask: MaskedRender,
@@ -43,8 +42,6 @@ impl EditorRender {
         ui_texture.set_filter(ugli::Filter::Nearest);
 
         Self {
-            geng: context.geng.clone(),
-            // assets: assets.clone(),
             dither: DitherRender::new(&context.geng, &context.assets),
             util: UtilRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
@@ -54,6 +51,7 @@ impl EditorRender {
             ui_texture,
             ui_depth,
             font_size: 1.0,
+            context,
         }
     }
 
@@ -76,12 +74,14 @@ impl EditorRender {
         geng_utils::texture::update_texture_size(
             &mut self.game_texture,
             context.screen.size().map(|x| x.round() as usize),
-            self.geng.ugli(),
+            self.context.geng.ugli(),
         );
         if self.ui_texture.size() != framebuffer.size() {
             self.ui_texture =
-                ugli::Texture::new_with(self.geng.ugli(), framebuffer.size(), |_| Rgba::BLACK);
-            self.ui_depth = ugli::Renderbuffer::new(self.geng.ugli(), framebuffer.size());
+                ugli::Texture::new_with(self.context.geng.ugli(), framebuffer.size(), |_| {
+                    Rgba::BLACK
+                });
+            self.ui_depth = ugli::Renderbuffer::new(self.context.geng.ugli(), framebuffer.size());
             self.ui_texture.set_filter(ugli::Filter::Nearest);
         }
 
@@ -101,7 +101,7 @@ impl EditorRender {
             } else {
                 ui.game.position
             });
-            self.geng.draw2d().textured_quad(
+            self.context.geng.draw2d().textured_quad(
                 &mut masked.color,
                 camera,
                 context.screen,
@@ -125,7 +125,7 @@ impl EditorRender {
         }
 
         if !editor.render_options.hide_ui {
-            self.geng.draw2d().textured_quad(
+            self.context.geng.draw2d().textured_quad(
                 framebuffer,
                 camera,
                 Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
