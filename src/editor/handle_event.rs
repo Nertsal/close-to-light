@@ -263,10 +263,11 @@ impl EditorState {
             return actions;
         };
 
-        let Some(drag) = &mut self.drag else {
+        let Some(drag) = &mut self.editor.drag else {
             return actions;
         };
         match drag.target {
+            DragTarget::SelectionArea => {}
             DragTarget::Camera { initial_center } => {
                 let camera = &level_editor.model.camera;
 
@@ -415,11 +416,17 @@ impl EditorState {
                 } else {
                     // Deselect
                     actions.push(LevelAction::DeselectLight.into());
-                    if let geng::MouseButton::Right = button {
-                        actions.push(EditorStateAction::ContextMenu(
-                            self.ui_context.cursor.position,
-                            vec![("Paste".into(), LevelAction::Paste.into())],
-                        ));
+                    match button {
+                        geng::MouseButton::Right => {
+                            actions.push(EditorStateAction::ContextMenu(
+                                self.ui_context.cursor.position,
+                                vec![("Paste".into(), LevelAction::Paste.into())],
+                            ));
+                        }
+                        geng::MouseButton::Left => {
+                            actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea));
+                        }
+                        geng::MouseButton::Middle => (),
                     }
                 }
             }
@@ -457,6 +464,10 @@ impl EditorState {
                         } else {
                             // Deselect
                             actions.push(LevelAction::DeselectWaypoint.into());
+                            if let geng::MouseButton::Left = button {
+                                actions
+                                    .push(EditorStateAction::StartDrag(DragTarget::SelectionArea));
+                            }
                         }
                     }
                 }

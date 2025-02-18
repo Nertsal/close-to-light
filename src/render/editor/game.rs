@@ -478,6 +478,31 @@ impl EditorRender {
                 );
             }
 
+            // Selection
+            if let Some(drag) = &editor.drag {
+                if let DragTarget::SelectionArea = drag.target {
+                    let color = Color::lerp(theme.dark, theme.highlight, 0.5);
+                    let selection =
+                        Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)
+                            .map_bounds(|p| {
+                                crate::util::world_to_screen(
+                                    &level_editor.model.camera,
+                                    game_buffer.size().as_f32(),
+                                    p.as_f32(),
+                                )
+                            });
+                    let pixel = crate::render::ui::pixel_scale(ui_buffer.size());
+                    let width = 2.0 * pixel;
+                    self.ui.fill_quad(
+                        selection.extend_uniform(width),
+                        crate::util::with_alpha(color, 0.5),
+                        &mut ui_buffer,
+                    );
+                    self.ui
+                        .draw_outline(selection, width, color, &mut ui_buffer);
+                }
+            }
+
             geng_utils::texture::DrawTexture::new(&self.ui_texture)
                 .fit(screen_aabb, vec2(0.5, 0.5))
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, game_buffer);

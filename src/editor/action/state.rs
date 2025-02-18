@@ -48,7 +48,7 @@ impl EditorState {
             }
             EditorStateAction::CursorMove(position) => {
                 self.ui_context.cursor.cursor_move(position);
-                if let Some(drag) = &mut self.drag {
+                if let Some(drag) = &mut self.editor.drag {
                     drag.moved = true;
                 }
             }
@@ -95,7 +95,7 @@ impl EditorState {
             return;
         };
 
-        if let Some(drag) = self.drag.take() {
+        if let Some(drag) = self.editor.drag.take() {
             if let DragTarget::Light { double, .. } = drag.target {
                 if double
                     && drag.from_world == self.editor.cursor_world_pos_snapped
@@ -112,12 +112,13 @@ impl EditorState {
 
     fn start_drag(&mut self, target: DragTarget) {
         self.end_drag();
+        log::debug!("Dragging: {:?}", target);
 
         let Some(level_editor) = &mut self.editor.level_edit else {
             return;
         };
 
-        self.drag = Some(Drag {
+        self.editor.drag = Some(Drag {
             moved: false,
             from_screen: self.ui_context.cursor.position,
             from_world_raw: self.editor.cursor_world_pos,

@@ -49,47 +49,6 @@ pub struct EditorState {
     ui: EditorUi,
     ui_focused: bool,
     ui_context: UiContext,
-    drag: Option<Drag>,
-}
-
-#[derive(Debug)]
-pub struct Drag {
-    /// Whether we just clicked or actually starting moving.
-    pub moved: bool,
-    pub from_screen: vec2<f32>,
-    /// Unsnapped cursor position.
-    pub from_world_raw: vec2<Coord>,
-    pub from_world: vec2<Coord>,
-    pub from_real_time: FloatTime,
-    pub from_beat: Time,
-    pub target: DragTarget,
-}
-
-#[derive(Debug, Clone)]
-pub enum DragTarget {
-    Camera {
-        initial_center: vec2<Coord>,
-    },
-    /// Move the whole light event through time and space.
-    Light {
-        /// Whether it was the second click on the light.
-        /// If the drag is short, waypoints will be toggled.
-        double: bool,
-        light: LightId,
-        initial_time: Time,
-        initial_translation: vec2<Coord>,
-    },
-    WaypointMove {
-        light: LightId,
-        waypoint: WaypointId,
-        initial_translation: vec2<Coord>,
-    },
-    WaypointScale {
-        light: LightId,
-        waypoint: WaypointId,
-        initial_scale: Coord,
-        scale_direction: vec2<Coord>,
-    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -156,7 +115,6 @@ impl EditorState {
             ui: EditorUi::new(context.clone()),
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
-            drag: None,
             editor: Editor {
                 context: context.clone(),
                 render_options: RenderOptions {
@@ -165,6 +123,7 @@ impl EditorState {
                 },
                 cursor_world_pos: vec2::ZERO,
                 cursor_world_pos_snapped: vec2::ZERO,
+                drag: None,
 
                 confirm_popup: None,
 

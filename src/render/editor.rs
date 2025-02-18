@@ -6,6 +6,7 @@ use mask::MaskedStack;
 use super::{
     dither::DitherRender,
     mask::MaskedRender,
+    ui::UiRender,
     util::{TextRenderOptions, UtilRender},
     *,
 };
@@ -19,6 +20,7 @@ pub struct EditorRender {
     context: Context,
     dither: DitherRender,
     util: UtilRender,
+    ui: UiRender,
     mask: MaskedRender,
     mask_stack: MaskedStack,
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
@@ -44,6 +46,7 @@ impl EditorRender {
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
             util: UtilRender::new(context.clone()),
+            ui: UiRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             mask_stack: MaskedStack::new(&context.geng, &context.assets),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
