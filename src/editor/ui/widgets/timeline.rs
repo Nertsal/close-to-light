@@ -36,7 +36,7 @@ pub struct TimelineWidget {
     scroll: Time,
     raw_current_time: Time,
     level: Level, // TODO: reuse existing
-    selected_light: Option<LightId>,
+    selection: Selection,
     selected_waypoint: Option<WaypointId>,
 }
 
@@ -69,7 +69,7 @@ impl TimelineWidget {
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
             level: Level::new(r32(150.0)),
-            selected_light: None,
+            selection: Selection::Empty,
             selected_waypoint: None,
         }
     }
@@ -139,7 +139,8 @@ impl TimelineWidget {
 
         // Check highlight bounds
         self.highlight_bar = self
-            .selected_light
+            .selection
+            .light_single()
             .and_then(|id| self.level.events.get(id.event))
             .and_then(|event| {
                 if let Event::Light(light) = &event.event {
@@ -170,7 +171,7 @@ impl TimelineWidget {
         for (i, event) in self.level.events.iter().enumerate() {
             if let Event::Light(light_event) = &event.event {
                 let light_id = LightId { event: i };
-                let is_selected = Some(light_id) == self.selected_light;
+                let is_selected = self.selection.is_light_single(light_id);
 
                 // Selected light's waypoints
                 if is_selected {
@@ -363,7 +364,7 @@ impl TimelineWidget {
                             .state
                             .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
                         icon.update(light, context);
-                        icon.color = if is_selected {
+                        icon.color = if self.selection.is_light_selected(light_id) {
                             ThemeColor::Highlight
                         } else if light_event.danger {
                             ThemeColor::Danger
@@ -530,7 +531,7 @@ impl TimelineWidget {
         self.cursor_pos = context.cursor.position;
         self.expansion.update(context.delta_time);
         self.level = state.level.clone();
-        self.selected_light = state.selected_light;
+        self.selection = state.selection.clone();
         self.selected_waypoint = state
             .level_state
             .waypoints

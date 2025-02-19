@@ -42,7 +42,7 @@ pub struct Drag {
 
 #[derive(Debug, Clone)]
 pub enum DragTarget {
-    SelectionArea,
+    SelectionArea(Selection),
     Camera {
         initial_center: vec2<Coord>,
     },

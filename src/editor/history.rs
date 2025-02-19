@@ -4,6 +4,7 @@ use super::*;
 pub enum HistoryLabel {
     #[default]
     Unknown,
+    Merge,
     FadeIn(LightId),
     FadeOut(LightId),
     Rotate(LightId, WaypointId),
@@ -18,6 +19,7 @@ impl HistoryLabel {
     pub fn should_merge(&self, other: &Self) -> bool {
         match self {
             Self::Unknown => false,
+            Self::Merge => true,
             _ => self == other,
         }
     }
@@ -41,6 +43,36 @@ impl History {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         }
+    }
+
+    pub fn undo(&mut self, level: &mut Level) {
+        if let Some(mut state) = self.undo_stack.pop() {
+            std::mem::swap(&mut state, level);
+            self.redo_stack.push(state);
+            self.buffer_state = level.clone();
+            self.buffer_label = HistoryLabel::Unknown;
+            log::debug!("Change undone");
+        }
+    }
+
+    pub fn redo(&mut self, level: &mut Level) {
+        if let Some(mut state) = self.redo_stack.pop() {
+            std::mem::swap(&mut state, level);
+            self.undo_stack.push(state);
+            self.buffer_state = level.clone();
+            self.buffer_label = HistoryLabel::Unknown;
+            log::debug!("Change redone");
+        }
+    }
+
+    pub fn start_merge(&mut self, level: &Level) {
+        if Some(&self.buffer_state) != self.undo_stack.last() {
+            // Push old changes
+            self.save_force(level, HistoryLabel::Merge);
+        } else {
+            self.buffer_label = HistoryLabel::Merge;
+        }
+        log::debug!("Started merging changes");
     }
 
     pub fn save_state(&mut self, level: &Level, label: HistoryLabel) {

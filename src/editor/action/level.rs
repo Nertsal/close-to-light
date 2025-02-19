@@ -3,9 +3,11 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum LevelAction {
     // Generic actions
+    List(Vec<LevelAction>), // TODO: smallvec
     Undo,
     Redo,
     Copy,
+    CopySelection(Selection),
     Paste,
     FlushChanges(Option<HistoryLabel>),
     Cancel,
@@ -20,7 +22,6 @@ pub enum LevelAction {
     CameraPan(Change<vec2<f32>>),
 
     // Light actions
-    CopyLight(LightId),
     NewLight(Shape),
     ToggleDangerPlacement,
     PlaceLight(vec2<Coord>),
@@ -84,12 +85,18 @@ impl<T: PartialEq> Change<T> {
 }
 
 impl LevelAction {
+    pub fn list(iter: impl IntoIterator<Item = Self>) -> Self {
+        Self::List(iter.into_iter().collect())
+    }
+
     /// Whether the action has no effect.
     pub fn is_noop(&self) -> bool {
         match self {
+            LevelAction::List(list) => list.iter().all(LevelAction::is_noop),
             LevelAction::Undo => false,
             LevelAction::Redo => false,
             LevelAction::Copy => false,
+            LevelAction::CopySelection(_) => false,
             LevelAction::Paste => false,
             LevelAction::FlushChanges(_) => false,
             LevelAction::Cancel => false,
@@ -103,7 +110,6 @@ impl LevelAction {
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
 
-            LevelAction::CopyLight(_) => false,
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
             LevelAction::PlaceLight(_) => false,
@@ -142,11 +148,42 @@ impl LevelEditor {
             return;
         }
 
-        // log::trace!("LevelAction::{:?}", action);
+        log::trace!("LevelAction::{:?}", action);
         match action {
-            LevelAction::Undo => self.undo(),
-            LevelAction::Redo => self.redo(),
+            LevelAction::List(list) => {
+                self.start_merge_changes();
+                for action in list {
+                    self.execute(action);
+                }
+                self.flush_changes();
+                return;
+            }
+            LevelAction::Undo => {
+                self.undo();
+                return;
+            }
+            LevelAction::Redo => {
+                self.redo();
+                return;
+            }
             LevelAction::Copy => self.copy(),
+            LevelAction::CopySelection(selection) => match selection {
+                Selection::Empty => self.clipboard.clear(),
+                Selection::Lights(lights) => {
+                    let lights = lights
+                        .into_iter()
+                        .flat_map(|id| {
+                            self.level.events.get(id.event).and_then(|event| {
+                                let Event::Light(light) = &event.event else {
+                                    return None;
+                                };
+                                Some(light.clone())
+                            })
+                        })
+                        .collect();
+                    self.clipboard.copy(ClipboardItem::Lights(lights));
+                }
+            },
             LevelAction::Paste => self.paste(),
             LevelAction::FlushChanges(label) => {
                 if label.map_or(true, |label| self.history.buffer_label == label) {
@@ -205,13 +242,6 @@ impl LevelEditor {
                 delta.apply(&mut self.model.camera.center);
             }
 
-            LevelAction::CopyLight(id) => {
-                if let Some(event) = self.level.events.get(id.event) {
-                    if let Event::Light(light) = &event.event {
-                        self.clipboard.copy(ClipboardItem::Light(light.clone()));
-                    }
-                }
-            }
             LevelAction::NewLight(shape) => {
                 self.execute(LevelAction::DeselectLight);
                 self.state = State::Place {
@@ -229,7 +259,7 @@ impl LevelEditor {
             LevelAction::SelectLight(id) => self.select_light(id),
             LevelAction::DeselectLight => {
                 self.execute(LevelAction::DeselectWaypoint);
-                self.selected_light = None;
+                self.selection.clear();
             }
             LevelAction::RotateLightAround(light, anchor, delta) => {
                 self.modify_movement(light, |movement| movement.rotate_around(anchor, delta))
@@ -403,7 +433,7 @@ impl LevelEditor {
         // Initial frame is treated specially
         if let Some((original_id, transform, time)) = frames.next() {
             let fixed_id = WaypointId::Initial;
-            if fix_selection && self.selected_light == Some(light_id) {
+            if fix_selection && self.selection.is_light_single(light_id) {
                 if let Some(waypoints) = &mut self.level_state.waypoints {
                     if waypoints.selected == Some(original_id) {
                         waypoints.selected = Some(fixed_id);
@@ -427,7 +457,7 @@ impl LevelEditor {
         // Update all other frames
         for (i, (original_id, transform, time)) in frames.enumerate() {
             let fixed_id = WaypointId::Frame(i);
-            if fix_selection && self.selected_light == Some(light_id) {
+            if fix_selection && self.selection.is_light_single(light_id) {
                 if let Some(waypoints) = &mut self.level_state.waypoints {
                     if waypoints.selected == Some(original_id) {
                         waypoints.selected = Some(fixed_id);
@@ -516,7 +546,7 @@ impl LevelEditor {
     fn select_light(&mut self, light_id: LightId) {
         self.level_state.waypoints = None;
         self.state = State::Idle;
-        self.selected_light = Some(light_id);
+        self.selection.add_light(light_id);
     }
 
     fn modify_movement(&mut self, light_id: LightId, f: impl FnOnce(&mut Movement)) {
@@ -532,7 +562,7 @@ impl LevelEditor {
     }
 
     fn select_waypoint(&mut self, waypoint_id: WaypointId, move_time: bool) {
-        let Some(light_id) = self.selected_light else {
+        let Some(light_id) = self.selection.light_single() else {
             return;
         };
 
@@ -660,7 +690,7 @@ impl LevelEditor {
         let event_i = self.level.events.len();
         self.level.events.push(event);
 
-        self.selected_light = Some(LightId { event: event_i });
+        self.selection = Selection::Lights(vec![LightId { event: event_i }]);
         self.state = State::Waypoints {
             light_id: LightId { event: event_i },
             state: WaypointsState::New,

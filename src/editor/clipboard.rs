@@ -6,7 +6,7 @@ pub struct Clipboard {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ClipboardItem {
-    Light(LightEvent),
+    Lights(Vec<LightEvent>),
 }
 
 impl Clipboard {
@@ -14,9 +14,9 @@ impl Clipboard {
         Self { data: None }
     }
 
-    // pub fn clear(&mut self) {
-    //     self.data = None;
-    // }
+    pub fn clear(&mut self) {
+        self.data = None;
+    }
 
     pub fn copy(&mut self, item: ClipboardItem) {
         self.data = Some(item);

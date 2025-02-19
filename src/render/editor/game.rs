@@ -51,7 +51,6 @@ impl EditorRender {
         let hovered_event = level_editor.level_state.hovered_event();
 
         let select_color = editor.config.theme.select;
-        let selected_event = level_editor.selected_light.map(|i| i.event);
 
         let get_color =
             |event_id: Option<usize>| -> Color {
@@ -67,7 +66,11 @@ impl EditorRender {
                     } else {
                         light_color
                     };
-                    let mod_color = if !editor.show_only_selected && check(selected_event) {
+                    let mod_color = if !editor.show_only_selected
+                        && level_editor
+                            .selection
+                            .is_light_selected(LightId { event: event_id })
+                    {
                         select_color
                     } else if check(hovered_event) {
                         hover_color
@@ -185,57 +188,59 @@ impl EditorRender {
             (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
         };
 
-        if let Some(light_id) = level_editor.selected_light {
-            if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
-                let visibility = |beat| visibility(timed_event, beat);
+        if let Selection::Lights(lights) = &level_editor.selection {
+            for light_id in lights {
+                if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
+                    let visibility = |beat| visibility(timed_event, beat);
 
-                if let Event::Light(event) = &timed_event.event {
-                    let color = if event.danger {
-                        danger_color
-                    } else {
-                        light_color
-                    };
-                    let alpha = if let State::Waypoints { .. } = level_editor.state {
-                        1.0
-                    } else {
-                        0.5
-                    };
-                    let color = crate::util::with_alpha(color, alpha);
+                    if let Event::Light(event) = &timed_event.event {
+                        let color = if event.danger {
+                            danger_color
+                        } else {
+                            light_color
+                        };
+                        let alpha = if let State::Waypoints { .. } = level_editor.state {
+                            1.0
+                        } else {
+                            0.5
+                        };
+                        let color = crate::util::with_alpha(color, alpha);
 
-                    let options = util::DashRenderOptions {
-                        width: 0.15,
-                        dash_length: 0.1,
-                        space_length: 0.2,
-                    };
+                        let options = util::DashRenderOptions {
+                            width: 0.15,
+                            dash_length: 0.1,
+                            space_length: 0.2,
+                        };
 
-                    // A dashed line moving through the waypoints to show general direction
-                    const POINTS_DENSITY: f32 = 5.0;
-                    let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
-                        .round() as usize;
-                    if !event.movement.key_frames.is_empty() && num_points > 0 {
-                        let period =
-                            time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
-                        let speed = r32(1.0 / 8.0); // game time per real time
-                        let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
-                            .map(|i| {
-                                let t = r32(i as f32 / num_points as f32);
-                                let t =
-                                    (level_editor.real_time / period * speed + t).fract() * period;
-                                let t = seconds_to_time(t) + event.movement.fade_in;
-                                let alpha = visibility(t);
-                                draw2d::ColoredVertex {
-                                    a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance
-                                    a_color: crate::util::with_alpha(color, alpha),
-                                }
-                            })
-                            .collect();
+                        // A dashed line moving through the waypoints to show general direction
+                        const POINTS_DENSITY: f32 = 5.0;
+                        let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
+                            .round() as usize;
+                        if !event.movement.key_frames.is_empty() && num_points > 0 {
+                            let period =
+                                time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
+                            let speed = r32(1.0 / 8.0); // game time per real time
+                            let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
+                                .map(|i| {
+                                    let t = r32(i as f32 / num_points as f32);
+                                    let t = (level_editor.real_time / period * speed + t).fract()
+                                        * period;
+                                    let t = seconds_to_time(t) + event.movement.fade_in;
+                                    let alpha = visibility(t);
+                                    draw2d::ColoredVertex {
+                                        a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance
+                                        a_color: crate::util::with_alpha(color, alpha),
+                                    }
+                                })
+                                .collect();
 
-                        self.util.draw_dashed_movement(
-                            &positions,
-                            &options,
-                            &level_editor.model.camera,
-                            &mut pixel_buffer,
-                        );
+                            self.util.draw_dashed_movement(
+                                &positions,
+                                &options,
+                                &level_editor.model.camera,
+                                &mut pixel_buffer,
+                            );
+                        }
                     }
                 }
             }
@@ -480,7 +485,7 @@ impl EditorRender {
 
             // Selection
             if let Some(drag) = &editor.drag {
-                if let DragTarget::SelectionArea = drag.target {
+                if let DragTarget::SelectionArea(..) = drag.target {
                     let color = Color::lerp(theme.dark, theme.highlight, 0.5);
                     let selection =
                         Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)

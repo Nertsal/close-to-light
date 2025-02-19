@@ -14,11 +14,11 @@ pub struct LevelEditor {
     pub current_time: TimeInterpolation,
     pub timeline_zoom: SecondOrderState<R32>,
     pub real_time: FloatTime,
-    pub selected_light: Option<LightId>,
     pub timeline_light_hover: Option<LightId>,
 
     pub history: History,
     pub clipboard: Clipboard,
+    pub selection: Selection,
 
     /// At what rotation the objects should be placed.
     pub place_rotation: Angle<Coord>,
@@ -31,6 +31,48 @@ pub struct LevelEditor {
     /// Whether currently scrolling through time.
     /// Used as a hack to not replay the music every frame.
     pub scrolling_time: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum Selection {
+    #[default]
+    Empty,
+    Lights(Vec<LightId>),
+}
+
+impl Selection {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn clear(&mut self) {
+        *self = Self::Empty;
+    }
+
+    pub fn light_single(&self) -> Option<LightId> {
+        match self {
+            Selection::Empty => None,
+            Selection::Lights(lights) => (lights.len() == 1).then(|| *lights.first().unwrap()),
+        }
+    }
+
+    pub fn is_light_single(&self, id: LightId) -> bool {
+        self.light_single() == Some(id)
+    }
+
+    pub fn is_light_selected(&self, id: LightId) -> bool {
+        match self {
+            Selection::Empty => false,
+            Selection::Lights(lights) => lights.contains(&id),
+        }
+    }
+
+    pub fn add_light(&mut self, id: LightId) {
+        match self {
+            Selection::Empty => *self = Self::Lights(vec![id]),
+            Selection::Lights(lights) => lights.push(id),
+        }
+    }
 }
 
 impl LevelEditor {
@@ -50,11 +92,11 @@ impl LevelEditor {
             current_time: TimeInterpolation::new(),
             timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(0.5))),
             real_time: FloatTime::ZERO,
-            selected_light: None,
             timeline_light_hover: None,
 
             history: History::new(&level.level.data),
             clipboard: Clipboard::new(),
+            selection: Selection::new(),
 
             place_rotation: Angle::ZERO,
             place_scale: Coord::ONE,
@@ -75,7 +117,7 @@ impl LevelEditor {
             return;
         }
         self.level.events.swap_remove(id.event);
-        self.selected_light = None;
+        self.selection.clear();
         self.save_state(default());
     }
 
@@ -125,12 +167,7 @@ impl LevelEditor {
             State::Playing { .. } => {}
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
-                if let Some(mut level) = self.history.undo_stack.pop() {
-                    std::mem::swap(&mut level, &mut self.level);
-                    self.history.redo_stack.push(level);
-                    self.history.buffer_state = self.level.clone();
-                    self.history.buffer_label = HistoryLabel::default();
-                }
+                self.history.undo(&mut self.level);
             }
         }
     }
@@ -140,12 +177,7 @@ impl LevelEditor {
             State::Playing { .. } => {}
             State::Place { .. } => {}
             State::Idle | State::Waypoints { .. } => {
-                if let Some(mut level) = self.history.redo_stack.pop() {
-                    std::mem::swap(&mut level, &mut self.level);
-                    self.history.undo_stack.push(level);
-                    self.history.buffer_state = self.level.clone();
-                    self.history.buffer_label = HistoryLabel::default();
-                }
+                self.history.redo(&mut self.level);
             }
         }
     }
@@ -164,10 +196,17 @@ impl LevelEditor {
         log::trace!("flush_changes called by {}", std::panic::Location::caller());
     }
 
+    #[track_caller]
+    pub fn start_merge_changes(&mut self) {
+        self.history.start_merge(&self.level);
+        log::trace!(
+            "start_merge_changes called by {}",
+            std::panic::Location::caller()
+        );
+    }
+
     pub fn copy(&mut self) {
-        if let Some(id) = self.selected_light {
-            self.execute(LevelAction::CopyLight(id));
-        }
+        self.execute(LevelAction::CopySelection(self.selection.clone()));
     }
 
     pub fn paste(&mut self) {
@@ -176,11 +215,13 @@ impl LevelEditor {
         };
 
         match item {
-            ClipboardItem::Light(light) => {
-                self.level.events.push(TimedEvent {
-                    time: self.current_time.target - light.movement.fade_in,
-                    event: Event::Light(light),
-                });
+            ClipboardItem::Lights(lights) => {
+                self.level
+                    .events
+                    .extend(lights.into_iter().map(|light| TimedEvent {
+                        time: self.current_time.target - light.movement.fade_in,
+                        event: Event::Light(light),
+                    }));
             }
         }
     }
@@ -225,7 +266,7 @@ impl LevelEditor {
     pub fn view_waypoints(&mut self) {
         match self.state {
             State::Idle => {
-                if let Some(selected) = self.selected_light {
+                if let Some(selected) = self.selection.light_single() {
                     self.state = State::Waypoints {
                         light_id: selected,
                         state: WaypointsState::Idle,
@@ -280,12 +321,18 @@ impl LevelEditor {
 
         let selected_level = show_only_selected
             .then(|| {
-                self.selected_light
-                    .and_then(|id| self.level.events.get(id.event))
-                    .map(|selected| Level {
-                        events: vec![selected.clone()],
-                        timing: self.level.timing.clone(), // TODO: cheaper clone
-                    })
+                let Selection::Lights(lights) = &self.selection else {
+                    return None;
+                };
+                let events = lights
+                    .iter()
+                    .flat_map(|id| self.level.events.get(id.event))
+                    .cloned()
+                    .collect();
+                Some(Level {
+                    events,
+                    timing: self.level.timing.clone(), // TODO: cheaper clone
+                })
             })
             .flatten();
         let level = selected_level.as_ref().unwrap_or(&self.level);

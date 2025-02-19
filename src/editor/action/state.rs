@@ -96,14 +96,20 @@ impl EditorState {
         };
 
         if let Some(drag) = self.editor.drag.take() {
-            if let DragTarget::Light { double, .. } = drag.target {
-                if double
-                    && drag.from_world == self.editor.cursor_world_pos_snapped
-                    && level_editor.real_time - drag.from_real_time < r32(0.5)
-                {
-                    // See waypoints
-                    level_editor.view_waypoints();
+            match drag.target {
+                DragTarget::SelectionArea(selection) => {
+                    level_editor.selection = selection;
                 }
+                DragTarget::Light { double, .. } => {
+                    if double
+                        && drag.from_world == self.editor.cursor_world_pos_snapped
+                        && level_editor.real_time - drag.from_real_time < r32(0.5)
+                    {
+                        // See waypoints
+                        level_editor.view_waypoints();
+                    }
+                }
+                _ => (),
             }
 
             level_editor.flush_changes();
