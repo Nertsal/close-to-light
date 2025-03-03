@@ -127,7 +127,7 @@ impl EditorState {
 
                 confirm_popup: None,
 
-                tab: EditorTab::Edit,
+                tab: EditorTab::Config,
                 exit: false,
 
                 grid: Grid::new_with(config.grid.clone()),
@@ -147,6 +147,7 @@ impl EditorState {
 
     pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
+        editor.editor.tab = EditorTab::Edit;
         let options = context.get_options();
         let model = Model::empty(context.clone(), options, level.clone());
         editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true, false));

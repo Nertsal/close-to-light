@@ -135,7 +135,8 @@ impl MenuState {
     fn new_group(&mut self, music: Id) {
         self.switch_group = None; // Deselect group
         let local = &self.context.local;
-        local.new_group(music);
+        let group_index = local.new_group(music);
+        self.edit_level(group_index, None);
     }
 
     /// Create a popup window with a message for the given action.

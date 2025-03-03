@@ -402,7 +402,7 @@ impl LevelCache {
         inner.tasks.fs.push_back(Task::new(&self.geng, future));
     }
 
-    pub fn new_group(&self, music_id: Id) {
+    pub fn new_group(&self, music_id: Id) -> Index {
         let inner = self.inner.borrow();
 
         // Generate a non-occupied path
@@ -434,7 +434,7 @@ impl LevelCache {
         let group = Rc::new(group);
         self.save_group(&group);
 
-        self.inner.borrow_mut().groups.insert(group);
+        self.inner.borrow_mut().groups.insert(group)
     }
 
     pub fn fetch_groups(&self) {

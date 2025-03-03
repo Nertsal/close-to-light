@@ -70,7 +70,11 @@ impl Selection {
     pub fn add_light(&mut self, id: LightId) {
         match self {
             Selection::Empty => *self = Self::Lights(vec![id]),
-            Selection::Lights(lights) => lights.push(id),
+            Selection::Lights(lights) => {
+                if !lights.contains(&id) {
+                    lights.push(id)
+                }
+            }
         }
     }
 }

@@ -160,6 +160,7 @@ impl InputWidget {
         }
 
         let theme = context.theme();
+        self.name.options.color = theme.light;
         self.text.options.color = if self.editing {
             theme.highlight
         } else {
