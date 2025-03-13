@@ -134,29 +134,11 @@ impl MenuRender {
         let theme = state.context.get_options().theme;
 
         self.ui
-            .draw_toggle_widget(&ui.tab_music, theme, framebuffer);
-        self.ui
             .draw_toggle_widget(&ui.tab_groups, theme, framebuffer);
         self.ui
             .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
 
-        if ui.tab_music.selected {
-            for music in &ui.grid_music {
-                self.ui.draw_icon(&music.edited, theme, framebuffer);
-                self.ui.draw_outline(
-                    music.state.position,
-                    self.font_size * 0.2,
-                    theme.light,
-                    framebuffer,
-                );
-                let selected =
-                    state.selected_music.as_ref().map(|m| m.data) == Some(music.music.meta.id);
-                self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&music.menu, theme, framebuffer);
-            }
-
-            self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
-        } else if ui.tab_groups.selected {
+        if ui.tab_groups.selected {
             for group in &ui.grid_groups {
                 self.ui.draw_icon(&group.edited, theme, framebuffer);
                 self.ui.draw_icon(&group.local, theme, framebuffer);
@@ -380,10 +362,7 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                for (tab, active) in [
-                    (&ui.tab_music, ui.music.state.visible),
-                    (&ui.tab_levels, ui.levels.state.visible),
-                ] {
+                for (tab, active) in [(&ui.tab_levels, ui.levels.state.visible)] {
                     self.ui
                         .draw_toggle_button(tab, active, false, theme, framebuffer);
                 }
@@ -395,27 +374,7 @@ impl MenuRender {
 
                 let mut mask = self.masked2.start();
 
-                if ui.music.state.visible {
-                    mask.mask_quad(ui.music.items_state.position);
-                    self.ui.draw_text(&ui.music.status, &mut mask.color);
-                    for item in &ui.music.items {
-                        self.ui
-                            .draw_icon_button(&item.download, theme, &mut mask.color);
-                        self.ui.draw_icon(&item.downloading, theme, &mut mask.color);
-                        self.ui.draw_icon_button(&item.play, theme, &mut mask.color);
-                        self.ui
-                            .draw_icon_button(&item.pause, theme, &mut mask.color);
-                        self.ui.draw_icon_button(&item.goto, theme, &mut mask.color);
-                        self.ui.draw_text(&item.name, &mut mask.color);
-                        self.ui.draw_text(&item.author, &mut mask.color);
-                        self.ui.draw_outline(
-                            item.state.position,
-                            self.font_size * 0.2,
-                            theme.light,
-                            &mut mask.color,
-                        );
-                    }
-                } else if ui.levels.state.visible {
+                if ui.levels.state.visible {
                     mask.mask_quad(ui.levels.items_state.position);
                     self.ui.draw_text(&ui.levels.status, &mut mask.color);
                     for item in &ui.levels.items {

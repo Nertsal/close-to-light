@@ -76,7 +76,7 @@ impl Editor {
             }
         }
 
-        if !(0..self.group.cached.data.levels.len()).contains(&level_index) {
+        if !(0..self.group.cached.local.data.levels.len()).contains(&level_index) {
             log::error!(
                 "Tried to remove a level by an invalid index {}",
                 level_index
@@ -84,7 +84,7 @@ impl Editor {
             return;
         }
 
-        let mut new_group = self.group.cached.data.clone();
+        let mut new_group = self.group.cached.local.data.clone();
         new_group.levels.remove(level_index);
 
         if let Some(group) =
@@ -100,7 +100,7 @@ impl Editor {
     }
 
     pub fn create_new_level(&mut self) {
-        let mut new_group = self.group.cached.data.clone();
+        let mut new_group = self.group.cached.local.data.clone();
         new_group.levels.push(Rc::new(LevelFull {
             meta: LevelInfo {
                 id: 0,
@@ -135,13 +135,13 @@ impl Editor {
     }
 
     pub fn swap_levels(&mut self, i: usize, j: usize) {
-        let levels = &self.group.cached.data.levels;
+        let levels = &self.group.cached.local.data.levels;
         if !(0..levels.len()).contains(&i) || !(0..levels.len()).contains(&j) {
             log::error!("Invalid indices to swap levels");
             return;
         }
 
-        let mut new_group = self.group.cached.data.clone();
+        let mut new_group = self.group.cached.local.data.clone();
         new_group.levels.swap(i, j);
 
         if let Some(group) =
@@ -169,7 +169,7 @@ impl Editor {
             // TODO: check unsaved changes
         }
 
-        if let Some(level) = self.group.cached.data.levels.get(level_index) {
+        if let Some(level) = self.group.cached.local.data.levels.get(level_index) {
             log::debug!("Changing to level {}", level.meta.name);
 
             let level = PlayLevel {
@@ -225,6 +225,7 @@ impl Editor {
             let Some(cached) = self
                 .group
                 .cached
+                .local
                 .data
                 .levels
                 .get(level_editor.static_level.level_index)

@@ -1,5 +1,5 @@
 use crate::{
-    local::{CachedMusic, LevelCache},
+    local::{LevelCache, LocalMusic},
     prelude::{Assets, Id, Options, Time},
 };
 
@@ -67,12 +67,12 @@ impl MusicManager {
         }
     }
 
-    pub fn current(&self) -> Option<MusicInfo> {
+    pub fn current(&self) -> Option<Rc<LocalMusic>> {
         self.inner
             .borrow()
             .playing
             .as_ref()
-            .map(|music| music.meta.clone())
+            .map(|music| music.local.clone())
     }
 
     pub fn set_volume(&self, volume: f32) {
@@ -105,17 +105,17 @@ impl MusicManager {
             .playing
             .as_ref()
             .filter(|music| music.effect.is_some())
-            .map(|music| music.meta.id)
+            .map(|music| music.local.meta.id)
     }
 
-    pub fn switch(&self, music: &CachedMusic) {
+    pub fn switch(&self, music: &Rc<LocalMusic>) {
         if self
             .inner
             .borrow()
             .playing
             .as_ref()
             .map_or(true, |playing| {
-                playing.effect.is_none() || playing.meta.id != music.meta.id
+                playing.effect.is_none() || Rc::ptr_eq(&playing.local.sound, &music.sound)
             })
         {
             self.play(music);
@@ -129,19 +129,19 @@ impl MusicManager {
     //     }
     // }
 
-    pub fn play(&self, music: &CachedMusic) {
+    pub fn play(&self, music: &Rc<LocalMusic>) {
         self.play_from(music, Duration::from_secs_f64(0.0))
     }
 
-    pub fn play_from(&self, music: &CachedMusic, time: Duration) {
+    pub fn play_from(&self, music: &Rc<LocalMusic>, time: Duration) {
         let mut inner = self.inner.borrow_mut();
-        let mut music = Music::from_cache(music);
+        let mut music = Music::new(music.clone());
         music.set_volume(inner.volume);
         music.play_from(time);
         inner.playing = Some(music);
     }
 
-    pub fn play_from_beat(&self, music: &CachedMusic, beat: Time) {
+    pub fn play_from_beat(&self, music: &Rc<LocalMusic>, beat: Time) {
         let time = Duration::from_secs_f64(
             beat as f64 * ctl_client::core::types::TIME_IN_FLOAT_TIME as f64,
         );
@@ -150,8 +150,7 @@ impl MusicManager {
 }
 
 pub struct Music {
-    pub meta: MusicInfo,
-    sound: Rc<geng::Sound>,
+    local: Rc<LocalMusic>,
     effect: Option<geng::SoundEffect>,
     volume: f32,
 }
@@ -165,7 +164,7 @@ impl Drop for Music {
 impl Debug for Music {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Music")
-            .field("meta", &self.meta)
+            .field("meta", &self.local.meta)
             // .field("effect", &self.effect)
             .field("volume", &self.volume)
             .finish()
@@ -174,22 +173,19 @@ impl Debug for Music {
 
 impl Clone for Music {
     fn clone(&self) -> Self {
-        Self::new(self.sound.clone(), self.meta.clone())
+        let mut m = Self::new(self.local.clone());
+        m.set_volume(self.volume);
+        m
     }
 }
 
 impl Music {
-    pub fn new(sound: Rc<geng::Sound>, meta: MusicInfo) -> Self {
+    pub fn new(local: Rc<LocalMusic>) -> Self {
         Self {
-            meta,
-            sound,
+            local,
             volume: 0.5,
             effect: None,
         }
-    }
-
-    pub fn from_cache(cached: &CachedMusic) -> Self {
-        Self::new(Rc::clone(&cached.music), cached.meta.clone())
     }
 
     pub fn set_volume(&mut self, volume: f32) {
@@ -208,7 +204,7 @@ impl Music {
 
     pub fn play_from(&mut self, time: time::Duration) {
         self.stop();
-        let mut effect = self.sound.effect();
+        let mut effect = self.local.sound.effect();
         effect.set_volume(self.volume);
         effect.play_from(time);
         self.effect = Some(effect);

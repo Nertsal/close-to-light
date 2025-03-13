@@ -149,7 +149,6 @@ impl Default for Movement {
 pub fn convert_group(beat_time: crate::FloatTime, value: LevelSet) -> crate::LevelSet {
     crate::LevelSet {
         id: value.id,
-        music: value.music,
         owner: crate::UserInfo {
             id: value.owner.id,
             name: value.owner.name,

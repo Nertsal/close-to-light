@@ -208,25 +208,27 @@ async fn group_create(
     State(app): State<Arc<App>>,
     data: Bytes,
 ) -> Result<Json<Id>> {
-    let user = check_user(&session).await?;
+    // let user = check_user(&session).await?;
 
-    // NOTE: Not parsing into Rc, because we cant hold it across an await point
-    // also we want to mutate it
-    let parsed_group: LevelSet<LevelFull> =
-        bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
-    validate_group(&parsed_group)?;
+    // // NOTE: Not parsing into Rc, because we cant hold it across an await point
+    // // also we want to mutate it
+    // let parsed_group: LevelSet<LevelFull> =
+    //     bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
+    // validate_group(&parsed_group)?;
 
-    music::music_exists(&app, parsed_group.music).await?;
+    // music::music_exists(&app, parsed_group.music).await?;
 
-    let group_id = if parsed_group.id != 0 {
-        let id = parsed_group.id;
-        update_group(&app, user, parsed_group).await?;
-        id
-    } else {
-        new_group(&app, user, parsed_group).await?
-    };
+    // let group_id = if parsed_group.id != 0 {
+    //     let id = parsed_group.id;
+    //     update_group(&app, user, parsed_group).await?;
+    //     id
+    // } else {
+    //     new_group(&app, user, parsed_group).await?
+    // };
 
-    Ok(Json(group_id))
+    // Ok(Json(group_id))
+
+    todo!()
 }
 
 async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>) -> Result<()> {
@@ -331,116 +333,118 @@ async fn update_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFu
 }
 
 async fn new_group(app: &App, user: &User, mut parsed_group: LevelSet<LevelFull>) -> Result<Id> {
-    // Check if the user already has groups
-    let user_groups: Vec<GroupRow> = sqlx::query_as("SELECT * FROM groups WHERE owner_id = ?")
-        .bind(user.user_id)
-        .fetch_all(&app.database)
-        .await?;
-    if user_groups.len() >= GROUPS_PER_USER {
-        return Err(RequestError::TooManyGroups);
-    }
-    if user_groups
-        .iter()
-        .filter(|group| group.music_id == parsed_group.music)
-        .count()
-        >= GROUPS_PER_USER_PER_SONG
-    {
-        return Err(RequestError::TooManyGroupsForSong);
-    }
+    // // Check if the user already has groups
+    // let user_groups: Vec<GroupRow> = sqlx::query_as("SELECT * FROM groups WHERE owner_id = ?")
+    //     .bind(user.user_id)
+    //     .fetch_all(&app.database)
+    //     .await?;
+    // if user_groups.len() >= GROUPS_PER_USER {
+    //     return Err(RequestError::TooManyGroups);
+    // }
+    // if user_groups
+    //     .iter()
+    //     .filter(|group| group.music_id == parsed_group.music)
+    //     .count()
+    //     >= GROUPS_PER_USER_PER_SONG
+    // {
+    //     return Err(RequestError::TooManyGroupsForSong);
+    // }
 
-    // Check if such a level already exists
-    for level in &mut parsed_group.levels {
-        level.meta.hash = level.data.calculate_hash();
-        let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(&level.meta.hash)
-            .fetch_optional(&app.database)
-            .await?;
-        if conflict.is_some() {
-            return Err(RequestError::LevelAlreadyExists);
-        }
-    }
+    // // Check if such a level already exists
+    // for level in &mut parsed_group.levels {
+    //     level.meta.hash = level.data.calculate_hash();
+    //     let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
+    //         .bind(&level.meta.hash)
+    //         .fetch_optional(&app.database)
+    //         .await?;
+    //     if conflict.is_some() {
+    //         return Err(RequestError::LevelAlreadyExists);
+    //     }
+    // }
 
-    // Verify owner
-    parsed_group.owner = UserInfo {
-        id: user.user_id,
-        name: user.username.clone().into(),
-    };
+    // // Verify owner
+    // parsed_group.owner = UserInfo {
+    //     id: user.user_id,
+    //     name: user.username.clone().into(),
+    // };
 
-    // Create group
-    let group_id: Id = sqlx::query(
-        "INSERT INTO groups (music_id, owner_id, hash) VALUES (?, ?, ?) RETURNING group_id",
-    )
-    .bind(parsed_group.music)
-    .bind(user.user_id)
-    .bind("")
-    .try_map(|row: DBRow| row.try_get("group_id"))
-    .fetch_one(&app.database)
-    .await?;
-    parsed_group.id = group_id;
+    // // Create group
+    // let group_id: Id = sqlx::query(
+    //     "INSERT INTO groups (music_id, owner_id, hash) VALUES (?, ?, ?) RETURNING group_id",
+    // )
+    // .bind(parsed_group.music)
+    // .bind(user.user_id)
+    // .bind("")
+    // .try_map(|row: DBRow| row.try_get("group_id"))
+    // .fetch_one(&app.database)
+    // .await?;
+    // parsed_group.id = group_id;
 
-    // Create levels
-    for (order, level) in parsed_group.levels.iter_mut().enumerate() {
-        let order = order as i64;
+    // // Create levels
+    // for (order, level) in parsed_group.levels.iter_mut().enumerate() {
+    //     let order = order as i64;
 
-        // Check if such a level already exists
-        let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(&level.meta.hash)
-            .fetch_optional(&app.database)
-            .await?;
-        if conflict.is_some() {
-            return Err(RequestError::LevelAlreadyExists);
-        }
+    //     // Check if such a level already exists
+    //     let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
+    //         .bind(&level.meta.hash)
+    //         .fetch_optional(&app.database)
+    //         .await?;
+    //     if conflict.is_some() {
+    //         return Err(RequestError::LevelAlreadyExists);
+    //     }
 
-        level.meta.id = sqlx::query(
-            "INSERT INTO levels (hash, group_id, name, ord) VALUES (?, ?, ?, ?) RETURNING level_id",
-        )
-        .bind(&level.meta.hash)
-        .bind(group_id)
-        .bind(level.meta.name.as_ref())
-        .bind(order)
-        .try_map(|row: DBRow| row.try_get("level_id"))
-        .fetch_one(&app.database)
-        .await?;
+    //     level.meta.id = sqlx::query(
+    //         "INSERT INTO levels (hash, group_id, name, ord) VALUES (?, ?, ?, ?) RETURNING level_id",
+    //     )
+    //     .bind(&level.meta.hash)
+    //     .bind(group_id)
+    //     .bind(level.meta.name.as_ref())
+    //     .bind(order)
+    //     .try_map(|row: DBRow| row.try_get("level_id"))
+    //     .fetch_one(&app.database)
+    //     .await?;
 
-        level.meta.authors = vec![UserInfo {
-            id: user.user_id,
-            name: user.username.clone().into(),
-        }];
-        sqlx::query("INSERT INTO level_authors (level_id, user_id) VALUES (?, ?)")
-            .bind(level.meta.id)
-            .bind(user.user_id)
-            .execute(&app.database)
-            .await?;
-    }
+    //     level.meta.authors = vec![UserInfo {
+    //         id: user.user_id,
+    //         name: user.username.clone().into(),
+    //     }];
+    //     sqlx::query("INSERT INTO level_authors (level_id, user_id) VALUES (?, ?)")
+    //         .bind(level.meta.id)
+    //         .bind(user.user_id)
+    //         .execute(&app.database)
+    //         .await?;
+    // }
 
-    // Disallow further mutation to make sure the hash is valid
-    let parsed_group = parsed_group;
-    let hash = parsed_group.calculate_hash();
+    // // Disallow further mutation to make sure the hash is valid
+    // let parsed_group = parsed_group;
+    // let hash = parsed_group.calculate_hash();
 
-    // Update hash
-    sqlx::query("UPDATE groups SET hash = ? WHERE group_id = ?")
-        .bind(&hash)
-        .bind(group_id)
-        .execute(&app.database)
-        .await?;
+    // // Update hash
+    // sqlx::query("UPDATE groups SET hash = ? WHERE group_id = ?")
+    //     .bind(&hash)
+    //     .bind(group_id)
+    //     .execute(&app.database)
+    //     .await?;
 
-    // Check path
-    let dir_path = app.config.groups_path.join("levels");
-    std::fs::create_dir_all(&dir_path)?;
-    let path = dir_path.join(group_id.to_string());
-    debug!("Saving group file at {:?}", path);
+    // // Check path
+    // let dir_path = app.config.groups_path.join("levels");
+    // std::fs::create_dir_all(&dir_path)?;
+    // let path = dir_path.join(group_id.to_string());
+    // debug!("Saving group file at {:?}", path);
 
-    if path.exists() {
-        error!("Duplicate group ID generated: {}", group_id);
-        return Err(RequestError::Internal);
-    }
+    // if path.exists() {
+    //     error!("Duplicate group ID generated: {}", group_id);
+    //     return Err(RequestError::Internal);
+    // }
 
-    // Write to file
-    let data = bincode::serialize(&parsed_group).map_err(|_| RequestError::Internal)?;
-    std::fs::write(path, data)?;
-    debug!("Saved group file successfully");
+    // // Write to file
+    // let data = bincode::serialize(&parsed_group).map_err(|_| RequestError::Internal)?;
+    // std::fs::write(path, data)?;
+    // debug!("Saved group file successfully");
 
-    Ok(group_id)
+    // Ok(group_id)
+
+    todo!()
 }
 
 async fn download(

@@ -43,13 +43,6 @@ fn load_gif(
 }
 
 #[derive(geng::asset::Load)]
-pub struct MusicAssets {
-    #[load(postprocess = "looping", ext = "mp3")]
-    pub music: geng::Sound,
-    pub meta: MusicInfo,
-}
-
-#[derive(geng::asset::Load)]
 pub struct Assets {
     pub sprites: Sprites,
     pub atlas: Rc<SpritesAtlas>,

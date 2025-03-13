@@ -5,7 +5,7 @@ use self::ui::UiContext;
 
 use crate::{
     leaderboard::Leaderboard,
-    local::{CachedGroup, CachedMusic},
+    local::{CachedGroup, LocalMusic},
     prelude::*,
     render::game::GameRender,
 };
@@ -31,7 +31,7 @@ pub struct Game {
 pub struct PlayGroup {
     pub group_index: Index,
     pub cached: Rc<CachedGroup>,
-    pub music: Rc<CachedMusic>,
+    pub music: Rc<LocalMusic>,
 }
 
 #[derive(Debug, Clone)]

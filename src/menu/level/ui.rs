@@ -66,12 +66,6 @@ impl MenuUI {
         }
     }
 
-    fn explore_music(&mut self) {
-        self.explore.window.request = Some(WidgetRequest::Open);
-        self.explore.select_tab(ExploreTab::Music);
-        self.explore.show();
-    }
-
     fn explore_groups(&mut self) {
         // TODO: with music filter
         self.explore.window.request = Some(WidgetRequest::Open);
@@ -153,32 +147,20 @@ impl MenuUI {
                 .update(window.translate(slide), context, &mut temp_state);
             if let Some(action) = temp_state.1 {
                 match action {
-                    ExploreAction::PlayMusic(music_id) => {
-                        if let Some(music) = self.context.local.get_music(music_id) {
-                            self.context.music.switch(&music);
+                    ExploreAction::PlayMusic(group_id) => {
+                        if let Some((_index, group)) = self.context.local.get_group_id(group_id) {
+                            if let Some(music) = &group.local.music {
+                                self.context.music.switch(music);
+                            }
                         }
                     }
                     ExploreAction::PauseMusic => {
                         self.context.music.stop();
                     }
-                    ExploreAction::GotoMusic(music_id) => {
-                        self.explore.window.request = Some(WidgetRequest::Close);
-                        self.level_select.select_tab(LevelSelectTab::Group);
-                        state.switch_music = Some(music_id);
-                    }
                     ExploreAction::GotoGroup(group_id) => {
-                        if let Some((index, group)) = self
-                            .context
-                            .local
-                            .inner
-                            .borrow()
-                            .groups
-                            .iter()
-                            .find(|(_, group)| group.data.id == group_id)
-                        {
+                        if let Some((index, _group)) = self.context.local.get_group_id(group_id) {
                             self.explore.window.request = Some(WidgetRequest::Close);
                             self.level_select.select_tab(LevelSelectTab::Difficulty);
-                            state.switch_music = Some(group.data.music);
                             state.switch_group = Some(index);
                         }
                     }
@@ -218,21 +200,11 @@ impl MenuUI {
                 LevelSelectAction::DeleteGroup(group) => {
                     state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
                 }
-                LevelSelectAction::DeleteMusic(music) => {
-                    state.popup_confirm(
-                        ConfirmAction::DeleteMusic(music),
-                        "delete the music and all inner groups",
-                    );
-                }
             }
-        } else if self.level_select.add_music.state.clicked {
-            self.explore_music();
         } else if self.level_select.add_group.menu.browse.state.clicked {
             self.explore_groups();
         } else if self.level_select.add_group.menu.create.state.clicked {
-            if let Some(music) = &state.selected_music {
-                state.new_group(music.data);
-            }
+            state.new_group();
         }
 
         let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);

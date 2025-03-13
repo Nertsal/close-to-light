@@ -34,45 +34,50 @@ impl PlayLevelWidget {
 
         // Sync data and dynamic layout
         let local = &state.context.local;
-        if let Some(show) = &state.selected_music {
-            if let Some(music) = local.get_music(show.data) {
-                self.music.text = music.meta.name.clone();
-                self.music_author.text = music.meta.authors().into();
-
-                let t = crate::util::smoothstep(1.0 - show.time.get_ratio());
-                let slide = vec2(context.screen.max.x - music_pos.min.x, 0.0) * t;
-
-                self.music.update(music_pos.translate(slide), context);
-                self.music.options.size = music_pos.height() * font_factor;
-                if music.meta.original {
-                    self.music_original.show();
-                    self.music_original
-                        .update(music_original.translate(slide), context);
-                    self.music_original.options.size = music_original.height() * font_factor;
-                } else {
-                    self.music_original.hide();
+        let mut music_t = 1.0;
+        let mut level_t = 1.0;
+        if let Some(show_group) = &state.selected_group {
+            if let Some(group) = local.get_group(show_group.data) {
+                // Music
+                if let Some(music) = &group.local.music {
+                    self.music.text = music.meta.name.clone();
+                    self.music_author.text = music.meta.authors().into();
+                    if music.meta.original {
+                        self.music_original.show();
+                    } else {
+                        self.music_original.hide();
+                    }
+                    music_t = crate::util::smoothstep(1.0 - show_group.time.get_ratio());
                 }
-                self.music_author
-                    .update(music_author_pos.translate(slide), context);
-                self.music_author.options.size = music_author_pos.height() * font_factor;
-            }
-        }
-        if let Some(group) = &state.selected_group {
-            if let Some(show) = &state.selected_level {
-                if let Some(level) = local.get_level(group.data, show.data) {
-                    self.difficulty.text = level.meta.name.clone();
-                    self.mappers.text = level.meta.authors().into();
 
-                    let t = crate::util::smoothstep(1.0 - show.time.get_ratio());
-                    let slide = vec2(context.screen.max.x - difficulty_pos.min.x, 0.0) * t;
-
-                    self.difficulty
-                        .update(difficulty_pos.translate(slide), context);
-                    self.difficulty.options.size = difficulty_pos.height() * font_factor;
-                    self.mappers.update(mappers_pos.translate(slide), context);
-                    self.mappers.options.size = mappers_pos.height() * font_factor;
+                // Difficulty
+                if let Some(show_level) = &state.selected_level {
+                    if let Some(level) = local.get_level(show_group.data, show_level.data) {
+                        self.difficulty.text = level.meta.name.clone();
+                        self.mappers.text = level.meta.authors().into();
+                        level_t = crate::util::smoothstep(1.0 - show_level.time.get_ratio());
+                    }
                 }
             }
         }
+
+        // Music
+        let slide = vec2(context.screen.max.x - music_pos.min.x, 0.0) * music_t;
+        self.music.update(music_pos.translate(slide), context);
+        self.music.options.size = music_pos.height() * font_factor;
+        self.music_original
+            .update(music_original.translate(slide), context);
+        self.music_original.options.size = music_original.height() * font_factor;
+        self.music_author
+            .update(music_author_pos.translate(slide), context);
+        self.music_author.options.size = music_author_pos.height() * font_factor;
+
+        // Difficulty
+        let slide = vec2(context.screen.max.x - difficulty_pos.min.x, 0.0) * level_t;
+        self.difficulty
+            .update(difficulty_pos.translate(slide), context);
+        self.difficulty.options.size = difficulty_pos.height() * font_factor;
+        self.mappers.update(mappers_pos.translate(slide), context);
+        self.mappers.options.size = mappers_pos.height() * font_factor;
     }
 }

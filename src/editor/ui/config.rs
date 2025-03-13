@@ -89,6 +89,7 @@ impl EditorConfigUi {
         let names: Vec<_> = editor
             .group
             .cached
+            .local
             .data
             .levels
             .iter()

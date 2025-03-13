@@ -158,7 +158,6 @@ impl Mul<Time> for BeatTime {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelSet<L = Rc<LevelFull>> {
     pub id: Id,
-    pub music: Id,
     pub owner: UserInfo,
     pub levels: Vec<L>,
 }

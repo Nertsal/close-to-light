@@ -7,7 +7,7 @@ use super::*;
 use crate::{
     game::PlayGroup,
     leaderboard::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta},
-    local::CachedMusic,
+    local::LocalMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
         widget::{ConfirmPopup, WidgetOld},
@@ -55,15 +55,11 @@ pub struct MenuState {
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
-    /// Currently showing music.
-    pub selected_music: Option<ShowTime<Id>>,
     /// Currently showing group.
     pub selected_group: Option<ShowTime<Index>>,
     /// Currently showing level of the active group.
     pub selected_level: Option<ShowTime<usize>>,
 
-    /// Switch to the music after current one finishes its animation.
-    pub switch_music: Option<Id>,
     /// Switch to the group after current one finishes its animation.
     pub switch_group: Option<Index>,
     /// Switch to the level of the active group after current one finishes its animation.
@@ -101,18 +97,6 @@ impl MenuState {
         self.leaderboard.change_category(self.get_category());
     }
 
-    fn select_music(&mut self, music: Id) {
-        self.switch_music = Some(music);
-        if self
-            .selected_music
-            .as_ref()
-            .map_or(true, |selected| selected.data != music)
-        {
-            self.switch_group = None;
-            self.switch_level = None;
-        }
-    }
-
     fn select_group(&mut self, group: Index) {
         self.switch_group = Some(group);
         if self
@@ -132,10 +116,10 @@ impl MenuState {
         self.edit_level = Some((group, level));
     }
 
-    fn new_group(&mut self, music: Id) {
+    fn new_group(&mut self) {
         self.switch_group = None; // Deselect group
         let local = &self.context.local;
-        let group_index = local.new_group(music);
+        let group_index = local.new_group(None);
         self.edit_level(group_index, None);
     }
 
@@ -230,11 +214,9 @@ impl LevelMenu {
 
                 confirm_popup: None,
 
-                selected_music: None,
                 selected_group: None,
                 selected_level: None,
 
-                switch_music: None,
                 switch_group: None,
                 switch_level: None,
 
@@ -273,11 +255,11 @@ impl LevelMenu {
         let group_index = group.data;
         let group = local.groups.get(group_index)?;
 
-        let music = group.music.as_ref()?;
+        let music = group.local.music.as_ref()?;
 
         let level = self.state.selected_level.as_ref()?;
         let level_index = level.data;
-        let level = group.data.levels.get(level_index)?;
+        let level = group.local.data.levels.get(level_index)?;
 
         let group = PlayGroup {
             music: Rc::clone(music),
@@ -324,43 +306,6 @@ impl LevelMenu {
         )));
         // Queue leaderboard fetch when coming back
         self.state.leaderboard.status = LeaderboardStatus::None;
-    }
-
-    fn update_active_music(&mut self, delta_time: FloatTime) {
-        let delta_time = delta_time.as_f32();
-        if let Some(current_music) = &mut self.state.selected_music {
-            if let Some(switch_music) = self.state.switch_music {
-                if current_music.data != switch_music {
-                    current_music.time.change(-delta_time);
-                    current_music.going_up = false;
-
-                    if current_music.time.is_min() {
-                        // Switch
-                        current_music.data = switch_music;
-                    }
-                } else {
-                    current_music.time.change(delta_time);
-                    current_music.going_up = true;
-                }
-            } else {
-                current_music.time.change(-delta_time);
-                current_music.going_up = false;
-
-                if current_music.time.is_min() {
-                    // Remove
-                    self.state.selected_music = None;
-                    self.ui.level_select.tab_groups.hide();
-                    self.ui.level_select.tab_levels.hide();
-                    self.ui.level_select.select_tab(LevelSelectTab::Music);
-                }
-            }
-        } else if let Some(music) = self.state.switch_music {
-            self.state.selected_music = Some(ShowTime {
-                data: music,
-                time: Bounded::new_zero(0.25),
-                going_up: true,
-            });
-        }
     }
 
     fn update_active_group(&mut self, delta_time: FloatTime) {
@@ -587,7 +532,6 @@ impl geng::State for LevelMenu {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
                 } else if self.state.switch_level.take().is_some()
                     || self.state.switch_group.take().is_some()
-                    || self.state.switch_music.take().is_some()
                 {
                 } else {
                     // Go to main menu
@@ -622,11 +566,24 @@ impl geng::State for LevelMenu {
 
         self.ui_context.update(delta_time.as_f32());
 
+        let target_music = || {
+            self.state
+                .selected_group
+                .as_ref()
+                .and_then(|group| self.state.context.local.get_group(group.data))
+                .and_then(|group| group.local.music.clone())
+        };
         if self.ui.explore.state.visible {
-            let t = if !self.ui.explore.window.show.going_up
-                && self.context.music.current().map(|info| info.id)
-                    != self.state.selected_music.as_ref().map(|show| show.data)
-            {
+            let music_change = || {
+                let current = self.context.music.current();
+                let target = target_music();
+                match (current, target) {
+                    (None, None) => false,
+                    (Some(a), Some(b)) => Rc::ptr_eq(&a.sound, &b.sound),
+                    _ => true,
+                }
+            };
+            let t = if !self.ui.explore.window.show.going_up && music_change() {
                 self.ui.explore.window.show.time.get_ratio()
             } else {
                 1.0
@@ -635,16 +592,11 @@ impl geng::State for LevelMenu {
         } else {
             // Music volume
             let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
-                .min(show_ratio(&self.state.selected_music).unwrap_or(0.0));
+                .min(show_ratio(&self.state.selected_group).unwrap_or(0.0));
             self.context.music.set_volume(options.volume.music() * t);
 
             // Playing music
-            if let Some(active) = self
-                .state
-                .selected_music
-                .as_ref()
-                .and_then(|music| self.state.context.local.get_music(music.data))
-            {
+            if let Some(active) = target_music() {
                 self.context.music.switch(&active); // TODO: rng start
             } else {
                 self.context.music.stop();
@@ -685,7 +637,6 @@ impl geng::State for LevelMenu {
             self.state.player.info.id = player;
         }
 
-        self.update_active_music(delta_time);
         self.update_active_group(delta_time);
         self.update_active_level(delta_time);
         self.update_leaderboard();
@@ -703,9 +654,14 @@ impl geng::State for LevelMenu {
                 // TODO: warn if smth wrong
                 let local = self.state.context.local.inner.borrow();
                 local.groups.get(group_index).and_then(|group| {
-                    group.music.as_ref().map(|music| {
+                    group.local.music.as_ref().map(|music| {
                         let level = level_index.and_then(|idx| {
-                            group.data.levels.get(idx).map(|level| (idx, level.clone()))
+                            group
+                                .local
+                                .data
+                                .levels
+                                .get(idx)
+                                .map(|level| (idx, level.clone()))
                         });
                         let group = PlayGroup {
                             group_index,

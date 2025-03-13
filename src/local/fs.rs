@@ -3,8 +3,6 @@ mod native;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
-use crate::assets::MusicAssets;
-
 use super::*;
 
 const GROUP_EXTENSION: &str = "cbor";
@@ -40,39 +38,12 @@ impl Controller {
         }
     }
 
-    pub async fn load_music_all(&self) -> Result<Vec<CachedMusic>> {
-        log::debug!("Loading all local music");
-
-        #[cfg(target_arch = "wasm32")]
-        let music: Result<Vec<CachedMusic>> = {
-            match web::load_music_all(&self.rexie, &self.geng).await {
-                Ok(items) => Ok(items),
-                Err(err) => {
-                    log::error!("failed to load music from web file system: {:?}", err);
-                    anyhow::bail!("check logs");
-                }
-            }
-        };
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let music = { native::load_music_all(&self.geng).await };
-
-        let mut music = music?;
-        if let Ok(assets) = load_music_all_assets(&self.geng).await {
-            music.extend(assets);
-        }
-        Ok(music)
-    }
-
-    pub async fn load_groups_all(
-        &self,
-        music: &HashMap<Id, Rc<CachedMusic>>,
-    ) -> Result<Vec<(PathBuf, LevelSet)>> {
+    pub async fn load_groups_all(&self) -> Result<Vec<LocalGroup>> {
         log::debug!("Loading all local groups");
 
         #[cfg(target_arch = "wasm32")]
         let groups: Result<Vec<(PathBuf, LevelSet)>> = {
-            match web::load_groups_all(&self.rexie, music).await {
+            match web::load_groups_all(&self.rexie).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
                     log::error!("failed to load groups from web file system: {:?}", err);
@@ -82,48 +53,28 @@ impl Controller {
         };
 
         #[cfg(not(target_arch = "wasm32"))]
-        let groups = { native::load_groups_all(music).await };
+        let groups = { native::load_groups_all(&self.geng).await };
 
         let mut groups = groups?;
-        if let Ok(assets) = load_groups_all_assets(music).await {
+        if let Ok(assets) = load_groups_all_assets(&self.geng).await {
             // If a group is already loaded from local storage
             // ignore its presence in assets
             let ids: Vec<_> = groups
                 .iter()
-                .map(|(_, group)| group.id)
+                .map(|group| group.data.id)
                 .filter(|id| *id != 0)
                 .collect();
             groups.extend(
                 assets
                     .into_iter()
-                    .filter(|(_, group)| !ids.contains(&group.id)),
+                    .filter(|group| !ids.contains(&group.data.id)),
             );
         }
         Ok(groups)
     }
 
-    pub async fn save_music(&self, music: &CachedMusic, data: &[u8]) -> Result<()> {
-        let id = music.meta.id;
-        let info = &music.meta;
-
-        log::debug!("Saving music: {}", id);
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Err(err) = web::save_music(&self.rexie, id, data, info).await {
-                log::error!("failed to save music into web file system: {:?}", err);
-                anyhow::bail!("check logs");
-            }
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            native::save_music(id, data, info)?;
-        }
-        Ok(())
-    }
-
     pub async fn save_group(&self, group: &CachedGroup) -> Result<()> {
-        log::debug!("Saving group: {}", group.data.id);
+        log::debug!("Saving group: {}", group.local.data.id);
         #[cfg(target_arch = "wasm32")]
         {
             let id = group.data.id.to_string();
@@ -142,24 +93,6 @@ impl Controller {
             native::save_group(group)?;
         }
         Ok(())
-    }
-
-    pub async fn remove_music(&self, id: Id) -> Result<()> {
-        log::debug!("Deleting music: {:?}", id);
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Err(err) = web::remove_music(&self.rexie, id).await {
-                log::error!("failed to remove music from the web file system: {:?}", err);
-                anyhow::bail!("check logs");
-            }
-            Ok(())
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let path = music_path(id);
-            std::fs::remove_file(path)?;
-            Ok(())
-        }
     }
 
     pub async fn remove_group(&self, path: impl AsRef<Path>) -> Result<()> {
@@ -206,16 +139,8 @@ pub fn base_path() -> PathBuf {
     }
 }
 
-pub fn all_music_path() -> PathBuf {
-    base_path().join("music")
-}
-
 pub fn all_groups_path() -> PathBuf {
     base_path().join("levels")
-}
-
-pub fn music_path(music: Id) -> PathBuf {
-    all_music_path().join(format!("{}", music))
 }
 
 pub fn generate_group_path(group: Id) -> PathBuf {
@@ -236,94 +161,27 @@ pub fn generate_group_path(group: Id) -> PathBuf {
     }
 }
 
-impl CachedMusic {
-    pub async fn load(manager: &geng::asset::Manager, path: impl AsRef<Path>) -> Result<Self> {
-        let path = path.as_ref();
-        let assets: MusicAssets = geng::asset::Load::load(manager, path, &()).await?;
-        Ok(Self::new(assets.meta, assets.music))
-    }
-}
-
-impl CachedGroup {
-    pub fn new(path: PathBuf, data: LevelSet) -> Self {
-        let level_hashes = data
-            .levels
-            .iter()
-            .map(|level| level.data.calculate_hash())
-            .collect();
-
-        Self {
-            path,
-            music: None,
-            hash: data.calculate_hash(),
-            origin: None,
-            data,
-            level_hashes,
-        }
-    }
-}
-
-fn decode_group(music: &HashMap<Id, Rc<CachedMusic>>, bytes: &[u8]) -> Result<LevelSet> {
+fn decode_group(bytes: &[u8]) -> Result<LevelSet> {
     match cbor4ii::serde::from_slice(bytes) {
         Ok(value) => Ok(value),
         Err(err) => {
             // Try legacy version, for backwards compatibility
             if let Ok(value) = bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(bytes)
             {
-                if let Some(music) = music.get(&value.music) {
-                    let beat_time = r32(60.0) / music.meta.bpm;
-                    let value = ctl_client::core::legacy::v1::convert_group(beat_time, value);
-                    return Ok(value);
-                }
+                // assuming some default
+                // proper conversion has to be done manually
+                let beat_time = r32(60.0) / r32(150.0);
+                let value = ctl_client::core::legacy::v1::convert_group(beat_time, value);
+                return Ok(value);
             }
             Err(err.into())
         }
     }
 }
 
-async fn load_music_all_assets(geng: &Geng) -> Result<Vec<CachedMusic>> {
-    log::debug!("Loading music from assets");
-    let music_path = run_dir().join("assets").join("groups").join("music");
-
-    let list: Vec<String> = file::load_detect(music_path.join("_list.ron")).await?;
-    let paths: Vec<_> = list
-        .into_iter()
-        .map(|entry| music_path.join(entry))
-        .collect();
-    let music_loaders = paths.into_iter().map(|path| load_music(geng, path));
-    let music = future::join_all(music_loaders).await;
-
-    let mut res = Vec::new();
-    for music in music {
-        match music {
-            Ok(music) => res.push(music),
-            Err(err) => {
-                log::error!("failed to load music: {}", err);
-            }
-        }
-    }
-
-    Ok(res)
-}
-
-async fn load_music(geng: &Geng, path: PathBuf) -> Result<CachedMusic> {
-    let res = async {
-        log::debug!("loading music at {:?}", &path);
-        let music = CachedMusic::load(geng.asset_manager(), &path).await?;
-        Ok(music)
-    }
-    .await;
-    if let Err(err) = &res {
-        log::error!("failed to load music: {:?}", err);
-    }
-    res
-}
-
-async fn load_groups_all_assets(
-    music: &HashMap<Id, Rc<CachedMusic>>,
-) -> Result<Vec<(PathBuf, LevelSet)>> {
+async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
     log::debug!("Loading groups from assets");
-    let groups_path = run_dir().join("assets").join("groups").join("levels");
+    let groups_path = run_dir().join("assets").join("groups");
 
     let list: Vec<String> = file::load_detect(groups_path.join("_list.ron")).await?;
     let paths: Vec<_> = list
@@ -331,10 +189,38 @@ async fn load_groups_all_assets(
         .map(|entry| groups_path.join(entry))
         .collect();
 
-    let load_group = |path| async move {
-        let bytes = file::load_bytes(&path).await?;
-        let group: LevelSet = decode_group(music, &bytes)?;
-        anyhow::Ok((path, group))
+    let asset_manager = geng.asset_manager();
+    let load_group = |path: PathBuf| async move {
+        let context = format!("when loading: {:?}", path);
+
+        let result = async move {
+            let bytes = file::load_bytes(&path.join("levels.cbor")).await?;
+            let group: LevelSet = decode_group(&bytes)?;
+
+            let music: Option<geng::Sound> = geng::asset::Load::load(
+                asset_manager,
+                &path.join("music.mp3"),
+                &geng::asset::SoundOptions { looped: true },
+            )
+            .await
+            .ok();
+
+            let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
+
+            let music_meta = meta.music.clone().unwrap_or_default();
+            let music = music.map(|music| Rc::new(LocalMusic::new(music_meta, music)));
+
+            let local = LocalGroup {
+                path,
+                meta,
+                music,
+                data: group,
+            };
+
+            anyhow::Ok(local)
+        };
+
+        result.await.context(context)
     };
 
     let group_loaders = paths.into_iter().map(load_group);
@@ -343,9 +229,12 @@ async fn load_groups_all_assets(
     let mut res = Vec::new();
     for group in groups {
         match group {
-            Ok((path, group)) => res.push((path, group)),
+            Ok(local) => {
+                log::debug!("Loaded group from {:?}", local.path);
+                res.push(local);
+            }
             Err(err) => {
-                log::error!("failed to load group: {}", err);
+                log::error!("failed to load group: {:?}", err);
             }
         }
     }

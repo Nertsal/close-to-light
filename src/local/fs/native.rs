@@ -1,55 +1,6 @@
 use super::*;
 
-pub async fn load_music_all(geng: &Geng) -> Result<Vec<CachedMusic>> {
-    let music_path = fs::all_music_path();
-    if !music_path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let paths: Vec<_> = std::fs::read_dir(music_path)?
-        .flat_map(|entry| {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                log::error!("Unexpected file in music dir: {:?}", path);
-                return Ok(None);
-            }
-            anyhow::Ok(Some(path))
-        })
-        .flatten()
-        .collect();
-    let music_loaders = paths.into_iter().map(|path| load_music(geng, path));
-    let music = future::join_all(music_loaders).await;
-
-    let mut res = Vec::new();
-    for music in music {
-        match music {
-            Ok(music) => res.push(music),
-            Err(err) => {
-                log::error!("failed to load music: {:?}", err);
-            }
-        }
-    }
-
-    Ok(res)
-}
-
-async fn load_music(geng: &Geng, path: PathBuf) -> Result<CachedMusic> {
-    let res = async {
-        log::debug!("loading music at {:?}", &path);
-        let music = CachedMusic::load(geng.asset_manager(), &path).await?;
-        Ok(music)
-    }
-    .await;
-    if let Err(err) = &res {
-        log::error!("failed to load music: {:?}", err);
-    }
-    res
-}
-
-pub async fn load_groups_all(
-    music: &HashMap<Id, Rc<CachedMusic>>,
-) -> Result<Vec<(PathBuf, LevelSet)>> {
+pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let groups_path = fs::all_groups_path();
     if !groups_path.exists() {
         return Ok(Vec::new());
@@ -60,7 +11,7 @@ pub async fn load_groups_all(
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
-                log::error!("Unexpected directory inside levels: {:?}", path);
+                log::warn!("Unexpected directory inside levels: {:?}", path);
                 return Ok(None);
             }
             anyhow::Ok(Some(path))
@@ -68,15 +19,36 @@ pub async fn load_groups_all(
         .flatten()
         .collect();
 
-    let load_group = |path| async move {
+    let asset_manager = geng.asset_manager();
+    let load_group = |path: PathBuf| async move {
         let context = format!("when loading {:?}", path);
         async move {
             let bytes = file::load_bytes(&path)
                 .await
                 .with_context(|| "when loading file")?;
-            let group: LevelSet =
-                decode_group(music, &bytes).with_context(|| "when deserializing")?;
-            anyhow::Ok((path, group))
+            let group: LevelSet = decode_group(&bytes).with_context(|| "when deserializing")?;
+
+            let music: Option<geng::Sound> = geng::asset::Load::load(
+                asset_manager,
+                &path.join("music.mp3"),
+                &geng::asset::SoundOptions { looped: true },
+            )
+            .await
+            .ok();
+
+            let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
+
+            let music_meta = meta.music.clone().unwrap_or_default();
+            let music = music.map(|music| Rc::new(LocalMusic::new(music_meta, music)));
+
+            let local = LocalGroup {
+                path,
+                meta,
+                music,
+                data: group,
+            };
+
+            anyhow::Ok(local)
         }
         .await
         .with_context(|| context)
@@ -88,7 +60,7 @@ pub async fn load_groups_all(
     let mut res = Vec::new();
     for group in groups {
         match group {
-            Ok((path, group)) => res.push((path, group)),
+            Ok(local) => res.push(local),
             Err(err) => {
                 log::error!("failed to load group: {:?}", err);
             }
@@ -98,26 +70,16 @@ pub async fn load_groups_all(
     Ok(res)
 }
 
-pub fn save_music(id: Id, data: &[u8], info: &MusicInfo) -> Result<()> {
-    let path = music_path(id);
-    std::fs::create_dir_all(&path)?;
-
-    std::fs::write(path.join("music.mp3"), data)?;
-    std::fs::write(path.join("meta.toml"), toml::to_string_pretty(&info)?)?;
-
-    Ok(())
-}
-
 pub fn save_group(group: &CachedGroup) -> Result<()> {
-    let path = &group.path;
+    let path = &group.local.path;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
 
     let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
-    cbor4ii::serde::to_writer(writer, &group.data)?;
+    cbor4ii::serde::to_writer(writer, &group.local.data)?;
 
-    log::debug!("Saved group ({}) successfully", group.data.id);
+    log::debug!("Saved group ({}) successfully", group.local.data.id);
 
     Ok(())
 }

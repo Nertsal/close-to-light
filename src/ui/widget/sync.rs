@@ -9,7 +9,7 @@ use crate::{
 };
 
 use ctl_client::{
-    core::types::{GroupInfo, Id, LevelSet},
+    core::types::{GroupInfo, LevelSet},
     ClientError, Nertboard,
 };
 use generational_arena::Index;
@@ -20,7 +20,6 @@ pub struct SyncWidget {
     geng: Geng,
     cached_group: Rc<CachedGroup>,
     cached_group_index: Index,
-    cached_music: Option<Id>,
     reload: bool,
 
     pub state: WidgetState,
@@ -52,7 +51,6 @@ impl SyncWidget {
         Self {
             geng: geng.clone(),
             cached_group_index: group_index,
-            cached_music: group.music.as_ref().map(|music| music.meta.id),
             cached_group: group,
             reload: true,
 
@@ -75,7 +73,7 @@ impl SyncWidget {
     }
 
     pub fn discard_changes(&mut self, client: Arc<Nertboard>) {
-        let group_id = self.cached_group.data.id;
+        let group_id = self.cached_group.local.data.id;
         let future = async move {
             let info = client.get_group_info(group_id).await?;
             let bytes = client.download_group(group_id).await?;
@@ -92,7 +90,7 @@ impl SyncWidget {
             // TODO: it could happen that a level has a local non-zero id
             // but is not present on the server.
             // In that case, upload will fail with "Not found"
-            let group = client.upload_group(&group.data).await?;
+            let group = client.upload_group(&group.local.data).await?;
             Ok((group_index, group))
         };
         self.task_group_upload = Some(Task::new(&self.geng, future));
@@ -116,7 +114,7 @@ impl StatefulWidget for SyncWidget {
 
         if std::mem::take(&mut self.reload) && self.task_group_info.is_none() {
             if let Some(client) = local.client() {
-                let group_id = self.cached_group.data.id;
+                let group_id = self.cached_group.local.data.id;
                 if group_id == 0 {
                     self.status.text = "Level is local".into();
                     self.response.hide();
@@ -153,9 +151,8 @@ impl StatefulWidget for SyncWidget {
                         self.status.text = "Outdated".into();
                         self.response.hide();
 
-                        if group.owner.id == self.cached_group.data.owner.id {
+                        if group.owner.id == self.cached_group.local.data.owner.id {
                             // if current user is the author - upload new version ; discard changes
-
                             self.upload.show();
                         } else {
                             // if current user is not author - download new version
@@ -184,9 +181,10 @@ impl StatefulWidget for SyncWidget {
                 Ok(Ok((group_index, group))) => {
                     if let Some(group) = local.synchronize(group_index, group) {
                         let name = group
+                            .local
                             .music
                             .as_ref()
-                            .map_or(&group.data.owner.name, |music| &music.meta.name);
+                            .map_or(&group.local.data.owner.name, |music| &music.meta.name);
                         state.notifications.push(format!("Uploaded level {}", name));
                         self.cached_group = group;
                         self.reload = true;
@@ -212,9 +210,10 @@ impl StatefulWidget for SyncWidget {
                         local.update_group(self.cached_group_index, group, Some(info))
                     {
                         let name = group
+                            .local
                             .music
                             .as_ref()
-                            .map_or(&group.data.owner.name, |music| &music.meta.name);
+                            .map_or(&group.local.data.owner.name, |music| &music.meta.name);
                         state
                             .notifications
                             .push(format!("Downloaded level {}", name));
@@ -262,10 +261,10 @@ impl StatefulWidget for SyncWidget {
             .align_aabb(button_size, vec2::splat(0.5));
         self.upload.update(upload, context);
         if self.upload.state.clicked {
-            if self.cached_music.is_some() {
+            if self.cached_group.local.music.is_some() {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
-                if self.cached_group.data.id == 0 {
+                if self.cached_group.local.data.id == 0 {
                     state.popup_confirm(ConfirmAction::SyncUpload, "You cannot undo this action");
                 } else {
                     state.popup_confirm(
@@ -276,7 +275,7 @@ impl StatefulWidget for SyncWidget {
             } else {
                 state
                     .notifications
-                    .push("Upload error: the level has no music available".into());
+                    .push("Upload failed: the level has no music attached".into());
             }
         }
 
@@ -285,11 +284,14 @@ impl StatefulWidget for SyncWidget {
             .align_aabb(button_size, vec2::splat(0.5));
         self.discard.update(discard, context);
         if self.discard.state.clicked {
-            if self.cached_group.data.id == 0 {
+            if self.cached_group.local.data.id == 0 {
                 // Delete
                 state.popup_confirm(
                     ConfirmAction::DeleteGroup(self.cached_group_index),
-                    format!("delete the level by {}", self.cached_group.data.owner.name),
+                    format!(
+                        "delete the level by {}",
+                        self.cached_group.local.data.owner.name
+                    ),
                 );
                 self.window.request = Some(WidgetRequest::Close);
             } else if let Some(_client) = state.context.local.client() {

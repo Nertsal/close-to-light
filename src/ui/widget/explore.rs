@@ -12,13 +12,11 @@ use crate::{
 pub enum ExploreAction {
     PlayMusic(Id),
     PauseMusic,
-    GotoMusic(Id),
     GotoGroup(Id),
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum ExploreTab {
-    Music,
     Group,
 }
 
@@ -34,7 +32,6 @@ pub struct ExploreWidget {
     pub close: IconButtonWidget,
     pub separator: WidgetState,
 
-    pub music: ExploreMusicWidget,
     pub levels: ExploreLevelsWidget,
     refetch: bool,
 }
@@ -83,7 +80,7 @@ pub struct MusicItemWidget {
 
 impl ExploreWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
-        let mut w = Self {
+        Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
 
@@ -95,21 +92,16 @@ impl ExploreWidget {
             close: IconButtonWidget::new_close_button(assets.atlas.button_close()),
             separator: WidgetState::new(),
 
-            music: ExploreMusicWidget::new(assets),
             levels: ExploreLevelsWidget::new(assets),
 
             refetch: true,
-        };
-        w.music.hide();
-        w
+        }
     }
 
     pub fn select_tab(&mut self, tab: ExploreTab) {
-        self.music.hide();
         self.levels.hide();
 
         match tab {
-            ExploreTab::Music => self.music.show(),
             ExploreTab::Group => self.levels.show(),
         }
     }
@@ -134,7 +126,6 @@ impl StatefulWidget for ExploreWidget {
         }
 
         if std::mem::take(&mut self.refetch) {
-            state.fetch_music();
             state.fetch_groups();
         }
 
@@ -144,7 +135,6 @@ impl StatefulWidget for ExploreWidget {
             self.hide();
         }
 
-        self.music.load(&state.inner.borrow().music_list);
         self.levels.load(&state.inner.borrow().group_list);
 
         let mut main = position;
@@ -198,15 +188,12 @@ impl StatefulWidget for ExploreWidget {
             self.separator.update(separator, context);
         }
 
-        if self.tab_music.state.clicked {
-            self.select_tab(ExploreTab::Music);
-        } else if self.tab_levels.state.clicked {
+        if self.tab_levels.state.clicked {
             self.select_tab(ExploreTab::Group);
         }
 
         let main = main.extend_uniform(-context.font_size * 0.5);
         let mut state = (state.clone(), None);
-        self.music.update(main, context, &mut state);
         self.levels.update(main, context, &mut state);
         *action = state.1;
     }
@@ -327,99 +314,6 @@ impl StatefulWidget for ExploreLevelsWidget {
     }
 }
 
-impl ExploreMusicWidget {
-    pub fn new(assets: &Rc<Assets>) -> Self {
-        Self {
-            assets: assets.clone(),
-            state: WidgetState::new(),
-            status: TextWidget::new("Offline"),
-            scroll: 0.0,
-            target_scroll: 0.0,
-            items_state: WidgetState::new(),
-            items: Vec::new(),
-        }
-    }
-
-    fn load(&mut self, music: &CacheState<Vec<MusicInfo>>) {
-        self.status.show();
-        let mut target_items = &Vec::new();
-        match music {
-            CacheState::Offline => self.status.text = "Offline :(".into(),
-            CacheState::Loading => self.status.text = "Loading...".into(),
-            CacheState::Loaded(music) => {
-                if music.is_empty() {
-                    self.status.text = "Empty :(".into();
-                } else {
-                    self.status.hide();
-                    target_items = music;
-                }
-            }
-        }
-        if self.items.len() != target_items.len() {
-            self.items = target_items
-                .iter()
-                .map(|info| MusicItemWidget::new(&self.assets, info))
-                .collect()
-        }
-    }
-}
-
-impl StatefulWidget for ExploreMusicWidget {
-    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
-        // TODO: better
-        if !self.state.visible {
-            return;
-        }
-        self.state.update(position, context);
-
-        let main = position;
-
-        self.items_state.update(main, context);
-        self.status.update(main, context);
-
-        let main = main.translate(vec2(0.0, -self.scroll));
-        let row = Aabb2::point(main.top_left())
-            .extend_right(main.width())
-            .extend_down(context.font_size * 2.0);
-        let rows = row.stack(
-            vec2(0.0, -row.height() - context.layout_size * 1.0),
-            self.items.len(),
-        );
-        let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
-        for (row, position) in self.items.iter_mut().zip(rows) {
-            row.update(position, context, state);
-        }
-
-        // TODO: extract to a function or smth
-        {
-            self.target_scroll += context.cursor.scroll;
-            let overflow_up = self.target_scroll;
-            let max_scroll = (height - main.height()).max(0.0);
-            let overflow_down = -max_scroll - self.target_scroll;
-            let overflow = if overflow_up > 0.0 {
-                overflow_up
-            } else if overflow_down > 0.0 {
-                -overflow_down
-            } else {
-                0.0
-            };
-            self.target_scroll -= overflow * (context.delta_time / 0.2).min(1.0);
-            self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
-        }
-    }
-}
-
 impl StatefulWidget for LevelItemWidget {
     type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
 
@@ -449,7 +343,7 @@ impl StatefulWidget for LevelItemWidget {
             .borrow()
             .groups
             .iter()
-            .any(|(_, group)| group.data.id == self.info.id)
+            .any(|(_, group)| group.local.data.id == self.info.id)
         {
             // Not downloaded
             if state.is_downloading_group().contains(&self.info.id) {
@@ -472,112 +366,6 @@ impl StatefulWidget for LevelItemWidget {
             self.goto.update(rows[1], context);
             if self.goto.state.clicked {
                 *action = Some(ExploreAction::GotoGroup(self.info.id));
-            }
-        }
-
-        main.cut_left(context.layout_size);
-
-        let mut author = main;
-        let name = author.split_top(0.5);
-        let margin = context.font_size * 0.2;
-        author.cut_top(margin);
-
-        self.name.update(name, context);
-        self.name.align(vec2(0.0, 0.0));
-
-        self.author.update(author, &context.scale_font(0.6)); // TODO: better
-        self.author.align(vec2(0.0, 1.0));
-    }
-}
-
-impl MusicItemWidget {
-    pub fn new(assets: &Rc<Assets>, info: &MusicInfo) -> Self {
-        let mut widget = Self {
-            state: WidgetState::new(),
-            download: IconButtonWidget::new_normal(assets.atlas.download()),
-            downloading: IconWidget::new(assets.atlas.loading()),
-            play: IconButtonWidget::new_normal(assets.atlas.button_next()),
-            pause: IconButtonWidget::new_normal(assets.atlas.pause()),
-            goto: IconButtonWidget::new_normal(assets.atlas.goto()),
-            name: TextWidget::new(info.name.clone()),
-            author: TextWidget::new(
-                itertools::Itertools::intersperse(
-                    info.authors.iter().map(|user| user.name.as_ref()),
-                    ",",
-                )
-                .collect::<String>(),
-            ),
-            info: info.clone(),
-        };
-        widget.downloading.hide();
-        widget
-    }
-}
-
-impl StatefulWidget for MusicItemWidget {
-    type State<'a> = (Rc<LevelCache>, Option<ExploreAction>);
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        (state, action): &mut Self::State<'_>,
-    ) {
-        // TODO: better
-        if !self.state.visible {
-            return;
-        }
-        self.state.update(position, context);
-
-        let mut main = position.extend_uniform(-context.font_size * 0.2);
-
-        let icons = main.cut_left(context.font_size);
-        let rows = icons.split_rows(2);
-
-        if state.get_music(self.info.id).is_none() {
-            // Not downloaded
-            if state.is_downloading_music().contains(&self.info.id) {
-                self.downloading.show();
-                self.download.hide();
-            } else {
-                self.downloading.hide();
-                self.download.show();
-            }
-
-            self.play.hide();
-            self.goto.hide();
-
-            self.downloading.update(rows[1], context);
-            self.download.update(rows[1], context);
-            if self.download.state.clicked {
-                state.download_music(self.info.id);
-            }
-        } else {
-            self.download.hide();
-            self.downloading.hide();
-            self.goto.show();
-
-            if context.context.music.is_playing() == Some(self.info.id) {
-                self.play.hide();
-                self.pause.show();
-            } else {
-                self.play.show();
-                self.pause.hide();
-            }
-
-            self.play.update(rows[0], context);
-            self.pause.update(rows[0], context);
-            self.goto.update(rows[1], context);
-            if self.play.state.clicked {
-                *action = Some(ExploreAction::PlayMusic(self.info.id));
-            } else if self.pause.state.clicked {
-                *action = Some(ExploreAction::PauseMusic);
-            } else if self.goto.state.clicked {
-                *action = Some(ExploreAction::GotoMusic(self.info.id));
             }
         }
 
