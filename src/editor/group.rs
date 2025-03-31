@@ -54,9 +54,7 @@ pub enum DragTarget {
         /// Whether it was the second click on the light.
         /// If the drag is short, waypoints will be toggled.
         double: bool,
-        light: LightId,
-        initial_time: Time,
-        initial_translation: vec2<Coord>,
+        lights: Vec<DragLight>,
     },
     WaypointMove {
         light: LightId,
@@ -69,6 +67,13 @@ pub enum DragTarget {
         initial_scale: Coord,
         scale_direction: vec2<Coord>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub struct DragLight {
+    pub id: LightId,
+    pub initial_time: Time,
+    pub initial_translation: vec2<Coord>,
 }
 
 impl Editor {

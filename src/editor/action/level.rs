@@ -3,7 +3,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum LevelAction {
     // Generic actions
-    List(Vec<LevelAction>), // TODO: smallvec
+    List(Option<HistoryLabel>, Vec<LevelAction>), // TODO: smallvec
     Undo,
     Redo,
     Copy,
@@ -87,13 +87,17 @@ impl<T: PartialEq> Change<T> {
 
 impl LevelAction {
     pub fn list(iter: impl IntoIterator<Item = Self>) -> Self {
-        Self::List(iter.into_iter().collect())
+        Self::List(None, iter.into_iter().collect())
+    }
+
+    pub fn list_with(label: HistoryLabel, iter: impl IntoIterator<Item = Self>) -> Self {
+        Self::List(Some(label), iter.into_iter().collect())
     }
 
     /// Whether the action has no effect.
     pub fn is_noop(&self) -> bool {
         match self {
-            LevelAction::List(list) => list.iter().all(LevelAction::is_noop),
+            LevelAction::List(_, list) => list.iter().all(LevelAction::is_noop),
             LevelAction::Undo => false,
             LevelAction::Redo => false,
             LevelAction::Copy => false,
@@ -152,12 +156,12 @@ impl LevelEditor {
 
         log::trace!("LevelAction::{:?}", action);
         match action {
-            LevelAction::List(list) => {
+            LevelAction::List(label, list) => {
                 self.start_merge_changes();
                 for action in list {
                     self.execute(action);
                 }
-                self.flush_changes();
+                self.flush_changes(label);
                 return;
             }
             LevelAction::Undo => {
@@ -192,7 +196,7 @@ impl LevelEditor {
             LevelAction::Paste => self.paste(),
             LevelAction::FlushChanges(label) => {
                 if label.map_or(true, |label| self.history.buffer_label == label) {
-                    self.flush_changes()
+                    self.flush_changes(None)
                 }
             }
             LevelAction::Cancel => self.cancel(),

@@ -12,7 +12,7 @@ pub enum HistoryLabel {
     MoveLight(LightId),
     MoveWaypoint(LightId, WaypointId),
     MoveWaypointTime(LightId, WaypointId),
-    // Drag,
+    Drag,
 }
 
 impl HistoryLabel {
@@ -91,10 +91,10 @@ impl History {
     }
 
     /// Flush all buffered changes, if there are any.
-    pub fn flush(&mut self, level: &Level) {
-        self.buffer_label = HistoryLabel::Unknown;
+    pub fn flush(&mut self, level: &Level, label: HistoryLabel) {
+        self.buffer_label = label;
         self.buffer_state = level.clone();
-        log::debug!("Flushed changes");
+        log::debug!("Flushed changes as {:?}", label);
     }
 
     /// Save the level without doing any checks.

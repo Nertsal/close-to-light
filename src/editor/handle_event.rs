@@ -339,22 +339,24 @@ impl EditorState {
 
                 actions.push(LevelAction::CameraPan(Change::Set(target.as_f32())).into());
             }
-            &mut DragTarget::Light {
-                light,
-                initial_time,
-                initial_translation,
-                ..
-            } => {
+            DragTarget::Light { lights, .. } => {
                 actions.push(
-                    LevelAction::MoveLight(
-                        light,
-                        Change::Set(
-                            level_editor.current_time.target - drag.from_beat + initial_time,
-                        ),
-                        Change::Set(
-                            initial_translation + self.editor.cursor_world_pos_snapped
-                                - drag.from_world,
-                        ),
+                    LevelAction::list_with(
+                        HistoryLabel::Drag,
+                        lights.iter().map(|light| {
+                            LevelAction::MoveLight(
+                                light.id,
+                                Change::Set(
+                                    level_editor.current_time.target - drag.from_beat
+                                        + light.initial_time,
+                                ),
+                                Change::Set(
+                                    light.initial_translation
+                                        + self.editor.cursor_world_pos_snapped
+                                        - drag.from_world,
+                                ),
+                            )
+                        }),
                     )
                     .into(),
                 );
@@ -423,21 +425,38 @@ impl EditorState {
                     // Clicked on a light
                     let light_id = LightId { event };
                     if let Some(e) = level_editor.level.events.get(event) {
-                        if let Event::Light(light) = &e.event {
+                        if let Event::Light(_light) = &e.event {
                             match button {
                                 geng::MouseButton::Left => {
                                     // Left click
-                                    if !self.ui_context.mods.shift {
-                                        // Shift extends selection
-                                        actions.push(LevelAction::DeselectLight.into());
-                                    }
+                                    let mut selection = level_editor.selection.clone();
                                     actions.push(LevelAction::SelectLight(light_id).into());
+                                    selection.add_light(light_id);
+                                    let lights = match selection {
+                                        Selection::Empty => vec![],
+                                        Selection::Lights(light_ids) => light_ids,
+                                    };
+
                                     let double = level_editor.selection.is_light_selected(light_id);
                                     let target = DragTarget::Light {
                                         double,
-                                        light: LightId { event },
-                                        initial_time: e.time,
-                                        initial_translation: light.movement.initial.translation,
+                                        lights: lights
+                                            .into_iter()
+                                            .flat_map(|id| {
+                                                let e = level_editor.level.events.get(id.event)?;
+                                                let Event::Light(light) = &e.event else {
+                                                    return None;
+                                                };
+                                                Some(DragLight {
+                                                    id,
+                                                    initial_time: e.time,
+                                                    initial_translation: light
+                                                        .movement
+                                                        .initial
+                                                        .translation,
+                                                })
+                                            })
+                                            .collect(),
                                     };
                                     actions.push(EditorStateAction::StartDrag(target));
                                 }

@@ -116,7 +116,7 @@ impl EditorState {
                 _ => (),
             }
 
-            level_editor.flush_changes();
+            level_editor.flush_changes(None);
         }
     }
 

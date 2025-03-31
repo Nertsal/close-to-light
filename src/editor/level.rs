@@ -206,8 +206,8 @@ impl LevelEditor {
 
     /// Flush all buffered changes to the undo stack, if there are any.
     #[track_caller]
-    pub fn flush_changes(&mut self) {
-        self.history.flush(&self.level);
+    pub fn flush_changes(&mut self, label: Option<HistoryLabel>) {
+        self.history.flush(&self.level, label.unwrap_or_default());
         log::trace!("flush_changes called by {}", std::panic::Location::caller());
     }
 
