@@ -8,6 +8,7 @@ pub enum LevelAction {
     Redo,
     Copy,
     CopySelection(Selection),
+    SetSelection(Selection),
     Paste,
     FlushChanges(Option<HistoryLabel>),
     Cancel,
@@ -97,6 +98,7 @@ impl LevelAction {
             LevelAction::Redo => false,
             LevelAction::Copy => false,
             LevelAction::CopySelection(_) => false,
+            LevelAction::SetSelection(_) => false,
             LevelAction::Paste => false,
             LevelAction::FlushChanges(_) => false,
             LevelAction::Cancel => false,
@@ -184,6 +186,9 @@ impl LevelEditor {
                     self.clipboard.copy(ClipboardItem::Lights(lights));
                 }
             },
+            LevelAction::SetSelection(selection) => {
+                self.selection = selection;
+            }
             LevelAction::Paste => self.paste(),
             LevelAction::FlushChanges(label) => {
                 if label.map_or(true, |label| self.history.buffer_label == label) {

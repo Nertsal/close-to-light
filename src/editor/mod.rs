@@ -226,7 +226,11 @@ impl EditorState {
                     .ui
                     .game
                     .position
-                    .contains(self.ui_context.cursor.position));
+                    .contains(self.ui_context.cursor.position))
+            && !matches!(
+                self.editor.drag.as_ref().map(|drag| &drag.target),
+                Some(DragTarget::SelectionArea { .. })
+            );
         level_editor.render_lights(
             include_cursor.then_some(self.editor.cursor_world_pos),
             include_cursor.then_some(self.editor.cursor_world_pos_snapped),

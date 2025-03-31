@@ -297,7 +297,7 @@ impl EditorState {
             return actions;
         };
         match &mut drag.target {
-            DragTarget::SelectionArea { extra, .. } => {
+            DragTarget::SelectionArea { original, extra } => {
                 let area = Aabb2::from_corners(drag.from_world_raw, self.editor.cursor_world_pos);
                 let area = Collider::aabb(area);
                 extra.clear();
@@ -313,6 +313,11 @@ impl EditorState {
                         }
                     }
                 }
+
+                // Set selection
+                let mut selection = original.clone();
+                selection.merge(extra.clone());
+                actions.push(LevelAction::SetSelection(selection).into());
             }
             &mut DragTarget::Camera { initial_center } => {
                 let camera = &level_editor.model.camera;
