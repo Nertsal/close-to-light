@@ -416,11 +416,11 @@ impl EditorState {
                             match button {
                                 geng::MouseButton::Left => {
                                     // Left click
-                                    // TODO: shift to add to selection?
-                                    actions.extend([
-                                        LevelAction::DeselectLight.into(),
-                                        LevelAction::SelectLight(light_id).into(),
-                                    ]);
+                                    if !self.ui_context.mods.shift {
+                                        // Shift extends selection
+                                        actions.push(LevelAction::DeselectLight.into());
+                                    }
+                                    actions.push(LevelAction::SelectLight(light_id).into());
                                     let double = level_editor.selection.is_light_selected(light_id);
                                     let target = DragTarget::Light {
                                         double,
