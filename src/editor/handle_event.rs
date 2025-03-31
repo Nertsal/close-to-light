@@ -297,10 +297,10 @@ impl EditorState {
             return actions;
         };
         match &mut drag.target {
-            DragTarget::SelectionArea(selection) => {
+            DragTarget::SelectionArea { extra, .. } => {
                 let area = Aabb2::from_corners(drag.from_world_raw, self.editor.cursor_world_pos);
                 let area = Collider::aabb(area);
-                selection.clear();
+                extra.clear();
                 for (i, event) in level_editor.level.events.iter().enumerate() {
                     if let Event::Light(light) = &event.event {
                         let time = level_editor.current_time.target - event.time;
@@ -308,7 +308,7 @@ impl EditorState {
                             let transform = light.movement.get(time);
                             if area.contains(transform.translation) {
                                 let id = LightId { event: i };
-                                selection.add_light(id);
+                                extra.add_light(id);
                             }
                         }
                     }
@@ -408,8 +408,14 @@ impl EditorState {
 
         match &level_editor.state {
             State::Idle => {
-                // Select a light
-                if let Some(event) = level_editor.level_state.hovered_event() {
+                if button == geng::MouseButton::Left && self.ui_context.mods.shift {
+                    // Shift+LMB is always a selection
+                    actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
+                        original: level_editor.selection.clone(),
+                        extra: Selection::Empty,
+                    }));
+                } else if let Some(event) = level_editor.level_state.hovered_event() {
+                    // Clicked on a light
                     let light_id = LightId { event };
                     if let Some(e) = level_editor.level.events.get(event) {
                         if let Event::Light(light) = &e.event {
@@ -493,21 +499,30 @@ impl EditorState {
                         }
                     }
                 } else {
-                    // Deselect
-                    actions.push(LevelAction::DeselectLight.into());
+                    // Clicked on empty space - deselect
                     match button {
                         geng::MouseButton::Right => {
+                            actions.push(LevelAction::DeselectLight.into());
                             actions.push(EditorStateAction::ContextMenu(
                                 self.ui_context.cursor.position,
                                 vec![("Paste".into(), LevelAction::Paste.into())],
                             ));
                         }
                         geng::MouseButton::Left => {
-                            actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea(
-                                Selection::Empty,
-                            )));
+                            let original = if self.ui_context.mods.shift {
+                                level_editor.selection.clone()
+                            } else {
+                                actions.push(LevelAction::DeselectLight.into());
+                                Selection::Empty
+                            };
+                            actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
+                                original,
+                                extra: Selection::Empty,
+                            }));
                         }
-                        geng::MouseButton::Middle => (),
+                        geng::MouseButton::Middle => {
+                            actions.push(LevelAction::DeselectLight.into());
+                        }
                     }
                 }
             }
@@ -520,10 +535,17 @@ impl EditorState {
             State::Playing { .. } => {}
             State::Waypoints { state, .. } => match state {
                 WaypointsState::Idle => {
-                    if let Some(waypoints) = &level_editor.level_state.waypoints {
+                    if button == geng::MouseButton::Left && self.ui_context.mods.shift {
+                        // Shift+LMB is always a selection
+                        actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
+                            original: level_editor.selection.clone(),
+                            extra: Selection::Empty,
+                        }));
+                    } else if let Some(waypoints) = &level_editor.level_state.waypoints {
                         if let Some(hovered) =
                             waypoints.hovered.and_then(|i| waypoints.points.get(i))
                         {
+                            // Clicked on a waypoint
                             if let Some(waypoint) = hovered.original {
                                 if let Some(event) =
                                     level_editor.level.events.get(waypoints.light.event)
@@ -543,12 +565,22 @@ impl EditorState {
                                 }
                             }
                         } else {
-                            // Deselect
-                            actions.push(LevelAction::DeselectWaypoint.into());
+                            // Clicked on empty space - deselect
                             if let geng::MouseButton::Left = button {
+                                let original = if self.ui_context.mods.shift {
+                                    level_editor.selection.clone()
+                                } else {
+                                    actions.push(LevelAction::DeselectLight.into());
+                                    Selection::Empty
+                                };
                                 actions.push(EditorStateAction::StartDrag(
-                                    DragTarget::SelectionArea(Selection::Empty),
+                                    DragTarget::SelectionArea {
+                                        original,
+                                        extra: Selection::Empty,
+                                    },
                                 ));
+                            } else {
+                                actions.push(LevelAction::DeselectWaypoint.into());
                             }
                         }
                     }

@@ -485,7 +485,7 @@ impl EditorRender {
 
             // Selection
             if let Some(drag) = &editor.drag {
-                if let DragTarget::SelectionArea(..) = drag.target {
+                if let DragTarget::SelectionArea { .. } = drag.target {
                     let color = Color::lerp(theme.dark, theme.highlight, 0.5);
                     let selection =
                         Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)

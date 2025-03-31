@@ -77,6 +77,17 @@ impl Selection {
             }
         }
     }
+
+    pub fn merge(&mut self, other: Self) {
+        match other {
+            Selection::Empty => {}
+            Selection::Lights(light_ids) => {
+                for id in light_ids {
+                    self.add_light(id);
+                }
+            }
+        }
+    }
 }
 
 impl LevelEditor {

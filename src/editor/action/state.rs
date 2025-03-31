@@ -97,8 +97,12 @@ impl EditorState {
 
         if let Some(drag) = self.editor.drag.take() {
             match drag.target {
-                DragTarget::SelectionArea(selection) => {
-                    level_editor.selection = selection;
+                DragTarget::SelectionArea {
+                    mut original,
+                    extra,
+                } => {
+                    original.merge(extra);
+                    level_editor.selection = original;
                 }
                 DragTarget::Light { double, .. } => {
                     if double
