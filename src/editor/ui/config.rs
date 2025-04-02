@@ -32,12 +32,26 @@ impl EditorConfigUi {
         let text = context.state.get_root_or(|| TextWidget::new("Timing"));
         text.update(timing, context);
 
-        // TODO bpm editor
-        // let bpm = bar.cut_top(context.font_size);
-        // let slider = context
-        //     .state
-        //     .get_root_or(|| TextWidget::new(format!("BPM: {:.1}", editor.group.music.meta.bpm)));
-        // slider.update(bpm, context);
+        // TODO: bpm editor
+        let bpm_pos = bar.cut_top(context.font_size);
+        if let Some(level_editor) = &editor.level_edit {
+            if let Some(timing) = level_editor.level.timing.points.first() {
+                let mut bpm = 60.0 / timing.beat_time.as_f32();
+                let slider = context.state.get_root_or(|| {
+                    ValueWidget::new(
+                        "BPM",
+                        bpm,
+                        ValueControl::Slider {
+                            min: 1.0,
+                            max: 500.0,
+                        },
+                        1.0,
+                    )
+                });
+                slider.update(bpm_pos, context, &mut bpm);
+                actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
+            }
+        }
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);

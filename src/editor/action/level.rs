@@ -21,6 +21,7 @@ pub enum LevelAction {
     ScrollTime(Time),
     TimelineZoom(Change<f32>),
     CameraPan(Change<vec2<f32>>),
+    TimingUpdate(usize, FloatTime),
 
     // Light actions
     NewLight(Shape),
@@ -115,6 +116,7 @@ impl LevelAction {
             LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
+            LevelAction::TimingUpdate(..) => false,
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -251,6 +253,11 @@ impl LevelEditor {
             }
             LevelAction::CameraPan(delta) => {
                 delta.apply(&mut self.model.camera.center);
+            }
+            LevelAction::TimingUpdate(point, beat_time) => {
+                if let Some(point) = self.level.timing.points.get_mut(point) {
+                    point.beat_time = beat_time;
+                }
             }
 
             LevelAction::NewLight(shape) => {
