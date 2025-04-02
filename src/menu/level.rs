@@ -7,7 +7,6 @@ use super::*;
 use crate::{
     game::PlayGroup,
     leaderboard::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta},
-    local::LocalMusic,
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
         widget::{ConfirmPopup, WidgetOld},
@@ -17,7 +16,6 @@ use crate::{
 
 #[derive(Debug)]
 pub enum ConfirmAction {
-    DeleteMusic(Id),
     DeleteGroup(Index),
     DeleteLevel(Index, usize),
     SyncDiscard,
@@ -152,7 +150,6 @@ impl MenuState {
             return;
         };
         match popup.action {
-            ConfirmAction::DeleteMusic(id) => self.context.local.delete_music(id),
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
             ConfirmAction::DeleteLevel(group, level) => {
                 self.context.local.delete_level(group, level)

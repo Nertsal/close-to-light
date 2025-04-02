@@ -631,26 +631,6 @@ impl LevelCache {
         todo!()
     }
 
-    /// Delete the music and all associated groups.
-    pub fn delete_music(&self, music_id: Id) {
-        // let mut inner = self.inner.borrow_mut();
-        // if let Some(_music) = inner.music.remove(&music_id) {
-        //     let group_ids: Vec<_> = inner
-        //         .groups
-        //         .iter()
-        //         .filter(|(_, group)| group.data.music == music_id)
-        //         .map(|(idx, _)| idx)
-        //         .collect();
-        //     drop(inner);
-        //     for idx in group_ids {
-        //         self.delete_group(idx);
-        //     }
-        //     self.remove_music(music_id);
-        // }
-
-        todo!()
-    }
-
     pub fn delete_group(&self, group: Index) {
         let mut inner = self.inner.borrow_mut();
         if let Some(group) = inner.groups.remove(group) {

@@ -1,52 +1,4 @@
-use crate::{
-    local::{LevelCache, LocalMusic},
-    prelude::{Assets, Id, Options, Time},
-};
-
-use std::{cell::RefCell, rc::Rc};
-
-use anyhow::Result;
-use ctl_client::{core::types::MusicInfo, Nertboard};
-use geng::prelude::{time::Duration, *};
-
-#[derive(Clone)]
-pub struct Context {
-    pub geng: Geng,
-    pub assets: Rc<Assets>,
-    pub music: Rc<MusicManager>,
-    pub local: Rc<LevelCache>,
-    options: Rc<RefCell<Options>>,
-}
-
-impl Context {
-    pub async fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
-        client: Option<&Arc<Nertboard>>,
-    ) -> Result<Self> {
-        Ok(Self {
-            geng: geng.clone(),
-            assets: assets.clone(),
-            music: Rc::new(MusicManager::new()),
-            local: Rc::new(LevelCache::load(client, geng).await?),
-            options: Rc::new(RefCell::new(
-                preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
-            )),
-        })
-    }
-
-    pub fn get_options(&self) -> Options {
-        self.options.borrow().clone()
-    }
-
-    pub fn set_options(&self, options: Options) {
-        let mut old = self.options.borrow_mut();
-        if *old != options {
-            preferences::save(crate::OPTIONS_STORAGE, &options);
-            *old = options;
-        }
-    }
-}
+use super::*;
 
 pub struct MusicManager {
     inner: RefCell<MusicManagerImpl>,
@@ -115,7 +67,7 @@ impl MusicManager {
             .playing
             .as_ref()
             .map_or(true, |playing| {
-                playing.effect.is_none() || Rc::ptr_eq(&playing.local.sound, &music.sound)
+                playing.effect.is_none() || !Rc::ptr_eq(&playing.local.sound, &music.sound)
             })
         {
             self.play(music);
@@ -134,6 +86,7 @@ impl MusicManager {
     }
 
     pub fn play_from(&self, music: &Rc<LocalMusic>, time: Duration) {
+        log::debug!("Playing music: {:?}", music.meta.name);
         let mut inner = self.inner.borrow_mut();
         let mut music = Music::new(music.clone());
         music.set_volume(inner.volume);
