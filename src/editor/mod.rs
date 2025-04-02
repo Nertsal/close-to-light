@@ -26,7 +26,7 @@ use crate::{
     leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
-    ui::{widget::ConfirmPopup, UiContext},
+    ui::{UiContext, widget::ConfirmPopup},
     util::{SecondOrderDynamics, SecondOrderState},
 };
 

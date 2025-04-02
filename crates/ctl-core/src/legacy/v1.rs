@@ -1,4 +1,4 @@
-use geng::prelude::{r32, vec2, Angle, R32};
+use geng::prelude::{Angle, R32, r32, vec2};
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, rc::Rc, sync::Arc};
 

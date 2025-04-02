@@ -2,8 +2,8 @@ use super::*;
 
 use crate::{
     leaderboard::Leaderboard,
-    render::{ui::UiRender, THEME},
-    ui::{layout::AreaOps, widget::*, UiContext},
+    render::{THEME, ui::UiRender},
+    ui::{UiContext, layout::AreaOps, widget::*},
 };
 
 pub struct MainMenu {

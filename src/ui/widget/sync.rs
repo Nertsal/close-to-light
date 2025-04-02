@@ -9,8 +9,8 @@ use crate::{
 };
 
 use ctl_client::{
-    core::types::{GroupInfo, LevelSet},
     ClientError, Nertboard,
+    core::types::{GroupInfo, LevelSet},
 };
 use generational_arena::Index;
 

@@ -341,9 +341,11 @@ impl TimelineWidget {
                 let visible =
                     !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                 if visible {
-                    overlapped = if self.highlight_bar.as_ref().is_some_and(|bar| {
-                        (bar.from_time..=bar.to_time).contains(&light_time)
-                    }) {
+                    overlapped = if self
+                        .highlight_bar
+                        .as_ref()
+                        .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&light_time))
+                    {
                         1
                     } else {
                         *occupied

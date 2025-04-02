@@ -2,7 +2,7 @@ use mask::MaskedStack;
 
 use super::*;
 
-use crate::ui::{geometry::Geometry, UiContext};
+use crate::ui::{UiContext, geometry::Geometry};
 
 pub struct UtilRender {
     context: Context,

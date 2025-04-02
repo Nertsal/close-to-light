@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use geng::prelude::{future::FutureExt, Geng};
+use geng::prelude::{Geng, future::FutureExt};
 
 pub struct Task<T> {
     inner: async_executor::Task<T>,

@@ -102,7 +102,8 @@ impl InputWidget {
         self.text.text = self.raw.clone().into();
 
         self.editing = self
-            .edit_id.is_some_and(|id| context.text_edit.is_active(id));
+            .edit_id
+            .is_some_and(|id| context.text_edit.is_active(id));
         if self.editing {
             self.edit_id = Some(context.text_edit.edit(&self.raw));
         }
@@ -116,7 +117,8 @@ impl InputWidget {
         }
 
         self.editing = if self
-            .edit_id.is_some_and(|id| context.text_edit.is_active(id))
+            .edit_id
+            .is_some_and(|id| context.text_edit.is_active(id))
         {
             if self.raw != context.text_edit.get_text() {
                 self.raw = context.text_edit.get_text();

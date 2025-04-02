@@ -6,11 +6,11 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use ctl_client::{
+    Nertboard,
     core::{
         prelude::Uuid,
         types::{Id, NewArtist, UserLogin},
     },
-    Nertboard,
 };
 
 #[derive(clap::Subcommand)]

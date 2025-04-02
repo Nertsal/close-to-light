@@ -19,7 +19,7 @@ pub use self::{
     leaderboard::*, notification::*, options::*, profile::*, slider::*, sync::*, text::*, value::*,
 };
 
-use super::{context::*, geometry::Geometry, window::*, WidgetId};
+use super::{WidgetId, context::*, geometry::Geometry, window::*};
 
 use crate::simple_widget_state;
 

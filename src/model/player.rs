@@ -168,7 +168,8 @@ impl Player {
         let at_waypoint = time > -COYOTE_TIME
             && time < BUFFER_TIME
             && light
-                .event_id.is_some_and(|event| last_rhythm != (event, waypoint));
+                .event_id
+                .is_some_and(|event| last_rhythm != (event, waypoint));
         self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
     }
 }

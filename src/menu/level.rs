@@ -9,8 +9,8 @@ use crate::{
     leaderboard::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
-        widget::{ConfirmPopup, WidgetOld},
         ShowTime, UiContext, WidgetRequest,
+        widget::{ConfirmPopup, WidgetOld},
     },
 };
 
@@ -99,7 +99,8 @@ impl MenuState {
         self.switch_group = Some(group);
         if self
             .selected_group
-            .as_ref().is_none_or(|selected| selected.data != group)
+            .as_ref()
+            .is_none_or(|selected| selected.data != group)
         {
             self.switch_level = None;
         }

@@ -402,7 +402,8 @@ impl ItemGroupWidget {
             self.local.hide();
             if cached
                 .origin
-                .as_ref().is_some_and(|info| info.hash != cached.hash)
+                .as_ref()
+                .is_some_and(|info| info.hash != cached.hash)
             {
                 self.edited.show();
             } else {

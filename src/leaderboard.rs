@@ -4,12 +4,12 @@ use crate::{
 };
 
 use ctl_client::{
+    Nertboard,
     core::{
+        ScoreEntry, SubmitScore,
         prelude::Uuid,
         types::{UserInfo, UserLogin},
-        ScoreEntry, SubmitScore,
     },
-    Nertboard,
 };
 use geng::prelude::*;
 
@@ -141,7 +141,8 @@ impl Leaderboard {
 
     pub fn is_online(&self) -> bool {
         self.client
-            .as_ref().is_some_and(|client| client.is_online())
+            .as_ref()
+            .is_some_and(|client| client.is_online())
     }
 
     pub fn login_discord(&mut self) {

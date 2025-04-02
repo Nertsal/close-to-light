@@ -61,14 +61,9 @@ impl MusicManager {
     }
 
     pub fn switch(&self, music: &Rc<LocalMusic>) {
-        if self
-            .inner
-            .borrow()
-            .playing
-            .as_ref().is_none_or(|playing| {
-                playing.effect.is_none() || !Rc::ptr_eq(&playing.local.sound, &music.sound)
-            })
-        {
+        if self.inner.borrow().playing.as_ref().is_none_or(|playing| {
+            playing.effect.is_none() || !Rc::ptr_eq(&playing.local.sound, &music.sound)
+        }) {
             self.play(music);
         }
     }

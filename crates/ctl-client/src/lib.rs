@@ -7,9 +7,9 @@ pub use self::error::*;
 
 pub use ctl_core as core;
 use ctl_core::{
-    prelude::{log, serde_json, DeserializeOwned, Id, MusicInfo, MusicUpdate},
-    types::{GroupInfo, LevelInfo, LevelSet, NewArtist},
     ScoreEntry, SubmitScore,
+    prelude::{DeserializeOwned, Id, MusicInfo, MusicUpdate, log, serde_json},
+    types::{GroupInfo, LevelInfo, LevelSet, NewArtist},
 };
 
 use core::types::GroupsQuery;
