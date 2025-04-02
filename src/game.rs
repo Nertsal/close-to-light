@@ -31,7 +31,7 @@ pub struct Game {
 pub struct PlayGroup {
     pub group_index: Index,
     pub cached: Rc<CachedGroup>,
-    pub music: Rc<LocalMusic>,
+    pub music: Option<Rc<LocalMusic>>,
 }
 
 #[derive(Debug, Clone)]

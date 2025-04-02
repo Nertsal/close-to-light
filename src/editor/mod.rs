@@ -202,12 +202,13 @@ impl EditorState {
         } else {
             if level_editor.was_scrolling_time {
                 // Stopped scrolling
-                // Play some music
-                self.context.music.play_from_beat(
-                    &level_editor.static_level.group.music,
-                    level_editor.current_time.value,
-                );
-                self.editor.music_timer = self.editor.config.playback_duration;
+                if let Some(music) = &level_editor.static_level.group.music {
+                    // Play some music
+                    self.context
+                        .music
+                        .play_from_beat(music, level_editor.current_time.value);
+                    self.editor.music_timer = self.editor.config.playback_duration;
+                }
             }
             level_editor.was_scrolling_time = false;
         }
@@ -289,6 +290,7 @@ impl geng::State for EditorState {
         let delta_time = FloatTime::new(delta_time as f32);
         self.delta_time = delta_time;
 
+        self.context.local.poll();
         self.context
             .geng
             .window()

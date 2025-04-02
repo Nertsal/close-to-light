@@ -10,8 +10,8 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
         .flat_map(|entry| {
             let entry = entry?;
             let path = entry.path();
-            if path.is_dir() {
-                log::warn!("Unexpected directory inside levels: {:?}", path);
+            if !path.is_dir() {
+                log::warn!("Unexpected file inside levels: {:?}", path);
                 return Ok(None);
             }
             anyhow::Ok(Some(path))
@@ -23,7 +23,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let load_group = |path: PathBuf| async move {
         let context = format!("when loading {:?}", path);
         async move {
-            let bytes = file::load_bytes(&path)
+            let bytes = file::load_bytes(&path.join("levels.cbor"))
                 .await
                 .with_context(|| "when loading file")?;
             let group: LevelSet = decode_group(&bytes).with_context(|| "when deserializing")?;
@@ -72,12 +72,16 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
 
 pub fn save_group(group: &CachedGroup) -> Result<()> {
     let path = &group.local.path;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
+    std::fs::create_dir_all(path)?;
 
-    let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+    // Save levels
+    let writer = std::io::BufWriter::new(std::fs::File::create(path.join("levels.cbor"))?);
     cbor4ii::serde::to_writer(writer, &group.local.data)?;
+
+    // Save meta
+    let mut writer = std::io::BufWriter::new(std::fs::File::create(path.join("meta.toml"))?);
+    let s = toml::ser::to_string_pretty(&group.local.meta)?;
+    write!(writer, "{}", s)?;
 
     log::debug!("Saved group ({}) successfully", group.local.data.id);
 

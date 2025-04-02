@@ -223,10 +223,12 @@ impl LevelEditor {
                     old_state: Box::new(self.state.clone()),
                 };
                 self.real_time = time_to_seconds(self.current_time.value);
-                self.context.music.play_from(
-                    &self.static_level.group.music,
-                    time::Duration::from_secs_f64(self.real_time.as_f32().into()),
-                );
+                if let Some(music) = &self.static_level.group.music {
+                    self.context.music.play_from(
+                        music,
+                        time::Duration::from_secs_f64(self.real_time.as_f32().into()),
+                    );
+                }
             }
             LevelAction::ScalePlacement(delta) => {
                 delta.apply(&mut self.place_scale);

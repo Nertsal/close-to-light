@@ -30,6 +30,7 @@ pub struct GroupMeta {
 
 #[derive(Debug, Clone)]
 pub struct LocalGroup {
+    /// Path to the directory containing data files.
     pub path: PathBuf,
     pub meta: GroupMeta,
     pub music: Option<Rc<LocalMusic>>,

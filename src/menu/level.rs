@@ -252,14 +252,14 @@ impl LevelMenu {
         let group_index = group.data;
         let group = local.groups.get(group_index)?;
 
-        let music = group.local.music.as_ref()?;
+        let music = group.local.music.clone();
 
         let level = self.state.selected_level.as_ref()?;
         let level_index = level.data;
         let level = group.local.data.levels.get(level_index)?;
 
         let group = PlayGroup {
-            music: Rc::clone(music),
+            music,
             group_index,
             cached: Rc::clone(group),
         };
@@ -647,59 +647,78 @@ impl geng::State for LevelMenu {
             .state
             .edit_level
             .take()
-            .and_then(|(group_index, level_index)| {
-                // TODO: warn if smth wrong
+            .map(|(group_index, level_index)| {
+                log::debug!(
+                    "Requested edit for group {:?}, level {:?}",
+                    group_index,
+                    level_index
+                );
                 let local = self.state.context.local.inner.borrow();
-                local.groups.get(group_index).and_then(|group| {
-                    group.local.music.as_ref().map(|music| {
-                        let level = level_index.and_then(|idx| {
-                            group
-                                .local
-                                .data
-                                .levels
-                                .get(idx)
-                                .map(|level| (idx, level.clone()))
-                        });
-                        let group = PlayGroup {
-                            group_index,
-                            cached: Rc::clone(group),
-                            music: Rc::clone(music),
-                        };
-                        (group, level)
-                    })
-                })
+                let group = local
+                    .groups
+                    .get(group_index)
+                    .ok_or_else(|| anyhow!("Group not found for {:?}", group_index))?;
+                let music = group.local.music.clone();
+                let level = level_index.and_then(|idx| {
+                    group
+                        .local
+                        .data
+                        .levels
+                        .get(idx)
+                        .map(|level| (idx, level.clone()))
+                });
+                let group = PlayGroup {
+                    group_index,
+                    cached: Rc::clone(group),
+                    music,
+                };
+                anyhow::Ok((group, level))
             });
         let context = self.context.clone();
         let manager = self.context.geng.asset_manager().clone();
         let assets_path = run_dir().join("assets");
 
-        if let Some((group, level)) = edit_level {
-            let future = async move {
-                let config: crate::editor::EditorConfig =
-                    geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
-                        .await
-                        .expect("failed to load editor config");
-
-                if let Some((level_index, level)) = level {
-                    let level = crate::game::PlayLevel {
-                        group,
-                        level_index,
-                        level,
-                        config: LevelConfig::default(),
-                        start_time: Time::ZERO,
-                    };
-                    crate::editor::EditorState::new_level(context, config, level)
-                } else {
-                    crate::editor::EditorState::new_group(context, config, group)
+        if let Some(edit_level) = edit_level {
+            match edit_level {
+                Err(err) => {
+                    log::error!("Edit failed: {:?}", err);
                 }
-            };
-            let state = geng::LoadingScreen::new(
-                &self.context.geng,
-                geng::EmptyLoadingScreen::new(&self.context.geng),
-                future,
-            );
+                Ok((group, level)) => {
+                    let level_index = level.as_ref().map(|(idx, _)| idx);
+                    log::debug!(
+                        "Editing group {:?}, level {:?}",
+                        group.group_index,
+                        level_index
+                    );
 
-            self.transition = Some(geng::state::Transition::Push(Box::new(state)));
+                    let future = async move {
+                        let config: crate::editor::EditorConfig =
+                            geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
+                                .await
+                                .expect("failed to load editor config");
+
+                        if let Some((level_index, level)) = level {
+                            let level = crate::game::PlayLevel {
+                                group,
+                                level_index,
+                                level,
+                                config: LevelConfig::default(),
+                                start_time: Time::ZERO,
+                            };
+                            crate::editor::EditorState::new_level(context, config, level)
+                        } else {
+                            crate::editor::EditorState::new_group(context, config, group)
+                        }
+                    };
+                    let state = geng::LoadingScreen::new(
+                        &self.context.geng,
+                        geng::EmptyLoadingScreen::new(&self.context.geng),
+                        future,
+                    );
+
+                    self.transition = Some(geng::state::Transition::Push(Box::new(state)));
+                }
+            }
         }
 
         self.last_delta_time = delta_time;

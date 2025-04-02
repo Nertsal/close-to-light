@@ -209,9 +209,9 @@ impl Model {
 
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
-        self.context
-            .music
-            .play_from_beat(&self.level.group.music, music_start_time);
+        if let Some(music) = &self.level.group.music {
+            self.context.music.play_from_beat(music, music_start_time);
+        }
     }
 
     pub fn finish(&mut self) {

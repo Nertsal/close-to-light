@@ -39,6 +39,7 @@ base64 = "0.22.1"
 async-compat = "0.2.4"
 num-rational = "0.4.2"
 rusttype = { version = "0.9.3", features = ["gpu_cache"] }
+rfd = "0.15.3"
 
 # Derive
 darling = "0.20"
@@ -95,6 +96,7 @@ async-compat.workspace = true
 cbor4ii.workspace = true
 num-rational.workspace = true
 rusttype.workspace = true
+rfd.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }

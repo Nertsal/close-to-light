@@ -5,8 +5,6 @@ mod web;
 
 use super::*;
 
-const GROUP_EXTENSION: &str = "cbor";
-
 pub struct Controller {
     #[cfg(target_arch = "wasm32")]
     rexie: rexie::Rexie,
@@ -110,7 +108,7 @@ impl Controller {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            std::fs::remove_file(path)?;
+            std::fs::remove_dir_all(path)?;
             Ok(())
         }
     }
@@ -150,14 +148,14 @@ pub fn generate_group_path(group: Id) -> PathBuf {
         let mut rng = rand::thread_rng();
         loop {
             let name: String = (0..5).map(|_| rng.gen_range('a'..='z')).collect();
-            let path = base_path.join(format!("{}.{}", name, GROUP_EXTENSION));
+            let path = base_path.join(name);
             // TODO: validate on web
             if !path.exists() {
                 return path;
             }
         }
     } else {
-        base_path.join(format!("{}.{}", group, GROUP_EXTENSION))
+        base_path.join(format!("{}", group))
     }
 }
 

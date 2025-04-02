@@ -571,41 +571,56 @@ impl LevelCache {
         todo!()
     }
 
+    fn update_group_local(
+        &self,
+        group_index: Index,
+        new_local: LocalGroup,
+        reset_origin: Option<GroupInfo>,
+    ) -> Option<Rc<CachedGroup>> {
+        let mut inner = self.inner.borrow_mut();
+        let cached = inner.groups.get_mut(group_index)?;
+
+        let mut new_group: CachedGroup = (**cached).clone();
+
+        let old_path = new_group.local.path.clone();
+
+        if let Some(info) = reset_origin {
+            new_group.origin = Some(info);
+        }
+        new_group.hash = new_local.data.calculate_hash();
+        new_group.level_hashes = new_local
+            .data
+            .levels
+            .iter()
+            .map(|level| level.data.calculate_hash())
+            .collect();
+        new_group.local = new_local;
+        new_group.local.path = fs::generate_group_path(new_group.local.data.id);
+
+        let group = Rc::new(new_group);
+        *cached = Rc::clone(&group);
+
+        // Write to fs
+        drop(inner);
+        self.move_group(&group, old_path);
+
+        Some(group)
+    }
+
     pub fn update_group(
         &self,
         group_index: Index,
         group: LevelSet,
         reset_origin: Option<GroupInfo>,
     ) -> Option<Rc<CachedGroup>> {
-        // let mut inner = self.inner.borrow_mut();
-        // let cached = inner.groups.get_mut(group_index)?;
+        let mut inner = self.inner.borrow_mut();
+        let cached = inner.groups.get_mut(group_index)?;
 
-        // let mut new_group: CachedGroup = (**cached).clone();
+        let mut new_group: LocalGroup = cached.local.clone();
+        new_group.data = group;
 
-        // let old_path = new_group.path.clone();
-
-        // new_group.hash = group.calculate_hash();
-        // if let Some(info) = reset_origin {
-        //     new_group.origin = Some(info);
-        // }
-        // new_group.level_hashes = group
-        //     .levels
-        //     .iter()
-        //     .map(|level| level.data.calculate_hash())
-        //     .collect();
-        // new_group.data = group;
-        // new_group.path = fs::generate_group_path(new_group.data.id);
-
-        // let group = Rc::new(new_group);
-        // *cached = Rc::clone(&group);
-
-        // // Write to fs
-        // drop(inner);
-        // self.move_group(&group, old_path);
-
-        // Some(group)
-
-        todo!()
+        drop(inner);
+        self.update_group_local(group_index, new_group, reset_origin)
     }
 
     pub fn update_level(
@@ -615,20 +630,69 @@ impl LevelCache {
         level: Level,
         name: String,
     ) -> Option<(Rc<CachedGroup>, Rc<LevelFull>)> {
-        // let inner = self.inner.borrow();
-        // let mut new_group = inner.groups.get(group_index)?.data.clone();
-        // let new_level = new_group.levels.get_mut(level_index)?;
+        let inner = self.inner.borrow();
+        let mut new_group = inner.groups.get(group_index)?.local.data.clone();
+        let new_level = new_group.levels.get_mut(level_index)?;
 
-        // let mut meta = new_level.meta.clone();
-        // meta.name = name.into();
-        // *new_level = Rc::new(LevelFull { meta, data: level });
+        let mut meta = new_level.meta.clone();
+        meta.name = name.into();
+        *new_level = Rc::new(LevelFull { meta, data: level });
 
-        // drop(inner);
-        // let group = self.update_group(group_index, new_group, None)?;
-        // let level = group.data.levels.get(level_index)?.clone();
-        // Some((group, level))
+        drop(inner);
+        let group = self.update_group(group_index, new_group, None)?;
+        let level = group.local.data.levels.get(level_index)?.clone();
+        Some((group, level))
+    }
 
-        todo!()
+    pub fn select_music_file(
+        &self,
+        group_index: Index,
+        music_path: PathBuf,
+    ) -> Option<Rc<CachedGroup>> {
+        let inner = self.inner.borrow();
+        let new_group = inner.groups.get(group_index)?.local.clone();
+        drop(inner);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let new_group = {
+            let mut new_group = new_group;
+
+            let asset_manager = self.geng.asset_manager();
+            let music: geng::Sound = futures::executor::block_on(geng::asset::Load::load(
+                asset_manager,
+                &music_path,
+                &geng::asset::SoundOptions { looped: true },
+            ))
+            .ok()?;
+
+            let meta = new_group.meta.music.clone().unwrap_or_else(|| {
+                let mut meta = MusicInfo::default();
+                if let Some(name) = music_path.file_name() {
+                    let name: Name = name.to_string_lossy().into();
+                    meta.name = name.clone();
+                    meta.romanized = name;
+                }
+                meta
+            });
+            let music = LocalMusic::new(meta, music);
+            new_group.music = Some(Rc::new(music));
+
+            new_group
+        };
+
+        let group = self.update_group_local(group_index, new_group, None)?;
+
+        // Copy music to the group path
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // Create a dir because the rest of the group is saved asynchronously
+            let _ = std::fs::create_dir_all(&group.local.path);
+            if let Err(err) = std::fs::copy(&music_path, group.local.path.join("music.mp3")) {
+                log::error!("Copying music failed: {:?}", err);
+            }
+        }
+
+        Some(group)
     }
 
     pub fn delete_group(&self, group: Index) {

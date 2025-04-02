@@ -109,6 +109,11 @@ impl Editor {
 
     pub fn create_new_level(&mut self) {
         let mut new_group = self.group.cached.local.data.clone();
+        let bpm = self
+            .group
+            .music
+            .as_ref()
+            .map_or(r32(120.0), |music| music.meta.bpm);
         new_group.levels.push(Rc::new(LevelFull {
             meta: LevelInfo {
                 id: 0,
@@ -116,7 +121,7 @@ impl Editor {
                 authors: Vec::new(),
                 hash: String::new(),
             },
-            data: Level::new(self.group.music.meta.bpm),
+            data: Level::new(bpm),
         }));
 
         if let Some(group) =

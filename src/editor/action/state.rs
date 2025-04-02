@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum EditorStateAction {
     Exit,
+    SelectMusicFile(std::path::PathBuf),
     Editor(EditorAction),
     Cancel,
     StopTextEdit,
@@ -37,6 +38,13 @@ impl EditorState {
         match action {
             EditorStateAction::Exit => {
                 self.transition = Some(geng::state::Transition::Pop);
+            }
+            EditorStateAction::SelectMusicFile(path) => {
+                let group = self.editor.group.group_index;
+                if let Some(group) = self.context.local.select_music_file(group, path) {
+                    self.editor.group.music = group.local.music.clone();
+                    self.editor.group.cached = group;
+                }
             }
             EditorStateAction::Editor(action) => self.editor.execute(action),
             EditorStateAction::Cancel => self.cancel(),

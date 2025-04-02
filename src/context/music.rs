@@ -86,7 +86,6 @@ impl MusicManager {
     }
 
     pub fn play_from(&self, music: &Rc<LocalMusic>, time: Duration) {
-        log::debug!("Playing music: {:?}", music.meta.name);
         let mut inner = self.inner.borrow_mut();
         let mut music = Music::new(music.clone());
         music.set_volume(inner.volume);

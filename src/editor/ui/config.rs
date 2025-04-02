@@ -32,21 +32,45 @@ impl EditorConfigUi {
         let text = context.state.get_root_or(|| TextWidget::new("Timing"));
         text.update(timing, context);
 
-        let bpm = bar.cut_top(context.font_size);
-        let slider = context
-            .state
-            .get_root_or(|| TextWidget::new(format!("BPM: {:.1}", editor.group.music.meta.bpm)));
-        slider.update(bpm, context);
+        // TODO bpm editor
+        // let bpm = bar.cut_top(context.font_size);
+        // let slider = context
+        //     .state
+        //     .get_root_or(|| TextWidget::new(format!("BPM: {:.1}", editor.group.music.meta.bpm)));
+        // slider.update(bpm, context);
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
 
         let mut bar = columns[1];
-        let music = bar.cut_top(context.font_size);
-        let text = context
+        let button_pos = bar.cut_top(context.font_size * 1.2);
+        let button = context
             .state
-            .get_root_or(|| TextWidget::new(format!("Music: {}", editor.group.music.meta.name)));
-        text.update(music, context);
+            .get_root_or(|| ButtonWidget::new("Select Music"));
+        button.text.text = if editor.group.music.is_some() {
+            "Change Music"
+        } else {
+            "Select Music"
+        }
+        .into();
+        button.update(button_pos, context);
+        if button.text.state.clicked {
+            if let Some(path) = rfd::FileDialog::new()
+                .add_filter("music", &["mp3"])
+                .set_can_create_directories(false)
+                .pick_file()
+            {
+                actions.push(EditorStateAction::SelectMusicFile(path));
+            }
+        }
+
+        let music_pos = bar.cut_top(context.font_size);
+        if let Some(music) = &editor.group.music {
+            let text = context
+                .state
+                .get_root_or(|| TextWidget::new(music.meta.name.clone()));
+            text.update(music_pos, context);
+        }
 
         bar.cut_top(context.layout_size);
 
