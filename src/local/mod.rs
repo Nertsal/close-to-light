@@ -12,6 +12,8 @@ use anyhow::Result;
 pub struct LocalMusic {
     pub meta: MusicInfo,
     pub sound: Rc<geng::Sound>,
+    /// Raw bytes of the music file, used when saving.
+    pub bytes: Vec<u8>,
 }
 
 impl Debug for LocalMusic {
@@ -19,6 +21,7 @@ impl Debug for LocalMusic {
         f.debug_struct("LocalMusic")
             .field("meta", &self.meta)
             .field("sound", &"<bytes>")
+            .field("data", &"<bytes>")
             .finish()
     }
 }
@@ -47,11 +50,12 @@ pub struct CachedGroup {
 }
 
 impl LocalMusic {
-    pub fn new(meta: MusicInfo, mut sound: geng::Sound) -> Self {
+    pub fn new(meta: MusicInfo, mut sound: geng::Sound, bytes: Vec<u8>) -> Self {
         sound.looped = true;
         Self {
             meta,
             sound: Rc::new(sound),
+            bytes,
         }
     }
 }

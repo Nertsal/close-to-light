@@ -19,7 +19,6 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
         .flatten()
         .collect();
 
-    let asset_manager = geng.asset_manager();
     let load_group = |path: PathBuf| async move {
         let context = format!("when loading {:?}", path);
         async move {
@@ -28,18 +27,21 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
                 .with_context(|| "when loading file")?;
             let group: LevelSet = decode_group(&bytes).with_context(|| "when deserializing")?;
 
-            let music: Option<geng::Sound> = geng::asset::Load::load(
-                asset_manager,
-                &path.join("music.mp3"),
-                &geng::asset::SoundOptions { looped: true },
-            )
-            .await
-            .ok();
+            let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
+            let music = match music_bytes {
+                Ok(bytes) => {
+                    let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
+                    music.looped = true;
+                    Some((music, bytes))
+                }
+                Err(_) => None,
+            };
 
             let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
 
             let music_meta = meta.music.clone().unwrap_or_default();
-            let music = music.map(|music| Rc::new(LocalMusic::new(music_meta, music)));
+            let music =
+                music.map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes)));
 
             let local = LocalGroup {
                 path,

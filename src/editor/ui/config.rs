@@ -68,6 +68,7 @@ impl EditorConfigUi {
         }
         .into();
         button.update(button_pos, context);
+        #[cfg(not(target_arch = "wasm32"))]
         if button.text.state.clicked {
             if let Some(path) = rfd::FileDialog::new()
                 .add_filter("music", &["mp3"])

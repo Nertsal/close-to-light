@@ -5,21 +5,16 @@ use rexie::{Result, *};
 use serde_wasm_bindgen::Serializer;
 
 #[derive(Serialize, Deserialize)]
-struct MusicItem {
-    info: String,
-    data: String,
-}
-
-#[derive(Serialize, Deserialize)]
 struct GroupItem {
+    meta: String,
     data: String,
+    music: Option<String>,
 }
 
 pub async fn build_database() -> Result<Rexie> {
     // Create a new database
     let rexie = Rexie::builder("close-to-light")
         .version(1)
-        .add_object_store(ObjectStore::new("music"))
         .add_object_store(ObjectStore::new("groups"))
         .build()
         .await?;
@@ -27,34 +22,7 @@ pub async fn build_database() -> Result<Rexie> {
     Ok(rexie)
 }
 
-pub async fn load_music_all(rexie: &Rexie, geng: &Geng) -> Result<Vec<CachedMusic>> {
-    let transaction = rexie.transaction(&["music"], TransactionMode::ReadOnly)?;
-
-    let music = transaction.store("music")?;
-
-    let raw_items = music.get_all(None, None, None, None).await?;
-    let mut items = Vec::with_capacity(raw_items.len());
-    for (_key, item) in raw_items {
-        let item: MusicItem = serde_wasm_bindgen::from_value(item).unwrap();
-
-        let meta: MusicInfo = serde_json::from_str(&item.info).unwrap();
-
-        let data = BASE64_STANDARD.decode(&item.data).unwrap(); // TODO dont panic
-        let music = geng.audio().decode(data).await.unwrap();
-
-        items.push(CachedMusic {
-            meta,
-            music: Rc::new(music),
-        });
-    }
-
-    Ok(items)
-}
-
-pub async fn load_groups_all(
-    rexie: &Rexie,
-    music: &HashMap<Id, Rc<CachedMusic>>,
-) -> Result<Vec<(PathBuf, LevelSet)>> {
+pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGroup>> {
     let transaction = rexie.transaction(&["groups"], TransactionMode::ReadOnly)?;
 
     let groups = transaction.store("groups")?;
@@ -67,71 +35,62 @@ pub async fn load_groups_all(
         let item: GroupItem = serde_wasm_bindgen::from_value(item).unwrap();
 
         let data = BASE64_STANDARD.decode(&item.data).unwrap(); // TODO dont panic
+        let group: LevelSet = decode_group(&data).unwrap();
 
-        let group: LevelSet = decode_group(music, &data).unwrap();
+        let music_bytes = BASE64_STANDARD.decode(&item.meta).unwrap(); // TODO dont panic
+        let meta: GroupMeta = ron::de::from_bytes(&music_bytes).unwrap(); // TODO dont panic
 
-        items.push((path, group));
+        let music = match &item.music {
+            None => None,
+            Some(music) => {
+                let data = BASE64_STANDARD.decode(music).unwrap(); // TODO dont panic
+                let music = geng.audio().decode(data).await.unwrap();
+                Some(Rc::new(LocalMusic::new(
+                    meta.music.clone().unwrap_or_default(),
+                    music,
+                    music_bytes,
+                )))
+            }
+        };
+
+        items.push(LocalGroup {
+            path,
+            meta,
+            music,
+            data: group,
+        });
     }
 
     Ok(items)
 }
 
-pub async fn save_music(rexie: &Rexie, id: Id, data: &[u8], info: &MusicInfo) -> Result<()> {
-    log::debug!("Storing music {:?} into browser storage", id);
-
-    let transaction = rexie.transaction(&["music"], TransactionMode::ReadWrite)?;
-
-    let music = transaction.store("music")?;
-
-    let data = BASE64_STANDARD.encode(&data);
-    let info = serde_json::to_string(&info).unwrap();
-
-    let item = MusicItem { info, data };
-
-    let serializer = Serializer::json_compatible();
-    let item = item.serialize(&serializer).unwrap();
-    let id = id.serialize(&serializer).unwrap();
-
-    music.put(&item, Some(&id)).await?;
-
-    transaction.done().await?;
-
-    Ok(())
-}
-
-pub async fn save_group(rexie: &Rexie, group: &CachedGroup, id: &str) -> Result<()> {
+pub async fn save_group(
+    rexie: &Rexie,
+    group: &CachedGroup,
+    music: Option<&Vec<u8>>,
+    id: &str,
+) -> Result<()> {
     log::debug!("Storing group {:?} into browser storage", id);
 
     let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
 
     let store = transaction.store("groups")?;
 
-    let data = cbor4ii::serde::to_vec(Vec::new(), &group.data).unwrap();
+    let data = cbor4ii::serde::to_vec(Vec::new(), &group.local.data).unwrap(); // TODO: dont panic
     let data = BASE64_STANDARD.encode(&data);
-    let item = GroupItem { data };
+
+    let music = music.map(|music| BASE64_STANDARD.encode(&music));
+
+    let meta = ron::ser::to_string(&group.local.meta).unwrap(); // TODO: dont panic
+    let meta = BASE64_STANDARD.encode(&meta);
+
+    let item = GroupItem { data, music, meta };
 
     let serializer = Serializer::json_compatible();
     let item = item.serialize(&serializer).unwrap();
     let id = id.serialize(&serializer).unwrap();
 
     store.put(&item, Some(&id)).await?;
-
-    transaction.done().await?;
-
-    Ok(())
-}
-
-pub async fn remove_music(rexie: &Rexie, id: Id) -> Result<()> {
-    log::debug!("Deleting music {:?} from browser storage", id);
-
-    let transaction = rexie.transaction(&["music"], TransactionMode::ReadWrite)?;
-
-    let store = transaction.store("music")?;
-
-    let serializer = Serializer::json_compatible();
-    let id = id.serialize(&serializer).unwrap();
-
-    store.delete(&id).await?;
 
     transaction.done().await?;
 

@@ -40,8 +40,8 @@ impl Controller {
         log::debug!("Loading all local groups");
 
         #[cfg(target_arch = "wasm32")]
-        let groups: Result<Vec<(PathBuf, LevelSet)>> = {
-            match web::load_groups_all(&self.rexie).await {
+        let groups: Result<Vec<LocalGroup>> = {
+            match web::load_groups_all(&self.geng, &self.rexie).await {
                 Ok(items) => Ok(items),
                 Err(err) => {
                     log::error!("failed to load groups from web file system: {:?}", err);
@@ -75,13 +75,15 @@ impl Controller {
         log::debug!("Saving group: {}", group.local.data.id);
         #[cfg(target_arch = "wasm32")]
         {
-            let id = group.data.id.to_string();
+            let id = group.local.data.id.to_string();
             let id = group
+                .local
                 .path
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or(&id);
-            if let Err(err) = web::save_group(&self.rexie, group, id).await {
+            let music = group.local.music.as_ref().map(|music| &music.bytes);
+            if let Err(err) = web::save_group(&self.rexie, group, music, id).await {
                 log::error!("failed to save group into web file system: {:?}", err);
                 anyhow::bail!("check logs");
             }
@@ -187,7 +189,6 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
         .map(|entry| groups_path.join(entry))
         .collect();
 
-    let asset_manager = geng.asset_manager();
     let load_group = |path: PathBuf| async move {
         let context = format!("when loading: {:?}", path);
 
@@ -195,18 +196,21 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
             let bytes = file::load_bytes(&path.join("levels.cbor")).await?;
             let group: LevelSet = decode_group(&bytes)?;
 
-            let music: Option<geng::Sound> = geng::asset::Load::load(
-                asset_manager,
-                &path.join("music.mp3"),
-                &geng::asset::SoundOptions { looped: true },
-            )
-            .await
-            .ok();
+            let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
+            let music = match music_bytes {
+                Ok(bytes) => {
+                    let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
+                    music.looped = true;
+                    Some((music, bytes))
+                }
+                Err(_) => None,
+            };
 
             let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
 
             let music_meta = meta.music.clone().unwrap_or_default();
-            let music = music.map(|music| Rc::new(LocalMusic::new(music_meta, music)));
+            let music =
+                music.map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes)));
 
             let local = LocalGroup {
                 path,

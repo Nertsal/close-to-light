@@ -21,7 +21,7 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["rt", "macros"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 enum-iterator = "1.4.1"
-uuid = { version = "1.6.1", features = ["serde", "v4"] }
+uuid = { version = "1.6.1", features = ["serde", "v4", "js"] }
 sha2 = "0.10.8"
 data-encoding = "2.5.0"
 generational-arena = "0.2.9"

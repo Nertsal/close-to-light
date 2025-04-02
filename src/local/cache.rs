@@ -657,12 +657,21 @@ impl LevelCache {
         let new_group = {
             let mut new_group = new_group;
 
-            let asset_manager = self.geng.asset_manager();
-            let music: geng::Sound = futures::executor::block_on(geng::asset::Load::load(
-                asset_manager,
-                &music_path,
-                &geng::asset::SoundOptions { looped: true },
-            ))
+            let (music, music_bytes) = futures::executor::block_on({
+                let path = music_path.clone();
+                let geng = self.geng.clone();
+                async move {
+                    let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
+                    match music_bytes {
+                        Ok(bytes) => {
+                            let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
+                            music.looped = true;
+                            Ok((music, bytes))
+                        }
+                        Err(err) => Err(err),
+                    }
+                }
+            })
             .ok()?;
 
             let meta = new_group.meta.music.clone().unwrap_or_else(|| {
@@ -674,7 +683,7 @@ impl LevelCache {
                 }
                 meta
             });
-            let music = LocalMusic::new(meta, music);
+            let music = LocalMusic::new(meta, music, music_bytes);
             new_group.music = Some(Rc::new(music));
 
             new_group
