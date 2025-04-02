@@ -195,7 +195,7 @@ impl LevelEditor {
             }
             LevelAction::Paste => self.paste(),
             LevelAction::FlushChanges(label) => {
-                if label.map_or(true, |label| self.history.buffer_label == label) {
+                if label.is_none_or(|label| self.history.buffer_label == label) {
                     self.flush_changes(None)
                 }
             }

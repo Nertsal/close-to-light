@@ -341,7 +341,7 @@ impl TimelineWidget {
                 let visible =
                     !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                 if visible {
-                    overlapped = if self.highlight_bar.as_ref().map_or(false, |bar| {
+                    overlapped = if self.highlight_bar.as_ref().is_some_and(|bar| {
                         (bar.from_time..=bar.to_time).contains(&light_time)
                     }) {
                         1
@@ -471,7 +471,7 @@ impl TimelineWidget {
                 let mut tick = |offset: BeatTime, marker: BeatTime| {
                     let offset = (r32(i as f32) + offset.as_beats()) * timing.beat_time;
                     let time = from + seconds_to_time(offset);
-                    if !until.map_or(false, |limit| time >= limit) {
+                    if until.is_none_or(|limit| time < limit) {
                         self.ticks
                             .push((render_time(&self.main_line, time).center(), marker));
                     }
@@ -481,7 +481,7 @@ impl TimelineWidget {
                 tick(BeatTime::QUARTER, BeatTime::QUARTER);
                 tick(BeatTime::QUARTER * 3, BeatTime::QUARTER);
 
-                if until.map_or(false, |limit| time >= limit)
+                if until.is_some_and(|limit| time >= limit)
                     || time + self.scroll > self.visible_scroll() / 2
                 {
                     break;

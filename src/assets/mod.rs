@@ -4,7 +4,6 @@ pub use self::font::Font;
 
 use std::path::PathBuf;
 
-use ctl_client::core::types::MusicInfo;
 use geng::prelude::*;
 use geng_utils::gif::GifFrame;
 

@@ -184,8 +184,7 @@ impl TextEdit {
         self.0
             .borrow()
             .geng
-            .as_ref()
-            .map_or(false, |geng| geng.window().is_editing_text())
+            .as_ref().is_some_and(|geng| geng.window().is_editing_text())
     }
 }
 

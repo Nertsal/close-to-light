@@ -56,7 +56,7 @@ impl EditorRender {
             |event_id: Option<usize>| -> Color {
                 if let Some(event_id) = event_id {
                     let check = |a: Option<usize>| -> bool { a == Some(event_id) };
-                    let base_color = if level_editor.level.events.get(event_id).map_or(false, |e| {
+                    let base_color = if level_editor.level.events.get(event_id).is_some_and(|e| {
                         match &e.event {
                             Event::Light(event) => event.danger,
                             _ => false,

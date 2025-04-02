@@ -510,7 +510,7 @@ impl LevelCache {
         if let Some(action) = inner.tasks.poll() {
             match action {
                 CacheAction::GroupList(groups) => inner.group_list = CacheState::Loaded(groups),
-                CacheAction::Group(mut group) => {
+                CacheAction::Group(group) => {
                     // // Check music
                     // if group.music.is_none() {
                     //     if let Some(music) = inner.music.get(&group.data.music) {

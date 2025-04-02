@@ -227,7 +227,7 @@ impl MaskedRender {
     }
 }
 
-impl<'a> Masking<'a> {
+impl Masking<'_> {
     pub fn mask_quad(&mut self, aabb: Aabb2<f32>) {
         self.geng.draw2d().draw2d(
             &mut self.mask,

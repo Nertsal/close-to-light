@@ -99,8 +99,7 @@ impl MenuState {
         self.switch_group = Some(group);
         if self
             .selected_group
-            .as_ref()
-            .map_or(true, |selected| selected.data != group)
+            .as_ref().is_none_or(|selected| selected.data != group)
         {
             self.switch_level = None;
         }

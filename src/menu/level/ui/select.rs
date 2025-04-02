@@ -264,7 +264,7 @@ impl LevelSelectUI {
                     .map(|level| &level.hash)
             });
             let edited =
-                origin_hash.map_or(false, |hash| Some(hash) != group.level_hashes.get(level_id));
+                origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
             widget.sync(group_idx, level_id, cached, edited);
         }
 
@@ -402,8 +402,7 @@ impl ItemGroupWidget {
             self.local.hide();
             if cached
                 .origin
-                .as_ref()
-                .map_or(false, |info| info.hash != cached.hash)
+                .as_ref().is_some_and(|info| info.hash != cached.hash)
             {
                 self.edited.show();
             } else {

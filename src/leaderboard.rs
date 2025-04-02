@@ -141,8 +141,7 @@ impl Leaderboard {
 
     pub fn is_online(&self) -> bool {
         self.client
-            .as_ref()
-            .map_or(false, |client| client.is_online())
+            .as_ref().is_some_and(|client| client.is_online())
     }
 
     pub fn login_discord(&mut self) {
@@ -438,8 +437,8 @@ impl LoadedBoard {
         // Filter for the same meta
         scores.retain(|entry| {
             !entry.user.name.is_empty()
-                && entry.extra_info.as_ref().map_or(false, |info| {
-                    serde_json::from_str::<ScoreMeta>(info).map_or(false, |entry_meta| {
+                && entry.extra_info.as_ref().is_some_and(|info| {
+                    serde_json::from_str::<ScoreMeta>(info).is_ok_and(|entry_meta| {
                         entry_meta.category.version == self.category.version
                     })
                 })

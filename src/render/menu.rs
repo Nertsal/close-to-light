@@ -362,7 +362,8 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                for (tab, active) in [(&ui.tab_levels, ui.levels.state.visible)] {
+                {
+                    let (tab, active) = (&ui.tab_levels, ui.levels.state.visible);
                     self.ui
                         .draw_toggle_button(tab, active, false, theme, framebuffer);
                 }

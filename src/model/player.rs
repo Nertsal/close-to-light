@@ -148,7 +148,7 @@ impl Player {
         if danger {
             update(&mut self.danger_distance);
         } else {
-            if self.light_distance.map_or(true, |old| raw_distance < old) {
+            if self.light_distance.is_none_or(|old| raw_distance < old) {
                 self.light_distance = Some(raw_distance);
                 self.closest_light = light_id;
                 self.is_keyframe = at_waypoint;
@@ -168,8 +168,7 @@ impl Player {
         let at_waypoint = time > -COYOTE_TIME
             && time < BUFFER_TIME
             && light
-                .event_id
-                .map_or(false, |event| last_rhythm != (event, waypoint));
+                .event_id.is_some_and(|event| last_rhythm != (event, waypoint));
         self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
     }
 }
