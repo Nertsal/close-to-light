@@ -148,7 +148,9 @@ impl EditorState {
     }
 
     fn cancel(&mut self) {
-        if self.ui_context.is_totally_focused() {
+        if self.editor.confirm_popup.is_some() {
+            self.execute(EditorAction::ClosePopup.into());
+        } else if self.ui_context.is_totally_focused() {
             self.ui_context.cancel_total_focus();
         } else if self.ui.context_menu.is_open() {
             self.ui.context_menu.close();

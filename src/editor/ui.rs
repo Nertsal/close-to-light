@@ -80,13 +80,19 @@ impl EditorUi {
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
             if confirm.confirm.state.clicked {
+                // Confirm
                 confirm.window.show.going_up = false;
                 actions.push(EditorStateAction::ConfirmPopupAction);
             } else if confirm.discard.state.clicked {
+                // Discard
                 confirm.window.show.going_up = false;
                 actions.push(EditorAction::ClosePopup.into());
             } else if confirm.window.show.time.is_min() {
+                // Closed
                 self.confirm = None;
+            } else if editor.confirm_popup.is_none() {
+                // Got cancelled from outside
+                confirm.window.show.going_up = false;
             }
 
             // NOTE: When confirm is active, you cant interact with other widgets
