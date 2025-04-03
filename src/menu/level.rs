@@ -521,7 +521,11 @@ impl geng::State for LevelMenu {
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {
-                if let Some(sync) = &mut self.ui.sync {
+                if self.state.confirm_popup.take().is_some() {
+                    if let Some(confirm) = &mut self.ui.confirm {
+                        confirm.window.request = Some(WidgetRequest::Close);
+                    }
+                } else if let Some(sync) = &mut self.ui.sync {
                     sync.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.explore.window.show.time.is_max() {
                     self.ui.explore.window.request = Some(WidgetRequest::Close);
