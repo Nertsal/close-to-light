@@ -159,7 +159,7 @@ impl LevelEditor {
         log::trace!("LevelAction::{:?}", action);
         match action {
             LevelAction::List(label, list) => {
-                self.start_merge_changes();
+                self.start_merge_changes(label);
                 for action in list {
                     self.execute(action);
                 }

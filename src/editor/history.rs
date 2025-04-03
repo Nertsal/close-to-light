@@ -65,14 +65,19 @@ impl History {
         }
     }
 
-    pub fn start_merge(&mut self, level: &Level) {
+    pub fn start_merge(&mut self, level: &Level, label: HistoryLabel) {
+        if self.buffer_label.should_merge(&label) {
+            self.buffer_state = level.clone();
+            self.buffer_label = HistoryLabel::Merge;
+            return;
+        }
+
         if Some(&self.buffer_state) != self.undo_stack.last() {
             // Push old changes
             self.save_force(level, HistoryLabel::Merge);
         } else {
             self.buffer_label = HistoryLabel::Merge;
         }
-        log::debug!("Started merging changes");
     }
 
     pub fn save_state(&mut self, level: &Level, label: HistoryLabel) {
@@ -94,7 +99,7 @@ impl History {
     pub fn flush(&mut self, level: &Level, label: HistoryLabel) {
         self.buffer_label = label;
         self.buffer_state = level.clone();
-        log::debug!("Flushed changes as {:?}", label);
+        log::trace!("Flushed changes as {:?}", label);
     }
 
     /// Save the level without doing any checks.

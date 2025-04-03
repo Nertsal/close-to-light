@@ -200,24 +200,25 @@ impl LevelEditor {
     /// Save level changes to the history.
     #[track_caller]
     pub fn save_state(&mut self, label: HistoryLabel) {
-        self.history.save_state(&self.level, label);
         log::trace!("save_state called by {}", std::panic::Location::caller());
+        self.history.save_state(&self.level, label);
     }
 
     /// Flush all buffered changes to the undo stack, if there are any.
     #[track_caller]
     pub fn flush_changes(&mut self, label: Option<HistoryLabel>) {
-        self.history.flush(&self.level, label.unwrap_or_default());
         log::trace!("flush_changes called by {}", std::panic::Location::caller());
+        self.history.flush(&self.level, label.unwrap_or_default());
     }
 
     #[track_caller]
-    pub fn start_merge_changes(&mut self) {
-        self.history.start_merge(&self.level);
+    pub fn start_merge_changes(&mut self, label: Option<HistoryLabel>) {
         log::trace!(
             "start_merge_changes called by {}",
             std::panic::Location::caller()
         );
+        self.history
+            .start_merge(&self.level, label.unwrap_or(HistoryLabel::Merge));
     }
 
     pub fn copy(&mut self) {
