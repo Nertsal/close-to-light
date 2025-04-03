@@ -5,6 +5,8 @@ use crate::{assets::LoadingAssets, task::Task, ui::layout::AreaOps};
 pub struct LoadingScreen<T> {
     geng: Geng,
     assets: Rc<LoadingAssets>,
+    unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
+    texture: ugli::Texture,
     options: Options,
     future: Option<Task<T>>,
     result: Option<T>,
@@ -29,6 +31,8 @@ impl<T: 'static> LoadingScreen<T> {
         Self {
             geng: geng.clone(),
             assets,
+            unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
+            texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
             options: preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
             future: Some(Task::new(geng, future)),
             result: None,
@@ -125,6 +129,11 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         ugli::clear(framebuffer, Some(self.options.theme.dark), None, None);
+        geng_utils::texture::update_texture_size(
+            &mut self.texture,
+            framebuffer.size(),
+            self.geng.ugli(),
+        );
 
         let framebuffer_size = framebuffer.size().as_f32();
         let font_size = framebuffer_size.y * 0.08;
@@ -135,6 +144,8 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
 
         // Background
         {
+            let buffer =
+                &mut geng_utils::texture::attach_texture(&mut self.texture, self.geng.ugli());
             let gif = &self.assets.background;
             let duration: f32 = gif.iter().map(|frame| frame.duration).sum();
             let mut time = (self.real_time as f32 / duration).fract() * duration;
@@ -143,7 +154,7 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
                 time <= 0.0
             }) {
                 self.geng.draw2d().textured_quad(
-                    framebuffer,
+                    buffer,
                     camera,
                     screen,
                     &frame.texture,
@@ -151,6 +162,19 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
                 );
             }
         }
+
+        ugli::draw(
+            framebuffer,
+            &self.assets.background_shader,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            ugli::uniforms! {
+                u_texture: &self.texture,
+                u_color_dark: theme.dark,
+                u_color_light: theme.light,
+            },
+            ugli::DrawParameters::default(),
+        );
 
         // Fake loading bar
         let size = vec2(10.0, 0.8) * font_size;

@@ -17,6 +17,8 @@ pub struct LoadingAssets {
     pub font: Font,
     #[load(load_with = "load_gif(&manager, &base_path.join(\"sprites/loading_background.gif\"))")]
     pub background: Vec<GifFrame>,
+    #[load(path = "shaders/replace_colors.glsl")]
+    pub background_shader: ugli::Program,
 }
 
 fn load_gif(
