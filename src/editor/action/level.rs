@@ -28,7 +28,7 @@ pub enum LevelAction {
     ToggleDangerPlacement,
     PlaceLight(vec2<Coord>),
     DeleteLight(LightId),
-    SelectLight(LightId),
+    SelectLight(SelectMode, Vec<LightId>), // TODO: smallvec
     DeselectLight,
     RotateLightAround(LightId, vec2<Coord>, Angle<Coord>),
     FlipHorizontal(LightId, vec2<Coord>),
@@ -50,6 +50,13 @@ pub enum LevelAction {
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
     MoveWaypoint(LightId, WaypointId, Change<Time>, Change<vec2<Coord>>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectMode {
+    Add,
+    Remove,
+    Set,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -121,7 +128,9 @@ impl LevelAction {
             LevelAction::ToggleDangerPlacement => false,
             LevelAction::PlaceLight(_) => false,
             LevelAction::DeleteLight(..) => false,
-            LevelAction::SelectLight(_) => false,
+            LevelAction::SelectLight(mode, lights) => {
+                matches!(mode, SelectMode::Add | SelectMode::Remove) && lights.is_empty()
+            }
             LevelAction::DeselectLight => false,
             LevelAction::RotateLightAround(_, _, delta) => *delta == Angle::ZERO,
             LevelAction::FlipHorizontal(_, _) => false,
@@ -275,7 +284,7 @@ impl LevelEditor {
             }
             LevelAction::PlaceLight(position) => self.place_light(position),
             LevelAction::DeleteLight(light) => self.delete_light(light),
-            LevelAction::SelectLight(id) => self.select_light(id),
+            LevelAction::SelectLight(mode, ids) => self.select_light(mode, ids),
             LevelAction::DeselectLight => {
                 self.execute(LevelAction::DeselectWaypoint, drag);
                 self.selection.clear();
@@ -589,10 +598,27 @@ impl LevelEditor {
         }
     }
 
-    fn select_light(&mut self, light_id: LightId) {
+    fn select_light(&mut self, mode: SelectMode, ids: Vec<LightId>) {
         self.level_state.waypoints = None;
         self.state = State::Idle;
-        self.selection.add_light(light_id);
+        match mode {
+            SelectMode::Add => {
+                for id in ids {
+                    self.selection.add_light(id);
+                }
+            }
+            SelectMode::Remove => {
+                for id in ids {
+                    self.selection.remove_light(id);
+                }
+            }
+            SelectMode::Set => {
+                self.selection.clear();
+                for id in ids {
+                    self.selection.add_light(id);
+                }
+            }
+        }
     }
 
     fn modify_movement(&mut self, light_id: LightId, f: impl FnOnce(&mut Movement)) {

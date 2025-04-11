@@ -48,7 +48,13 @@ impl EditorRender {
         let active_color = light_color;
 
         let hover_color = editor.config.theme.hover;
-        let hovered_event = level_editor.level_state.hovered_event();
+        let selecting_area = matches!(
+            editor.drag.as_ref().map(|drag| &drag.target),
+            Some(DragTarget::SelectionArea { .. })
+        );
+        let hovered_event = (!selecting_area)
+            .then(|| level_editor.level_state.hovered_event())
+            .flatten();
 
         let select_color = editor.config.theme.select;
 

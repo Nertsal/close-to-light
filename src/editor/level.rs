@@ -78,6 +78,17 @@ impl Selection {
         }
     }
 
+    pub fn remove_light(&mut self, id: LightId) {
+        match self {
+            Selection::Empty => {}
+            Selection::Lights(lights) => {
+                if let Some(i) = lights.iter().position(|l| *l == id) {
+                    lights.swap_remove(i);
+                }
+            }
+        }
+    }
+
     pub fn merge(&mut self, other: Self) {
         match other {
             Selection::Empty => {}

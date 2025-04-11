@@ -434,7 +434,10 @@ impl EditorState {
                                 geng::MouseButton::Left => {
                                     // Left click
                                     let mut selection = level_editor.selection.clone();
-                                    actions.push(LevelAction::SelectLight(light_id).into());
+                                    actions.push(
+                                        LevelAction::SelectLight(SelectMode::Set, vec![light_id])
+                                            .into(),
+                                    );
                                     selection.add_light(light_id);
                                     let lights = match selection {
                                         Selection::Empty => vec![],
@@ -474,10 +477,13 @@ impl EditorState {
                                                 Selection::Lights(vec) => vec.clone(),
                                             }
                                         } else {
-                                            actions.extend([
-                                                LevelAction::DeselectLight.into(),
-                                                LevelAction::SelectLight(light_id).into(),
-                                            ]);
+                                            actions.push(
+                                                LevelAction::SelectLight(
+                                                    SelectMode::Set,
+                                                    vec![light_id],
+                                                )
+                                                .into(),
+                                            );
                                             vec![light_id]
                                         };
                                     // let anchor = light
@@ -563,13 +569,7 @@ impl EditorState {
             State::Playing { .. } => {}
             State::Waypoints { state, .. } => match state {
                 WaypointsState::Idle => {
-                    if button == geng::MouseButton::Left && self.ui_context.mods.shift {
-                        // Shift+LMB is always a selection
-                        actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
-                            original: level_editor.selection.clone(),
-                            extra: Selection::Empty,
-                        }));
-                    } else if let Some(waypoints) = &level_editor.level_state.waypoints {
+                    if let Some(waypoints) = &level_editor.level_state.waypoints {
                         if let Some(hovered) =
                             waypoints.hovered.and_then(|i| waypoints.points.get(i))
                         {
@@ -589,22 +589,7 @@ impl EditorState {
                             }
                         } else {
                             // Clicked on empty space - deselect
-                            if let geng::MouseButton::Left = button {
-                                let original = if self.ui_context.mods.shift {
-                                    level_editor.selection.clone()
-                                } else {
-                                    actions.push(LevelAction::DeselectLight.into());
-                                    Selection::Empty
-                                };
-                                actions.push(EditorStateAction::StartDrag(
-                                    DragTarget::SelectionArea {
-                                        original,
-                                        extra: Selection::Empty,
-                                    },
-                                ));
-                            } else {
-                                actions.push(LevelAction::DeselectWaypoint.into());
-                            }
+                            actions.push(LevelAction::DeselectWaypoint.into());
                         }
                     }
                 }

@@ -114,8 +114,21 @@ impl EditorState {
                     mut original,
                     extra,
                 } => {
-                    original.merge(extra);
-                    level_editor.selection = original;
+                    if drag.from_screen == self.ui_context.cursor.position {
+                        // Click - select hovered light
+                        if let Some(hovered_light) = level_editor.level_state.hovered_light {
+                            let mode = if original.is_light_selected(hovered_light) {
+                                SelectMode::Remove
+                            } else {
+                                SelectMode::Add
+                            };
+                            level_editor
+                                .execute(LevelAction::SelectLight(mode, vec![hovered_light]), None);
+                        }
+                    } else {
+                        original.merge(extra);
+                        level_editor.selection = original;
+                    }
                 }
                 DragTarget::Light { double, .. } => {
                     if double

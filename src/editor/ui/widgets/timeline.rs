@@ -307,7 +307,7 @@ impl TimelineWidget {
                         // Waypoint drag
                         if icon.state.clicked || tick.state.clicked {
                             actions.extend([
-                                LevelAction::SelectLight(light_id).into(),
+                                LevelAction::SelectLight(SelectMode::Set, vec![light_id]).into(),
                                 LevelAction::SelectWaypoint(waypoint_id, false).into(),
                             ]);
                             self.dragging_waypoint = true;
@@ -384,7 +384,9 @@ impl TimelineWidget {
                             actions.push(LevelAction::HoverLight(light_id).into());
                         }
                         if icon.state.clicked {
-                            actions.push(LevelAction::SelectLight(light_id).into());
+                            actions.push(
+                                LevelAction::SelectLight(SelectMode::Set, vec![light_id]).into(),
+                            );
                             self.dragging_light =
                                 Some((context.cursor.position, context.real_time));
                         }
