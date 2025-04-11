@@ -60,6 +60,7 @@ pub enum DragTarget {
         light: LightId,
         waypoint: WaypointId,
         initial_translation: vec2<Coord>,
+        initial_time: Time,
     },
     WaypointScale {
         light: LightId,

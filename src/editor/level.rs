@@ -222,7 +222,7 @@ impl LevelEditor {
     }
 
     pub fn copy(&mut self) {
-        self.execute(LevelAction::CopySelection(self.selection.clone()));
+        self.execute(LevelAction::CopySelection(self.selection.clone()), None);
     }
 
     pub fn paste(&mut self) {
@@ -272,7 +272,7 @@ impl LevelEditor {
     // }
 
     pub fn new_waypoint(&mut self) {
-        self.execute(LevelAction::DeselectWaypoint);
+        self.execute(LevelAction::DeselectWaypoint, None);
 
         if let State::Waypoints { state, .. } = &mut self.state {
             *state = WaypointsState::New;

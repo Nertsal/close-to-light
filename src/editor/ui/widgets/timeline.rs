@@ -325,9 +325,14 @@ impl TimelineWidget {
                         if self.dragging_waypoint && is_waypoint_selected {
                             let time = unrender_time(context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap);
-                            let time = Change::Set(time);
                             actions.push(
-                                LevelAction::MoveWaypointTime(light_id, waypoint_id, time).into(),
+                                LevelAction::MoveWaypoint(
+                                    light_id,
+                                    waypoint_id,
+                                    Change::Set(time),
+                                    Change::Add(vec2::ZERO),
+                                )
+                                .into(),
                             );
                         }
                     }

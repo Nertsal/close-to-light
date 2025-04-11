@@ -365,11 +365,15 @@ impl EditorState {
                 light,
                 waypoint,
                 initial_translation,
+                initial_time,
             } => {
                 actions.push(
                     LevelAction::MoveWaypoint(
                         light,
                         waypoint,
+                        Change::Set(
+                            initial_time + level_editor.current_time.target - drag.from_beat,
+                        ),
                         Change::Set(
                             initial_translation + self.editor.cursor_world_pos_snapped
                                 - drag.from_world,
@@ -574,18 +578,13 @@ impl EditorState {
                                 if let Some(event) =
                                     level_editor.level.events.get(waypoints.light.event)
                                 {
-                                    if let Event::Light(event) = &event.event {
-                                        if let Some(frame) = event.movement.get_frame(waypoint) {
-                                            self.click_waypoint(
-                                                waypoints,
-                                                event,
-                                                waypoint,
-                                                frame,
-                                                button,
-                                                &mut actions,
-                                            );
-                                        }
-                                    }
+                                    self.click_waypoint(
+                                        waypoints,
+                                        event,
+                                        waypoint,
+                                        button,
+                                        &mut actions,
+                                    );
                                 }
                             }
                         } else {
@@ -624,18 +623,24 @@ impl EditorState {
     fn click_waypoint(
         &self,
         waypoints: &Waypoints,
-        event: &LightEvent,
+        event: &TimedEvent,
         waypoint: WaypointId,
-        frame: Transform,
         button: geng::MouseButton,
         actions: &mut Vec<EditorStateAction>,
     ) {
+        let Event::Light(light_event) = &event.event else {
+            return;
+        };
+        let Some(frame) = light_event.movement.get_frame(waypoint) else {
+            return;
+        };
+
         match button {
             geng::MouseButton::Left => {
                 actions.push(LevelAction::SelectWaypoint(waypoint, false).into());
                 if self.ui_context.mods.shift {
                     let delta = self.editor.cursor_world_pos - frame.translation;
-                    let scale_direction = match event.shape {
+                    let scale_direction = match light_event.shape {
                         Shape::Circle { .. } => delta,
                         Shape::Line { .. } => {
                             let dir = frame.rotation.unit_vec();
@@ -674,10 +679,13 @@ impl EditorState {
                     }));
                 } else {
                     let initial_translation = frame.translation;
+                    let initial_time =
+                        event.time + light_event.movement.get_time(waypoint).unwrap_or(0);
                     actions.push(EditorStateAction::StartDrag(DragTarget::WaypointMove {
                         light: waypoints.light,
                         waypoint,
                         initial_translation,
+                        initial_time,
                     }));
                 }
             }

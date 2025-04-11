@@ -35,7 +35,7 @@ impl Editor {
         match action {
             EditorAction::Level(action) => {
                 if let Some(editor) = &mut self.level_edit {
-                    editor.execute(action);
+                    editor.execute(action, self.drag.as_mut());
                 } else {
                     log::error!(
                         "Tried performing level editor action, but no level is loaded: {:?}",
