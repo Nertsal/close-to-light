@@ -683,11 +683,13 @@ impl LevelEditor {
 
         let start_beat = self.current_time.target;
         let timing = self.level.timing.get_timing(start_beat);
+        let rotation = self.place_rotation.normalized_2pi();
+        self.place_rotation = rotation;
         let movement = Movement::new(
             seconds_to_time(timing.beat_time),
             Transform {
                 translation: position,
-                rotation: self.place_rotation.normalized_2pi(),
+                rotation,
                 scale: self.place_scale,
             },
         );
