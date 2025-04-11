@@ -576,9 +576,12 @@ impl LevelCache {
         group_index: Index,
         new_local: LocalGroup,
         reset_origin: Option<GroupInfo>,
-    ) -> Option<Rc<CachedGroup>> {
+    ) -> Result<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
-        let cached = inner.groups.get_mut(group_index)?;
+        let cached = inner
+            .groups
+            .get_mut(group_index)
+            .ok_or(anyhow!("group {:?} not found", group_index))?;
 
         let mut new_group: CachedGroup = (**cached).clone();
 
@@ -604,7 +607,7 @@ impl LevelCache {
         drop(inner);
         self.move_group(&group, old_path);
 
-        Some(group)
+        Ok(group)
     }
 
     pub fn update_group(
@@ -621,6 +624,7 @@ impl LevelCache {
 
         drop(inner);
         self.update_group_local(group_index, new_group, reset_origin)
+            .ok()
     }
 
     pub fn update_level(
@@ -648,9 +652,14 @@ impl LevelCache {
         &self,
         group_index: Index,
         music_path: PathBuf,
-    ) -> Option<Rc<CachedGroup>> {
+    ) -> Result<Rc<CachedGroup>> {
         let inner = self.inner.borrow();
-        let new_group = inner.groups.get(group_index)?.local.clone();
+        let new_group = inner
+            .groups
+            .get(group_index)
+            .ok_or(anyhow!("group {:?} not found", group_index))?
+            .local
+            .clone();
         drop(inner);
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -661,7 +670,7 @@ impl LevelCache {
                 let path = music_path.clone();
                 let geng = self.geng.clone();
                 async move {
-                    let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
+                    let music_bytes = file::load_bytes(&path).await;
                     match music_bytes {
                         Ok(bytes) => {
                             let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
@@ -671,8 +680,7 @@ impl LevelCache {
                         Err(err) => Err(err),
                     }
                 }
-            })
-            .ok()?;
+            })?;
 
             let meta = new_group.meta.music.clone().unwrap_or_else(|| {
                 let mut meta = MusicInfo::default();
@@ -694,6 +702,7 @@ impl LevelCache {
         // Copy music to the group path
         #[cfg(not(target_arch = "wasm32"))]
         {
+            log::debug!("Copying music file into {:?}", group.local.path);
             // Create a dir because the rest of the group is saved asynchronously
             let _ = std::fs::create_dir_all(&group.local.path);
             if let Err(err) = std::fs::copy(&music_path, group.local.path.join("music.mp3")) {
@@ -701,7 +710,7 @@ impl LevelCache {
             }
         }
 
-        Some(group)
+        Ok(group)
     }
 
     pub fn delete_group(&self, group: Index) {

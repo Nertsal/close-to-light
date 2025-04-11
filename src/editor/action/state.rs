@@ -41,9 +41,14 @@ impl EditorState {
             }
             EditorStateAction::SelectMusicFile(path) => {
                 let group = self.editor.group.group_index;
-                if let Some(group) = self.context.local.select_music_file(group, path) {
-                    self.editor.group.music = group.local.music.clone();
-                    self.editor.group.cached = group;
+                match self.context.local.select_music_file(group, path) {
+                    Err(err) => {
+                        log::error!("Failed to select music: {:?}", err);
+                    }
+                    Ok(group) => {
+                        self.editor.group.music = group.local.music.clone();
+                        self.editor.group.cached = group;
+                    }
                 }
             }
             EditorStateAction::Editor(action) => self.editor.execute(action),
