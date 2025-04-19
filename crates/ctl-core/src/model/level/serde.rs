@@ -1,7 +1,6 @@
 use super::*;
 
-#[derive(geng::asset::Load, Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[load(serde = "json")]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct Level {
     pub events: Vec<TimedEvent>,
