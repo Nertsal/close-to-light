@@ -81,10 +81,14 @@ impl EditorConfigUi {
 
         let music_pos = bar.cut_top(context.font_size);
         if let Some(music) = &editor.group.music {
-            let text = context
-                .state
-                .get_root_or(|| TextWidget::new(music.meta.name.clone()));
-            text.update(music_pos, context);
+            let input = context.state.get_root_or(|| InputWidget::new(""));
+            if !input.editing {
+                input.sync(&music.meta.name, context);
+            }
+            input.update(music_pos, context);
+            if !input.editing && *music.meta.name != input.raw {
+                actions.push(EditorStateAction::SetGroupName(input.raw.clone()));
+            }
         }
 
         bar.cut_top(context.layout_size);

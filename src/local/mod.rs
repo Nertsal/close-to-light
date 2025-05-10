@@ -9,11 +9,12 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
+#[derive(Clone)]
 pub struct LocalMusic {
     pub meta: MusicInfo,
     pub sound: Rc<geng::Sound>,
     /// Raw bytes of the music file, used when saving.
-    pub bytes: Vec<u8>,
+    pub bytes: Rc<[u8]>,
 }
 
 impl Debug for LocalMusic {
@@ -50,7 +51,7 @@ pub struct CachedGroup {
 }
 
 impl LocalMusic {
-    pub fn new(meta: MusicInfo, mut sound: geng::Sound, bytes: Vec<u8>) -> Self {
+    pub fn new(meta: MusicInfo, mut sound: geng::Sound, bytes: Rc<[u8]>) -> Self {
         sound.looped = true;
         Self {
             meta,

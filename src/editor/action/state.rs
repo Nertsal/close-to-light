@@ -3,7 +3,6 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum EditorStateAction {
     Exit,
-    SelectMusicFile(std::path::PathBuf),
     Editor(EditorAction),
     Cancel,
     StopTextEdit,
@@ -11,13 +10,13 @@ pub enum EditorStateAction {
     CursorMove(vec2<f32>),
     WheelScroll(f32),
     StartPlaytest,
-    // TimelineScroll(Coord),
-    // TimelineZoom(Coord),
     EndDrag,
     StartDrag(DragTarget),
     ConfirmPopupAction,
     ContextMenu(vec2<f32>, Vec<(Name, EditorStateAction)>),
     CloseContextMenu,
+    SelectMusicFile(std::path::PathBuf),
+    SetGroupName(String),
 }
 
 impl From<EditorAction> for EditorStateAction {
@@ -39,18 +38,6 @@ impl EditorState {
             EditorStateAction::Exit => {
                 self.transition = Some(geng::state::Transition::Pop);
             }
-            EditorStateAction::SelectMusicFile(path) => {
-                let group = self.editor.group.group_index;
-                match self.context.local.select_music_file(group, path) {
-                    Err(err) => {
-                        log::error!("Failed to select music: {:?}", err);
-                    }
-                    Ok(group) => {
-                        self.editor.group.music = group.local.music.clone();
-                        self.editor.group.cached = group;
-                    }
-                }
-            }
             EditorStateAction::Editor(action) => self.editor.execute(action),
             EditorStateAction::Cancel => self.cancel(),
             EditorStateAction::StopTextEdit => {
@@ -69,28 +56,6 @@ impl EditorState {
                 self.ui_context.cursor.scroll += delta;
             }
             EditorStateAction::StartPlaytest => self.play_game(),
-            // EditorStateAction::TimelineScroll(scroll) => {
-            //     if let Some(level_editor) = &self.editor.level_edit {
-            //         let timeline = &mut self.ui.edit.timeline;
-            //         let delta = -scroll.as_f32() * 30.0 / timeline.get_scale();
-            //         let delta = (delta * TIME_IN_FLOAT_TIME as f32).round() as Time;
-            //         let current = -timeline.get_scroll();
-            //         let delta = if delta > 0 {
-            //             delta.min(current)
-            //         } else {
-            //             -delta.abs().min(
-            //                 level_editor.level.last_time() - timeline.visible_scroll() - current,
-            //             )
-            //         };
-            //         timeline.scroll(delta);
-            //     }
-            // }
-            // EditorStateAction::TimelineZoom(scroll) => {
-            //     let timeline = &mut self.ui.edit.timeline;
-            //     let zoom = timeline.get_scale();
-            //     let zoom = (zoom + scroll.as_f32() * 0.05).clamp(0.05, 0.75);
-            //     timeline.rescale(zoom);
-            // }
             EditorStateAction::EndDrag => self.end_drag(),
             EditorStateAction::StartDrag(target) => self.start_drag(target),
             EditorStateAction::ConfirmPopupAction => self.editor.confirm_action(&mut self.ui),
@@ -99,6 +64,38 @@ impl EditorState {
             }
             EditorStateAction::CloseContextMenu => {
                 self.ui.context_menu.close();
+            }
+            EditorStateAction::SelectMusicFile(path) => {
+                let group = self.editor.group.group_index;
+                match self.context.local.select_music_file(group, path) {
+                    Err(err) => {
+                        log::error!("Failed to select music: {:?}", err);
+                    }
+                    Ok(group) => {
+                        self.editor.group.music = group.local.music.clone();
+                        self.editor.group.cached = group;
+                    }
+                }
+            }
+            EditorStateAction::SetGroupName(name) => {
+                let group = self.editor.group.group_index;
+                let mut meta = self.editor.group.cached.local.meta.clone();
+
+                let mut music_meta = meta.music.unwrap_or_default();
+                log::debug!("Renaming music into {:?}", name);
+                music_meta.name = name.into();
+                music_meta.romanized = music_meta.name.clone(); // TODO: separate config
+
+                meta.music = Some(music_meta);
+                match self.context.local.update_group_meta(group, meta) {
+                    None => {
+                        log::error!("Failed to rename level");
+                    }
+                    Some(group) => {
+                        self.editor.group.music = group.local.music.clone();
+                        self.editor.group.cached = group;
+                    }
+                }
             }
         }
     }

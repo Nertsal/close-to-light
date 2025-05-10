@@ -628,6 +628,32 @@ impl LevelCache {
         Ok(group)
     }
 
+    pub fn update_group_meta(
+        &self,
+        group_index: Index,
+        group_meta: GroupMeta,
+    ) -> Option<Rc<CachedGroup>> {
+        let mut inner = self.inner.borrow_mut();
+        let cached = inner.groups.get_mut(group_index)?;
+
+        let mut new_group: CachedGroup = (**cached).clone();
+        if let Some(music) = &new_group.local.music {
+            if let Some(music_meta) = &group_meta.music {
+                let mut new_music: LocalMusic = (**music).clone();
+                new_music.meta = music_meta.clone();
+                new_group.local.music = Some(Rc::new(new_music));
+            }
+        }
+        new_group.local.meta = group_meta;
+
+        let new_group = Rc::new(new_group);
+        *cached = Rc::clone(&new_group);
+        drop(inner);
+
+        self.save_group(&new_group);
+        Some(new_group)
+    }
+
     pub fn update_group(
         &self,
         group_index: Index,
@@ -700,7 +726,7 @@ impl LevelCache {
                 }
             })?;
 
-            let meta = new_group.meta.music.clone().unwrap_or_else(|| {
+            let music_meta = new_group.meta.music.clone().unwrap_or_else(|| {
                 let mut meta = MusicInfo::default();
                 if let Some(name) = music_path.file_name() {
                     let name: Name = name.to_string_lossy().into();
@@ -709,8 +735,9 @@ impl LevelCache {
                 }
                 meta
             });
-            let music = LocalMusic::new(meta, music, music_bytes);
+            let music = LocalMusic::new(music_meta.clone(), music, music_bytes.into());
             new_group.music = Some(Rc::new(music));
+            new_group.meta.music = Some(music_meta);
 
             new_group
         };

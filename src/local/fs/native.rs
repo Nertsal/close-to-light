@@ -40,8 +40,8 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
             let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
 
             let music_meta = meta.music.clone().unwrap_or_default();
-            let music =
-                music.map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes)));
+            let music = music
+                .map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes.into())));
 
             let local = LocalGroup {
                 path,
