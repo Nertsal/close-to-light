@@ -5,14 +5,16 @@ pub struct MusicManager {
 }
 
 struct MusicManagerImpl {
+    geng: Geng,
     volume: f32,
     playing: Option<Music>,
 }
 
 impl MusicManager {
-    pub fn new() -> Self {
+    pub fn new(geng: Geng) -> Self {
         Self {
             inner: RefCell::new(MusicManagerImpl {
+                geng,
                 volume: 0.5,
                 playing: None,
             }),
@@ -81,7 +83,7 @@ impl MusicManager {
 
     pub fn play_from(&self, music: &Rc<LocalMusic>, time: Duration) {
         let mut inner = self.inner.borrow_mut();
-        let mut music = Music::new(music.clone());
+        let mut music = Music::new(inner.geng.clone(), music.clone());
         music.set_volume(inner.volume);
         music.play_from(time);
         inner.playing = Some(music);
@@ -96,6 +98,7 @@ impl MusicManager {
 }
 
 pub struct Music {
+    geng: Geng,
     local: Rc<LocalMusic>,
     effect: Option<geng::SoundEffect>,
     volume: f32,
@@ -119,15 +122,16 @@ impl Debug for Music {
 
 impl Clone for Music {
     fn clone(&self) -> Self {
-        let mut m = Self::new(self.local.clone());
+        let mut m = Self::new(self.geng.clone(), self.local.clone());
         m.set_volume(self.volume);
         m
     }
 }
 
 impl Music {
-    pub fn new(local: Rc<LocalMusic>) -> Self {
+    pub fn new(geng: Geng, local: Rc<LocalMusic>) -> Self {
         Self {
+            geng,
             local,
             volume: 0.5,
             effect: None,
@@ -150,7 +154,7 @@ impl Music {
 
     pub fn play_from(&mut self, time: time::Duration) {
         self.stop();
-        let mut effect = self.local.sound.effect();
+        let mut effect = self.local.sound.effect(self.geng.audio().default_type());
         effect.set_volume(self.volume);
         effect.play_from(time);
         self.effect = Some(effect);

@@ -39,7 +39,7 @@ impl geng::State for SplashScreen {
         let camera = &Camera2d {
             center: vec2::ZERO,
             rotation: Angle::ZERO,
-            fov: 12.0,
+            fov: Camera2dFov::Vertical(12.0),
         };
 
         let alpha = (TRANSITION_TIME - self.time.as_f32()).clamp(0.0, 1.0);

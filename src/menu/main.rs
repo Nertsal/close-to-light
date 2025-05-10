@@ -57,7 +57,7 @@ impl MainMenu {
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: 10.0,
+                fov: Camera2dFov::Vertical(10.0),
             },
 
             time: FloatTime::ZERO,

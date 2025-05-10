@@ -30,7 +30,7 @@ cbor4ii = { version = "0.3.3", features = ["serde1", "use_std"] }
 
 # Game
 geng = "0.18"
-geng-utils = "0.3.0"
+geng-utils = "0.4.0"
 parry2d = "0.13.5"
 async-executor = "1.8.0"
 webbrowser = "1.0.1"
@@ -66,7 +66,7 @@ sqlx = { version = "0.7.3", features = ["uuid", "runtime-tokio", "sqlite"] }
 dotenv = "0.15.0"
 
 # Client
-reqwest = { version = "0.11.23", features = ["json", "multipart"] }
+reqwest = { version = "0.11.23", features = ["json", "multipart", "stream"] }
 url = "2.5.0"
 
 [package]
@@ -106,5 +106,5 @@ rexie = "0.5.0"
 serde-wasm-bindgen = "0.6.5"
 
 [patch.crates-io]
-async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
-geng = { git = "https://github.com/geng-engine/geng", rev = "38a550f6389d8b2720fefd2f42b5fb58fba106c2" }
+geng = { git = "https://github.com/geng-engine/geng", rev = "3a94dac77da86049059d5fbb21a4feb916d67c22" }
+geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}

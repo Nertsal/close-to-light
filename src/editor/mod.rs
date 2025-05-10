@@ -339,7 +339,8 @@ impl geng::State for EditorState {
         }
 
         if let Some(level_editor) = &mut self.editor.level_edit {
-            level_editor.model.camera.fov = 10.0 / self.editor.view_zoom.current;
+            level_editor.model.camera.fov =
+                geng::Camera2dFov::Vertical(10.0 / self.editor.view_zoom.current);
         }
         self.render
             .draw_editor(&self.editor, &self.ui, &self.ui_context, framebuffer);

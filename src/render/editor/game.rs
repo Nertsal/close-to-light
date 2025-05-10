@@ -417,13 +417,18 @@ impl EditorRender {
             if options.show_grid {
                 let color = crate::util::with_alpha(Color::lerp(theme.dark, theme.light, 0.7), 0.8);
                 let grid_size = editor.grid.cell_size.as_f32();
-                let view = vec2(
-                    level_editor.model.camera.fov * ui_buffer.size().as_f32().aspect(),
-                    level_editor.model.camera.fov,
-                ) / 2.0
-                    / grid_size;
+
+                let view = level_editor
+                    .model
+                    .camera
+                    .view_area(ui_buffer.size().as_f32());
+                let view = Aabb2::points_bounding_box(
+                    [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)]
+                        .map(|(x, y)| (view.transform * vec3(x, y, 1.0)).into_2d()),
+                )
+                .expect("unit quad has 4 corners");
+                let view = view.size() / 2.0 / grid_size;
                 let view = view.map(|x| x.ceil() as i64);
-                let thick = editor.config.grid.thick_every as i64;
 
                 let buffer_size = ui_buffer.size().as_f32();
                 let ppp = |pos| {
@@ -438,6 +443,7 @@ impl EditorRender {
                     a_color: color,
                 };
 
+                let thick = editor.config.grid.thick_every as i64;
                 for x in -view.x..=view.x {
                     // Vertical
                     let width = if thick > 0 && x % thick == 0 {

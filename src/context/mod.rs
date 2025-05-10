@@ -31,7 +31,7 @@ impl Context {
         Ok(Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            music: Rc::new(MusicManager::new()),
+            music: Rc::new(MusicManager::new(geng.clone())),
             local: Rc::new(LevelCache::load(client, geng).await?),
             options: Rc::new(RefCell::new(
                 preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),

@@ -164,7 +164,11 @@ impl Model {
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: 10.0,
+                fov: Camera2dFov::Cover {
+                    width: 17.778,
+                    height: 10.0,
+                    scale: 1.0,
+                },
             },
             player: Player::new(
                 Collider::new(
