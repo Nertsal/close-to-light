@@ -274,6 +274,14 @@ impl LevelCache {
             async move {
                 fs.save_group(&group).await?;
                 if old_path != group.local.path {
+                    // Move the music file
+                    let music_path = old_path.join("music.mp3");
+                    if music_path.exists() {
+                        fs.copy_music_from(music_path, group.local.path.join("music.mp3"))
+                            .await?;
+                    }
+
+                    // Remove old data
                     fs.remove_group(old_path).await?;
                 }
                 Ok(())
@@ -697,6 +705,7 @@ impl LevelCache {
             new_group
         };
 
+        // TODO: should not move (change name) because we're only changing the music
         let group = self.update_group_local(group_index, new_group, None)?;
 
         // Copy music to the group path

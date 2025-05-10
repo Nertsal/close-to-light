@@ -95,6 +95,25 @@ impl Controller {
         Ok(())
     }
 
+    pub async fn copy_music_from(
+        &self,
+        source: impl AsRef<Path>,
+        destination: impl AsRef<Path>,
+    ) -> Result<()> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = source;
+            let _ = destination;
+            Ok(())
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            std::fs::copy(source, destination)?;
+            Ok(())
+        }
+    }
+
     pub async fn remove_group(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref();
         log::debug!("Deleting a group: {:?}", path);
