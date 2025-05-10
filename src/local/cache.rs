@@ -606,7 +606,17 @@ impl LevelCache {
             .map(|level| level.data.calculate_hash())
             .collect();
         new_group.local = new_local;
-        new_group.local.path = fs::generate_group_path(new_group.local.data.id);
+
+        let move_from_assets = cached
+            .local
+            .path
+            .parent()
+            .is_some_and(|path| path != fs::all_groups_path());
+        let move_to_local =
+            new_group.local.data.id != cached.local.data.id && new_group.local.data.id == 0;
+        if move_from_assets || move_to_local {
+            new_group.local.path = fs::generate_group_path(new_group.local.data.id);
+        }
 
         let group = Rc::new(new_group);
         *cached = Rc::clone(&group);
