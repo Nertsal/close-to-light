@@ -200,16 +200,17 @@ impl EditorState {
         if level_editor.scrolling_time {
             level_editor.was_scrolling_time = true;
         } else {
-            if level_editor.was_scrolling_time {
-                // Stopped scrolling
-                if let Some(music) = &level_editor.static_level.group.music {
-                    // Play some music
-                    self.context
-                        .music
-                        .play_from_beat(music, level_editor.current_time.value);
-                    self.editor.music_timer = self.editor.config.playback_duration;
-                }
-            }
+            // TODO: potentially config option?
+            // if level_editor.was_scrolling_time {
+            //     // Stopped scrolling
+            //     if let Some(music) = &level_editor.static_level.group.music {
+            //         // Play some music
+            //         self.context
+            //             .music
+            //             .play_from_time(music, level_editor.current_time.value);
+            //         self.editor.music_timer = self.editor.config.playback_duration;
+            //     }
+            // }
             level_editor.was_scrolling_time = false;
         }
 

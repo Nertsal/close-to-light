@@ -21,6 +21,8 @@ pub enum EditorAction {
     SetViewZoom(Change<f32>),
     SetGridSize(Coord),
     ScrollTimeBy(ScrollSpeed, i64),
+    StartPlaying,
+    StopPlaying,
 }
 
 impl From<LevelAction> for EditorAction {
@@ -73,6 +75,40 @@ impl Editor {
             EditorAction::SetGridSize(size) => self.grid.cell_size = size,
             EditorAction::ScrollTimeBy(speed, scroll) => {
                 self.scroll_time_by(speed, scroll);
+            }
+            EditorAction::StopPlaying => {
+                if let Some(level_editor) = &mut self.level_edit {
+                    if let State::Playing {
+                        start_time,
+                        start_target_time,
+                        old_state,
+                    } = &level_editor.state
+                    {
+                        level_editor.current_time.snap_to(*start_time);
+                        level_editor
+                            .current_time
+                            .scroll_time(Change::Set(*start_target_time));
+                        level_editor.state = *old_state.clone();
+                        level_editor.context.music.stop();
+                    }
+                }
+            }
+            EditorAction::StartPlaying => {
+                if let Some(level_editor) = &mut self.level_edit {
+                    level_editor.state = State::Playing {
+                        start_time: level_editor.current_time.value,
+                        start_target_time: level_editor.current_time.target,
+                        old_state: Box::new(level_editor.state.clone()),
+                    };
+                    level_editor.real_time = time_to_seconds(level_editor.current_time.value);
+                    if let Some(music) = &level_editor.static_level.group.music {
+                        self.context.music.play_from(
+                            music,
+                            time::Duration::from_secs_f64(level_editor.real_time.as_f32().into()),
+                        );
+                        self.music_timer = FloatTime::ZERO;
+                    }
+                }
             }
         }
     }

@@ -14,8 +14,6 @@ pub enum LevelAction {
     Cancel,
     SetName(String),
     ToggleWaypointsView,
-    StopPlaying,
-    StartPlaying,
     ScalePlacement(Change<Coord>),
     RotatePlacement(Angle<Coord>),
     ScrollTime(Time),
@@ -115,8 +113,6 @@ impl LevelAction {
             LevelAction::Cancel => false,
             LevelAction::SetName(_) => false,
             LevelAction::ToggleWaypointsView => false,
-            LevelAction::StopPlaying => false,
-            LevelAction::StartPlaying => false,
             LevelAction::ScalePlacement(delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
             LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
@@ -214,34 +210,6 @@ impl LevelEditor {
             LevelAction::Cancel => self.cancel(),
             LevelAction::SetName(name) => self.name = name,
             LevelAction::ToggleWaypointsView => self.view_waypoints(),
-            LevelAction::StopPlaying => {
-                if let State::Playing {
-                    start_time,
-                    start_target_time,
-                    old_state,
-                } = &self.state
-                {
-                    self.current_time.snap_to(*start_time);
-                    self.current_time
-                        .scroll_time(Change::Set(*start_target_time));
-                    self.state = *old_state.clone();
-                    self.context.music.stop();
-                }
-            }
-            LevelAction::StartPlaying => {
-                self.state = State::Playing {
-                    start_time: self.current_time.value,
-                    start_target_time: self.current_time.target,
-                    old_state: Box::new(self.state.clone()),
-                };
-                self.real_time = time_to_seconds(self.current_time.value);
-                if let Some(music) = &self.static_level.group.music {
-                    self.context.music.play_from(
-                        music,
-                        time::Duration::from_secs_f64(self.real_time.as_f32().into()),
-                    );
-                }
-            }
             LevelAction::ScalePlacement(delta) => {
                 delta.apply(&mut self.place_scale);
                 self.place_scale = self.place_scale.clamp(r32(0.25), r32(2.0));

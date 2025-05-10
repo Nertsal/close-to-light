@@ -162,9 +162,9 @@ impl EditorState {
                 }
                 geng::Key::Space => {
                     if let State::Playing { .. } = &level_editor.state {
-                        actions.push(LevelAction::StopPlaying.into());
+                        actions.push(EditorAction::StopPlaying.into());
                     } else {
-                        actions.push(LevelAction::StartPlaying.into());
+                        actions.push(EditorAction::StartPlaying.into());
                     }
                 }
                 geng::Key::Digit1 => actions.extend(self.handle_digit(1)),

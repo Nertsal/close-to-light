@@ -89,9 +89,9 @@ impl MusicManager {
         inner.playing = Some(music);
     }
 
-    pub fn play_from_beat(&self, music: &Rc<LocalMusic>, beat: Time) {
+    pub fn play_from_time(&self, music: &Rc<LocalMusic>, time: Time) {
         let time = Duration::from_secs_f64(
-            beat as f64 * ctl_client::core::types::TIME_IN_FLOAT_TIME as f64,
+            time as f64 * ctl_client::core::types::TIME_IN_FLOAT_TIME as f64,
         );
         self.play_from(music, time)
     }

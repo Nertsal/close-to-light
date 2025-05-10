@@ -308,6 +308,10 @@ impl LevelEditor {
     }
 
     pub fn scroll_time(&mut self, delta: Time) {
+        if let State::Playing { .. } = self.state {
+            return;
+        }
+
         let margin = 100 * TIME_IN_FLOAT_TIME;
         let min = Time::ZERO;
         let max = margin + self.level.last_time();
