@@ -443,7 +443,14 @@ impl EditorState {
                             match button {
                                 geng::MouseButton::Left => {
                                     // Left click
-                                    let mut selection = level_editor.selection.clone();
+                                    let mut selection =
+                                        if level_editor.selection.is_light_selected(light_id) {
+                                            // Drag all selected
+                                            level_editor.selection.clone()
+                                        } else {
+                                            // Select single light
+                                            Selection::Empty
+                                        };
                                     actions.push(
                                         LevelAction::SelectLight(SelectMode::Set, vec![light_id])
                                             .into(),
