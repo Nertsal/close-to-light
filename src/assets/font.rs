@@ -253,7 +253,7 @@ impl Font {
                     ..default()
                 },
             );
-            position.y -= options.size; // NOTE: larger than text size to space out better
+            position.y -= options.size;
         }
     }
 }

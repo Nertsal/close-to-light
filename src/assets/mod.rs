@@ -210,10 +210,6 @@ fn dither_pattern(texture: &mut ugli::Texture) {
     texture.set_filter(ugli::Filter::Nearest);
 }
 
-fn looping(sfx: &mut geng::Sound) {
-    sfx.looped = true;
-}
-
 impl Assets {
     pub async fn load(manager: &geng::asset::Manager) -> anyhow::Result<Self> {
         geng::asset::Load::load(manager, &run_dir().join("assets"), &())
