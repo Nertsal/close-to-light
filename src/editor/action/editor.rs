@@ -81,6 +81,7 @@ impl Editor {
                     if let State::Playing {
                         start_time,
                         start_target_time,
+                        playing_time: _,
                         old_state,
                     } = &level_editor.state
                     {
@@ -98,14 +99,14 @@ impl Editor {
                     level_editor.state = State::Playing {
                         start_time: level_editor.current_time.value,
                         start_target_time: level_editor.current_time.target,
+                        playing_time: FloatTime::ZERO,
                         old_state: Box::new(level_editor.state.clone()),
                     };
-                    level_editor.real_time = time_to_seconds(level_editor.current_time.value);
                     if let Some(music) = &level_editor.static_level.group.music {
-                        self.context.music.play_from(
-                            music,
-                            time::Duration::from_secs_f64(level_editor.real_time.as_f32().into()),
-                        );
+                        let time = time_to_seconds(level_editor.current_time.target);
+                        self.context
+                            .music
+                            .play_from(music, time::Duration::from_secs_f64(time.as_f32().into()));
                         self.music_timer = FloatTime::ZERO;
                     }
                 }

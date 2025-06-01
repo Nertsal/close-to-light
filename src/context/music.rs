@@ -1,5 +1,7 @@
 use super::*;
 
+use ctl_client::core::types::time_to_seconds;
+
 pub struct MusicManager {
     inner: RefCell<MusicManagerImpl>,
 }
@@ -90,9 +92,8 @@ impl MusicManager {
     }
 
     pub fn play_from_time(&self, music: &Rc<LocalMusic>, time: Time) {
-        let time = Duration::from_secs_f64(
-            time as f64 * ctl_client::core::types::TIME_IN_FLOAT_TIME as f64,
-        );
+        let time = time_to_seconds(time);
+        let time = Duration::from_secs_f64(time.as_f32().into());
         self.play_from(music, time)
     }
 }

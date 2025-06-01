@@ -50,6 +50,13 @@ impl Game {
         level: PlayLevel,
         leaderboard: Leaderboard,
     ) -> Self {
+        if level.group.music.is_none() {
+            log::warn!(
+                "Starting level {:?} but no music got loaded.",
+                level.level.meta.name
+            );
+        }
+
         Self::preloaded(
             context.clone(),
             Model::new(context, options, level.clone(), leaderboard),

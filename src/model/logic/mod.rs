@@ -210,6 +210,7 @@ impl Model {
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
         if let Some(music) = &self.level.group.music {
+            log::debug!("Starting music at {}", music_start_time);
             self.context.music.play_from_time(music, music_start_time);
         }
     }

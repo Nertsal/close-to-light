@@ -8,9 +8,15 @@ pub enum State {
         shape: Shape,
         danger: bool,
     },
+    /// Playing music in editor music.
     Playing {
+        /// How long music has been playing for so far.
+        playing_time: FloatTime,
+        /// Time on the timeline when started playing.
         start_time: Time,
+        /// Target time on the timeline when started playing.
         start_target_time: Time,
+        /// State to revert to when done playing.
         old_state: Box<State>,
     },
     /// Control waypoints of an existing event.

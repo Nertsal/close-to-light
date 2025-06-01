@@ -216,10 +216,17 @@ impl EditorState {
 
         level_editor.scrolling_time = false;
 
-        if let State::Playing { .. } = level_editor.state {
+        if let State::Playing {
+            start_target_time,
+            playing_time,
+            ..
+        } = &mut level_editor.state
+        {
+            // Scroll time forward
+            *playing_time += delta_time;
             level_editor
                 .current_time
-                .snap_to(seconds_to_time(level_editor.real_time));
+                .snap_to(*start_target_time + seconds_to_time(*playing_time));
         }
 
         let include_cursor = !self.ui_focused
@@ -258,7 +265,7 @@ impl EditorState {
         };
 
         let level = crate::game::PlayLevel {
-            start_time: level_editor.current_time.value,
+            start_time: level_editor.current_time.target,
             level: Rc::new(LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
                 data: level_editor.level.clone(),
