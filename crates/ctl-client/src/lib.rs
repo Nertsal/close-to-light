@@ -9,10 +9,10 @@ pub use ctl_core as core;
 use ctl_core::{
     ScoreEntry, SubmitScore,
     prelude::{DeserializeOwned, Id, MusicInfo, MusicUpdate, log, serde_json},
-    types::{GroupInfo, LevelInfo, LevelSet, NewArtist},
+    types::{LevelInfo, LevelSet, LevelSetInfo, NewMusician},
 };
 
-use core::types::GroupsQuery;
+use core::types::LevelSetsQuery;
 use std::sync::atomic::AtomicBool;
 
 use reqwest::{Client, RequestBuilder, Response, StatusCode, Url};
@@ -108,7 +108,7 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn upload_group(&self, group: &LevelSet) -> Result<GroupInfo> {
+    pub async fn upload_group(&self, group: &LevelSet) -> Result<LevelSetInfo> {
         let url = self.url.join("group/create").unwrap();
         let body = bincode::serialize(group)?;
         let req = self.client.post(url).body(body);
@@ -119,7 +119,7 @@ impl Nertboard {
         self.get_group_info(group_id).await
     }
 
-    pub async fn get_group_list(&self, query: &GroupsQuery) -> Result<Vec<GroupInfo>> {
+    pub async fn get_group_list(&self, query: &LevelSetsQuery) -> Result<Vec<LevelSetInfo>> {
         let url = self.url.join("groups").unwrap();
         let req = self.client.get(url).query(&query);
         let response = self.send(req).await?;
@@ -127,7 +127,7 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn get_group_info(&self, group: Id) -> Result<GroupInfo> {
+    pub async fn get_group_info(&self, group: Id) -> Result<LevelSetInfo> {
         self.get_json(&format!("group/{}", group)).await
     }
 
@@ -187,7 +187,7 @@ impl Nertboard {
         Ok(())
     }
 
-    pub async fn create_artist(&self, artist: NewArtist) -> Result<Id> {
+    pub async fn create_artist(&self, artist: NewMusician) -> Result<Id> {
         let url = self.url.join("artists").unwrap();
 
         let req = self.client.post(url).form(&artist);

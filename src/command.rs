@@ -9,7 +9,7 @@ use ctl_client::{
     Nertboard,
     core::{
         prelude::Uuid,
-        types::{Id, NewArtist, UserLogin},
+        types::{Id, NewMusician, UserLogin},
     },
 };
 
@@ -233,7 +233,7 @@ impl Command {
                     } => {
                         log::info!("Creating a new artist {} (user: {:?})", name, user);
                         client
-                            .create_artist(NewArtist {
+                            .create_artist(NewMusician {
                                 romanized_name: romanized.unwrap_or(name.clone()),
                                 name,
                                 user,

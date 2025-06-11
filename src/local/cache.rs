@@ -17,7 +17,7 @@ pub struct LevelCacheImpl {
     tasks: CacheTasks,
 
     /// List of downloadable level groups.
-    pub group_list: CacheState<Vec<GroupInfo>>,
+    pub group_list: CacheState<Vec<LevelSetInfo>>,
 
     pub groups: Arena<Rc<CachedGroup>>,
 
@@ -35,16 +35,16 @@ pub struct CacheTasks {
 
     fs: VecDeque<Task<anyhow::Result<()>>>,
 
-    fetch_groups: TaskRes<Vec<GroupInfo>>,
+    fetch_groups: TaskRes<Vec<LevelSetInfo>>,
     // downloading_groups: HashSet<Id>,
     download_group: VecDeque<(Id, Task<Result<CachedGroup>>)>,
-    get_recommended: TaskRes<Vec<GroupInfo>>,
+    get_recommended: TaskRes<Vec<LevelSetInfo>>,
 
     notifications: Vec<String>,
 }
 
 enum CacheAction {
-    GroupList(Vec<GroupInfo>),
+    GroupList(Vec<LevelSetInfo>),
     Group(CachedGroup),
     DownloadGroups(Vec<Id>),
 }
@@ -355,7 +355,7 @@ impl LevelCache {
             if let Some(client) = inner.tasks.client.clone() {
                 let future = async move {
                     let groups = client
-                        .get_group_list(&GroupsQuery { recommended: false })
+                        .get_group_list(&LevelSetsQuery { recommended: false })
                         .await?;
                     Ok(groups)
                 };
@@ -371,7 +371,7 @@ impl LevelCache {
             if let Some(client) = inner.tasks.client.clone() {
                 let future = async move {
                     let list = client
-                        .get_group_list(&GroupsQuery { recommended: true })
+                        .get_group_list(&LevelSetsQuery { recommended: true })
                         .await?;
                     Ok(list)
                 };
@@ -552,7 +552,7 @@ impl LevelCache {
         }
     }
 
-    pub fn synchronize(&self, group_index: Index, info: GroupInfo) -> Option<Rc<CachedGroup>> {
+    pub fn synchronize(&self, group_index: Index, info: LevelSetInfo) -> Option<Rc<CachedGroup>> {
         log::debug!("Synchronizing cached group {:?}: {:?}", group_index, info);
 
         // let inner = self.inner.borrow();
@@ -583,7 +583,7 @@ impl LevelCache {
         &self,
         group_index: Index,
         new_local: LocalGroup,
-        reset_origin: Option<GroupInfo>,
+        reset_origin: Option<LevelSetInfo>,
     ) -> Result<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
         let cached = inner
@@ -658,7 +658,7 @@ impl LevelCache {
         &self,
         group_index: Index,
         group: LevelSet,
-        reset_origin: Option<GroupInfo>,
+        reset_origin: Option<LevelSetInfo>,
     ) -> Option<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
         let cached = inner.groups.get_mut(group_index)?;

@@ -10,7 +10,7 @@ use crate::{
 
 use ctl_client::{
     ClientError, Nertboard,
-    core::types::{GroupInfo, LevelSet},
+    core::types::{LevelSetInfo, LevelSet},
 };
 use generational_arena::Index;
 
@@ -35,10 +35,10 @@ pub struct SyncWidget {
     pub discard: TextWidget,
     pub response: TextWidget,
 
-    task_group_info: TaskRes<GroupInfo>,
+    task_group_info: TaskRes<LevelSetInfo>,
     /// Returns group and level index and the new group and level id.
-    task_group_upload: TaskRes<(Index, GroupInfo)>,
-    task_group_download: TaskRes<(LevelSet, GroupInfo)>,
+    task_group_upload: TaskRes<(Index, LevelSetInfo)>,
+    task_group_download: TaskRes<(LevelSet, LevelSetInfo)>,
 }
 
 impl SyncWidget {

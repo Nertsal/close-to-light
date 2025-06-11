@@ -1,8 +1,8 @@
-mod artists;
 mod auth;
-mod group;
 mod level;
+mod level_set;
 mod music;
+mod musicians;
 mod users;
 
 #[cfg(test)]
@@ -20,7 +20,7 @@ use crate::{
 
 use std::collections::BTreeMap;
 
-use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
+use ctl_core::prelude::{Id, LevelInfo, LevelSetInfo, MusicInfo, UserInfo};
 
 use axum::{
     body::Body,
@@ -37,7 +37,7 @@ use axum_login::{
 use reqwest::Client;
 use serde::Deserialize;
 use sqlx::Row;
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use tokio::sync::RwLock;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::cookie::Key;
@@ -98,10 +98,10 @@ pub async fn run(
         .route("/", get(get_root))
         .merge(auth::router())
         .merge(users::router())
-        .merge(artists::router());
+        .merge(musicians::router());
 
     let router = music::route(router);
-    let router = group::route(router);
+    let router = level_set::route(router);
     let router = level::route(router);
 
     let client = Client::builder()
@@ -177,10 +177,18 @@ async fn check_auth(session: &AuthSession, app: &App, required: AuthorityLevel) 
     cmp_auth(auth, required)
 }
 
-fn validate_name(name: String) -> Result<String> {
+fn validate_name(name: &str) -> Result<String> {
     let name = name.trim().to_owned();
     if name.is_empty() {
         return Err(RequestError::InvalidName(name));
+    }
+    Ok(name)
+}
+
+fn validate_romanized_name(name: &str) -> Result<String> {
+    let name = validate_name(name)?;
+    if !name.is_ascii() {
+        return Err(RequestError::NonAscii);
     }
     Ok(name)
 }

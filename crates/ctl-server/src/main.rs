@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use ctl_core::prelude::toml;
 use serde::Deserialize;
 
-const DEFAULT_DATABASE: &str = "sqlite://database.db";
-const DEFAULT_GROUPS: &str = "groups";
+const DEFAULT_DATABASE: &str = "sqlite://data/database.db";
+const DEFAULT_LEVEL_SETS: &str = "data/level_sets";
 const DEFAULT_SECRETS: &str = "secrets/secrets.toml";
 
 #[derive(clap::Parser)]
@@ -20,7 +20,7 @@ struct Opts {
 }
 
 struct AppConfig {
-    groups_path: PathBuf,
+    level_sets_path: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -45,20 +45,20 @@ async fn main() -> Result<()> {
         DEFAULT_DATABASE.to_owned()
     });
 
-    let groups_path: String = dotenv::var("GROUPS_PATH").unwrap_or_else(|_| {
-        warn!("GROUPS_PATH environment variable is not set, using default");
-        DEFAULT_GROUPS.to_owned()
+    let level_sets_path: String = dotenv::var("LEVEL_SETS_PATH").unwrap_or_else(|_| {
+        warn!("LEVEL_SETS_PATH environment variable is not set, using default");
+        DEFAULT_LEVEL_SETS.to_owned()
     });
-    let groups_path: PathBuf = PathBuf::from(groups_path);
+    let level_sets_path: PathBuf = PathBuf::from(level_sets_path);
 
     let secrets_path: String =
         dotenv::var("SECRETS_PATH").unwrap_or_else(|_| DEFAULT_SECRETS.to_owned());
     let secrets_path: PathBuf = PathBuf::from(secrets_path);
 
     info!("Database: {}", database_url);
-    info!("Groups: {:?}", groups_path);
+    info!("Level sets: {:?}", level_sets_path);
 
-    let config = AppConfig { groups_path };
+    let config = AppConfig { level_sets_path };
 
     let secrets: AppSecrets = toml::from_str(&std::fs::read_to_string(&secrets_path)?)?;
 

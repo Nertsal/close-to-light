@@ -1,4 +1,4 @@
-use ctl_client::core::types::{GroupInfo, Id, MusicInfo};
+use ctl_client::core::types::{LevelSetInfo, Id, MusicInfo};
 
 use super::*;
 
@@ -61,7 +61,7 @@ pub struct LevelItemWidget {
     pub download: IconButtonWidget,
     pub downloading: IconWidget,
     pub goto: IconButtonWidget,
-    pub info: GroupInfo,
+    pub info: LevelSetInfo,
     pub name: TextWidget,
     pub author: TextWidget,
 }
@@ -212,7 +212,7 @@ impl ExploreLevelsWidget {
         }
     }
 
-    fn load(&mut self, groups: &CacheState<Vec<GroupInfo>>) {
+    fn load(&mut self, groups: &CacheState<Vec<LevelSetInfo>>) {
         self.items.clear();
         self.status.show();
         match groups {

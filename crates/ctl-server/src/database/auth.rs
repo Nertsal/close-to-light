@@ -12,14 +12,16 @@ pub struct User {
     pub username: String,
     /// Password hash.
     password: Option<String>,
+    pub created_at: OffsetDateTime,
 }
 
 impl std::fmt::Debug for User {
     fn fmt(&self, f: &mut ctl_core::prelude::fmt::Formatter<'_>) -> ctl_core::prelude::fmt::Result {
-        f.debug_struct("Player")
+        f.debug_struct("User")
             .field("id", &self.user_id)
             .field("name", &self.username)
             .field("password", &"[redacted]")
+            .field("created_at", &self.created_at)
             .finish()
     }
 }

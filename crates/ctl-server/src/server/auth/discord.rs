@@ -103,11 +103,11 @@ async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User>
 
 async fn discord_login(app: &App, user: User) -> Result<Id> {
     // Check for a user with that discord account linked
-    let user_id: Option<Id> = sqlx::query("SELECT user_id FROM user_accounts WHERE discord = ?")
-        .bind(&user.id)
-        .try_map(|row: DBRow| row.try_get("user_id"))
-        .fetch_optional(&app.database)
-        .await?;
+    let user_id: Option<Id> =
+        sqlx::query_scalar("SELECT user_id FROM user_accounts WHERE discord = ?")
+            .bind(&user.id)
+            .fetch_optional(&app.database)
+            .await?;
 
     if let Some(user_id) = user_id {
         // Log in as the user

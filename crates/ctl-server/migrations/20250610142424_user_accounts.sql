@@ -1,4 +1,5 @@
-CREATE TABLE user_accounts
+-- User's linked accounts from other platforms.
+CREATE TABLE user_linked_accounts
 (
     user_id INTEGER NOT NULL,
     discord BLOB,
@@ -6,9 +7,11 @@ CREATE TABLE user_accounts
     FOREIGN KEY(user_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE user_tokens
+-- Authentication tokens.
+CREATE TABLE user_auth_tokens
 (
     user_id INTEGER NOT NULL,
     token BLOB,
+    expiration_date DATE,
     FOREIGN KEY(user_id) REFERENCES users(user_id)
 );

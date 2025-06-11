@@ -176,7 +176,7 @@ pub struct LevelFull {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct GroupInfo {
+pub struct LevelSetInfo {
     /// Id `0` for local groups.
     #[serde(default)]
     pub id: Id,
@@ -192,29 +192,25 @@ pub struct MusicInfo {
     /// Id `0` for local music.
     #[serde(default)]
     pub id: Id,
-    pub public: bool,
     pub original: bool,
     pub name: Name,
     pub romanized: Name,
-    pub bpm: FloatTime,
-    pub authors: Vec<ArtistInfo>,
+    pub authors: Vec<MusicianInfo>,
 }
 
 impl Default for MusicInfo {
     fn default() -> Self {
         Self {
             id: 0,
-            public: false,
             original: false,
             name: "<name>".into(),
             romanized: "<romanized>".into(),
-            bpm: r32(60.0),
             authors: Vec::new(),
         }
     }
 }
 
-impl GroupInfo {
+impl LevelSetInfo {
     /// Return the list of map authors in a readable string format.
     pub fn mappers(&self) -> String {
         let mut authors: Vec<&str> = self
@@ -281,7 +277,7 @@ pub struct UserLogin {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ArtistInfo {
+pub struct MusicianInfo {
     pub id: Id,
     pub name: Name,
     pub romanized: Name,
@@ -292,16 +288,13 @@ pub struct ArtistInfo {
 pub struct NewMusic {
     pub name: String,
     pub romanized_name: String,
-    pub original: bool,
-    pub bpm: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MusicUpdate {
     pub name: Option<String>,
-    pub public: Option<bool>,
     pub original: Option<bool>,
-    pub bpm: Option<f32>,
+    pub featured: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -310,13 +303,13 @@ pub struct LevelUpdate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NewArtist {
+pub struct NewMusician {
     pub name: String,
     pub romanized_name: String,
     pub user: Option<Id>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GroupsQuery {
+pub struct LevelSetsQuery {
     pub recommended: bool,
 }

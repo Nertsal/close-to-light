@@ -71,7 +71,7 @@ pub struct MenuState {
 }
 
 pub struct GroupEntry {
-    pub meta: GroupInfo,
+    pub meta: LevelSetInfo,
     pub logo: Option<ugli::Texture>,
 }
 

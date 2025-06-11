@@ -7,7 +7,9 @@ pub enum RequestError {
     #[error("There are no difficulties")]
     NoLevels,
     #[error("The level is too short")]
-    LevelTooSmall,
+    LevelTooShort,
+    #[error("You cannot upload more music files")]
+    TooManyMusic,
     #[error("You cannot upload more levels")]
     TooManyGroups,
     #[error("You cannot upload more levels for that song")]
@@ -20,6 +22,8 @@ pub enum RequestError {
     Unathorized,
     #[error("Forbidden")]
     Forbidden,
+    #[error("Invalid request")]
+    InvalidRequest,
     #[error("Invalid credentials")]
     InvalidCredentials,
     #[error("Invalid name {0}")]
@@ -29,15 +33,17 @@ pub enum RequestError {
     // #[error("User {0} not found")]
     // NoSuchUser(Id),
     #[error("Artist {0} not found")]
-    NoSuchArtist(Id),
-    #[error("Group {0} not found")]
-    NoSuchGroup(Id),
+    NoSuchMusician(Id),
+    #[error("Level set {0} not found")]
+    NoSuchLevelSet(Id),
     #[error("Music {0} not found")]
     NoSuchMusic(Id),
     #[error("Level {0} not found")]
     NoSuchLevel(Id),
     #[error("Such a level already exists")]
     LevelAlreadyExists,
+    #[error("Expected ASCII text")]
+    NonAscii,
     #[error("Server error")]
     FileNotFound(String),
     #[error("Database error")]
@@ -50,22 +56,25 @@ impl RequestError {
     fn status(&self) -> StatusCode {
         match self {
             RequestError::NoLevels => StatusCode::BAD_REQUEST,
-            RequestError::LevelTooSmall => StatusCode::BAD_REQUEST,
+            RequestError::LevelTooShort => StatusCode::BAD_REQUEST,
+            RequestError::TooManyMusic => StatusCode::BAD_REQUEST,
             RequestError::TooManyGroups => StatusCode::BAD_REQUEST,
             RequestError::TooManyGroupsForSong => StatusCode::BAD_REQUEST,
             RequestError::Timeout => StatusCode::REQUEST_TIMEOUT,
             RequestError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
             RequestError::Unathorized => StatusCode::UNAUTHORIZED,
             RequestError::Forbidden => StatusCode::FORBIDDEN,
+            RequestError::InvalidRequest => StatusCode::BAD_REQUEST,
             RequestError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             RequestError::InvalidName(_) => StatusCode::BAD_REQUEST,
             RequestError::InvalidLevel => StatusCode::BAD_REQUEST,
             RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
             // RequestError::NoSuchUser(_) => StatusCode::NOT_FOUND,
-            RequestError::NoSuchArtist(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchMusician(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchMusic(_) => StatusCode::NOT_FOUND,
-            RequestError::NoSuchGroup(_) => StatusCode::NOT_FOUND,
+            RequestError::NoSuchLevelSet(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchLevel(_) => StatusCode::NOT_FOUND,
+            RequestError::NonAscii => StatusCode::BAD_REQUEST,
             RequestError::LevelAlreadyExists => StatusCode::CONFLICT,
             RequestError::Sql(_) => StatusCode::INTERNAL_SERVER_ERROR,
             RequestError::Io(_) => StatusCode::INTERNAL_SERVER_ERROR,
