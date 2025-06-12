@@ -15,9 +15,6 @@ use ctl_client::{
 
 #[derive(clap::Subcommand)]
 pub enum Command {
-    MigrateGroup {
-        path: PathBuf,
-    },
     /// Just display some dithered text on screen.
     Text {
         text: String,
@@ -48,10 +45,6 @@ pub enum MusicCommand {
         name: String,
         #[clap(long)]
         romanized_name: Option<String>,
-        #[clap(long)]
-        original: bool,
-        #[clap(long)]
-        bpm: f32,
     },
     /// Update music info.
     Update {
@@ -59,11 +52,9 @@ pub enum MusicCommand {
         #[clap(long)]
         name: Option<String>,
         #[clap(long)]
-        public: Option<bool>,
-        #[clap(long)]
         original: Option<bool>,
         #[clap(long)]
-        bpm: Option<f32>,
+        featured: Option<bool>,
     },
 }
 
@@ -112,50 +103,6 @@ impl Command {
         };
 
         match self {
-            // TODO remove
-            Command::MigrateGroup { path } => {
-                use ctl_client::core::types::*;
-
-                #[derive(Deserialize)]
-                struct GroupMeta {
-                    id: Id,
-                    music: Id,
-                }
-
-                let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
-                let mut levels = Vec::new();
-                for entry in path.read_dir()? {
-                    let entry = entry?;
-                    if !entry.path().is_dir() {
-                        continue;
-                    }
-
-                    let path = entry.path();
-                    let meta: LevelInfo = file::load_detect(path.join("meta.toml")).await?;
-                    let data: ctl_client::core::model::Level =
-                        file::load_detect(path.join("level.json")).await?;
-                    levels.push(Rc::new(LevelFull { meta, data }));
-                }
-                let group = LevelSet {
-                    id: meta.id,
-                    owner: UserInfo {
-                        id: 0,
-                        name: "<unknown>".into(),
-                    },
-                    levels,
-                };
-
-                let data = bincode::serialize(&group)?;
-                let path = path.with_file_name(format!(
-                    "{}.ctl",
-                    path.file_name().unwrap().to_str().unwrap()
-                ));
-                if path.exists() {
-                    log::error!("duplicate entry at {:?}", path);
-                } else {
-                    std::fs::write(path, data)?;
-                }
-            }
             Command::Text { text } => {
                 let state = media::MediaState::new(context.clone()).with_text(text);
                 context.geng.run_state(state).await;
@@ -167,14 +114,10 @@ impl Command {
                         path,
                         name,
                         romanized_name,
-                        original,
-                        bpm,
                     } => {
                         let music = ctl_client::core::types::NewMusic {
                             romanized_name: romanized_name.unwrap_or(name.clone()),
                             name,
-                            original,
-                            bpm,
                         };
                         log::info!("Uploading music from {:?}: {:?}", path, music);
 
@@ -187,15 +130,13 @@ impl Command {
                     MusicCommand::Update {
                         id,
                         name,
-                        public,
                         original,
-                        bpm,
+                        featured,
                     } => {
                         let update = ctl_client::core::types::MusicUpdate {
                             name,
-                            public,
                             original,
-                            bpm,
+                            featured,
                         };
                         log::info!("Updating music {}: {:#?}", id, update);
 

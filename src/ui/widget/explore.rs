@@ -1,4 +1,4 @@
-use ctl_client::core::types::{LevelSetInfo, Id, MusicInfo};
+use ctl_client::core::types::{Id, LevelSetInfo};
 
 use super::*;
 
@@ -24,13 +24,8 @@ pub struct ExploreWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
 
-    pub tabs: WidgetState,
-    pub tab_music: TextWidget,
-    pub tab_levels: TextWidget,
-
     pub reload: IconButtonWidget,
     pub close: IconButtonWidget,
-    pub separator: WidgetState,
 
     pub levels: ExploreLevelsWidget,
     refetch: bool,
@@ -46,34 +41,14 @@ pub struct ExploreLevelsWidget {
     pub items: Vec<LevelItemWidget>,
 }
 
-pub struct ExploreMusicWidget {
-    assets: Rc<Assets>,
-    pub state: WidgetState,
-    pub status: TextWidget,
-    pub scroll: f32,
-    pub target_scroll: f32,
-    pub items_state: WidgetState,
-    pub items: Vec<MusicItemWidget>,
-}
-
 pub struct LevelItemWidget {
     pub state: WidgetState,
     pub download: IconButtonWidget,
     pub downloading: IconWidget,
+    pub play_music: IconButtonWidget,
+    pub pause_music: IconButtonWidget,
     pub goto: IconButtonWidget,
     pub info: LevelSetInfo,
-    pub name: TextWidget,
-    pub author: TextWidget,
-}
-
-pub struct MusicItemWidget {
-    pub state: WidgetState,
-    pub download: IconButtonWidget,
-    pub downloading: IconWidget,
-    pub play: IconButtonWidget,
-    pub pause: IconButtonWidget,
-    pub goto: IconButtonWidget,
-    pub info: MusicInfo,
     pub name: TextWidget,
     pub author: TextWidget,
 }
@@ -84,13 +59,8 @@ impl ExploreWidget {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
 
-            tabs: WidgetState::new(),
-            tab_music: TextWidget::new("Music"),
-            tab_levels: TextWidget::new("Levels"),
-
             reload: IconButtonWidget::new_normal(assets.atlas.reset()),
             close: IconButtonWidget::new_close_button(assets.atlas.button_close()),
-            separator: WidgetState::new(),
 
             levels: ExploreLevelsWidget::new(assets),
 
@@ -157,41 +127,6 @@ impl StatefulWidget for ExploreWidget {
             self.window.request = Some(WidgetRequest::Close);
         }
 
-        // TODO: extract to a function or smth
-        {
-            let tab_refs = [&mut self.tab_music, &mut self.tab_levels];
-
-            let tab = Aabb2::point(bar.bottom_left())
-                .extend_positive(vec2(4.0 * context.font_size, bar.height()));
-            let tabs = tab.stack(
-                vec2(tab.width() + 2.0 * context.layout_size, 0.0),
-                tab_refs.len(),
-            );
-
-            let mut all_tabs = tab;
-            if let Some(tab) = tabs.last() {
-                all_tabs.max.x = tab.max.x;
-            }
-            let align = vec2(bar.center().x - all_tabs.center().x, 0.0);
-            let all_tabs = all_tabs
-                .translate(align)
-                .extend_symmetric(vec2(1.0, 0.0) * context.layout_size);
-            self.tabs.update(all_tabs, context);
-
-            let tabs: Vec<_> = tabs.into_iter().map(|tab| tab.translate(align)).collect();
-
-            for (tab, pos) in tab_refs.into_iter().zip(tabs) {
-                tab.update(pos, context);
-            }
-
-            let separator = bar.extend_up(context.font_size * 0.2 - bar.height());
-            self.separator.update(separator, context);
-        }
-
-        if self.tab_levels.state.clicked {
-            self.select_tab(ExploreTab::Group);
-        }
-
         let main = main.extend_uniform(-context.font_size * 0.5);
         let mut state = (state.clone(), None);
         self.levels.update(main, context, &mut state);
@@ -235,6 +170,12 @@ impl ExploreLevelsWidget {
                                     self.assets.atlas.download(),
                                 ),
                                 downloading: IconWidget::new(self.assets.atlas.loading()),
+                                play_music: IconButtonWidget::new_normal(
+                                    self.assets.atlas.button_next(),
+                                ),
+                                pause_music: IconButtonWidget::new_normal(
+                                    self.assets.atlas.pause(),
+                                ),
                                 goto: IconButtonWidget::new_normal(self.assets.atlas.goto()),
                                 name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
@@ -355,6 +296,8 @@ impl StatefulWidget for LevelItemWidget {
             }
 
             self.goto.hide();
+            self.play_music.hide();
+            self.pause_music.hide();
             self.download.update(rows[1], context);
             self.downloading.update(rows[1], context);
             if self.download.state.clicked {
@@ -362,6 +305,23 @@ impl StatefulWidget for LevelItemWidget {
             }
         } else {
             self.download.hide();
+
+            if context.context.music.is_playing() == Some(self.info.id) {
+                self.play_music.hide();
+                self.pause_music.show();
+                self.pause_music.update(rows[0], context);
+                if self.pause_music.state.clicked {
+                    *action = Some(ExploreAction::PauseMusic);
+                }
+            } else {
+                self.pause_music.hide();
+                self.play_music.show();
+                self.play_music.update(rows[0], context);
+                if self.play_music.state.clicked {
+                    *action = Some(ExploreAction::PlayMusic(self.info.id));
+                }
+            }
+
             self.goto.show();
             self.goto.update(rows[1], context);
             if self.goto.state.clicked {

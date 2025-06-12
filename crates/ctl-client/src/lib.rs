@@ -109,7 +109,7 @@ impl Nertboard {
     }
 
     pub async fn upload_group(&self, group: &LevelSet) -> Result<LevelSetInfo> {
-        let url = self.url.join("group/create").unwrap();
+        let url = self.url.join("level_set/create").unwrap();
         let body = bincode::serialize(group)?;
         let req = self.client.post(url).body(body);
 
@@ -120,7 +120,7 @@ impl Nertboard {
     }
 
     pub async fn get_group_list(&self, query: &LevelSetsQuery) -> Result<Vec<LevelSetInfo>> {
-        let url = self.url.join("groups").unwrap();
+        let url = self.url.join("level_sets").unwrap();
         let req = self.client.get(url).query(&query);
         let response = self.send(req).await?;
         let res = read_json(response).await?;
@@ -128,7 +128,7 @@ impl Nertboard {
     }
 
     pub async fn get_group_info(&self, group: Id) -> Result<LevelSetInfo> {
-        self.get_json(&format!("group/{}", group)).await
+        self.get_json(&format!("level_set/{}", group)).await
     }
 
     pub async fn get_music_list(&self) -> Result<Vec<MusicInfo>> {
@@ -137,6 +137,21 @@ impl Nertboard {
 
     pub async fn get_music_info(&self, music: Id) -> Result<MusicInfo> {
         self.get_json(&format!("music/{}", music)).await
+    }
+
+    pub async fn get_music_info_for_group(&self, group: Id) -> Result<MusicInfo> {
+        let url = self.url.join("music").unwrap();
+        let req = self.client.get(url).query(&[("level_set_id", group)]);
+
+        let response = self.send(req).await?;
+        let info: Vec<MusicInfo> = read_json(response).await?;
+        let info = info
+            .into_iter()
+            .next()
+            .ok_or(ClientError::UnexpectedFormat(
+                "expected a single element".into(),
+            ))?;
+        Ok(info)
     }
 
     pub async fn download_music(&self, music: Id) -> Result<Bytes> {
@@ -148,8 +163,20 @@ impl Nertboard {
         Ok(response.bytes().await?)
     }
 
+    pub async fn download_music_for_group(&self, group: Id) -> Result<Bytes> {
+        let url = self.url.join("music/download").unwrap();
+        let req = self.client.get(url).query(&[("level_set_id", group)]);
+
+        let response = self.send(req).await?;
+        let response = error_for_status(response).await?;
+        Ok(response.bytes().await?)
+    }
+
     pub async fn download_group(&self, group: Id) -> Result<Bytes> {
-        let url = self.url.join(&format!("group/{}/download", group)).unwrap();
+        let url = self
+            .url
+            .join(&format!("level_set/{}/download", group))
+            .unwrap();
         let req = self.client.get(url);
 
         let response = self.send(req).await?;

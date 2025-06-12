@@ -362,16 +362,8 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                {
-                    let (tab, active) = (&ui.tab_levels, ui.levels.state.visible);
-                    self.ui
-                        .draw_toggle_button(tab, active, false, theme, framebuffer);
-                }
-
                 self.ui.draw_icon(&ui.reload.icon, theme, framebuffer);
                 self.ui.draw_icon(&ui.close.icon, theme, framebuffer);
-                self.ui
-                    .draw_quad(ui.separator.position, theme.light, framebuffer);
 
                 let mut mask = self.masked2.start();
 

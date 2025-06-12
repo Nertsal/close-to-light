@@ -71,7 +71,9 @@ impl Controller {
         Ok(groups)
     }
 
-    pub async fn save_group(&self, group: &CachedGroup) -> Result<()> {
+    /// Saves group in the local filesystem.
+    /// If `save_music` is false, skips writing music to the filesystem.
+    pub async fn save_group(&self, group: &CachedGroup, save_music: bool) -> Result<()> {
         log::debug!("Saving group: {}", group.local.data.id);
         #[cfg(target_arch = "wasm32")]
         {
@@ -83,6 +85,7 @@ impl Controller {
                 .and_then(|name| name.to_str())
                 .unwrap_or(&id);
             let music = group.local.music.as_ref().map(|music| &music.bytes);
+            // TODO: save_music
             if let Err(err) = web::save_group(&self.rexie, group, music, id).await {
                 log::error!("failed to save group into web file system: {:?}", err);
                 anyhow::bail!("check logs");
@@ -90,7 +93,7 @@ impl Controller {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            native::save_group(group)?;
+            native::save_group(group, save_music)?;
         }
         Ok(())
     }

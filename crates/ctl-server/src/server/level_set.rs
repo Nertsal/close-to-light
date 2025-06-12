@@ -25,7 +25,13 @@ async fn level_set_list(
     State(app): State<Arc<App>>,
     Query(query): Query<LevelSetsQuery>,
 ) -> Result<Json<Vec<LevelSetInfo>>> {
-    let music = super::music::music_list(State(app.clone())).await?.0;
+    // TODO: lazy?
+    let music = super::music::music_list(
+        State(app.clone()),
+        Query(super::music::GetMusicQuery { level_set_id: None }),
+    )
+    .await?
+    .0;
 
     #[derive(sqlx::FromRow)]
     struct LevelGroupRow {
@@ -500,8 +506,6 @@ fn validate_level_set(level_set: &LevelSet<LevelFull>) -> Result<()> {
     // TODO: check empty space
 
     for level in &level_set.levels {
-        // TODO: check realtime
-        // but i think the format will change to use realtime inside the level
         let duration = level.data.last_time();
         if ctl_core::types::time_to_seconds(duration).as_f32() < LEVEL_MIN_DURATION {
             return Err(RequestError::LevelTooShort);

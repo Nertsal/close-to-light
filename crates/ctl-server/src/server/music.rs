@@ -33,8 +33,23 @@ pub(super) async fn music_exists(app: &App, music_id: Id) -> Result<()> {
     Ok(())
 }
 
+#[derive(Deserialize)]
+pub(super) struct GetMusicQuery {
+    pub level_set_id: Option<Id>,
+}
+
 // TODO: filter, sort, limit, pages
-pub(super) async fn music_list(State(app): State<Arc<App>>) -> Result<Json<Vec<MusicInfo>>> {
+pub(super) async fn music_list(
+    State(app): State<Arc<App>>,
+    Query(query): Query<GetMusicQuery>,
+) -> Result<Json<Vec<MusicInfo>>> {
+    if let Some(level_set_id) = query.level_set_id {
+        // Get music info for a specific group
+        let music_id = get_music_id_for_level(&app, level_set_id).await?;
+        let music_info = music_get(State(app), Path(music_id)).await?.0;
+        return Ok(Json(vec![music_info]));
+    }
+
     let rows: Vec<MusicRow> = sqlx::query_as("SELECT * FROM musics")
         .fetch_all(&app.database)
         .await?;
@@ -289,14 +304,7 @@ async fn download_by_query(
 ) -> Result<impl IntoResponse> {
     let music_id = if let Some(level_set_id) = query.level_set_id {
         // Get the music for the level_set
-        let music_id: Option<Id> =
-            sqlx::query_scalar("SELECT music_id FROM level_sets WHERE level_set_id = ?")
-                .bind(level_set_id)
-                .fetch_optional(&app.database)
-                .await?;
-        let Some(music_id) = music_id else {
-            return Err(RequestError::NoSuchLevelSet(level_set_id));
-        };
+        let music_id = get_music_id_for_level(&app, level_set_id).await?;
 
         if let Some(query_music) = query.music_id {
             if music_id != query_music {
@@ -312,4 +320,16 @@ async fn download_by_query(
     };
 
     download_by_music_id(State(app), Path(music_id)).await
+}
+
+async fn get_music_id_for_level(app: &App, level_set_id: Id) -> Result<Id> {
+    let music_id: Option<Id> =
+        sqlx::query_scalar("SELECT music_id FROM level_sets WHERE level_set_id = ?")
+            .bind(level_set_id)
+            .fetch_optional(&app.database)
+            .await?;
+    let Some(music_id) = music_id else {
+        return Err(RequestError::NoSuchLevelSet(level_set_id));
+    };
+    Ok(music_id)
 }

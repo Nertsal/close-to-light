@@ -110,11 +110,7 @@ impl Editor {
 
     pub fn create_new_level(&mut self) {
         let mut new_group = self.group.cached.local.data.clone();
-        let bpm = self
-            .group
-            .music
-            .as_ref()
-            .map_or(r32(120.0), |music| music.meta.bpm);
+        let bpm = r32(120.0);
         new_group.levels.push(Rc::new(LevelFull {
             meta: LevelInfo {
                 id: 0,

@@ -72,7 +72,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     Ok(res)
 }
 
-pub fn save_group(group: &CachedGroup) -> Result<()> {
+pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
     let path = &group.local.path;
     std::fs::create_dir_all(path)?;
 
@@ -84,6 +84,13 @@ pub fn save_group(group: &CachedGroup) -> Result<()> {
     let mut writer = std::io::BufWriter::new(std::fs::File::create(path.join("meta.toml"))?);
     let s = toml::ser::to_string_pretty(&group.local.meta)?;
     write!(writer, "{}", s)?;
+
+    // Save music
+    if save_music {
+        if let Some(music) = &group.local.music {
+            std::fs::write(path.join("music.mp3"), &music.bytes)?;
+        }
+    }
 
     log::debug!("Saved group ({}) successfully", group.local.data.id);
 

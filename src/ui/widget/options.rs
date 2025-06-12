@@ -2,7 +2,7 @@ use super::*;
 
 use crate::{
     menu::MenuState,
-    prelude::{Assets, Options, Theme, VolumeOptions},
+    prelude::{Assets, Theme, VolumeOptions},
     ui::layout::AreaOps,
 };
 
@@ -24,7 +24,6 @@ impl OptionsButtonWidget {
             button: IconWidget::new(assets.atlas.settings()),
             options: OptionsWidget::new(
                 assets,
-                Options::default(),
                 vec![
                     // TODO: custom
                     PaletteWidget::new("Classic", Theme::classic()),
@@ -85,13 +84,13 @@ pub struct OptionsWidget {
 }
 
 impl OptionsWidget {
-    pub fn new(assets: &Rc<Assets>, options: Options, palettes: Vec<PaletteWidget>) -> Self {
+    pub fn new(assets: &Rc<Assets>, palettes: Vec<PaletteWidget>) -> Self {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
             profile: ProfileWidget::new(assets),
             separator: WidgetState::new(),
-            volume: VolumeWidget::new(options.volume),
+            volume: VolumeWidget::new(),
             palette: PaletteChooseWidget::new(palettes),
         }
     }
@@ -139,18 +138,16 @@ impl StatefulWidget for OptionsWidget {
 
 pub struct VolumeWidget {
     pub state: WidgetState,
-    pub options: VolumeOptions,
     pub title: TextWidget,
     pub master: SliderWidget,
 }
 
 impl VolumeWidget {
-    pub fn new(options: VolumeOptions) -> Self {
+    pub fn new() -> Self {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Volume"),
             master: SliderWidget::new(""),
-            options,
         }
     }
 }

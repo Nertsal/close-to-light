@@ -12,15 +12,6 @@ use crate::{
     ui::{layout::AreaOps, widget::*},
 };
 
-const HELP: &str = "
-Scroll / Arrow keys - move through time
-Hold Shift / Alt - scroll slower / faster
-Space - play music
-Q / E - rotate
-Ctrl+Scroll - scale lights
-F1 - Hide UI
-";
-
 pub struct EditorUi {
     pub game: WidgetState,
     pub edit: EditorEditUi,

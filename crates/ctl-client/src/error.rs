@@ -6,6 +6,8 @@ pub enum ClientError {
     #[error("Connection failed")]
     Connection,
     #[error("Unexpected error occurred")]
+    UnexpectedFormat(String),
+    #[error("Unexpected error occurred")]
     Reqwest(reqwest::Error),
     #[error("Unexpected error occurred")]
     Bincode(#[from] bincode::Error),
