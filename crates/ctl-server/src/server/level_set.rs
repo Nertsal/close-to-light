@@ -276,7 +276,7 @@ async fn update_level_set(
         if level.meta.id == 0 {
             // Create
             level.meta.id = sqlx::query_scalar(
-                "INSERT INTO levels (hash, level_set_id, name, order, created_at)
+                "INSERT INTO levels (hash, level_set_id, name, ord, created_at)
                  VALUES (?, ?, ?, ?, ?) RETURNING level_id",
             )
             .bind(&level.meta.hash)
@@ -305,7 +305,7 @@ async fn update_level_set(
 
                 // Update
                 sqlx::query(
-                "UPDATE levels SET hash = ?, name = ?, order = ? WHERE level_id = ? AND level_set_id = ?",
+                "UPDATE levels SET hash = ?, name = ?, ord = ? WHERE level_id = ? AND level_set_id = ?",
                 )
                 .bind(&level.meta.hash)
                 .bind(level.meta.name.as_ref())

@@ -51,10 +51,10 @@ CREATE TABLE levels
     level_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     level_set_id INTEGER NOT NULL,
     name TEXT NOT NULL,
-    order INTEGER NOT NULL,
+    ord INTEGER NOT NULL,
     hash BLOB NOT NULL,
     created_at DATE NOT NULL,
-    FOREIGN KEY(level_set_id) REFERENCES level_sets(level_set_id),
+    FOREIGN KEY(level_set_id) REFERENCES level_sets(level_set_id)
 );
 
 -- Relationship between `levels` and `users`.

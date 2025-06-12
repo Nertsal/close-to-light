@@ -2,3 +2,4 @@
 /.vscode
 /secrets*
 /.direnv
+/server-data
