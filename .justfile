@@ -1,6 +1,12 @@
 list:
     just --list
 
+game *ARGS:
+    cargo run -- {{ARGS}}
+
+server PORT *ARGS:
+    cargo run --release --package ctl-server {{PORT}} -- {{ARGS}}
+
 build-server:
     docker build . --tag ctl-server
     docker run --name ctl-server -it \

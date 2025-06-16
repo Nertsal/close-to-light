@@ -42,6 +42,15 @@ impl HoverButton {
         }
     }
 
+    /// Returns the collider that should be currently active,
+    /// based on the current hover_time and the set animation.
+    pub fn get_relevant_collider(&self) -> Collider {
+        let t = self.hover_time.get_ratio();
+        let scale = self.animation.get(seconds_to_time(t)).scale;
+        self.base_collider
+            .transformed(Transform { scale, ..default() })
+    }
+
     /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
     pub fn is_fading(&self) -> bool {
         // TODO: more custom

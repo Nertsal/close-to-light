@@ -310,7 +310,11 @@ impl Movement {
             return lerp(from, target, time, self.fade_out, interpolation);
         }
 
-        from // Default
+        // After fade out - empty
+        Transform {
+            scale: Coord::ZERO,
+            ..from
+        }
     }
 
     /// Returns the total duration of the movement including fade in/out.

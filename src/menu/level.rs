@@ -499,7 +499,6 @@ impl geng::State for LevelMenu {
                 );
             };
         }
-        self.ui_context.frame_end();
 
         let mut dither_buffer = self.dither.start();
         self.util
@@ -508,6 +507,8 @@ impl geng::State for LevelMenu {
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), framebuffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+
+        self.ui_context.frame_end();
     }
 
     fn handle_event(&mut self, event: geng::Event) {

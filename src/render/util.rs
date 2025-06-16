@@ -565,11 +565,7 @@ impl UtilRender {
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let t = button.hover_time.get_ratio();
-        let scale = button.animation.get(seconds_to_time(t)).scale;
-        let collider = button
-            .base_collider
-            .transformed(Transform { scale, ..default() });
+        let collider = button.get_relevant_collider();
         self.draw_light_gradient(&collider, theme.light, camera, framebuffer);
 
         if !button.is_fading() {

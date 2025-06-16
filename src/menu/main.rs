@@ -211,9 +211,6 @@ impl geng::State for MainMenu {
                     &mut framebuffer,
                 );
             }
-
-            self.util_render
-                .draw_player(&self.player, &self.camera, &mut framebuffer);
         }
 
         self.dither.finish(self.time, &theme);
@@ -232,6 +229,14 @@ impl geng::State for MainMenu {
 
             self.draw_ui(screen_buffer);
         }
+
+        let mut dither_buffer = self.dither.start();
+        self.util_render
+            .draw_player(&self.player, &self.camera, &mut dither_buffer);
+        self.dither.finish(self.time, &theme.transparent());
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit_screen(vec2(0.5, 0.5), screen_buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, screen_buffer);
 
         self.ui_context.frame_end();
     }

@@ -144,7 +144,7 @@ impl MenuRender {
                 self.ui.draw_icon(&group.local, theme, framebuffer);
                 self.ui.draw_outline(
                     group.state.position,
-                    self.font_size * 0.2,
+                    self.font_size * 0.1,
                     theme.light,
                     framebuffer,
                 );
@@ -439,7 +439,7 @@ impl MenuRender {
         } else {
             (theme.dark, theme.light, theme.light)
         };
-        let outline_width = self.font_size * 0.2 * width;
+        let outline_width = self.font_size * 0.1 * width;
         self.ui.draw_quad(
             text.state.position.extend_uniform(-outline_width),
             bg_color,
