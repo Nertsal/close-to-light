@@ -24,8 +24,33 @@ pub enum ThemeColor {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "VolumeOptionsRaw", into = "VolumeOptionsRaw")]
 pub struct VolumeOptions {
-    pub master: Bounded<f32>, // TODO: impl in crate
+    /// Volume in range `0..=100`.
+    pub master: Bounded<f32>, // TODO: range should be part of the type
+}
+
+#[derive(Serialize, Deserialize)]
+struct VolumeOptionsRaw {
+    master: f32,
+}
+
+impl From<VolumeOptionsRaw> for VolumeOptions {
+    fn from(value: VolumeOptionsRaw) -> Self {
+        let VolumeOptionsRaw { master } = value;
+
+        let mut opt = Self::default();
+        opt.master.set(master);
+        opt
+    }
+}
+
+impl From<VolumeOptions> for VolumeOptionsRaw {
+    fn from(value: VolumeOptions) -> Self {
+        Self {
+            master: value.master.value(),
+        }
+    }
 }
 
 impl PartialEq for VolumeOptions {
@@ -36,7 +61,7 @@ impl PartialEq for VolumeOptions {
 
 impl VolumeOptions {
     pub fn master(&self) -> f32 {
-        self.master.value()
+        self.master.value() / 100.0
     }
 
     pub fn music(&self) -> f32 {
@@ -47,7 +72,7 @@ impl VolumeOptions {
 impl Default for VolumeOptions {
     fn default() -> Self {
         Self {
-            master: Bounded::new(0.5, 0.0..=1.0),
+            master: Bounded::new(50.0, 0.0..=100.0),
         }
     }
 }

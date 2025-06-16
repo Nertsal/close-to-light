@@ -14,6 +14,7 @@ pub struct SliderWidget {
     pub head: WidgetState,
     pub value: TextWidget,
     pub options: TextRenderOptions,
+    pub display_precision: usize,
 }
 
 impl SliderWidget {
@@ -26,6 +27,14 @@ impl SliderWidget {
             head: WidgetState::new(),
             value: TextWidget::new(""),
             options: TextRenderOptions::default(),
+            display_precision: 2,
+        }
+    }
+
+    pub fn with_display_precision(self, precision: usize) -> Self {
+        Self {
+            display_precision: precision,
+            ..self
         }
     }
 
@@ -45,7 +54,12 @@ impl SliderWidget {
         }
 
         let value = main.cut_right(context.font_size * 2.0);
-        self.value.text = format!("{:.precision$}", state.value(), precision = 2).into();
+        self.value.text = format!(
+            "{:.precision$}",
+            state.value(),
+            precision = self.display_precision
+        )
+        .into();
         self.value.update(value, context);
 
         main.cut_left(context.layout_size * 0.5);

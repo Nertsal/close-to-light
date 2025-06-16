@@ -147,7 +147,7 @@ impl VolumeWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Volume"),
-            master: SliderWidget::new(""),
+            master: SliderWidget::new("").with_display_precision(0),
         }
     }
 }
