@@ -41,7 +41,7 @@ impl PlayLevelWidget {
                 // Music
                 if let Some(music) = &group.local.music {
                     self.music.text = music.meta.name.clone();
-                    self.music_author.text = music.meta.authors().into();
+                    self.music_author.text = author_text(music.meta.authors()).into();
                     if music.meta.original {
                         self.music_original.show();
                     } else {
@@ -54,7 +54,7 @@ impl PlayLevelWidget {
                 if let Some(show_level) = &state.selected_level {
                     if let Some(level) = local.get_level(show_group.data, show_level.data) {
                         self.difficulty.text = level.meta.name.clone();
-                        self.mappers.text = level.meta.authors().into();
+                        self.mappers.text = author_text(level.meta.authors()).into();
                         level_t = crate::util::smoothstep(1.0 - show_level.time.get_ratio());
                     }
                 }
@@ -62,7 +62,8 @@ impl PlayLevelWidget {
         }
 
         // Music
-        let slide = vec2(context.screen.max.x - music_pos.min.x, 0.0) * music_t;
+        let slide_off = context.font_size * 2.0;
+        let slide = vec2(context.screen.max.x + slide_off - music_pos.min.x, 0.0) * music_t;
         self.music.update(music_pos.translate(slide), context);
         self.music.options.size = music_pos.height() * font_factor;
         self.music_original
@@ -73,11 +74,20 @@ impl PlayLevelWidget {
         self.music_author.options.size = music_author_pos.height() * font_factor;
 
         // Difficulty
-        let slide = vec2(context.screen.max.x - difficulty_pos.min.x, 0.0) * level_t;
+        let slide = vec2(context.screen.max.x + slide_off - difficulty_pos.min.x, 0.0) * level_t;
         self.difficulty
             .update(difficulty_pos.translate(slide), context);
         self.difficulty.options.size = difficulty_pos.height() * font_factor;
         self.mappers.update(mappers_pos.translate(slide), context);
         self.mappers.options.size = mappers_pos.height() * font_factor;
+    }
+}
+
+fn author_text(authors: impl AsRef<str>) -> String {
+    let authors = authors.as_ref();
+    if authors.is_empty() {
+        String::from("<authors unspecified>")
+    } else {
+        format!("by {authors}")
     }
 }
