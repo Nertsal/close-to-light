@@ -41,12 +41,23 @@ impl UiRender {
 
         let mut mask = masked.start();
 
+        // Check orientation of the head
+        // TODO: more precise
+        let head_delta = main.center() - head.as_ref().map_or(main.center(), |head| head.center());
+        let head_dir = if head.is_none() {
+            vec2::ZERO
+        } else if head_delta.x.abs() > head_delta.y.abs() {
+            vec2(1.0, 0.0)
+        } else {
+            vec2(0.0, 1.0)
+        };
+
         // Fill
         if let Some(head) = head {
             self.draw_quad(head, theme.dark, framebuffer);
             mask.mask_quad(head);
         }
-        mask.mask_quad(main);
+        mask.mask_quad(main.extend_uniform(-outline_width / 2.0));
         self.draw_quad(main.extend_uniform(-outline_width), theme.dark, framebuffer);
 
         inner(&mut mask.color);
@@ -54,22 +65,16 @@ impl UiRender {
 
         // Outline
         if let Some(head) = head {
-            let delta = main.center() - head.center(); // TODO: more precise
-            let dir = if delta.x.abs() > delta.y.abs() {
-                vec2(1.0, 0.0)
-            } else {
-                vec2(0.0, 1.0)
-            };
             let mut low = 0.0;
             let mut high = outline_width;
-            if vec2::dot(dir, delta) < 0.0 {
+            if vec2::dot(head_dir, head_delta) < 0.0 {
                 std::mem::swap(&mut low, &mut high);
             }
             self.draw_outline(
-                head.extend_left(dir.x * low)
-                    .extend_right(dir.x * high)
-                    .extend_down(dir.y * low)
-                    .extend_up(dir.y * high),
+                head.extend_left(head_dir.x * low)
+                    .extend_right(head_dir.x * high)
+                    .extend_down(head_dir.y * low)
+                    .extend_up(head_dir.y * high),
                 outline_width,
                 theme.light,
                 framebuffer,
@@ -77,23 +82,17 @@ impl UiRender {
         }
         self.draw_outline(main, outline_width, theme.light, framebuffer);
         if let Some(head) = head {
-            let delta = main.center() - head.center(); // TODO: more precise
-            let dir = if delta.x.abs() > delta.y.abs() {
-                vec2(1.0, 0.0)
-            } else {
-                vec2(0.0, 1.0)
-            };
             let mut low = -1.0 * outline_width;
-            let mut high = 3.0 * outline_width;
-            if vec2::dot(dir, delta) < 0.0 {
+            let mut high = 2.0 * outline_width;
+            if vec2::dot(head_dir, head_delta) < 0.0 {
                 std::mem::swap(&mut low, &mut high);
             }
             self.draw_quad(
                 head.extend_uniform(-outline_width)
-                    .extend_left(dir.x * low)
-                    .extend_right(dir.x * high)
-                    .extend_down(dir.y * low)
-                    .extend_up(dir.y * high),
+                    .extend_left(head_dir.x * low)
+                    .extend_right(head_dir.x * high)
+                    .extend_down(head_dir.y * low)
+                    .extend_up(head_dir.y * high),
                 theme.dark,
                 framebuffer,
             );
