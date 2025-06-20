@@ -144,7 +144,7 @@ impl UiRender {
         let scale = pixel_scale(framebuffer.size());
         let (texture, real_width) = if width < 2.0 * scale {
             (&self.context.assets.sprites.border_thinner, 1.0 * scale)
-        } else if width < 4.0 * scale {
+        } else if width < 16.0 * scale {
             (&self.context.assets.sprites.border_thin, 2.0 * scale)
         } else {
             (&self.context.assets.sprites.border, 4.0 * scale)

@@ -243,9 +243,44 @@ impl MenuRender {
                 theme,
                 framebuffer,
                 |framebuffer| {
-                    for (modifier, icon, _) in &ui.mods {
-                        self.ui.draw_toggle_widget(modifier, theme, framebuffer);
-                        self.ui.draw_icon(icon, theme, framebuffer);
+                    for widget in &ui.mods {
+                        let state = &widget.state;
+                        if !state.visible {
+                            continue;
+                        }
+
+                        let (bg_color, fg_color) = if widget.selected {
+                            (theme.light, theme.dark)
+                        } else {
+                            (theme.dark, theme.light)
+                        };
+
+                        let width = widget.text.options.size * 0.2;
+                        let shrink = if state.hovered && widget.selected {
+                            width
+                        } else {
+                            0.0
+                        };
+                        let pos = state.position.extend_uniform(-shrink);
+                        self.ui
+                            .draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
+                        if state.hovered || widget.selected {
+                            self.ui.draw_outline(pos, width, theme.light, framebuffer);
+                        }
+                        self.ui.util.draw_text(
+                            &widget.text.text,
+                            geng_utils::layout::aabb_pos(
+                                widget.text.state.position,
+                                widget.text.options.align,
+                            ),
+                            widget.text.options.color(fg_color),
+                            &geng::PixelPerfectCamera,
+                            framebuffer,
+                        );
+                        let mut theme = theme;
+                        theme.light = fg_color;
+                        theme.dark = bg_color;
+                        self.ui.draw_icon(&widget.icon, theme, framebuffer);
                     }
                     self.ui
                         .draw_text_colored(&ui.score_multiplier, theme.light, framebuffer);
