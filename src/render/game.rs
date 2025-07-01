@@ -51,7 +51,7 @@ impl GameRender {
             .level
             .data
             .timing
-            .get_timing(model.exact_time)
+            .get_timing(model.play_time_ms)
             .beat_time;
 
         if !model.level.config.modifiers.sudden {

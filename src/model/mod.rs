@@ -85,7 +85,7 @@ pub enum State {
     Playing,
     Lost {
         /// The time of death.
-        death_exact_time: Time,
+        death_time_ms: Time,
     },
     Finished,
 }
@@ -129,11 +129,14 @@ pub struct Model {
     /// Waypoint rhythms.
     pub rhythms: Vec<Rhythm>,
 
+    /// Real time that has passed since the level was opened.
     pub real_time: FloatTime,
     /// Time since the last state change.
     pub switch_time: FloatTime,
-    /// Current exact time in milliseconds.
-    pub exact_time: Time,
+    /// Time since the level was started playing.
+    pub play_time: FloatTime,
+    /// Current exact play time in milliseconds.
+    pub play_time_ms: Time,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -200,9 +203,10 @@ impl Model {
             last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
             rhythms: Vec::new(),
 
-            exact_time: Time::ZERO,
             real_time: FloatTime::ZERO,
             switch_time: FloatTime::ZERO,
+            play_time: FloatTime::ZERO,
+            play_time_ms: Time::ZERO,
 
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),

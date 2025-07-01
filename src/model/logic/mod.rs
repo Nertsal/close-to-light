@@ -6,7 +6,12 @@ impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
         log::info!("Starting at the requested time {}...", target_time);
-        self.exact_time = target_time;
+
+        // NOTE: double conversion in case of floating point errors
+        // since `play_time` is used to recalculate `play_time_ms` every frame
+        self.play_time = time_to_seconds(target_time);
+        self.play_time_ms = seconds_to_time(self.play_time);
+
         self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
@@ -17,15 +22,16 @@ impl Model {
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime) {
         self.context.music.set_volume(self.options.volume.music());
 
-        let exact_delta = seconds_to_time(delta_time);
-        self.update_rhythm(exact_delta);
+        let delta_ms = seconds_to_time(delta_time);
+        self.update_rhythm(delta_ms);
 
         // Move
         self.player.collider.position = player_target;
 
         if let State::Starting { .. } = self.state {
         } else {
-            self.exact_time += exact_delta;
+            self.play_time += delta_time;
+            self.play_time_ms = seconds_to_time(self.play_time);
         }
 
         self.real_time += delta_time;
@@ -47,14 +53,14 @@ impl Model {
         // Update level state
         let ignore_time = match self.state {
             State::Lost {
-                death_exact_time: death_beat_time,
+                death_time_ms: death_beat_time,
             } => Some(death_beat_time),
             _ => None,
         };
         self.level_state = LevelState::render(
             &self.level.level.data,
             &self.level.config,
-            self.exact_time,
+            self.play_time_ms,
             ignore_time,
         );
 
@@ -226,7 +232,7 @@ impl Model {
     pub fn lose(&mut self) {
         self.save_highscore();
         self.state = State::Lost {
-            death_exact_time: self.exact_time,
+            death_time_ms: self.play_time_ms,
         };
         self.switch_time = FloatTime::ZERO;
         self.get_leaderboard(false);
