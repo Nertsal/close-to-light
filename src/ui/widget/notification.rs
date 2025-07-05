@@ -27,7 +27,7 @@ impl NotificationsWidget {
 
     pub fn notify(&mut self, message: impl Into<Name>) {
         let message = message.into();
-        log::debug!("Notification: {}", message);
+        log::debug!("Notification: {message}");
         self.items
             .push(NotificationWidget::new(&self.assets, message));
     }

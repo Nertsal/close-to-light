@@ -5,7 +5,7 @@ use super::*;
 impl Model {
     /// Initialize the level by playing the events from the negative time.
     pub fn init(&mut self, target_time: Time) {
-        log::info!("Starting at the requested time {}...", target_time);
+        log::info!("Starting at the requested time {target_time}...");
 
         // NOTE: double conversion in case of floating point errors
         // since `play_time` is used to recalculate `play_time_ms` every frame
@@ -216,7 +216,7 @@ impl Model {
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
         if let Some(music) = &self.level.group.music {
-            log::debug!("Starting music at {}", music_start_time);
+            log::debug!("Starting music at {music_start_time}");
             self.context.music.play_from_time(music, music_start_time);
         }
     }

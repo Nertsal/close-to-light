@@ -165,7 +165,7 @@ async fn music_create(
     // Check path
     let dir_path = app.config.level_sets_path.join("music");
     std::fs::create_dir_all(&dir_path)?;
-    let path = dir_path.join(format!("{}.mp3", music_id));
+    let path = dir_path.join(format!("{music_id}.mp3"));
     debug!("Saving music file at {:?}", path);
 
     if path.exists() {

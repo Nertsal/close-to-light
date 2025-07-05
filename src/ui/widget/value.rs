@@ -143,7 +143,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         target = (target * precision).round() / precision;
 
         if !self.value_text.editing {
-            self.value_text.sync(&format!("{}", target), context);
+            self.value_text.sync(&format!("{target}"), context);
         }
 
         *state = target;

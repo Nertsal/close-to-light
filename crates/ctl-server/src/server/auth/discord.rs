@@ -52,8 +52,7 @@ async fn auth_discord(
 async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User> {
     let token: color_eyre::Result<AccessTokenResponse> = async {
         let body = format!(
-            "grant_type=authorization_code&code={}&redirect_uri={}",
-            code, REDIRECT_URI
+            "grant_type=authorization_code&code={code}&redirect_uri={REDIRECT_URI}"
         );
         let response = client
             .post("https://discord.com/api/oauth2/token")

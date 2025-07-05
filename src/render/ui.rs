@@ -82,7 +82,7 @@ impl UiRender {
         }
         self.draw_outline(main, outline_width, theme.light, framebuffer);
         if let Some(head) = head {
-            let mut low = -1.0 * outline_width;
+            let mut low = -outline_width;
             let mut high = 2.0 * outline_width;
             if vec2::dot(head_dir, head_delta) < 0.0 {
                 std::mem::swap(&mut low, &mut high);

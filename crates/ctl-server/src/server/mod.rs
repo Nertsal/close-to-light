@@ -64,7 +64,7 @@ pub async fn run(
     config: AppConfig,
     secrets: AppSecrets,
 ) -> color_eyre::Result<()> {
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{port}");
     info!("Starting the server on {}", addr);
 
     let app = Arc::new(App {
@@ -219,7 +219,7 @@ async fn send_file(
     // `File` implements `AsyncRead`
     let file = match tokio::fs::File::open(path).await {
         Ok(file) => file,
-        Err(err) => return Err(RequestError::FileNotFound(format!("{}", err))),
+        Err(err) => return Err(RequestError::FileNotFound(format!("{err}"))),
     };
     // convert the `AsyncRead` into a `Stream`
     let stream = tokio_util::io::ReaderStream::new(file);
@@ -230,7 +230,7 @@ async fn send_file(
         (header::CONTENT_TYPE, content_type),
         (
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename={:?}", filename),
+            format!("attachment; filename={filename:?}"),
         ),
     ];
 

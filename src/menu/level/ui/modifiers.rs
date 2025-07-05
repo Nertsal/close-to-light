@@ -29,7 +29,7 @@ impl ModButtonWidget {
             state: WidgetState::new(),
             selected: false,
             icon: IconWidget::new(icon),
-            text: TextWidget::new(format!("{}", modifier)).aligned(vec2(0.5, 0.5)),
+            text: TextWidget::new(format!("{modifier}")).aligned(vec2(0.5, 0.5)),
             modifier,
         }
     }
@@ -143,7 +143,7 @@ impl ModifiersWidget {
         }
 
         if self.body.visible && body_size.y > 20.0 {
-            let mut main = body.extend_uniform(-1.0 * context.layout_size);
+            let mut main = body.extend_uniform(-context.layout_size);
 
             let buttons = main.cut_bottom(1.7 * context.font_size);
 

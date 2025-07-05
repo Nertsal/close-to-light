@@ -87,8 +87,7 @@ impl Editor {
 
         if !(0..self.group.cached.local.data.levels.len()).contains(&level_index) {
             log::error!(
-                "Tried to remove a level by an invalid index {}",
-                level_index
+                "Tried to remove a level by an invalid index {level_index}"
             );
             return;
         }

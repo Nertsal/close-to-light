@@ -654,9 +654,7 @@ impl geng::State for LevelMenu {
             .take()
             .map(|(group_index, level_index)| {
                 log::debug!(
-                    "Requested edit for group {:?}, level {:?}",
-                    group_index,
-                    level_index
+                    "Requested edit for group {group_index:?}, level {level_index:?}"
                 );
                 let local = self.state.context.local.inner.borrow();
                 let group = local
@@ -686,7 +684,7 @@ impl geng::State for LevelMenu {
         if let Some(edit_level) = edit_level {
             match edit_level {
                 Err(err) => {
-                    log::error!("Edit failed: {:?}", err);
+                    log::error!("Edit failed: {err:?}");
                 }
                 Ok((group, level)) => {
                     let level_index = level.as_ref().map(|(idx, _)| idx);

@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
 
     let database_pool = setup::connect_database(&database_url)
         .await
-        .context(format!("when connecting to the database: {}", database_url))?;
+        .context(format!("when connecting to the database: {database_url}"))?;
 
     server::run(opts.port, database_pool, config, secrets)
         .await

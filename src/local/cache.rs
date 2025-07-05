@@ -103,7 +103,7 @@ impl CacheTasks {
                     error!("Failed to download group {}: {:?}", group_id, err);
                 }
                 Ok(Ok(group)) => {
-                    log::debug!("downloaded group {}", group_id);
+                    log::debug!("downloaded group {group_id}");
                     return Some(CacheAction::Group(group));
                 }
             }
@@ -218,7 +218,7 @@ impl LevelCache {
             } else if let Some(client) = self.client() {
                 match client.get_group_info(group.data.id).await {
                     Err(err) => {
-                        log::error!("failed to check group info: {:?}", err);
+                        log::error!("failed to check group info: {err:?}");
                         None
                     }
                     Ok(info) => Some(info),
@@ -246,7 +246,7 @@ impl LevelCache {
         .await;
 
         if let Err(err) = &result {
-            log::error!("failed to load group: {:?}", err);
+            log::error!("failed to load group: {err:?}");
         }
         result
     }
@@ -398,7 +398,7 @@ impl LevelCache {
 
             let future = {
                 async move {
-                    log::debug!("Downloading group {}", group_id);
+                    log::debug!("Downloading group {group_id}");
 
                     // Download group
                     let info = client.get_group_info(group_id).await?;
@@ -442,7 +442,7 @@ impl LevelCache {
 
                     // Write to fs
                     if let Err(err) = fs.save_group(&group, true).await {
-                        log::error!("Failed to save group locally: {:?}", err);
+                        log::error!("Failed to save group locally: {err:?}");
                     }
 
                     Ok(group)
@@ -484,7 +484,7 @@ impl LevelCache {
     }
 
     pub fn synchronize(&self, group_index: Index, info: LevelSetInfo) -> Option<Rc<CachedGroup>> {
-        log::debug!("Synchronizing cached group {:?}: {:?}", group_index, info);
+        log::debug!("Synchronizing cached group {group_index:?}: {info:?}");
 
         let inner = self.inner.borrow();
         let group = inner.groups.get(group_index)?;
@@ -680,7 +680,7 @@ impl LevelCache {
             // Create a dir because the rest of the group is saved asynchronously
             let _ = std::fs::create_dir_all(&group.local.path);
             if let Err(err) = std::fs::copy(&music_path, group.local.path.join("music.mp3")) {
-                log::error!("Copying music failed: {:?}", err);
+                log::error!("Copying music failed: {err:?}");
             }
         }
 

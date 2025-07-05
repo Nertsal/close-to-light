@@ -69,7 +69,7 @@ impl EditorState {
                 let group = self.editor.group.group_index;
                 match self.context.local.select_music_file(group, path) {
                     Err(err) => {
-                        log::error!("Failed to select music: {:?}", err);
+                        log::error!("Failed to select music: {err:?}");
                     }
                     Ok(group) => {
                         self.editor.group.music = group.local.music.clone();
@@ -82,7 +82,7 @@ impl EditorState {
                 let mut meta = self.editor.group.cached.local.meta.clone();
 
                 let mut music_meta = meta.music.unwrap_or_default();
-                log::debug!("Renaming music into {:?}", name);
+                log::debug!("Renaming music into {name:?}");
                 music_meta.name = name.into();
                 music_meta.romanized = music_meta.name.clone(); // TODO: separate config
 
@@ -145,7 +145,7 @@ impl EditorState {
 
     fn start_drag(&mut self, target: DragTarget) {
         self.end_drag();
-        log::debug!("Dragging: {:?}", target);
+        log::debug!("Dragging: {target:?}");
 
         let Some(level_editor) = &mut self.editor.level_edit else {
             return;

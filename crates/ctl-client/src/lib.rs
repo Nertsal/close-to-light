@@ -79,7 +79,7 @@ impl Nertboard {
     }
 
     pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
-        let url = self.url.join(&format!("level/{}/scores", level)).unwrap();
+        let url = self.url.join(&format!("level/{level}/scores")).unwrap();
         let req = self.client.get(url);
 
         let response = self.send(req).await?;
@@ -90,7 +90,7 @@ impl Nertboard {
     pub async fn submit_score(&self, level: Id, entry: &SubmitScore) -> Result<()> {
         let req = self
             .client
-            .post(self.url.join(&format!("level/{}/scores", level)).unwrap())
+            .post(self.url.join(&format!("level/{level}/scores")).unwrap())
             .json(entry);
 
         let response = self.send(req).await?;
@@ -100,7 +100,7 @@ impl Nertboard {
     }
 
     pub async fn get_level_info(&self, level: Id) -> Result<LevelInfo> {
-        let url = self.url.join(&format!("level/{}", level)).unwrap();
+        let url = self.url.join(&format!("level/{level}")).unwrap();
         let req = self.client.get(url);
 
         let response = self.send(req).await?;
@@ -128,7 +128,7 @@ impl Nertboard {
     }
 
     pub async fn get_group_info(&self, group: Id) -> Result<LevelSetInfo> {
-        self.get_json(&format!("level_set/{}", group)).await
+        self.get_json(&format!("level_set/{group}")).await
     }
 
     pub async fn get_music_list(&self) -> Result<Vec<MusicInfo>> {
@@ -136,7 +136,7 @@ impl Nertboard {
     }
 
     pub async fn get_music_info(&self, music: Id) -> Result<MusicInfo> {
-        self.get_json(&format!("music/{}", music)).await
+        self.get_json(&format!("music/{music}")).await
     }
 
     pub async fn get_music_info_for_group(&self, group: Id) -> Result<MusicInfo> {
@@ -155,7 +155,7 @@ impl Nertboard {
     }
 
     pub async fn download_music(&self, music: Id) -> Result<Bytes> {
-        let url = self.url.join(&format!("music/{}/download", music)).unwrap();
+        let url = self.url.join(&format!("music/{music}/download")).unwrap();
         let req = self.client.get(url);
 
         let response = self.send(req).await?;
@@ -175,7 +175,7 @@ impl Nertboard {
     pub async fn download_group(&self, group: Id) -> Result<Bytes> {
         let url = self
             .url
-            .join(&format!("level_set/{}/download", group))
+            .join(&format!("level_set/{group}/download"))
             .unwrap();
         let req = self.client.get(url);
 
@@ -185,7 +185,7 @@ impl Nertboard {
     }
 
     pub async fn update_music(&self, music: Id, update: &MusicUpdate) -> Result<()> {
-        let url = self.url.join(&format!("music/{}", music)).unwrap();
+        let url = self.url.join(&format!("music/{music}")).unwrap();
 
         let req = self.client.patch(url).json(update);
 
@@ -195,7 +195,7 @@ impl Nertboard {
     }
 
     pub async fn music_author_add(&self, music: Id, artist: Id) -> Result<()> {
-        let url = self.url.join(&format!("music/{}/authors", music)).unwrap();
+        let url = self.url.join(&format!("music/{music}/authors")).unwrap();
 
         let req = self.client.post(url).query(&[("id", artist)]);
 
@@ -205,7 +205,7 @@ impl Nertboard {
     }
 
     pub async fn music_author_remove(&self, music: Id, artist: Id) -> Result<()> {
-        let url = self.url.join(&format!("music/{}/authors", music)).unwrap();
+        let url = self.url.join(&format!("music/{music}/authors")).unwrap();
 
         let req = self.client.delete(url).query(&[("id", artist)]);
 
@@ -226,10 +226,10 @@ impl Nertboard {
 }
 
 async fn get_body(response: Response) -> Result<String> {
-    log::debug!("Response: {:?}", response);
+    log::debug!("Response: {response:?}");
     let response = error_for_status(response).await?;
     let body = response.text().await?;
-    log::debug!("Response body: {:?}", body);
+    log::debug!("Response body: {body:?}");
     Ok(body)
 }
 

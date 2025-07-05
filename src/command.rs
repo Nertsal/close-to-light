@@ -119,13 +119,13 @@ impl Command {
                             romanized_name: romanized_name.unwrap_or(name.clone()),
                             name,
                         };
-                        log::info!("Uploading music from {:?}: {:?}", path, music);
+                        log::info!("Uploading music from {path:?}: {music:?}");
 
                         let music_id = client
                             .upload_music(&path, &music)
                             .await
                             .context("failed to upload music")?;
-                        log::info!("Music uploaded successfully, id: {}", music_id);
+                        log::info!("Music uploaded successfully, id: {music_id}");
                     }
                     MusicCommand::Update {
                         id,
@@ -138,7 +138,7 @@ impl Command {
                             original,
                             featured,
                         };
-                        log::info!("Updating music {}: {:#?}", id, update);
+                        log::info!("Updating music {id}: {update:#?}");
 
                         client
                             .update_music(id, &update)
@@ -148,14 +148,14 @@ impl Command {
                     }
                     MusicCommand::Author(author) => match author.command {
                         MusicAuthorCommand::Add { music, artist } => {
-                            log::info!("Adding artist {} as author of music {}", artist, music);
+                            log::info!("Adding artist {artist} as author of music {music}");
                             client
                                 .music_author_add(music, artist)
                                 .await
                                 .context("when adding artist as author")?;
                         }
                         MusicAuthorCommand::Remove { music, artist } => {
-                            log::info!("Removing artist {} as author of music {}", artist, music);
+                            log::info!("Removing artist {artist} as author of music {music}");
                             client
                                 .music_author_remove(music, artist)
                                 .await
@@ -172,7 +172,7 @@ impl Command {
                         romanized,
                         user,
                     } => {
-                        log::info!("Creating a new artist {} (user: {:?})", name, user);
+                        log::info!("Creating a new artist {name} (user: {user:?})");
                         client
                             .create_artist(NewMusician {
                                 romanized_name: romanized.unwrap_or(name.clone()),

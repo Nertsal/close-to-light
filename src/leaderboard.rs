@@ -162,7 +162,7 @@ impl Leaderboard {
                     redirect_uri
                 );
                 if let Err(err) = webbrowser::open(&url) {
-                    log::error!("failed to open login link: {:?}", err);
+                    log::error!("failed to open login link: {err:?}");
                     return Err(ctl_client::ClientError::Connection);
                 }
                 client.login_external(state).await
@@ -258,12 +258,12 @@ impl Leaderboard {
                                 log::debug!("Logged out");
                                 preferences::save(crate::PLAYER_LOGIN_STORAGE, &());
                             } else {
-                                log::error!("Failed to log in: {}", err);
+                                log::error!("Failed to log in: {err}");
                                 // TODO: notification message
                             }
                         }
                         Err(err) => {
-                            log::error!("Failed to log in: {:?}", err);
+                            log::error!("Failed to log in: {err:?}");
                         }
                     }
                 }
@@ -280,7 +280,7 @@ impl Leaderboard {
                         self.load_scores(update.scores);
                     }
                     Err(err) => {
-                        log::error!("Loading leaderboard failed: {:?}", err);
+                        log::error!("Loading leaderboard failed: {err:?}");
                         self.status = LeaderboardStatus::Failed;
                     }
                 },
@@ -324,7 +324,7 @@ impl Leaderboard {
             let board = Arc::clone(client);
             let level = self.loaded.level;
             let future = async move {
-                log::debug!("Fetching scores for level {}...", level);
+                log::debug!("Fetching scores for level {level}...");
                 board
                     .fetch_scores(level)
                     .await
@@ -398,7 +398,7 @@ impl LoadedBoard {
     }
 
     pub fn reload_local(&mut self, score: Option<&SavedScore>) {
-        log::debug!("Reloading local scores with a new score: {:?}", score);
+        log::debug!("Reloading local scores with a new score: {score:?}");
         let mut highscores: Vec<SavedScore> =
             preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
 

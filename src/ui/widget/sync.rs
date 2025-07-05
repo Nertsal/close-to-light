@@ -140,7 +140,7 @@ impl StatefulWidget for SyncWidget {
                     } else {
                         self.status.text = "Failed".into();
                         self.response.show();
-                        self.response.text = format!("{}", err).into();
+                        self.response.text = format!("{err}").into();
                         self.upload.hide();
                         self.discard.hide();
                     }
@@ -176,7 +176,7 @@ impl StatefulWidget for SyncWidget {
                 Ok(Err(err)) => {
                     self.status.text = "".into();
                     self.response.show();
-                    self.response.text = format!("{}", err).into();
+                    self.response.text = format!("{err}").into();
                 }
                 Ok(Ok((group_index, group))) => {
                     if let Some(group) = local.synchronize(group_index, group) {
@@ -185,7 +185,7 @@ impl StatefulWidget for SyncWidget {
                             .music
                             .as_ref()
                             .map_or(&group.local.data.owner.name, |music| &music.meta.name);
-                        state.notifications.push(format!("Uploaded level {}", name));
+                        state.notifications.push(format!("Uploaded level {name}"));
                         self.cached_group = group;
                         self.reload = true;
                     }
@@ -200,9 +200,9 @@ impl StatefulWidget for SyncWidget {
                         log::error!("Requested group not found");
                         // TODO: delete local
                     } else {
-                        log::error!("Failed to download the group: {:?}", err);
+                        log::error!("Failed to download the group: {err:?}");
                         self.response.show();
-                        self.response.text = format!("{}", err).into();
+                        self.response.text = format!("{err}").into();
                     }
                 }
                 Ok(Ok((group, info))) => {
@@ -216,7 +216,7 @@ impl StatefulWidget for SyncWidget {
                             .map_or(&group.local.data.owner.name, |music| &music.meta.name);
                         state
                             .notifications
-                            .push(format!("Downloaded level {}", name));
+                            .push(format!("Downloaded level {name}"));
                         self.cached_group = group;
                         self.reload = true;
                     }

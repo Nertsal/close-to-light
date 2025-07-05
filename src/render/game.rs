@@ -234,14 +234,14 @@ impl GameRender {
                     framebuffer,
                 );
                 self.util.draw_text(
-                    format!("ACCURACY: {:.2}%", accuracy),
+                    format!("ACCURACY: {accuracy:.2}%"),
                     vec2(-3.0, -3.5),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
                     framebuffer,
                 );
                 self.util.draw_text(
-                    format!("PRECISION: {:.2}%", precision),
+                    format!("PRECISION: {precision:.2}%"),
                     vec2(-3.0, -4.0),
                     TextRenderOptions::new(0.7).color(theme.light),
                     &model.camera,
@@ -260,7 +260,7 @@ impl GameRender {
             );
 
             self.util.draw_text(
-                format!("{:3.2}%", accuracy),
+                format!("{accuracy:3.2}%"),
                 vec2(-8.5, 3.9).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)

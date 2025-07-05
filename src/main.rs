@@ -99,7 +99,7 @@ fn main() {
         let main = async_compat::Compat::new(main);
 
         if let Err(err) = main.await {
-            log::error!("{:?}", err);
+            log::error!("{err:?}");
         }
     });
 }
@@ -157,7 +157,7 @@ async fn load_everything(
                 Some(secrets)
             }
             Err(err) => {
-                log::debug!("Failed to load secrets.toml: {:?}", err);
+                log::debug!("Failed to load secrets.toml: {err:?}");
                 None
             }
         };

@@ -11,7 +11,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
             let entry = entry?;
             let path = entry.path();
             if !path.is_dir() {
-                log::warn!("Unexpected file inside levels: {:?}", path);
+                log::warn!("Unexpected file inside levels: {path:?}");
                 return Ok(None);
             }
             anyhow::Ok(Some(path))
@@ -20,7 +20,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
         .collect();
 
     let load_group = |path: PathBuf| async move {
-        let context = format!("when loading {:?}", path);
+        let context = format!("when loading {path:?}");
         async move {
             let bytes = file::load_bytes(&path.join("levels.cbor"))
                 .await
@@ -64,7 +64,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
         match group {
             Ok(local) => res.push(local),
             Err(err) => {
-                log::error!("failed to load group: {:?}", err);
+                log::error!("failed to load group: {err:?}");
             }
         }
     }
@@ -83,7 +83,7 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
     // Save meta
     let mut writer = std::io::BufWriter::new(std::fs::File::create(path.join("meta.toml"))?);
     let s = toml::ser::to_string_pretty(&group.local.meta)?;
-    write!(writer, "{}", s)?;
+    write!(writer, "{s}")?;
 
     // Save music
     if save_music {

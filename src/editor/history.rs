@@ -99,7 +99,7 @@ impl History {
     pub fn flush(&mut self, level: &Level, label: HistoryLabel) {
         self.buffer_label = label;
         self.buffer_state = level.clone();
-        log::trace!("Flushed changes as {:?}", label);
+        log::trace!("Flushed changes as {label:?}");
     }
 
     /// Save the level without doing any checks.
@@ -114,8 +114,7 @@ impl History {
         self.redo_stack.clear();
 
         log::debug!(
-            "Saved old state to the stack, starting new buffer {:?}",
-            label
+            "Saved old state to the stack, starting new buffer {label:?}"
         );
     }
 }

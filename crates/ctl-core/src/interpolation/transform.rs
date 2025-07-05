@@ -71,10 +71,7 @@ mod tests {
             .expect("not a single element");
         assert!(
             max - min <= max_deviation,
-            "deviation too large (expected {}): min step size was {}, max step size was {}",
-            max_deviation,
-            min,
-            max
+            "deviation too large (expected {max_deviation}): min step size was {min}, max step size was {max}"
         );
     }
 

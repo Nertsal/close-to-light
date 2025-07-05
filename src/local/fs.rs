@@ -119,7 +119,7 @@ impl Controller {
 
     pub async fn remove_group(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref();
-        log::debug!("Deleting a group: {:?}", path);
+        log::debug!("Deleting a group: {path:?}");
         #[cfg(target_arch = "wasm32")]
         {
             if let Some(id) = path.file_name().and_then(|name| name.to_str()) {
@@ -179,7 +179,7 @@ pub fn generate_group_path(group: Id) -> PathBuf {
             }
         }
     } else {
-        base_path.join(format!("{}", group))
+        base_path.join(format!("{group}"))
     }
 }
 
@@ -212,7 +212,7 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
         .collect();
 
     let load_group = |path: PathBuf| async move {
-        let context = format!("when loading: {:?}", path);
+        let context = format!("when loading: {path:?}");
 
         let result = async move {
             let bytes = file::load_bytes(&path.join("levels.cbor")).await?;
@@ -258,7 +258,7 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
                 res.push(local);
             }
             Err(err) => {
-                log::error!("failed to load group: {:?}", err);
+                log::error!("failed to load group: {err:?}");
             }
         }
     }

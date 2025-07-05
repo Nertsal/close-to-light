@@ -179,8 +179,7 @@ impl ExploreLevelsWidget {
                                 goto: IconButtonWidget::new_normal(self.assets.atlas.goto()),
                                 name: TextWidget::new(info.music.name.clone()),
                                 author: TextWidget::new(format!(
-                                    "by {} mapped by {}",
-                                    artists, authors
+                                    "by {artists} mapped by {authors}"
                                 )),
                                 info: info.clone(),
                             };

@@ -40,8 +40,7 @@ impl Editor {
                     editor.execute(action, self.drag.as_mut());
                 } else {
                     log::error!(
-                        "Tried performing level editor action, but no level is loaded: {:?}",
-                        action
+                        "Tried performing level editor action, but no level is loaded: {action:?}"
                     );
                 }
             }

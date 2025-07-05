@@ -233,7 +233,7 @@ impl LeaderboardEntryWidget {
         highlight: bool,
     ) -> Self {
         let rank = rank.into();
-        let mut rank = TextWidget::new(format!("{}.", rank));
+        let mut rank = TextWidget::new(format!("{rank}."));
         rank.align(vec2(1.0, 0.5));
 
         let mut player = TextWidget::new(score.user.name.clone());

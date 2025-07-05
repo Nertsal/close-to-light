@@ -85,7 +85,7 @@ impl RequestError {
 impl axum::response::IntoResponse for RequestError {
     fn into_response(self) -> axum::response::Response {
         tracing::error!("Responding with an error: {:?}", self);
-        let body = format!("{}", self);
+        let body = format!("{self}");
         (self.status(), body).into_response()
     }
 }
