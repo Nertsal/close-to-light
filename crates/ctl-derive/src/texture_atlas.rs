@@ -59,8 +59,8 @@ impl AtlasOpts {
         } = self;
 
         let mut generated = TokenStream::new();
-        let atlas = quote! { crate::util::TextureAtlas };
-        let subtexture = quote! { crate::util::SubTexture };
+        let atlas = quote! { ctl_render_core::TextureAtlas };
+        let subtexture = quote! { ctl_render_core::SubTexture };
 
         {
             fn process_field(field: &AtlasFieldOpts) -> Vec<VecDeque<&syn::Ident>> {

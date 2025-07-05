@@ -1,4 +1,3 @@
-mod assets;
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
 mod context;
@@ -105,7 +104,7 @@ fn main() {
 }
 
 async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
-    let loading_assets: Rc<assets::LoadingAssets> =
+    let loading_assets: Rc<ctl_assets::LoadingAssets> =
         geng::asset::Load::load(geng.asset_manager(), &run_dir().join("assets"), &())
             .await
             .context("when loading assets")?;
@@ -147,7 +146,7 @@ async fn load_everything(
 ) -> anyhow::Result<(Context, Option<Secrets>, Option<Arc<Nertboard>>)> {
     let manager = geng.asset_manager();
 
-    let assets = assets::Assets::load(manager).await?;
+    let assets = ctl_assets::Assets::load(manager).await?;
     let assets = Rc::new(assets);
 
     let secrets: Option<Secrets> =

@@ -1,6 +1,8 @@
 use super::*;
 
-use crate::{prelude::ThemeColor, util::SubTexture};
+use crate::prelude::ThemeColor;
+
+use ctl_render_core::SubTexture;
 
 #[derive(Clone)]
 pub struct IconWidget {

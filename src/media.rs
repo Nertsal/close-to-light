@@ -1,7 +1,9 @@
-use crate::render::util::TextRenderOptions;
-use crate::render::{dither::DitherRender, util::UtilRender};
+use crate::{
+    prelude::*,
+    render::{dither::DitherRender, util::UtilRender},
+};
 
-use crate::prelude::*;
+use ctl_render_core::TextRenderOptions;
 
 pub struct MediaState {
     context: Context,

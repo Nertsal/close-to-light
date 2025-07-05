@@ -4,8 +4,9 @@ use crate::{
     editor::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId, ScrollSpeed},
     prelude::*,
     ui::layout::AreaOps,
-    util::{SecondOrderDynamics, SecondOrderState, SubTexture},
+    util::{SecondOrderDynamics, SecondOrderState},
 };
+use ctl_render_core::SubTexture;
 
 use std::collections::BTreeMap;
 

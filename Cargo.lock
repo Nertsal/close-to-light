@@ -1311,8 +1311,12 @@ dependencies = [
  "base64 0.22.1",
  "bincode",
  "cbor4ii",
+ "ctl-assets",
  "ctl-client",
  "ctl-derive",
+ "ctl-font",
+ "ctl-render-core",
+ "ctl-util",
  "data-encoding",
  "directories",
  "enum-iterator",
@@ -1323,7 +1327,6 @@ dependencies = [
  "parry2d",
  "rexie",
  "rfd",
- "rusttype",
  "serde",
  "serde-wasm-bindgen",
  "sha2",
@@ -1655,6 +1658,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctl-assets"
+version = "0.1.0"
+dependencies = [
+ "ctl-core",
+ "ctl-derive",
+ "ctl-font",
+ "ctl-render-core",
+ "geng",
+ "geng-utils",
+]
+
+[[package]]
 name = "ctl-client"
 version = "0.1.0"
 dependencies = [
@@ -1693,6 +1708,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctl-font"
+version = "0.1.0"
+dependencies = [
+ "ctl-render-core",
+ "ctl-util",
+ "geng",
+ "geng-utils",
+ "rusttype",
+]
+
+[[package]]
+name = "ctl-render-core"
+version = "0.1.0"
+dependencies = [
+ "ctl-util",
+ "geng",
+ "geng-utils",
+]
+
+[[package]]
 name = "ctl-server"
 version = "0.1.0"
 dependencies = [
@@ -1725,6 +1760,15 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "ctl-util"
+version = "0.1.0"
+dependencies = [
+ "ctl-core",
+ "geng",
+ "geng-utils",
 ]
 
 [[package]]

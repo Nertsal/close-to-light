@@ -1,0 +1,9 @@
+[package]
+name = "ctl-util"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-core.workspace = true
+geng.workspace = true
+geng-utils.workspace = true

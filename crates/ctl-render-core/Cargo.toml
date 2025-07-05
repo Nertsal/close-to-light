@@ -1,0 +1,9 @@
+[package]
+name = "ctl-render-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-util.workspace = true
+geng.workspace = true
+geng-utils.workspace = true

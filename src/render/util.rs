@@ -4,74 +4,18 @@ use super::*;
 
 use crate::ui::{UiContext, geometry::Geometry};
 
+pub use ctl_render_core::{DashRenderOptions, TextRenderOptions};
+
+pub fn update_text_options(options: &mut TextRenderOptions, context: &UiContext) {
+    options.size = context.font_size;
+    options.color = context.theme().light;
+    options.hover_color = options.color.map_rgb(|x| x * 0.7);
+    options.press_color = options.color.map_rgb(|x| x * 0.5);
+}
+
 pub struct UtilRender {
     context: Context,
     pub unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct TextRenderOptions {
-    pub size: f32,
-    pub align: vec2<f32>,
-    pub color: Color,
-    pub hover_color: Color,
-    pub press_color: Color,
-    pub rotation: Angle,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct DashRenderOptions {
-    pub width: f32,
-    pub dash_length: f32,
-    pub space_length: f32,
-}
-
-impl TextRenderOptions {
-    pub fn new(size: f32) -> Self {
-        Self { size, ..default() }
-    }
-
-    // pub fn size(self, size: f32) -> Self {
-    //     Self { size, ..self }
-    // }
-
-    pub fn align(self, align: vec2<f32>) -> Self {
-        Self { align, ..self }
-    }
-
-    pub fn color(self, color: Color) -> Self {
-        Self { color, ..self }
-    }
-
-    pub fn update(&mut self, context: &UiContext) {
-        self.size = context.font_size;
-        self.color = context.theme().light;
-        self.hover_color = self.color.map_rgb(|x| x * 0.7);
-        self.press_color = self.color.map_rgb(|x| x * 0.5);
-    }
-}
-
-impl Default for TextRenderOptions {
-    fn default() -> Self {
-        Self {
-            size: 1.0,
-            align: vec2::splat(0.5),
-            color: Color::WHITE,
-            hover_color: Color {
-                r: 0.7,
-                g: 0.7,
-                b: 0.7,
-                a: 1.0,
-            },
-            press_color: Color {
-                r: 0.5,
-                g: 0.5,
-                b: 0.5,
-                a: 1.0,
-            },
-            rotation: Angle::ZERO,
-        }
-    }
 }
 
 impl UtilRender {

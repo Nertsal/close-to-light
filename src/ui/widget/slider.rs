@@ -1,6 +1,9 @@
 use super::*;
 
-use crate::{render::util::TextRenderOptions, ui::layout::AreaOps};
+use crate::{
+    render::util::{TextRenderOptions, update_text_options},
+    ui::layout::AreaOps,
+};
 
 use ctl_client::core::types::Name;
 use geng_utils::bounded::Bounded;
@@ -41,7 +44,7 @@ impl SliderWidget {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Bounded<f32>) {
         self.state.update(position, context);
 
-        self.options.update(context);
+        update_text_options(&mut self.options, context);
         let mut main = position;
 
         if !self.text.text.is_empty() {

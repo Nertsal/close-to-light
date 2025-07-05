@@ -1,6 +1,8 @@
 use super::*;
 
-use crate::{assets::LoadingAssets, task::Task, ui::layout::AreaOps};
+use crate::{task::Task, ui::layout::AreaOps};
+
+use ctl_assets::LoadingAssets;
 
 pub struct LoadingScreen<T> {
     geng: Geng,

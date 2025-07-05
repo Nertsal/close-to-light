@@ -24,7 +24,7 @@ pub struct ModButtonWidget {
 }
 
 impl ModButtonWidget {
-    pub fn new(modifier: Modifier, icon: crate::util::SubTexture) -> Self {
+    pub fn new(modifier: Modifier, icon: ctl_render_core::SubTexture) -> Self {
         Self {
             state: WidgetState::new(),
             selected: false,

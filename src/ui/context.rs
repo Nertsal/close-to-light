@@ -1,9 +1,7 @@
 use super::{geometry::GeometryContext, state::UiState};
 
-use crate::{
-    assets::Font,
-    prelude::{Context, Theme},
-};
+use crate::prelude::{Context, Theme};
+use ctl_font::Font;
 
 use geng::prelude::*;
 

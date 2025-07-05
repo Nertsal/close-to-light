@@ -10,6 +10,10 @@ edition = "2024"
 ctl-derive = { path = "crates/ctl-derive" }
 ctl-core = { path = "crates/ctl-core" }
 ctl-client = { path = "crates/ctl-client" }
+ctl-assets = { path = "crates/ctl-assets" }
+ctl-util = { path = "crates/ctl-util" }
+ctl-font = { path = "crates/ctl-font" }
+ctl-render-core = { path = "crates/ctl-render-core" }
 
 # Common
 clap = { version = "4.4.11", features = ["derive"] }
@@ -38,8 +42,10 @@ directories = "5.0.1"
 base64 = "0.22.1"
 async-compat = "0.2.4"
 num-rational = "0.4.2"
-rusttype = { version = "0.9.3", features = ["gpu_cache"] }
 rfd = "0.15.3"
+
+# Assets
+rusttype = { version = "0.9.3", features = ["gpu_cache"] }
 
 # Derive
 darling = "0.20"
@@ -77,6 +83,10 @@ edition.workspace = true
 [dependencies]
 ctl-client.workspace = true
 ctl-derive.workspace = true
+ctl-util.workspace = true
+ctl-font.workspace = true
+ctl-assets.workspace = true
+ctl-render-core.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true
@@ -95,7 +105,6 @@ base64.workspace = true
 async-compat.workspace = true
 cbor4ii.workspace = true
 num-rational.workspace = true
-rusttype.workspace = true
 rfd.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

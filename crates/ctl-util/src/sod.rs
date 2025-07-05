@@ -1,6 +1,6 @@
 use super::*;
 
-use ctl_client::core::prelude::Interpolatable;
+use ctl_core::prelude::Interpolatable;
 
 #[derive(Debug, Clone)]
 pub struct SecondOrderState<T> {

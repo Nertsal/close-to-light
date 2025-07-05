@@ -7,8 +7,7 @@ pub use self::{level::*, loading::*, main::*, splash::*};
 
 use crate::{
     prelude::*,
-    render::{
-        dither::DitherRender,
-        util::{TextRenderOptions, UtilRender},
-    },
+    render::{dither::DitherRender, util::UtilRender},
 };
+
+use ctl_render_core::TextRenderOptions;

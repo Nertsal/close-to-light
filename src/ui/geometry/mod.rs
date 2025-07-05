@@ -1,6 +1,6 @@
-use crate::{assets::Assets, render::util::TextRenderOptions, util::SubTexture};
-
+use ctl_assets::Assets;
 use ctl_client::core::{prelude::Color, types::Name};
+use ctl_render_core::{SubTexture, TextRenderOptions};
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 

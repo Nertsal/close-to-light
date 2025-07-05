@@ -1,8 +1,9 @@
 use super::*;
 
-use crate::{model::ThemeColor, ui::layout::AreaOps, util::SubTexture};
+use crate::{model::ThemeColor, ui::layout::AreaOps};
 
 use ctl_client::core::types::Name;
+use ctl_render_core::SubTexture;
 
 #[derive(Clone)]
 pub struct ButtonWidget {

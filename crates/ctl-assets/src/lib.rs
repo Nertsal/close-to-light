@@ -1,13 +1,10 @@
-mod font;
-
-pub use self::font::Font;
-
 use std::path::PathBuf;
 
+use ctl_core::prelude::Modifier;
+pub use ctl_font::Font;
+use ctl_render_core::SubTexture;
 use geng::prelude::*;
 use geng_utils::gif::GifFrame;
-
-use crate::{prelude::Modifier, util::SubTexture};
 
 #[derive(geng::asset::Load)]
 pub struct LoadingAssets {

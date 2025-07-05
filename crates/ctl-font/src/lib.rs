@@ -1,7 +1,5 @@
-use super::*;
-
-use crate::render::util::TextRenderOptions;
-
+use ctl_render_core::TextRenderOptions;
+use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
 #[derive(ugli::Vertex, Debug, Clone, Copy)]
@@ -216,13 +214,13 @@ impl Font {
         let framebuffer_size = framebuffer.size().as_f32();
 
         let position = position.map(Float::as_f32);
-        let position = crate::util::world_to_screen(camera, framebuffer_size, position);
+        let position = ctl_util::world_to_screen(camera, framebuffer_size, position);
 
-        let scale = crate::util::world_to_screen(
+        let scale = ctl_util::world_to_screen(
             camera,
             framebuffer_size,
             vec2::splat(std::f32::consts::FRAC_1_SQRT_2),
-        ) - crate::util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
+        ) - ctl_util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
         options.size *= scale.len();
         let font_size = options.size * 0.6; // TODO: could rescale all dependent code but whatever
 
