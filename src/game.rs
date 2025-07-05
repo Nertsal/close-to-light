@@ -3,12 +3,9 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{
-    leaderboard::Leaderboard,
-    local::{CachedGroup, LocalMusic},
-    prelude::*,
-    render::game::GameRender,
-};
+use crate::{leaderboard::Leaderboard, prelude::*, render::game::GameRender};
+
+use ctl_local::{CachedGroup, LocalMusic};
 
 pub struct Game {
     context: Context,

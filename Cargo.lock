@@ -1315,6 +1315,7 @@ dependencies = [
  "ctl-client",
  "ctl-derive",
  "ctl-font",
+ "ctl-local",
  "ctl-render-core",
  "ctl-util",
  "data-encoding",
@@ -1719,6 +1720,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctl-local"
+version = "0.1.0"
+dependencies = [
+ "cbor4ii",
+ "ctl-client",
+ "ctl-core",
+ "ctl-util",
+ "directories",
+ "generational-arena",
+ "geng",
+ "serde",
+]
+
+[[package]]
 name = "ctl-render-core"
 version = "0.1.0"
 dependencies = [
@@ -1766,6 +1781,8 @@ dependencies = [
 name = "ctl-util"
 version = "0.1.0"
 dependencies = [
+ "async-compat",
+ "async-executor",
  "ctl-core",
  "geng",
  "geng-utils",

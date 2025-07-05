@@ -7,3 +7,5 @@ edition.workspace = true
 ctl-core.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
+async-compat.workspace = true
+async-executor.workspace = true

@@ -4,14 +4,12 @@ mod context;
 mod editor;
 mod game;
 mod leaderboard;
-mod local;
 #[cfg(not(target_arch = "wasm32"))]
 mod media;
 mod menu;
 mod model;
 mod prelude;
 mod render;
-mod task;
 mod ui;
 mod util;
 

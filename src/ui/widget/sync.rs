@@ -1,17 +1,17 @@
 use super::*;
 
 use crate::{
-    local::CachedGroup,
     menu::{ConfirmAction, MenuState},
     prelude::Assets,
-    task::Task,
     ui::layout::AreaOps,
 };
 
 use ctl_client::{
     ClientError, Nertboard,
-    core::types::{LevelSetInfo, LevelSet},
+    core::types::{LevelSet, LevelSetInfo},
 };
+use ctl_local::CachedGroup;
+use ctl_util::Task;
 use generational_arena::Index;
 
 type TaskRes<T> = Option<Task<ctl_client::Result<T>>>;
@@ -214,9 +214,7 @@ impl StatefulWidget for SyncWidget {
                             .music
                             .as_ref()
                             .map_or(&group.local.data.owner.name, |music| &music.meta.name);
-                        state
-                            .notifications
-                            .push(format!("Downloaded level {name}"));
+                        state.notifications.push(format!("Downloaded level {name}"));
                         self.cached_group = group;
                         self.reload = true;
                     }

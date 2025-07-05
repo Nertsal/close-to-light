@@ -1,7 +1,4 @@
-use crate::{
-    prelude::{HealthConfig, Id, LevelModifiers, Score},
-    task::Task,
-};
+use crate::prelude::{HealthConfig, Id, LevelModifiers, Score};
 
 use ctl_client::{
     Nertboard,
@@ -11,6 +8,7 @@ use ctl_client::{
         types::{UserInfo, UserLogin},
     },
 };
+use ctl_util::Task;
 use geng::prelude::*;
 
 #[derive(Debug)]

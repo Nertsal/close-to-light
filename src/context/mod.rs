@@ -2,15 +2,13 @@ mod music;
 
 pub use self::music::*;
 
-use crate::{
-    local::{LevelCache, LocalMusic},
-    prelude::{Assets, Id, Options, Time},
-};
+use crate::prelude::{Assets, Id, Options, Time};
 
 use std::{cell::RefCell, rc::Rc};
 
 use anyhow::Result;
 use ctl_client::Nertboard;
+use ctl_local::{LevelCache, LocalMusic};
 use geng::prelude::{time::Duration, *};
 
 #[derive(Clone)]

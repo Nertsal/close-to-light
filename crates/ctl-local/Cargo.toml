@@ -1,0 +1,14 @@
+[package]
+name = "ctl-local"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-core.workspace = true
+ctl-client.workspace = true
+ctl-util.workspace = true
+generational-arena.workspace = true
+geng.workspace = true
+serde.workspace = true
+cbor4ii.workspace = true
+directories.workspace = true

@@ -1,7 +1,8 @@
 mod lerp;
 mod sod;
+mod task;
 
-pub use self::{lerp::*, sod::*};
+pub use self::{lerp::*, sod::*, task::*};
 
 use geng::prelude::*;
 use geng_utils::bounded::Bounded;

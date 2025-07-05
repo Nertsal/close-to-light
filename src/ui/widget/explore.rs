@@ -1,12 +1,9 @@
-use ctl_client::core::types::{Id, LevelSetInfo};
-
 use super::*;
 
-use crate::{
-    local::{CacheState, LevelCache},
-    prelude::Assets,
-    ui::layout::AreaOps,
-};
+use crate::{prelude::Assets, ui::layout::AreaOps};
+
+use ctl_client::core::types::{Id, LevelSetInfo};
+use ctl_local::{CacheState, LevelCache};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ExploreAction {

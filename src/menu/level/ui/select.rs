@@ -1,4 +1,5 @@
-use crate::{local::CachedGroup, ui::UiWindow};
+use crate::ui::UiWindow;
+use ctl_local::CachedGroup;
 
 use super::*;
 

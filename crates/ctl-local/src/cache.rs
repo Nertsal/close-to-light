@@ -1,8 +1,7 @@
 use super::*;
 
-use crate::task::Task;
-
 use ctl_client::Nertboard;
+use ctl_util::Task;
 use generational_arena::Index;
 
 type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
