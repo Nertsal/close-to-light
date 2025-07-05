@@ -45,7 +45,7 @@ pub struct CacheTasks {
 
 enum CacheAction {
     GroupList(Vec<LevelSetInfo>),
-    Group(CachedGroup),
+    Group(Box<CachedGroup>),
     DownloadGroups(Vec<Id>),
 }
 
@@ -104,7 +104,7 @@ impl CacheTasks {
                 }
                 Ok(Ok(group)) => {
                     log::debug!("downloaded group {group_id}");
-                    return Some(CacheAction::Group(group));
+                    return Some(CacheAction::Group(Box::new(group)));
                 }
             }
         }
@@ -471,7 +471,7 @@ impl LevelCache {
                         name, group.local.data.owner.name
                     ));
 
-                    inner.groups.insert(Rc::new(group));
+                    inner.groups.insert(Rc::new(*group));
                 }
                 CacheAction::DownloadGroups(ids) => {
                     drop(inner);
