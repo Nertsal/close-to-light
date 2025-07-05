@@ -2,14 +2,16 @@ mod music;
 
 pub use self::music::*;
 
-use crate::prelude::{Assets, Id, Options, Time};
-
 use std::{cell::RefCell, rc::Rc};
 
 use anyhow::Result;
+use ctl_assets::{Assets, Options};
 use ctl_client::Nertboard;
+use ctl_core::prelude::{Id, Time};
 use ctl_local::{LevelCache, LocalMusic};
 use geng::prelude::{time::Duration, *};
+
+pub const OPTIONS_STORAGE: &str = "options";
 
 #[derive(Clone)]
 pub struct Context {

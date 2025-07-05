@@ -10,3 +10,4 @@ ctl-font.workspace = true
 ctl-render-core.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
+serde.workspace = true

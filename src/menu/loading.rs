@@ -36,7 +36,7 @@ impl<T: 'static> LoadingScreen<T> {
             assets,
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
-            options: preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
+            options: preferences::load(ctl_context::OPTIONS_STORAGE).unwrap_or_default(),
             future: Some(Task::new(geng, future)),
             result: None,
 

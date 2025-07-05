@@ -1,0 +1,11 @@
+[package]
+name = "ctl-context"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-core.workspace = true
+ctl-assets.workspace = true
+ctl-client.workspace = true
+ctl-local.workspace = true
+geng.workspace = true

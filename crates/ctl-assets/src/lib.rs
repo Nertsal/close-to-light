@@ -1,6 +1,10 @@
+mod options;
+
+pub use self::options::*;
+
 use std::path::PathBuf;
 
-use ctl_core::prelude::Modifier;
+use ctl_core::prelude::{Color, Modifier};
 pub use ctl_font::Font;
 use ctl_render_core::SubTexture;
 use geng::prelude::*;

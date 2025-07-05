@@ -15,6 +15,7 @@ ctl-util = { path = "crates/ctl-util" }
 ctl-font = { path = "crates/ctl-font" }
 ctl-render-core = { path = "crates/ctl-render-core" }
 ctl-local = { path = "crates/ctl-local" }
+ctl-context = { path = "crates/ctl-context" }
 
 # Common
 clap = { version = "4.4.11", features = ["derive"] }
@@ -89,6 +90,7 @@ ctl-font.workspace = true
 ctl-assets.workspace = true
 ctl-render-core.workspace = true
 ctl-local.workspace = true
+ctl-context.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true

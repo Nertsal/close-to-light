@@ -1,11 +1,11 @@
 mod logic;
-mod options;
 mod player;
 mod score;
 
-pub use self::{options::*, player::*, score::*};
+pub use self::{player::*, score::*};
 
 use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
+use ctl_assets::Options;
 
 const COYOTE_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
 const BUFFER_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s

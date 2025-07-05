@@ -1,6 +1,5 @@
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
-mod context;
 mod editor;
 mod game;
 mod leaderboard;
@@ -15,13 +14,12 @@ mod util;
 
 // use leaderboard::Leaderboard;
 
-use context::Context;
 use ctl_client::Nertboard;
+use ctl_context::Context;
 use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0; // TODO: upgrade to 120 i think
 
-const OPTIONS_STORAGE: &str = "options";
 const HIGHSCORES_STORAGE: &str = "highscores";
 const PLAYER_LOGIN_STORAGE: &str = "user";
 
@@ -180,7 +178,7 @@ async fn load_everything(
         let _ = client.ping().await; // Ping the server to check if we are online
     }
 
-    let context = context::Context::new(&geng, &assets, client.as_ref())
+    let context = Context::new(&geng, &assets, client.as_ref())
         .await
         .expect("failed to initialize context");
 

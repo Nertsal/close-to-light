@@ -1313,6 +1313,7 @@ dependencies = [
  "cbor4ii",
  "ctl-assets",
  "ctl-client",
+ "ctl-context",
  "ctl-derive",
  "ctl-font",
  "ctl-local",
@@ -1668,6 +1669,7 @@ dependencies = [
  "ctl-render-core",
  "geng",
  "geng-utils",
+ "serde",
 ]
 
 [[package]]
@@ -1681,6 +1683,17 @@ dependencies = [
  "tokio",
  "tokio-util",
  "url",
+]
+
+[[package]]
+name = "ctl-context"
+version = "0.1.0"
+dependencies = [
+ "ctl-assets",
+ "ctl-client",
+ "ctl-core",
+ "ctl-local",
+ "geng",
 ]
 
 [[package]]

@@ -1,5 +1,7 @@
 use super::*;
 
+use geng_utils::bounded::Bounded;
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Options {
     pub volume: VolumeOptions,
