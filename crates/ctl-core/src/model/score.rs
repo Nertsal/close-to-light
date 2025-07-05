@@ -61,11 +61,18 @@ impl Score {
     }
 
     /// Update the score given current player state.
+    /// Returns `true` if the player hits the perfect rhythm.
     #[must_use]
-    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> Vec<GameEvent> {
-        let events = self.metrics.update(player, delta_time);
+    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> bool {
+        let rhythm = self.metrics.update(player, delta_time);
         self.calculated = CalculatedScore::from_metrics(&self.metrics, self.multiplier);
-        events
+        rhythm
+    }
+}
+
+impl Default for CalculatedScore {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -97,6 +104,12 @@ impl CalculatedScore {
     }
 }
 
+impl Default for ScoreMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ScoreMetrics {
     pub fn new() -> Self {
         Self {
@@ -106,13 +119,19 @@ impl ScoreMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> Vec<GameEvent> {
-        let mut events = Vec::new();
+    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> bool {
+        let mut rhythm = false;
         if player.is_keyframe {
-            events.extend(self.discrete.update(player));
+            rhythm = rhythm || self.discrete.update(player);
         }
-        events.extend(self.dynamic.update(player, delta_time));
-        events
+        self.dynamic.update(player, delta_time);
+        rhythm
+    }
+}
+
+impl Default for DiscreteMetrics {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -126,23 +145,27 @@ impl DiscreteMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player) -> Vec<GameEvent> {
-        let mut events = Vec::new();
-
+    pub fn update(&mut self, player: &Player) -> bool {
         if player.danger_distance.is_none() && player.light_distance.is_some() && player.is_perfect
         {
             self.perfect += 1;
             self.total += 1;
             self.score += DISCRETE_PERFECT;
-            events.push(GameEvent::Rhythm { perfect: true });
+            true
+        } else {
+            false
         }
-
-        events
     }
 
     pub fn missed_rhythm(&mut self) {
         self.total += 1;
         self.score += DISCRETE_OK;
+    }
+}
+
+impl Default for DynamicMetrics {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -156,9 +179,7 @@ impl DynamicMetrics {
     }
 
     /// Update the metrics given the new player state.
-    pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> Vec<GameEvent> {
-        let events = Vec::new();
-
+    pub fn update(&mut self, player: &Player, delta_time: FloatTime) {
         self.frames += 1;
         self.distance_sum += player.light_distance.map_or(r32(1.0), |distance| {
             if player.is_perfect {
@@ -175,7 +196,5 @@ impl DynamicMetrics {
                     (delta_time.as_f32() * score_multiplier * DYNAMIC_SCALE).ceil() as i32;
             }
         }
-
-        events
     }
 }

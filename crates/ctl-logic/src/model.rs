@@ -1,16 +1,24 @@
-mod logic;
-mod player;
-mod score;
+use super::*;
 
-pub use self::{player::*, score::*};
-
-use crate::{game::PlayLevel, leaderboard::Leaderboard, prelude::*};
 use ctl_assets::Options;
+use ctl_local::{CachedGroup, Leaderboard, LocalMusic};
+use generational_arena::Index;
 
-const COYOTE_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
-const BUFFER_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
+#[derive(Debug, Clone)]
+pub struct PlayGroup {
+    pub group_index: Index,
+    pub cached: Rc<CachedGroup>,
+    pub music: Option<Rc<LocalMusic>>,
+}
 
-pub type Lifetime = Bounded<FloatTime>;
+#[derive(Debug, Clone)]
+pub struct PlayLevel {
+    pub group: PlayGroup,
+    pub level_index: usize,
+    pub level: Rc<LevelFull>,
+    pub config: LevelConfig,
+    pub start_time: Time,
+}
 
 #[derive(Debug, Clone)]
 pub enum GameEvent {

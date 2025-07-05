@@ -1,0 +1,12 @@
+[package]
+name = "ctl-logic"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-core.workspace = true
+ctl-assets.workspace = true
+ctl-context.workspace = true
+ctl-local.workspace = true
+geng.workspace = true
+generational-arena.workspace = true

@@ -2,11 +2,9 @@
 mod command;
 mod editor;
 mod game;
-mod leaderboard;
 #[cfg(not(target_arch = "wasm32"))]
 mod media;
 mod menu;
-mod model;
 mod prelude;
 mod render;
 mod ui;
@@ -19,11 +17,6 @@ use ctl_context::Context;
 use geng::prelude::*;
 
 const FIXED_FPS: f64 = 60.0; // TODO: upgrade to 120 i think
-
-const HIGHSCORES_STORAGE: &str = "highscores";
-const PLAYER_LOGIN_STORAGE: &str = "user";
-
-const DISCORD_LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&scope=identify";
 
 const DISCORD_SERVER_URL: &str = "https://discord.gg/Aq9bTvSbFN";
 
@@ -126,7 +119,7 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
 
     // Main menu
     if opts.skip_intro {
-        let leaderboard = leaderboard::Leaderboard::new(&geng, client.as_ref());
+        let leaderboard = ctl_local::Leaderboard::new(&geng, client.as_ref());
         let state = menu::LevelMenu::new(context, leaderboard);
         geng.run_state(state).await;
     } else {

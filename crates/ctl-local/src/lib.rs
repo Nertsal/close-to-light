@@ -1,13 +1,17 @@
 mod cache;
 pub mod fs;
+mod leaderboard;
 
-pub use self::cache::*;
+pub use self::{cache::*, leaderboard::*};
 
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use ctl_core::prelude::*;
 use generational_arena::Arena;
+
+pub const HIGHSCORES_STORAGE: &str = "highscores";
+pub const PLAYER_LOGIN_STORAGE: &str = "user";
 
 #[derive(Clone)]
 pub struct LocalMusic {

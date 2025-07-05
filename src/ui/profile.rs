@@ -1,6 +1,7 @@
 use super::*;
 
-use crate::{leaderboard::Leaderboard, prelude::Assets, ui::layout::AreaOps};
+use crate::{prelude::Assets, ui::layout::AreaOps};
+use ctl_local::Leaderboard;
 
 pub struct ProfileWidget {
     pub state: WidgetState,

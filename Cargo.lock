@@ -1318,11 +1318,11 @@ dependencies = [
  "ctl-derive",
  "ctl-font",
  "ctl-local",
+ "ctl-logic",
  "ctl-render-core",
  "ctl-ui",
  "ctl-util",
  "data-encoding",
- "directories",
  "enum-iterator",
  "generational-arena",
  "geng",
@@ -1738,6 +1738,7 @@ name = "ctl-local"
 version = "0.1.0"
 dependencies = [
  "cbor4ii",
+ "ctl-assets",
  "ctl-client",
  "ctl-core",
  "ctl-util",
@@ -1745,6 +1746,19 @@ dependencies = [
  "generational-arena",
  "geng",
  "serde",
+ "webbrowser",
+]
+
+[[package]]
+name = "ctl-logic"
+version = "0.1.0"
+dependencies = [
+ "ctl-assets",
+ "ctl-context",
+ "ctl-core",
+ "ctl-local",
+ "generational-arena",
+ "geng",
 ]
 
 [[package]]

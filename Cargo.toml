@@ -17,6 +17,7 @@ ctl-render-core = { path = "crates/ctl-render-core" }
 ctl-local = { path = "crates/ctl-local" }
 ctl-context = { path = "crates/ctl-context" }
 ctl-ui = { path = "crates/ctl-ui" }
+ctl-logic = { path = "crates/ctl-logic" }
 
 # Common
 clap = { version = "4.4.11", features = ["derive"] }
@@ -40,11 +41,13 @@ geng = "0.18"
 geng-utils = "0.4.0"
 parry2d = "0.13.5"
 async-executor = "1.8.0"
-webbrowser = "1.0.1"
-directories = "5.0.1"
 base64 = "0.22.1"
 async-compat = "0.2.4"
 rfd = "0.15.3"
+
+# Local storage
+webbrowser = "1.0.1"
+directories = "5.0.1"
 
 # Assets
 rusttype = { version = "0.9.3", features = ["gpu_cache"] }
@@ -96,6 +99,7 @@ ctl-render-core.workspace = true
 ctl-local.workspace = true
 ctl-context.workspace = true
 ctl-ui.workspace = true
+ctl-logic.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true
@@ -109,7 +113,6 @@ async-executor.workspace = true
 generational-arena.workspace = true
 bincode.workspace = true
 webbrowser.workspace = true
-directories.workspace = true
 base64.workspace = true
 async-compat.workspace = true
 cbor4ii.workspace = true

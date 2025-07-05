@@ -191,7 +191,7 @@ impl Command {
 }
 
 async fn login(client: &Nertboard) -> Result<()> {
-    let user: Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE);
+    let user: Option<UserLogin> = preferences::load(ctl_local::PLAYER_LOGIN_STORAGE);
 
     if let Some(user) = user {
         let user = client
@@ -201,12 +201,12 @@ async fn login(client: &Nertboard) -> Result<()> {
         log::debug!("logged in as {}", user.name);
     } else {
         let state = Uuid::new_v4().to_string();
-        webbrowser::open(&format!("{}&state={}", crate::DISCORD_LOGIN_URL, state))?;
+        webbrowser::open(&format!("{}&state={}", ctl_core::DISCORD_LOGIN_URL, state))?;
         let user = client
             .login_external(state)
             .await?
             .map_err(|err| anyhow!(err))?;
-        preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
+        preferences::save(ctl_local::PLAYER_LOGIN_STORAGE, &user);
     }
 
     Ok(())

@@ -1,14 +1,18 @@
 use geng::prelude::*;
+use geng_utils::bounded::Bounded;
 
 pub type Id = u32; // TODO: migrate to u64
 pub type Time = i64;
 pub type FloatTime = R32;
 pub type Coord = R32;
 pub type Name = Arc<str>;
+pub type Lifetime = Bounded<FloatTime>;
 
 /// How many time units there are in a single second.
 /// 1000 means that each time unit is a millisecond.
 pub const TIME_IN_FLOAT_TIME: Time = 1000;
+pub const COYOTE_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
+pub const BUFFER_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
 
 pub fn seconds_to_time(time: FloatTime) -> Time {
     (time.as_f32() * TIME_IN_FLOAT_TIME as f32).round() as Time

@@ -1,10 +1,11 @@
 use super::*;
 
 use crate::{
-    leaderboard::Leaderboard,
     render::{THEME, ui::UiRender},
     ui::{UiContext, layout::AreaOps, widget::*},
 };
+
+use ctl_local::Leaderboard;
 
 pub struct MainMenu {
     context: Context,

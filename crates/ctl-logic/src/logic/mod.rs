@@ -143,9 +143,9 @@ impl Model {
                             .change(-self.level.config.health.dark_decrease_rate * delta_time);
                     }
 
-                    let events = self.score.update(&self.player, delta_time);
-                    for event in events {
-                        self.handle_event(event);
+                    let perfect_rhythm = self.score.update(&self.player, delta_time);
+                    if perfect_rhythm {
+                        self.handle_event(GameEvent::Rhythm { perfect: true });
                     }
 
                     if !self.level.config.modifiers.nofail && self.player.health.is_min() {

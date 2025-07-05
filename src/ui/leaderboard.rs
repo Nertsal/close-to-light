@@ -1,12 +1,9 @@
 use super::*;
 
-use crate::{
-    leaderboard::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore},
-    prelude::Assets,
-    ui::layout::AreaOps,
-};
+use crate::{prelude::Assets, ui::layout::AreaOps};
 
 use ctl_core::types::{Name, UserInfo};
+use ctl_local::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore};
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
@@ -64,7 +61,7 @@ impl LeaderboardWidget {
                     },
                     level: 0,
                     score: 0,
-                    meta: crate::leaderboard::ScoreMeta::default(),
+                    meta: ctl_local::ScoreMeta::default(),
                 },
                 false,
             ),

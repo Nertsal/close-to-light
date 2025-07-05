@@ -23,6 +23,8 @@ pub mod prelude {
 
 use crate::prelude::*;
 
+pub const DISCORD_LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1242091884709417061&response_type=code&scope=identify";
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ScoreEntry {
     pub user: UserInfo,

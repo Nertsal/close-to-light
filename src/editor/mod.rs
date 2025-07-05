@@ -22,13 +22,14 @@ pub use self::{
 };
 
 use crate::{
-    game::{PlayGroup, PlayLevel},
-    leaderboard::Leaderboard,
     prelude::*,
     render::editor::{EditorRender, RenderOptions},
     ui::{UiContext, widget::ConfirmPopup},
     util::{SecondOrderDynamics, SecondOrderState},
 };
+
+use ctl_local::Leaderboard;
+use ctl_logic::{PlayGroup, PlayLevel};
 
 #[derive(Debug, Clone)]
 pub enum ConfirmAction {
@@ -264,7 +265,7 @@ impl EditorState {
             return;
         };
 
-        let level = crate::game::PlayLevel {
+        let level = ctl_logic::PlayLevel {
             start_time: level_editor.current_time.target,
             level: Rc::new(LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),

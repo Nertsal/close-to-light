@@ -1,12 +1,8 @@
-use crate::prelude::{HealthConfig, Id, LevelModifiers, Score};
-
-use ctl_client::{
-    Nertboard,
-    core::{
-        ScoreEntry, SubmitScore,
-        prelude::Uuid,
-        types::{UserInfo, UserLogin},
-    },
+use ctl_client::Nertboard;
+use ctl_core::{
+    ScoreEntry, SubmitScore,
+    prelude::{HealthConfig, LevelModifiers, Score, Uuid},
+    types::{Id, UserInfo, UserLogin},
 };
 use ctl_util::Task;
 use geng::prelude::*;
@@ -155,7 +151,7 @@ impl Leaderboard {
                 let redirect_uri = client.url.join("auth/discord")?;
                 let url = format!(
                     "{}&state={}&redirect_uri={}",
-                    crate::DISCORD_LOGIN_URL,
+                    ctl_core::DISCORD_LOGIN_URL,
                     state,
                     redirect_uri
                 );

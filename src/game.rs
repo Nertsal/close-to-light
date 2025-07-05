@@ -3,9 +3,9 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{leaderboard::Leaderboard, prelude::*, render::game::GameRender};
+use crate::{prelude::*, render::game::GameRender};
 
-use ctl_local::{CachedGroup, LocalMusic};
+use ctl_local::Leaderboard;
 
 pub struct Game {
     context: Context,
@@ -22,22 +22,6 @@ pub struct Game {
     ui: GameUI,
     ui_focused: bool,
     ui_context: UiContext,
-}
-
-#[derive(Debug, Clone)]
-pub struct PlayGroup {
-    pub group_index: Index,
-    pub cached: Rc<CachedGroup>,
-    pub music: Option<Rc<LocalMusic>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PlayLevel {
-    pub group: PlayGroup,
-    pub level_index: usize,
-    pub level: Rc<LevelFull>,
-    pub config: LevelConfig,
-    pub start_time: Time,
 }
 
 impl Game {
@@ -178,7 +162,7 @@ impl geng::State for Game {
                     let raw_score = score.calculated.combined;
                     let submit_score = do_submit_score.then_some(raw_score);
 
-                    let meta = crate::leaderboard::ScoreMeta::new(
+                    let meta = ctl_local::ScoreMeta::new(
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
                         score.clone(),
@@ -193,14 +177,15 @@ impl geng::State for Game {
                     } else {
                         self.model.leaderboard.loaded.category = meta.category.clone();
                         // Save highscores on lost runs only locally
-                        self.model.leaderboard.loaded.reload_local(Some(
-                            &crate::leaderboard::SavedScore {
+                        self.model
+                            .leaderboard
+                            .loaded
+                            .reload_local(Some(&ctl_local::SavedScore {
                                 user: self.model.player.info.clone(),
                                 level: self.model.level.level.meta.id,
                                 score: raw_score,
                                 meta,
-                            },
-                        ));
+                            }));
                         self.model.leaderboard.refetch();
                     }
                 }

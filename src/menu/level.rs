@@ -5,14 +5,15 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    game::PlayGroup,
-    leaderboard::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta},
     render::{mask::MaskedRender, menu::MenuRender},
     ui::{
         ShowTime, UiContext, WidgetRequest,
         widget::{ConfirmPopup, WidgetOld},
     },
 };
+
+use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
+use ctl_logic::PlayGroup;
 
 #[derive(Debug)]
 pub enum ConfirmAction {
@@ -284,7 +285,7 @@ impl LevelMenu {
             let config = self.state.config.clone();
 
             async move {
-                let level = crate::game::PlayLevel {
+                let level = ctl_logic::PlayLevel {
                     group,
                     level_index,
                     level: level.clone(),
@@ -653,9 +654,7 @@ impl geng::State for LevelMenu {
             .edit_level
             .take()
             .map(|(group_index, level_index)| {
-                log::debug!(
-                    "Requested edit for group {group_index:?}, level {level_index:?}"
-                );
+                log::debug!("Requested edit for group {group_index:?}, level {level_index:?}");
                 let local = self.state.context.local.inner.borrow();
                 let group = local
                     .groups
@@ -701,7 +700,7 @@ impl geng::State for LevelMenu {
                                 .expect("failed to load editor config");
 
                         if let Some((level_index, level)) = level {
-                            let level = crate::game::PlayLevel {
+                            let level = ctl_logic::PlayLevel {
                                 group,
                                 level_index,
                                 level,
