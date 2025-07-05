@@ -16,6 +16,7 @@ ctl-font = { path = "crates/ctl-font" }
 ctl-render-core = { path = "crates/ctl-render-core" }
 ctl-local = { path = "crates/ctl-local" }
 ctl-context = { path = "crates/ctl-context" }
+ctl-ui = { path = "crates/ctl-ui" }
 
 # Common
 clap = { version = "4.4.11", features = ["derive"] }
@@ -43,11 +44,13 @@ webbrowser = "1.0.1"
 directories = "5.0.1"
 base64 = "0.22.1"
 async-compat = "0.2.4"
-num-rational = "0.4.2"
 rfd = "0.15.3"
 
 # Assets
 rusttype = { version = "0.9.3", features = ["gpu_cache"] }
+
+# UI
+num-rational = "0.4.2"
 
 # Derive
 darling = "0.20"
@@ -83,6 +86,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+ctl-core.workspace = true
 ctl-client.workspace = true
 ctl-derive.workspace = true
 ctl-util.workspace = true
@@ -91,6 +95,7 @@ ctl-assets.workspace = true
 ctl-render-core.workspace = true
 ctl-local.workspace = true
 ctl-context.workspace = true
+ctl-ui.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true
@@ -108,7 +113,6 @@ directories.workspace = true
 base64.workspace = true
 async-compat.workspace = true
 cbor4ii.workspace = true
-num-rational.workspace = true
 rfd.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

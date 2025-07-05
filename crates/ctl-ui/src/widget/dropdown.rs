@@ -1,8 +1,8 @@
 use super::*;
 
-use crate::ui::layout::AreaOps;
+use crate::layout::AreaOps;
 
-use ctl_client::core::types::Name;
+use ctl_core::types::Name;
 
 pub struct DropdownWidget<T> {
     pub state: WidgetState,

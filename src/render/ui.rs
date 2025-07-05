@@ -1,14 +1,7 @@
 use super::{mask::MaskedRender, util::UtilRender, *};
 
 use crate::ui::{layout::AreaOps, widget::*};
-use ctl_render_core::SubTexture;
-
-pub fn pixel_scale(framebuffer_size: vec2<usize>) -> f32 {
-    const TARGET_SIZE: vec2<usize> = vec2(640, 360);
-    let size = framebuffer_size.as_f32();
-    let ratio = size / TARGET_SIZE.as_f32();
-    ratio.x.min(ratio.y)
-}
+use ctl_render_core::{SubTexture, pixel_scale};
 
 pub struct UiRender {
     context: Context,

@@ -5,18 +5,14 @@ mod dropdown;
 mod explore;
 mod icon;
 mod input;
-mod leaderboard;
 mod notification;
-mod options;
-mod profile;
 mod slider;
-mod sync;
 mod text;
 mod value;
 
 pub use self::{
     beat_time::*, button::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
-    leaderboard::*, notification::*, options::*, profile::*, slider::*, sync::*, text::*, value::*,
+    notification::*, slider::*, text::*, value::*,
 };
 
 use super::{WidgetId, context::*, geometry::Geometry, window::*};

@@ -1,8 +1,9 @@
 use super::*;
 
-use crate::{ui::layout::AreaOps, util::SecondOrderState};
+use crate::layout::AreaOps;
 
-use ctl_client::core::{prelude::Interpolatable, types::Name};
+use ctl_core::{prelude::Interpolatable, types::Name};
+use ctl_util::SecondOrderState;
 use geng_utils::conversions::Vec2RealConversions;
 
 pub struct ValueWidget<T> {
@@ -92,7 +93,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         if let ValueControl::Circle { .. } = self.control {
             let texture = context.context.assets.atlas.value_knob();
             let size = texture.size().as_f32() * context.geometry.pixel_scale;
-            control = crate::ui::layout::align_aabb(size, control, vec2(0.5, 0.5));
+            control = crate::layout::align_aabb(size, control, vec2(0.5, 0.5));
         }
 
         self.control_state.update(control, context);

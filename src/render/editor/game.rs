@@ -511,7 +511,7 @@ impl EditorRender {
                                     p.as_f32(),
                                 )
                             });
-                    let pixel = crate::render::ui::pixel_scale(ui_buffer.size());
+                    let pixel = ctl_render_core::pixel_scale(ui_buffer.size());
                     let width = 2.0 * pixel;
                     self.ui.fill_quad(
                         selection.extend_uniform(width),

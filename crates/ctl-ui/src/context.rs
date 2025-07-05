@@ -1,6 +1,7 @@
 use super::{geometry::GeometryContext, state::UiState};
 
-use crate::prelude::{Context, Theme};
+use ctl_assets::Theme;
+use ctl_context::Context;
 use ctl_font::Font;
 
 use geng::prelude::*;
@@ -36,6 +37,12 @@ pub struct CursorContext {
     /// Was the right cursor down last frame.
     pub was_right_down: bool,
     pub scroll: f32,
+}
+
+impl Default for CursorContext {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CursorContext {

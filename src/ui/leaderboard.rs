@@ -6,7 +6,7 @@ use crate::{
     ui::layout::AreaOps,
 };
 
-use ctl_client::core::types::{Name, UserInfo};
+use ctl_core::types::{Name, UserInfo};
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,

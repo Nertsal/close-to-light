@@ -1,5 +1,5 @@
 use ctl_assets::Assets;
-use ctl_client::core::{prelude::Color, types::Name};
+use ctl_core::{prelude::Color, types::Name};
 use ctl_render_core::{SubTexture, TextRenderOptions};
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
@@ -102,7 +102,7 @@ impl GeometryContext {
 
     pub fn update(&mut self, framebuffer_size: vec2<usize>) {
         self.framebuffer_size = framebuffer_size;
-        self.pixel_scale = crate::render::ui::pixel_scale(self.framebuffer_size);
+        self.pixel_scale = ctl_render_core::pixel_scale(self.framebuffer_size);
         *self.z_index.get_mut() = DEFAULT_Z;
     }
 

@@ -1,6 +1,6 @@
 use super::*;
 
-use ctl_client::core::types::time_to_seconds;
+use ctl_core::types::time_to_seconds;
 
 pub struct MusicManager {
     inner: RefCell<MusicManagerImpl>,

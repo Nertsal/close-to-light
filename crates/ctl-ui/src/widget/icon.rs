@@ -1,7 +1,6 @@
 use super::*;
 
-use crate::prelude::ThemeColor;
-
+use ctl_assets::ThemeColor;
 use ctl_render_core::SubTexture;
 
 #[derive(Clone)]

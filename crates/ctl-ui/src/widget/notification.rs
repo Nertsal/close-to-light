@@ -1,8 +1,10 @@
 use super::*;
 
-use crate::{prelude::Assets, ui::layout::AreaOps, util::Lerp};
+use crate::layout::AreaOps;
 
-use ctl_client::core::types::Name;
+use ctl_assets::Assets;
+use ctl_core::types::Name;
+use ctl_util::Lerp;
 
 pub struct NotificationsWidget {
     pub assets: Rc<Assets>,

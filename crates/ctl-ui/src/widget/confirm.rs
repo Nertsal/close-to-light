@@ -1,8 +1,9 @@
 use super::*;
 
-use crate::{prelude::Assets, ui::layout::AreaOps};
+use crate::layout::AreaOps;
 
-use ctl_client::core::types::Name;
+use ctl_assets::Assets;
+use ctl_core::types::Name;
 
 #[derive(Debug)]
 pub struct ConfirmPopup<T> {
@@ -75,7 +76,7 @@ impl Widget for ConfirmWidget {
 
         let window = self.state.position;
         let min_height = outline_width * 10.0;
-        let t = crate::util::smoothstep(self.window.show.time.get_ratio());
+        let t = ctl_util::smoothstep(self.window.show.time.get_ratio());
         let height = (t * window.height()).max(min_height);
 
         let mut in_window = Geometry::new();

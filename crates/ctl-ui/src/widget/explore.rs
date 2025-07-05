@@ -1,8 +1,9 @@
 use super::*;
 
-use crate::{prelude::Assets, ui::layout::AreaOps};
+use crate::layout::AreaOps;
 
-use ctl_client::core::types::{Id, LevelSetInfo};
+use ctl_assets::Assets;
+use ctl_core::types::{Id, LevelSetInfo};
 use ctl_local::{CacheState, LevelCache};
 
 #[derive(Debug, Clone, Copy)]

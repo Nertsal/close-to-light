@@ -1,8 +1,9 @@
 use super::*;
 
-use crate::{prelude::ThemeColor, ui::layout::AreaOps};
+use crate::layout::AreaOps;
 
-use ctl_client::core::types::Name;
+use ctl_assets::ThemeColor;
+use ctl_core::types::Name;
 use ctl_render_core::SubTexture;
 
 #[derive(Clone)]

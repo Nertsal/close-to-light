@@ -6,7 +6,7 @@ use crate::{
     ui::layout::AreaOps,
 };
 
-use ctl_client::core::types::Name;
+use ctl_core::types::Name;
 use geng_utils::bounded::Bounded;
 
 pub struct OptionsButtonWidget {

@@ -7,10 +7,9 @@ pub use self::{config::*, edit::*};
 
 use super::*;
 
-use crate::{
-    simple_widget_state,
-    ui::{layout::AreaOps, widget::*},
-};
+use crate::ui::{layout::AreaOps, widget::*};
+
+use ctl_ui::simple_widget_state;
 
 pub struct EditorUi {
     pub game: WidgetState,

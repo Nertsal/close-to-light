@@ -2,16 +2,9 @@ use mask::MaskedStack;
 
 use super::*;
 
-use crate::ui::{UiContext, geometry::Geometry};
+use crate::ui::geometry::Geometry;
 
 pub use ctl_render_core::{DashRenderOptions, TextRenderOptions};
-
-pub fn update_text_options(options: &mut TextRenderOptions, context: &UiContext) {
-    options.size = context.font_size;
-    options.color = context.theme().light;
-    options.hover_color = options.color.map_rgb(|x| x * 0.7);
-    options.press_color = options.color.map_rgb(|x| x * 0.5);
-}
 
 pub struct UtilRender {
     context: Context,

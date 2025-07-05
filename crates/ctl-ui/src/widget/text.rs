@@ -1,8 +1,7 @@
 use super::*;
 
-use crate::render::util::{TextRenderOptions, update_text_options};
-
-use ctl_client::core::{prelude::Color, types::Name};
+use ctl_core::{prelude::Color, types::Name};
+use ctl_render_core::TextRenderOptions;
 
 #[derive(Debug, Clone)]
 pub struct TextWidget {
@@ -45,7 +44,7 @@ impl TextWidget {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
-        update_text_options(&mut self.options, context);
+        crate::update_text_options(&mut self.options, context);
     }
 }
 
@@ -56,7 +55,7 @@ impl WidgetOld for TextWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
-        update_text_options(&mut self.options, context);
+        crate::update_text_options(&mut self.options, context);
     }
 }
 

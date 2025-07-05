@@ -1,8 +1,8 @@
 use super::*;
 
-use crate::ui::layout::AreaOps;
+use crate::layout::AreaOps;
 
-use ctl_client::core::{prelude::Color, types::Name};
+use ctl_core::{prelude::Color, types::Name};
 
 pub struct InputWidget {
     pub state: WidgetState,

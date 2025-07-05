@@ -1,8 +1,8 @@
 use super::*;
 
-use crate::ui::layout::AreaOps;
+use crate::layout::AreaOps;
 
-use ctl_client::core::types::{BeatTime, Name, Time};
+use ctl_core::types::{BeatTime, Name, Time};
 use num_rational::Ratio;
 
 pub struct BeatValueWidget {

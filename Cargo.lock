@@ -1314,10 +1314,12 @@ dependencies = [
  "ctl-assets",
  "ctl-client",
  "ctl-context",
+ "ctl-core",
  "ctl-derive",
  "ctl-font",
  "ctl-local",
  "ctl-render-core",
+ "ctl-ui",
  "ctl-util",
  "data-encoding",
  "directories",
@@ -1325,7 +1327,6 @@ dependencies = [
  "generational-arena",
  "geng",
  "geng-utils",
- "num-rational",
  "parry2d",
  "rexie",
  "rfd",
@@ -1788,6 +1789,22 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "ctl-ui"
+version = "0.1.0"
+dependencies = [
+ "ctl-assets",
+ "ctl-context",
+ "ctl-core",
+ "ctl-font",
+ "ctl-local",
+ "ctl-render-core",
+ "ctl-util",
+ "geng",
+ "geng-utils",
+ "num-rational",
 ]
 
 [[package]]
