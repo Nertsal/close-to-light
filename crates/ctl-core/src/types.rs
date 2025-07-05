@@ -25,8 +25,6 @@ struct BeatTimeSerde(FloatTime);
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(from = "BeatTimeSerde", into = "BeatTimeSerde")]
 pub struct BeatTime {
-    /// 1 unit is 1/16 of a beat (typically a 1/64th note).
-    // TODO: do 1/48 or 1/60 to support thirds
     units: Time,
 }
 
@@ -45,21 +43,29 @@ impl From<BeatTimeSerde> for BeatTime {
 }
 
 impl BeatTime {
-    pub const UNITS_PER_BEAT: Time = 16;
+    pub const UNITS_PER_BEAT: Time = 120;
 
-    /// A whole beat (typically a 1/4th note)
+    /// A whole beat (typically a 1/4th note).
     pub const WHOLE: Self = Self {
         units: Self::UNITS_PER_BEAT,
     };
-    /// A half beat (typically a 1/8th note)
+    /// A half beat (typically a 1/8th note).
     pub const HALF: Self = Self {
         units: Self::UNITS_PER_BEAT / 2,
     };
-    /// A quarter beat (typically a 1/16th note)
+    /// A third beat (typically a 1/12th note).
+    pub const THIRD: Self = Self {
+        units: Self::UNITS_PER_BEAT / 3,
+    };
+    /// A quarter beat (typically a 1/16th note).
     pub const QUARTER: Self = Self {
         units: Self::UNITS_PER_BEAT / 4,
     };
-    /// An eighth beat (typically a 1/32th note)
+    /// A fifth beat (typically a 1/20th note).
+    pub const FIFTH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 5,
+    };
+    /// An eighth beat (typically a 1/32th note).
     pub const EIGHTH: Self = Self {
         units: Self::UNITS_PER_BEAT / 8,
     };
