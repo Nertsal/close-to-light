@@ -100,7 +100,8 @@ impl EditorRender {
             }
         };
 
-        let static_alpha = if let State::Place { .. } | State::Waypoints { .. } = level_editor.state
+        let static_alpha = if let EditingState::Place { .. } | EditingState::Waypoints { .. } =
+            level_editor.state
         {
             0.75
         } else {
@@ -159,7 +160,7 @@ impl EditorRender {
         {
             // Current action
             let shape = match level_editor.state {
-                State::Place { shape, danger } => Some((shape, danger)),
+                EditingState::Place { shape, danger } => Some((shape, danger)),
                 _ => None,
             };
             if let Some((shape, danger)) = shape {
@@ -208,7 +209,7 @@ impl EditorRender {
                         } else {
                             light_color
                         };
-                        let alpha = if let State::Waypoints { .. } = level_editor.state {
+                        let alpha = if let EditingState::Waypoints { .. } = level_editor.state {
                             1.0
                         } else {
                             0.5
@@ -255,7 +256,7 @@ impl EditorRender {
             }
         }
 
-        if let State::Waypoints { light_id, .. } = &level_editor.state {
+        if let EditingState::Waypoints { light_id, .. } = &level_editor.state {
             let light_id = *light_id;
             if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
                 let visibility = |beat| visibility(timed_event, beat);

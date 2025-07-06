@@ -77,7 +77,7 @@ impl Editor {
             }
             EditorAction::StopPlaying => {
                 if let Some(level_editor) = &mut self.level_edit {
-                    if let State::Playing {
+                    if let EditingState::Playing {
                         start_time,
                         start_target_time,
                         playing_time: _,
@@ -95,7 +95,7 @@ impl Editor {
             }
             EditorAction::StartPlaying => {
                 if let Some(level_editor) = &mut self.level_edit {
-                    level_editor.state = State::Playing {
+                    level_editor.state = EditingState::Playing {
                         start_time: level_editor.current_time.value,
                         start_target_time: level_editor.current_time.target,
                         playing_time: FloatTime::ZERO,

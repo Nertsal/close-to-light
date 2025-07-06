@@ -383,7 +383,8 @@ impl EditorEditUi {
                                 context.state.get_root_or(|| ToggleWidget::new("Waypoints"));
                             button.update(waypoints, context);
                             button.text.options.size = title_size;
-                            button.checked = matches!(level_editor.state, State::Waypoints { .. });
+                            button.checked =
+                                matches!(level_editor.state, EditingState::Waypoints { .. });
                             if button.state.clicked {
                                 actions.push(LevelAction::ToggleWaypointsView.into());
                             }

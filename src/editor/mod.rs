@@ -3,7 +3,7 @@ mod handle_event;
 
 use crate::{prelude::*, render::editor::EditorRender};
 
-pub use ctl_editor::{State, ui::*, *};
+pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::UiContext;
@@ -135,7 +135,7 @@ impl EditorState {
 
         level_editor.scrolling_time = false;
 
-        if let State::Playing {
+        if let EditingState::Playing {
             start_target_time,
             playing_time,
             ..

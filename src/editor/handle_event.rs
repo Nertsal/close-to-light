@@ -135,7 +135,7 @@ impl EditorState {
                 }
                 geng::Key::D => {
                     if let Some(level_editor) = &self.editor.level_edit {
-                        if let State::Place { .. } = level_editor.state {
+                        if let EditingState::Place { .. } = level_editor.state {
                             actions.push(LevelAction::ToggleDangerPlacement.into());
                         } else if let Selection::Lights(lights) = &level_editor.selection {
                             actions.push(
@@ -161,7 +161,7 @@ impl EditorState {
                     actions.push(EditorStateAction::Cancel);
                 }
                 geng::Key::Space => {
-                    if let State::Playing { .. } = &level_editor.state {
+                    if let EditingState::Playing { .. } = &level_editor.state {
                         actions.push(EditorAction::StopPlaying.into());
                     } else {
                         actions.push(EditorAction::StartPlaying.into());
@@ -210,7 +210,7 @@ impl EditorState {
                                         .into(),
                                     );
                                     scale = true;
-                                } else if let State::Waypoints {
+                                } else if let EditingState::Waypoints {
                                     state: WaypointsState::New,
                                     ..
                                 } = level_editor.state
@@ -220,7 +220,7 @@ impl EditorState {
                                     );
                                     scale = true;
                                 }
-                            } else if let State::Place { .. } = level_editor.state {
+                            } else if let EditingState::Place { .. } = level_editor.state {
                                 actions
                                     .push(LevelAction::ScalePlacement(Change::Add(delta)).into());
                                 scale = true;
@@ -253,7 +253,7 @@ impl EditorState {
         };
 
         match &level_editor.state {
-            State::Idle | State::Place { .. } => {
+            EditingState::Idle | EditingState::Place { .. } => {
                 if let Some(&shape) = self
                     .editor
                     .config
@@ -263,7 +263,7 @@ impl EditorState {
                     actions.push(LevelAction::NewLight(shape).into());
                 }
             }
-            State::Waypoints { .. } => {
+            EditingState::Waypoints { .. } => {
                 // TODO: better key
                 actions.push(LevelAction::NewWaypoint.into());
             }
@@ -428,7 +428,7 @@ impl EditorState {
         }
 
         match &level_editor.state {
-            State::Idle => {
+            EditingState::Idle => {
                 if button == geng::MouseButton::Left && self.ui_context.mods.shift {
                     // Shift+LMB is always a selection
                     actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
@@ -577,14 +577,14 @@ impl EditorState {
                     }
                 }
             }
-            State::Place { .. } => {
+            EditingState::Place { .. } => {
                 if let geng::MouseButton::Left = button {
                     actions
                         .push(LevelAction::PlaceLight(self.editor.cursor_world_pos_snapped).into());
                 }
             }
-            State::Playing { .. } => {}
-            State::Waypoints { state, .. } => match state {
+            EditingState::Playing { .. } => {}
+            EditingState::Waypoints { state, .. } => match state {
                 WaypointsState::Idle => {
                     if let Some(waypoints) = &level_editor.level_state.waypoints {
                         if let Some(hovered) =
@@ -703,8 +703,8 @@ impl EditorState {
             return;
         };
 
-        if let State::Place { .. }
-        | State::Waypoints {
+        if let EditingState::Place { .. }
+        | EditingState::Waypoints {
             state: WaypointsState::New,
             ..
         } = &level_editor.state

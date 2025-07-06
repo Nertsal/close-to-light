@@ -25,7 +25,7 @@ pub struct LevelEditor {
     /// The scale at which the objects should be placed.
     pub place_scale: Coord,
 
-    pub state: State,
+    pub state: EditingState,
     /// Whether the last frame was scrolled through time.
     pub was_scrolling_time: bool,
     /// Whether currently scrolling through time.
@@ -127,7 +127,7 @@ impl LevelEditor {
             place_rotation: Angle::ZERO,
             place_scale: Coord::ONE,
 
-            state: State::Idle,
+            state: EditingState::Idle,
             was_scrolling_time: false,
             scrolling_time: false,
 
@@ -162,7 +162,7 @@ impl LevelEditor {
                         if light.event < self.level.events.len() {
                             self.level.events.swap_remove(light.event);
                             self.level_state.waypoints = None;
-                            self.state = State::Idle;
+                            self.state = EditingState::Idle;
                         }
                     }
                     Some(frame) => {
@@ -190,9 +190,9 @@ impl LevelEditor {
 
     pub fn undo(&mut self) {
         match &mut self.state {
-            State::Playing { .. } => {}
-            State::Place { .. } => {}
-            State::Idle | State::Waypoints { .. } => {
+            EditingState::Playing { .. } => {}
+            EditingState::Place { .. } => {}
+            EditingState::Idle | EditingState::Waypoints { .. } => {
                 self.history.undo(&mut self.level);
             }
         }
@@ -200,9 +200,9 @@ impl LevelEditor {
 
     pub fn redo(&mut self) {
         match &mut self.state {
-            State::Playing { .. } => {}
-            State::Place { .. } => {}
-            State::Idle | State::Waypoints { .. } => {
+            EditingState::Playing { .. } => {}
+            EditingState::Place { .. } => {}
+            EditingState::Idle | EditingState::Waypoints { .. } => {
                 self.history.redo(&mut self.level);
             }
         }
@@ -285,30 +285,30 @@ impl LevelEditor {
     pub fn new_waypoint(&mut self) {
         self.execute(LevelAction::DeselectWaypoint, None);
 
-        if let State::Waypoints { state, .. } = &mut self.state {
+        if let EditingState::Waypoints { state, .. } = &mut self.state {
             *state = WaypointsState::New;
         }
     }
 
     pub fn view_waypoints(&mut self) {
         match self.state {
-            State::Idle => {
+            EditingState::Idle => {
                 if let Some(selected) = self.selection.light_single() {
-                    self.state = State::Waypoints {
+                    self.state = EditingState::Waypoints {
                         light_id: selected,
                         state: WaypointsState::Idle,
                     };
                 }
             }
-            State::Waypoints { .. } => {
-                self.state = State::Idle;
+            EditingState::Waypoints { .. } => {
+                self.state = EditingState::Idle;
             }
             _ => (),
         }
     }
 
     pub fn scroll_time(&mut self, delta: Time) {
-        if let State::Playing { .. } = self.state {
+        if let EditingState::Playing { .. } = self.state {
             return;
         }
 
@@ -318,13 +318,12 @@ impl LevelEditor {
         let target = (self.current_time.target + delta).clamp(min, max);
 
         // TODO: customize snap
-        self.current_time.scroll_time(Change::Set(
-            self.level.timing.snap_to_beat(target, BeatTime::QUARTER),
-        ));
+        let target_time = self.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+        self.current_time.scroll_time(Change::Set(target_time));
 
         self.scrolling_time = true;
 
-        if let State::Playing { old_state, .. } = &self.state {
+        if let EditingState::Playing { old_state, .. } = &self.state {
             self.state = (**old_state).clone()
         }
     }
@@ -336,7 +335,7 @@ impl LevelEditor {
         visualize_beat: bool,
         show_only_selected: bool,
     ) {
-        let (static_time, dynamic_time) = if let State::Playing { .. } = self.state {
+        let (static_time, dynamic_time) = if let EditingState::Playing { .. } = self.state {
             // TODO: self.music.play_position()
             (None, Some(self.current_time.value))
         } else {
@@ -375,7 +374,7 @@ impl LevelEditor {
 
         let mut hovered_light = self.timeline_light_hover.take();
         if hovered_light.is_none() {
-            if let State::Idle = self.state {
+            if let EditingState::Idle = self.state {
                 if let Some(level) = &static_level {
                     hovered_light = cursor_world_pos.and_then(|cursor| {
                         level
@@ -390,7 +389,7 @@ impl LevelEditor {
         }
 
         let mut waypoints = None;
-        if let State::Waypoints { light_id, state } = &self.state {
+        if let EditingState::Waypoints { light_id, state } = &self.state {
             let light_id = *light_id;
             if let Some(timed_event) = self.level.events.get(light_id.event) {
                 if let Event::Light(light_event) = &timed_event.event {

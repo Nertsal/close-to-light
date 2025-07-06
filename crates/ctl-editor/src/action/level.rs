@@ -240,13 +240,13 @@ impl LevelEditor {
 
             LevelAction::NewLight(shape) => {
                 self.execute(LevelAction::DeselectLight, drag);
-                self.state = State::Place {
+                self.state = EditingState::Place {
                     shape,
                     danger: false,
                 };
             }
             LevelAction::ToggleDangerPlacement => {
-                if let State::Place { danger, .. } = &mut self.state {
+                if let EditingState::Place { danger, .. } = &mut self.state {
                     *danger = !*danger;
                 }
             }
@@ -568,7 +568,7 @@ impl LevelEditor {
 
     fn select_light(&mut self, mode: SelectMode, ids: Vec<LightId>) {
         self.level_state.waypoints = None;
-        self.state = State::Idle;
+        self.state = EditingState::Idle;
         match mode {
             SelectMode::Add => {
                 for id in ids {
@@ -626,7 +626,7 @@ impl LevelEditor {
         if let Some(waypoints) = &mut self.level_state.waypoints {
             waypoints.selected = Some(waypoint_id);
         } else {
-            self.state = State::Waypoints {
+            self.state = EditingState::Waypoints {
                 light_id,
                 state: WaypointsState::Idle,
             };
@@ -673,15 +673,15 @@ impl LevelEditor {
 
     fn cancel(&mut self) {
         match &mut self.state {
-            State::Idle => {
+            EditingState::Idle => {
                 // Cancel selection
                 self.execute(LevelAction::DeselectLight, None);
             }
-            State::Place { .. } => {
+            EditingState::Place { .. } => {
                 // Cancel creation
-                self.state = State::Idle;
+                self.state = EditingState::Idle;
             }
-            State::Waypoints { state, .. } => {
+            EditingState::Waypoints { state, .. } => {
                 // Cancel selection
                 match state {
                     WaypointsState::Idle => {
@@ -690,7 +690,7 @@ impl LevelEditor {
                                 return;
                             }
                         }
-                        self.state = State::Idle
+                        self.state = EditingState::Idle
                     }
                     WaypointsState::New => *state = WaypointsState::Idle,
                 }
@@ -700,7 +700,7 @@ impl LevelEditor {
     }
 
     fn place_light(&mut self, position: vec2<Coord>) {
-        let State::Place { shape, danger } = self.state else {
+        let EditingState::Place { shape, danger } = self.state else {
             return;
         };
 
@@ -734,7 +734,7 @@ impl LevelEditor {
         self.level.events.push(event);
 
         self.selection = Selection::Lights(vec![LightId { event: event_i }]);
-        self.state = State::Waypoints {
+        self.state = EditingState::Waypoints {
             light_id: LightId { event: event_i },
             state: WaypointsState::New,
         };

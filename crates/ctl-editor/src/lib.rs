@@ -16,7 +16,7 @@ pub use self::{
     group::*,
     history::*,
     level::*,
-    state::{State, *},
+    state::{EditingState, *},
 };
 
 use ctl_logic::*;

@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Debug, Clone)]
-pub enum State {
+pub enum EditingState {
     Idle,
     /// Place a new light.
     Place {
@@ -17,7 +17,7 @@ pub enum State {
         /// Target time on the timeline when started playing.
         start_target_time: Time,
         /// State to revert to when done playing.
-        old_state: Box<State>,
+        old_state: Box<EditingState>,
     },
     /// Control waypoints of an existing event.
     Waypoints {

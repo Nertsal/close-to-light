@@ -11,10 +11,7 @@ use super::{
     *,
 };
 
-use crate::{
-    editor::{State, *},
-    ui::UiContext,
-};
+use crate::{editor::*, ui::UiContext};
 
 pub struct EditorRender {
     context: Context,
