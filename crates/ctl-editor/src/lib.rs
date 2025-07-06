@@ -6,6 +6,7 @@ mod group;
 mod history;
 mod level;
 mod state;
+pub mod ui;
 
 pub use self::{
     action::*,

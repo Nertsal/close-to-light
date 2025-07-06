@@ -2,14 +2,12 @@ mod config;
 mod edit;
 mod widgets;
 
-pub(super) use self::widgets::*;
+pub use self::widgets::*;
 pub use self::{config::*, edit::*};
 
 use super::*;
 
-use crate::ui::{layout::AreaOps, widget::*};
-
-use ctl_ui::simple_widget_state;
+use ctl_ui::{UiContext, layout::AreaOps, simple_widget_state, widget::*};
 
 pub struct EditorUi {
     pub game: WidgetState,

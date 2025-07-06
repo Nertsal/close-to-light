@@ -3,6 +3,7 @@ use super::*;
 pub struct EditorEditUi {}
 
 impl EditorEditUi {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {}
     }

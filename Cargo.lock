@@ -1728,10 +1728,12 @@ name = "ctl-editor"
 version = "0.1.0"
 dependencies = [
  "ctl-logic",
+ "ctl-render-core",
  "ctl-ui",
  "ctl-util",
  "geng",
  "geng-utils",
+ "rfd",
  "serde",
 ]
 

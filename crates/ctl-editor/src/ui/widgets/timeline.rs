@@ -1,14 +1,11 @@
 use super::*;
 
-use crate::{
-    editor::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId, ScrollSpeed},
-    prelude::*,
-    ui::layout::AreaOps,
-    util::{SecondOrderDynamics, SecondOrderState},
-};
-use ctl_render_core::SubTexture;
+use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId, ScrollSpeed};
 
 use std::collections::BTreeMap;
+
+use ctl_render_core::SubTexture;
+use ctl_util::{SecondOrderDynamics, SecondOrderState};
 
 /// Pixels per unit
 const PPU: usize = 2;
@@ -46,6 +43,12 @@ struct HighlightBar {
     from: vec2<f32>,
     to_time: Time,
     to: vec2<f32>,
+}
+
+impl Default for TimelineWidget {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TimelineWidget {

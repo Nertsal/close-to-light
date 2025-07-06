@@ -1,12 +1,9 @@
 mod action;
 mod handle_event;
-mod ui;
-
-pub use self::{action::*, ui::*};
 
 use crate::{prelude::*, render::editor::EditorRender};
 
-pub use ctl_editor::{State, *};
+pub use ctl_editor::{State, ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::UiContext;

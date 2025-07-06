@@ -1,8 +1,6 @@
 use super::*;
 
-use crate::ui::layout::AreaOps;
-
-use ctl_client::core::types::Name;
+use ctl_logic::Name;
 
 #[derive(Debug, Clone)]
 pub struct TooltipWidget {
@@ -10,6 +8,12 @@ pub struct TooltipWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub text: TextWidget,
+}
+
+impl Default for TooltipWidget {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TooltipWidget {
