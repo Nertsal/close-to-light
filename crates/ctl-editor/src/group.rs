@@ -293,5 +293,13 @@ impl Editor {
         let scroll = scroll.as_time(beat_time); // TODO: well beat time may change as we scroll
 
         level_editor.scroll_time(scroll);
+        if let Some(music) = &level_editor.static_level.group.music {
+            if self.config.playback_duration > FloatTime::ZERO {
+                self.context
+                    .music
+                    .play_from_time(music, level_editor.current_time.target);
+                self.music_timer = self.config.playback_duration;
+            }
+        }
     }
 }

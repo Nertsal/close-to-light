@@ -3,7 +3,7 @@ EditorConfig(
         cell_size: 0.625,
         thick_every: 4, // 0 to disable thickness, 1 to make everything thick
     ),
-    playback_duration: 0.5,
+    playback_duration: 0.0,
     scroll_slow: 0.25,
     scroll_normal: 1.0,
     scroll_fast: 16.0,
