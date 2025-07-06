@@ -5,7 +5,7 @@ game *ARGS:
     cargo run -- {{ARGS}}
 
 web command *ARGS:
-    cargo geng {{command}} --platform web
+    cargo geng {{command}} --platform web --release -- {{ARGS}}
 
 server PORT *ARGS:
     cargo run --release --package ctl-server {{PORT}} -- {{ARGS}}
