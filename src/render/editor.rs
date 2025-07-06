@@ -30,11 +30,6 @@ pub struct EditorRender {
     font_size: f32,
 }
 
-pub struct RenderOptions {
-    pub hide_ui: bool,
-    pub show_grid: bool,
-}
-
 impl EditorRender {
     pub fn new(context: Context) -> Self {
         let mut game_texture = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));

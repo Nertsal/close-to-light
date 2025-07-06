@@ -10,8 +10,6 @@ mod render;
 mod ui;
 mod util;
 
-// use leaderboard::Leaderboard;
-
 use ctl_client::Nertboard;
 use ctl_context::Context;
 use geng::prelude::*;

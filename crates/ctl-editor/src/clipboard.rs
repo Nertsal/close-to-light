@@ -9,6 +9,12 @@ pub enum ClipboardItem {
     Lights(Vec<LightEvent>),
 }
 
+impl Default for Clipboard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clipboard {
     pub fn new() -> Self {
         Self { data: None }

@@ -5,4 +5,4 @@ mod timeline;
 mod tooltip;
 
 pub use self::{context_menu::*, timeline::*, tooltip::*};
-use crate::ui::{geometry::Geometry, *};
+use crate::ui::geometry::Geometry;

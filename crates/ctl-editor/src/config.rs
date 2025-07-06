@@ -1,5 +1,10 @@
 use super::*;
 
+pub struct RenderOptions {
+    pub hide_ui: bool,
+    pub show_grid: bool,
+}
+
 #[derive(geng::asset::Load, Debug, Clone, Serialize, Deserialize)]
 #[load(serde = "ron")]
 pub struct EditorConfig {

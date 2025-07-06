@@ -113,8 +113,6 @@ impl History {
         // TODO: limit capacity
         self.redo_stack.clear();
 
-        log::debug!(
-            "Saved old state to the stack, starting new buffer {label:?}"
-        );
+        log::debug!("Saved old state to the stack, starting new buffer {label:?}");
     }
 }

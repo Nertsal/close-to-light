@@ -58,7 +58,7 @@ impl EditorState {
             EditorStateAction::StartPlaytest => self.play_game(),
             EditorStateAction::EndDrag => self.end_drag(),
             EditorStateAction::StartDrag(target) => self.start_drag(target),
-            EditorStateAction::ConfirmPopupAction => self.editor.confirm_action(&mut self.ui),
+            EditorStateAction::ConfirmPopupAction => self.editor.confirm_action(),
             EditorStateAction::ContextMenu(position, options) => {
                 self.ui.context_menu = ContextMenuWidget::new(position, options);
             }

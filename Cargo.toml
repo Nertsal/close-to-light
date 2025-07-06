@@ -18,6 +18,7 @@ ctl-local = { path = "crates/ctl-local" }
 ctl-context = { path = "crates/ctl-context" }
 ctl-ui = { path = "crates/ctl-ui" }
 ctl-logic = { path = "crates/ctl-logic" }
+ctl-editor = { path = "crates/ctl-editor" }
 
 # Common
 clap = { version = "4.4.11", features = ["derive"] }
@@ -100,6 +101,7 @@ ctl-local.workspace = true
 ctl-context.workspace = true
 ctl-ui.workspace = true
 ctl-logic.workspace = true
+ctl-editor.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true

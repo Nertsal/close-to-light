@@ -86,9 +86,7 @@ impl Editor {
         }
 
         if !(0..self.group.cached.local.data.levels.len()).contains(&level_index) {
-            log::error!(
-                "Tried to remove a level by an invalid index {level_index}"
-            );
+            log::error!("Tried to remove a level by an invalid index {level_index}");
             return;
         }
 
@@ -265,7 +263,7 @@ impl Editor {
     }
 
     /// Confirm the popup action and execute it.
-    pub fn confirm_action(&mut self, _ui: &mut EditorUi) {
+    pub fn confirm_action(&mut self) {
         let Some(popup) = self.confirm_popup.take() else {
             return;
         };

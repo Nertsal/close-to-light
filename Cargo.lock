@@ -1316,6 +1316,7 @@ dependencies = [
  "ctl-context",
  "ctl-core",
  "ctl-derive",
+ "ctl-editor",
  "ctl-font",
  "ctl-local",
  "ctl-logic",
@@ -1720,6 +1721,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "ctl-editor"
+version = "0.1.0"
+dependencies = [
+ "ctl-logic",
+ "ctl-ui",
+ "ctl-util",
+ "geng",
+ "geng-utils",
+ "serde",
 ]
 
 [[package]]

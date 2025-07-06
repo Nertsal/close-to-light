@@ -1,0 +1,12 @@
+[package]
+name = "ctl-editor"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-logic.workspace = true
+ctl-ui.workspace = true
+ctl-util.workspace = true
+geng.workspace = true
+geng-utils.workspace = true
+serde.workspace = true
