@@ -4,6 +4,9 @@ list:
 game *ARGS:
     cargo run -- {{ARGS}}
 
+web command *ARGS:
+    cargo geng {{command}} --platform web
+
 server PORT *ARGS:
     cargo run --release --package ctl-server {{PORT}} -- {{ARGS}}
 

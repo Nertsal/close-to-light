@@ -622,7 +622,7 @@ impl LevelCache {
     pub fn select_music_file(
         &self,
         group_index: Index,
-        music_path: PathBuf,
+        _music_path: PathBuf,
     ) -> Result<Rc<CachedGroup>> {
         let inner = self.inner.borrow();
         let new_group = inner
@@ -638,7 +638,7 @@ impl LevelCache {
             let mut new_group = new_group;
 
             let (music, music_bytes) = futures::executor::block_on({
-                let path = music_path.clone();
+                let path = _music_path.clone();
                 let geng = self.geng.clone();
                 async move {
                     let music_bytes = file::load_bytes(&path).await;
@@ -655,7 +655,7 @@ impl LevelCache {
 
             let music_meta = new_group.meta.music.clone().unwrap_or_else(|| {
                 let mut meta = MusicInfo::default();
-                if let Some(name) = music_path.file_name() {
+                if let Some(name) = _music_path.file_name() {
                     let name: Name = name.to_string_lossy().into();
                     meta.name = name.clone();
                     meta.romanized = name;
@@ -678,7 +678,7 @@ impl LevelCache {
             log::debug!("Copying music file into {:?}", group.local.path);
             // Create a dir because the rest of the group is saved asynchronously
             let _ = std::fs::create_dir_all(&group.local.path);
-            if let Err(err) = std::fs::copy(&music_path, group.local.path.join("music.mp3")) {
+            if let Err(err) = std::fs::copy(&_music_path, group.local.path.join("music.mp3")) {
                 log::error!("Copying music failed: {err:?}");
             }
         }

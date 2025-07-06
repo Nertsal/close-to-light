@@ -84,11 +84,14 @@ impl Controller {
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or(&id);
-            let music = group.local.music.as_ref().map(|music| &music.bytes);
+            let music = group.local.music.as_ref().map(|music| &*music.bytes);
             // TODO: save_music
             if let Err(err) = web::save_group(&self.rexie, group, music, id).await {
                 log::error!("failed to save group into web file system: {:?}", err);
                 anyhow::bail!("check logs");
+            }
+            if save_music {
+                log::warn!("saving music on web is not supported yet");
             }
         }
         #[cfg(not(target_arch = "wasm32"))]

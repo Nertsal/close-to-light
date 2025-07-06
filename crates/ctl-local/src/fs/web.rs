@@ -69,7 +69,7 @@ pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGrou
                     Some(Rc::new(LocalMusic::new(
                         meta.music.clone().unwrap_or_default(),
                         music,
-                        music_bytes,
+                        music_bytes.into(),
                     )))
                 }
             };
@@ -93,7 +93,7 @@ pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGrou
 pub async fn save_group(
     rexie: &Rexie,
     group: &CachedGroup,
-    music: Option<&Vec<u8>>,
+    music: Option<&[u8]>,
     id: &str,
 ) -> Result<()> {
     log::debug!("Storing group {:?} into browser storage", id);
