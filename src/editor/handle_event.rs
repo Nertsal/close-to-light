@@ -451,15 +451,15 @@ impl EditorState {
                                             // Select single light
                                             Selection::Empty
                                         };
-                                    actions.push(
-                                        LevelAction::SelectLight(SelectMode::Set, vec![light_id])
-                                            .into(),
-                                    );
                                     selection.add_light(light_id);
                                     let lights = match selection {
                                         Selection::Empty => vec![],
                                         Selection::Lights(light_ids) => light_ids,
                                     };
+                                    actions.push(
+                                        LevelAction::SelectLight(SelectMode::Set, lights.clone())
+                                            .into(),
+                                    );
 
                                     let double = level_editor.selection.is_light_selected(light_id);
                                     let target = DragTarget::Light {
