@@ -45,6 +45,13 @@ impl Selection {
         Self::default()
     }
 
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Selection::Empty => true,
+            Selection::Lights(light_ids) => light_ids.is_empty(),
+        }
+    }
+
     pub fn clear(&mut self) {
         *self = Self::Empty;
     }

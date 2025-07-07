@@ -260,7 +260,7 @@ impl EditorState {
                     .shapes
                     .get((digit as usize).saturating_sub(1))
                 {
-                    actions.push(LevelAction::NewLight(shape).into());
+                    actions.push(LevelAction::Shape(shape).into());
                 }
             }
             EditingState::Waypoints { .. } => {

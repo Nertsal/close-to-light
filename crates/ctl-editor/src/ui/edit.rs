@@ -120,7 +120,7 @@ impl EditorEditUi {
                     });
                     button.update(new_shape, context);
                     if button.text.state.clicked {
-                        actions.push(LevelAction::NewLight(*shape).into());
+                        actions.push(LevelAction::Shape(*shape).into());
                     }
                     tooltip.update(&button.text.state, format!("{}", i + 1), context);
                 }

@@ -20,6 +20,9 @@ pub enum LevelAction {
     TimelineZoom(Change<f32>),
     CameraPan(Change<vec2<f32>>),
     TimingUpdate(usize, FloatTime),
+    /// Selected a shape, but the specific action is up to interpretation.
+    /// If there is a light selected, changes its shape; otherwise creates a new light.
+    Shape(Shape),
 
     // Light actions
     NewLight(Shape),
@@ -28,6 +31,7 @@ pub enum LevelAction {
     DeleteLight(LightId),
     SelectLight(SelectMode, Vec<LightId>), // TODO: smallvec
     DeselectLight,
+    ChangeShape(LightId, Shape),
     RotateLightAround(LightId, vec2<Coord>, Angle<Coord>),
     FlipHorizontal(LightId, vec2<Coord>),
     FlipVertical(LightId, vec2<Coord>),
@@ -119,6 +123,7 @@ impl LevelAction {
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
             LevelAction::TimingUpdate(..) => false,
+            LevelAction::Shape(..) => false,
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -128,6 +133,7 @@ impl LevelAction {
                 matches!(mode, SelectMode::Add | SelectMode::Remove) && lights.is_empty()
             }
             LevelAction::DeselectLight => false,
+            LevelAction::ChangeShape(_, _) => false,
             LevelAction::RotateLightAround(_, _, delta) => *delta == Angle::ZERO,
             LevelAction::FlipHorizontal(_, _) => false,
             LevelAction::FlipVertical(_, _) => false,
@@ -237,6 +243,24 @@ impl LevelEditor {
                     point.beat_time = beat_time;
                 }
             }
+            LevelAction::Shape(shape) => {
+                if !self.selection.is_empty() {
+                    // Change shape of the selected light
+                    if let Selection::Lights(ids) = &self.selection {
+                        self.execute(
+                            LevelAction::list(
+                                ids.iter()
+                                    .copied()
+                                    .map(|id| LevelAction::ChangeShape(id, shape)),
+                            ),
+                            drag,
+                        );
+                    }
+                } else {
+                    // New light
+                    self.execute(LevelAction::NewLight(shape), drag);
+                }
+            }
 
             LevelAction::NewLight(shape) => {
                 self.execute(LevelAction::DeselectLight, drag);
@@ -256,6 +280,14 @@ impl LevelEditor {
             LevelAction::DeselectLight => {
                 self.execute(LevelAction::DeselectWaypoint, drag);
                 self.selection.clear();
+            }
+            LevelAction::ChangeShape(id, shape) => {
+                if let Some(event) = self.level.events.get_mut(id.event) {
+                    if let Event::Light(light) = &mut event.event {
+                        light.shape = shape;
+                        self.save_state(HistoryLabel::Unknown);
+                    }
+                }
             }
             LevelAction::RotateLightAround(light, anchor, delta) => {
                 self.modify_movement(light, |movement| movement.rotate_around(anchor, delta))
