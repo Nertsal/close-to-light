@@ -192,16 +192,10 @@ impl LevelEditor {
                 Selection::Lights(lights) => {
                     let lights = lights
                         .into_iter()
-                        .flat_map(|id| {
-                            self.level.events.get(id.event).and_then(|event| {
-                                let Event::Light(light) = &event.event else {
-                                    return None;
-                                };
-                                Some(light.clone())
-                            })
-                        })
+                        .flat_map(|id| self.level.events.get(id.event).cloned())
                         .collect();
-                    self.clipboard.copy(ClipboardItem::Lights(lights));
+                    self.clipboard
+                        .copy(ClipboardItem::Events(self.current_time.target, lights));
                 }
             },
             LevelAction::SetSelection(selection) => {

@@ -22,14 +22,14 @@ pub struct TimingPoint {
     pub beat_time: FloatTime,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TimedEvent {
     /// The time on which the event should happen.
     pub time: Time,
     pub event: Event,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Event {
     Light(LightEvent),
     /// Swap light and dark colors.

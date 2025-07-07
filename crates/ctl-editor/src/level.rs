@@ -249,12 +249,12 @@ impl LevelEditor {
         };
 
         match item {
-            ClipboardItem::Lights(lights) => {
+            ClipboardItem::Events(time, lights) => {
                 self.level
                     .events
-                    .extend(lights.into_iter().map(|light| TimedEvent {
-                        time: self.current_time.target - light.movement.fade_in,
-                        event: Event::Light(light),
+                    .extend(lights.into_iter().map(|event| TimedEvent {
+                        time: self.current_time.target + event.time - time,
+                        event: event.event,
                     }));
             }
         }
