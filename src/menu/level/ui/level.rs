@@ -41,7 +41,7 @@ impl PlayLevelWidget {
                 // Music
                 if let Some(music) = &group.local.music {
                     self.music.text = music.meta.name.clone();
-                    self.music_author.text = author_text(music.meta.authors()).into();
+                    self.music_author.text = author_text("music", music.meta.authors()).into();
                     if music.meta.original {
                         self.music_original.show();
                     } else {
@@ -54,7 +54,7 @@ impl PlayLevelWidget {
                 if let Some(show_level) = &state.selected_level {
                     if let Some(level) = local.get_level(show_group.data, show_level.data) {
                         self.difficulty.text = level.meta.name.clone();
-                        self.mappers.text = author_text(level.meta.authors()).into();
+                        self.mappers.text = author_text("mapped", level.meta.authors()).into();
                         level_t = crate::util::smoothstep(1.0 - show_level.time.get_ratio());
                     }
                 }
@@ -83,11 +83,12 @@ impl PlayLevelWidget {
     }
 }
 
-fn author_text(authors: impl AsRef<str>) -> String {
+fn author_text(prefix: impl AsRef<str>, authors: impl AsRef<str>) -> String {
+    let prefix = prefix.as_ref();
     let authors = authors.as_ref();
     if authors.is_empty() {
-        String::from("<authors unspecified>")
+        format!("{prefix} by <authors unspecified>")
     } else {
-        format!("by {authors}")
+        format!("{prefix} by {authors}")
     }
 }
