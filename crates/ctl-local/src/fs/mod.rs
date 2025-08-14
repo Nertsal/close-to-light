@@ -206,7 +206,7 @@ fn decode_group(bytes: &[u8]) -> Result<LevelSet> {
 
 async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
     log::debug!("Loading groups from assets");
-    let groups_path = run_dir().join("assets").join("groups");
+    let groups_path = run_dir().join("assets").join("levels");
 
     let list: Vec<String> = file::load_detect(groups_path.join("_list.ron")).await?;
     let paths: Vec<_> = list
