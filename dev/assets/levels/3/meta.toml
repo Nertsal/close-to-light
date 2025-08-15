@@ -1,10 +1,8 @@
 [music]
 id = 3
-public = true
 original = false
 name = "Pixel Peeker Polka"
 romanized = "Pixel Peeker Polka"
-bpm = 145.0
 
 [[music.authors]]
 id = 3
