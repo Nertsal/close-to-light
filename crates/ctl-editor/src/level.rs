@@ -249,13 +249,20 @@ impl LevelEditor {
         };
 
         match item {
-            ClipboardItem::Events(time, lights) => {
+            ClipboardItem::Events(time, events) => {
+                let new_ids = (0..events.len())
+                    .map(|i| LightId {
+                        event: self.level.events.len() + i,
+                    })
+                    .collect();
                 self.level
                     .events
-                    .extend(lights.into_iter().map(|event| TimedEvent {
+                    .extend(events.into_iter().map(|event| TimedEvent {
                         time: self.current_time.target + event.time - time,
                         event: event.event,
                     }));
+                // Change selection to the new lights
+                self.selection = Selection::Lights(new_ids);
             }
         }
     }
