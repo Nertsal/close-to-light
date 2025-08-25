@@ -26,11 +26,11 @@ void main() {
     vec3 cutoff = vec3(step(abs(warped_uv.x), 1.0) * step(abs(warped_uv.y), 1.0));
     vec3 scanlines = vec3(
         sin(2.0 * warped_uv.y * 180.0 + mod(u_time, 3.14159) * 2.0)
-        * 0.1 + 0.9
+        * 0.1
     );
     vec3 vignette = vec3(length(pow(abs(centered_uv), vec2(4.0)) / 3.0));
 
-    vec3 screen_color = texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb * cutoff * scanlines;
+    vec3 screen_color = texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb * cutoff + vec3(0.5) * scanlines;
     screen_color -= vignette * u_vignette_multiplier;
     gl_FragColor = vec4(screen_color, 1.0);
 }
