@@ -2,6 +2,8 @@ use super::*;
 
 pub struct Editor {
     pub context: Context,
+    /// Real time (in seconds) passed since starting the editor.
+    pub real_time: FloatTime,
     pub config: EditorConfig,
     pub render_options: RenderOptions,
     pub cursor_world_pos: vec2<Coord>,

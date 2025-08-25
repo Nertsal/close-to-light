@@ -9,7 +9,8 @@ pub struct LoadingScreen<T> {
     geng: Geng,
     assets: Rc<LoadingAssets>,
     unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
-    texture: ugli::Texture,
+    gif_texture: ugli::Texture,
+    crt_texture: ugli::Texture,
     options: Options,
     future: Option<Task<T>>,
     result: Option<T>,
@@ -35,7 +36,8 @@ impl<T: 'static> LoadingScreen<T> {
             geng: geng.clone(),
             assets,
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
-            texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
+            gif_texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
+            crt_texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
             options: preferences::load(ctl_context::OPTIONS_STORAGE).unwrap_or_default(),
             future: Some(Task::new(geng, future)),
             result: None,
@@ -106,18 +108,6 @@ impl<T: 'static> LoadingScreen<T> {
 
         None
     }
-
-    fn draw_text(
-        &self,
-        framebuffer: &mut ugli::Framebuffer,
-        camera: &impl geng::AbstractCamera2d,
-        text: impl AsRef<str>,
-        position: vec2<impl Float>,
-        options: TextRenderOptions,
-    ) {
-        let font = &self.assets.font;
-        font.draw(framebuffer, camera, text, position, options);
-    }
 }
 
 impl<T: 'static> geng::State for LoadingScreen<T> {
@@ -133,7 +123,12 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         ugli::clear(framebuffer, Some(self.options.theme.dark), None, None);
         geng_utils::texture::update_texture_size(
-            &mut self.texture,
+            &mut self.gif_texture,
+            framebuffer.size(),
+            self.geng.ugli(),
+        );
+        geng_utils::texture::update_texture_size(
+            &mut self.crt_texture,
             framebuffer.size(),
             self.geng.ugli(),
         );
@@ -148,7 +143,8 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
         // Background
         {
             let buffer =
-                &mut geng_utils::texture::attach_texture(&mut self.texture, self.geng.ugli());
+                &mut geng_utils::texture::attach_texture(&mut self.gif_texture, self.geng.ugli());
+            ugli::clear(buffer, Some(self.options.theme.dark), None, None);
             let gif = &self.assets.background;
             let duration: f32 = gif.iter().map(|frame| frame.duration).sum();
             let mut time = (self.real_time as f32 / duration).fract() * duration;
@@ -166,13 +162,17 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
             }
         }
 
+        let buffer =
+            &mut geng_utils::texture::attach_texture(&mut self.crt_texture, self.geng.ugli());
+        ugli::clear(buffer, Some(self.options.theme.dark), None, None);
+
         ugli::draw(
-            framebuffer,
+            buffer,
             &self.assets.background_shader,
             ugli::DrawMode::TriangleFan,
             &self.unit_quad,
             ugli::uniforms! {
-                u_texture: &self.texture,
+                u_texture: &self.gif_texture,
                 u_color_dark: theme.dark,
                 u_color_light: theme.light,
             },
@@ -189,32 +189,28 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
         let fill_bar = fill_bar.extend_right((t - 1.0) * fill_bar.width());
         self.geng
             .draw2d()
-            .quad(framebuffer, camera, load_bar, theme.light);
+            .quad(buffer, camera, load_bar, theme.light);
         self.geng
             .draw2d()
-            .quad(framebuffer, camera, fill_bar, theme.highlight);
+            .quad(buffer, camera, fill_bar, theme.highlight);
 
         // Title
         let title = geng_utils::pixel::pixel_perfect_aabb(
             screen.align_pos(vec2(0.5, 0.8)),
             vec2(0.5, 0.5),
-            self.assets.title.size() * 2 * (framebuffer.size().y / 360),
+            self.assets.title.size() * 2 * (buffer.size().y / 360),
             camera,
             framebuffer_size,
         );
-        self.geng.draw2d().textured_quad(
-            framebuffer,
-            camera,
-            title,
-            &self.assets.title,
-            theme.light,
-        );
+        self.geng
+            .draw2d()
+            .textured_quad(buffer, camera, title, &self.assets.title, theme.light);
 
         // Funny text
         if let Some(text) = self.texts.get(self.current_text) {
             let pos = screen.align_pos(vec2(0.5, 0.45));
-            self.draw_text(
-                framebuffer,
+            self.assets.font.draw(
+                buffer,
                 camera,
                 text,
                 pos,
@@ -231,5 +227,29 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
         //     pos,
         //     TextRenderOptions::new(font_size * 0.4).color(theme.light),
         // );
+
+        if self.options.graphics.crt_shader {
+            ugli::draw(
+                framebuffer,
+                &self.assets.crt_shader,
+                ugli::DrawMode::TriangleFan,
+                &self.unit_quad,
+                ugli::uniforms! {
+                    u_time: self.real_time as f32,
+                    u_texture: &self.crt_texture,
+                    u_curvature: self.options.graphics.crt_curvature,
+                    u_vignette_multiplier: self.options.graphics.crt_vignette,
+                },
+                ugli::DrawParameters::default(),
+            );
+        } else {
+            self.geng.draw2d().textured_quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                &self.crt_texture,
+                Color::WHITE,
+            );
+        }
     }
 }

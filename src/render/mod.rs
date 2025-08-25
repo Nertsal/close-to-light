@@ -3,6 +3,7 @@ pub mod editor;
 pub mod game;
 pub mod mask;
 pub mod menu;
+pub mod post;
 pub mod ui;
 pub mod util;
 

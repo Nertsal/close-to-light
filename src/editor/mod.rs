@@ -1,7 +1,10 @@
 mod action;
 mod handle_event;
 
-use crate::{prelude::*, render::editor::EditorRender};
+use crate::{
+    prelude::*,
+    render::{editor::EditorRender, post::PostRender},
+};
 
 pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
@@ -15,6 +18,7 @@ pub struct EditorState {
     /// Stop music on the next `update` frame. Used when returning from F5 play to stop music.
     stop_music_next_frame: bool,
     render: EditorRender,
+    post_render: PostRender,
     editor: Editor,
     framebuffer_size: vec2<usize>,
     delta_time: FloatTime,
@@ -29,6 +33,7 @@ impl EditorState {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(context.clone()),
+            post_render: PostRender::new(context.clone()),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
             ui: EditorUi::new(context.clone()),
@@ -36,6 +41,7 @@ impl EditorState {
             ui_context: UiContext::new(context.clone()),
             editor: Editor {
                 context: context.clone(),
+                real_time: FloatTime::ZERO,
                 render_options: RenderOptions {
                     show_grid: true,
                     hide_ui: false,
@@ -212,6 +218,7 @@ impl geng::State for EditorState {
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
         self.delta_time = delta_time;
+        self.editor.real_time += delta_time;
 
         self.context.local.poll();
         self.context
@@ -269,7 +276,11 @@ impl geng::State for EditorState {
             level_editor.model.camera.fov =
                 geng::Camera2dFov::Vertical(10.0 / self.editor.view_zoom.current);
         }
+
+        let buffer = &mut self.post_render.begin(framebuffer.size());
         self.render
-            .draw_editor(&self.editor, &self.ui, &self.ui_context, framebuffer);
+            .draw_editor(&self.editor, &self.ui, &self.ui_context, buffer);
+        self.post_render
+            .post_process(framebuffer, self.editor.real_time);
     }
 }

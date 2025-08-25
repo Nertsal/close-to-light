@@ -1,3 +1,5 @@
+use crate::render::post::PostRender;
+
 use super::*;
 
 const TRANSITION_TIME: f32 = 5.0;
@@ -8,6 +10,7 @@ pub struct SplashScreen {
     transition: Option<geng::state::Transition>,
 
     util: UtilRender,
+    post: PostRender,
 
     time: FloatTime,
 }
@@ -16,6 +19,7 @@ impl SplashScreen {
     pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
         Self {
             util: UtilRender::new(context.clone()),
+            post: PostRender::new(context.clone()),
 
             time: FloatTime::ZERO,
 
@@ -36,6 +40,8 @@ impl geng::State for SplashScreen {
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
 
+        let buffer = &mut self.post.begin(framebuffer.size());
+
         let camera = &Camera2d {
             center: vec2::ZERO,
             rotation: Angle::ZERO,
@@ -53,7 +59,7 @@ impl geng::State for SplashScreen {
                 .align(vec2(0.5, 0.0))
                 .color(color),
             camera,
-            framebuffer,
+            buffer,
         );
         let warning = "
 This game contains flashing lights which might
@@ -66,8 +72,10 @@ trigger seizures for people with photosensitive epilepsy
                 .align(vec2(0.5, 1.0))
                 .color(color),
             camera,
-            framebuffer,
+            buffer,
         );
+
+        self.post.post_process(framebuffer, self.time);
     }
 
     fn update(&mut self, delta_time: f64) {

@@ -3,9 +3,28 @@ use super::*;
 use geng_utils::bounded::Bounded;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct Options {
     pub volume: VolumeOptions,
     pub theme: Theme,
+    pub graphics: GraphicsOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GraphicsOptions {
+    pub crt_shader: bool,
+    pub crt_curvature: f32,
+    pub crt_vignette: f32,
+}
+
+impl Default for GraphicsOptions {
+    fn default() -> Self {
+        Self {
+            crt_shader: true,
+            crt_curvature: 20.0,
+            crt_vignette: 0.2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]

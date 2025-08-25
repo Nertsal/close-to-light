@@ -20,6 +20,8 @@ pub struct LoadingAssets {
     pub background: Vec<GifFrame>,
     #[load(path = "shaders/replace_colors.glsl")]
     pub background_shader: ugli::Program,
+    #[load(path = "shaders/crt.glsl")]
+    pub crt_shader: ugli::Program,
 }
 
 fn load_gif(
@@ -145,6 +147,7 @@ pub struct Shaders {
     pub texture: ugli::Program,
     pub ellipse: ugli::Program,
     pub texture_ui: ugli::Program,
+    pub crt: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]

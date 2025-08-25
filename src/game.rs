@@ -3,7 +3,10 @@ mod ui;
 pub use self::ui::GameUI;
 use self::ui::UiContext;
 
-use crate::{prelude::*, render::game::GameRender};
+use crate::{
+    prelude::*,
+    render::{game::GameRender, post::PostRender},
+};
 
 use ctl_local::Leaderboard;
 
@@ -11,6 +14,7 @@ pub struct Game {
     context: Context,
     transition: Option<geng::state::Transition>,
     render: GameRender,
+    post: PostRender,
 
     model: Model,
     debug_mode: bool,
@@ -59,6 +63,7 @@ impl Game {
 
             transition: None,
             render: GameRender::new(context.clone()),
+            post: PostRender::new(context.clone()),
             context,
         }
     }
@@ -73,19 +78,20 @@ impl geng::State for Game {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(self.model.options.theme.dark), None, None);
 
+        let buffer = &mut self.post.begin(framebuffer.size());
+
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
-        self.render
-            .draw_world(&self.model, self.debug_mode, framebuffer);
+        self.render.draw_world(&self.model, self.debug_mode, buffer);
 
         if !fading {
             self.ui_focused = self.ui.layout(
                 &mut self.model,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
             );
             self.render
-                .draw_ui(&self.ui, &self.model, self.debug_mode, framebuffer);
+                .draw_ui(&self.ui, &self.model, self.debug_mode, buffer);
         }
         self.ui_context.frame_end();
 
@@ -101,9 +107,11 @@ impl geng::State for Game {
                 &self.model.options.theme.transparent(),
             );
             geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
-                .fit_screen(vec2(0.5, 0.5), framebuffer)
-                .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+                .fit_screen(vec2(0.5, 0.5), buffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         }
+
+        self.post.post_process(framebuffer, self.model.real_time);
     }
 
     fn handle_event(&mut self, event: geng::Event) {

@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    render::{THEME, ui::UiRender},
+    render::{THEME, post::PostRender, ui::UiRender},
     ui::{UiContext, layout::AreaOps, widget::*},
 };
 
@@ -15,6 +15,7 @@ pub struct MainMenu {
     dither: DitherRender,
     util_render: UtilRender,
     ui_render: UiRender,
+    post_render: PostRender,
 
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
@@ -48,6 +49,7 @@ impl MainMenu {
             dither: DitherRender::new(&context.geng, &context.assets),
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
+            post_render: PostRender::new(context.clone()),
             leaderboard,
 
             framebuffer_size: vec2(1, 1),
@@ -87,16 +89,6 @@ impl MainMenu {
         let context = self.context.clone();
         let state = LevelMenu::new(context, self.leaderboard.clone());
         self.transition = Some(geng::state::Transition::Push(Box::new(state)));
-    }
-
-    fn draw_ui(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        let theme = self.context.get_options().theme;
-        let ui = &self.ui;
-
-        self.ui_render.draw_text(&ui.join_community, framebuffer);
-        self.ui_render
-            .draw_icon_button(&ui.join_discord, theme, framebuffer);
-        self.ui_render.draw_profile(&ui.profile, framebuffer);
     }
 }
 
@@ -216,19 +208,28 @@ impl geng::State for MainMenu {
 
         self.dither.finish(self.time, &theme);
 
-        let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
+        let buffer = &mut self.post_render.begin(screen_buffer.size());
+
+        let aabb = Aabb2::ZERO.extend_positive(buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, screen_buffer);
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         if !fading {
             self.ui.layout(
-                Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32()),
+                Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
                 &mut self.leaderboard,
             );
 
-            self.draw_ui(screen_buffer);
+            // UI
+            let theme = self.context.get_options().theme;
+            let ui = &self.ui;
+
+            self.ui_render.draw_text(&ui.join_community, buffer);
+            self.ui_render
+                .draw_icon_button(&ui.join_discord, theme, buffer);
+            self.ui_render.draw_profile(&ui.profile, buffer);
         }
 
         let mut dither_buffer = self.dither.start();
@@ -236,8 +237,10 @@ impl geng::State for MainMenu {
             .draw_player(&self.player, &self.camera, &mut dither_buffer);
         self.dither.finish(self.time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), screen_buffer)
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, screen_buffer);
+            .fit_screen(vec2(0.5, 0.5), buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+
+        self.post_render.post_process(screen_buffer, self.time);
 
         self.ui_context.frame_end();
     }

@@ -5,7 +5,7 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    render::{mask::MaskedRender, menu::MenuRender},
+    render::{mask::MaskedRender, menu::MenuRender, post::PostRender},
     ui::{
         ShowTime, UiContext, WidgetRequest,
         widget::{ConfirmPopup, WidgetOld},
@@ -32,6 +32,7 @@ pub struct LevelMenu {
     util: UtilRender,
     dither: DitherRender,
     masked: MaskedRender,
+    post: PostRender,
 
     framebuffer_size: vec2<usize>,
     last_delta_time: FloatTime,
@@ -190,6 +191,7 @@ impl LevelMenu {
             util: UtilRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            post: PostRender::new(context.clone()),
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: FloatTime::ONE,
@@ -423,6 +425,8 @@ impl geng::State for LevelMenu {
         ugli::clear(framebuffer, Some(theme.dark), None, None);
         self.masked.update_size(framebuffer.size());
 
+        let buffer = &mut self.post.begin(framebuffer.size());
+
         self.dither.set_noise(1.0);
         let mut dither_buffer = self.dither.start();
 
@@ -449,15 +453,15 @@ impl geng::State for LevelMenu {
         self.dither.finish(self.time, &theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), framebuffer)
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+            .fit_screen(vec2(0.5, 0.5), buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         if !fading {
             let mut masked = self.masked.start();
 
             self.ui_focused = self.ui.layout(
                 &mut self.state,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
             );
             self.render
@@ -488,15 +492,15 @@ impl geng::State for LevelMenu {
                 // );
 
                 geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-                    .fit_screen(vec2(0.5, 0.5), framebuffer)
-                    .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+                    .fit_screen(vec2(0.5, 0.5), buffer)
+                    .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
             } else {
                 self.masked.draw(
                     ugli::DrawParameters {
                         blend_mode: Some(ugli::BlendMode::straight_alpha()),
                         ..default()
                     },
-                    framebuffer,
+                    buffer,
                 );
             };
         }
@@ -506,8 +510,10 @@ impl geng::State for LevelMenu {
             .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
         self.dither.finish(self.time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), framebuffer)
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+            .fit_screen(vec2(0.5, 0.5), buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+
+        self.post.post_process(framebuffer, self.time);
 
         self.ui_context.frame_end();
     }
