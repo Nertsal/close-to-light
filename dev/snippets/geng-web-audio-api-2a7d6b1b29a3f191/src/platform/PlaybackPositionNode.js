@@ -14,7 +14,6 @@ export class PlaybackPositionNode {
         // initialize component audio nodes
         this._bufferSource = new AudioBufferSourceNode(context);
         this._splitter = new ChannelSplitterNode(context);
-        this._out = new ChannelMergerNode(context);
         this._sampleHolder = new Float32Array(1);
     }
 
@@ -26,6 +25,8 @@ export class PlaybackPositionNode {
 
     // creates an AudioBuffer with an extra `position` track
     set buffer(audioBuffer) {
+        this._out = new ChannelMergerNode(this.context, { numberOfInputs: audioBuffer.numberOfChannels });
+
         // create a new AudioBuffer of the same length as param with one extra channel
         // load it into the AudioBufferSourceNode
         const bufferWithTimeData = new AudioBuffer({
