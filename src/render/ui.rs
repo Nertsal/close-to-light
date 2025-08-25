@@ -446,10 +446,7 @@ impl UiRender {
             theme.light,
             metrics.dynamic.frames,
             metrics.dynamic.frames_perfect,
-            metrics.dynamic.frames
-                - metrics.dynamic.frames_perfect
-                - metrics.dynamic.frames_black
-                - metrics.dynamic.frames_red,
+            metrics.dynamic.frames_light,
             metrics.dynamic.frames_red,
             metrics.dynamic.frames_black,
         );

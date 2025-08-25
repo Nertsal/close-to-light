@@ -51,6 +51,8 @@ pub struct DynamicMetrics {
     pub score: i32,
     /// Total number of frames when the player is perfectly centered on a light.
     pub frames_perfect: usize,
+    /// Total number of frames when the player is inside of a light (perfect or not).
+    pub frames_light: usize,
     /// Total number of frames when the player is not touching any light.
     pub frames_black: usize,
     /// Total number of frames when the player is inside of a red light.
@@ -188,6 +190,7 @@ impl DynamicMetrics {
             frames: 0,
             score: 0,
             frames_perfect: 0,
+            frames_light: 0,
             frames_black: 0,
             frames_red: 0,
         }
@@ -206,6 +209,7 @@ impl DynamicMetrics {
 
         if player.danger_distance.is_none() {
             if let Some(distance) = player.light_distance {
+                self.frames_light += 1;
                 let d = if player.is_perfect {
                     self.frames_perfect += 1;
                     0.0
