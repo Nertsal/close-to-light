@@ -26,7 +26,7 @@ pub struct ModButtonWidget {
 impl ModButtonWidget {
     pub fn new(modifier: Modifier, icon: ctl_render_core::SubTexture) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             selected: false,
             icon: IconWidget::new(icon),
             text: TextWidget::new(format!("{modifier}")).aligned(vec2(0.5, 0.5)),

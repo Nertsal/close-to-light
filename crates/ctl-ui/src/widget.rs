@@ -114,6 +114,14 @@ pub struct WidgetState {
     pub right_clicked: bool,
     /// Whether user is holding the right mouse button down on the widget.
     pub right_pressed: bool,
+    pub sfx_config: WidgetSfxConfig,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct WidgetSfxConfig {
+    pub hover: bool,
+    pub left_click: bool,
+    pub right_click: bool,
 }
 
 impl WidgetState {
@@ -121,9 +129,14 @@ impl WidgetState {
         Self::default()
     }
 
+    pub fn with_sfx(self, sfx_config: WidgetSfxConfig) -> Self {
+        Self { sfx_config, ..self }
+    }
+
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
         if self.visible && context.can_focus() {
+            let was_hovered = self.hovered;
             self.hovered = self.position.contains(context.cursor.position);
             let was_pressed = self.pressed;
             // TODO: check for mouse being pressed and then dragged onto the widget
@@ -136,6 +149,17 @@ impl WidgetState {
             self.right_pressed = context.cursor.right_down
                 && (was_pressed || self.hovered && !context.cursor.was_right_down);
             self.right_clicked = !was_pressed && self.right_pressed;
+
+            let context = &context.context;
+            if self.clicked && self.sfx_config.left_click {
+                context.sfx.play(&context.assets.sounds.ui_click);
+            }
+            if self.right_clicked && self.sfx_config.right_click {
+                context.sfx.play(&context.assets.sounds.ui_click);
+            }
+            if !was_hovered && self.hovered && self.sfx_config.hover {
+                context.sfx.play(&context.assets.sounds.ui_hover);
+            }
         } else {
             self.released = self.pressed;
 
@@ -174,6 +198,53 @@ impl Default for WidgetState {
             released: false,
             right_clicked: false,
             right_pressed: false,
+            sfx_config: WidgetSfxConfig::default(),
+        }
+    }
+}
+
+impl WidgetSfxConfig {
+    pub fn none() -> Self {
+        Self::default()
+    }
+
+    pub fn all() -> Self {
+        Self {
+            hover: true,
+            left_click: true,
+            right_click: true,
+        }
+    }
+
+    pub fn hover() -> Self {
+        Self {
+            hover: true,
+            ..default()
+        }
+    }
+
+    pub fn hover_left() -> Self {
+        Self {
+            hover: true,
+            left_click: true,
+            ..default()
+        }
+    }
+
+    pub fn hover_right() -> Self {
+        Self {
+            hover: true,
+            right_click: true,
+            ..default()
+        }
+    }
+
+    pub fn hover_left_right() -> Self {
+        Self {
+            hover: true,
+            left_click: true,
+            right_click: true,
+            // ..default()
         }
     }
 }

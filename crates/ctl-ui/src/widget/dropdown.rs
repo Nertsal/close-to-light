@@ -27,7 +27,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             .map(|(name, t)| (name.into(), t))
             .collect();
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             name: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
             value_text: TextWidget::new("<value>").aligned(vec2(1.0, 0.5)),
             value,
@@ -35,7 +35,11 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             dropdown_window: UiWindow::new((), 0.2),
             dropdown_items: options
                 .iter()
-                .map(|(name, _)| TextWidget::new(name.clone()))
+                .map(|(name, _)| {
+                    let mut text = TextWidget::new(name.clone());
+                    text.state.sfx_config = WidgetSfxConfig::hover_left();
+                    text
+                })
                 .collect(),
             options,
         }

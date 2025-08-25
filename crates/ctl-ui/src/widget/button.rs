@@ -14,8 +14,10 @@ pub struct ButtonWidget {
 
 impl ButtonWidget {
     pub fn new(text: impl Into<Name>) -> Self {
+        let mut text = TextWidget::new(text);
+        text.state.sfx_config = WidgetSfxConfig::hover_left();
         Self {
-            text: TextWidget::new(text),
+            text,
             bg_color: ThemeColor::Light,
         }
     }
@@ -83,7 +85,7 @@ impl IconButtonWidget {
             kind: bg_kind,
         });
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             icon,
             light_color,
         }
@@ -137,6 +139,7 @@ impl Widget for IconButtonWidget {
 
 #[derive(Clone, Default)]
 pub struct ToggleButtonWidget {
+    pub state: WidgetState,
     pub text: TextWidget,
     pub selected: bool,
     pub can_deselect: bool,
@@ -145,6 +148,7 @@ pub struct ToggleButtonWidget {
 impl ToggleButtonWidget {
     pub fn new(text: impl Into<Name>) -> Self {
         Self {
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             text: TextWidget::new(text),
             selected: false,
             can_deselect: false,
@@ -153,6 +157,7 @@ impl ToggleButtonWidget {
 
     pub fn new_deselectable(text: impl Into<Name>) -> Self {
         Self {
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             text: TextWidget::new(text),
             selected: false,
             can_deselect: true,
@@ -160,6 +165,7 @@ impl ToggleButtonWidget {
     }
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        self.state.update(position, context);
         self.text.update(position, context);
         if self.text.state.clicked {
             if self.can_deselect {
@@ -173,12 +179,13 @@ impl ToggleButtonWidget {
 
 impl WidgetOld for ToggleButtonWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.text.state
+        &mut self.state
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
+        self.state.update(position, context);
         self.text.update(position, context);
-        if self.text.state.clicked {
+        if self.state.clicked {
             if self.can_deselect {
                 self.selected = !self.selected;
             } else {
@@ -189,7 +196,7 @@ impl WidgetOld for ToggleButtonWidget {
 }
 
 impl Widget for ToggleButtonWidget {
-    simple_widget_state!(text);
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let width = self.text.options.size * 0.2;
@@ -223,7 +230,7 @@ pub struct ToggleWidget {
 impl ToggleWidget {
     pub fn new(text: impl Into<Name>) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             text: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
             tick: WidgetState::new(),
             checked: false,

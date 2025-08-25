@@ -88,6 +88,10 @@ impl VolumeOptions {
     pub fn music(&self) -> f32 {
         self.master()
     }
+
+    pub fn sfx(&self) -> f32 {
+        self.master()
+    }
 }
 
 impl Default for VolumeOptions {

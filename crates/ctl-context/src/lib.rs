@@ -1,6 +1,7 @@
 mod music;
+mod sfx;
 
-pub use self::music::*;
+pub use self::{music::*, sfx::*};
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -18,6 +19,7 @@ pub struct Context {
     pub geng: Geng,
     pub assets: Rc<Assets>,
     pub music: Rc<MusicManager>,
+    pub sfx: Rc<SfxManager>,
     pub local: Rc<LevelCache>,
     options: Rc<RefCell<Options>>,
 }
@@ -28,14 +30,16 @@ impl Context {
         assets: &Rc<Assets>,
         client: Option<&Arc<Nertboard>>,
     ) -> Result<Self> {
+        let options = Rc::new(RefCell::new(
+            preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
+        ));
         Ok(Self {
             geng: geng.clone(),
             assets: assets.clone(),
             music: Rc::new(MusicManager::new(geng.clone())),
+            sfx: Rc::new(SfxManager::new(geng.clone(), options.clone())),
             local: Rc::new(LevelCache::load(client, geng).await?),
-            options: Rc::new(RefCell::new(
-                preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
-            )),
+            options,
         })
     }
 

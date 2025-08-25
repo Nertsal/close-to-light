@@ -19,7 +19,7 @@ pub struct OptionsButtonWidget {
 impl OptionsButtonWidget {
     pub fn new(assets: &Rc<Assets>, time: f32) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             open_time: Bounded::new_zero(time),
             button: IconWidget::new(assets.atlas.settings()),
             options: OptionsWidget::new(
@@ -145,7 +145,7 @@ pub struct VolumeWidget {
 impl VolumeWidget {
     pub fn new() -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             title: TextWidget::new("Volume"),
             master: SliderWidget::new("").with_display_precision(0),
         }
@@ -242,7 +242,7 @@ pub struct PaletteWidget {
 impl PaletteWidget {
     pub fn new(name: impl Into<Name>, palette: Theme) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             visual: WidgetState::new(),
             name: TextWidget::new(name),
             palette,

@@ -48,6 +48,7 @@ fn load_gif(
 
 #[derive(geng::asset::Load)]
 pub struct Assets {
+    pub sounds: Sounds,
     pub sprites: Sprites,
     pub atlas: Rc<SpritesAtlas>,
     pub dither: DitherAssets,
@@ -59,6 +60,12 @@ pub struct Assets {
 pub struct Fonts {
     pub default: Rc<Font>,
     pub pixel: Rc<Font>,
+}
+
+#[derive(geng::asset::Load)]
+pub struct Sounds {
+    pub ui_hover: Rc<geng::Sound>,
+    pub ui_click: Rc<geng::Sound>,
 }
 
 #[derive(geng::asset::Load)]

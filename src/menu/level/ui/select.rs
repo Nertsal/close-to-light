@@ -52,7 +52,7 @@ impl LevelSelectUI {
 
     pub fn select_tab(&mut self, tab: LevelSelectTab) {
         for button in [&mut self.tab_groups, &mut self.tab_levels] {
-            if !button.text.state.clicked {
+            if !button.state.clicked {
                 button.selected = false;
             }
         }
@@ -100,12 +100,10 @@ impl LevelSelectUI {
 
         let buttons = [
             self.tab_groups
-                .text
                 .state
                 .visible
                 .then_some(&mut self.tab_groups),
             self.tab_levels
-                .text
                 .state
                 .visible
                 .then_some(&mut self.tab_levels),
@@ -132,7 +130,7 @@ impl LevelSelectUI {
         }
         if deselect {
             for button in [&mut self.tab_groups, &mut self.tab_levels] {
-                if !button.text.state.clicked {
+                if !button.state.clicked {
                     button.selected = false;
                 }
             }
@@ -333,7 +331,7 @@ pub struct AddItemWidget {
 impl AddItemWidget {
     pub fn new(assets: &Rc<Assets>) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             text: TextWidget::new("+"),
             menu: NewMenuWidget::new(assets),
         }
@@ -379,7 +377,7 @@ pub struct ItemGroupWidget {
 impl ItemGroupWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
             menu: ItemMenuWidget::new(assets),
@@ -480,7 +478,7 @@ impl ItemLevelWidget {
         let mut menu = ItemMenuWidget::new(assets);
         menu.sync.hide();
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
@@ -574,7 +572,7 @@ impl NewMenuWidget {
     pub fn new(_assets: &Rc<Assets>) -> Self {
         Self {
             window: UiWindow::new((), 0.15),
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             create: TextWidget::new("create"),
             browse: TextWidget::new("browse"),
         }

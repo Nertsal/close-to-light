@@ -36,7 +36,7 @@ pub struct LeaderboardEntryWidget {
 impl LeaderboardWidget {
     pub fn new(assets: &Rc<Assets>, show_title: bool) -> Self {
         Self {
-            state: WidgetState::new(),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             assets: assets.clone(),
             window: UiWindow::new((), 0.3).reload_skip(),
             // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
