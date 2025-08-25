@@ -197,14 +197,10 @@ impl Model {
         self.rhythms.retain(|rhythm| !rhythm.time.is_max());
     }
 
-    pub fn save_highscore(&self) {
-        let high_score = self.high_score.max(self.score.calculated.combined);
-        preferences::save("highscore", &high_score);
-    }
-
     fn restart(&mut self) {
         log::info!("Restarting...");
-        self.save_highscore();
+        // TODO: highscore
+        // self.save_highscore();
         *self = Self::new(
             self.context.clone(),
             self.options.clone(),
@@ -222,7 +218,8 @@ impl Model {
     }
 
     pub fn finish(&mut self) {
-        self.save_highscore();
+        // TODO: highscore
+        // self.save_highscore();
         self.state = State::Finished;
         self.context.music.stop();
         self.switch_time = FloatTime::ZERO;
@@ -230,7 +227,8 @@ impl Model {
     }
 
     pub fn lose(&mut self) {
-        self.save_highscore();
+        // TODO: highscore
+        // self.save_highscore();
         self.state = State::Lost {
             death_time_ms: self.play_time_ms,
         };

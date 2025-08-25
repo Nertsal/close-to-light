@@ -12,6 +12,7 @@ pub struct GameRender {
     context: Context,
     pub dither: DitherRender,
     masked: MaskedRender,
+    masked2: MaskedRender,
     pub util: UtilRender,
     ui: UiRender,
 
@@ -23,6 +24,7 @@ impl GameRender {
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             util: UtilRender::new(context.clone()),
             ui: UiRender::new(context.clone()),
             context,
@@ -214,40 +216,18 @@ impl GameRender {
     ) {
         self.font_size = framebuffer.size().y as f32 * 0.04;
         self.masked.update_size(framebuffer.size());
+        self.masked2.update_size(framebuffer.size());
 
         // let camera = &geng::PixelPerfectCamera;
         let theme = model.options.theme;
         // let font_size = framebuffer.size().y as f32 * 0.05;
 
-        let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
+        // let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
-        let precision = model.score.calculated.precision.as_f32() * 100.0;
+        // let precision = model.score.calculated.precision.as_f32() * 100.0;
 
         if let State::Lost { .. } | State::Finished = model.state {
-            if !fading {
-                self.util.draw_text(
-                    format!("SCORE: {}", model.score.calculated.combined),
-                    vec2(-3.0, -3.0),
-                    TextRenderOptions::new(0.7).color(theme.light),
-                    &model.camera,
-                    framebuffer,
-                );
-                self.util.draw_text(
-                    format!("ACCURACY: {accuracy:.2}%"),
-                    vec2(-3.0, -3.5),
-                    TextRenderOptions::new(0.7).color(theme.light),
-                    &model.camera,
-                    framebuffer,
-                );
-                self.util.draw_text(
-                    format!("PRECISION: {precision:.2}%"),
-                    vec2(-3.0, -4.0),
-                    TextRenderOptions::new(0.7).color(theme.light),
-                    &model.camera,
-                    framebuffer,
-                );
-            }
         } else if !model.level.config.modifiers.clean_auto {
             self.util.draw_text(
                 format!("SCORE: {}", model.score.calculated.combined),
@@ -309,20 +289,38 @@ impl GameRender {
             }
         }
 
-        if ui.leaderboard.state.visible {
-            self.ui.draw_leaderboard(
-                &ui.leaderboard,
-                theme,
-                self.font_size * 0.1,
-                &mut self.masked,
-                framebuffer,
-            );
+        if ui.score.state.visible {
+            self.ui
+                .draw_score(&ui.score, theme, self.font_size * 0.1, framebuffer);
             self.ui.draw_outline(
-                ui.leaderboard.state.position,
+                ui.score.state.position,
                 self.font_size * 0.2,
                 theme.light,
                 framebuffer,
             );
+        }
+        if ui.leaderboard.state.visible {
+            let theme = self.context.get_options().theme;
+            let width = self.font_size * 0.2;
+
+            self.ui.draw_window(
+                &mut self.masked,
+                ui.leaderboard.state.position,
+                Some(ui.leaderboard_head.state.position),
+                width,
+                theme,
+                framebuffer,
+                |framebuffer| {
+                    self.ui.draw_leaderboard(
+                        &ui.leaderboard,
+                        theme,
+                        self.font_size * 0.1,
+                        &mut self.masked2,
+                        framebuffer,
+                    );
+                },
+            );
+            self.ui.draw_text(&ui.leaderboard_head, framebuffer);
         }
     }
 }

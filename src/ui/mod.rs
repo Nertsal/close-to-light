@@ -1,10 +1,11 @@
 mod leaderboard;
 mod options;
 mod profile;
+mod score;
 mod sync;
 
 pub mod widget {
-    pub use super::{leaderboard::*, options::*, profile::*, sync::*};
+    pub use super::{leaderboard::*, options::*, profile::*, score::*, sync::*};
     pub use ctl_ui::widget::*;
 }
 

@@ -374,6 +374,92 @@ impl UiRender {
         );
     }
 
+    pub fn draw_score(
+        &self,
+        score: &ScoreWidget,
+        theme: Theme,
+        outline_width: f32,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let camera = &geng::PixelPerfectCamera;
+
+        self.context.geng.draw2d().draw2d(
+            framebuffer,
+            camera,
+            &draw2d::Quad::new(score.state.position, theme.dark),
+        );
+
+        self.draw_text(&score.music_name, framebuffer);
+        self.draw_text(&score.difficulty_name, framebuffer);
+        for icon in &score.modifiers {
+            self.draw_icon(icon, theme, framebuffer);
+        }
+
+        self.draw_text(&score.score_text, framebuffer);
+        self.draw_text(&score.score_value, framebuffer);
+
+        let mut draw_bar = |position: Aabb2<f32>,
+                            light_color: Color,
+                            total: usize,
+                            highlight: usize,
+                            light: usize,
+                            danger: usize,
+                            dark: usize| {
+            let outline_pos = position.extend_uniform(outline_width);
+
+            let total = total.max(1) as f32;
+            let highlight = highlight as f32 / total * position.height();
+            let light = light as f32 / total * position.height();
+            let danger = danger as f32 / total * position.height();
+            let dark = dark as f32 / total * position.height();
+            self.draw_quad(position.with_height(light, 0.0), light_color, framebuffer);
+            self.draw_quad(
+                position.with_height(highlight, 0.0),
+                theme.highlight,
+                framebuffer,
+            );
+            self.draw_quad(
+                position.extend_down(-light).extend_up(-dark),
+                theme.danger,
+                framebuffer,
+            );
+            self.draw_quad(
+                position.extend_down(-light - danger),
+                theme.dark,
+                framebuffer,
+            );
+            self.draw_outline(outline_pos, outline_width, theme.light, framebuffer);
+        };
+
+        let metrics = &score.saved_score.score.metrics;
+        draw_bar(
+            score.accuracy_bar.position,
+            theme.highlight,
+            metrics.discrete.total,
+            0,
+            metrics.discrete.perfect,
+            metrics.discrete.total - metrics.discrete.perfect,
+            0,
+        );
+        draw_bar(
+            score.precision_bar.position,
+            theme.light,
+            metrics.dynamic.frames,
+            metrics.dynamic.frames_perfect,
+            metrics.dynamic.frames
+                - metrics.dynamic.frames_perfect
+                - metrics.dynamic.frames_black
+                - metrics.dynamic.frames_red,
+            metrics.dynamic.frames_red,
+            metrics.dynamic.frames_black,
+        );
+
+        self.draw_text(&score.accuracy_value, framebuffer);
+        self.draw_text(&score.accuracy_text, framebuffer);
+        self.draw_text(&score.precision_value, framebuffer);
+        self.draw_text(&score.precision_text, framebuffer);
+    }
+
     pub fn draw_leaderboard(
         &self,
         leaderboard: &LeaderboardWidget,

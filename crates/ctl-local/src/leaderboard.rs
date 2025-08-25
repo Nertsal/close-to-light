@@ -7,6 +7,8 @@ use ctl_core::{
 use ctl_util::Task;
 use geng::prelude::*;
 
+const SCORE_VERSION: u32 = 1;
+
 #[derive(Debug)]
 pub enum LeaderboardStatus {
     None,
@@ -90,7 +92,7 @@ impl Default for ScoreCategory {
 impl ScoreCategory {
     pub fn new(mods: LevelModifiers, health: HealthConfig) -> Self {
         Self {
-            version: 0,
+            version: SCORE_VERSION,
             mods,
             health,
         }

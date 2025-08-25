@@ -3,6 +3,9 @@ use super::*;
 pub const DISCRETE_PERFECT: i32 = 1000;
 pub const DISCRETE_OK: i32 = 100;
 pub const DYNAMIC_SCALE: f32 = 1000.0;
+/// The maximum distance where precision matters, beyond that distance
+/// everything is disregarded as too far from the light.
+pub const MAX_PREC_DISTANCE: f32 = 1.5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -40,9 +43,18 @@ pub struct DiscreteMetrics {
 /// Raw dynamic/continuous metrics.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DynamicMetrics {
+    /// Total sum of distances to the center of the closest light source each frame.
     pub distance_sum: R32,
+    /// Total number of simulation frames.
     pub frames: usize,
+    /// Total score awarded for being close to light.
     pub score: i32,
+    /// Total number of frames when the player is perfectly centered on a light.
+    pub frames_perfect: usize,
+    /// Total number of frames when the player is not touching any light.
+    pub frames_black: usize,
+    /// Total number of frames when the player is inside of a red light.
+    pub frames_red: usize,
 }
 
 impl Default for Score {
@@ -175,6 +187,9 @@ impl DynamicMetrics {
             distance_sum: R32::ZERO,
             frames: 0,
             score: 0,
+            frames_perfect: 0,
+            frames_black: 0,
+            frames_red: 0,
         }
     }
 
@@ -185,16 +200,26 @@ impl DynamicMetrics {
             if player.is_perfect {
                 r32(0.0)
             } else {
-                distance.clamp(r32(0.0), r32(1.3)) / r32(1.3)
+                distance.clamp(r32(0.0), r32(MAX_PREC_DISTANCE)) / r32(MAX_PREC_DISTANCE)
             }
         });
 
         if player.danger_distance.is_none() {
             if let Some(distance) = player.light_distance {
-                let score_multiplier = (1.0 - distance.as_f32() + 0.5).min(1.0);
+                let d = if player.is_perfect {
+                    self.frames_perfect += 1;
+                    0.0
+                } else {
+                    distance.as_f32()
+                };
+                let score_multiplier = (1.0 - d + 0.5).min(1.0);
                 self.score +=
                     (delta_time.as_f32() * score_multiplier * DYNAMIC_SCALE).ceil() as i32;
+            } else {
+                self.frames_black += 1;
             }
+        } else {
+            self.frames_red += 1;
         }
     }
 }
