@@ -577,6 +577,29 @@ impl UiRender {
         );
     }
 
+    pub fn draw_new_toggle_widget(
+        &self,
+        toggle: &ToggleWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let width = toggle.text.options.size * 0.1;
+
+        let mut fg_color = theme.light;
+        if toggle.state.hovered {
+            fg_color = theme.get_color(toggle.checked_color);
+        }
+        if toggle.checked {
+            self.fill_quad(
+                toggle.tick.position,
+                theme.get_color(toggle.checked_color),
+                framebuffer,
+            );
+        }
+        self.draw_outline(toggle.tick.position, width, fg_color, framebuffer);
+        self.draw_text_colored(&toggle.text, fg_color, framebuffer);
+    }
+
     // TODO: more general name
     pub fn draw_toggle(
         &self,

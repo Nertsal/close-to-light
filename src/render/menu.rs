@@ -369,6 +369,14 @@ impl MenuRender {
                         );
                     }
                 }
+
+                {
+                    // Graphics
+                    let graphics = &ui.options.graphics;
+                    self.ui.draw_text(&graphics.title, framebuffer);
+                    self.ui
+                        .draw_new_toggle_widget(&graphics.crt, theme, framebuffer);
+                }
             },
         );
     }

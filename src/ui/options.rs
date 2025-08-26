@@ -6,7 +6,9 @@ use crate::{
     ui::layout::AreaOps,
 };
 
+use ctl_assets::GraphicsOptions;
 use ctl_core::types::Name;
+use ctl_util::{SecondOrderDynamics, SecondOrderState};
 use geng_utils::bounded::Bounded;
 
 pub struct OptionsButtonWidget {
@@ -77,10 +79,13 @@ impl StatefulWidget for OptionsButtonWidget {
 pub struct OptionsWidget {
     pub state: WidgetState,
     pub window: UiWindow<()>,
+    /// Downward scroll.
+    pub scroll: SecondOrderState<f32>,
     pub profile: ProfileWidget,
     pub separator: WidgetState,
     pub volume: VolumeWidget,
     pub palette: PaletteChooseWidget,
+    pub graphics: GraphicsWidget,
 }
 
 impl OptionsWidget {
@@ -88,10 +93,12 @@ impl OptionsWidget {
         Self {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
+            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
             profile: ProfileWidget::new(assets),
             separator: WidgetState::new(),
             volume: VolumeWidget::new(),
             palette: PaletteChooseWidget::new(palettes),
+            graphics: GraphicsWidget::new(),
         }
     }
 }
@@ -112,7 +119,17 @@ impl StatefulWidget for OptionsWidget {
         self.state.update(position, context);
         self.window.update(context.delta_time);
 
-        let mut main = position.extend_symmetric(vec2(-1.0, -1.0) * context.layout_size);
+        // Scroll
+        if self.state.hovered {
+            let scroll_speed = 2.0;
+            self.scroll.target += context.cursor.scroll * scroll_speed;
+        }
+        self.scroll.update(context.delta_time);
+
+        let mut main = position
+            .extend_symmetric(vec2(-1.0, -1.0) * context.layout_size)
+            .extend_down(100.0 * context.layout_size) // Technically infinite because we can scroll
+            .translate(vec2(0.0, -self.scroll.current));
 
         let profile = main.cut_top(3.0 * context.font_size);
         self.profile
@@ -129,10 +146,31 @@ impl StatefulWidget for OptionsWidget {
 
         let volume = main.cut_top(5.0 * context.layout_size);
         self.volume.update(volume, context, &mut options.volume);
-        let palette = main.cut_top(6.0 * context.layout_size);
+
+        let palette = main.clone().cut_top(6.0 * context.layout_size);
         self.palette.update(palette, context, &mut options.theme);
+        main.cut_top(self.palette.state.position.height());
+
+        let graphics = main.clone().cut_top(5.0 * context.font_size);
+        self.graphics
+            .update(graphics, context, &mut options.graphics);
+        main.cut_top(self.graphics.state.position.height());
 
         state.context.set_options(options);
+
+        // Limit scroll to the contents
+        let overflow_up = self.scroll.target;
+        let height = position.max.y - main.max.y + context.font_size * 2.0 - self.scroll.current;
+        let max_scroll = (height - position.height()).max(0.0);
+        let overflow_down = -max_scroll - self.scroll.target;
+        let overflow = if overflow_up > 0.0 {
+            overflow_up
+        } else if overflow_down > 0.0 {
+            -overflow_down
+        } else {
+            0.0
+        };
+        self.scroll.target -= overflow * (context.delta_time / 0.1).min(1.0);
     }
 }
 
@@ -181,6 +219,59 @@ impl StatefulWidget for VolumeWidget {
     }
 }
 
+pub struct GraphicsWidget {
+    pub state: WidgetState,
+    pub title: TextWidget,
+    pub crt: ToggleWidget,
+}
+
+impl GraphicsWidget {
+    pub fn new() -> Self {
+        Self {
+            state: WidgetState::new(),
+            title: TextWidget::new("Graphics"),
+            crt: ToggleWidget::new("CRT Shader"),
+        }
+    }
+}
+
+impl StatefulWidget for GraphicsWidget {
+    type State<'a> = GraphicsOptions;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
+        let mut main = position;
+
+        let title = main.cut_top(context.font_size * 1.2);
+        self.title.align(vec2(0.5, 0.5));
+        self.title.update(title, context);
+
+        let row = Aabb2::point(main.top_left())
+            .extend_right(main.width())
+            .extend_down(context.font_size * 1.1);
+        let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 1);
+        let min_y = rows.last().unwrap().min.y;
+
+        self.crt.checked = state.crt_shader;
+        self.crt.update(rows[0], context);
+        if self.crt.state.clicked {
+            state.crt_shader = !state.crt_shader;
+        }
+
+        let mut position = position;
+        position.min.y = min_y;
+        self.state.update(position, context);
+    }
+}
+
 pub struct PaletteChooseWidget {
     pub state: WidgetState,
     pub title: TextWidget,
@@ -210,7 +301,6 @@ impl StatefulWidget for PaletteChooseWidget {
         context: &mut UiContext,
         state: &mut Self::State<'_>,
     ) {
-        self.state.update(position, context);
         let mut main = position;
 
         let title = main.cut_top(context.font_size * 1.5);
@@ -223,12 +313,17 @@ impl StatefulWidget for PaletteChooseWidget {
             vec2(0.0, -row.height() - context.layout_size * 0.1),
             self.palettes.len(),
         );
+        let min_y = rows.last().unwrap().min.y;
         for (palette, pos) in self.palettes.iter_mut().zip(rows) {
             palette.update(pos, context, state);
             if palette.state.clicked {
                 *state = palette.palette;
             }
         }
+
+        let mut position = position;
+        position.min.y = min_y;
+        self.state.update(position, context);
     }
 }
 
