@@ -223,6 +223,7 @@ pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub crt: ToggleWidget,
+    pub crt_scanlines: SliderWidget,
 }
 
 impl GraphicsWidget {
@@ -231,6 +232,7 @@ impl GraphicsWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             crt: ToggleWidget::new("CRT Shader"),
+            crt_scanlines: SliderWidget::new("CRT Scanlines").with_display_precision(0),
         }
     }
 }
@@ -257,13 +259,22 @@ impl StatefulWidget for GraphicsWidget {
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
-        let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 1);
+        let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 2);
         let min_y = rows.last().unwrap().min.y;
 
-        self.crt.checked = state.crt_shader;
+        self.crt.checked = state.crt.enabled;
         self.crt.update(rows[0], context);
         if self.crt.state.clicked {
-            state.crt_shader = !state.crt_shader;
+            state.crt.enabled = !state.crt.enabled;
+        }
+
+        if state.crt.enabled {
+            self.crt_scanlines.state.show();
+            let mut value = Bounded::new(state.crt.scanlines * 100.0, 0.0..=100.0);
+            self.crt_scanlines.update(rows[1], context, &mut value);
+            state.crt.scanlines = value.value() / 100.0;
+        } else {
+            self.crt_scanlines.state.hide();
         }
 
         let mut position = position;

@@ -14,6 +14,7 @@ void main() {
 uniform sampler2D u_texture;
 uniform float u_curvature;
 uniform float u_vignette_multiplier;
+uniform float u_scanlines_multiplier;
 uniform float u_time;
 
 void main() {
@@ -30,7 +31,9 @@ void main() {
     );
     vec3 vignette = vec3(length(pow(abs(centered_uv), vec2(4.0)) / 3.0));
 
-    vec3 screen_color = texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb * cutoff + vec3(0.5) * scanlines;
+    vec3 screen_color =
+        texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb * cutoff
+        + vec3(0.5) * scanlines * u_scanlines_multiplier;
     screen_color -= vignette * u_vignette_multiplier;
     gl_FragColor = vec4(screen_color, 1.0);
 }

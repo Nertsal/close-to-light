@@ -228,7 +228,7 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
         //     TextRenderOptions::new(font_size * 0.4).color(theme.light),
         // );
 
-        if self.options.graphics.crt_shader {
+        if self.options.graphics.crt.enabled {
             ugli::draw(
                 framebuffer,
                 &self.assets.crt_shader,
@@ -237,8 +237,9 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
                 ugli::uniforms! {
                     u_time: self.real_time as f32,
                     u_texture: &self.crt_texture,
-                    u_curvature: self.options.graphics.crt_curvature,
-                    u_vignette_multiplier: self.options.graphics.crt_vignette,
+                    u_curvature: self.options.graphics.crt.curvature,
+                    u_vignette_multiplier: self.options.graphics.crt.vignette,
+                    u_scanlines_multiplier: self.options.graphics.crt.scanlines,
                 },
                 ugli::DrawParameters::default(),
             );

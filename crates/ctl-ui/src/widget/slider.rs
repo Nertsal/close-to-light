@@ -46,7 +46,8 @@ impl SliderWidget {
         let mut main = position;
 
         if !self.text.text.is_empty() {
-            let text = main.cut_left(context.font_size * 5.0);
+            let text_width = (context.font_size * 5.0).min(main.width() * 0.4);
+            let text = main.cut_left(text_width);
             self.text.show();
             self.text.align(vec2(1.0, 0.5));
             self.text.update(text, context);

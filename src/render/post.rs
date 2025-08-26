@@ -36,7 +36,7 @@ impl PostRender {
 
     pub fn post_process(&mut self, framebuffer: &mut ugli::Framebuffer, time: FloatTime) {
         let options = self.context.get_options();
-        if options.graphics.crt_shader {
+        if options.graphics.crt.enabled {
             ugli::draw(
                 framebuffer,
                 &self.context.assets.shaders.crt,
@@ -45,8 +45,9 @@ impl PostRender {
                 ugli::uniforms! {
                     u_time: time.as_f32(),
                     u_texture: &self.texture,
-                    u_curvature: options.graphics.crt_curvature,
-                    u_vignette_multiplier: options.graphics.crt_vignette,
+                    u_curvature: options.graphics.crt.curvature,
+                    u_vignette_multiplier: options.graphics.crt.vignette,
+                    u_scanlines_multiplier: options.graphics.crt.scanlines,
                 },
                 ugli::DrawParameters::default(),
             );

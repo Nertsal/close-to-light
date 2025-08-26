@@ -290,6 +290,10 @@ impl UiRender {
         mut theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !slider.state.visible {
+            return;
+        }
+
         if slider.state.hovered {
             std::mem::swap(&mut theme.dark, &mut theme.light);
             self.fill_quad(slider.state.position, theme.dark, framebuffer);

@@ -10,19 +10,28 @@ pub struct Options {
     pub graphics: GraphicsOptions,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct GraphicsOptions {
-    pub crt_shader: bool,
-    pub crt_curvature: f32,
-    pub crt_vignette: f32,
+    pub crt: GraphicsCrtOptions,
 }
 
-impl Default for GraphicsOptions {
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GraphicsCrtOptions {
+    pub enabled: bool,
+    pub curvature: f32,
+    pub vignette: f32,
+    pub scanlines: f32,
+}
+
+impl Default for GraphicsCrtOptions {
     fn default() -> Self {
         Self {
-            crt_shader: true,
-            crt_curvature: 20.0,
-            crt_vignette: 0.2,
+            enabled: true,
+            curvature: 20.0,
+            vignette: 0.2,
+            scanlines: 0.5,
         }
     }
 }
