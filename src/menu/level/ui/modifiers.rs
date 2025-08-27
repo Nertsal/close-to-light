@@ -55,7 +55,7 @@ impl ModButtonWidget {
 
         let value = state.config.modifiers.get_mut(self.modifier);
         self.selected = *value;
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             self.selected = !self.selected;
         }
         *value = self.selected;

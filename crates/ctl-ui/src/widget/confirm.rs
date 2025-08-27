@@ -51,7 +51,7 @@ impl WidgetOld for ConfirmWidget {
 
         let title = main.cut_top(1.5 * context.font_size);
         self.title.update(title, context);
-        if self.title.state.pressed {
+        if self.title.state.mouse_left.pressed.is_some() {
             // Drag window
             self.offset += context.cursor.delta();
         }

@@ -107,10 +107,10 @@ impl MenuUI {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
-            if confirm.confirm.state.clicked {
+            if confirm.confirm.state.mouse_left.clicked {
                 confirm.window.show.going_up = false;
                 state.confirm_action(self);
-            } else if confirm.discard.state.clicked {
+            } else if confirm.discard.state.mouse_left.clicked {
                 confirm.window.show.going_up = false;
                 state.confirm_popup = None;
             } else if confirm.window.show.time.is_min() {
@@ -201,9 +201,25 @@ impl MenuUI {
                     state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
                 }
             }
-        } else if self.level_select.add_group.menu.browse.state.clicked {
+        } else if self
+            .level_select
+            .add_group
+            .menu
+            .browse
+            .state
+            .mouse_left
+            .clicked
+        {
             self.explore_groups();
-        } else if self.level_select.add_group.menu.create.state.clicked {
+        } else if self
+            .level_select
+            .add_group
+            .menu
+            .create
+            .state
+            .mouse_left
+            .clicked
+        {
             state.new_group();
         }
 

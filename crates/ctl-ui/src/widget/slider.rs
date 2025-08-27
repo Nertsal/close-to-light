@@ -77,7 +77,7 @@ impl SliderWidget {
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 
-        if self.bar_box.pressed && self.bar.position.width() > 0.0 {
+        if self.bar_box.mouse_left.pressed.is_some() && self.bar.position.width() > 0.0 {
             let t =
                 (context.cursor.position.x - self.bar.position.min.x) / self.bar.position.width();
             let t = t.clamp(0.0, 1.0);

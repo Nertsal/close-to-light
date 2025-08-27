@@ -54,7 +54,7 @@ impl Widget for ButtonWidget {
 
         let position = state.position;
         let bg_color = theme.get_color(self.bg_color);
-        geometry.merge(if state.pressed {
+        geometry.merge(if state.mouse_left.pressed.is_some() {
             context
                 .geometry
                 .quad_fill(position.extend_uniform(-width), width, bg_color)
@@ -167,7 +167,7 @@ impl ToggleButtonWidget {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
         self.text.update(position, context);
-        if self.text.state.clicked {
+        if self.text.state.mouse_left.clicked {
             if self.can_deselect {
                 self.selected = !self.selected;
             } else {
@@ -185,7 +185,7 @@ impl WidgetOld for ToggleButtonWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.text.update(position, context);
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             if self.can_deselect {
                 self.selected = !self.selected;
             } else {

@@ -90,7 +90,7 @@ impl EditorEditUi {
                     .state
                     .get_root_or(|| ButtonWidget::new("Add waypoint"));
                 button.update(waypoint, context);
-                if button.text.state.clicked {
+                if button.text.state.mouse_left.clicked {
                     actions.push(LevelAction::NewWaypoint.into());
                 }
 
@@ -119,7 +119,7 @@ impl EditorEditUi {
                         })
                     });
                     button.update(new_shape, context);
-                    if button.text.state.clicked {
+                    if button.text.state.mouse_left.clicked {
                         actions.push(LevelAction::Shape(*shape).into());
                     }
                     tooltip.update(&button.text.state, format!("{}", i + 1), context);
@@ -148,7 +148,7 @@ impl EditorEditUi {
                 .state
                 .get_root_or(|| ToggleWidget::new("Only selected"));
             toggle.update(selected, context);
-            if toggle.state.clicked {
+            if toggle.state.mouse_left.clicked {
                 actions.push(EditorAction::ToggleShowOnlySelected.into());
             }
             toggle.checked = editor.show_only_selected;
@@ -157,7 +157,7 @@ impl EditorEditUi {
             bar.cut_top(spacing);
             let toggle = context.state.get_root_or(|| ToggleWidget::new("Dynamic"));
             toggle.update(dynamic, context);
-            if toggle.state.clicked {
+            if toggle.state.mouse_left.clicked {
                 actions.push(EditorAction::ToggleDynamicVisual.into());
             }
             toggle.checked = editor.visualize_beat;
@@ -167,7 +167,7 @@ impl EditorEditUi {
             bar.cut_top(spacing);
             let toggle = context.state.get_root_or(|| ToggleWidget::new("Show grid"));
             toggle.update(grid, context);
-            if toggle.state.clicked {
+            if toggle.state.mouse_left.clicked {
                 actions.push(EditorAction::ToggleGrid.into());
             }
             toggle.checked = editor.render_options.show_grid;
@@ -213,7 +213,7 @@ impl EditorEditUi {
                 .state
                 .get_root_or(|| ToggleWidget::new("Snap to grid"));
             button.update(grid_snap, context);
-            if button.state.clicked {
+            if button.state.mouse_left.clicked {
                 actions.push(EditorAction::ToggleGridSnap.into());
             }
             button.checked = editor.snap_to_grid;
@@ -254,7 +254,7 @@ impl EditorEditUi {
                 .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
             button.update(delete, context);
             tooltip.update(&button.text.state, "X", context);
-            if button.text.state.clicked {
+            if button.text.state.mouse_left.clicked {
                 actions.push(
                     LevelAction::list(selected.iter().copied().map(LevelAction::DeleteLight))
                         .into(),
@@ -270,7 +270,7 @@ impl EditorEditUi {
                         ButtonWidget::new("Toggle Danger").color(ThemeColor::Danger)
                     });
                     button.update(danger_pos, context);
-                    if button.text.state.clicked {
+                    if button.text.state.mouse_left.clicked {
                         actions.push(
                             LevelAction::list(
                                 selected.iter().copied().map(LevelAction::ToggleDanger),
@@ -291,7 +291,7 @@ impl EditorEditUi {
                                 ToggleWidget::new("Danger").color(ThemeColor::Danger)
                             });
                             button.update(danger_pos, context);
-                            if button.state.clicked {
+                            if button.state.mouse_left.clicked {
                                 actions.push(LevelAction::ToggleDanger(light_id).into());
                             }
                             button.checked = light.danger;
@@ -325,7 +325,7 @@ impl EditorEditUi {
                                         .into(),
                                     );
                                 }
-                                if slider.control_state.released {
+                                if slider.control_state.mouse_left.just_released {
                                     actions.push(
                                         LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(
                                             light_id,
@@ -365,7 +365,7 @@ impl EditorEditUi {
                                         .into(),
                                     );
                                 }
-                                if slider.control_state.released {
+                                if slider.control_state.mouse_left.just_released {
                                     actions.push(
                                         LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(
                                             light_id,
@@ -385,7 +385,7 @@ impl EditorEditUi {
                             button.text.options.size = title_size;
                             button.checked =
                                 matches!(level_editor.state, EditingState::Waypoints { .. });
-                            if button.state.clicked {
+                            if button.state.mouse_left.clicked {
                                 actions.push(LevelAction::ToggleWaypointsView.into());
                             }
 
@@ -429,7 +429,7 @@ impl EditorEditUi {
                                     )
                                 });
                                 button.update(prev, context);
-                                if button.state.clicked {
+                                if button.state.mouse_left.clicked {
                                     if let Some(id) = selected.prev() {
                                         actions.push(LevelAction::SelectWaypoint(id, true).into());
                                     }
@@ -460,7 +460,7 @@ impl EditorEditUi {
                                     )
                                 });
                                 button.update(next, context);
-                                if button.state.clicked {
+                                if button.state.mouse_left.clicked {
                                     actions.push(
                                         LevelAction::SelectWaypoint(selected.next(), true).into(),
                                     );
@@ -478,7 +478,7 @@ impl EditorEditUi {
                                 ButtonWidget::new("Delete").color(ThemeColor::Danger)
                             });
                             button.update(delete, context);
-                            if button.text.state.clicked {
+                            if button.text.state.mouse_left.clicked {
                                 actions.push(
                                     LevelAction::DeleteWaypoint(waypoints.light, selected).into(),
                                 );
@@ -501,7 +501,7 @@ impl EditorEditUi {
                                     .into(),
                                 );
                             }
-                            if slider.control_state.released {
+                            if slider.control_state.mouse_left.just_released {
                                 actions.push(
                                     LevelAction::FlushChanges(Some(HistoryLabel::Scale(
                                         waypoints.light,
@@ -528,7 +528,7 @@ impl EditorEditUi {
                                     .into(),
                                 );
                             }
-                            if slider.control_state.released {
+                            if slider.control_state.mouse_left.just_released {
                                 actions.push(
                                     LevelAction::FlushChanges(Some(HistoryLabel::Rotate(
                                         waypoints.light,

@@ -98,7 +98,7 @@ impl OptionWidget {
         self.state.update(position, context);
         self.text
             .update(position.extend_uniform(-0.3 * context.font_size), context);
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             actions.extend([self.action.clone(), EditorStateAction::CloseContextMenu]);
         }
     }
@@ -146,7 +146,7 @@ impl Widget for OptionWidget {
         geometry.merge(self.text.draw_colored(context, fg_color));
 
         let position = self.state.position;
-        geometry.merge(if self.state.pressed {
+        geometry.merge(if self.state.mouse_left.pressed.is_some() {
             context
                 .geometry
                 .quad_fill(position.extend_uniform(-width * 0.5), width, bg_color)

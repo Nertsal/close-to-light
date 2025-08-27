@@ -99,7 +99,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         self.control_state.update(control, context);
 
         // Drag value
-        let mut controlling = self.control_state.pressed;
+        let mut controlling = self.control_state.mouse_left.pressed.is_some();
         if controlling {
             match self.control {
                 ValueControl::Slider { min, max } => {

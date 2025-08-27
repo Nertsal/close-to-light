@@ -223,7 +223,7 @@ impl TimelineWidget {
                                 .highlight(HighlightMode::Color(ThemeColor::Highlight))
                         });
                         tick.update(position, context);
-                        if tick.state.pressed {
+                        if tick.state.mouse_left.pressed.is_some() {
                             // Drag fade in
                             let target = unrender_time(context.cursor.position.x);
                             let target = editor.level.timing.snap_to_beat(target, snap);
@@ -232,7 +232,7 @@ impl TimelineWidget {
                                 LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)).into(),
                             );
                         }
-                        if tick.state.released {
+                        if tick.state.mouse_left.just_released {
                             actions.push(
                                 LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
                                     .into(),
@@ -249,7 +249,7 @@ impl TimelineWidget {
                                 .highlight(HighlightMode::Color(ThemeColor::Highlight))
                         });
                         tick.update(position, context);
-                        if tick.state.pressed {
+                        if tick.state.mouse_left.pressed.is_some() {
                             // Drag fade out
                             let target = unrender_time(context.cursor.position.x);
                             let target = editor.level.timing.snap_to_beat(target, snap);
@@ -258,7 +258,7 @@ impl TimelineWidget {
                                 LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)).into(),
                             );
                         }
-                        if tick.state.released {
+                        if tick.state.mouse_left.just_released {
                             actions.push(
                                 LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(light_id)))
                                     .into(),
@@ -309,7 +309,7 @@ impl TimelineWidget {
                         tick.update(position, context);
 
                         // Waypoint drag
-                        if icon.state.clicked || tick.state.clicked {
+                        if icon.state.mouse_left.clicked || tick.state.mouse_left.clicked {
                             actions.extend([
                                 LevelAction::SelectLight(SelectMode::Set, vec![light_id]).into(),
                                 LevelAction::SelectWaypoint(waypoint_id, false).into(),
@@ -387,7 +387,7 @@ impl TimelineWidget {
                         if icon.state.hovered {
                             actions.push(LevelAction::HoverLight(light_id).into());
                         }
-                        if icon.state.clicked {
+                        if icon.state.mouse_left.clicked {
                             actions.push(
                                 LevelAction::SelectLight(SelectMode::Set, vec![light_id]).into(),
                             );
@@ -602,12 +602,12 @@ impl TimelineWidget {
                 }
             }
         }
-        if self.state.right_clicked {
+        if self.state.mouse_right.clicked {
             // TODO: maybe more specific to actual timeline actions
             actions.push(LevelAction::Cancel.into());
         }
 
-        if self.main_line.clicked {
+        if self.main_line.mouse_left.clicked {
             let time = self.get_cursor_time();
             actions.push(LevelAction::ScrollTime(time - state.current_time.target).into());
         }

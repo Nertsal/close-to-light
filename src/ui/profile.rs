@@ -146,7 +146,7 @@ impl StatefulWidget for RegisterWidget {
             with.update(pos, context);
         }
 
-        if self.discord.state.clicked {
+        if self.discord.state.mouse_left.clicked {
             state.login_discord();
         }
     }
@@ -177,7 +177,7 @@ impl StatefulWidget for LoggedWidget {
         self.username.update(rows[0], context);
         self.logout.update(rows[1], context);
 
-        if self.logout.state.clicked {
+        if self.logout.state.mouse_left.clicked {
             state.logout();
         }
     }

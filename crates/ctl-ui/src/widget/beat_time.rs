@@ -48,7 +48,7 @@ impl BeatValueWidget {
         let (min, max) = (*self.range.start(), *self.range.end());
 
         // Drag value
-        let mut controlling = self.control_state.pressed;
+        let mut controlling = self.control_state.mouse_left.pressed.is_some();
         if controlling {
             // (0,0) in the center, range -0.5..=0.5
             let convert = |pos| {

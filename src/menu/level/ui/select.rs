@@ -52,7 +52,7 @@ impl LevelSelectUI {
 
     pub fn select_tab(&mut self, tab: LevelSelectTab) {
         for button in [&mut self.tab_groups, &mut self.tab_levels] {
-            if !button.state.clicked {
+            if !button.state.mouse_left.clicked {
                 button.selected = false;
             }
         }
@@ -124,13 +124,13 @@ impl LevelSelectUI {
         let mut deselect = false;
         for (button, pos) in buttons.into_iter().zip(buttons_layout) {
             button.update(pos, context);
-            if button.text.state.clicked {
+            if button.text.state.mouse_left.clicked {
                 deselect = true;
             }
         }
         if deselect {
             for button in [&mut self.tab_groups, &mut self.tab_levels] {
-                if !button.state.clicked {
+                if !button.state.mouse_left.clicked {
                     button.selected = false;
                 }
             }
@@ -203,7 +203,7 @@ impl LevelSelectUI {
             {
                 let act = widget.update(pos, context);
                 action = action.or(act);
-                if widget.state.clicked {
+                if widget.state.mouse_left.clicked {
                     state.select_group(widget.index);
                     tab = Some(LevelSelectTab::Difficulty);
                 }
@@ -308,7 +308,7 @@ impl LevelSelectUI {
             {
                 let act = widget.update(pos, context);
                 action = action.or(act);
-                if widget.state.clicked {
+                if widget.state.mouse_left.clicked {
                     state.select_level(widget.index);
                     tab = Some(LevelSelectTab::Difficulty);
                 }
@@ -346,7 +346,7 @@ impl WidgetOld for AddItemWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         self.text.update(position, context);
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -416,7 +416,7 @@ impl ItemGroupWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.right_clicked {
+        if self.state.mouse_right.clicked {
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -444,11 +444,11 @@ impl ItemGroupWidget {
         self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
-        if self.menu.edit.state.clicked {
+        if self.menu.edit.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditGroup(self.index));
-        } else if self.menu.sync.state.clicked {
+        } else if self.menu.sync.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.index));
-        } else if self.menu.delete.state.clicked {
+        } else if self.menu.delete.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteGroup(self.index));
         }
         action
@@ -518,7 +518,7 @@ impl ItemLevelWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.right_clicked {
+        if self.state.mouse_right.clicked {
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -550,11 +550,11 @@ impl ItemLevelWidget {
         self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
-        if self.menu.edit.state.clicked {
+        if self.menu.edit.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditLevel(self.group, self.index));
-        } else if self.menu.sync.state.clicked {
+        } else if self.menu.sync.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.group));
-        } else if self.menu.delete.state.clicked {
+        } else if self.menu.delete.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteLevel(self.group, self.index));
         }
         action

@@ -75,7 +75,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
         let mut position = dropdown.clone().cut_top(item_height);
         for (i, item) in self.dropdown_items.iter_mut().enumerate() {
             item.update(position, context);
-            if can_select && item.state.clicked {
+            if can_select && item.state.mouse_left.clicked {
                 self.value = i;
                 if let Some((_, value)) = self.options.get(i) {
                     *state = value.clone();
@@ -103,7 +103,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             self.value_text.text = name.clone();
         }
 
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             self.dropdown_window.request = Some(WidgetRequest::Open);
         }
         self.dropdown_window.update(context.delta_time);
@@ -139,7 +139,7 @@ impl<T: 'static> Widget for DropdownWidget<T> {
                 window.merge(text.draw_colored(context, fg_color));
 
                 let position = text.state.position;
-                window.merge(if text.state.pressed {
+                window.merge(if text.state.mouse_left.pressed.is_some() {
                     context.geometry.quad_fill(
                         position.extend_uniform(-outline_width * 0.5),
                         outline_width,

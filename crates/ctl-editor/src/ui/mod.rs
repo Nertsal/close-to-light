@@ -67,11 +67,11 @@ impl EditorUi {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
-            if confirm.confirm.state.clicked {
+            if confirm.confirm.state.mouse_left.clicked {
                 // Confirm
                 confirm.window.show.going_up = false;
                 actions.push(EditorStateAction::ConfirmPopupAction);
-            } else if confirm.discard.state.clicked {
+            } else if confirm.discard.state.mouse_left.clicked {
                 // Discard
                 confirm.window.show.going_up = false;
                 actions.push(EditorAction::ClosePopup.into());
@@ -104,7 +104,7 @@ impl EditorUi {
             .state
             .get_root_or(|| ButtonWidget::new("Exit").color(ThemeColor::Danger));
         button.update(exit, context);
-        if button.text.state.clicked {
+        if button.text.state.mouse_left.clicked {
             if editor.is_changed() {
                 actions.push(
                     EditorAction::PopupConfirm(
@@ -123,7 +123,7 @@ impl EditorUi {
             .state
             .get_root_or(|| ButtonWidget::new("Save").color(ThemeColor::Highlight));
         button.update(save, context);
-        if button.text.state.clicked {
+        if button.text.state.mouse_left.clicked {
             actions.push(EditorAction::Save.into());
         }
         top_bar.cut_left(layout_size);
@@ -162,9 +162,9 @@ impl EditorUi {
         tab_config.update(top_bar.cut_left(layout_size * 5.0), context);
         top_bar.cut_left(layout_size);
 
-        if tab_edit.text.state.clicked {
+        if tab_edit.text.state.mouse_left.clicked {
             actions.push(EditorAction::SwitchTab(EditorTab::Edit).into())
-        } else if tab_config.text.state.clicked {
+        } else if tab_config.text.state.mouse_left.clicked {
             actions.push(EditorAction::SwitchTab(EditorTab::Config).into());
         }
 

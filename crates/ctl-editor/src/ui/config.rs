@@ -70,7 +70,7 @@ impl EditorConfigUi {
         .into();
         button.update(button_pos, context);
         #[cfg(not(target_arch = "wasm32"))]
-        if button.text.state.clicked {
+        if button.text.state.mouse_left.clicked {
             if let Some(path) = rfd::FileDialog::new()
                 .add_filter("music", &["mp3"])
                 .set_can_create_directories(false)
@@ -110,7 +110,7 @@ impl EditorConfigUi {
                 .state
                 .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
             button.update(delete, context);
-            if button.text.state.clicked {
+            if button.text.state.mouse_left.clicked {
                 let index = level_editor.static_level.level_index;
                 actions.push(EditorAction::DeleteLevel(index).into());
             }
@@ -119,7 +119,7 @@ impl EditorConfigUi {
         let create = bar.cut_top(context.font_size);
         let button = context.state.get_root_or(|| ButtonWidget::new("Create"));
         button.update(create, context);
-        if button.text.state.clicked {
+        if button.text.state.mouse_left.clicked {
             actions.push(EditorAction::NewLevel.into());
         }
 
@@ -154,7 +154,7 @@ impl EditorConfigUi {
             }
             level.text = level_name;
 
-            if level.state.clicked {
+            if level.state.mouse_left.clicked {
                 if editor.is_changed() {
                     actions.push(
                         EditorAction::PopupConfirm(
@@ -185,7 +185,7 @@ impl EditorConfigUi {
                         .state
                         .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_up()));
                     icon_up.update(up, context);
-                    if icon_up.state.clicked {
+                    if icon_up.state.mouse_left.clicked {
                         actions.push(EditorAction::MoveLevelLow(i).into());
                     }
                 }
@@ -195,7 +195,7 @@ impl EditorConfigUi {
                         .state
                         .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_down()));
                     icon_down.update(down, context);
-                    if icon_down.state.clicked {
+                    if icon_down.state.mouse_left.clicked {
                         actions.push(EditorAction::MoveLevelHigh(i).into());
                     }
                 }

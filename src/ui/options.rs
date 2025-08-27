@@ -264,7 +264,7 @@ impl StatefulWidget for GraphicsWidget {
 
         self.crt.checked = state.crt.enabled;
         self.crt.update(rows[0], context);
-        if self.crt.state.clicked {
+        if self.crt.state.mouse_left.clicked {
             state.crt.enabled = !state.crt.enabled;
         }
 
@@ -327,7 +327,7 @@ impl StatefulWidget for PaletteChooseWidget {
         let min_y = rows.last().unwrap().min.y;
         for (palette, pos) in self.palettes.iter_mut().zip(rows) {
             palette.update(pos, context, state);
-            if palette.state.clicked {
+            if palette.state.mouse_left.clicked {
                 *state = palette.palette;
             }
         }
@@ -370,7 +370,7 @@ impl StatefulWidget for PaletteWidget {
         state: &mut Self::State<'_>,
     ) {
         self.state.update(position, context);
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             *state = self.palette;
         }
 

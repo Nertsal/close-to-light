@@ -114,14 +114,14 @@ impl StatefulWidget for ExploreWidget {
         let reload = vec2::splat(2.0) * context.layout_size;
         let reload = bar.align_aabb(reload, vec2(0.0, 1.0));
         self.reload.update(reload, context);
-        if self.reload.state.clicked {
+        if self.reload.state.mouse_left.clicked {
             self.refetch = true;
         }
 
         let close = vec2::splat(2.0) * context.layout_size;
         let close = bar.align_aabb(close, vec2(1.0, 1.0));
         self.close.update(close, context);
-        if self.close.state.clicked {
+        if self.close.state.mouse_left.clicked {
             self.window.request = Some(WidgetRequest::Close);
         }
 
@@ -297,7 +297,7 @@ impl StatefulWidget for LevelItemWidget {
             self.pause_music.hide();
             self.download.update(rows[1], context);
             self.downloading.update(rows[1], context);
-            if self.download.state.clicked {
+            if self.download.state.mouse_left.clicked {
                 state.download_group(self.info.id);
             }
         } else {
@@ -307,21 +307,21 @@ impl StatefulWidget for LevelItemWidget {
                 self.play_music.hide();
                 self.pause_music.show();
                 self.pause_music.update(rows[0], context);
-                if self.pause_music.state.clicked {
+                if self.pause_music.state.mouse_left.clicked {
                     *action = Some(ExploreAction::PauseMusic);
                 }
             } else {
                 self.pause_music.hide();
                 self.play_music.show();
                 self.play_music.update(rows[0], context);
-                if self.play_music.state.clicked {
+                if self.play_music.state.mouse_left.clicked {
                     *action = Some(ExploreAction::PlayMusic(self.info.id));
                 }
             }
 
             self.goto.show();
             self.goto.update(rows[1], context);
-            if self.goto.state.clicked {
+            if self.goto.state.mouse_left.clicked {
                 *action = Some(ExploreAction::GotoGroup(self.info.id));
             }
         }

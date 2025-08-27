@@ -281,7 +281,7 @@ impl MainUI {
         let text = join.cut_top(font_size * 1.5);
         self.join_community.update(text, context);
         self.join_discord.update(join, context);
-        if self.join_discord.state.clicked {
+        if self.join_discord.state.mouse_left.clicked {
             let _ = webbrowser::open(crate::DISCORD_SERVER_URL);
         }
 

@@ -23,6 +23,9 @@ use std::any::Any;
 
 use geng::prelude::*;
 
+/// Max distance that the cursor can travel for a click to register as a stationary one.
+const MAX_CLICK_DISTANCE: f32 = 1.0;
+
 #[macro_export]
 macro_rules! simple_widget_state {
     () => {
@@ -104,17 +107,29 @@ pub struct WidgetState {
     /// Whether to show the widget.
     pub visible: bool,
     pub hovered: bool,
-    /// Whether user has left clicked on the widget since last frame.
-    pub clicked: bool,
-    /// Whether user is holding the left mouse button down on the widget.
-    pub pressed: bool,
-    /// Whether user has released the left mouse button since last frame.
-    pub released: bool,
-    /// Whether user has right clicked on the widget since last frame.
-    pub right_clicked: bool,
-    /// Whether user is holding the right mouse button down on the widget.
-    pub right_pressed: bool,
+    pub mouse_left: WidgetMouseState,
+    pub mouse_right: WidgetMouseState,
     pub sfx_config: WidgetSfxConfig,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct WidgetMouseState {
+    /// Whether user has pressed on the widget since last frame.
+    pub just_pressed: bool,
+    /// Whether user is holding the mouse button down on the widget.
+    pub pressed: Option<WidgetPressState>,
+    /// Whether user has released the mouse button since last frame.
+    pub just_released: bool,
+    /// Set to `true` on frames when a press+release input was registered as a click.
+    pub clicked: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WidgetPressState {
+    /// Cursor position where the press started.
+    pub press_position: vec2<f32>,
+    /// The duration of the press.
+    pub duration: f32,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -138,36 +153,27 @@ impl WidgetState {
         if self.visible && context.can_focus() {
             let was_hovered = self.hovered;
             self.hovered = self.position.contains(context.cursor.position);
-            let was_pressed = self.pressed;
-            // TODO: check for mouse being pressed and then dragged onto the widget
-            self.pressed =
-                context.cursor.down && (was_pressed || self.hovered && !context.cursor.was_down);
-            self.clicked = !was_pressed && self.pressed;
-            self.released = was_pressed && !self.pressed;
 
-            let was_pressed = self.right_pressed;
-            self.right_pressed = context.cursor.right_down
-                && (was_pressed || self.hovered && !context.cursor.was_right_down);
-            self.right_clicked = !was_pressed && self.right_pressed;
+            self.mouse_left.update(context, self.hovered);
+            self.mouse_right.update(context, self.hovered);
 
             let context = &context.context;
-            if self.clicked && self.sfx_config.left_click {
+            if self.mouse_left.clicked && self.sfx_config.left_click {
                 context.sfx.play(&context.assets.sounds.ui_click);
             }
-            if self.right_clicked && self.sfx_config.right_click {
+            if self.mouse_right.clicked && self.sfx_config.right_click {
                 context.sfx.play(&context.assets.sounds.ui_click);
             }
             if !was_hovered && self.hovered && self.sfx_config.hover {
                 context.sfx.play(&context.assets.sounds.ui_hover);
             }
         } else {
-            self.released = self.pressed;
+            self.mouse_left.just_released = self.mouse_left.pressed.is_some();
+            self.mouse_right.just_released = self.mouse_right.pressed.is_some();
 
             self.hovered = false;
-            self.pressed = false;
-            self.clicked = false;
-            self.right_pressed = false;
-            self.right_clicked = false;
+            self.mouse_left = WidgetMouseState::default();
+            self.mouse_right = WidgetMouseState::default();
         }
     }
 
@@ -178,11 +184,8 @@ impl WidgetState {
     pub fn hide(&mut self) {
         self.visible = false;
         self.hovered = false;
-        self.pressed = false;
-        self.clicked = false;
-        self.released = false;
-        self.right_pressed = false;
-        self.right_clicked = false;
+        self.mouse_left = WidgetMouseState::default();
+        self.mouse_right = WidgetMouseState::default();
     }
 }
 
@@ -193,13 +196,38 @@ impl Default for WidgetState {
             position: Aabb2::ZERO.extend_uniform(1.0),
             visible: true,
             hovered: false,
-            clicked: false,
-            pressed: false,
-            released: false,
-            right_clicked: false,
-            right_pressed: false,
+            mouse_left: WidgetMouseState::default(),
+            mouse_right: WidgetMouseState::default(),
             sfx_config: WidgetSfxConfig::default(),
         }
+    }
+}
+
+impl WidgetMouseState {
+    pub fn update(&mut self, context: &UiContext, hovered: bool) {
+        let was_pressed = self.pressed.is_some();
+        // TODO: check for mouse being pressed and then dragged onto the widget
+        let pressed = context.cursor.down && (was_pressed || hovered && !context.cursor.was_down);
+        self.just_pressed = !was_pressed && pressed;
+        self.just_released = was_pressed && !pressed;
+        self.clicked = self.just_released
+            && self.pressed.is_some_and(|state| {
+                (state.press_position - context.cursor.position).len() < MAX_CLICK_DISTANCE
+            });
+        self.pressed = if pressed {
+            match self.pressed {
+                Some(mut state) => {
+                    state.duration += context.delta_time;
+                    Some(state)
+                }
+                None => Some(WidgetPressState {
+                    press_position: context.cursor.position,
+                    duration: 0.0,
+                }),
+            }
+        } else {
+            None
+        };
     }
 }
 

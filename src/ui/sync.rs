@@ -224,7 +224,8 @@ impl StatefulWidget for SyncWidget {
 
         let position = position.translate(self.offset);
 
-        self.window.layout(true, self.close.state.clicked);
+        self.window
+            .layout(true, self.close.state.mouse_left.clicked);
         self.window.update(context.delta_time);
         self.state.update(position, context);
 
@@ -232,7 +233,7 @@ impl StatefulWidget for SyncWidget {
         let hold = hold.cut_top(context.layout_size);
         self.hold.update(hold, context);
 
-        if self.hold.pressed {
+        if self.hold.mouse_left.pressed.is_some() {
             // Drag window
             self.offset += context.cursor.delta();
         }
@@ -258,7 +259,7 @@ impl StatefulWidget for SyncWidget {
             .cut_top(context.font_size * 1.5)
             .align_aabb(button_size, vec2::splat(0.5));
         self.upload.update(upload, context);
-        if self.upload.state.clicked {
+        if self.upload.state.mouse_left.clicked {
             if self.cached_group.local.music.is_some() {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
@@ -281,7 +282,7 @@ impl StatefulWidget for SyncWidget {
             .cut_top(context.font_size * 1.5)
             .align_aabb(button_size, vec2::splat(0.5));
         self.discard.update(discard, context);
-        if self.discard.state.clicked {
+        if self.discard.state.mouse_left.clicked {
             if self.cached_group.local.data.id == 0 {
                 // Delete
                 state.popup_confirm(

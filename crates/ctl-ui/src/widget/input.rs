@@ -112,7 +112,7 @@ impl InputWidget {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
 
-        if self.state.clicked {
+        if self.state.mouse_left.clicked {
             self.edit_id = Some(context.text_edit.edit(&self.text.text));
         }
 
