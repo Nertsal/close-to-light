@@ -136,13 +136,16 @@ impl GameRender {
         }
 
         if !fading {
+            let t = (model.switch_time.as_f32() / 2.0).min(1.0);
+            // let t = crate::util::smoothstep(t);
+            let color = THEME.light.map_rgb(|x| x * t);
             match model.state {
                 State::Starting { .. } | State::Playing => {}
                 State::Lost { .. } => {
                     self.util.draw_text(
-                        "YOU FAILED TO CHASE THE LIGHT",
+                        "DARKNESS ABSORBS YOU",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(THEME.light),
+                        TextRenderOptions::new(0.8).color(color),
                         camera,
                         &mut framebuffer,
                     );
@@ -151,7 +154,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(THEME.light),
+                        TextRenderOptions::new(1.0).color(color),
                         camera,
                         &mut framebuffer,
                     );
@@ -292,12 +295,6 @@ impl GameRender {
         if ui.score.state.visible {
             self.ui
                 .draw_score(&ui.score, theme, self.font_size * 0.1, framebuffer);
-            self.ui.draw_outline(
-                ui.score.state.position,
-                self.font_size * 0.2,
-                theme.light,
-                framebuffer,
-            );
         }
         if ui.leaderboard.state.visible {
             let theme = self.context.get_options().theme;

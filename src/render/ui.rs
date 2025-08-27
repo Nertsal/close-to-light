@@ -459,6 +459,13 @@ impl UiRender {
         self.draw_text(&score.accuracy_text, framebuffer);
         self.draw_text(&score.precision_value, framebuffer);
         self.draw_text(&score.precision_text, framebuffer);
+
+        self.draw_outline(
+            score.state.position.extend_uniform(outline_width),
+            outline_width,
+            theme.light,
+            framebuffer,
+        );
     }
 
     pub fn draw_leaderboard(
