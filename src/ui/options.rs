@@ -81,6 +81,7 @@ pub struct OptionsWidget {
     pub window: UiWindow<()>,
     /// Downward scroll.
     pub scroll: SecondOrderState<f32>,
+    scroll_drag_from: f32,
     pub profile: ProfileWidget,
     pub separator: WidgetState,
     pub volume: VolumeWidget,
@@ -94,6 +95,7 @@ impl OptionsWidget {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
             scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
+            scroll_drag_from: 0.0,
             profile: ProfileWidget::new(assets),
             separator: WidgetState::new(),
             volume: VolumeWidget::new(),
@@ -120,9 +122,19 @@ impl StatefulWidget for OptionsWidget {
         self.window.update(context.delta_time);
 
         // Scroll
+        if self.state.mouse_left.just_pressed {
+            self.scroll_drag_from = self.scroll.current;
+        }
         if self.state.hovered {
-            let scroll_speed = 2.0;
-            self.scroll.target += context.cursor.scroll * scroll_speed;
+            if let Some(press) = &self.state.mouse_left.pressed {
+                self.scroll.snap_to(
+                    self.scroll_drag_from - context.cursor.position.y + press.press_position.y,
+                    context.delta_time,
+                );
+            } else {
+                let scroll_speed = 2.0;
+                self.scroll.target += context.cursor.scroll * scroll_speed;
+            }
         }
         self.scroll.update(context.delta_time);
 

@@ -21,6 +21,13 @@ impl<T: Interpolatable + Copy> SecondOrderState<T> {
     pub fn update(&mut self, delta_time: f32) {
         self.current = self.dynamics.update(delta_time, self.target);
     }
+
+    pub fn snap_to(&mut self, value: T, delta_time: f32) {
+        self.target = value;
+        self.current = value;
+        self.dynamics.y = value;
+        self.dynamics.update(delta_time, value);
+    }
 }
 
 /// Second order dynamic system as described by
