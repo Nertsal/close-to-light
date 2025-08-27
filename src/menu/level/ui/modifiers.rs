@@ -172,7 +172,7 @@ impl ModifiersWidget {
             let lines = crate::util::wrap_text(
                 &context.font,
                 modifier.description(),
-                main.width() / context.font_size,
+                main.width() / context.font_size / 0.6, // Magic constant from the util renderer that scales everything by 0.6 idk why
             );
             let row = main.align_aabb(vec2(main.width(), 0.8 * context.font_size), vec2(0.5, 0.0));
             let rows = row.stack(vec2(0.0, row.height()), lines.len());
