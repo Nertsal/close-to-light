@@ -207,7 +207,7 @@ impl MenuUI {
             state.new_group();
         }
 
-        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
+        let options = right.extend_positive(-vec2(2.0, 2.0) * layout_size);
 
         right.cut_left(5.0 * layout_size);
         right.cut_right(5.0 * layout_size);

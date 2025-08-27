@@ -307,7 +307,11 @@ impl MenuRender {
         let theme = state.context.get_options().theme;
 
         let width = 12.0;
-        let options = ui.options.state.position.extend_up(width);
+        let options = ui
+            .options
+            .state
+            .position
+            .extend_positive(vec2::splat(width));
 
         self.ui.draw_window(
             &mut self.masked,
