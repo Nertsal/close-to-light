@@ -458,15 +458,6 @@ impl geng::State for LevelMenu {
                 &mut dither_buffer,
             );
         }
-        if fading {
-            self.util.draw_text(
-                "made in rust btw",
-                vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(THEME.dark),
-                &self.camera,
-                &mut dither_buffer,
-            );
-        }
 
         self.dither.finish(self.time, &theme);
 
@@ -529,6 +520,15 @@ impl geng::State for LevelMenu {
         if let Some(button) = &self.transition_button {
             self.util
                 .draw_button(button, "", &THEME, &self.camera, &mut dither_buffer);
+        }
+        if fading || self.transition_button.is_some() {
+            self.util.draw_text(
+                "made in rust btw",
+                vec2(0.0, -3.0).as_r32(),
+                TextRenderOptions::new(0.5).color(THEME.dark),
+                &self.camera,
+                &mut dither_buffer,
+            );
         }
         self.dither.finish(self.time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())

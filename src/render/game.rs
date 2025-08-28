@@ -94,7 +94,8 @@ impl GameRender {
         }
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
-        if let State::Lost { .. } | State::Finished = model.state {
+        let end_screen = matches!(model.state, State::Lost { .. } | State::Finished);
+        if end_screen {
             for (button, text) in [
                 (&model.restart_button, "RESTART"),
                 (&model.exit_button, "EXIT"),
@@ -106,11 +107,13 @@ impl GameRender {
                 self.util
                     .draw_button(&button, text, &THEME, camera, &mut framebuffer);
             }
+        }
 
+        if end_screen || model.transition_button.is_some() {
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(THEME.dark),
+                TextRenderOptions::new(0.5).color(THEME.dark),
                 camera,
                 &mut framebuffer,
             );
