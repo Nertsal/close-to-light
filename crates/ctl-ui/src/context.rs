@@ -23,6 +23,14 @@ impl KeyModifiers {
     }
 }
 
+#[derive(Default, Debug, Clone, Copy)]
+pub struct MouseButtonContext {
+    /// Is the cursor currently pressed.
+    pub down: bool,
+    /// Was the cursor pressed last frame.
+    pub was_down: bool,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct CursorContext {
     /// Position set outside of the update, synchronized in the update.
@@ -30,12 +38,8 @@ pub struct CursorContext {
     pub position: vec2<f32>,
     /// Cursor position last frame.
     pub last_position: vec2<f32>,
-    pub down: bool,
-    pub right_down: bool,
-    /// Was the cursor down last frame.
-    pub was_down: bool,
-    /// Was the right cursor down last frame.
-    pub was_right_down: bool,
+    pub left: MouseButtonContext,
+    pub right: MouseButtonContext,
     pub scroll: f32,
 }
 
@@ -51,10 +55,8 @@ impl CursorContext {
             next_position: vec2::ZERO,
             position: vec2::ZERO,
             last_position: vec2::ZERO,
-            down: false,
-            right_down: false,
-            was_down: false,
-            was_right_down: false,
+            left: MouseButtonContext::default(),
+            right: MouseButtonContext::default(),
             scroll: 0.0,
         }
     }
@@ -83,10 +85,15 @@ impl CursorContext {
     pub fn update(&mut self, is_down: bool, right_down: bool) {
         self.last_position = self.position;
         self.position = self.next_position;
+        self.left.update(is_down);
+        self.right.update(right_down);
+    }
+}
+
+impl MouseButtonContext {
+    pub fn update(&mut self, is_down: bool) {
         self.was_down = self.down;
-        self.was_right_down = self.right_down;
         self.down = is_down;
-        self.right_down = right_down;
     }
 }
 

@@ -154,8 +154,10 @@ impl WidgetState {
             let was_hovered = self.hovered;
             self.hovered = self.position.contains(context.cursor.position);
 
-            self.mouse_left.update(context, self.hovered);
-            self.mouse_right.update(context, self.hovered);
+            self.mouse_left
+                .update(context, self.hovered, &context.cursor.left);
+            self.mouse_right
+                .update(context, self.hovered, &context.cursor.right);
 
             let context = &context.context;
             if self.mouse_left.clicked && self.sfx_config.left_click {
@@ -204,10 +206,10 @@ impl Default for WidgetState {
 }
 
 impl WidgetMouseState {
-    pub fn update(&mut self, context: &UiContext, hovered: bool) {
+    pub fn update(&mut self, context: &UiContext, hovered: bool, mouse: &MouseButtonContext) {
         let was_pressed = self.pressed.is_some();
         // TODO: check for mouse being pressed and then dragged onto the widget
-        let pressed = context.cursor.down && (was_pressed || hovered && !context.cursor.was_down);
+        let pressed = mouse.down && (was_pressed || hovered && !mouse.was_down);
         self.just_pressed = !was_pressed && pressed;
         self.just_released = was_pressed && !pressed;
         self.clicked = self.just_released

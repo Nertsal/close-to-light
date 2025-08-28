@@ -162,6 +162,32 @@ impl UiRender {
         );
     }
 
+    pub fn draw_button(
+        &self,
+        button: &ButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let state = &button.text.state;
+        if !state.visible {
+            return;
+        }
+
+        let width = button.text.options.size * 0.2;
+
+        let position = state.position;
+        let bg_color = theme.get_color(button.bg_color);
+
+        if state.mouse_left.pressed.is_some() {
+            self.fill_quad(position.extend_uniform(-width), bg_color, framebuffer);
+        } else if state.hovered {
+            self.fill_quad(position.extend_uniform(-width * 0.5), bg_color, framebuffer)
+        } else {
+            self.fill_quad(position, bg_color, framebuffer)
+        }
+        self.draw_text(&button.text, framebuffer);
+    }
+
     pub fn draw_icon_button(
         &self,
         icon: &IconButtonWidget,
@@ -701,7 +727,7 @@ impl UiRender {
         let logged = &ui.logged;
         if logged.state.visible {
             self.draw_text(&logged.username, framebuffer);
-            self.draw_toggle_button(&logged.logout, false, false, theme, framebuffer);
+            self.draw_button(&logged.logout, theme, framebuffer);
         }
     }
 }

@@ -179,7 +179,7 @@ impl TimelineWidget {
 
                 // Selected light's waypoints
                 if is_selected {
-                    if !context.can_focus() || !context.cursor.down {
+                    if !context.can_focus() || !context.cursor.left.down {
                         match self.dragging_light.take() {
                             // TODO: unmagic constant - max click shake distance and duration
                             Some((from, from_time))
@@ -315,7 +315,7 @@ impl TimelineWidget {
                                 LevelAction::SelectWaypoint(waypoint_id, false).into(),
                             ]);
                             self.dragging_waypoint = true;
-                        } else if !context.cursor.down {
+                        } else if !context.cursor.left.down {
                             if self.dragging_waypoint {
                                 actions.push(
                                     LevelAction::FlushChanges(Some(

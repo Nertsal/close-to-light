@@ -24,7 +24,7 @@ pub struct RegisterWidget {
 pub struct LoggedWidget {
     pub state: WidgetState,
     pub username: TextWidget,
-    pub logout: TextWidget,
+    pub logout: ButtonWidget,
 }
 
 impl ProfileWidget {
@@ -45,7 +45,7 @@ impl ProfileWidget {
             logged: LoggedWidget {
                 state: WidgetState::new(),
                 username: TextWidget::new("<username>"),
-                logout: TextWidget::new("Logout"),
+                logout: ButtonWidget::new("Logout"),
             },
         }
     }
@@ -177,7 +177,7 @@ impl StatefulWidget for LoggedWidget {
         self.username.update(rows[0], context);
         self.logout.update(rows[1], context);
 
-        if self.logout.state.mouse_left.clicked {
+        if self.logout.text.state.mouse_left.clicked {
             state.logout();
         }
     }
