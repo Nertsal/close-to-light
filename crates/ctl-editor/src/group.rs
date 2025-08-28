@@ -187,6 +187,7 @@ impl Editor {
                 level: level.clone(),
                 config: LevelConfig::default(),
                 start_time: Time::ZERO,
+                transition_button: None,
             };
             let model = Model::empty(
                 self.context.clone(),

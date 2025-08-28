@@ -5,7 +5,7 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    render::{mask::MaskedRender, menu::MenuRender, post::PostRender},
+    render::{THEME, mask::MaskedRender, menu::MenuRender, post::PostRender},
     ui::{
         ShowTime, UiContext, WidgetRequest,
         widget::{ConfirmPopup, WidgetOld},
@@ -45,6 +45,8 @@ pub struct LevelMenu {
     camera: Camera2d,
     state: MenuState,
     play_button: HoverButton,
+    /// Button that was used to transition into the menu.
+    transition_button: Option<HoverButton>,
 }
 
 pub struct MenuState {
@@ -180,7 +182,11 @@ impl MenuState {
 }
 
 impl LevelMenu {
-    pub fn new(context: Context, leaderboard: Leaderboard) -> Self {
+    pub fn new(
+        context: Context,
+        leaderboard: Leaderboard,
+        transition_button: Option<HoverButton>,
+    ) -> Self {
         let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
             r32(0.0),
@@ -232,6 +238,7 @@ impl LevelMenu {
                 },
                 1.5,
             ),
+            transition_button,
 
             context,
             transition: None,
@@ -278,7 +285,8 @@ impl LevelMenu {
 
         self.context.music.stop();
         self.ui_context.cursor.reset();
-        self.play_button.hover_time.set(FloatTime::ZERO);
+        let transition_button = self.play_button.clone();
+        self.play_button.reset();
 
         let future = {
             let context = self.context.clone();
@@ -293,6 +301,7 @@ impl LevelMenu {
                     level: level.clone(),
                     config,
                     start_time: Time::ZERO,
+                    transition_button: Some(transition_button),
                 };
                 crate::game::Game::new(context, options, level, leaderboard)
             }
@@ -453,7 +462,7 @@ impl geng::State for LevelMenu {
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(crate::render::THEME.dark),
+                TextRenderOptions::new(0.7).color(THEME.dark),
                 &self.camera,
                 &mut dither_buffer,
             );
@@ -517,6 +526,10 @@ impl geng::State for LevelMenu {
         let mut dither_buffer = self.dither.start();
         self.util
             .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
+        if let Some(button) = &self.transition_button {
+            self.util
+                .draw_button(button, "", &THEME, &self.camera, &mut dither_buffer);
+        }
         self.dither.finish(self.time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), buffer)
@@ -622,6 +635,13 @@ impl geng::State for LevelMenu {
         }
         self.context.music.set_speed(1.0);
 
+        if let Some(button) = &mut self.transition_button {
+            button.update(true, delta_time);
+            if button.hover_time.is_max() {
+                self.transition_button = None;
+            }
+        }
+
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
@@ -646,7 +666,7 @@ impl geng::State for LevelMenu {
             }
             self.play_button.update(hovering, delta_time);
         }
-        if self.play_button.hover_time.is_max() {
+        if self.play_button.is_fading() {
             self.play_level();
         }
 
@@ -721,6 +741,7 @@ impl geng::State for LevelMenu {
                                 level,
                                 config: LevelConfig::default(),
                                 start_time: Time::ZERO,
+                                transition_button: None,
                             };
                             crate::editor::EditorState::new_level(context, config, level)
                         } else {

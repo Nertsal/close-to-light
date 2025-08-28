@@ -18,6 +18,7 @@ pub struct PlayLevel {
     pub level: Rc<LevelFull>,
     pub config: LevelConfig,
     pub start_time: Time,
+    pub transition_button: Option<HoverButton>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +64,11 @@ impl HoverButton {
     pub fn is_fading(&self) -> bool {
         // TODO: more custom
         self.hover_time.get_ratio().as_f32() > 0.6
+    }
+
+    pub fn reset(&mut self) {
+        self.clicked = false;
+        self.hover_time.set_ratio(FloatTime::ZERO);
     }
 
     pub fn update(&mut self, hovering: bool, delta_time: FloatTime) {
@@ -131,6 +137,8 @@ pub struct Model {
     pub level_state: LevelState,
     pub state: State,
     pub score: Score,
+    /// Button that was used to transition into the game.
+    pub transition_button: Option<HoverButton>,
 
     /// List collected rhythm (event_id, waypoint_id).
     pub last_rhythm: (usize, WaypointId),
@@ -225,6 +233,7 @@ impl Model {
                 3.0,
             ),
 
+            transition_button: level.transition_button.clone(),
             options,
             level,
         }

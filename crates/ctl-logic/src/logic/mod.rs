@@ -25,6 +25,13 @@ impl Model {
         let delta_ms = seconds_to_time(delta_time);
         self.update_rhythm(delta_ms);
 
+        if let Some(button) = &mut self.transition_button {
+            button.update(true, delta_time);
+            if button.hover_time.is_max() {
+                self.transition_button = None;
+            }
+        }
+
         // Move
         self.player.collider.position = player_target;
 
@@ -165,7 +172,7 @@ impl Model {
                 self.restart_button.update(hovering, delta_time);
                 self.player
                     .update_distance_simple(&self.restart_button.base_collider);
-                if self.restart_button.hover_time.is_max() {
+                if self.restart_button.is_fading() {
                     self.restart();
                 }
 
@@ -204,7 +211,10 @@ impl Model {
         *self = Self::new(
             self.context.clone(),
             self.options.clone(),
-            self.level.clone(),
+            PlayLevel {
+                transition_button: Some(self.restart_button.clone()),
+                ..self.level.clone()
+            },
             self.leaderboard.clone(),
         );
     }

@@ -118,7 +118,7 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
     // Main menu
     if opts.skip_intro {
         let leaderboard = ctl_local::Leaderboard::new(&geng, client.as_ref());
-        let state = menu::LevelMenu::new(context, leaderboard);
+        let state = menu::LevelMenu::new(context, leaderboard, None);
         geng.run_state(state).await;
     } else {
         let state = menu::SplashScreen::new(context, client.as_ref());

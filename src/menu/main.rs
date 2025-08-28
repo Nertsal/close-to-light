@@ -87,7 +87,12 @@ impl MainMenu {
 
     fn play(&mut self) {
         let context = self.context.clone();
-        let state = LevelMenu::new(context, self.leaderboard.clone());
+        let state = LevelMenu::new(
+            context,
+            self.leaderboard.clone(),
+            Some(self.play_button.clone()),
+        );
+        self.play_button.reset();
         self.transition = Some(geng::state::Transition::Push(Box::new(state)));
     }
 }
@@ -131,8 +136,7 @@ impl geng::State for MainMenu {
         self.play_button.update(hovering, delta_time);
         self.player
             .update_distance_simple(&self.play_button.base_collider);
-        if self.play_button.hover_time.is_max() {
-            self.play_button.hover_time.set_ratio(FloatTime::ZERO);
+        if self.play_button.is_fading() {
             self.play();
         }
 

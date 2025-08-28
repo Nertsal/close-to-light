@@ -88,6 +88,11 @@ impl GameRender {
             }
         }
 
+        if let Some(button) = &model.transition_button {
+            self.util
+                .draw_button(button, "", &THEME, camera, &mut framebuffer);
+        }
+
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
         if let State::Lost { .. } | State::Finished = model.state {
             for (button, text) in [
