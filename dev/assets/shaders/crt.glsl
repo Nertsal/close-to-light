@@ -31,8 +31,18 @@ void main() {
     );
     vec3 vignette = vec3(length(pow(abs(centered_uv), vec2(4.0)) / 3.0));
 
+    vec3 texel = texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb;
+    float light = min(texel.r, min(texel.g, texel.b));
+    // NOTE: offset light level to make scanlines more noticable on pure black and white
+    float light_offset = 0.0;
+    if (light < 0.05) {
+        light_offset = 0.025;
+    } else if (light > 0.95) {
+        light_offset = -0.025;
+    }
     vec3 screen_color =
-        texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb * cutoff
+        texel * cutoff
+        + vec3(light_offset)
         + vec3(0.5) * scanlines * u_scanlines_multiplier;
     screen_color -= vignette * u_vignette_multiplier;
     gl_FragColor = vec4(screen_color, 1.0);
