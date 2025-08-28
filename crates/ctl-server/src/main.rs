@@ -21,6 +21,7 @@ struct Opts {
 
 struct AppConfig {
     level_sets_path: PathBuf,
+    proxy: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -55,13 +56,18 @@ async fn main() -> Result<()> {
         dotenv::var("SECRETS_PATH").unwrap_or_else(|_| DEFAULT_SECRETS.to_owned());
     let secrets_path: PathBuf = PathBuf::from(secrets_path);
 
+    let proxy = dotenv::var("PROXY").ok();
+
     info!("Database: {}", database_url);
     info!("Level sets: {:?}", level_sets_path);
 
     ensure_exists(&database_url, true)?;
     ensure_exists(&level_sets_path, false)?;
 
-    let config = AppConfig { level_sets_path };
+    let config = AppConfig {
+        level_sets_path,
+        proxy,
+    };
 
     let secrets: AppSecrets = toml::from_str(&std::fs::read_to_string(&secrets_path)?)?;
 

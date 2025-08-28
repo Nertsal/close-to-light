@@ -104,9 +104,12 @@ pub async fn run(
     let router = level_set::route(router);
     let router = level::route(router);
 
-    let client = Client::builder()
-        .build()
-        .wrap_err("failed to build the http client")?;
+    let mut client = Client::builder();
+    if let Some(proxy) = &app.config.proxy {
+        info!("Configuring proxy server: {proxy}");
+        client = client.proxy(reqwest::Proxy::all(proxy).wrap_err("when configuring proxy")?);
+    }
+    let client = client.build().wrap_err("failed to build the http client")?;
 
     let router = router
         .layer(axum::middleware::from_fn(

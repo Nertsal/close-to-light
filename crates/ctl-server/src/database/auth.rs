@@ -72,11 +72,12 @@ impl AuthnBackend for Backend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let login = sqlx::query("SELECT null FROM user_tokens WHERE user_id = ? AND token = ?")
-            .bind(creds.user_id)
-            .bind(&creds.token)
-            .fetch_optional(&self.db)
-            .await?;
+        let login =
+            sqlx::query("SELECT null FROM user_auth_tokens WHERE user_id = ? AND token = ?")
+                .bind(creds.user_id)
+                .bind(&creds.token)
+                .fetch_optional(&self.db)
+                .await?;
         if login.is_none() {
             return Err(RequestError::InvalidCredentials);
         }

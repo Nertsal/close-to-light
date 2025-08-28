@@ -69,7 +69,7 @@ async fn auth_token(
 pub(super) async fn generate_login_token(app: &App, user_id: Id) -> Result<String> {
     let token = uuid::Uuid::new_v4().to_string();
 
-    sqlx::query("INSERT INTO user_tokens (user_id, token) VALUES (?, ?)")
+    sqlx::query("INSERT INTO user_auth_tokens (user_id, token) VALUES (?, ?)")
         .bind(user_id)
         .bind(&token)
         .execute(&app.database)

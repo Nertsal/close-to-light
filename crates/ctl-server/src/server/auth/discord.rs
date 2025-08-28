@@ -1,7 +1,7 @@
 use super::*;
 
-const REDIRECT_URI: &str = "https://nertboard.kuviman.com/auth/discord";
-// const REDIRECT_URI: &str = "http://localhost:3000/auth/discord";
+// const REDIRECT_URI: &str = "https://nertboard.kuviman.com/auth/discord";
+const REDIRECT_URI: &str = "http://localhost:3000/auth/discord";
 
 pub fn router() -> Router {
     Router::new().route("/auth/discord", get(auth_discord))
@@ -51,9 +51,7 @@ async fn auth_discord(
 
 async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User> {
     let token: color_eyre::Result<AccessTokenResponse> = async {
-        let body = format!(
-            "grant_type=authorization_code&code={code}&redirect_uri={REDIRECT_URI}"
-        );
+        let body = format!("grant_type=authorization_code&code={code}&redirect_uri={REDIRECT_URI}");
         let response = client
             .post("https://discord.com/api/oauth2/token")
             .basic_auth(
@@ -103,7 +101,7 @@ async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User>
 async fn discord_login(app: &App, user: User) -> Result<Id> {
     // Check for a user with that discord account linked
     let user_id: Option<Id> =
-        sqlx::query_scalar("SELECT user_id FROM user_accounts WHERE discord = ?")
+        sqlx::query_scalar("SELECT user_id FROM user_linked_accounts WHERE discord = ?")
             .bind(&user.id)
             .fetch_optional(&app.database)
             .await?;
@@ -124,7 +122,7 @@ async fn discord_login(app: &App, user: User) -> Result<Id> {
 }
 
 async fn link_discord(app: &App, user_id: Id, discord_id: String) -> Result<()> {
-    sqlx::query("INSERT INTO user_accounts (user_id, discord) VALUES (?, ?)")
+    sqlx::query("INSERT INTO user_linked_accounts (user_id, discord) VALUES (?, ?)")
         .bind(user_id)
         .bind(&discord_id)
         .execute(&app.database)
