@@ -449,6 +449,15 @@ impl geng::State for LevelMenu {
                 &mut dither_buffer,
             );
         }
+        if fading {
+            self.util.draw_text(
+                "made in rust btw",
+                vec2(0.0, -3.0).as_r32(),
+                TextRenderOptions::new(0.7).color(crate::render::THEME.dark),
+                &self.camera,
+                &mut dither_buffer,
+            );
+        }
 
         self.dither.finish(self.time, &theme);
 
