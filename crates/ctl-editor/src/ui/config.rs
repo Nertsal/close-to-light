@@ -160,6 +160,8 @@ impl EditorConfigUi {
                         EditorAction::PopupConfirm(
                             ConfirmAction::ChangeLevelUnsaved(i),
                             "unsaved changes will be lost".into(),
+                            "change difficulty".into(),
+                            "cancel".into(),
                         )
                         .into(),
                     );

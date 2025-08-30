@@ -122,7 +122,7 @@ impl Command {
                         log::info!("Uploading music from {path:?}: {music:?}");
 
                         let music_id = client
-                            .upload_music(&path, &music)
+                            .upload_music_file(&path, &music)
                             .await
                             .context("failed to upload music")?;
                         log::info!("Music uploaded successfully, id: {music_id}");

@@ -46,6 +46,10 @@ impl WidgetOld for ButtonWidget {
 impl Widget for ButtonWidget {
     simple_widget_state!(text);
     fn draw(&self, context: &UiContext) -> Geometry {
+        if !self.text.state.visible {
+            return Geometry::new();
+        }
+
         let theme = context.theme();
         let state = &self.text.state;
         let width = self.text.options.size * 0.2;
@@ -133,6 +137,9 @@ impl WidgetOld for IconButtonWidget {
 impl Widget for IconButtonWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
+        if !self.state.visible {
+            return Geometry::new();
+        }
         self.icon.draw(context)
     }
 }

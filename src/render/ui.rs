@@ -398,8 +398,10 @@ impl UiRender {
                 self.fill_quad(title, theme.light, framebuffer);
                 self.draw_text_colored(&confirm.title, theme.dark, framebuffer);
                 self.draw_text(&confirm.message, framebuffer);
-                self.draw_icon(&confirm.confirm.icon, theme, framebuffer);
-                self.draw_icon(&confirm.discard.icon, theme, framebuffer);
+                self.draw_icon(&confirm.confirm_icon.icon, theme, framebuffer);
+                self.draw_icon(&confirm.discard_icon.icon, theme, framebuffer);
+                self.draw_button(&confirm.confirm_text, theme, framebuffer);
+                self.draw_button(&confirm.discard_text, theme, framebuffer);
             },
         );
     }

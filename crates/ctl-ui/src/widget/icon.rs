@@ -51,6 +51,10 @@ impl WidgetOld for IconWidget {
 impl Widget for IconWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
+        if !self.state.visible {
+            return Geometry::new();
+        }
+
         let theme = context.theme();
         let mut geometry = context.geometry.texture_pp(
             self.state.position.center(),

@@ -67,11 +67,15 @@ impl EditorUi {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
-            if confirm.confirm.state.mouse_left.clicked {
+            if confirm.confirm_icon.state.mouse_left.clicked
+                || confirm.confirm_text.text.state.mouse_left.clicked
+            {
                 // Confirm
                 confirm.window.show.going_up = false;
                 actions.push(EditorStateAction::ConfirmPopupAction);
-            } else if confirm.discard.state.mouse_left.clicked {
+            } else if confirm.discard_icon.state.mouse_left.clicked
+                || confirm.discard_text.text.state.mouse_left.clicked
+            {
                 // Discard
                 confirm.window.show.going_up = false;
                 actions.push(EditorAction::ClosePopup.into());
@@ -90,6 +94,8 @@ impl EditorUi {
                 &editor.context.assets,
                 popup.title.clone(),
                 popup.message.clone(),
+                popup.confirm_text.clone(),
+                popup.discard_text.clone(),
             );
             confirm.window.show.going_up = true;
             self.confirm = Some(confirm);
@@ -110,6 +116,8 @@ impl EditorUi {
                     EditorAction::PopupConfirm(
                         ConfirmAction::ExitUnsaved,
                         "unsaved changes will be lost".into(),
+                        "exit editor".into(),
+                        "cancel".into(),
                     )
                     .into(),
                 );

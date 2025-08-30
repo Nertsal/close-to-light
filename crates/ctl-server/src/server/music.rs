@@ -127,6 +127,7 @@ async fn music_create(
     Query(mut music): Query<NewMusic>,
     body: Body,
 ) -> Result<Json<Id>> {
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
     let user = check_user(&session).await?;
 
     music.name = validate_name(&music.name)?;

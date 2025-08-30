@@ -108,10 +108,14 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn upload_group(&self, group: &LevelSet) -> Result<LevelSetInfo> {
+    pub async fn upload_group(&self, group: &LevelSet, music_id: Id) -> Result<LevelSetInfo> {
         let url = self.url.join("level_set/create").unwrap();
         let body = bincode::serialize(group)?;
-        let req = self.client.post(url).body(body);
+        let req = self
+            .client
+            .post(url)
+            .query(&[("music_id", music_id)])
+            .body(body);
 
         let response = self.send(req).await?;
         let group_id: Id = read_json(response).await?;

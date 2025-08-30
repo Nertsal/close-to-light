@@ -107,10 +107,14 @@ impl MenuUI {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
-            if confirm.confirm.state.mouse_left.clicked {
+            if confirm.confirm_icon.state.mouse_left.clicked
+                || confirm.confirm_text.text.state.mouse_left.clicked
+            {
                 confirm.window.show.going_up = false;
                 state.confirm_action(self);
-            } else if confirm.discard.state.mouse_left.clicked {
+            } else if confirm.discard_icon.state.mouse_left.clicked
+                || confirm.discard_text.text.state.mouse_left.clicked
+            {
                 confirm.window.show.going_up = false;
                 state.confirm_popup = None;
             } else if confirm.window.show.time.is_min() {
@@ -124,9 +128,22 @@ impl MenuUI {
                 &self.context.assets,
                 popup.title.clone(),
                 popup.message.clone(),
+                popup.confirm_text.clone(),
+                popup.discard_text.clone(),
             );
             confirm.window.show.going_up = true;
             self.confirm = Some(confirm);
+        }
+
+        if let Some(sync) = &mut self.sync {
+            let size = vec2(20.0, 17.0) * layout_size;
+            let pos = screen.align_aabb(size, vec2(0.5, 0.5));
+            sync.update(pos, context, state);
+            context.update_focus(sync.state.hovered);
+            if !sync.window.show.going_up && sync.window.show.time.is_min() {
+                // Close window
+                self.sync = None;
+            }
         }
 
         for message in state.notifications.drain(..) {
@@ -191,14 +208,21 @@ impl MenuUI {
                 LevelSelectAction::DeleteLevel(group, level) => {
                     state.popup_confirm(
                         ConfirmAction::DeleteLevel(group, level),
-                        "delete this difficulty",
+                        "delete difficulty",
+                        "delete",
+                        "cancel",
                     );
                 }
                 LevelSelectAction::EditGroup(group) => {
                     state.edit_level(group, None);
                 }
                 LevelSelectAction::DeleteGroup(group) => {
-                    state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
+                    state.popup_confirm(
+                        ConfirmAction::DeleteGroup(group),
+                        "delete group",
+                        "delete",
+                        "cancel",
+                    );
                 }
             }
         } else if self
@@ -279,17 +303,6 @@ impl MenuUI {
 
         self.options.update(options, context, state);
         context.update_focus(self.options.options.state.hovered);
-
-        if let Some(sync) = &mut self.sync {
-            let size = vec2(20.0, 17.0) * layout_size;
-            let pos = screen.align_aabb(size, vec2(0.5, 0.5));
-            sync.update(pos, context, state);
-            context.update_focus(sync.state.hovered);
-            if !sync.window.show.going_up && sync.window.show.time.is_min() {
-                // Close window
-                self.sync = None;
-            }
-        }
 
         !context.can_focus()
     }

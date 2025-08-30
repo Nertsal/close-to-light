@@ -126,11 +126,19 @@ impl MenuState {
     }
 
     /// Create a popup window with a message for the given action.
-    pub fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
+    pub fn popup_confirm(
+        &mut self,
+        action: ConfirmAction,
+        message: impl Into<Name>,
+        confirm: impl Into<Name>,
+        discard: impl Into<Name>,
+    ) {
         self.confirm_popup = Some(ConfirmPopup {
             action,
             title: "Are you sure?".into(),
             message: message.into(),
+            confirm_text: confirm.into(),
+            discard_text: discard.into(),
         });
     }
 
@@ -140,11 +148,15 @@ impl MenuState {
         action: ConfirmAction,
         title: impl Into<Name>,
         message: impl Into<Name>,
+        confirm: impl Into<Name>,
+        discard: impl Into<Name>,
     ) {
         self.confirm_popup = Some(ConfirmPopup {
             action,
             title: title.into(),
             message: message.into(),
+            confirm_text: confirm.into(),
+            discard_text: discard.into(),
         });
     }
 
@@ -248,6 +260,8 @@ impl LevelMenu {
             state.state.popup_confirm_custom(
                 ConfirmAction::DownloadRecommended,
                 "Download recommended levels?",
+                "",
+                "",
                 "",
             );
         }

@@ -90,7 +90,25 @@ impl SyncWidget {
             // TODO: it could happen that a level has a local non-zero id
             // but is not present on the server.
             // In that case, upload will fail with "Not found"
-            let group = client.upload_group(&group.local.data).await?;
+            let music_id = if let Some(music) = &group.local.music {
+                if music.meta.id == 0 {
+                    client
+                        .upload_music_bytes(
+                            &music.bytes,
+                            &ctl_logic::NewMusic {
+                                name: music.meta.name.to_string(),
+                                romanized_name: music.meta.name.to_string(), // TODO: romanized
+                            },
+                        )
+                        .await?
+                } else {
+                    // TODO: check that the file is the same
+                    music.meta.id
+                }
+            } else {
+                0
+            };
+            let group = client.upload_group(&group.local.data, music_id).await?;
             Ok((group_index, group))
         };
         self.task_group_upload = Some(Task::new(&self.geng, future));
@@ -264,11 +282,18 @@ impl StatefulWidget for SyncWidget {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
                 if self.cached_group.local.data.id == 0 {
-                    state.popup_confirm(ConfirmAction::SyncUpload, "You cannot undo this action");
+                    state.popup_confirm(
+                        ConfirmAction::SyncUpload,
+                        "You cannot undo this action",
+                        "upload",
+                        "cancel",
+                    );
                 } else {
                     state.popup_confirm(
                         ConfirmAction::SyncUpload,
                         "Uploading a new version will reset leaderboards of all difficulties",
+                        "upload",
+                        "cancel",
                     );
                 }
             } else {
@@ -291,10 +316,17 @@ impl StatefulWidget for SyncWidget {
                         "delete the level by {}",
                         self.cached_group.local.data.owner.name
                     ),
+                    "delete group",
+                    "cancel",
                 );
                 self.window.request = Some(WidgetRequest::Close);
             } else if let Some(_client) = state.context.local.client() {
-                state.popup_confirm(ConfirmAction::SyncDiscard, "discard changes");
+                state.popup_confirm(
+                    ConfirmAction::SyncDiscard,
+                    "discard local changes and download the new version",
+                    "discard",
+                    "cancel",
+                );
             }
         }
 

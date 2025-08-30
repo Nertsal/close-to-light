@@ -12,16 +12,25 @@ fn file_to_body(file: File) -> Body {
 }
 
 impl Nertboard {
-    pub async fn upload_music(
+    pub async fn upload_music_file(
         &self,
         path: impl AsRef<std::path::Path>,
         music: &NewMusic,
     ) -> Result<Id> {
-        let path = path.as_ref();
+        let file = File::open(path.as_ref()).await?;
+        let body = file_to_body(file);
+        self.upload_music(body, music).await
+    }
+
+    pub async fn upload_music_bytes(&self, bytes: &[u8], music: &NewMusic) -> Result<Id> {
+        let body = Body::from(bytes.to_vec());
+        self.upload_music(body, music).await
+    }
+
+    async fn upload_music(&self, body: Body, music: &NewMusic) -> Result<Id> {
         let url = self.url.join("music/create").unwrap();
 
-        let file = File::open(path).await?;
-        let req = self.client.post(url).body(file_to_body(file)).query(&music);
+        let req = self.client.post(url).body(body).query(&music);
 
         let response = self.send(req).await?;
         let res = read_json(response).await?;

@@ -15,7 +15,7 @@ pub enum EditorAction {
     ChangeLevel(usize),
     MoveLevelLow(usize),
     MoveLevelHigh(usize),
-    PopupConfirm(ConfirmAction, Name),
+    PopupConfirm(ConfirmAction, Name, Name, Name),
     ClosePopup,
     SetConfig(EditorConfig),
     SetViewZoom(Change<f32>),
@@ -55,14 +55,19 @@ impl Editor {
                 self.render_options.show_grid = !self.render_options.show_grid
             }
             EditorAction::ToggleGridSnap => self.snap_to_grid = !self.snap_to_grid,
-            EditorAction::DeleteLevel(i) => {
-                self.popup_confirm(ConfirmAction::DeleteLevel(i), "delete this difficulty")
-            }
+            EditorAction::DeleteLevel(i) => self.popup_confirm(
+                ConfirmAction::DeleteLevel(i),
+                "delete this difficulty",
+                "delete",
+                "cancel",
+            ),
             EditorAction::NewLevel => self.create_new_level(),
             EditorAction::ChangeLevel(i) => self.change_level(i),
             EditorAction::MoveLevelLow(i) => self.move_level_low(i),
             EditorAction::MoveLevelHigh(i) => self.move_level_high(i),
-            EditorAction::PopupConfirm(action, message) => self.popup_confirm(action, message),
+            EditorAction::PopupConfirm(action, message, confirm, discard) => {
+                self.popup_confirm(action, message, confirm, discard)
+            }
             EditorAction::ClosePopup => self.confirm_popup = None,
             EditorAction::SetConfig(config) => self.config = config,
             EditorAction::SetViewZoom(change) => {
