@@ -146,37 +146,51 @@ impl Default for Movement {
     }
 }
 
-pub fn convert_group(beat_time: crate::FloatTime, value: LevelSet) -> crate::LevelSet {
-    crate::LevelSet {
-        id: value.id,
-        owner: crate::UserInfo {
-            id: value.owner.id,
-            name: value.owner.name,
-        },
+pub fn convert_group(
+    beat_time: crate::FloatTime,
+    value: LevelSet,
+) -> (crate::LevelSet, crate::LevelSetInfo) {
+    let levels_info = value
+        .levels
+        .iter()
+        .map(|level| {
+            crate::LevelInfo {
+                id: level.meta.id,
+                name: level.meta.name.clone(),
+                authors: level
+                    .meta
+                    .authors
+                    .iter()
+                    .map(|user| crate::UserInfo {
+                        id: user.id,
+                        name: user.name.clone(),
+                    })
+                    .collect(),
+                hash: level.meta.hash.clone(), // TODO: should i recalculate the hash?
+            }
+        })
+        .collect();
+    let level_set = crate::LevelSet {
         levels: value
             .levels
             .into_iter()
-            .map(|level| {
-                Rc::new(crate::LevelFull {
-                    meta: crate::LevelInfo {
-                        id: level.meta.id,
-                        name: level.meta.name,
-                        authors: level
-                            .meta
-                            .authors
-                            .into_iter()
-                            .map(|user| crate::UserInfo {
-                                id: user.id,
-                                name: user.name,
-                            })
-                            .collect(),
-                        hash: level.meta.hash, // TODO: should i recalculate the hash?
-                    },
-                    data: convert_level(beat_time, level.data),
-                })
-            })
+            .map(|level| Rc::new(convert_level(beat_time, level.data)))
             .collect(),
-    }
+    };
+    let hash = level_set.calculate_hash();
+    (
+        level_set,
+        crate::LevelSetInfo {
+            id: value.id,
+            owner: crate::UserInfo {
+                id: value.owner.id,
+                name: value.owner.name,
+            },
+            music: crate::MusicInfo::default(),
+            levels: levels_info,
+            hash,
+        },
+    )
 }
 
 fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {

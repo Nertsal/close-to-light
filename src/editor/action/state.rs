@@ -50,12 +50,10 @@ impl EditorState {
                 let group = self.editor.group.group_index;
                 let mut meta = self.editor.group.cached.local.meta.clone();
 
-                let mut music_meta = meta.music.unwrap_or_default();
                 log::debug!("Renaming music into {name:?}");
-                music_meta.name = name.into();
-                music_meta.romanized = music_meta.name.clone(); // TODO: separate config
+                meta.music.name = name.into();
+                meta.music.romanized = meta.music.name.clone(); // TODO: separate config
 
-                meta.music = Some(music_meta);
                 match self.context.local.update_group_meta(group, meta) {
                     None => {
                         log::error!("Failed to rename level");

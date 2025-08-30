@@ -166,9 +166,7 @@ impl Mul<Time> for BeatTime {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LevelSet<L = Rc<LevelFull>> {
-    pub id: Id,
-    pub owner: UserInfo,
+pub struct LevelSet<L = Rc<crate::Level>> {
     pub levels: Vec<L>,
 }
 
@@ -179,10 +177,16 @@ impl<T: Serialize> LevelSet<T> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LevelFull {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LevelFull<L = Rc<crate::Level>> {
     pub meta: LevelInfo,
-    pub data: crate::Level,
+    pub data: L,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LevelSetFull {
+    pub meta: LevelSetInfo,
+    pub data: LevelSet<LevelFull<crate::Level>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

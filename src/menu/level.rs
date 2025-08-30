@@ -121,7 +121,7 @@ impl MenuState {
     fn new_group(&mut self) {
         self.switch_group = None; // Deselect group
         let local = &self.context.local;
-        let group_index = local.new_group(None);
+        let group_index = local.new_group();
         self.edit_level(group_index, None);
     }
 
@@ -269,7 +269,7 @@ impl LevelMenu {
         state
     }
 
-    fn get_active_level(&self) -> Option<(PlayGroup, usize, Rc<LevelFull>)> {
+    fn get_active_level(&self) -> Option<(PlayGroup, usize, LevelFull)> {
         let local = self.context.local.inner.borrow();
 
         let group = self.state.selected_group.as_ref()?;
@@ -281,6 +281,7 @@ impl LevelMenu {
         let level = self.state.selected_level.as_ref()?;
         let level_index = level.data;
         let level = group.local.data.levels.get(level_index)?;
+        let meta = group.local.meta.levels.get(level_index)?;
 
         let group = PlayGroup {
             music,
@@ -288,7 +289,14 @@ impl LevelMenu {
             cached: Rc::clone(group),
         };
 
-        Some((group, level_index, Rc::clone(level)))
+        Some((
+            group,
+            level_index,
+            LevelFull {
+                meta: meta.clone(),
+                data: Rc::clone(level),
+            },
+        ))
     }
 
     fn play_level(&mut self) {
@@ -711,12 +719,9 @@ impl geng::State for LevelMenu {
                     .ok_or_else(|| anyhow!("Group not found for {:?}", group_index))?;
                 let music = group.local.music.clone();
                 let level = level_index.and_then(|idx| {
-                    group
-                        .local
-                        .data
-                        .levels
-                        .get(idx)
-                        .map(|level| (idx, level.clone()))
+                    let data = group.local.data.levels.get(idx)?.clone();
+                    let meta = group.local.meta.levels.get(idx)?.clone();
+                    Some((idx, LevelFull { meta, data }))
                 });
                 let group = PlayGroup {
                     group_index,

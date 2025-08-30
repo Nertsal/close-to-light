@@ -1,3 +1,6 @@
+id = 1
+hash = "124850c478189fc9439f04694194e8d2151ee640913fb21474d89f3b0b4910e8"
+
 [music]
 id = 1
 original = true
@@ -8,3 +11,34 @@ romanized = "Far from Dark"
 id = 2
 name = "IcyLava"
 romanized = "IcyLava"
+
+[owner]
+id = 1
+name = "Nertsal"
+
+[[levels]]
+id = 1
+name = "Easy"
+hash = "8a47c68e3374081d9cae3c9ee42538ce4784768d909ada63f8d32d1009556212"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+
+[[levels]]
+id = 2
+name = "Normal"
+hash = "723af0b87fa2e8ac27d7883fdec639978d61bc80ecb70d7c685ab7e27a7bb826"
+
+[[levels.authors]]
+id = 9
+name = "icylava"
+
+[[levels]]
+id = 3
+name = "Hard"
+hash = "76f83b83f11e1a6f66789d5dc625b59d4749685df7c6f0a7ee6395e6aff50c1e"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"

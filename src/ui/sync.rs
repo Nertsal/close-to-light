@@ -73,7 +73,7 @@ impl SyncWidget {
     }
 
     pub fn discard_changes(&mut self, client: Arc<Nertboard>) {
-        let group_id = self.cached_group.local.data.id;
+        let group_id = self.cached_group.local.meta.id;
         let future = async move {
             let info = client.get_group_info(group_id).await?;
             let bytes = client.download_group(group_id).await?;
@@ -132,7 +132,7 @@ impl StatefulWidget for SyncWidget {
 
         if std::mem::take(&mut self.reload) && self.task_group_info.is_none() {
             if let Some(client) = local.client() {
-                let group_id = self.cached_group.local.data.id;
+                let group_id = self.cached_group.local.meta.id;
                 if group_id == 0 {
                     self.status.text = "Level is local".into();
                     self.response.hide();
@@ -169,7 +169,7 @@ impl StatefulWidget for SyncWidget {
                         self.status.text = "Outdated".into();
                         self.response.hide();
 
-                        if group.owner.id == self.cached_group.local.data.owner.id {
+                        if group.owner.id == self.cached_group.local.meta.owner.id {
                             // if current user is the author - upload new version ; discard changes
                             self.upload.show();
                         } else {
@@ -197,12 +197,12 @@ impl StatefulWidget for SyncWidget {
                     self.response.text = format!("{err}").into();
                 }
                 Ok(Ok((group_index, group))) => {
-                    if let Some(group) = local.synchronize(group_index, group) {
+                    if let Some(group) = local.synchronize_meta(group_index, group) {
                         let name = group
                             .local
                             .music
                             .as_ref()
-                            .map_or(&group.local.data.owner.name, |music| &music.meta.name);
+                            .map_or(&group.local.meta.owner.name, |music| &music.meta.name);
                         state.notifications.push(format!("Uploaded level {name}"));
                         self.cached_group = group;
                         self.reload = true;
@@ -231,7 +231,7 @@ impl StatefulWidget for SyncWidget {
                             .local
                             .music
                             .as_ref()
-                            .map_or(&group.local.data.owner.name, |music| &music.meta.name);
+                            .map_or(&group.local.meta.owner.name, |music| &music.meta.name);
                         state.notifications.push(format!("Downloaded level {name}"));
                         self.cached_group = group;
                         self.reload = true;
@@ -281,7 +281,7 @@ impl StatefulWidget for SyncWidget {
             if self.cached_group.local.music.is_some() {
                 // TODO: or server responded 404 meaning local state is desynced
                 // Create new level or upload new version
-                if self.cached_group.local.data.id == 0 {
+                if self.cached_group.local.meta.id == 0 {
                     state.popup_confirm(
                         ConfirmAction::SyncUpload,
                         "You cannot undo this action",
@@ -308,13 +308,13 @@ impl StatefulWidget for SyncWidget {
             .align_aabb(button_size, vec2::splat(0.5));
         self.discard.update(discard, context);
         if self.discard.state.mouse_left.clicked {
-            if self.cached_group.local.data.id == 0 {
+            if self.cached_group.local.meta.id == 0 {
                 // Delete
                 state.popup_confirm(
                     ConfirmAction::DeleteGroup(self.cached_group_index),
                     format!(
                         "delete the level by {}",
-                        self.cached_group.local.data.owner.name
+                        self.cached_group.local.meta.owner.name
                     ),
                     "delete group",
                     "cancel",

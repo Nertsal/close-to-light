@@ -109,21 +109,20 @@ impl Editor {
 
     pub fn create_new_level(&mut self) {
         let mut new_group = self.group.cached.local.data.clone();
+        let mut new_meta = self.group.cached.local.meta.clone();
         let bpm = r32(120.0);
-        new_group.levels.push(Rc::new(LevelFull {
-            meta: LevelInfo {
-                id: 0,
-                name: "New Diff".into(),
-                authors: Vec::new(),
-                hash: String::new(),
-            },
-            data: Level::new(bpm),
-        }));
+        new_group.levels.push(Rc::new(Level::new(bpm)));
+        new_meta.levels.push(LevelInfo {
+            id: 0,
+            name: "New Diff".into(),
+            authors: Vec::new(),
+            hash: String::new(),
+        });
 
         if let Some(group) =
             self.context
                 .local
-                .update_group(self.group.group_index, new_group, None)
+                .update_group_and_meta(self.group.group_index, new_group, new_meta)
         {
             self.group.cached = group;
             log::info!("Saved the level successfully");
@@ -151,12 +150,14 @@ impl Editor {
         }
 
         let mut new_group = self.group.cached.local.data.clone();
+        let mut new_meta = self.group.cached.local.meta.clone();
         new_group.levels.swap(i, j);
+        new_meta.levels.swap(i, j);
 
         if let Some(group) =
             self.context
                 .local
-                .update_group(self.group.group_index, new_group, None)
+                .update_group_and_meta(self.group.group_index, new_group, new_meta)
         {
             if let Some(level_editor) = &mut self.level_edit {
                 let active = &mut level_editor.static_level.level_index;
@@ -178,13 +179,19 @@ impl Editor {
             // TODO: check unsaved changes
         }
 
-        if let Some(level) = self.group.cached.local.data.levels.get(level_index) {
-            log::debug!("Changing to level {}", level.meta.name);
+        if let (Some(level), Some(meta)) = (
+            self.group.cached.local.data.levels.get(level_index),
+            self.group.cached.local.meta.levels.get(level_index),
+        ) {
+            log::debug!("Changing to level {}", meta.name);
 
             let level = PlayLevel {
                 group: self.group.clone(),
                 level_index,
-                level: level.clone(),
+                level: LevelFull {
+                    meta: meta.clone(),
+                    data: level.clone(),
+                },
                 config: LevelConfig::default(),
                 start_time: Time::ZERO,
                 transition_button: None,
@@ -232,18 +239,24 @@ impl Editor {
     /// Check whether the level has been changed.
     pub fn is_changed(&self) -> bool {
         if let Some(level_editor) = &self.level_edit {
-            let Some(cached) = self
-                .group
-                .cached
-                .local
-                .data
-                .levels
-                .get(level_editor.static_level.level_index)
-            else {
+            let (Some(cached), Some(cached_meta)) = (
+                self.group
+                    .cached
+                    .local
+                    .data
+                    .levels
+                    .get(level_editor.static_level.level_index),
+                self.group
+                    .cached
+                    .local
+                    .meta
+                    .levels
+                    .get(level_editor.static_level.level_index),
+            ) else {
                 return true;
             };
             let level_changed =
-                level_editor.level != cached.data || *level_editor.name != *cached.meta.name;
+                level_editor.level != **cached || *level_editor.name != *cached_meta.name;
             if level_changed {
                 return true;
             }

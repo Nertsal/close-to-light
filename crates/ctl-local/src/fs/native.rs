@@ -25,7 +25,11 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
             let bytes = file::load_bytes(&path.join("levels.cbor"))
                 .await
                 .with_context(|| "when loading file")?;
-            let group: LevelSet = decode_group(&bytes).with_context(|| "when deserializing")?;
+            let meta_str = file::load_string(&path.join("meta.toml"))
+                .await
+                .with_context(|| "when loading file")?;
+            let (group, meta) =
+                decode_group(&bytes, &meta_str).with_context(|| "when deserializing")?;
 
             let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
             let music = match music_bytes {
@@ -37,9 +41,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
                 Err(_) => None,
             };
 
-            let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
-
-            let music_meta = meta.music.clone().unwrap_or_default();
+            let music_meta = meta.music.clone();
             let music = music
                 .map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes.into())));
 
@@ -92,7 +94,7 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
         }
     }
 
-    log::debug!("Saved group ({}) successfully", group.local.data.id);
+    log::debug!("Saved group ({}) successfully", group.local.meta.id);
 
     Ok(())
 }

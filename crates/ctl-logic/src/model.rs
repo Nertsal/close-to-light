@@ -15,7 +15,7 @@ pub struct PlayGroup {
 pub struct PlayLevel {
     pub group: PlayGroup,
     pub level_index: usize,
-    pub level: Rc<LevelFull>,
+    pub level: LevelFull,
     pub config: LevelConfig,
     pub start_time: Time,
     pub transition_button: Option<HoverButton>,

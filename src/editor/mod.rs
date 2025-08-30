@@ -191,10 +191,10 @@ impl EditorState {
 
         let level = ctl_logic::PlayLevel {
             start_time: level_editor.current_time.target,
-            level: Rc::new(LevelFull {
+            level: LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
-                data: level_editor.level.clone(),
-            }),
+                data: Rc::new(level_editor.level.clone()),
+            },
             ..level_editor.static_level.clone()
         };
 

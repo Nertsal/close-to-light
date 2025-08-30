@@ -118,7 +118,7 @@ impl LevelEditor {
     ) -> Self {
         let mut editor = Self {
             context,
-            level: level.level.data.clone(),
+            level: (*level.level.data).clone(),
             name: level.level.meta.name.to_string(),
 
             level_state: EditorLevelState::default(),

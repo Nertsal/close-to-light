@@ -134,10 +134,10 @@ impl EditorConfigUi {
             .group
             .cached
             .local
-            .data
+            .meta
             .levels
             .iter()
-            .map(|level| level.meta.name.clone())
+            .map(|level| level.name.clone())
             .collect();
 
         let max = names.len().saturating_sub(1);

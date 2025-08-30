@@ -59,13 +59,13 @@ impl Controller {
             // ignore its presence in assets
             let ids: Vec<_> = groups
                 .iter()
-                .map(|group| group.data.id)
+                .map(|group| group.meta.id)
                 .filter(|id| *id != 0)
                 .collect();
             groups.extend(
                 assets
                     .into_iter()
-                    .filter(|group| !ids.contains(&group.data.id)),
+                    .filter(|group| !ids.contains(&group.meta.id)),
             );
         }
         Ok(groups)
@@ -74,7 +74,7 @@ impl Controller {
     /// Saves group in the local filesystem.
     /// If `save_music` is false, skips writing music to the filesystem.
     pub async fn save_group(&self, group: &CachedGroup, save_music: bool) -> Result<()> {
-        log::debug!("Saving group: {}", group.local.data.id);
+        log::debug!("Saving group: {}", group.local.meta.id);
         #[cfg(target_arch = "wasm32")]
         {
             let id = group.local.data.id.to_string();
@@ -186,20 +186,39 @@ pub fn generate_group_path(group: Id) -> PathBuf {
     }
 }
 
-fn decode_group(bytes: &[u8]) -> Result<LevelSet> {
-    match cbor4ii::serde::from_slice(bytes) {
-        Ok(value) => Ok(value),
-        Err(err) => {
+fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
+    match (
+        cbor4ii::serde::from_slice(level_bytes).with_context(|| "when parsing levels data"),
+        toml::from_str(meta).with_context(|| "when parsing meta file"),
+    ) {
+        (Ok(set), Ok(info)) => Ok((set, info)),
+        (Ok(_), Err(err)) | (Err(err), _) => {
             // Try legacy version, for backwards compatibility
-            if let Ok(value) = bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(bytes)
+            match cbor4ii::serde::from_slice::<ctl_client::core::legacy::v2::LevelSet>(level_bytes)
+                .with_context(|| "when parsing levels data")
             {
-                // assuming some default
-                // proper conversion has to be done manually
-                let beat_time = r32(60.0) / r32(150.0);
-                let value = ctl_client::core::legacy::v1::convert_group(beat_time, value);
-                return Ok(value);
+                Ok(value) => {
+                    let (set, mut info) = ctl_client::core::legacy::v2::convert_group(value);
+                    info.music = toml::from_str::<ctl_client::core::legacy::v2::GroupMeta>(meta)
+                        .with_context(|| "when parsing meta file")?
+                        .music
+                        .unwrap_or_default()
+                        .into();
+                    return Ok((set, info));
+                }
+                Err(err) => log::error!("v2 parse failed: {err:?}"),
             }
-            Err(err.into())
+            match bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(level_bytes)
+                .with_context(|| "when parsing levels data")
+            {
+                Ok(value) => {
+                    let beat_time = r32(60.0) / r32(150.0);
+                    let (set, info) = ctl_client::core::legacy::v1::convert_group(beat_time, value);
+                    return Ok((set, info));
+                }
+                Err(err) => log::error!("v1 parse failed: {err:?}"),
+            }
+            Err(err)
         }
     }
 }
@@ -219,7 +238,8 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
 
         let result = async move {
             let bytes = file::load_bytes(&path.join("levels.cbor")).await?;
-            let group: LevelSet = decode_group(&bytes)?;
+            let meta_str = file::load_string(&path.join("meta.toml")).await?;
+            let (group, meta) = decode_group(&bytes, &meta_str)?;
 
             let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
             let music = match music_bytes {
@@ -231,9 +251,7 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
                 Err(_) => None,
             };
 
-            let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
-
-            let music_meta = meta.music.clone().unwrap_or_default();
+            let music_meta = meta.music.clone();
             let music = music
                 .map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes.into())));
 

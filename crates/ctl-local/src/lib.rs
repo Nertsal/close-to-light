@@ -31,16 +31,11 @@ impl Debug for LocalMusic {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GroupMeta {
-    pub music: Option<MusicInfo>,
-}
-
 #[derive(Debug, Clone)]
 pub struct LocalGroup {
     /// Path to the directory containing data files.
     pub path: PathBuf,
-    pub meta: GroupMeta,
+    pub meta: LevelSetInfo,
     pub music: Option<Rc<LocalMusic>>,
     pub data: LevelSet,
 }

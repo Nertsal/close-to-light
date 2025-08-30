@@ -1,3 +1,6 @@
+id = 0
+hash = "be5b8d7d4464a2a8243c0e5ab9b256d939711e28a2730e44832336cba306cc6e"
+
 [music]
 id = 0
 original = false
@@ -8,3 +11,25 @@ romanized = "Gonna Terraform It!"
 id = 0
 name = "typeyourtexthereblog"
 romanized = "typeyourtexthereblog"
+
+[owner]
+id = 0
+name = ""
+
+[[levels]]
+id = 0
+name = "Easy"
+authors = []
+hash = ""
+
+[[levels]]
+id = 0
+name = "Normal"
+authors = []
+hash = ""
+
+[[levels]]
+id = 0
+name = "Hard"
+authors = []
+hash = ""

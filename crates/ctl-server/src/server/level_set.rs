@@ -3,7 +3,7 @@ use super::*;
 use crate::database::types::LevelRow;
 
 use axum::{body::Bytes, extract::DefaultBodyLimit};
-use ctl_core::types::{LevelFull, LevelSet, LevelSetsQuery};
+use ctl_core::types::{LevelSetFull, LevelSetsQuery};
 
 const LEVEL_SET_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 const LEVEL_SETS_PER_USER: usize = 5;
@@ -227,14 +227,14 @@ async fn level_set_create(
 
     // NOTE: Not parsing into Rc, because we cant hold it across an await point
     // also we want to mutate it
-    let parsed_level_set: LevelSet<LevelFull> =
+    let parsed_level_set: LevelSetFull =
         bincode::deserialize(&data).map_err(|_| RequestError::InvalidLevel)?;
     validate_level_set(&parsed_level_set)?;
 
     music::music_exists(&app, query.music_id).await?;
 
-    let level_set_id = if parsed_level_set.id != 0 {
-        let id = parsed_level_set.id;
+    let level_set_id = if parsed_level_set.meta.id != 0 {
+        let id = parsed_level_set.meta.id;
         update_level_set(&app, user, parsed_level_set).await?;
         id
     } else {
@@ -247,9 +247,9 @@ async fn level_set_create(
 async fn update_level_set(
     app: &App,
     user: &User,
-    mut parsed_level_set: LevelSet<LevelFull>,
+    mut parsed_level_set: LevelSetFull,
 ) -> Result<()> {
-    let level_set_id = parsed_level_set.id;
+    let level_set_id = parsed_level_set.meta.id;
     let level_set: Option<LevelSetRow> =
         sqlx::query_as("SELECT * FROM level_sets WHERE level_set_id = ?")
             .bind(level_set_id)
@@ -263,14 +263,14 @@ async fn update_level_set(
     }
 
     // Verify owner
-    parsed_level_set.owner = UserInfo {
+    parsed_level_set.meta.owner = UserInfo {
         id: user.user_id,
         name: user.username.clone().into(),
     };
 
     // Update levels
     // TODO: remove removed levels
-    for (order, level) in parsed_level_set.levels.iter_mut().enumerate() {
+    for (order, level) in parsed_level_set.data.levels.iter_mut().enumerate() {
         let order = order as i64;
         level.meta.hash = level.data.calculate_hash(); // Make sure the hash is valid
         if level.meta.id == 0 {
@@ -322,7 +322,7 @@ async fn update_level_set(
 
     // Disallow further mutation to make sure the hash is valid
     let parsed_level_set = parsed_level_set;
-    let hash = parsed_level_set.calculate_hash();
+    let hash = parsed_level_set.data.calculate_hash();
 
     // Update level_set
     sqlx::query("UPDATE level_sets SET hash = ? WHERE level_set_id = ?")
@@ -356,7 +356,7 @@ async fn new_level_set(
     app: &App,
     user: &User,
     music_id: Id,
-    mut parsed_level_set: LevelSet<LevelFull>,
+    mut parsed_level_set: LevelSetFull,
 ) -> Result<Id> {
     // Check if the user already has level_sets
     let user_groups: Vec<LevelSetRow> =
@@ -377,7 +377,7 @@ async fn new_level_set(
     }
 
     // Check if such a level already exists
-    for level in &mut parsed_level_set.levels {
+    for level in &mut parsed_level_set.data.levels {
         level.meta.hash = level.data.calculate_hash();
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
             .bind(&level.meta.hash)
@@ -389,7 +389,7 @@ async fn new_level_set(
     }
 
     // Verify owner
-    parsed_level_set.owner = UserInfo {
+    parsed_level_set.meta.owner = UserInfo {
         id: user.user_id,
         name: user.username.clone().into(),
     };
@@ -397,7 +397,7 @@ async fn new_level_set(
     let current_time = OffsetDateTime::now_utc();
 
     // Create group
-    let hash = parsed_level_set.calculate_hash();
+    let hash = parsed_level_set.data.calculate_hash();
     let level_set_id: Id = sqlx::query_scalar(
         "INSERT INTO level_sets (music_id, owner_id, hash, created_at)
          VALUES (?, ?, ?, ?) RETURNING level_set_id",
@@ -408,10 +408,10 @@ async fn new_level_set(
     .bind(current_time)
     .fetch_one(&app.database)
     .await?;
-    parsed_level_set.id = level_set_id;
+    parsed_level_set.meta.id = level_set_id;
 
     // Create levels
-    for (order, level) in parsed_level_set.levels.iter_mut().enumerate() {
+    for (order, level) in parsed_level_set.data.levels.iter_mut().enumerate() {
         let order = order as i64;
 
         // Check if such a level already exists
@@ -448,7 +448,7 @@ async fn new_level_set(
 
     // Disallow further mutation to make sure the hash is valid
     let parsed_group = parsed_level_set;
-    let hash = parsed_group.calculate_hash();
+    let hash = parsed_group.data.calculate_hash();
 
     // Update hash
     sqlx::query("UPDATE level_sets SET hash = ? WHERE level_set_id = ?")
@@ -498,14 +498,14 @@ async fn download(
 }
 
 // TODO: move to core, so the client can reuse it
-fn validate_level_set(level_set: &LevelSet<LevelFull>) -> Result<()> {
-    if level_set.levels.is_empty() {
+fn validate_level_set(level_set: &LevelSetFull) -> Result<()> {
+    if level_set.data.levels.is_empty() {
         return Err(RequestError::NoLevels);
     }
 
     // TODO: check empty space
 
-    for level in &level_set.levels {
+    for level in &level_set.data.levels {
         let duration = level.data.last_time();
         if ctl_core::types::time_to_seconds(duration).as_f32() < LEVEL_MIN_DURATION {
             return Err(RequestError::LevelTooShort);

@@ -147,7 +147,7 @@ impl LevelSelectUI {
         let groups: Vec<_> = local
             .groups
             .iter()
-            .sorted_by_key(|(_, group)| group.local.data.id)
+            .sorted_by_key(|(_, group)| group.local.meta.id)
             .collect();
 
         // Synchronize vec length
@@ -226,7 +226,18 @@ impl LevelSelectUI {
         let group_idx = state.switch_group;
         let levels: Vec<_> = group_idx
             .and_then(|group| local.groups.get(group))
-            .map(|group| group.local.data.levels.clone())
+            .map(|group| {
+                group
+                    .local
+                    .data
+                    .levels
+                    .iter()
+                    .zip(&group.local.meta.levels)
+                    .map(|(data, meta)| LevelFull {
+                        meta: meta.clone(),
+                        data: data.clone(),
+                    })
+            })
             .into_iter()
             .flatten()
             .collect();
@@ -393,8 +404,8 @@ impl ItemGroupWidget {
             .music
             .as_ref()
             .map(|music| music.meta.name.clone())
-            .unwrap_or_else(|| cached.local.data.owner.name.clone());
-        if cached.local.data.id == 0 {
+            .unwrap_or_else(|| cached.local.meta.owner.name.clone());
+        if cached.local.meta.id == 0 {
             self.local.show();
             self.edited.hide();
         } else {
@@ -463,7 +474,7 @@ pub struct ItemLevelWidget {
     pub text: TextWidget,
     pub group: Index,
     pub index: usize,
-    pub level: Rc<LevelFull>,
+    pub level: LevelFull,
     pub menu: ItemMenuWidget,
 }
 
@@ -473,7 +484,7 @@ impl ItemLevelWidget {
         text: impl Into<Name>,
         group: Index,
         index: usize,
-        level: Rc<LevelFull>,
+        level: LevelFull,
     ) -> Self {
         let mut menu = ItemMenuWidget::new(assets);
         menu.sync.hide();
@@ -489,13 +500,7 @@ impl ItemLevelWidget {
         }
     }
 
-    pub fn sync(
-        &mut self,
-        group_idx: Index,
-        level_index: usize,
-        cached: &Rc<LevelFull>,
-        edited: bool,
-    ) {
+    pub fn sync(&mut self, group_idx: Index, level_index: usize, cached: &LevelFull, edited: bool) {
         self.index = level_index;
         self.group = group_idx;
         self.level = cached.clone();
