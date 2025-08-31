@@ -186,7 +186,7 @@ pub struct LevelFull<L = Rc<crate::Level>> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LevelSetFull {
     pub meta: LevelSetInfo,
-    pub data: LevelSet<LevelFull<crate::Level>>,
+    pub data: LevelSet<crate::Level>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

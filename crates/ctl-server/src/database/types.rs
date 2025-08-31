@@ -76,8 +76,9 @@ pub struct LevelSetRow {
 pub struct LevelRow {
     pub level_id: Id,
     pub level_set_id: Id,
+    pub enabled: bool,
     pub name: String,
-    pub order: i32,
+    pub ord: i32,
     pub hash: String,
     pub created_at: OffsetDateTime,
 }

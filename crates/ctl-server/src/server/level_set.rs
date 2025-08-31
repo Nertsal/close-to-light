@@ -144,11 +144,12 @@ async fn level_set_get(
         .await?
         .0;
 
-    let level_rows: Vec<LevelRow> =
-        sqlx::query_as("SELECT * FROM levels WHERE level_set_id = ? ORDER BY ord")
-            .bind(level_set_id)
-            .fetch_all(&app.database)
-            .await?;
+    let level_rows: Vec<LevelRow> = sqlx::query_as(
+        "SELECT * FROM levels WHERE level_set_id = ? AND enabled = TRUE ORDER BY ord",
+    )
+    .bind(level_set_id)
+    .fetch_all(&app.database)
+    .await?;
 
     let authors: Vec<(Id, UserInfo)> = sqlx::query(
         "
@@ -269,32 +270,57 @@ async fn update_level_set(
     };
 
     // Update levels
-    // TODO: remove removed levels
-    for (order, level) in parsed_level_set.data.levels.iter_mut().enumerate() {
+    let old_levels: Vec<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE level_set_id = ?")
+        .bind(level_set_id)
+        .fetch_all(&app.database)
+        .await?;
+
+    // Disable removed levels
+    for old_level in &old_levels {
+        if !parsed_level_set
+            .meta
+            .levels
+            .iter()
+            .any(|level| level.id == old_level.level_id)
+        {
+            sqlx::query("UPDATE levels SET enabled = 0 WHERE level_id = ?")
+                .bind(old_level.level_id)
+                .execute(&app.database)
+                .await?;
+        }
+    }
+
+    // Set new levels
+    for ((order, level), level_meta) in parsed_level_set
+        .data
+        .levels
+        .iter_mut()
+        .enumerate()
+        .zip(&mut parsed_level_set.meta.levels)
+    {
         let order = order as i64;
-        level.meta.hash = level.data.calculate_hash(); // Make sure the hash is valid
-        if level.meta.id == 0 {
-            // Create
-            level.meta.id = sqlx::query_scalar(
-                "INSERT INTO levels (hash, level_set_id, name, ord, created_at)
-                 VALUES (?, ?, ?, ?, ?) RETURNING level_id",
+        level_meta.hash = level.calculate_hash(); // Make sure the hash is valid
+        if level_meta.id == 0 {
+            // Create a new level
+            level_meta.id = sqlx::query_scalar(
+                "INSERT INTO levels (hash, level_set_id, enabled, name, ord, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?) RETURNING level_id",
             )
-            .bind(&level.meta.hash)
+            .bind(&level_meta.hash)
             .bind(level_set_id)
-            .bind(level.meta.name.as_ref())
+            .bind(true)
+            .bind(level_meta.name.as_ref())
             .bind(order)
             .bind(OffsetDateTime::now_utc())
             .fetch_one(&app.database)
             .await?;
         } else {
-            let old_level: Option<LevelRow> =
-                sqlx::query_as("SELECT * FROM levels WHERE level_id = ? AND level_set_id = ?")
-                    .bind(level.meta.id)
-                    .bind(level_set_id)
-                    .fetch_optional(&app.database)
-                    .await?;
+            let old_level: Option<&LevelRow> = old_levels
+                .iter()
+                .find(|old_level| old_level.level_id == level_meta.id);
             if let Some(old_level) = old_level {
-                if old_level.hash != level.meta.hash {
+                // Update an existing level
+                if old_level.hash != level_meta.hash {
                     // Reset the leaderboard
                     // TODO: make a new endpoint to delete old scores maybe?
                     sqlx::query("DELETE FROM scores WHERE level_id = ?")
@@ -307,10 +333,10 @@ async fn update_level_set(
                 sqlx::query(
                 "UPDATE levels SET hash = ?, name = ?, ord = ? WHERE level_id = ? AND level_set_id = ?",
                 )
-                .bind(&level.meta.hash)
-                .bind(level.meta.name.as_ref())
+                .bind(&level_meta.hash)
+                .bind(level_meta.name.as_ref())
                 .bind(order)
-                .bind(level.meta.id)
+                .bind(level_meta.id)
                 .bind(level_set_id)
                 .execute(&app.database)
                 .await?;
@@ -377,10 +403,15 @@ async fn new_level_set(
     }
 
     // Check if such a level already exists
-    for level in &mut parsed_level_set.data.levels {
-        level.meta.hash = level.data.calculate_hash();
+    for (level, level_meta) in parsed_level_set
+        .data
+        .levels
+        .iter_mut()
+        .zip(&mut parsed_level_set.meta.levels)
+    {
+        level_meta.hash = level.calculate_hash();
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(&level.meta.hash)
+            .bind(&level_meta.hash)
             .fetch_optional(&app.database)
             .await?;
         if conflict.is_some() {
@@ -411,36 +442,38 @@ async fn new_level_set(
     parsed_level_set.meta.id = level_set_id;
 
     // Create levels
-    for (order, level) in parsed_level_set.data.levels.iter_mut().enumerate() {
+    for (order, level_meta) in parsed_level_set.meta.levels.iter_mut().enumerate() {
         let order = order as i64;
 
         // Check if such a level already exists
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
-            .bind(&level.meta.hash)
+            .bind(&level_meta.hash)
             .fetch_optional(&app.database)
             .await?;
         if conflict.is_some() {
             return Err(RequestError::LevelAlreadyExists);
         }
 
-        level.meta.id = sqlx::query_scalar(
-            "INSERT INTO levels (hash, group_id, name, ord, created_at)
-             VALUES (?, ?, ?, ?, ?) RETURNING level_id",
+        level_meta.id = sqlx::query_scalar(
+            "INSERT INTO levels (hash, level_set_id, enabled, name, ord, created_at)
+             VALUES (?, ?, ?, ?, ?, ?) RETURNING level_id",
         )
-        .bind(&level.meta.hash)
+        .bind(&level_meta.hash)
         .bind(level_set_id)
-        .bind(level.meta.name.as_ref())
+        .bind(true)
+        .bind(level_meta.name.as_ref())
         .bind(order)
         .bind(current_time)
         .fetch_one(&app.database)
         .await?;
 
-        level.meta.authors = vec![UserInfo {
+        level_meta.authors = vec![UserInfo {
             id: user.user_id,
             name: user.username.clone().into(),
         }];
-        sqlx::query("INSERT INTO level_authors (level_id, user_id) VALUES (?, ?)")
-            .bind(level.meta.id)
+        sqlx::query("INSERT INTO level_authors (level_set_id, level_id, user_id) VALUES (?, ?, ?)")
+            .bind(level_set_id)
+            .bind(level_meta.id)
             .bind(user.user_id)
             .execute(&app.database)
             .await?;
@@ -502,11 +535,14 @@ fn validate_level_set(level_set: &LevelSetFull) -> Result<()> {
     if level_set.data.levels.is_empty() {
         return Err(RequestError::NoLevels);
     }
+    if level_set.meta.levels.len() != level_set.data.levels.len() {
+        return Err(RequestError::InvalidLevel);
+    }
 
     // TODO: check empty space
 
     for level in &level_set.data.levels {
-        let duration = level.data.last_time();
+        let duration = level.last_time();
         if ctl_core::types::time_to_seconds(duration).as_f32() < LEVEL_MIN_DURATION {
             return Err(RequestError::LevelTooShort);
         }

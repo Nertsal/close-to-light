@@ -50,6 +50,7 @@ CREATE TABLE levels
 (
     level_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     level_set_id INTEGER NOT NULL,
+    enabled BIT NOT NULL,
     name TEXT NOT NULL,
     ord INTEGER NOT NULL,
     hash BLOB NOT NULL,
@@ -64,6 +65,6 @@ CREATE TABLE level_authors
     level_set_id INTEGER NOT NULL,
     level_id INTEGER NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(user_id),
-    FOREIGN KEY(level_set_id) REFERENCES level_sets(level_sets_id),
+    FOREIGN KEY(level_set_id) REFERENCES level_sets(level_set_id),
     FOREIGN KEY(level_id) REFERENCES levels(level_id)
 );

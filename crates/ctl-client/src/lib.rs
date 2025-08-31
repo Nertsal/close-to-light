@@ -9,7 +9,7 @@ pub use ctl_core as core;
 use ctl_core::{
     ScoreEntry, SubmitScore,
     prelude::{DeserializeOwned, Id, MusicInfo, MusicUpdate, log, serde_json},
-    types::{LevelInfo, LevelSet, LevelSetInfo, NewMusician},
+    types::{LevelInfo, LevelSetFull, LevelSetInfo, NewMusician},
 };
 
 use core::types::LevelSetsQuery;
@@ -108,7 +108,7 @@ impl Nertboard {
         Ok(res)
     }
 
-    pub async fn upload_group(&self, group: &LevelSet, music_id: Id) -> Result<LevelSetInfo> {
+    pub async fn upload_group(&self, group: &LevelSetFull, music_id: Id) -> Result<LevelSetInfo> {
         let url = self.url.join("level_set/create").unwrap();
         let body = bincode::serialize(group)?;
         let req = self

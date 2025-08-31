@@ -138,6 +138,7 @@ async fn music_create(
     let data = axum::body::to_bytes(body, MUSIC_SIZE_LIMIT)
         .await
         .expect("not bytes idk");
+    let hash = ctl_core::util::calculate_hash(&data);
 
     // Check user's uploaded music count
     let music_counts: i64 =
@@ -151,14 +152,15 @@ async fn music_create(
 
     // Commit to database
     let music_id: Id = sqlx::query_scalar(
-        "INSERT INTO musics (name, romanized_name, original, featured, uploaded_by_user)
-         VALUES (?, ?, ?, ?, ?) RETURNING music_id",
+        "INSERT INTO musics (name, romanized_name, original, featured, uploaded_by_user, hash)
+         VALUES (?, ?, ?, ?, ?, ?) RETURNING music_id",
     )
     .bind(music.name)
     .bind(music.romanized_name)
     .bind(false)
     .bind(false)
     .bind(user.user_id)
+    .bind(hash)
     .fetch_one(&app.database)
     .await?;
     debug!("New music committed to the database");

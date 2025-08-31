@@ -108,7 +108,20 @@ impl SyncWidget {
             } else {
                 0
             };
-            let group = client.upload_group(&group.local.data, music_id).await?;
+            // TODO: update local music
+            let level_set_full = LevelSetFull {
+                meta: group.local.meta.clone(),
+                data: LevelSet {
+                    levels: group
+                        .local
+                        .data
+                        .levels
+                        .iter()
+                        .map(|level| (**level).clone())
+                        .collect(),
+                },
+            };
+            let group = client.upload_group(&level_set_full, music_id).await?;
             Ok((group_index, group))
         };
         self.task_group_upload = Some(Task::new(&self.geng, future));
