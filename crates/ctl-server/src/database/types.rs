@@ -5,6 +5,7 @@ use sqlx::FromRow;
 
 pub type DatabasePool = sqlx::SqlitePool; // TODO: behind a trait?
 pub type DBRow = sqlx::sqlite::SqliteRow;
+pub type Transaction = sqlx::Transaction<'static, sqlx::Sqlite>;
 
 pub type Score = i32;
 

@@ -117,6 +117,7 @@ async fn music_create(
 ) -> Result<Json<Id>> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
     let user = check_user(&session).await?;
+    let mut trans = app.database.begin().await?;
 
     music.name = validate_name(&music.name)?;
     music.romanized_name = validate_romanized_name(&music.romanized_name)?;
@@ -132,7 +133,7 @@ async fn music_create(
     let music_counts: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM musics WHERE uploaded_by_user = ?")
             .bind(user.user_id)
-            .fetch_one(&app.database)
+            .fetch_one(&mut *trans)
             .await?;
     if music_counts >= MAX_MUSIC_UPLOADS_PER_USER as i64 {
         return Err(RequestError::TooManyMusic);
@@ -149,7 +150,7 @@ async fn music_create(
     .bind(false)
     .bind(user.user_id)
     .bind(hash)
-    .fetch_one(&app.database)
+    .fetch_one(&mut *trans)
     .await?;
     debug!("New music committed to the database");
 
@@ -168,6 +169,7 @@ async fn music_create(
     std::fs::write(&path, data)?;
     debug!("Saved music file successfully");
 
+    trans.commit().await?;
     Ok(Json(music_id))
 }
 
@@ -178,6 +180,7 @@ async fn music_update(
     Json(update): Json<MusicUpdate>,
 ) -> Result<()> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
+    let mut trans = app.database.begin().await?;
 
     let result = sqlx::query(
         "
@@ -191,13 +194,14 @@ WHERE music_id = ?",
     .bind(update.original)
     .bind(update.featured)
     .bind(music_id)
-    .execute(&app.database)
+    .execute(&mut *trans)
     .await?;
 
     if result.rows_affected() == 0 {
         return Err(RequestError::NoSuchMusic(music_id));
     }
 
+    trans.commit().await?;
     Ok(())
 }
 
@@ -208,6 +212,7 @@ async fn add_author(
     Query(musician): Query<IdQuery>,
 ) -> Result<()> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
+    let mut trans = app.database.begin().await?;
 
     let musician_id = musician.id;
 
@@ -215,7 +220,7 @@ async fn add_author(
     let musician_row: Option<MusicianRow> =
         sqlx::query_as("SELECT null FROM musicians WHERE musician_id = ?")
             .bind(musician_id)
-            .fetch_optional(&app.database)
+            .fetch_optional(&mut *trans)
             .await?;
     let Some(musician_row) = musician_row else {
         return Err(RequestError::NoSuchMusician(musician_id));
@@ -228,7 +233,7 @@ async fn add_author(
         sqlx::query("SELECT null FROM music_authors WHERE music_id = ? AND musician_id = ?")
             .bind(music_id)
             .bind(musician_id)
-            .fetch_optional(&app.database)
+            .fetch_optional(&mut *trans)
             .await?;
     if check.is_some() {
         // Already in the database
@@ -241,9 +246,10 @@ async fn add_author(
         .bind(musician_id)
         .bind(musician_row.name)
         .bind(musician_row.romanized_name)
-        .execute(&app.database)
+        .execute(&mut *trans)
         .await?;
 
+    trans.commit().await?;
     Ok(())
 }
 
@@ -254,15 +260,17 @@ async fn remove_author(
     Query(musician): Query<IdQuery>,
 ) -> Result<()> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
+    let mut trans = app.database.begin().await?;
 
     let musician_id = musician.id;
 
     sqlx::query("DELETE FROM music_authors WHERE music_id = ? AND musician_id = ?")
         .bind(music_id)
         .bind(musician_id)
-        .execute(&app.database)
+        .execute(&mut *trans)
         .await?;
 
+    trans.commit().await?;
     Ok(())
 }
 
@@ -330,19 +338,19 @@ async fn get_music_id_for_level(app: &App, level_set_id: Id) -> Result<Id> {
 
 pub(super) async fn update_music_authors_if_owner(
     music_info: &MusicInfo,
-    app: &App,
+    trans: &mut Transaction,
     user: &User,
 ) -> Result<()> {
     debug!("Updating music {} authors", music_info.id);
     let music: MusicRow = sqlx::query_as("SELECT * FROM musics WHERE music_id = ?")
         .bind(music_info.id)
-        .fetch_one(&app.database)
+        .fetch_one(&mut **trans)
         .await?;
     if music.uploaded_by_user == user.user_id {
         // Update music authors
         sqlx::query("DELETE FROM music_authors WHERE music_id = ?")
             .bind(music_info.id)
-            .execute(&app.database)
+            .execute(&mut **trans)
             .await?;
         for author in &music_info.authors {
             // Add new author
@@ -352,7 +360,7 @@ pub(super) async fn update_music_authors_if_owner(
                 .bind(music_info.id)
                 .bind(&*author.name)
                 .bind(&*author.romanized)
-                .execute(&app.database)
+                .execute(&mut **trans)
                 .await?;
         }
     }

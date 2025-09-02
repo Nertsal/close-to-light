@@ -171,6 +171,7 @@ async fn level_set_create(
     Query(query): Query<LevelSetCreateQuery>,
     data: Bytes,
 ) -> Result<Json<Id>> {
+    let mut trans = app.database.begin().await?;
     let user = check_user(&session).await?;
 
     // NOTE: Not parsing into Rc, because we cant hold it across an await point
@@ -183,17 +184,26 @@ async fn level_set_create(
 
     let level_set_id = if parsed_level_set.meta.id != 0 {
         let id = parsed_level_set.meta.id;
-        update_level_set(&app, user, parsed_level_set).await?;
+        update_level_set(&mut trans, &app.config, user, parsed_level_set).await?;
         id
     } else {
-        new_level_set(&app, user, query.music_id, parsed_level_set).await?
+        new_level_set(
+            &mut trans,
+            &app.config,
+            user,
+            query.music_id,
+            parsed_level_set,
+        )
+        .await?
     };
 
+    trans.commit().await?;
     Ok(Json(level_set_id))
 }
 
 async fn update_level_set(
-    app: &App,
+    trans: &mut Transaction,
+    config: &AppConfig,
     user: &User,
     mut parsed_level_set: LevelSetFull,
 ) -> Result<()> {
@@ -201,7 +211,7 @@ async fn update_level_set(
     let level_set: Option<LevelSetRow> =
         sqlx::query_as("SELECT * FROM level_sets WHERE level_set_id = ?")
             .bind(level_set_id)
-            .fetch_optional(&app.database)
+            .fetch_optional(&mut **trans)
             .await?;
     let group = level_set.ok_or(RequestError::NoSuchLevelSet(level_set_id))?;
 
@@ -219,7 +229,7 @@ async fn update_level_set(
     // Update levels
     let old_levels: Vec<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE level_set_id = ?")
         .bind(level_set_id)
-        .fetch_all(&app.database)
+        .fetch_all(&mut **trans)
         .await?;
 
     // Disable removed levels
@@ -232,7 +242,7 @@ async fn update_level_set(
         {
             sqlx::query("UPDATE levels SET enabled = 0 WHERE level_id = ?")
                 .bind(old_level.level_id)
-                .execute(&app.database)
+                .execute(&mut **trans)
                 .await?;
         }
     }
@@ -259,7 +269,7 @@ async fn update_level_set(
             .bind(level_meta.name.as_ref())
             .bind(order)
             .bind(OffsetDateTime::now_utc())
-            .fetch_one(&app.database)
+            .fetch_one(&mut **trans)
             .await?;
         } else {
             let old_level: Option<&LevelRow> = old_levels
@@ -272,7 +282,7 @@ async fn update_level_set(
                     // TODO: make a new endpoint to delete old scores maybe?
                     sqlx::query("DELETE FROM scores WHERE level_id = ?")
                         .bind(old_level.level_id)
-                        .execute(&app.database)
+                        .execute(&mut **trans)
                         .await?;
                 }
 
@@ -285,7 +295,7 @@ async fn update_level_set(
                 .bind(order)
                 .bind(level_meta.id)
                 .bind(level_set_id)
-                .execute(&app.database)
+                .execute(&mut **trans)
                 .await?;
             } else {
                 // TODO: maybe invalidate request
@@ -301,10 +311,10 @@ async fn update_level_set(
     sqlx::query("UPDATE level_sets SET hash = ? WHERE level_set_id = ?")
         .bind(&hash)
         .bind(level_set_id)
-        .execute(&app.database)
+        .execute(&mut **trans)
         .await?;
 
-    music::update_music_authors_if_owner(&parsed_level_set.meta.music, app, user).await?;
+    music::update_music_authors_if_owner(&parsed_level_set.meta.music, trans, user).await?;
 
     // Update level authors
     for level in &parsed_level_set.meta.levels {
@@ -315,7 +325,7 @@ async fn update_level_set(
 
         sqlx::query("DELETE FROM level_authors WHERE level_id = ?")
             .bind(level.id)
-            .execute(&app.database)
+            .execute(&mut **trans)
             .await?;
         for author in &level.authors {
             // TODO: report invalid user_id
@@ -324,18 +334,19 @@ async fn update_level_set(
                 .bind(level.id)
                 .bind(&*author.name)
                 .bind(&*author.romanized)
-                .execute(&app.database)
+                .execute(&mut **trans)
                 .await?;
         }
     }
 
-    write_level_set(app, &parsed_level_set, false)?;
+    write_level_set(config, &parsed_level_set, false)?;
 
     Ok(())
 }
 
 async fn new_level_set(
-    app: &App,
+    trans: &mut Transaction,
+    config: &AppConfig,
     user: &User,
     music_id: Id,
     mut parsed_level_set: LevelSetFull,
@@ -346,7 +357,7 @@ async fn new_level_set(
     let user_groups: Vec<LevelSetRow> =
         sqlx::query_as("SELECT * FROM level_sets WHERE owner_id = ?")
             .bind(user.user_id)
-            .fetch_all(&app.database)
+            .fetch_all(&mut **trans)
             .await?;
     if user_groups.len() >= LEVEL_SETS_PER_USER {
         return Err(RequestError::TooManyGroups);
@@ -370,7 +381,7 @@ async fn new_level_set(
         level_meta.hash = level.calculate_hash();
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
             .bind(&level_meta.hash)
-            .fetch_optional(&app.database)
+            .fetch_optional(&mut **trans)
             .await?;
         if conflict.is_some() {
             return Err(RequestError::LevelAlreadyExists);
@@ -395,7 +406,7 @@ async fn new_level_set(
     .bind(user.user_id)
     .bind(&hash)
     .bind(current_time)
-    .fetch_one(&app.database)
+    .fetch_one(&mut **trans)
     .await?;
     parsed_level_set.meta.id = level_set_id;
 
@@ -406,7 +417,7 @@ async fn new_level_set(
         // Check if such a level already exists
         let conflict = sqlx::query("SELECT null FROM levels WHERE hash = ?")
             .bind(&level_meta.hash)
-            .fetch_optional(&app.database)
+            .fetch_optional(&mut **trans)
             .await?;
         if conflict.is_some() {
             return Err(RequestError::LevelAlreadyExists);
@@ -422,7 +433,7 @@ async fn new_level_set(
         .bind(level_meta.name.as_ref())
         .bind(order)
         .bind(current_time)
-        .fetch_one(&app.database)
+        .fetch_one(&mut **trans)
         .await?;
 
         let author = MapperInfo {
@@ -435,12 +446,12 @@ async fn new_level_set(
             .bind(author.id)
             .bind(&*author.name)
             .bind(&*author.romanized)
-            .execute(&app.database)
+            .execute(&mut **trans)
             .await?;
         level_meta.authors = vec![author];
     }
 
-    music::update_music_authors_if_owner(&parsed_level_set.meta.music, app, user).await?;
+    music::update_music_authors_if_owner(&parsed_level_set.meta.music, trans, user).await?;
 
     // Disallow further mutation to make sure the hash is valid
     let parsed_level_set = parsed_level_set;
@@ -450,19 +461,19 @@ async fn new_level_set(
     sqlx::query("UPDATE level_sets SET hash = ? WHERE level_set_id = ?")
         .bind(&hash)
         .bind(level_set_id)
-        .execute(&app.database)
+        .execute(&mut **trans)
         .await?;
 
-    write_level_set(app, &parsed_level_set, true)?;
+    write_level_set(config, &parsed_level_set, true)?;
 
     Ok(level_set_id)
 }
 
-fn write_level_set(app: &App, level_set: &LevelSetFull, is_new: bool) -> Result<()> {
+fn write_level_set(config: &AppConfig, level_set: &LevelSetFull, is_new: bool) -> Result<()> {
     let level_set_id = level_set.meta.id;
 
     // Check path
-    let dir_path = app.config.level_sets_path.join("levels");
+    let dir_path = config.level_sets_path.join("levels");
     std::fs::create_dir_all(&dir_path)?;
     let path = dir_path.join(level_set_id.to_string());
     debug!("Saving level_set {level_set_id} file at {path:?}");

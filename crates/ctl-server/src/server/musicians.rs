@@ -12,6 +12,7 @@ pub async fn musician_create(
     Form(musician): Form<NewMusician>,
 ) -> Result<Json<Id>> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
+    let mut trans = app.database.begin().await?;
 
     let artist_id: Id = sqlx::query_scalar(
         "INSERT INTO musicians (name, romanized_name, user_id, created_at) VALUES (?, ?, ?, ?) RETURNING artist_id",
@@ -20,8 +21,9 @@ pub async fn musician_create(
     .bind(&musician.romanized_name)
     .bind(musician.user)
     .bind(OffsetDateTime::now_utc())
-    .fetch_one(&app.database)
+    .fetch_one(&mut *trans)
     .await?;
 
+    trans.commit().await?;
     Ok(Json(artist_id))
 }

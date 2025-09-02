@@ -100,11 +100,12 @@ async fn submit_score(
     Json(score): Json<SubmitScore>,
 ) -> Result<()> {
     let user = check_user(&session).await?;
+    let mut trans = app.database.begin().await?;
 
     // Check that the level exists
     let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
         .bind(level_id)
-        .fetch_optional(&app.database)
+        .fetch_optional(&mut *trans)
         .await?;
     if check.is_none() {
         return Err(RequestError::NoSuchLevel(level_id));
@@ -115,7 +116,7 @@ async fn submit_score(
         sqlx::query_as("SELECT * FROM scores WHERE level_id = ? AND user_id = ?")
             .bind(level_id)
             .bind(user.user_id)
-            .fetch_optional(&app.database)
+            .fetch_optional(&mut *trans)
             .await?;
 
     if let Some(current) = current {
@@ -127,7 +128,7 @@ async fn submit_score(
             .bind(&score.extra_info)
             .bind(level_id)
             .bind(user.user_id)
-            .execute(&app.database)
+            .execute(&mut *trans)
             .await?;
         }
     } else {
@@ -138,9 +139,10 @@ async fn submit_score(
         .bind(user.user_id)
         .bind(score.score)
         .bind(&score.extra_info)
-        .execute(&app.database)
+        .execute(&mut *trans)
         .await?;
     }
 
+    trans.commit().await?;
     Ok(())
 }
