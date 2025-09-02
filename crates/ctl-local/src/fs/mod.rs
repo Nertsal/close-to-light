@@ -77,7 +77,7 @@ impl Controller {
         log::debug!("Saving group: {}", group.local.meta.id);
         #[cfg(target_arch = "wasm32")]
         {
-            let id = group.local.data.id.to_string();
+            let id = group.local.meta.id.to_string();
             let id = group
                 .local
                 .path
@@ -142,7 +142,15 @@ impl Controller {
 
     pub async fn load_local_scores(&self, level_hash: &str) -> Result<Vec<SavedScore>> {
         #[cfg(target_arch = "wasm32")]
-        {}
+        {
+            match web::load_local_scores(&self.rexie, level_hash).await {
+                Ok(res) => Ok(res),
+                Err(err) => {
+                    log::error!("failed to load local scores the web file system: {:?}", err);
+                    anyhow::bail!("check logs");
+                }
+            }
+        }
         #[cfg(not(target_arch = "wasm32"))]
         {
             native::load_local_scores(level_hash)
@@ -151,7 +159,16 @@ impl Controller {
 
     pub async fn save_local_scores(&self, level_hash: &str, scores: &[SavedScore]) -> Result<()> {
         #[cfg(target_arch = "wasm32")]
-        {}
+        {
+            if let Err(err) = web::save_local_scores(&self.rexie, level_hash, scores).await {
+                log::error!(
+                    "failed to save local scores to the web file system: {:?}",
+                    err
+                );
+                anyhow::bail!("check logs");
+            }
+            Ok(())
+        }
         #[cfg(not(target_arch = "wasm32"))]
         {
             native::save_local_scores(level_hash, scores)

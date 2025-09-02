@@ -84,49 +84,59 @@ impl SyncWidget {
     }
 
     pub fn upload(&mut self, client: Arc<Nertboard>) {
-        let group = (*self.cached_group).clone();
-        let group_index = self.cached_group_index;
-        let future = async move {
-            // TODO: it could happen that a level has a local non-zero id
-            // but is not present on the server.
-            // In that case, upload will fail with "Not found"
-            let music_id = if let Some(music) = &group.local.music {
-                if music.meta.id == 0 {
-                    client
-                        .upload_music_bytes(
-                            &music.bytes,
-                            &ctl_logic::NewMusic {
-                                name: music.meta.name.to_string(),
-                                romanized_name: music.meta.name.to_string(), // TODO: romanized
-                            },
-                        )
-                        .await?
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = client;
+            log::warn!("Uploading from a browser is not supported");
+            return;
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let group = (*self.cached_group).clone();
+            let group_index = self.cached_group_index;
+            let future = async move {
+                // TODO: it could happen that a level has a local non-zero id
+                // but is not present on the server.
+                // In that case, upload will fail with "Not found"
+                let music_id = if let Some(music) = &group.local.music {
+                    if music.meta.id == 0 {
+                        client
+                            .upload_music_bytes(
+                                &music.bytes,
+                                &ctl_logic::NewMusic {
+                                    name: music.meta.name.to_string(),
+                                    romanized_name: music.meta.name.to_string(), // TODO: romanized
+                                },
+                            )
+                            .await?
+                    } else {
+                        // TODO: check that the file is the same
+                        music.meta.id
+                    }
                 } else {
-                    // TODO: check that the file is the same
-                    music.meta.id
-                }
-            } else {
-                0
+                    0
+                };
+                // TODO: update local music
+                let mut meta = group.local.meta.clone();
+                meta.music.id = music_id;
+                let level_set_full = LevelSetFull {
+                    meta,
+                    data: LevelSet {
+                        levels: group
+                            .local
+                            .data
+                            .levels
+                            .iter()
+                            .map(|level| (**level).clone())
+                            .collect(),
+                    },
+                };
+                let group = client.upload_group(&level_set_full, music_id).await?;
+                Ok((group_index, group))
             };
-            // TODO: update local music
-            let mut meta = group.local.meta.clone();
-            meta.music.id = music_id;
-            let level_set_full = LevelSetFull {
-                meta,
-                data: LevelSet {
-                    levels: group
-                        .local
-                        .data
-                        .levels
-                        .iter()
-                        .map(|level| (**level).clone())
-                        .collect(),
-                },
-            };
-            let group = client.upload_group(&level_set_full, music_id).await?;
-            Ok((group_index, group))
-        };
-        self.task_group_upload = Some(Task::new(&self.geng, future));
+            self.task_group_upload = Some(Task::new(&self.geng, future));
+        }
     }
 }
 

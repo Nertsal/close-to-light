@@ -12,6 +12,8 @@ pub enum WebError {
     SerdeWasm(#[from] serde_wasm_bindgen::Error),
     #[error("base64: {0}")]
     Base64Decode(#[from] base64::DecodeError),
+    #[error("UTF-8: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
     #[error("ron: {0}")]
     RonSpanned(#[from] ron::error::SpannedError),
     #[error("ron: {0}")]
@@ -34,8 +36,9 @@ struct GroupItem {
 pub async fn build_database() -> rexie::Result<Rexie> {
     // Create a new database
     let rexie = Rexie::builder("close-to-light")
-        .version(1)
+        .version(2)
         .add_object_store(ObjectStore::new("groups"))
+        .add_object_store(ObjectStore::new("scores"))
         .build()
         .await?;
 
@@ -47,7 +50,7 @@ pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGrou
 
     let groups = transaction.store("groups")?;
 
-    let raw_items = groups.get_all(None, None, None, None).await?;
+    let raw_items = groups.scan(None, None, None, None).await?;
     let mut items = Vec::with_capacity(raw_items.len());
     for (key, item) in raw_items {
         let process_item = async |key, item| -> Result<LocalGroup> {
@@ -56,20 +59,19 @@ pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGrou
             let item: GroupItem = serde_wasm_bindgen::from_value(item)?;
 
             let data = BASE64_STANDARD.decode(&item.data)?;
-            let group: LevelSet = decode_group(&data)?;
-
-            let music_bytes = BASE64_STANDARD.decode(&item.meta)?;
-            let meta: GroupMeta = ron::de::from_bytes(&music_bytes)?;
+            let meta_bytes = BASE64_STANDARD.decode(&item.meta)?;
+            let meta_str = String::from_utf8(meta_bytes)?;
+            let (group, meta) = decode_group(&data, &meta_str)?;
 
             let music = match &item.music {
                 None => None,
                 Some(music) => {
                     let data = BASE64_STANDARD.decode(music)?;
-                    let music = geng.audio().decode(data).await?;
+                    let music = geng.audio().decode(data.clone()).await?;
                     Some(Rc::new(LocalMusic::new(
-                        meta.music.clone().unwrap_or_default(),
+                        meta.music.clone(),
                         music,
-                        music_bytes.into(),
+                        data.into(),
                     )))
                 }
             };
@@ -133,9 +135,44 @@ pub async fn remove_group(rexie: &Rexie, id: &str) -> Result<()> {
     let serializer = Serializer::json_compatible();
     let id = id.serialize(&serializer)?;
 
-    store.delete(&id).await?;
+    store.delete(id).await?;
 
     transaction.done().await?;
 
+    Ok(())
+}
+
+pub async fn load_local_scores(rexie: &Rexie, level_hash: &str) -> Result<Vec<SavedScore>> {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
+
+    let store = transaction.store("scores")?;
+
+    let serializer = Serializer::json_compatible();
+    let level_hash = level_hash.serialize(&serializer)?;
+
+    let Some(scores) = store.get(level_hash).await? else {
+        return Ok(vec![]);
+    };
+    let scores: Vec<SavedScore> = serde_wasm_bindgen::from_value(scores)?;
+
+    transaction.done().await?;
+    Ok(scores)
+}
+
+pub async fn save_local_scores(
+    rexie: &Rexie,
+    level_hash: &str,
+    scores: &[SavedScore],
+) -> Result<()> {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadWrite)?;
+
+    let store = transaction.store("scores")?;
+
+    let serializer = Serializer::json_compatible();
+    let level_hash = level_hash.serialize(&serializer)?;
+    let scores = scores.serialize(&serializer)?;
+    store.put(&scores, Some(&level_hash)).await?;
+
+    transaction.done().await?;
     Ok(())
 }

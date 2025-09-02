@@ -76,6 +76,7 @@ pub struct LoadedBoard {
 pub struct ScoreMeta {
     pub category: ScoreCategory,
     pub score: Score,
+    // TODO: datetime
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
