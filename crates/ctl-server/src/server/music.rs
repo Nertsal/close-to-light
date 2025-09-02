@@ -70,6 +70,7 @@ pub(super) async fn music_list(
             MusicInfo {
                 id: music.music_id,
                 original: music.original,
+                featured: music.featured,
                 name: music.name.into(),
                 romanized: music.romanized_name.into(),
                 authors,
@@ -102,6 +103,7 @@ pub(super) async fn music_get(
     let music = MusicInfo {
         id: music_id,
         original: music.original,
+        featured: music.featured,
         name: music.name.into(),
         romanized: music.romanized_name.into(),
         authors,
@@ -336,17 +338,29 @@ async fn get_music_id_for_level(app: &App, level_set_id: Id) -> Result<Id> {
     Ok(music_id)
 }
 
-pub(super) async fn update_music_authors_if_owner(
+pub(super) async fn update_music_if_authorized(
     music_info: &MusicInfo,
     trans: &mut Transaction,
     user: &User,
 ) -> Result<()> {
-    debug!("Updating music {} authors", music_info.id);
+    debug!("Updating music {}", music_info.id);
+
+    let auth = get_user_auth(user, trans).await?;
+    let is_admin = cmp_auth(auth, AuthorityLevel::Admin).is_ok();
+
     let music: MusicRow = sqlx::query_as("SELECT * FROM musics WHERE music_id = ?")
         .bind(music_info.id)
         .fetch_one(&mut **trans)
         .await?;
-    if music.uploaded_by_user == user.user_id {
+    if is_admin || music.uploaded_by_user == user.user_id {
+        // Update general properties
+        sqlx::query("UPDATE musics SET name = ?, romanized_name = ? WHERE music_id = ?")
+            .bind(&*music_info.name)
+            .bind(&*music_info.romanized)
+            .bind(music_info.id)
+            .execute(&mut **trans)
+            .await?;
+
         // Update music authors
         sqlx::query("DELETE FROM music_authors WHERE music_id = ?")
             .bind(music_info.id)
@@ -363,6 +377,15 @@ pub(super) async fn update_music_authors_if_owner(
                 .execute(&mut **trans)
                 .await?;
         }
+    }
+    if is_admin {
+        // Update admin-level properties
+        sqlx::query("UPDATE musics SET original = ?, featured = ? WHERE music_id = ?")
+            .bind(music_info.original)
+            .bind(music_info.featured)
+            .bind(music_info.id)
+            .execute(&mut **trans)
+            .await?;
     }
     Ok(())
 }

@@ -401,6 +401,7 @@ impl From<MusicInfo> for crate::MusicInfo {
         Self {
             id: value.id,
             original: value.original,
+            featured: false,
             name: value.name,
             romanized: value.romanized,
             authors: value.authors.into_iter().map(Into::into).collect(),

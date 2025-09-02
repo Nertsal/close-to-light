@@ -146,19 +146,25 @@ enum AuthorityLevel {
     Admin,
 }
 
-async fn get_auth(session: &AuthSession, app: &App) -> Result<AuthorityLevel> {
-    let Some(user) = &session.user else {
-        return Ok(AuthorityLevel::Unauthorized);
-    };
-
+async fn get_user_auth(user: &User, trans: &mut Transaction) -> Result<AuthorityLevel> {
     let auth = sqlx::query("SELECT null FROM admins WHERE user_id = ?")
         .bind(user.user_id)
-        .fetch_optional(&app.database)
+        .fetch_optional(&mut **trans)
         .await?;
     match auth {
         None => Ok(AuthorityLevel::User),
         Some(_) => Ok(AuthorityLevel::Admin),
     }
+}
+
+async fn get_auth(session: &AuthSession, app: &App) -> Result<AuthorityLevel> {
+    let Some(user) = &session.user else {
+        return Ok(AuthorityLevel::Unauthorized);
+    };
+    let mut trans = app.database.begin().await?;
+    let auth = get_user_auth(user, &mut trans).await?;
+    trans.commit().await?;
+    Ok(auth)
 }
 
 fn cmp_auth(auth: AuthorityLevel, required: AuthorityLevel) -> Result<()> {

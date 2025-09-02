@@ -1,9 +1,10 @@
-id = 0
+id = 1
 hash = "124850c478189fc9439f04694194e8d2151ee640913fb21474d89f3b0b4910e8"
 
 [music]
-id = 0
+id = 1
 original = true
+featured = true
 name = "Far from Dark"
 romanized = "Far from Dark"
 
@@ -17,7 +18,7 @@ id = 1
 name = "Nertsal"
 
 [[levels]]
-id = 0
+id = 1
 name = "Easy"
 hash = "55597a5f280da116a7501c35b604de513971531c06aff13f0dac2056674e1357"
 
@@ -27,7 +28,7 @@ name = "Nertsal"
 romanized = "Nertsal"
 
 [[levels]]
-id = 0
+id = 2
 name = "Normal"
 hash = "63ca5f756b82748d1b92ea7cd224f3221c075e2849d8c1215c716497852b43eb"
 
@@ -37,7 +38,7 @@ name = "IcyLava"
 romanized = "IcyLava"
 
 [[levels]]
-id = 0
+id = 3
 name = "Hard"
 hash = "4cb026f04b217042da863341fe37f1b9e4f612b1efb3333659daac792b1cc1ef"
 

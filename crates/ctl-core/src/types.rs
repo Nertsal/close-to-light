@@ -206,9 +206,13 @@ pub struct MusicInfo {
     /// Id `0` for local music.
     #[serde(default)]
     pub id: Id,
+    #[serde(default)]
     pub original: bool,
+    #[serde(default)]
+    pub featured: bool,
     pub name: Name,
     pub romanized: Name,
+    #[serde(default)]
     pub authors: Vec<MusicianInfo>,
 }
 
@@ -217,6 +221,7 @@ impl Default for MusicInfo {
         Self {
             id: 0,
             original: false,
+            featured: false,
             name: "<name>".into(),
             romanized: "<romanized>".into(),
             authors: Vec::new(),

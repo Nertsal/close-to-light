@@ -314,7 +314,7 @@ async fn update_level_set(
         .execute(&mut **trans)
         .await?;
 
-    music::update_music_authors_if_owner(&parsed_level_set.meta.music, trans, user).await?;
+    music::update_music_if_authorized(&parsed_level_set.meta.music, trans, user).await?;
 
     // Update level authors
     for level in &parsed_level_set.meta.levels {
@@ -451,7 +451,7 @@ async fn new_level_set(
         level_meta.authors = vec![author];
     }
 
-    music::update_music_authors_if_owner(&parsed_level_set.meta.music, trans, user).await?;
+    music::update_music_if_authorized(&parsed_level_set.meta.music, trans, user).await?;
 
     // Disallow further mutation to make sure the hash is valid
     let parsed_level_set = parsed_level_set;
