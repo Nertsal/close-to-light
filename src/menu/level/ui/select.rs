@@ -455,11 +455,11 @@ impl ItemGroupWidget {
         self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
-        if self.menu.edit.state.mouse_left.clicked {
+        if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditGroup(self.index));
-        } else if self.menu.sync.state.mouse_left.clicked {
+        } else if self.menu.sync.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.index));
-        } else if self.menu.delete.state.mouse_left.clicked {
+        } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteGroup(self.index));
         }
         action
@@ -555,11 +555,11 @@ impl ItemLevelWidget {
         self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
-        if self.menu.edit.state.mouse_left.clicked {
+        if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditLevel(self.group, self.index));
-        } else if self.menu.sync.state.mouse_left.clicked {
+        } else if self.menu.sync.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.group));
-        } else if self.menu.delete.state.mouse_left.clicked {
+        } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteLevel(self.group, self.index));
         }
         action
@@ -648,7 +648,7 @@ impl WidgetOld for ItemMenuWidget {
 
         let mut columns: Vec<_> = [&mut self.delete, &mut self.edit, &mut self.sync]
             .into_iter()
-            .filter(|widget| widget.state.visible)
+            .filter(|widget| widget.icon.state.visible)
             .collect();
 
         let position = position.translate(vec2(context.layout_size, -position.height()));

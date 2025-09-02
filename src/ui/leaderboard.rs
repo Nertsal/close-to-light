@@ -164,7 +164,7 @@ impl WidgetOld for LeaderboardWidget {
             .extend_uniform(-0.5 * context.layout_size)
             .align_aabb(vec2::splat(1.0) * context.font_size, vec2(1.0, 1.0));
         self.reload.update(reload, context);
-        if self.reload.state.mouse_left.clicked {
+        if self.reload.icon.state.mouse_left.clicked {
             self.window.request = Some(WidgetRequest::Reload);
         }
 

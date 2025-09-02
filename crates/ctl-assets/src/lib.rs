@@ -115,6 +115,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     arrow_down,
     arrow_left,
     arrow_right,
+    play,
     pause,
     confirm,
     discard,

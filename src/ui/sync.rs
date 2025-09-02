@@ -258,7 +258,7 @@ impl StatefulWidget for SyncWidget {
         let position = position.translate(self.offset);
 
         self.window
-            .layout(true, self.close.state.mouse_left.clicked);
+            .layout(true, self.close.icon.state.mouse_left.clicked);
         self.window.update(context.delta_time);
         self.state.update(position, context);
 

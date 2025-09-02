@@ -194,7 +194,7 @@ impl UiRender {
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        if !icon.state.visible {
+        if !icon.icon.state.visible {
             return;
         }
         self.draw_icon(&icon.icon, theme, framebuffer);
@@ -512,7 +512,7 @@ impl UiRender {
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
         // self.draw_icon(&leaderboard.close.icon, framebuffer);
-        if leaderboard.reload.state.visible {
+        if leaderboard.reload.icon.state.visible {
             self.draw_icon(&leaderboard.reload.icon, theme, framebuffer);
         }
         self.draw_text(&leaderboard.title, framebuffer);

@@ -424,6 +424,10 @@ impl MenuRender {
                             .draw_icon_button(&item.download, theme, &mut mask.color);
                         self.ui.draw_icon(&item.downloading, theme, &mut mask.color);
                         self.ui.draw_icon(&item.goto.icon, theme, &mut mask.color);
+                        self.ui
+                            .draw_icon(&item.play_music.icon, theme, &mut mask.color);
+                        self.ui
+                            .draw_icon(&item.pause_music.icon, theme, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(

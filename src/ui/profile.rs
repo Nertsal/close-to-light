@@ -146,7 +146,7 @@ impl StatefulWidget for RegisterWidget {
             with.update(pos, context);
         }
 
-        if self.discord.state.mouse_left.clicked {
+        if self.discord.icon.state.mouse_left.clicked {
             state.login_discord();
         }
     }

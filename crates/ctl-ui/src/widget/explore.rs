@@ -114,14 +114,14 @@ impl StatefulWidget for ExploreWidget {
         let reload = vec2::splat(2.0) * context.layout_size;
         let reload = bar.align_aabb(reload, vec2(0.0, 1.0));
         self.reload.update(reload, context);
-        if self.reload.state.mouse_left.clicked {
+        if self.reload.icon.state.mouse_left.clicked {
             self.refetch = true;
         }
 
         let close = vec2::splat(2.0) * context.layout_size;
         let close = bar.align_aabb(close, vec2(1.0, 1.0));
         self.close.update(close, context);
-        if self.close.state.mouse_left.clicked {
+        if self.close.icon.state.mouse_left.clicked {
             self.window.request = Some(WidgetRequest::Close);
         }
 
@@ -146,7 +146,6 @@ impl ExploreLevelsWidget {
     }
 
     fn load(&mut self, groups: &CacheState<Vec<LevelSetInfo>>) {
-        self.items.clear();
         self.status.show();
         match groups {
             CacheState::Offline => self.status.text = "Offline :(".into(),
@@ -156,35 +155,32 @@ impl ExploreLevelsWidget {
                     self.status.text = "Empty :(".into();
                 } else {
                     self.status.hide();
-                    self.items = groups
-                        .iter()
-                        .map(|info| {
-                            let artists = info.music.authors();
-                            let authors = info.mappers();
-
-                            let mut widget = LevelItemWidget {
-                                state: WidgetState::new(),
-                                download: IconButtonWidget::new_normal(
-                                    self.assets.atlas.download(),
-                                ),
-                                downloading: IconWidget::new(self.assets.atlas.loading()),
-                                play_music: IconButtonWidget::new_normal(
-                                    self.assets.atlas.button_next(),
-                                ),
-                                pause_music: IconButtonWidget::new_normal(
-                                    self.assets.atlas.pause(),
-                                ),
-                                goto: IconButtonWidget::new_normal(self.assets.atlas.goto()),
-                                name: TextWidget::new(info.music.name.clone()),
-                                author: TextWidget::new(format!(
-                                    "by {artists} mapped by {authors}"
-                                )),
-                                info: info.clone(),
-                            };
-                            widget.downloading.hide();
-                            widget
-                        })
-                        .collect();
+                    if self.items.len() > groups.len() {
+                        self.items.drain(groups.len() + 1..self.items.len());
+                    }
+                    self.items.extend((self.items.len()..groups.len()).map(|_| {
+                        log::info!("new widget");
+                        let mut widget = LevelItemWidget {
+                            state: WidgetState::new(),
+                            download: IconButtonWidget::new_normal(self.assets.atlas.download()),
+                            downloading: IconWidget::new(self.assets.atlas.loading()),
+                            play_music: IconButtonWidget::new_normal(self.assets.atlas.play()),
+                            pause_music: IconButtonWidget::new_normal(self.assets.atlas.pause()),
+                            goto: IconButtonWidget::new_normal(self.assets.atlas.goto()),
+                            name: TextWidget::new(""),
+                            author: TextWidget::new(""),
+                            info: LevelSetInfo::default(),
+                        };
+                        widget.downloading.hide();
+                        widget
+                    }));
+                    for (widget, info) in self.items.iter_mut().zip(groups) {
+                        let artists = info.music.authors();
+                        let authors = info.mappers();
+                        widget.name.text = info.music.name.clone();
+                        widget.author.text = format!("by {artists} mapped by {authors}").into();
+                        widget.info = info.clone();
+                    }
                 }
             }
         }
@@ -297,31 +293,32 @@ impl StatefulWidget for LevelItemWidget {
             self.pause_music.hide();
             self.download.update(rows[1], context);
             self.downloading.update(rows[1], context);
-            if self.download.state.mouse_left.clicked {
+            if self.download.icon.state.mouse_left.clicked {
                 state.download_group(self.info.id);
             }
         } else {
             self.download.hide();
+            self.downloading.hide();
 
             if context.context.music.is_playing() == Some(self.info.id) {
                 self.play_music.hide();
                 self.pause_music.show();
                 self.pause_music.update(rows[0], context);
-                if self.pause_music.state.mouse_left.clicked {
+                if self.pause_music.icon.state.mouse_left.clicked {
                     *action = Some(ExploreAction::PauseMusic);
                 }
             } else {
                 self.pause_music.hide();
                 self.play_music.show();
                 self.play_music.update(rows[0], context);
-                if self.play_music.state.mouse_left.clicked {
+                if self.play_music.icon.state.mouse_left.clicked {
                     *action = Some(ExploreAction::PlayMusic(self.info.id));
                 }
             }
 
             self.goto.show();
             self.goto.update(rows[1], context);
-            if self.goto.state.mouse_left.clicked {
+            if self.goto.icon.state.mouse_left.clicked {
                 *action = Some(ExploreAction::GotoGroup(self.info.id));
             }
         }

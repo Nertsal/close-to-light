@@ -67,13 +67,13 @@ impl EditorUi {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
-            if confirm.confirm_icon.state.mouse_left.clicked
+            if confirm.confirm_icon.icon.state.mouse_left.clicked
                 || confirm.confirm_text.text.state.mouse_left.clicked
             {
                 // Confirm
                 confirm.window.show.going_up = false;
                 actions.push(EditorStateAction::ConfirmPopupAction);
-            } else if confirm.discard_icon.state.mouse_left.clicked
+            } else if confirm.discard_icon.icon.state.mouse_left.clicked
                 || confirm.discard_text.text.state.mouse_left.clicked
             {
                 // Discard

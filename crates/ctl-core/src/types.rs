@@ -189,7 +189,7 @@ pub struct LevelSetFull {
     pub data: LevelSet<crate::Level>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LevelSetInfo {
     /// Id `0` for local groups.
     #[serde(default)]
@@ -281,7 +281,7 @@ impl LevelInfo {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserInfo {
     pub id: Id,
     pub name: Name,

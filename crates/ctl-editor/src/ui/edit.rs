@@ -429,7 +429,7 @@ impl EditorEditUi {
                                     )
                                 });
                                 button.update(prev, context);
-                                if button.state.mouse_left.clicked {
+                                if button.icon.state.mouse_left.clicked {
                                     if let Some(id) = selected.prev() {
                                         actions.push(LevelAction::SelectWaypoint(id, true).into());
                                     }
@@ -460,7 +460,7 @@ impl EditorEditUi {
                                     )
                                 });
                                 button.update(next, context);
-                                if button.state.mouse_left.clicked {
+                                if button.icon.state.mouse_left.clicked {
                                     actions.push(
                                         LevelAction::SelectWaypoint(selected.next(), true).into(),
                                     );

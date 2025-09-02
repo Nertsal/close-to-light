@@ -74,7 +74,7 @@ impl WidgetOld for NotificationsWidget {
             context.update_focus(notification.state.hovered);
 
             if notification.offset_y.time.is_max()
-                && (notification.confirm.state.mouse_left.clicked
+                && (notification.confirm.icon.state.mouse_left.clicked
                     || self.discard_all.state.mouse_left.clicked)
             {
                 done.push(i);

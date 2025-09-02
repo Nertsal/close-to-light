@@ -76,7 +76,6 @@ impl Widget for ButtonWidget {
 
 #[derive(Clone)]
 pub struct IconButtonWidget {
-    pub state: WidgetState,
     pub icon: IconWidget,
     pub light_color: ThemeColor,
 }
@@ -84,15 +83,12 @@ pub struct IconButtonWidget {
 impl IconButtonWidget {
     pub fn new(texture: SubTexture, light_color: ThemeColor, bg_kind: IconBackgroundKind) -> Self {
         let mut icon = IconWidget::new(texture);
+        icon.state.sfx_config = WidgetSfxConfig::hover_left();
         icon.background = Some(IconBackground {
             color: ThemeColor::Dark,
             kind: bg_kind,
         });
-        Self {
-            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
-            icon,
-            light_color,
-        }
+        Self { icon, light_color }
     }
 
     pub fn new_normal(texture: SubTexture) -> Self {
@@ -108,12 +104,11 @@ impl IconButtonWidget {
     }
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
-        self.state.update(position, context);
         self.icon.update(position, context);
 
         let mut light = self.light_color;
         let mut dark = ThemeColor::Dark;
-        if self.state.hovered {
+        if self.icon.state.hovered {
             std::mem::swap(&mut dark, &mut light);
         }
 
@@ -126,7 +121,7 @@ impl IconButtonWidget {
 
 impl WidgetOld for IconButtonWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
+        &mut self.icon.state
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
@@ -135,9 +130,9 @@ impl WidgetOld for IconButtonWidget {
 }
 
 impl Widget for IconButtonWidget {
-    simple_widget_state!();
+    simple_widget_state!(icon);
     fn draw(&self, context: &UiContext) -> Geometry {
-        if !self.state.visible {
+        if !self.icon.state.visible {
             return Geometry::new();
         }
         self.icon.draw(context)
