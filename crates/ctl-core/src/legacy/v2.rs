@@ -293,6 +293,7 @@ pub fn convert_group(value: LevelSet) -> (crate::LevelSet, crate::LevelSetInfo) 
             },
             music: crate::MusicInfo::default(),
             levels: levels_info,
+            featured: false,
             hash,
         },
     )

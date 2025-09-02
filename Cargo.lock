@@ -1735,6 +1735,7 @@ dependencies = [
 name = "ctl-editor"
 version = "0.1.0"
 dependencies = [
+ "ctl-local",
  "ctl-logic",
  "ctl-render-core",
  "ctl-ui",

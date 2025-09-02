@@ -179,7 +179,7 @@ impl geng::State for Game {
                     if do_submit_score {
                         self.model.leaderboard.submit(
                             submit_score,
-                            self.model.level.level.meta.id,
+                            self.model.level.level.meta.clone(),
                             meta,
                         );
                     } else {
@@ -187,10 +187,8 @@ impl geng::State for Game {
                         // Save highscores on lost runs only locally
                         self.model
                             .leaderboard
-                            .loaded
-                            .reload_local(Some(&ctl_local::SavedScore {
+                            .update_local(Some(ctl_local::SavedScore {
                                 user: self.model.player.info.clone(),
-                                level: self.model.level.level.meta.id,
                                 score: raw_score,
                                 meta,
                             }));

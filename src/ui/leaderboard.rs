@@ -59,7 +59,6 @@ impl LeaderboardWidget {
                         id: 0,
                         name: "player".into(),
                     },
-                    level: 0,
                     score: 0,
                     meta: ctl_local::ScoreMeta::default(),
                 },
@@ -114,7 +113,6 @@ impl LeaderboardWidget {
                     .and_then(|meta| serde_json::from_str(meta).ok())?;
                 let score = SavedScore {
                     user: entry.user.clone(),
-                    level: board.level,
                     score: entry.score,
                     meta,
                 };

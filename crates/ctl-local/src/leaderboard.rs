@@ -2,7 +2,7 @@ use ctl_client::Nertboard;
 use ctl_core::{
     ScoreEntry, SubmitScore,
     prelude::{HealthConfig, LevelModifiers, Score, Uuid},
-    types::{Id, UserInfo, UserLogin},
+    types::{Id, LevelInfo, UserInfo, UserLogin},
 };
 use ctl_util::Task;
 use geng::prelude::*;
@@ -23,11 +23,13 @@ struct BoardUpdate {
 
 pub struct Leaderboard {
     geng: Geng,
+    fs: Rc<crate::fs::Controller>,
     /// Logged in as user with a name.
     pub user: Option<UserLogin>,
     pub client: Option<Arc<Nertboard>>,
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
+    fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -36,10 +38,12 @@ impl Clone for Leaderboard {
     fn clone(&self) -> Self {
         Self {
             geng: self.geng.clone(),
+            fs: self.fs.clone(),
             user: self.user.clone(),
             client: self.client.clone(),
             log_task: None,
             task: None,
+            fs_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard {
                 category: self.loaded.category.clone(),
@@ -53,14 +57,12 @@ impl Clone for Leaderboard {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavedScore {
     pub user: UserInfo,
-    pub level: Id,
     pub score: i32,
     pub meta: ScoreMeta,
 }
 
-#[derive(Debug)]
 pub struct LoadedBoard {
-    pub level: Id,
+    pub level: LevelInfo,
     pub player: Option<Id>,
     pub category: ScoreCategory,
     pub my_position: Option<usize>,
@@ -109,25 +111,33 @@ impl ScoreMeta {
 }
 
 impl Leaderboard {
-    pub fn empty(geng: &Geng) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
         Self {
             geng: geng.clone(),
+            fs: fs.clone(),
             user: None,
             client: None,
             log_task: None,
             task: None,
+            fs_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
         }
     }
 
-    pub fn new(geng: &Geng, client: Option<&Arc<Nertboard>>) -> Self {
+    pub fn new(
+        geng: &Geng,
+        client: Option<&Arc<Nertboard>>,
+        fs: &Rc<crate::fs::Controller>,
+    ) -> Self {
         let mut leaderboard = Self {
             geng: geng.clone(),
+            fs: fs.clone(),
             user: None,
             client: client.cloned(),
             log_task: None,
             task: None,
+            fs_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
         };
@@ -282,6 +292,20 @@ impl Leaderboard {
                 },
             }
         }
+
+        if let Some(task) = self.fs_task.take() {
+            match task.poll() {
+                Err(task) => self.fs_task = Some(task),
+                Ok(res) => match res {
+                    Ok(update) => {
+                        self.loaded.local_high = update;
+                    }
+                    Err(err) => {
+                        log::error!("Loading local scores failed: {err:?}");
+                    }
+                },
+            }
+        }
     }
 
     fn load_scores(&mut self, mut scores: Vec<ScoreEntry>) {
@@ -297,7 +321,7 @@ impl Leaderboard {
         }
 
         self.loaded.category = category;
-        self.loaded.reload_local(None);
+        self.update_local(None);
         match self.status {
             LeaderboardStatus::None | LeaderboardStatus::Failed => {
                 self.refetch();
@@ -318,7 +342,7 @@ impl Leaderboard {
 
         if let Some(client) = &self.client {
             let board = Arc::clone(client);
-            let level = self.loaded.level;
+            let level = self.loaded.level.id;
             let future = async move {
                 log::debug!("Fetching scores for level {level}...");
                 board
@@ -331,7 +355,7 @@ impl Leaderboard {
         }
     }
 
-    pub fn submit(&mut self, mut score: Option<i32>, level: Id, meta: ScoreMeta) {
+    pub fn submit(&mut self, mut score: Option<i32>, level: LevelInfo, meta: ScoreMeta) {
         if self.user.is_none() {
             score = None;
         }
@@ -347,14 +371,13 @@ impl Leaderboard {
                     name: user.name.clone(),
                 },
             ),
-            level,
             score,
             meta: meta.clone(),
         });
 
-        self.loaded.level = level;
+        self.loaded.level = level.clone();
         self.loaded.category = meta.category.clone();
-        self.loaded.reload_local(score.as_ref());
+        self.update_local(score.clone());
 
         if let Some(board) = &self.client {
             let board = Arc::clone(board);
@@ -367,61 +390,58 @@ impl Leaderboard {
 
                 if let Some(score) = &score {
                     log::debug!("Submitting a score...");
-                    board.submit_score(level, score).await?;
+                    board.submit_score(level.id, score).await?;
                 }
 
                 log::debug!("Fetching scores...");
-                let scores = board.fetch_scores(level).await?;
+                let scores = board.fetch_scores(level.id).await?;
                 Ok(BoardUpdate { scores })
             };
             self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
         }
     }
+
+    pub fn update_local(&mut self, score: Option<SavedScore>) {
+        log::debug!("Updating local scores with a new score: {score:?}");
+        let fs = self.fs.clone();
+        let hash = self.loaded.level.hash.clone();
+        let version = self.loaded.category.version;
+        let task = async move {
+            let mut scores = match fs.load_local_scores(&hash).await {
+                Ok(scores) => scores,
+                Err(err) => {
+                    log::warn!("Loading local scores for level {hash} failed: {err:?}");
+                    vec![]
+                }
+            };
+            if let Some(score) = score {
+                scores.push(score);
+                fs.save_local_scores(&hash, &scores)
+                    .await
+                    .with_context(|| "when saving local scores")?;
+            }
+            let highscore = scores
+                .iter()
+                .filter(|score| score.meta.category.version == version)
+                .max_by_key(|score| score.score)
+                .cloned();
+            Ok(highscore)
+        };
+        self.fs_task = Some(Task::new(&self.geng, task));
+    }
 }
 
 impl LoadedBoard {
     fn new() -> Self {
         Self {
-            level: 0,
+            level: LevelInfo::default(),
             player: None,
             category: ScoreCategory::new(LevelModifiers::default(), HealthConfig::default()),
             my_position: None,
             all_scores: Vec::new(),
             filtered: Vec::new(),
             local_high: None,
-        }
-    }
-
-    pub fn reload_local(&mut self, score: Option<&SavedScore>) {
-        log::debug!("Reloading local scores with a new score: {score:?}");
-        let mut highscores: Vec<SavedScore> =
-            preferences::load(crate::HIGHSCORES_STORAGE).unwrap_or_default();
-
-        let mut save = false;
-        self.local_high = if let Some(highscore) = highscores
-            .iter_mut()
-            .find(|s| s.level == self.level && s.meta.category.version == self.category.version)
-        {
-            if let Some(score) = score {
-                if score.score > highscore.score
-                    && score.meta.category.version == highscore.meta.category.version
-                {
-                    *highscore = score.clone();
-                    save = true;
-                }
-            }
-            Some(highscore.clone())
-        } else if let Some(score) = score {
-            highscores.push(score.clone());
-            save = true;
-            Some(score.clone())
-        } else {
-            None
-        };
-
-        if save {
-            preferences::save(crate::HIGHSCORES_STORAGE, &highscores);
         }
     }
 

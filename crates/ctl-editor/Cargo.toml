@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+ctl-local.workspace = true
 ctl-logic.workspace = true
 ctl-ui.workspace = true
 ctl-util.workspace = true

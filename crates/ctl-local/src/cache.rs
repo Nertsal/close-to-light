@@ -9,7 +9,7 @@ type TaskRes<T> = Option<Task<anyhow::Result<T>>>;
 pub struct LevelCache {
     geng: Geng,
     pub inner: RefCell<LevelCacheImpl>,
-    fs: Rc<fs::Controller>,
+    pub fs: Rc<fs::Controller>,
 }
 
 pub struct LevelCacheImpl {
@@ -113,7 +113,7 @@ impl CacheTasks {
 }
 
 impl LevelCache {
-    pub async fn new(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Self {
+    pub async fn new(client: Option<&Arc<Nertboard>>, fs: Rc<fs::Controller>, geng: &Geng) -> Self {
         let inner = LevelCacheImpl {
             tasks: CacheTasks::new(client),
 
@@ -126,11 +126,7 @@ impl LevelCache {
         Self {
             geng: geng.clone(),
             inner: RefCell::new(inner),
-            fs: Rc::new(
-                fs::Controller::new(geng)
-                    .await
-                    .expect("failed to init file system"),
-            ),
+            fs,
         }
     }
 
@@ -146,10 +142,14 @@ impl LevelCache {
     }
 
     /// Load from the local storage.
-    pub async fn load(client: Option<&Arc<Nertboard>>, geng: &Geng) -> Result<Self> {
+    pub async fn load(
+        client: Option<&Arc<Nertboard>>,
+        fs: Rc<fs::Controller>,
+        geng: &Geng,
+    ) -> Result<Self> {
         log::info!("Loading local storage");
         let timer = Timer::new();
-        let local = Self::new(client, geng).await;
+        let local = Self::new(client, fs, geng).await;
 
         local.load_all().await?;
 
@@ -329,6 +329,7 @@ impl LevelCache {
                     },
                     music: MusicInfo::default(),
                     levels: vec![],
+                    featured: false,
                     hash: data.calculate_hash(),
                 },
                 music: None,

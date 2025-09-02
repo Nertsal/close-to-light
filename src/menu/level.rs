@@ -425,7 +425,9 @@ impl LevelMenu {
                 score: Score::new(category.mods.multiplier()),
                 category,
             };
-            self.state.leaderboard.submit(None, level.meta.id, meta);
+            self.state
+                .leaderboard
+                .submit(None, level.meta.clone(), meta);
         }
     }
 

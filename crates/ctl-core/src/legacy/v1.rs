@@ -189,6 +189,7 @@ pub fn convert_group(
             },
             music: crate::MusicInfo::default(),
             levels: levels_info,
+            featured: false,
             hash,
         },
     )

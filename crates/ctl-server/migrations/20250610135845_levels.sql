@@ -40,6 +40,7 @@ CREATE TABLE level_sets
     level_set_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     music_id INTEGER NOT NULL,
     owner_id INTEGER NOT NULL,
+    featured BIT NOT NULL,
     hash BLOB NOT NULL,
     created_at DATE NOT NULL,
     FOREIGN KEY(music_id) REFERENCES musics(music_id),

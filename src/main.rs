@@ -117,7 +117,7 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
 
     // Main menu
     if opts.skip_intro {
-        let leaderboard = ctl_local::Leaderboard::new(&geng, client.as_ref());
+        let leaderboard = ctl_local::Leaderboard::new(&geng, client.as_ref(), &context.local.fs);
         let state = menu::LevelMenu::new(context, leaderboard, None);
         geng.run_state(state).await;
     } else {
@@ -169,7 +169,13 @@ async fn load_everything(
         let _ = client.ping().await; // Ping the server to check if we are online
     }
 
-    let context = Context::new(&geng, &assets, client.as_ref())
+    let fs = Rc::new(
+        ctl_local::fs::Controller::new(&geng)
+            .await
+            .expect("failed to initialize file system"),
+    );
+
+    let context = Context::new(&geng, &assets, client.as_ref(), fs)
         .await
         .expect("failed to initialize context");
 

@@ -91,8 +91,9 @@ async fn level_set_list(
                         .cloned()
                         .unwrap_or_default(), // Default should never be reached TODO: warning or smth
                     owner,
-                    levels: Vec::new(),
-                    hash: String::new(), // TODO
+                    levels: Vec::new(), // Populated after
+                    featured: level_row.group.featured,
+                    hash: level_row.group.hash,
                 });
                 groups.len() - 1
             });
@@ -156,6 +157,7 @@ async fn level_set_get(
         music,
         owner,
         levels,
+        featured: group_row.featured,
         hash: group_row.hash,
     }))
 }
@@ -207,16 +209,19 @@ async fn update_level_set(
     user: &User,
     mut parsed_level_set: LevelSetFull,
 ) -> Result<()> {
+    let auth = get_user_auth(user, trans).await?;
+    let is_admin = auth == AuthorityLevel::Admin;
+
     let level_set_id = parsed_level_set.meta.id;
     let level_set: Option<LevelSetRow> =
         sqlx::query_as("SELECT * FROM level_sets WHERE level_set_id = ?")
             .bind(level_set_id)
             .fetch_optional(&mut **trans)
             .await?;
-    let group = level_set.ok_or(RequestError::NoSuchLevelSet(level_set_id))?;
+    let level_set = level_set.ok_or(RequestError::NoSuchLevelSet(level_set_id))?;
 
     // Check if the player has rights to change the group
-    if user.user_id != group.owner_id {
+    if user.user_id != level_set.owner_id {
         return Err(RequestError::Forbidden);
     }
 
@@ -303,12 +308,18 @@ async fn update_level_set(
         }
     }
 
+    if !is_admin {
+        // Admin-only properties
+        parsed_level_set.meta.featured = level_set.featured;
+    };
+
     // Disallow further mutation to make sure the hash is valid
     let parsed_level_set = parsed_level_set;
     let hash = parsed_level_set.data.calculate_hash();
 
     // Update level_set
-    sqlx::query("UPDATE level_sets SET hash = ? WHERE level_set_id = ?")
+    sqlx::query("UPDATE level_sets SET featured = ?, hash = ? WHERE level_set_id = ?")
+        .bind(parsed_level_set.meta.featured)
         .bind(&hash)
         .bind(level_set_id)
         .execute(&mut **trans)
@@ -352,6 +363,8 @@ async fn new_level_set(
     mut parsed_level_set: LevelSetFull,
 ) -> Result<Id> {
     parsed_level_set.meta.music.id = music_id;
+    let auth = get_user_auth(user, trans).await?;
+    let is_admin = auth == AuthorityLevel::Admin;
 
     // Check if the user already has level_sets
     let user_groups: Vec<LevelSetRow> =
@@ -397,13 +410,18 @@ async fn new_level_set(
     let current_time = OffsetDateTime::now_utc();
 
     // Create group
+    if !is_admin {
+        // Admin-only properties
+        parsed_level_set.meta.featured = false;
+    }
     let hash = parsed_level_set.data.calculate_hash();
     let level_set_id: Id = sqlx::query_scalar(
-        "INSERT INTO level_sets (music_id, owner_id, hash, created_at)
-         VALUES (?, ?, ?, ?) RETURNING level_set_id",
+        "INSERT INTO level_sets (music_id, owner_id, featured, hash, created_at)
+         VALUES (?, ?, ?, ?, ?) RETURNING level_set_id",
     )
     .bind(music_id)
     .bind(user.user_id)
+    .bind(parsed_level_set.meta.featured)
     .bind(&hash)
     .bind(current_time)
     .fetch_one(&mut **trans)
@@ -436,19 +454,15 @@ async fn new_level_set(
         .fetch_one(&mut **trans)
         .await?;
 
-        let author = MapperInfo {
-            id: user.user_id,
-            name: user.username.clone().into(),
-            romanized: user.username.clone().into(),
-        };
-        sqlx::query("INSERT INTO level_authors (level_id, user_id, name, romanized_name) VALUES (?, ?, ?, ?)")
+        for author in &level_meta.authors {
+            sqlx::query("INSERT INTO level_authors (level_id, user_id, name, romanized_name) VALUES (?, ?, ?, ?)")
             .bind(level_meta.id)
-            .bind(author.id)
+            .bind(ctl_core::types::non_zero(author.id))
             .bind(&*author.name)
             .bind(&*author.romanized)
             .execute(&mut **trans)
             .await?;
-        level_meta.authors = vec![author];
+        }
     }
 
     music::update_music_if_authorized(&parsed_level_set.meta.music, trans, user).await?;

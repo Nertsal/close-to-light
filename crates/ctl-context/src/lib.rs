@@ -29,6 +29,7 @@ impl Context {
         geng: &Geng,
         assets: &Rc<Assets>,
         client: Option<&Arc<Nertboard>>,
+        fs: Rc<ctl_local::fs::Controller>,
     ) -> Result<Self> {
         let options = Rc::new(RefCell::new(
             preferences::load(crate::OPTIONS_STORAGE).unwrap_or_default(),
@@ -38,7 +39,7 @@ impl Context {
             assets: assets.clone(),
             music: Rc::new(MusicManager::new(geng.clone())),
             sfx: Rc::new(SfxManager::new(geng.clone(), options.clone())),
-            local: Rc::new(LevelCache::load(client, geng).await?),
+            local: Rc::new(LevelCache::load(client, fs, geng).await?),
             options,
         })
     }

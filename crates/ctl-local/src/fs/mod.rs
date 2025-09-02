@@ -139,6 +139,24 @@ impl Controller {
             Ok(())
         }
     }
+
+    pub async fn load_local_scores(&self, level_hash: &str) -> Result<Vec<SavedScore>> {
+        #[cfg(target_arch = "wasm32")]
+        {}
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::load_local_scores(level_hash)
+        }
+    }
+
+    pub async fn save_local_scores(&self, level_hash: &str, scores: &[SavedScore]) -> Result<()> {
+        #[cfg(target_arch = "wasm32")]
+        {}
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::save_local_scores(level_hash, scores)
+        }
+    }
 }
 
 /// Path to the directory that hold locally saved levels and music.

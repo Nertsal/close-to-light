@@ -87,6 +87,7 @@ pub struct LevelSetRow {
     pub level_set_id: Id,
     pub music_id: Id,
     pub owner_id: Id,
+    pub featured: bool,
     pub hash: String,
     pub created_at: OffsetDateTime,
 }

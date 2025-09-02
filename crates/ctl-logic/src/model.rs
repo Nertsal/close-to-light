@@ -124,7 +124,6 @@ pub struct Model {
     pub transition: Option<Transition>,
     pub leaderboard: Leaderboard,
 
-    pub high_score: i32,
     pub camera: Camera2d,
     pub player: Player,
     /// Whether the cursor clicked last frame.
@@ -166,7 +165,7 @@ impl Model {
         level: PlayLevel,
         mut leaderboard: Leaderboard,
     ) -> Self {
-        leaderboard.loaded.level = level.level.meta.id;
+        leaderboard.loaded.level = level.level.meta.clone();
 
         let start_time = level.start_time;
         let mut model = Self::empty(context, options, level);
@@ -185,10 +184,9 @@ impl Model {
     pub fn empty(context: Context, options: Options, level: PlayLevel) -> Self {
         Self {
             transition: None,
-            leaderboard: Leaderboard::empty(&context.geng),
+            leaderboard: Leaderboard::empty(&context.geng, &context.local.fs),
             context,
 
-            high_score: preferences::load("highscore").unwrap_or(0), // TODO: save score version
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,

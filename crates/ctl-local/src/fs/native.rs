@@ -98,3 +98,24 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
 
     Ok(())
 }
+
+pub fn load_local_scores(level_hash: &str) -> Result<Vec<SavedScore>> {
+    let path = local_scores_path(level_hash);
+    let reader = std::io::BufReader::new(std::fs::File::open(path)?);
+    let scores = cbor4ii::serde::from_reader(reader)?;
+    Ok(scores)
+}
+
+pub fn save_local_scores(level_hash: &str, scores: &[SavedScore]) -> Result<()> {
+    let path = local_scores_path(level_hash);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+    cbor4ii::serde::to_writer(writer, &scores)?;
+    Ok(())
+}
+
+fn local_scores_path(level_hash: &str) -> PathBuf {
+    base_path().join("scores").join(level_hash)
+}

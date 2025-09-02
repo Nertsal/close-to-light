@@ -203,7 +203,7 @@ impl EditorState {
                 self.context.clone(),
                 level_editor.model.options.clone(),
                 level,
-                Leaderboard::new(&self.context.geng, None),
+                Leaderboard::new(&self.context.geng, None, &self.context.local.fs),
             ),
         )));
         self.stop_music_next_frame = true;

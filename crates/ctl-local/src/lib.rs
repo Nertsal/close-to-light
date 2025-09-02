@@ -10,7 +10,6 @@ use anyhow::Result;
 use ctl_core::prelude::*;
 use generational_arena::Arena;
 
-pub const HIGHSCORES_STORAGE: &str = "highscores";
 pub const PLAYER_LOGIN_STORAGE: &str = "user";
 
 #[derive(Clone)]
