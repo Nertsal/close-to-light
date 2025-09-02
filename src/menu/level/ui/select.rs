@@ -413,7 +413,7 @@ impl ItemGroupWidget {
             if cached
                 .origin
                 .as_ref()
-                .is_some_and(|info| info.hash != cached.hash)
+                .is_some_and(|info| info.hash != cached.local.meta.hash)
             {
                 self.edited.show();
             } else {

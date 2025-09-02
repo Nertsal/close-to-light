@@ -109,8 +109,10 @@ impl SyncWidget {
                 0
             };
             // TODO: update local music
+            let mut meta = group.local.meta.clone();
+            meta.music.id = music_id;
             let level_set_full = LevelSetFull {
-                meta: group.local.meta.clone(),
+                meta,
                 data: LevelSet {
                     levels: group
                         .local
@@ -177,7 +179,7 @@ impl StatefulWidget for SyncWidget {
                     }
                 }
                 Ok(Ok(group)) => {
-                    if group.hash != self.cached_group.hash {
+                    if group != self.cached_group.local.meta {
                         // Local level version is probably outdated (or invalid)
                         self.status.text = "Outdated".into();
                         self.response.hide();

@@ -161,9 +161,10 @@ pub fn convert_group(
                     .meta
                     .authors
                     .iter()
-                    .map(|user| crate::UserInfo {
+                    .map(|user| crate::MapperInfo {
                         id: user.id,
                         name: user.name.clone(),
+                        romanized: user.name.clone(),
                     })
                     .collect(),
                 hash: level.meta.hash.clone(), // TODO: should i recalculate the hash?

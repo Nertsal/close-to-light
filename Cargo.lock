@@ -1804,6 +1804,7 @@ dependencies = [
  "axum-extra",
  "axum-login",
  "bincode",
+ "cbor4ii",
  "clap",
  "color-eyre",
  "ctl-core",

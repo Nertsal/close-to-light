@@ -207,9 +207,9 @@ impl LevelCache {
         Some(LevelFull { meta, data })
     }
 
-    async fn insert_group(&self, group: LocalGroup) -> Result<CachedGroup> {
+    async fn insert_group(&self, mut group: LocalGroup) -> Result<CachedGroup> {
         let result = async {
-            let hash = group.data.calculate_hash();
+            group.meta.hash = group.data.calculate_hash();
 
             let origin = if group.meta.id == 0 {
                 None
@@ -234,7 +234,6 @@ impl LevelCache {
 
             let group = CachedGroup {
                 local: group,
-                hash,
                 origin,
                 level_hashes,
             };
@@ -318,7 +317,6 @@ impl LevelCache {
 
         let data = LevelSet { levels: Vec::new() };
         let group = CachedGroup {
-            hash: data.calculate_hash(),
             origin: None,
             level_hashes: vec![],
             local: LocalGroup {
@@ -331,7 +329,7 @@ impl LevelCache {
                     },
                     music: MusicInfo::default(),
                     levels: vec![],
-                    hash: "".into(),
+                    hash: data.calculate_hash(),
                 },
                 music: None,
                 data,
@@ -400,7 +398,6 @@ impl LevelCache {
                     // Download group
                     let info = client.get_group_info(group_id).await?;
                     let bytes = client.download_group(group_id).await?.to_vec();
-                    let hash = ctl_client::core::util::calculate_hash(&bytes);
                     let data: LevelSet = cbor4ii::serde::from_slice(&bytes)?;
 
                     // Download music
@@ -430,7 +427,6 @@ impl LevelCache {
                             data,
                         },
                         origin: Some(info),
-                        hash,
                         level_hashes,
                     };
 
@@ -516,7 +512,7 @@ impl LevelCache {
         if let Some(info) = reset_origin {
             new_group.origin = Some(info);
         }
-        new_group.hash = new_local.data.calculate_hash();
+        new_group.local.meta.hash = new_local.data.calculate_hash();
         new_group.level_hashes = new_local
             .data
             .levels

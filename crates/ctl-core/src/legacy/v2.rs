@@ -265,9 +265,10 @@ pub fn convert_group(value: LevelSet) -> (crate::LevelSet, crate::LevelSetInfo) 
                     .meta
                     .authors
                     .iter()
-                    .map(|user| crate::UserInfo {
+                    .map(|user| crate::MapperInfo {
                         id: user.id,
                         name: user.name.clone(),
+                        romanized: user.name.clone(),
                     })
                     .collect(),
                 hash: level.meta.hash.clone(), // TODO: should i recalculate the hash?
@@ -413,7 +414,6 @@ impl From<MusicianInfo> for crate::MusicianInfo {
             id: value.id,
             name: value.name,
             romanized: value.romanized,
-            user: value.user,
         }
     }
 }

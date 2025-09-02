@@ -54,16 +54,10 @@ pub(super) async fn music_list(
         .fetch_all(&app.database)
         .await?;
 
-    let authors: Vec<(Id, MusicianRow)> = sqlx::query(
-        "
-SELECT *
-FROM music_authors
-JOIN musicians ON music_authors.musician_id = musicians.musician_id
-        ",
-    )
-    .try_map(|row: DBRow| Ok((row.try_get("music_id")?, MusicianRow::from_row(&row)?)))
-    .fetch_all(&app.database)
-    .await?;
+    let authors: Vec<(Id, MusicAuthorRow)> = sqlx::query("SELECT * FROM music_authors")
+        .try_map(|row: DBRow| Ok((row.try_get("music_id")?, MusicAuthorRow::from_row(&row)?)))
+        .fetch_all(&app.database)
+        .await?;
 
     let music = rows
         .into_iter()
@@ -98,17 +92,11 @@ pub(super) async fn music_get(
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let authors: Vec<MusicianRow> = sqlx::query_as(
-        "
-SELECT *
-FROM music_authors
-JOIN musicians ON music_authors.musician_id = musicians.musician_id
-WHERE music_id = ?
-        ",
-    )
-    .bind(music_id)
-    .fetch_all(&app.database)
-    .await?;
+    let authors: Vec<MusicAuthorRow> =
+        sqlx::query_as("SELECT * FROM music_authors WHERE music_id = ?")
+            .bind(music_id)
+            .fetch_all(&app.database)
+            .await?;
     let authors: Vec<MusicianInfo> = authors.into_iter().map(Into::into).collect();
 
     let music = MusicInfo {
@@ -224,13 +212,14 @@ async fn add_author(
     let musician_id = musician.id;
 
     // Check that artist exists
-    let check = sqlx::query("SELECT null FROM musicians WHERE musician_id = ?")
-        .bind(musician_id)
-        .fetch_optional(&app.database)
-        .await?;
-    if check.is_none() {
+    let musician_row: Option<MusicianRow> =
+        sqlx::query_as("SELECT null FROM musicians WHERE musician_id = ?")
+            .bind(musician_id)
+            .fetch_optional(&app.database)
+            .await?;
+    let Some(musician_row) = musician_row else {
         return Err(RequestError::NoSuchMusician(musician_id));
-    }
+    };
 
     music_exists(&app, music_id).await?;
 
@@ -247,9 +236,11 @@ async fn add_author(
     }
 
     // Add musician as author
-    sqlx::query("INSERT INTO music_authors (music_id, musician_id) VALUES (?, ?)")
+    sqlx::query("INSERT INTO music_authors (music_id, musician_id, name, romanized_name) VALUES (?, ?, ?, ?)")
         .bind(music_id)
         .bind(musician_id)
+        .bind(musician_row.name)
+        .bind(musician_row.romanized_name)
         .execute(&app.database)
         .await?;
 
@@ -335,4 +326,35 @@ async fn get_music_id_for_level(app: &App, level_set_id: Id) -> Result<Id> {
         return Err(RequestError::NoSuchLevelSet(level_set_id));
     };
     Ok(music_id)
+}
+
+pub(super) async fn update_music_authors_if_owner(
+    music_info: &MusicInfo,
+    app: &App,
+    user: &User,
+) -> Result<()> {
+    debug!("Updating music {} authors", music_info.id);
+    let music: MusicRow = sqlx::query_as("SELECT * FROM musics WHERE music_id = ?")
+        .bind(music_info.id)
+        .fetch_one(&app.database)
+        .await?;
+    if music.uploaded_by_user == user.user_id {
+        // Update music authors
+        sqlx::query("DELETE FROM music_authors WHERE music_id = ?")
+            .bind(music_info.id)
+            .execute(&app.database)
+            .await?;
+        for author in &music_info.authors {
+            // Add new author
+            // TODO: report invalid musician_id
+            sqlx::query("INSERT INTO music_authors (musician_id, music_id, name, romanized_name) VALUES (?, ?, ?, ?)")
+                .bind(ctl_core::types::non_zero(author.id))
+                .bind(music_info.id)
+                .bind(&*author.name)
+                .bind(&*author.romanized)
+                .execute(&app.database)
+                .await?;
+        }
+    }
+    Ok(())
 }

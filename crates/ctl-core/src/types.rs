@@ -253,7 +253,7 @@ pub struct LevelInfo {
     /// Id `0` for local levels.
     pub id: Id,
     pub name: Name,
-    pub authors: Vec<UserInfo>,
+    pub authors: Vec<MapperInfo>,
     pub hash: String,
 }
 
@@ -291,11 +291,19 @@ pub struct UserLogin {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct MusicianInfo {
+pub struct MapperInfo {
+    /// User id `0` for non-registered mapper.
     pub id: Id,
     pub name: Name,
     pub romanized: Name,
-    pub user: Option<Id>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MusicianInfo {
+    /// Id `0` for non-registered musicians.
+    pub id: Id,
+    pub name: Name,
+    pub romanized: Name,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -326,4 +334,8 @@ pub struct NewMusician {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LevelSetsQuery {
     pub recommended: bool,
+}
+
+pub fn non_zero(id: Id) -> Option<Id> {
+    if id == 0 { None } else { Some(id) }
 }

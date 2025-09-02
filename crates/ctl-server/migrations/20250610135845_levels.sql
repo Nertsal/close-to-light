@@ -25,8 +25,10 @@ CREATE TABLE musics
 -- (Many-many) Relationship between `musics` and `musicians`.
 CREATE TABLE music_authors
 (
-    musician_id INTEGER NOT NULL,
+    musician_id INTEGER,
     music_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    romanized_name TEXT NOT NULL,
     FOREIGN KEY(musician_id) REFERENCES musicians(musician_id),
     FOREIGN KEY(music_id) REFERENCES musics(music_id)
 );
@@ -61,10 +63,10 @@ CREATE TABLE levels
 -- Relationship between `levels` and `users`.
 CREATE TABLE level_authors
 (
-    user_id INTEGER NOT NULL,
-    level_set_id INTEGER NOT NULL,
+    user_id INTEGER,
     level_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    romanized_name TEXT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(user_id),
-    FOREIGN KEY(level_set_id) REFERENCES level_sets(level_set_id),
     FOREIGN KEY(level_id) REFERENCES levels(level_id)
 );

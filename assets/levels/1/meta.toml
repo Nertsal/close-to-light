@@ -1,14 +1,14 @@
-id = 1
+id = 0
 hash = "124850c478189fc9439f04694194e8d2151ee640913fb21474d89f3b0b4910e8"
 
 [music]
-id = 1
+id = 0
 original = true
 name = "Far from Dark"
 romanized = "Far from Dark"
 
 [[music.authors]]
-id = 2
+id = 0
 name = "IcyLava"
 romanized = "IcyLava"
 
@@ -17,28 +17,31 @@ id = 1
 name = "Nertsal"
 
 [[levels]]
-id = 1
+id = 0
 name = "Easy"
-hash = "8a47c68e3374081d9cae3c9ee42538ce4784768d909ada63f8d32d1009556212"
+hash = "55597a5f280da116a7501c35b604de513971531c06aff13f0dac2056674e1357"
 
 [[levels.authors]]
 id = 1
 name = "Nertsal"
+romanized = "Nertsal"
 
 [[levels]]
-id = 2
+id = 0
 name = "Normal"
-hash = "723af0b87fa2e8ac27d7883fdec639978d61bc80ecb70d7c685ab7e27a7bb826"
+hash = "63ca5f756b82748d1b92ea7cd224f3221c075e2849d8c1215c716497852b43eb"
 
 [[levels.authors]]
-id = 9
-name = "icylava"
+id = 0
+name = "IcyLava"
+romanized = "IcyLava"
 
 [[levels]]
-id = 3
+id = 0
 name = "Hard"
-hash = "76f83b83f11e1a6f66789d5dc625b59d4749685df7c6f0a7ee6395e6aff50c1e"
+hash = "4cb026f04b217042da863341fe37f1b9e4f612b1efb3333659daac792b1cc1ef"
 
 [[levels.authors]]
 id = 1
 name = "Nertsal"
+romanized = "Nertsal"

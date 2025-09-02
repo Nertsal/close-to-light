@@ -1,6 +1,6 @@
 use super::*;
 
-use ctl_core::types::{MusicianInfo, UserInfo};
+use ctl_core::types::{MapperInfo, MusicianInfo, UserInfo};
 use sqlx::FromRow;
 
 pub type DatabasePool = sqlx::SqlitePool; // TODO: behind a trait?
@@ -49,7 +49,24 @@ impl From<MusicianRow> for MusicianInfo {
             id: value.musician_id,
             name: value.name.into(),
             romanized: value.romanized_name.into(),
-            user: value.user_id,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct MusicAuthorRow {
+    pub musician_id: Option<Id>,
+    pub music_id: Id,
+    pub name: String,
+    pub romanized_name: String,
+}
+
+impl From<MusicAuthorRow> for MusicianInfo {
+    fn from(value: MusicAuthorRow) -> Self {
+        Self {
+            id: value.musician_id.unwrap_or(0),
+            name: value.name.into(),
+            romanized: value.romanized_name.into(),
         }
     }
 }
@@ -57,6 +74,7 @@ impl From<MusicianRow> for MusicianInfo {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct MusicRow {
     pub music_id: Id,
+    pub uploaded_by_user: Id,
     pub name: String,
     pub romanized_name: String,
     pub original: bool,
@@ -81,4 +99,22 @@ pub struct LevelRow {
     pub ord: i32,
     pub hash: String,
     pub created_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct LevelAuthorRow {
+    pub user_id: Option<Id>,
+    pub level_id: Id,
+    pub name: String,
+    pub romanized_name: String,
+}
+
+impl From<LevelAuthorRow> for MapperInfo {
+    fn from(value: LevelAuthorRow) -> Self {
+        Self {
+            id: value.user_id.unwrap_or(0),
+            name: value.name.into(),
+            romanized: value.romanized_name.into(),
+        }
+    }
 }

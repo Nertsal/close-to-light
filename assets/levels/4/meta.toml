@@ -13,23 +13,35 @@ name = "typeyourtexthereblog"
 romanized = "typeyourtexthereblog"
 
 [owner]
-id = 0
-name = ""
+id = 1
+name = "Nertsal"
 
 [[levels]]
 id = 0
 name = "Easy"
-authors = []
-hash = ""
+hash = "7f8a8adf2bc66c6ddd1d01427a2a57b5de38523f03783ac7ea9fdb413561c2b0"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
 
 [[levels]]
 id = 0
 name = "Normal"
-authors = []
-hash = ""
+hash = "02570d06fc632b5a0192d1e663cf879f904fb7fbe64fc1e442c6cbe3b5b32186"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
 
 [[levels]]
 id = 0
 name = "Hard"
-authors = []
-hash = ""
+hash = "1e194de2beeb6209a3e70d325a8b0ee0a4877a5ff91ea0a4a0f26f8c27f987dd"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"

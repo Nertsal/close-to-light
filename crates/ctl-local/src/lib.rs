@@ -43,7 +43,6 @@ pub struct LocalGroup {
 #[derive(Debug, Clone)]
 pub struct CachedGroup {
     pub local: LocalGroup,
-    pub hash: String,
     /// The server version the group on the server, if uploaded.
     pub origin: Option<LevelSetInfo>,
     pub level_hashes: Vec<String>,

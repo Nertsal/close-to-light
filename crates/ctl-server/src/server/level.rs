@@ -2,7 +2,7 @@ use super::*;
 
 use crate::database::types::LevelRow;
 
-use ctl_core::{ScoreEntry, SubmitScore};
+use ctl_core::{types::MapperInfo, ScoreEntry, SubmitScore};
 
 pub fn route(router: Router) -> Router {
     router.route("/level/:level_id", get(level_get)).route(
@@ -24,23 +24,17 @@ async fn level_get(
         return Err(RequestError::NoSuchLevel(level_id));
     };
 
-    let authors: Vec<UserInfo> = sqlx::query(
+    let authors: Vec<LevelAuthorRow> = sqlx::query_as(
         "
 SELECT users.user_id, username
 FROM level_authors
-JOIN users ON level_authors.user_id = users.user_id
 WHERE level_id = ?
         ",
     )
     .bind(level_id)
-    .try_map(|row: DBRow| {
-        Ok(UserInfo {
-            id: row.try_get("user_id")?,
-            name: row.try_get::<String, _>("username")?.into(),
-        })
-    })
     .fetch_all(&app.database)
     .await?;
+    let authors = authors.into_iter().map(MapperInfo::from).collect();
 
     Ok(Json(LevelInfo {
         id: level_id,

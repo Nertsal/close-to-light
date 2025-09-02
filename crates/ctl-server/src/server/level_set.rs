@@ -3,7 +3,7 @@ use super::*;
 use crate::database::types::LevelRow;
 
 use axum::{body::Bytes, extract::DefaultBodyLimit};
-use ctl_core::types::{LevelSetFull, LevelSetsQuery};
+use ctl_core::types::{LevelSetFull, LevelSetsQuery, MapperInfo};
 
 const LEVEL_SET_SIZE_LIMIT: usize = 1024 * 1024; // 1 MB
 const LEVEL_SETS_PER_USER: usize = 5;
@@ -53,49 +53,24 @@ async fn level_set_list(
 
     let levels: Vec<LevelGroupRow> = sqlx::query_as(query).fetch_all(&app.database).await?;
 
-    #[derive(sqlx::FromRow)]
-    struct AuthorRow {
-        level_id: Id,
-        #[sqlx(flatten)]
-        user: UserRow,
-    }
-
-    let authors: Vec<AuthorRow> = sqlx::query_as(
-        "
-    SELECT level_id, users.user_id, username
-    FROM level_authors
-    JOIN users ON level_authors.user_id = users.user_id
-        ",
-    )
-    .fetch_all(&app.database)
-    .await?;
+    let authors: Vec<LevelAuthorRow> = sqlx::query_as("SELECT * FROM level_authors")
+        .fetch_all(&app.database)
+        .await?;
 
     let mut groups = Vec::<LevelSetInfo>::new();
     for level_row in levels {
-        let authors: Vec<UserInfo> = authors
+        let authors: Vec<MapperInfo> = authors
             .iter()
             .filter(|author| author.level_id == level_row.level.level_id)
-            .map(|author| author.user.clone().into())
+            .cloned()
+            .map(MapperInfo::from)
             .collect();
 
-        let owner = match authors
-            .iter()
-            .find(|user| user.id == level_row.group.owner_id)
-        {
-            Some(user) => user.clone(),
-            None => {
-                sqlx::query("SELECT user_id, username FROM users WHERE user_id = ?")
-                    .bind(level_row.group.owner_id)
-                    .try_map(|row: DBRow| {
-                        Ok(UserInfo {
-                            id: row.try_get("user_id")?,
-                            name: row.try_get::<String, _>("username")?.into(),
-                        })
-                    })
-                    .fetch_one(&app.database)
-                    .await?
-            }
-        };
+        let owner: UserRow = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
+            .bind(level_row.group.owner_id)
+            .fetch_one(&app.database)
+            .await?;
+        let owner = UserInfo::from(owner);
 
         let level_info = LevelInfo {
             id: level_row.level.level_id,
@@ -151,50 +126,22 @@ async fn level_set_get(
     .fetch_all(&app.database)
     .await?;
 
-    let authors: Vec<(Id, UserInfo)> = sqlx::query(
-        "
-SELECT level_id, users.user_id, username
-FROM level_authors
-JOIN users ON level_authors.user_id = users.user_id
-        ",
-    )
-    .try_map(|row: DBRow| {
-        Ok((
-            row.try_get("level_id")?,
-            UserInfo {
-                id: row.try_get("user_id")?,
-                name: row.try_get::<String, _>("username")?.into(),
-            },
-        ))
-    })
-    .fetch_all(&app.database)
-    .await?;
+    let authors: Vec<LevelAuthorRow> = sqlx::query_as("SELECT * FROM level_authors")
+        .fetch_all(&app.database)
+        .await?;
 
-    let owner = match authors
-        .iter()
-        .find(|(_, user)| user.id == group_row.owner_id)
-    {
-        Some((_, user)) => user.clone(),
-        None => {
-            sqlx::query("SELECT user_id, username FROM users WHERE user_id = ?")
-                .bind(group_row.owner_id)
-                .try_map(|row: DBRow| {
-                    Ok(UserInfo {
-                        id: row.try_get("user_id")?,
-                        name: row.try_get::<String, _>("username")?.into(),
-                    })
-                })
-                .fetch_one(&app.database)
-                .await?
-        }
-    };
+    let owner: UserRow = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
+        .bind(group_row.owner_id)
+        .fetch_one(&app.database)
+        .await?;
+    let owner = UserInfo::from(owner);
 
     let mut levels = Vec::new();
     for level in level_rows {
         let authors = authors
             .iter()
-            .filter(|(id, _)| *id == level.level_id)
-            .map(|(_, player)| player.clone())
+            .filter(|author| author.level_id == level.level_id)
+            .map(|author| author.clone().into())
             .collect();
         levels.push(LevelInfo {
             id: level.level_id,
@@ -357,23 +304,32 @@ async fn update_level_set(
         .execute(&app.database)
         .await?;
 
-    // Check path
-    let dir_path = app.config.level_sets_path.join("levels");
-    std::fs::create_dir_all(&dir_path)?;
-    let path = dir_path.join(level_set_id.to_string());
-    debug!("Saving level_set file at {:?}", path);
+    music::update_music_authors_if_owner(&parsed_level_set.meta.music, app, user).await?;
 
-    if !path.exists() {
-        error!(
-            "Updating a level_set but it is not present in the file system: {}",
-            level_set_id
-        );
+    // Update level authors
+    for level in &parsed_level_set.meta.levels {
+        if level.id == 0 {
+            error!("Invalid level_set, levels cannot have an id of 0");
+            continue;
+        }
+
+        sqlx::query("DELETE FROM level_authors WHERE level_id = ?")
+            .bind(level.id)
+            .execute(&app.database)
+            .await?;
+        for author in &level.authors {
+            // TODO: report invalid user_id
+            sqlx::query("INSERT INTO level_authors (user_id, level_id, name, romanized_name) VALUES (?, ?, ?, ?)")
+                .bind(ctl_core::types::non_zero(author.id))
+                .bind(level.id)
+                .bind(&*author.name)
+                .bind(&*author.romanized)
+                .execute(&app.database)
+                .await?;
+        }
     }
 
-    // Write to file
-    let data = bincode::serialize(&parsed_level_set).map_err(|_| RequestError::Internal)?;
-    std::fs::write(path, data)?;
-    debug!("Saved level_set file successfully");
+    write_level_set(app, &parsed_level_set, false)?;
 
     Ok(())
 }
@@ -384,6 +340,8 @@ async fn new_level_set(
     music_id: Id,
     mut parsed_level_set: LevelSetFull,
 ) -> Result<Id> {
+    parsed_level_set.meta.music.id = music_id;
+
     // Check if the user already has level_sets
     let user_groups: Vec<LevelSetRow> =
         sqlx::query_as("SELECT * FROM level_sets WHERE owner_id = ?")
@@ -467,21 +425,26 @@ async fn new_level_set(
         .fetch_one(&app.database)
         .await?;
 
-        level_meta.authors = vec![UserInfo {
+        let author = MapperInfo {
             id: user.user_id,
             name: user.username.clone().into(),
-        }];
-        sqlx::query("INSERT INTO level_authors (level_set_id, level_id, user_id) VALUES (?, ?, ?)")
-            .bind(level_set_id)
+            romanized: user.username.clone().into(),
+        };
+        sqlx::query("INSERT INTO level_authors (level_id, user_id, name, romanized_name) VALUES (?, ?, ?, ?)")
             .bind(level_meta.id)
-            .bind(user.user_id)
+            .bind(author.id)
+            .bind(&*author.name)
+            .bind(&*author.romanized)
             .execute(&app.database)
             .await?;
+        level_meta.authors = vec![author];
     }
 
+    music::update_music_authors_if_owner(&parsed_level_set.meta.music, app, user).await?;
+
     // Disallow further mutation to make sure the hash is valid
-    let parsed_group = parsed_level_set;
-    let hash = parsed_group.data.calculate_hash();
+    let parsed_level_set = parsed_level_set;
+    let hash = parsed_level_set.data.calculate_hash();
 
     // Update hash
     sqlx::query("UPDATE level_sets SET hash = ? WHERE level_set_id = ?")
@@ -490,23 +453,36 @@ async fn new_level_set(
         .execute(&app.database)
         .await?;
 
+    write_level_set(app, &parsed_level_set, true)?;
+
+    Ok(level_set_id)
+}
+
+fn write_level_set(app: &App, level_set: &LevelSetFull, is_new: bool) -> Result<()> {
+    let level_set_id = level_set.meta.id;
+
     // Check path
     let dir_path = app.config.level_sets_path.join("levels");
     std::fs::create_dir_all(&dir_path)?;
     let path = dir_path.join(level_set_id.to_string());
-    debug!("Saving level_set file at {:?}", path);
+    debug!("Saving level_set {level_set_id} file at {path:?}");
 
-    if path.exists() {
-        error!("Duplicate level_set ID generated: {}", level_set_id);
-        return Err(RequestError::Internal);
+    if is_new {
+        if path.exists() {
+            error!("Duplicate level_set ID generated: {}", level_set_id);
+            return Err(RequestError::Internal);
+        }
+    } else if !path.exists() {
+        error!("Updating level_set {level_set_id} but it is not present in the file system");
     }
 
     // Write to file
-    let data = bincode::serialize(&parsed_group).map_err(|_| RequestError::Internal)?;
-    std::fs::write(path, data)?;
-    debug!("Saved level_set file successfully");
+    let file = std::fs::File::create(path)?;
+    let writer = std::io::BufWriter::new(file);
+    cbor4ii::serde::to_writer(writer, &level_set.data).map_err(|_| RequestError::Internal)?;
+    debug!("Saved level_set {level_set_id} file successfully");
 
-    Ok(level_set_id)
+    Ok(())
 }
 
 async fn download(

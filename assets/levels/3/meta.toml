@@ -1,53 +1,58 @@
-id = 3
+id = 0
 hash = "b82dd258e1f9317fef1e74a8a160bcaf548c7fa03e812ededbd262b72276f6ec"
 
 [music]
-id = 3
+id = 0
 original = false
 name = "Pixel Peeker Polka"
 romanized = "Pixel Peeker Polka"
 
 [[music.authors]]
-id = 3
+id = 0
 name = "Kevin MacLeod"
 romanized = "Kevin MacLeod"
 
 [owner]
-id = 2
+id = 0
 name = "ricky-lee"
+romanized = "ricky-lee"
 
 [[levels]]
-id = 7
+id = 0
 name = "Easy"
 hash = "2a4b9ac96fea28917980ec1a797621ae56d608460d3a8b3a4628bbbc1ae3117f"
 
 [[levels.authors]]
-id = 2
+id = 0
 name = "ricky-lee"
+romanized = "ricky-lee"
 
 [[levels]]
-id = 8
+id = 0
 name = "Normal"
 hash = "558861e8fd0b3be8b4242525af26e82457e85466a788af28fba3a19ffcaecacf"
 
 [[levels.authors]]
-id = 2
+id = 0
 name = "ricky-lee"
+romanized = "ricky-lee"
 
 [[levels]]
-id = 9
+id = 0
 name = "Hard"
 hash = "1a7be56786b2462cd8790eac0df390475824f2e42492d9edcc79a7f3dc5389ff"
 
 [[levels.authors]]
-id = 2
+id = 0
 name = "ricky-lee"
+romanized = "ricky-lee"
 
 [[levels]]
-id = 10
+id = 0
 name = "Insane"
 hash = "5606d4e555b42af31b1bae9e0e17d90dc245844af5f59fe39b837ffd4e0c1e54"
 
 [[levels.authors]]
-id = 2
+id = 0
 name = "ricky-lee"
+romanized = "ricky-lee"

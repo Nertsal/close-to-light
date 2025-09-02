@@ -1,45 +1,47 @@
-id = 2
+id = 0
 hash = "a9cec506216a7fb2cb88f4eb22d78f40cd19927dcc4d497ee05a2f7d440df861"
 
 [music]
-id = 2
+id = 0
 original = true
 name = "Rest"
 romanized = "Rest"
 
 [[music.authors]]
-id = 1
+id = 0
 name = "Nertsal"
 romanized = "Nertsal"
-user = 1
 
 [owner]
 id = 1
 name = "Nertsal"
 
 [[levels]]
-id = 4
+id = 0
 name = "Easy"
-hash = "8344833a20dc021ee7a9f523a7c1ebc684474016a59b7355ae67b008e4325d3c"
+hash = "b576f8e1ba82ae465d437f38787fa8c69db2ee81582f6b6d310cfe2509b8e907"
 
 [[levels.authors]]
 id = 1
 name = "Nertsal"
+romanized = "Nertsal"
 
 [[levels]]
-id = 5
+id = 0
 name = "Normal"
-hash = "ae72267b0c0d0f29ebd7dc85b3c03a378b74240c5a8bccc58dc7d50508fa71f4"
+hash = "1adf9b49e78ddef90b01e9a54804d9b91c1e4ed771b605907998f81f71b8d2f1"
 
 [[levels.authors]]
 id = 1
 name = "Nertsal"
+romanized = "Nertsal"
 
 [[levels]]
-id = 6
+id = 0
 name = "Hard"
-hash = "bdf0549f8f0332d9d6864a9c884415623939d5f5ee89e62771e55486cc339e13"
+hash = "ec1fd47c71803405f439617b523555ac0cb4d9e7ef3fe3d22fd71ecbc1dc0d25"
 
 [[levels.authors]]
 id = 1
 name = "Nertsal"
+romanized = "Nertsal"
