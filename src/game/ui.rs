@@ -65,6 +65,7 @@ impl GameUI {
                         model.level.config.modifiers.clone(),
                         model.level.config.health.clone(),
                         model.score.clone(),
+                        model.current_completion(),
                     ),
                     &model
                         .level

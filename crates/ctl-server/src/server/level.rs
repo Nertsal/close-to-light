@@ -49,13 +49,13 @@ async fn fetch_scores(
     Path(level_id): Path<Id>,
 ) -> Result<Json<Vec<ScoreEntry>>> {
     // Check that the level exists
-    let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
+    let level: Option<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE level_id = ?")
         .bind(level_id)
         .fetch_optional(&app.database)
         .await?;
-    if check.is_none() {
+    let Some(level) = level else {
         return Err(RequestError::NoSuchLevel(level_id));
-    }
+    };
 
     #[derive(sqlx::FromRow)]
     struct Row {
@@ -68,13 +68,14 @@ async fn fetch_scores(
     // Fetch scores
     let scores: Vec<Row> = sqlx::query_as(
         "
-SELECT users.user_id, username, score, extra_info
+SELECT *
 FROM scores
 JOIN users ON scores.user_id = users.user_id
-WHERE level_id = ?
+WHERE level_id = ? AND level_hash = ?
         ",
     )
     .bind(level_id)
+    .bind(&level.hash)
     .fetch_all(&app.database)
     .await?;
 
@@ -104,12 +105,16 @@ async fn submit_score(
     let mut trans = app.database.begin().await?;
 
     // Check that the level exists
-    let check = sqlx::query("SELECT null FROM levels WHERE level_id = ?")
+    let level: Option<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE level_id = ?")
         .bind(level_id)
         .fetch_optional(&mut *trans)
         .await?;
-    if check.is_none() {
+    let Some(level) = level else {
         return Err(RequestError::NoSuchLevel(level_id));
+    };
+
+    if score.level_hash != level.hash {
+        return Err(RequestError::LevelHashMismatch);
     }
 
     // Insert new score
@@ -121,7 +126,7 @@ async fn submit_score(
             .await?;
 
     if let Some(current) = current {
-        if score.score > current.score {
+        if score.score > current.score || current.level_hash != level.hash {
             sqlx::query(
                 "UPDATE scores SET score = ?, extra_info = ? WHERE level_id = ? AND user_id = ?",
             )
@@ -134,12 +139,14 @@ async fn submit_score(
         }
     } else {
         sqlx::query(
-            "INSERT INTO scores (level_id, user_id, score, extra_info) VALUES (?, ?, ?, ?)",
+            "INSERT INTO scores (level_id, level_hash, user_id, score, extra_info, submitted_at) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(level_id)
+        .bind(&level.hash)
         .bind(user.user_id)
         .bind(score.score)
         .bind(&score.extra_info)
+        .bind(OffsetDateTime::now_utc())
         .execute(&mut *trans)
         .await?;
     }

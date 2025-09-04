@@ -36,5 +36,6 @@ pub struct ScoreEntry {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SubmitScore {
     pub score: i32,
+    pub level_hash: String,
     pub extra_info: Option<String>,
 }

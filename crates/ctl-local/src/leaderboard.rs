@@ -76,6 +76,8 @@ pub struct LoadedBoard {
 pub struct ScoreMeta {
     pub category: ScoreCategory,
     pub score: Score,
+    /// Number in range 0..=1 indicating level completion percentage.
+    pub completion: R32,
     pub time: ::time::OffsetDateTime,
 }
 
@@ -84,6 +86,7 @@ impl Default for ScoreMeta {
         Self {
             category: ScoreCategory::default(),
             score: Score::default(),
+            completion: R32::ZERO,
             time: ::time::OffsetDateTime::now_utc(),
         }
     }
@@ -113,14 +116,15 @@ impl ScoreCategory {
 }
 
 impl ScoreMeta {
-    pub fn new(mods: LevelModifiers, health: HealthConfig, score: Score) -> Self {
-        Self::new_category(ScoreCategory::new(mods, health), score)
+    pub fn new(mods: LevelModifiers, health: HealthConfig, score: Score, completion: R32) -> Self {
+        Self::new_category(ScoreCategory::new(mods, health), score, completion)
     }
 
-    pub fn new_category(category: ScoreCategory, score: Score) -> Self {
+    pub fn new_category(category: ScoreCategory, score: Score, completion: R32) -> Self {
         Self {
             category,
             score,
+            completion,
             time: ::time::OffsetDateTime::now_utc(),
         }
     }
@@ -397,10 +401,12 @@ impl Leaderboard {
 
         if let Some(board) = &self.client {
             let board = Arc::clone(board);
+            let level_hash = self.loaded.level.hash.clone();
             let future = async move {
                 let meta_str = meta_str(&meta);
                 let score = score.map(|score| SubmitScore {
                     score: score.score,
+                    level_hash,
                     extra_info: Some(meta_str),
                 });
 

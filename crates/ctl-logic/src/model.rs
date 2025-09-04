@@ -152,6 +152,8 @@ pub struct Model {
     pub play_time: FloatTime,
     /// Current exact play time in milliseconds.
     pub play_time_ms: Time,
+    /// Time since the level started playing, counting towards level completion.
+    pub completion_time: FloatTime,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -221,6 +223,7 @@ impl Model {
             switch_time: FloatTime::ZERO,
             play_time: FloatTime::ZERO,
             play_time_ms: Time::ZERO,
+            completion_time: FloatTime::ZERO,
 
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),

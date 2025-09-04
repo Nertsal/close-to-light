@@ -11,6 +11,7 @@ impl Model {
         // since `play_time` is used to recalculate `play_time_ms` every frame
         self.play_time = time_to_seconds(target_time);
         self.play_time_ms = seconds_to_time(self.play_time);
+        self.completion_time = self.play_time;
 
         self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
@@ -39,6 +40,9 @@ impl Model {
         } else {
             self.play_time += delta_time;
             self.play_time_ms = seconds_to_time(self.play_time);
+        }
+        if let State::Playing = self.state {
+            self.completion_time += delta_time;
         }
 
         self.real_time += delta_time;
@@ -228,8 +232,6 @@ impl Model {
     }
 
     pub fn finish(&mut self) {
-        // TODO: highscore
-        // self.save_highscore();
         self.state = State::Finished;
         self.context.music.stop();
         self.switch_time = FloatTime::ZERO;
@@ -237,16 +239,20 @@ impl Model {
     }
 
     pub fn lose(&mut self) {
-        // TODO: highscore
-        // self.save_highscore();
         self.state = State::Lost {
             death_time_ms: self.play_time_ms,
         };
         self.switch_time = FloatTime::ZERO;
-        self.get_leaderboard(false);
+        self.get_leaderboard(true);
     }
 
     pub fn get_leaderboard(&mut self, submit_score: bool) {
         self.transition = Some(Transition::LoadLeaderboard { submit_score });
+    }
+
+    /// Calculates the current completion percentage (in range 0..=1).
+    pub fn current_completion(&self) -> R32 {
+        let t = self.completion_time / time_to_seconds(self.level.level.data.last_time());
+        t.clamp(R32::ZERO, R32::ONE)
     }
 }

@@ -422,7 +422,7 @@ impl LevelMenu {
         let category = self.state.get_category();
         if let Some((_, _, level)) = self.get_active_level() {
             let score = Score::new(category.mods.multiplier());
-            let meta = ScoreMeta::new_category(category, score);
+            let meta = ScoreMeta::new_category(category, score, R32::ZERO);
             self.state
                 .leaderboard
                 .submit(None, level.meta.clone(), meta);

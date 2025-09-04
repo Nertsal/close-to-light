@@ -30,6 +30,8 @@ pub enum RequestError {
     InvalidName(String),
     #[error("Level data is invalid")]
     InvalidLevel,
+    #[error("Level hash mismatch")]
+    LevelHashMismatch,
     // #[error("User {0} not found")]
     // NoSuchUser(Id),
     #[error("Artist {0} not found")]
@@ -68,6 +70,7 @@ impl RequestError {
             RequestError::InvalidCredentials => StatusCode::UNAUTHORIZED,
             RequestError::InvalidName(_) => StatusCode::BAD_REQUEST,
             RequestError::InvalidLevel => StatusCode::BAD_REQUEST,
+            RequestError::LevelHashMismatch => StatusCode::BAD_REQUEST,
             RequestError::FileNotFound(_) => StatusCode::NOT_FOUND,
             // RequestError::NoSuchUser(_) => StatusCode::NOT_FOUND,
             RequestError::NoSuchMusician(_) => StatusCode::NOT_FOUND,

@@ -26,7 +26,6 @@ impl From<UserRow> for UserInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ScoreRow {
-    pub level_set_id: Id,
     pub level_id: Id,
     pub level_hash: String,
     pub user_id: Id,

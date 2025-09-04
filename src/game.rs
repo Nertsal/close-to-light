@@ -174,6 +174,7 @@ impl geng::State for Game {
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
                         score.clone(),
+                        self.model.current_completion(),
                     );
 
                     if do_submit_score {
