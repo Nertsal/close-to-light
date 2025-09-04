@@ -58,15 +58,15 @@ async fn fetch_scores(
     }
 
     #[derive(sqlx::FromRow)]
-    struct ScoreRow {
+    struct Row {
         #[sqlx(flatten)]
         user: UserRow,
-        score: Score,
-        extra_info: Option<String>,
+        #[sqlx(flatten)]
+        score: ScoreRow,
     }
 
     // Fetch scores
-    let scores: Vec<ScoreRow> = sqlx::query_as(
+    let scores: Vec<Row> = sqlx::query_as(
         "
 SELECT users.user_id, username, score, extra_info
 FROM scores
@@ -85,8 +85,9 @@ WHERE level_id = ?
                 id: score.user.user_id,
                 name: score.user.username.into(),
             },
-            score: score.score,
-            extra_info: score.extra_info,
+            score: score.score.score,
+            submitted_at: score.score.submitted_at,
+            extra_info: score.score.extra_info,
         })
         .collect();
 

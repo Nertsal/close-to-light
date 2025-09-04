@@ -29,6 +29,7 @@ pub const DISCORD_LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client
 pub struct ScoreEntry {
     pub user: UserInfo,
     pub score: i32,
+    pub submitted_at: ::time::OffsetDateTime,
     pub extra_info: Option<String>,
 }
 
