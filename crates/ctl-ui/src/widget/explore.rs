@@ -207,21 +207,12 @@ impl StatefulWidget for ExploreLevelsWidget {
         self.state.update(position, context);
 
         // Scroll
-        if self.state.mouse_left.just_pressed {
-            self.scroll_drag_from = self.scroll.current;
-        }
-        if self.state.hovered {
-            if let Some(press) = &self.state.mouse_left.pressed {
-                self.scroll.snap_to(
-                    self.scroll_drag_from - context.cursor.position.y + press.press_position.y,
-                    context.delta_time,
-                );
-            } else {
-                let scroll_speed = 2.0;
-                self.scroll.target += context.cursor.scroll * scroll_speed;
-            }
-        }
-        self.scroll.update(context.delta_time);
+        crate::util::scroll_drag(
+            context,
+            &self.state,
+            &mut self.scroll,
+            &mut self.scroll_drag_from,
+        );
 
         let main = position;
 
@@ -246,7 +237,7 @@ impl StatefulWidget for ExploreLevelsWidget {
             }
         }
 
-        ctl_util::overflow_scroll(
+        crate::util::overflow_scroll(
             context.delta_time,
             self.scroll.current,
             &mut self.scroll.target,

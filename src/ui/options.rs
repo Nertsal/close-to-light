@@ -122,21 +122,12 @@ impl StatefulWidget for OptionsWidget {
         self.window.update(context.delta_time);
 
         // Scroll
-        if self.state.mouse_left.just_pressed {
-            self.scroll_drag_from = self.scroll.current;
-        }
-        if self.state.hovered {
-            if let Some(press) = &self.state.mouse_left.pressed {
-                self.scroll.snap_to(
-                    self.scroll_drag_from - context.cursor.position.y + press.press_position.y,
-                    context.delta_time,
-                );
-            } else {
-                let scroll_speed = 2.0;
-                self.scroll.target += context.cursor.scroll * scroll_speed;
-            }
-        }
-        self.scroll.update(context.delta_time);
+        ctl_ui::util::scroll_drag(
+            context,
+            &self.state,
+            &mut self.scroll,
+            &mut self.scroll_drag_from,
+        );
 
         let mut main = position
             .extend_symmetric(vec2(-1.0, -1.0) * context.layout_size)
@@ -171,7 +162,7 @@ impl StatefulWidget for OptionsWidget {
         state.context.set_options(options);
 
         // Limit scroll to the contents
-        ctl_util::overflow_scroll(
+        ctl_ui::util::overflow_scroll(
             context.delta_time,
             self.scroll.current,
             &mut self.scroll.target,

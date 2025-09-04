@@ -2,6 +2,7 @@ mod context;
 pub mod geometry;
 pub mod layout;
 mod state;
+pub mod util;
 pub mod widget;
 mod window;
 

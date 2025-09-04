@@ -29,24 +29,3 @@ pub fn world_to_screen(
         (pos.y + 1.0) / 2.0 * framebuffer_size.y,
     )
 }
-
-pub fn overflow_scroll(
-    delta_time: f32,
-    current: f32,
-    target: &mut f32,
-    content_size: f32,
-    visible_size: f32,
-) {
-    let overflow_up = *target;
-    let height = content_size - current;
-    let max_scroll = (height - visible_size).max(0.0);
-    let overflow_down = -max_scroll - *target;
-    let overflow = if overflow_up > 0.0 {
-        overflow_up
-    } else if overflow_down > 0.0 {
-        -overflow_down
-    } else {
-        0.0
-    };
-    *target -= overflow * (delta_time / 0.1).min(1.0);
-}
