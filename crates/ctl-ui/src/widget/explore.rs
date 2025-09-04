@@ -5,6 +5,7 @@ use crate::layout::AreaOps;
 use ctl_assets::Assets;
 use ctl_core::types::{Id, LevelSetInfo};
 use ctl_local::{CacheState, LevelCache};
+use ctl_util::{SecondOrderDynamics, SecondOrderState};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ExploreAction {
@@ -33,8 +34,8 @@ pub struct ExploreLevelsWidget {
     assets: Rc<Assets>,
     pub state: WidgetState,
     pub status: TextWidget,
-    pub scroll: f32,
-    pub target_scroll: f32,
+    pub scroll: SecondOrderState<f32>,
+    scroll_drag_from: f32,
     pub items_state: WidgetState,
     pub items: Vec<LevelItemWidget>,
 }
@@ -138,8 +139,8 @@ impl ExploreLevelsWidget {
             assets: assets.clone(),
             state: WidgetState::new(),
             status: TextWidget::new("Offline"),
-            scroll: 0.0,
-            target_scroll: 0.0,
+            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
+            scroll_drag_from: 0.0,
             items_state: WidgetState::new(),
             items: Vec::new(),
         }
@@ -159,7 +160,6 @@ impl ExploreLevelsWidget {
                         self.items.drain(groups.len() + 1..self.items.len());
                     }
                     self.items.extend((self.items.len()..groups.len()).map(|_| {
-                        log::info!("new widget");
                         let mut widget = LevelItemWidget {
                             state: WidgetState::new(),
                             download: IconButtonWidget::new_normal(self.assets.atlas.download()),
@@ -206,12 +206,29 @@ impl StatefulWidget for ExploreLevelsWidget {
         }
         self.state.update(position, context);
 
+        // Scroll
+        if self.state.mouse_left.just_pressed {
+            self.scroll_drag_from = self.scroll.current;
+        }
+        if self.state.hovered {
+            if let Some(press) = &self.state.mouse_left.pressed {
+                self.scroll.snap_to(
+                    self.scroll_drag_from - context.cursor.position.y + press.press_position.y,
+                    context.delta_time,
+                );
+            } else {
+                let scroll_speed = 2.0;
+                self.scroll.target += context.cursor.scroll * scroll_speed;
+            }
+        }
+        self.scroll.update(context.delta_time);
+
         let main = position;
 
         self.items_state.update(main, context);
         self.status.update(main, context);
 
-        let main = main.translate(vec2(0.0, -self.scroll));
+        let main = main.translate(vec2(0.0, -self.scroll.current));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 2.0);
@@ -229,22 +246,13 @@ impl StatefulWidget for ExploreLevelsWidget {
             }
         }
 
-        // TODO: extract to a function or smth
-        {
-            self.target_scroll += context.cursor.scroll;
-            let overflow_up = self.target_scroll;
-            let max_scroll = (height - main.height()).max(0.0);
-            let overflow_down = -max_scroll - self.target_scroll;
-            let overflow = if overflow_up > 0.0 {
-                overflow_up
-            } else if overflow_down > 0.0 {
-                -overflow_down
-            } else {
-                0.0
-            };
-            self.target_scroll -= overflow * (context.delta_time / 0.2).min(1.0);
-            self.scroll += (self.target_scroll - self.scroll) * (context.delta_time / 0.1).min(1.0);
-        }
+        ctl_util::overflow_scroll(
+            context.delta_time,
+            self.scroll.current,
+            &mut self.scroll.target,
+            height,
+            main.height(),
+        );
     }
 }
 

@@ -171,18 +171,13 @@ impl StatefulWidget for OptionsWidget {
         state.context.set_options(options);
 
         // Limit scroll to the contents
-        let overflow_up = self.scroll.target;
-        let height = position.max.y - main.max.y + context.font_size * 2.0 - self.scroll.current;
-        let max_scroll = (height - position.height()).max(0.0);
-        let overflow_down = -max_scroll - self.scroll.target;
-        let overflow = if overflow_up > 0.0 {
-            overflow_up
-        } else if overflow_down > 0.0 {
-            -overflow_down
-        } else {
-            0.0
-        };
-        self.scroll.target -= overflow * (context.delta_time / 0.1).min(1.0);
+        ctl_util::overflow_scroll(
+            context.delta_time,
+            self.scroll.current,
+            &mut self.scroll.target,
+            position.max.y - main.max.y + context.font_size * 2.0,
+            position.height(),
+        );
     }
 }
 
