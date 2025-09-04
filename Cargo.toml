@@ -36,6 +36,7 @@ data-encoding = "2.5.0"
 generational-arena = "0.2.9"
 bincode = "1.3.3"
 cbor4ii = { version = "0.3.3", features = ["serde1", "use_std"] }
+time = { version = "0.3.31", features = ["serde"] }
 
 # Game
 geng = "0.18"
@@ -73,7 +74,6 @@ tower-sessions = { version = "0.12", default-features = false, features = [
     "signed",
 ] }
 tower-sessions-sqlx-store = { version = "0.12", features = ["sqlite"] }
-time = "0.3.31"
 http-body-util = "0.1.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

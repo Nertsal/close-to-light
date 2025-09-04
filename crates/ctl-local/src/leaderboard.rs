@@ -72,11 +72,21 @@ pub struct LoadedBoard {
 }
 
 /// Meta information saved together with the score.
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScoreMeta {
     pub category: ScoreCategory,
     pub score: Score,
-    // TODO: datetime
+    pub time: ::time::OffsetDateTime,
+}
+
+impl Default for ScoreMeta {
+    fn default() -> Self {
+        Self {
+            category: ScoreCategory::default(),
+            score: Score::default(),
+            time: ::time::OffsetDateTime::now_utc(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -104,9 +114,14 @@ impl ScoreCategory {
 
 impl ScoreMeta {
     pub fn new(mods: LevelModifiers, health: HealthConfig, score: Score) -> Self {
+        Self::new_category(ScoreCategory::new(mods, health), score)
+    }
+
+    pub fn new_category(category: ScoreCategory, score: Score) -> Self {
         Self {
-            category: ScoreCategory::new(mods, health),
+            category,
             score,
+            time: ::time::OffsetDateTime::now_utc(),
         }
     }
 }
