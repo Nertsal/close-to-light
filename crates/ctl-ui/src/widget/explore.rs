@@ -308,7 +308,7 @@ impl StatefulWidget for LevelItemWidget {
             self.download.hide();
             self.downloading.hide();
 
-            if context.context.music.is_playing() == Some(self.info.id) {
+            if context.context.music.is_playing() == Some(self.info.music.id) {
                 self.play_music.hide();
                 self.pause_music.show();
                 self.pause_music.update(rows[0], context);
