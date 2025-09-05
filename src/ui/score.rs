@@ -14,6 +14,8 @@ pub struct ScoreWidget {
     pub modifiers: Vec<IconWidget>,
     pub score_text: TextWidget,
     pub score_value: TextWidget,
+    pub score_grade: ScoreGrade,
+    pub grade: TextWidget,
     pub accuracy_bar: WidgetState,
     pub accuracy_value: TextWidget,
     pub accuracy_text: TextWidget,
@@ -34,6 +36,8 @@ impl ScoreWidget {
             modifiers: vec![],
             score_text: TextWidget::new("Score"),
             score_value: TextWidget::new("XXXXX"),
+            score_grade: ScoreGrade::F,
+            grade: TextWidget::new("F"),
             accuracy_bar: WidgetState::new(),
             accuracy_value: TextWidget::new("100.00%"),
             accuracy_text: TextWidget::new("Accuracy"),
@@ -58,6 +62,8 @@ impl ScoreWidget {
             })
             .collect();
         self.score_value.text = format!("{}", score.score.calculated.combined).into();
+        self.score_grade = score.score.calculate_grade(score.completion);
+        self.grade.text = format!("{}", self.score_grade).into();
         self.accuracy_value.text =
             format!("{:.2}%", score.score.calculated.accuracy.as_f32() * 100.0).into();
         self.precision_value.text =
@@ -74,6 +80,7 @@ impl WidgetOld for ScoreWidget {
         self.state.update(position, context);
         self.window.update(context.delta_time);
 
+        let theme = context.theme();
         let main = position;
 
         let mut main = main.extend_symmetric(-vec2(1.0, 1.0) * context.layout_size);
@@ -83,7 +90,7 @@ impl WidgetOld for ScoreWidget {
 
         let diff = main.cut_top(context.font_size * 1.0);
         self.difficulty_name.update(diff, context);
-        self.difficulty_name.options.color = context.theme().highlight;
+        self.difficulty_name.options.color = theme.highlight;
 
         let mods_row = main.cut_top(context.font_size * 1.0);
         let mods = mods_row.stack_aligned(
@@ -95,8 +102,15 @@ impl WidgetOld for ScoreWidget {
             modifier.update(pos, context);
         }
 
-        let score = main.cut_top(context.font_size * 1.5);
-        self.score_value.update(score, &context.scale_font(1.5));
+        let score = main.cut_top(context.font_size * 1.2);
+        self.score_value.update(score, &context.scale_font(1.2));
+
+        let grade = main.cut_top(context.font_size * 2.0);
+        self.grade.update(grade, &context.scale_font(2.0));
+        self.grade.options.color = match self.score_grade {
+            ScoreGrade::F => theme.danger,
+            _ => theme.highlight,
+        };
 
         main.cut_top(context.font_size * 0.2);
 

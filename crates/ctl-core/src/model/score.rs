@@ -7,6 +7,34 @@ pub const DYNAMIC_SCALE: f32 = 1000.0;
 /// everything is disregarded as too far from the light.
 pub const MAX_PREC_DISTANCE: f32 = 1.5;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ScoreGrade {
+    F,
+    D,
+    C,
+    B,
+    A,
+    S,
+    SS,
+    SSS,
+}
+
+impl Display for ScoreGrade {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            ScoreGrade::F => "F",
+            ScoreGrade::D => "D",
+            ScoreGrade::C => "C",
+            ScoreGrade::B => "B",
+            ScoreGrade::A => "A",
+            ScoreGrade::S => "S",
+            ScoreGrade::SS => "SS",
+            ScoreGrade::SSS => "SSS",
+        };
+        f.write_str(s)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Score {
@@ -71,6 +99,30 @@ impl Score {
             multiplier,
             calculated: CalculatedScore::new(),
             metrics: ScoreMetrics::new(),
+        }
+    }
+
+    pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
+        if completion < R32::ONE {
+            return ScoreGrade::F;
+        }
+        let acc = self.calculated.accuracy.as_f32();
+        if acc >= 1.0 {
+            if self.calculated.precision.as_f32() == 1.0 {
+                ScoreGrade::SSS
+            } else {
+                ScoreGrade::SS
+            }
+        } else if acc > 0.95 {
+            ScoreGrade::S
+        } else if acc > 0.9 {
+            ScoreGrade::A
+        } else if acc > 0.75 {
+            ScoreGrade::B
+        } else if acc > 0.5 {
+            ScoreGrade::C
+        } else {
+            ScoreGrade::D
         }
     }
 

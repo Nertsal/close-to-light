@@ -11,7 +11,7 @@ pub struct GameUI {
 
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
-        let mut leaderboard = LeaderboardWidget::new(assets, false);
+        let mut leaderboard = LeaderboardWidget::new(assets, true);
         leaderboard.reload.hide();
         Self {
             leaderboard_head: TextWidget::new("Leaderboard").rotated(Angle::from_degrees(90.0)),
@@ -46,40 +46,6 @@ impl GameUI {
             self.leaderboard.show();
             self.score.show();
 
-            // Score
-            {
-                let width = layout_size * 13.0;
-                let height = layout_size * 20.0;
-
-                let score = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
-                    .extend_left(width)
-                    .extend_down(height);
-
-                let t = (model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0);
-                let t = crate::util::smoothstep(1.0 - t);
-                let offset = main.height() + screen.height() * t;
-
-                let score = score.translate(vec2(-layout_size * 7.0, offset));
-                self.score.update_state(
-                    &ctl_local::ScoreMeta::new(
-                        model.level.config.modifiers.clone(),
-                        model.level.config.health.clone(),
-                        model.score.clone(),
-                        model.current_completion(),
-                    ),
-                    &model
-                        .level
-                        .group
-                        .music
-                        .as_ref()
-                        .map(|music| music.meta.clone())
-                        .unwrap_or_default(),
-                    &model.level.level.meta,
-                );
-                self.score.update(score, context);
-                context.update_focus(self.score.state.hovered);
-            }
-
             // Leaderboard
             {
                 let main = screen;
@@ -113,6 +79,40 @@ impl GameUI {
                     hover,
                     context.cursor.position.x < leaderboard.min.x && !hover,
                 );
+            }
+
+            // Score
+            {
+                let width = layout_size * 13.0;
+                let height = layout_size * 22.0;
+
+                let score = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
+                    .extend_left(width)
+                    .extend_down(height);
+
+                let t = (model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0);
+                let t = crate::util::smoothstep(1.0 - t);
+                let offset = main.height() + screen.height() * t;
+
+                let score = score.translate(vec2(-layout_size * 7.0, offset));
+                self.score.update_state(
+                    &ctl_local::ScoreMeta::new(
+                        model.level.config.modifiers.clone(),
+                        model.level.config.health.clone(),
+                        model.score.clone(),
+                        model.current_completion(),
+                    ),
+                    &model
+                        .level
+                        .group
+                        .music
+                        .as_ref()
+                        .map(|music| music.meta.clone())
+                        .unwrap_or_default(),
+                    &model.level.level.meta,
+                );
+                self.score.update(score, context);
+                context.update_focus(self.score.state.hovered);
             }
         } else {
             self.leaderboard.hide();

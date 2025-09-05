@@ -429,6 +429,7 @@ impl UiRender {
 
         self.draw_text(&score.score_text, framebuffer);
         self.draw_text(&score.score_value, framebuffer);
+        self.draw_text(&score.grade, framebuffer);
 
         let mut draw_bar = |position: Aabb2<f32>,
                             light_color: Color,
@@ -533,6 +534,7 @@ impl UiRender {
             self.draw_text(&row.rank, &mut buffer.color);
             self.draw_text(&row.player, &mut buffer.color);
             self.draw_text(&row.score, &mut buffer.color);
+            self.draw_text(&row.grade, &mut buffer.color);
             self.draw_outline(
                 row.state.position,
                 outline_width,
@@ -556,6 +558,7 @@ impl UiRender {
             self.draw_text(&leaderboard.highscore.rank, framebuffer);
             self.draw_text(&leaderboard.highscore.player, framebuffer);
             self.draw_text(&leaderboard.highscore.score, framebuffer);
+            self.draw_text(&leaderboard.highscore.grade, framebuffer);
             for icon in &leaderboard.highscore.modifiers {
                 self.draw_icon(icon, theme, framebuffer);
             }

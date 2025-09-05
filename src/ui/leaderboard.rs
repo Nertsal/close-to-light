@@ -31,6 +31,8 @@ pub struct LeaderboardEntryWidget {
     pub player: TextWidget,
     pub score: TextWidget,
     pub highlight: bool,
+    pub score_grade: ScoreGrade,
+    pub grade: TextWidget,
     pub modifiers: Vec<IconWidget>,
 }
 
@@ -243,6 +245,9 @@ impl LeaderboardEntryWidget {
             .map(|modifier| IconWidget::new(assets.get_modifier(modifier)))
             .collect();
 
+        let score_grade = score.meta.score.calculate_grade(score.meta.completion);
+        let grade = TextWidget::new(format!("{score_grade}"));
+
         let mut score = TextWidget::new(format!(
             "{} ({}/{})",
             score.score,
@@ -257,6 +262,8 @@ impl LeaderboardEntryWidget {
             player,
             score,
             highlight,
+            score_grade,
+            grade,
             modifiers,
         }
     }
@@ -270,17 +277,29 @@ impl WidgetOld for LeaderboardEntryWidget {
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
         let mut main = position;
+        let theme = context.theme();
 
-        let mods = main.cut_bottom(context.font_size * 1.0);
-        let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
+        let mut bottom_row = main.cut_bottom(context.font_size * 1.0);
+        bottom_row.cut_left(context.layout_size);
+        bottom_row.cut_right(context.layout_size);
+        let mod_pos = bottom_row.align_aabb(
+            vec2(bottom_row.height(), bottom_row.height()),
+            vec2(1.0, 0.5),
+        );
         let mods = mod_pos.stack_aligned(
             vec2(mod_pos.width(), 0.0),
             self.modifiers.len(),
-            vec2(0.5, 0.5),
+            vec2(1.0, 0.5),
         );
         for (modifier, pos) in self.modifiers.iter_mut().zip(mods) {
             modifier.update(pos, context);
         }
+
+        self.grade.update(bottom_row, &context.scale_font(1.0));
+        self.grade.options.color = match self.score_grade {
+            ScoreGrade::F => theme.danger,
+            _ => theme.highlight,
+        };
 
         let rank = main.cut_left(context.font_size * 1.0);
         self.rank.update(rank, context);
@@ -294,9 +313,9 @@ impl WidgetOld for LeaderboardEntryWidget {
         let player = main;
         self.player.update(player, context);
         self.player.options.color = if self.highlight {
-            context.theme().danger
+            theme.highlight
         } else {
-            context.theme().light
+            theme.light
         }
     }
 }
