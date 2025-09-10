@@ -15,6 +15,8 @@ pub struct ScoreWidget {
     pub score_text: TextWidget,
     pub score_value: TextWidget,
     pub score_grade: ScoreGrade,
+    pub grade_text: TextWidget,
+    pub grade_back: WidgetState,
     pub grade: IconWidget,
     pub accuracy_bar: WidgetState,
     pub accuracy_value: TextWidget,
@@ -34,9 +36,11 @@ impl ScoreWidget {
             music_name: TextWidget::new("<Music Title>"),
             difficulty_name: TextWidget::new("<Difficulty>"),
             modifiers: vec![],
-            score_text: TextWidget::new("Score"),
-            score_value: TextWidget::new("XXXXX"),
+            score_text: TextWidget::new("Score").aligned(vec2(0.0, 0.5)),
+            score_value: TextWidget::new("XXXXX").aligned(vec2(0.5, 0.5)),
             score_grade: ScoreGrade::F,
+            grade_text: TextWidget::new("Grade").aligned(vec2(0.0, 0.5)),
+            grade_back: WidgetState::new(),
             grade: IconWidget::new(assets.atlas.grade_f()).with_pixel_scale(2.0),
             accuracy_bar: WidgetState::new(),
             accuracy_value: TextWidget::new("100.00%"),
@@ -102,17 +106,26 @@ impl WidgetOld for ScoreWidget {
             modifier.update(pos, context);
         }
 
-        let score = main.cut_top(context.font_size * 1.2);
+        let mut grade = main.cut_top(context.font_size * 2.0);
+        self.grade_back.update(grade, context);
+        let score = grade
+            .split_right(0.5)
+            .with_width(context.layout_size * 5.0, 0.0);
+        // self.score_text.update(score, &context.scale_font(1.2));
         self.score_value.update(score, &context.scale_font(1.2));
 
-        let grade = main.cut_top(context.font_size * 2.0);
-        self.grade.update(grade, &context.scale_font(2.0));
+        // let mut grade = main
+        //     .cut_top(context.font_size * 2.0)
+        //     .extend_symmetric(vec2(-context.layout_size * 2.0, 0.0));
+        // self.grade_text.update(grade, &context.scale_font(1.2));
+        let grade = grade.with_width(context.layout_size * 4.0, 1.0);
+        self.grade.update(grade, context);
         self.grade.color = match self.score_grade {
             ScoreGrade::F => ThemeColor::Danger,
             _ => ThemeColor::Highlight,
         };
 
-        main.cut_top(context.font_size * 0.2);
+        main.cut_top(context.font_size * 0.5);
 
         let columns = main.split_columns(2);
         let mut acc_col = columns[0];

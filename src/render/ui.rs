@@ -432,7 +432,22 @@ impl UiRender {
         }
 
         self.draw_text(&score.score_text, framebuffer);
+        self.draw_subtexture(
+            score.grade_back.position,
+            &self.context.assets.atlas.grade_back_score(),
+            theme.highlight,
+            score.grade.pixel_scale,
+            framebuffer,
+        );
         self.draw_text(&score.score_value, framebuffer);
+        self.draw_text(&score.grade_text, framebuffer);
+        self.draw_subtexture(
+            score.grade_back.position,
+            &self.context.assets.atlas.grade_back(),
+            theme.light,
+            score.grade.pixel_scale,
+            framebuffer,
+        );
         self.draw_icon(&score.grade, theme, framebuffer);
 
         let mut draw_bar = |position: Aabb2<f32>,

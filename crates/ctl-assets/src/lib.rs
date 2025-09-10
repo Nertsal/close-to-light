@@ -137,6 +137,8 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     grade_c,
     grade_d,
     grade_f,
+    grade_back,
+    grade_back_score,
 
     timeline: {
         arrow,
