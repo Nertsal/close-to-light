@@ -126,6 +126,15 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     value_knob,
     dropdown,
 
+    grade_sss,
+    grade_ss,
+    grade_s,
+    grade_a,
+    grade_b,
+    grade_c,
+    grade_d,
+    grade_f,
+
     timeline: {
         arrow,
         current_arrow,

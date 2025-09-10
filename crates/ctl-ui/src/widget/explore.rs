@@ -239,7 +239,6 @@ impl StatefulWidget for ExploreLevelsWidget {
 
         crate::util::overflow_scroll(
             context.delta_time,
-            self.scroll.current,
             &mut self.scroll.target,
             height,
             main.height(),

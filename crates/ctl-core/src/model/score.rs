@@ -113,13 +113,13 @@ impl Score {
             } else {
                 ScoreGrade::SS
             }
-        } else if acc > 0.95 {
+        } else if acc >= 0.95 {
             ScoreGrade::S
-        } else if acc > 0.9 {
+        } else if acc >= 0.9 {
             ScoreGrade::A
-        } else if acc > 0.75 {
+        } else if acc >= 0.75 {
             ScoreGrade::B
-        } else if acc > 0.5 {
+        } else if acc >= 0.5 {
             ScoreGrade::C
         } else {
             ScoreGrade::D

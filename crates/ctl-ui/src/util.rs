@@ -4,16 +4,9 @@ use crate::widget::WidgetState;
 
 use ctl_util::SecondOrderState;
 
-pub fn overflow_scroll(
-    delta_time: f32,
-    current: f32,
-    target: &mut f32,
-    content_size: f32,
-    visible_size: f32,
-) {
+pub fn overflow_scroll(delta_time: f32, target: &mut f32, content_size: f32, visible_size: f32) {
     let overflow_up = *target;
-    let height = content_size - current;
-    let max_scroll = (height - visible_size).max(0.0);
+    let max_scroll = (content_size - visible_size).max(0.0);
     let overflow_down = -max_scroll - *target;
     let overflow = if overflow_up > 0.0 {
         overflow_up

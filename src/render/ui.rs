@@ -534,7 +534,8 @@ impl UiRender {
             self.draw_text(&row.rank, &mut buffer.color);
             self.draw_text(&row.player, &mut buffer.color);
             self.draw_text(&row.score, &mut buffer.color);
-            self.draw_text(&row.grade, &mut buffer.color);
+            self.draw_text(&row.accuracy, &mut buffer.color);
+            self.draw_icon(&row.grade, theme, &mut buffer.color);
             self.draw_outline(
                 row.state.position,
                 outline_width,
@@ -558,7 +559,8 @@ impl UiRender {
             self.draw_text(&leaderboard.highscore.rank, framebuffer);
             self.draw_text(&leaderboard.highscore.player, framebuffer);
             self.draw_text(&leaderboard.highscore.score, framebuffer);
-            self.draw_text(&leaderboard.highscore.grade, framebuffer);
+            self.draw_icon(&leaderboard.highscore.grade, theme, framebuffer);
+            self.draw_text(&leaderboard.highscore.accuracy, framebuffer);
             for icon in &leaderboard.highscore.modifiers {
                 self.draw_icon(icon, theme, framebuffer);
             }

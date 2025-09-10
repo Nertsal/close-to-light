@@ -133,6 +133,7 @@ impl StatefulWidget for OptionsWidget {
             .extend_symmetric(vec2(-1.0, -1.0) * context.layout_size)
             .extend_down(100.0 * context.layout_size) // Technically infinite because we can scroll
             .translate(vec2(0.0, -self.scroll.current));
+        let main_top = main.max.y;
 
         let profile = main.cut_top(3.0 * context.font_size);
         self.profile
@@ -164,9 +165,8 @@ impl StatefulWidget for OptionsWidget {
         // Limit scroll to the contents
         ctl_ui::util::overflow_scroll(
             context.delta_time,
-            self.scroll.current,
             &mut self.scroll.target,
-            position.max.y - main.max.y + context.font_size * 2.0,
+            main_top - main.max.y + context.font_size * 2.0,
             position.height(),
         );
     }

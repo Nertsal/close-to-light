@@ -30,9 +30,10 @@ pub struct LeaderboardEntryWidget {
     pub rank: TextWidget,
     pub player: TextWidget,
     pub score: TextWidget,
+    pub accuracy: TextWidget,
     pub highlight: bool,
     pub score_grade: ScoreGrade,
-    pub grade: TextWidget,
+    pub grade: IconWidget,
     pub modifiers: Vec<IconWidget>,
 }
 
@@ -126,6 +127,39 @@ impl LeaderboardWidget {
                     entry.user.id == user.id,
                 ))
             })
+            .chain(
+                [
+                    (1.0, 1.0),
+                    (1.0, 0.9),
+                    (0.95, 0.9),
+                    (0.9, 0.9),
+                    (0.75, 0.9),
+                    (0.5, 0.9),
+                    (0.3, 0.9),
+                    (0.0, 0.9),
+                ]
+                .map(|(acc, prec)| {
+                    LeaderboardEntryWidget::new(
+                        &self.assets,
+                        "1",
+                        SavedScore {
+                            user: UserInfo {
+                                name: "username".into(),
+                                ..default()
+                            },
+                            score: 123456,
+                            meta: {
+                                let mut meta = ctl_local::ScoreMeta::default();
+                                meta.completion = if acc > 0.2 { R32::ONE } else { R32::ZERO };
+                                meta.score.calculated.accuracy = r32(acc);
+                                meta.score.calculated.precision = r32(prec);
+                                meta
+                            },
+                        },
+                        false,
+                    )
+                }),
+            )
             .collect();
         match &board.local_high {
             None => self.highscore.hide(),
@@ -208,14 +242,14 @@ impl WidgetOld for LeaderboardWidget {
             .extend_right(main.width())
             .extend_down(context.font_size * 2.0);
         let rows = row.stack(vec2(0.0, -row.height()), self.rows.len());
-        let height = rows.last().map_or(0.0, |row| main.max.y - row.min.y);
+        let height =
+            rows.first().map_or(0.0, |row| row.max.y) - rows.last().map_or(0.0, |row| row.min.y);
         for (row, position) in self.rows.iter_mut().zip(rows) {
             row.update(position, context);
         }
 
         ctl_ui::util::overflow_scroll(
             context.delta_time,
-            self.scroll.current,
             &mut self.scroll.target,
             height,
             main.height(),
@@ -232,10 +266,10 @@ impl LeaderboardEntryWidget {
     ) -> Self {
         let rank = rank.into();
         let mut rank = TextWidget::new(format!("{rank}."));
-        rank.align(vec2(1.0, 0.5));
+        rank.align(vec2(1.0, 0.0));
 
         let mut player = TextWidget::new(score.user.name.clone());
-        player.align(vec2(0.0, 0.5));
+        player.align(vec2(0.0, 0.0));
 
         let modifiers = score
             .meta
@@ -246,21 +280,30 @@ impl LeaderboardEntryWidget {
             .collect();
 
         let score_grade = score.meta.score.calculate_grade(score.meta.completion);
-        let grade = TextWidget::new(format!("{score_grade}"));
+        let grade = IconWidget::new(match score_grade {
+            ScoreGrade::F => assets.atlas.grade_f(),
+            ScoreGrade::D => assets.atlas.grade_d(),
+            ScoreGrade::C => assets.atlas.grade_c(),
+            ScoreGrade::B => assets.atlas.grade_b(),
+            ScoreGrade::A => assets.atlas.grade_a(),
+            ScoreGrade::S => assets.atlas.grade_s(),
+            ScoreGrade::SS => assets.atlas.grade_ss(),
+            ScoreGrade::SSS => assets.atlas.grade_sss(),
+        });
 
-        let mut score = TextWidget::new(format!(
-            "{} ({}/{})",
-            score.score,
+        let accuracy = TextWidget::new(format!(
+            "accuracy: {}%",
             (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
-            (score.meta.score.calculated.precision.as_f32() * 100.0).floor()
-        ));
-        score.align(vec2(1.0, 0.5));
+        ))
+        .aligned(vec2(1.0, 1.0));
+        let score = TextWidget::new(format!("{}", score.score)).aligned(vec2(1.0, 0.0));
 
         Self {
             state: WidgetState::new(),
             rank,
             player,
             score,
+            accuracy,
             highlight,
             score_grade,
             grade,
@@ -279,39 +322,55 @@ impl WidgetOld for LeaderboardEntryWidget {
         let mut main = position;
         let theme = context.theme();
 
-        let mut bottom_row = main.cut_bottom(context.font_size * 1.0);
-        bottom_row.cut_left(context.layout_size);
-        bottom_row.cut_right(context.layout_size);
+        main.cut_top(context.layout_size * 0.5);
+        main.cut_bottom(context.layout_size * 0.5);
+
+        let mut top_row = main;
+        let bottom_row = top_row.split_bottom(0.5);
         let mod_pos = bottom_row.align_aabb(
             vec2(bottom_row.height(), bottom_row.height()),
-            vec2(1.0, 0.5),
+            vec2(0.5, 0.5),
         );
         let mods = mod_pos.stack_aligned(
             vec2(mod_pos.width(), 0.0),
             self.modifiers.len(),
-            vec2(1.0, 0.5),
+            vec2(0.5, 0.5),
         );
         for (modifier, pos) in self.modifiers.iter_mut().zip(mods) {
             modifier.update(pos, context);
+            modifier.color = ThemeColor::Danger;
         }
 
-        self.grade.update(bottom_row, &context.scale_font(1.0));
-        self.grade.options.color = match self.score_grade {
-            ScoreGrade::F => theme.danger,
-            _ => theme.highlight,
+        let mut right = main;
+        right.cut_right(context.layout_size);
+        let right = right.cut_right(main.width() / 3.0);
+        let mut score = right;
+        score.min.y = right.center().y - context.font_size * 0.25;
+        self.score.update(score, context);
+        let mut acc = right;
+        acc.max.y = score.min.y - context.font_size * 0.1;
+        self.accuracy.update(acc, &context.scale_font(0.5));
+
+        let grade = if self.modifiers.is_empty() {
+            main
+        } else {
+            top_row
+        };
+        self.grade.update(grade, &context.scale_font(1.0));
+        self.grade.color = match self.score_grade {
+            ScoreGrade::F => ThemeColor::Danger,
+            _ => ThemeColor::Highlight,
         };
 
-        let rank = main.cut_left(context.font_size * 1.0);
+        let mut rank_player = main;
+        rank_player.min.y = main.center().y - context.font_size * 0.25;
+        let rank = rank_player.cut_left(context.font_size * 1.0);
         self.rank.update(rank, context);
-        main.cut_left(context.font_size * 0.2);
+        rank_player.cut_left(context.font_size * 0.2);
 
-        main.cut_right(context.layout_size);
+        rank_player.max.x = main.center().x;
 
-        let score = main.cut_right(main.width() / 2.0);
-        self.score.update(score, context);
-
-        let player = main;
-        self.player.update(player, context);
+        self.player.update(rank_player, context);
         self.player.options.color = if self.highlight {
             theme.highlight
         } else {
