@@ -198,7 +198,10 @@ impl WidgetOld for LeaderboardWidget {
         let highscore = main.cut_bottom(context.font_size * 2.0);
         self.highscore.update(highscore, context);
 
-        let separator = main.cut_bottom(context.font_size * 0.1);
+        let separator = main
+            .cut_bottom(context.font_size * 0.5)
+            .with_height(context.font_size * 0.1, 0.0)
+            .with_width(main.width() * 0.8, 0.5);
         self.separator_highscore.update(separator, context);
 
         main.cut_bottom(0.2 * context.font_size);
@@ -247,16 +250,7 @@ impl LeaderboardEntryWidget {
             .collect();
 
         let score_grade = score.meta.score.calculate_grade(score.meta.completion);
-        let grade = IconWidget::new(match score_grade {
-            ScoreGrade::F => assets.atlas.grade_f(),
-            ScoreGrade::D => assets.atlas.grade_d(),
-            ScoreGrade::C => assets.atlas.grade_c(),
-            ScoreGrade::B => assets.atlas.grade_b(),
-            ScoreGrade::A => assets.atlas.grade_a(),
-            ScoreGrade::S => assets.atlas.grade_s(),
-            ScoreGrade::SS => assets.atlas.grade_ss(),
-            ScoreGrade::SSS => assets.atlas.grade_sss(),
-        });
+        let grade = IconWidget::new(assets.get_grade(score_grade));
 
         let accuracy = TextWidget::new(format!(
             "accuracy: {}%",

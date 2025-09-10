@@ -7,6 +7,7 @@ use ctl_render_core::SubTexture;
 pub struct IconWidget {
     pub state: WidgetState,
     pub texture: SubTexture,
+    pub pixel_scale: f32,
     pub color: ThemeColor,
     pub background: Option<IconBackground>,
 }
@@ -28,8 +29,16 @@ impl IconWidget {
         Self {
             state: WidgetState::new(),
             texture: texture.clone(),
+            pixel_scale: 1.0,
             color: ThemeColor::Light,
             background: None,
+        }
+    }
+
+    pub fn with_pixel_scale(self, pixel_scale: f32) -> Self {
+        Self {
+            pixel_scale,
+            ..self
         }
     }
 

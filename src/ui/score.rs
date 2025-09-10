@@ -15,7 +15,7 @@ pub struct ScoreWidget {
     pub score_text: TextWidget,
     pub score_value: TextWidget,
     pub score_grade: ScoreGrade,
-    pub grade: TextWidget,
+    pub grade: IconWidget,
     pub accuracy_bar: WidgetState,
     pub accuracy_value: TextWidget,
     pub accuracy_text: TextWidget,
@@ -37,7 +37,7 @@ impl ScoreWidget {
             score_text: TextWidget::new("Score"),
             score_value: TextWidget::new("XXXXX"),
             score_grade: ScoreGrade::F,
-            grade: TextWidget::new("F"),
+            grade: IconWidget::new(assets.atlas.grade_f()).with_pixel_scale(2.0),
             accuracy_bar: WidgetState::new(),
             accuracy_value: TextWidget::new("100.00%"),
             accuracy_text: TextWidget::new("Accuracy"),
@@ -63,7 +63,7 @@ impl ScoreWidget {
             .collect();
         self.score_value.text = format!("{}", score.score.calculated.combined).into();
         self.score_grade = score.score.calculate_grade(score.completion);
-        self.grade.text = format!("{}", self.score_grade).into();
+        self.grade.texture = self.assets.get_grade(self.score_grade);
         self.accuracy_value.text =
             format!("{:.2}%", score.score.calculated.accuracy.as_f32() * 100.0).into();
         self.precision_value.text =
@@ -107,9 +107,9 @@ impl WidgetOld for ScoreWidget {
 
         let grade = main.cut_top(context.font_size * 2.0);
         self.grade.update(grade, &context.scale_font(2.0));
-        self.grade.options.color = match self.score_grade {
-            ScoreGrade::F => theme.danger,
-            _ => theme.highlight,
+        self.grade.color = match self.score_grade {
+            ScoreGrade::F => ThemeColor::Danger,
+            _ => ThemeColor::Highlight,
         };
 
         main.cut_top(context.font_size * 0.2);

@@ -282,6 +282,7 @@ impl GameRender {
                         Aabb2::point(position),
                         &texture,
                         theme.light,
+                        1.0,
                         framebuffer,
                     );
                 }

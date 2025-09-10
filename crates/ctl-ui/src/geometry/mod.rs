@@ -102,7 +102,7 @@ impl GeometryContext {
 
     pub fn update(&mut self, framebuffer_size: vec2<usize>) {
         self.framebuffer_size = framebuffer_size;
-        self.pixel_scale = ctl_render_core::pixel_scale(self.framebuffer_size);
+        self.pixel_scale = ctl_render_core::get_pixel_scale(self.framebuffer_size);
         *self.z_index.get_mut() = DEFAULT_Z;
     }
 

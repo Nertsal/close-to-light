@@ -1,7 +1,7 @@
 use super::{mask::MaskedRender, util::UtilRender, *};
 
 use crate::ui::{layout::AreaOps, widget::*};
-use ctl_render_core::{SubTexture, pixel_scale};
+use ctl_render_core::{SubTexture, get_pixel_scale};
 
 pub struct UiRender {
     context: Context,
@@ -95,9 +95,10 @@ impl UiRender {
         quad: Aabb2<f32>,
         texture: &ugli::Texture,
         color: Color,
+        pixel_scale: f32,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let size = texture.size().as_f32() * pixel_scale(framebuffer.size());
+        let size = texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size());
         let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
         self.context.geng.draw2d().textured_quad(
             framebuffer,
@@ -113,9 +114,10 @@ impl UiRender {
         quad: Aabb2<f32>,
         texture: &SubTexture,
         color: Color,
+        pixel_scale: f32,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let size = texture.size().as_f32() * pixel_scale(framebuffer.size());
+        let size = texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size());
         let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
         self.context.geng.draw2d().draw2d(
             framebuffer,
@@ -131,7 +133,7 @@ impl UiRender {
         color: Color,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let scale = pixel_scale(framebuffer.size());
+        let scale = get_pixel_scale(framebuffer.size());
         let (texture, real_width) = if width < 2.0 * scale {
             (&self.context.assets.sprites.border_thinner, 1.0 * scale)
         } else if width < 16.0 * scale {
@@ -217,7 +219,7 @@ impl UiRender {
                         icon.state.position,
                         theme.get_color(bg.color),
                         texture,
-                        pixel_scale(framebuffer.size()),
+                        icon.pixel_scale * get_pixel_scale(framebuffer.size()),
                         &geng::PixelPerfectCamera,
                         framebuffer,
                     );
@@ -227,6 +229,7 @@ impl UiRender {
                         icon.state.position,
                         &self.context.assets.sprites.circle,
                         theme.get_color(bg.color),
+                        icon.pixel_scale,
                         framebuffer,
                     );
                 }
@@ -236,6 +239,7 @@ impl UiRender {
             icon.state.position,
             &icon.texture,
             theme.get_color(icon.color),
+            icon.pixel_scale,
             framebuffer,
         );
     }
@@ -429,7 +433,7 @@ impl UiRender {
 
         self.draw_text(&score.score_text, framebuffer);
         self.draw_text(&score.score_value, framebuffer);
-        self.draw_text(&score.grade, framebuffer);
+        self.draw_icon(&score.grade, theme, framebuffer);
 
         let mut draw_bar = |position: Aabb2<f32>,
                             light_color: Color,
@@ -520,11 +524,11 @@ impl UiRender {
         self.draw_text(&leaderboard.subtitle, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);
 
-        self.draw_quad(
-            leaderboard.separator_title.position,
-            theme.light,
-            framebuffer,
-        );
+        // self.draw_quad(
+        //     leaderboard.separator_title.position,
+        //     theme.light,
+        //     framebuffer,
+        // );
 
         let mut buffer = masked.start();
 
@@ -700,7 +704,7 @@ impl UiRender {
         let size = position.size();
         let size = size.x.min(size.y);
 
-        let scale = ui::pixel_scale(framebuffer.size());
+        let scale = ui::get_pixel_scale(framebuffer.size());
 
         let texture = if size < 48.0 * scale {
             &self.context.assets.sprites.fill_thin

@@ -4,7 +4,10 @@ pub use self::options::*;
 
 use std::path::PathBuf;
 
-use ctl_core::prelude::{Color, Modifier};
+use ctl_core::{
+    model::ScoreGrade,
+    prelude::{Color, Modifier},
+};
 pub use ctl_font::Font;
 use ctl_render_core::SubTexture;
 use geng::prelude::*;
@@ -243,6 +246,19 @@ impl Assets {
             Modifier::NoFail => self.atlas.mod_nofail(),
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
+        }
+    }
+
+    pub fn get_grade(&self, grade: ScoreGrade) -> SubTexture {
+        match grade {
+            ScoreGrade::F => self.atlas.grade_f(),
+            ScoreGrade::D => self.atlas.grade_d(),
+            ScoreGrade::C => self.atlas.grade_c(),
+            ScoreGrade::B => self.atlas.grade_b(),
+            ScoreGrade::A => self.atlas.grade_a(),
+            ScoreGrade::S => self.atlas.grade_s(),
+            ScoreGrade::SS => self.atlas.grade_ss(),
+            ScoreGrade::SSS => self.atlas.grade_sss(),
         }
     }
 }

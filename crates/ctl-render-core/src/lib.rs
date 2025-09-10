@@ -5,7 +5,7 @@ pub use self::texture_atlas::*;
 use geng::prelude::*;
 use geng_utils::conversions::Vec2RealConversions;
 
-pub fn pixel_scale(framebuffer_size: vec2<usize>) -> f32 {
+pub fn get_pixel_scale(framebuffer_size: vec2<usize>) -> f32 {
     const TARGET_SIZE: vec2<usize> = vec2(640, 360);
     let size = framebuffer_size.as_f32();
     let ratio = size / TARGET_SIZE.as_f32();

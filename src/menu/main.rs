@@ -205,6 +205,7 @@ impl geng::State for MainMenu {
                     Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
                     &self.context.assets.sprites.title,
                     THEME.light,
+                    1.0,
                     &mut framebuffer,
                 );
             }
