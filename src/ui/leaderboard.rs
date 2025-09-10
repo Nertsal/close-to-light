@@ -127,39 +127,6 @@ impl LeaderboardWidget {
                     entry.user.id == user.id,
                 ))
             })
-            .chain(
-                [
-                    (1.0, 1.0),
-                    (1.0, 0.9),
-                    (0.95, 0.9),
-                    (0.9, 0.9),
-                    (0.75, 0.9),
-                    (0.5, 0.9),
-                    (0.3, 0.9),
-                    (0.0, 0.9),
-                ]
-                .map(|(acc, prec)| {
-                    LeaderboardEntryWidget::new(
-                        &self.assets,
-                        "1",
-                        SavedScore {
-                            user: UserInfo {
-                                name: "username".into(),
-                                ..default()
-                            },
-                            score: 123456,
-                            meta: {
-                                let mut meta = ctl_local::ScoreMeta::default();
-                                meta.completion = if acc > 0.2 { R32::ONE } else { R32::ZERO };
-                                meta.score.calculated.accuracy = r32(acc);
-                                meta.score.calculated.precision = r32(prec);
-                                meta
-                            },
-                        },
-                        false,
-                    )
-                }),
-            )
             .collect();
         match &board.local_high {
             None => self.highscore.hide(),

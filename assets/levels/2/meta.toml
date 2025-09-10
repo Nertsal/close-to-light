@@ -1,8 +1,9 @@
 id = 2
+featured = false
 hash = "a9cec506216a7fb2cb88f4eb22d78f40cd19927dcc4d497ee05a2f7d440df861"
 
 [music]
-id = 2
+id = 3
 original = true
 featured = true
 name = "Rest"

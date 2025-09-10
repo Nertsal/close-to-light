@@ -1,0 +1,57 @@
+id = 0
+hash = "b82dd258e1f9317fef1e74a8a160bcaf548c7fa03e812ededbd262b72276f6ec"
+
+[music]
+id = 0
+original = false
+name = "Pixel Peeker Polka"
+romanized = "Pixel Peeker Polka"
+
+[[music.authors]]
+id = 0
+name = "Kevin MacLeod"
+romanized = "Kevin MacLeod"
+
+[owner]
+id = 1
+name = "Nertsal"
+
+[[levels]]
+id = 0
+name = "Easy"
+hash = "c11d85623a4cc473f012fd2db7e15f4647607e731422f8b821d70f222786438d"
+
+[[levels.authors]]
+id = 0
+name = "ricky-lee"
+romanized = "ricky-lee"
+
+[[levels]]
+id = 0
+name = "Normal"
+hash = "feb475a7828ebe3c8f21c72a4947711c8b606cbf556053fec74fa29417d8d0d5"
+
+[[levels.authors]]
+id = 0
+name = "ricky-lee"
+romanized = "ricky-lee"
+
+[[levels]]
+id = 0
+name = "Hard"
+hash = "480430b8404b55b33c53aee1e730811be207fc30a46c79d899d7331f08f2c894"
+
+[[levels.authors]]
+id = 0
+name = "ricky-lee"
+romanized = "ricky-lee"
+
+[[levels]]
+id = 0
+name = "Insane"
+hash = "e2f0840ea8c8d4e3387dc11a14cd3a5aa543f091ada75d08ffb09a8d7872fa20"
+
+[[levels.authors]]
+id = 0
+name = "ricky-lee"
+romanized = "ricky-lee"

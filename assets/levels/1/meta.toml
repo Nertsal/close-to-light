@@ -1,8 +1,9 @@
 id = 1
+featured = false
 hash = "124850c478189fc9439f04694194e8d2151ee640913fb21474d89f3b0b4910e8"
 
 [music]
-id = 1
+id = 2
 original = true
 featured = true
 name = "Far from Dark"
@@ -33,9 +34,9 @@ name = "Normal"
 hash = "63ca5f756b82748d1b92ea7cd224f3221c075e2849d8c1215c716497852b43eb"
 
 [[levels.authors]]
-id = 0
-name = "IcyLava"
-romanized = "IcyLava"
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
 
 [[levels]]
 id = 3
