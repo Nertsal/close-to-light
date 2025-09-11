@@ -6,20 +6,20 @@ use super::*;
 pub struct LevelSelectUI {
     // geng: Geng,
     assets: Rc<Assets>,
-    pub tab_groups: ToggleButtonWidget,
     pub tab_levels: ToggleButtonWidget,
+    pub tab_diffs: ToggleButtonWidget,
     pub separator: WidgetState,
 
-    pub add_group: AddItemWidget,
-    pub grid_groups: Vec<ItemGroupWidget>,
-    pub no_levels: TextWidget,
+    pub add_level: AddItemWidget,
     pub grid_levels: Vec<ItemLevelWidget>,
+    pub no_diffs: TextWidget,
+    pub grid_diffs: Vec<ItemDiffWidget>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum LevelSelectAction {
-    EditLevel(Index, usize),
-    DeleteLevel(Index, usize),
+    EditDifficulty(Index, usize),
+    DeleteDifficulty(Index, usize),
     SyncGroup(Index),
     EditGroup(Index),
     DeleteGroup(Index),
@@ -36,32 +36,32 @@ impl LevelSelectUI {
         let mut ui = Self {
             // geng: geng.clone(),
             assets: assets.clone(),
-            tab_groups: ToggleButtonWidget::new("Group"),
-            tab_levels: ToggleButtonWidget::new("Difficulty"),
+            tab_levels: ToggleButtonWidget::new("Level"),
+            tab_diffs: ToggleButtonWidget::new("Difficulty"),
             separator: WidgetState::new(),
 
-            add_group: AddItemWidget::new(assets),
-            grid_groups: Vec::new(),
-            no_levels: TextWidget::new("Create a Difficulty in the editor"),
+            add_level: AddItemWidget::new(assets),
             grid_levels: Vec::new(),
+            no_diffs: TextWidget::new("Create a Difficulty in the editor"),
+            grid_diffs: Vec::new(),
         };
-        ui.tab_groups.selected = true;
-        ui.tab_levels.hide();
+        ui.tab_levels.selected = true;
+        ui.tab_diffs.hide();
         ui
     }
 
     pub fn select_tab(&mut self, tab: LevelSelectTab) {
-        for button in [&mut self.tab_groups, &mut self.tab_levels] {
+        for button in [&mut self.tab_levels, &mut self.tab_diffs] {
             if !button.state.mouse_left.clicked {
                 button.selected = false;
             }
         }
 
         let tab = match tab {
-            LevelSelectTab::Group => &mut self.tab_groups,
+            LevelSelectTab::Group => &mut self.tab_levels,
             LevelSelectTab::Difficulty => {
-                self.tab_groups.show();
-                &mut self.tab_levels
+                self.tab_levels.show();
+                &mut self.tab_diffs
             }
         };
         tab.show();
@@ -82,10 +82,10 @@ impl LevelSelectUI {
         self.tabs(bar, context);
 
         let mut action = None;
-        if self.tab_groups.selected {
+        if self.tab_levels.selected {
             let act = self.grid_groups(main, state, context);
             action = action.or(act);
-        } else if self.tab_levels.selected {
+        } else if self.tab_diffs.selected {
             let act = self.grid_levels(main, state, context);
             action = action.or(act);
         }
@@ -99,14 +99,11 @@ impl LevelSelectUI {
         self.separator.update(sep, context);
 
         let buttons = [
-            self.tab_groups
-                .state
-                .visible
-                .then_some(&mut self.tab_groups),
             self.tab_levels
                 .state
                 .visible
                 .then_some(&mut self.tab_levels),
+            self.tab_diffs.state.visible.then_some(&mut self.tab_diffs),
         ];
         let all_buttons = buttons.len();
         let buttons: Vec<_> = buttons.into_iter().flatten().collect();
@@ -129,7 +126,7 @@ impl LevelSelectUI {
             }
         }
         if deselect {
-            for button in [&mut self.tab_groups, &mut self.tab_levels] {
+            for button in [&mut self.tab_levels, &mut self.tab_diffs] {
                 if !button.state.mouse_left.clicked {
                     button.selected = false;
                 }
@@ -151,16 +148,16 @@ impl LevelSelectUI {
             .collect();
 
         // Synchronize vec length
-        if self.grid_groups.len() != groups.len() {
-            self.grid_groups =
+        if self.grid_levels.len() != groups.len() {
+            self.grid_levels =
                 vec![
-                    ItemGroupWidget::new(&self.assets, "", Index::from_raw_parts(0, 0),);
+                    ItemLevelWidget::new(&self.assets, "", Index::from_raw_parts(0, 0),);
                     groups.len()
                 ];
         }
 
         // Synchronize data
-        for (widget, &(group_id, cached)) in self.grid_groups.iter_mut().zip(&groups) {
+        for (widget, &(group_id, cached)) in self.grid_levels.iter_mut().zip(&groups) {
             widget.sync(group_id, cached);
         }
 
@@ -168,7 +165,7 @@ impl LevelSelectUI {
 
         // Layout
         let columns = 3;
-        let rows = self.grid_groups.len() / columns + 1;
+        let rows = self.grid_levels.len() / columns + 1;
         let spacing = vec2(1.0, 2.0) * context.layout_size;
         let item_size = vec2(
             (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
@@ -188,16 +185,16 @@ impl LevelSelectUI {
             if row == 0 {
                 skip = 1;
                 let pos = layout[0];
-                self.add_group
+                self.add_level
                     .update(pos.extend_symmetric(-pos.size() * 0.1), context);
             }
             row_items -= skip;
 
             let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
-            let range = (i + row_items).min(self.grid_groups.len());
+            let range = (i + row_items).min(self.grid_levels.len());
 
             let mut tab = None;
-            for (widget, pos) in self.grid_groups[i..range]
+            for (widget, pos) in self.grid_levels[i..range]
                 .iter_mut()
                 .zip(layout.into_iter().skip(skip))
             {
@@ -243,10 +240,10 @@ impl LevelSelectUI {
             .collect();
 
         // Synchronize vec length
-        if self.grid_levels.len() != levels.len() {
+        if self.grid_diffs.len() != levels.len() {
             if let Some(cached) = levels.first() {
-                self.grid_levels = vec![
-                    ItemLevelWidget::new(
+                self.grid_diffs = vec![
+                    ItemDiffWidget::new(
                         &self.assets,
                         "",
                         Index::from_raw_parts(0, 0),
@@ -256,7 +253,7 @@ impl LevelSelectUI {
                     levels.len()
                 ];
             } else {
-                self.grid_levels.clear();
+                self.grid_diffs.clear();
             }
         }
 
@@ -265,7 +262,7 @@ impl LevelSelectUI {
 
         // Synchronize data
         for (widget, (level_id, cached)) in
-            self.grid_levels.iter_mut().zip(levels.iter().enumerate())
+            self.grid_diffs.iter_mut().zip(levels.iter().enumerate())
         {
             let origin_hash = group.origin.as_ref().and_then(|info| {
                 info.levels
@@ -280,18 +277,18 @@ impl LevelSelectUI {
 
         drop(local);
 
-        if self.grid_levels.is_empty() {
-            self.no_levels.show();
+        if self.grid_diffs.is_empty() {
+            self.no_diffs.show();
             let size = vec2(10.0, 1.2) * context.font_size;
             let pos = main.align_aabb(size, vec2(0.5, 0.5));
-            self.no_levels.update(pos, context);
+            self.no_diffs.update(pos, context);
         } else {
-            self.no_levels.hide();
+            self.no_diffs.hide();
         }
 
         // Layout
         let columns = 3;
-        let rows = self.grid_levels.len() / columns + 1;
+        let rows = self.grid_diffs.len() / columns + 1;
         let spacing = vec2(1.0, 2.0) * context.layout_size;
         let item_size = vec2(
             (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
@@ -310,10 +307,10 @@ impl LevelSelectUI {
             let skip = 0;
 
             let i = columns * row;
-            let range = (i + row_items).min(self.grid_levels.len());
+            let range = (i + row_items).min(self.grid_diffs.len());
 
             let mut tab = None;
-            for (widget, pos) in self.grid_levels[i..range]
+            for (widget, pos) in self.grid_diffs[i..range]
                 .iter_mut()
                 .zip(layout.into_iter().skip(skip))
             {
@@ -376,7 +373,7 @@ impl WidgetOld for AddItemWidget {
 }
 
 #[derive(Clone)]
-pub struct ItemGroupWidget {
+pub struct ItemLevelWidget {
     pub state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
@@ -385,7 +382,7 @@ pub struct ItemGroupWidget {
     pub index: Index,
 }
 
-impl ItemGroupWidget {
+impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
@@ -467,7 +464,7 @@ impl ItemGroupWidget {
 }
 
 #[derive(Clone)]
-pub struct ItemLevelWidget {
+pub struct ItemDiffWidget {
     pub state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
@@ -478,7 +475,7 @@ pub struct ItemLevelWidget {
     pub menu: ItemMenuWidget,
 }
 
-impl ItemLevelWidget {
+impl ItemDiffWidget {
     pub fn new(
         assets: &Rc<Assets>,
         text: impl Into<Name>,
@@ -556,11 +553,11 @@ impl ItemLevelWidget {
 
         let mut action = None;
         if self.menu.edit.icon.state.mouse_left.clicked {
-            action = Some(LevelSelectAction::EditLevel(self.group, self.index));
+            action = Some(LevelSelectAction::EditDifficulty(self.group, self.index));
         } else if self.menu.sync.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.group));
         } else if self.menu.delete.icon.state.mouse_left.clicked {
-            action = Some(LevelSelectAction::DeleteLevel(self.group, self.index));
+            action = Some(LevelSelectAction::DeleteDifficulty(self.group, self.index));
         }
         action
     }

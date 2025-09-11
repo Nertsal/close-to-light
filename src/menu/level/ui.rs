@@ -202,10 +202,10 @@ impl MenuUI {
                         ));
                     }
                 }
-                LevelSelectAction::EditLevel(group, level) => {
+                LevelSelectAction::EditDifficulty(group, level) => {
                     state.edit_level(group, Some(level));
                 }
-                LevelSelectAction::DeleteLevel(group, level) => {
+                LevelSelectAction::DeleteDifficulty(group, level) => {
                     state.popup_confirm(
                         ConfirmAction::DeleteLevel(group, level),
                         "delete difficulty",
@@ -227,7 +227,7 @@ impl MenuUI {
             }
         } else if self
             .level_select
-            .add_group
+            .add_level
             .menu
             .browse
             .state
@@ -237,7 +237,7 @@ impl MenuUI {
             self.explore_groups();
         } else if self
             .level_select
-            .add_group
+            .add_level
             .menu
             .create
             .state

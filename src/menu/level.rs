@@ -369,7 +369,7 @@ impl LevelMenu {
                     // Remove
                     self.state.selected_group = None;
                     self.state.selected_level = None;
-                    self.ui.level_select.tab_levels.hide();
+                    self.ui.level_select.tab_diffs.hide();
                     self.ui.level_select.select_tab(LevelSelectTab::Group);
                 }
             }

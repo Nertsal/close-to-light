@@ -134,12 +134,12 @@ impl MenuRender {
         let theme = state.context.get_options().theme;
 
         self.ui
-            .draw_toggle_widget(&ui.tab_groups, theme, framebuffer);
-        self.ui
             .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
+        self.ui
+            .draw_toggle_widget(&ui.tab_diffs, theme, framebuffer);
 
-        if ui.tab_groups.selected {
-            for group in &ui.grid_groups {
+        if ui.tab_levels.selected {
+            for group in &ui.grid_levels {
                 self.ui.draw_icon(&group.edited, theme, framebuffer);
                 self.ui.draw_icon(&group.local, theme, framebuffer);
                 self.ui.draw_outline(
@@ -154,16 +154,16 @@ impl MenuRender {
             }
 
             self.draw_item_widget(
-                &ui.add_group.text,
-                ui.add_group.menu.state.visible,
+                &ui.add_level.text,
+                ui.add_level.menu.state.visible,
                 0.5,
                 theme,
                 framebuffer,
             );
-            self.draw_add_menu(&ui.add_group.menu, theme, framebuffer);
-        } else if ui.tab_levels.selected {
-            self.ui.draw_text(&ui.no_levels, framebuffer);
-            for level in &ui.grid_levels {
+            self.draw_add_menu(&ui.add_level.menu, theme, framebuffer);
+        } else if ui.tab_diffs.selected {
+            self.ui.draw_text(&ui.no_diffs, framebuffer);
+            for level in &ui.grid_diffs {
                 self.ui.draw_icon(&level.edited, theme, framebuffer);
                 self.ui.draw_icon(&level.local, theme, framebuffer);
                 self.ui.draw_outline(
