@@ -1,5 +1,9 @@
 use super::*;
 
+/// Extra distance within which the player is still counted as in-light
+/// to give some leeway on fading lights.
+const LEEWAY: f32 = 0.01;
+
 #[derive(Debug, Clone)]
 pub struct Player {
     pub info: UserInfo,
@@ -106,14 +110,22 @@ impl Player {
         danger: bool,
         at_waypoint: bool,
     ) {
+        let leeway = if danger {
+            // NOTE: Danger lights do not give leeway (that would be the opposite of leeway)
+            Coord::ZERO
+        } else {
+            Coord::new(LEEWAY)
+        };
+        let with_leeway = |distance: Coord| (distance - leeway).max(Coord::ZERO);
+
         let delta_pos = self.collider.position - light.position;
         let (raw_distance, max_distance) = match light.shape {
-            Shape::Circle { radius } => (delta_pos.len(), radius),
+            Shape::Circle { radius } => (with_leeway(delta_pos.len()), radius),
             Shape::Line { width } => {
                 let dir = light.rotation.unit_vec();
                 let dir = vec2(-dir.y, dir.x); // perpendicular
                 let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
-                (dot.abs(), width / r32(2.0))
+                (with_leeway(dot.abs()), width / r32(2.0))
             }
             Shape::Rectangle { width, height } => {
                 let delta_pos = delta_pos.rotate(-light.rotation);
@@ -134,7 +146,7 @@ impl Player {
                     let w = vec2::dot(delta_pos, vec2::UNIT_X);
                     vec2(w, height / r32(2.0)).len()
                 };
-                (delta_pos.len(), radius)
+                (with_leeway(delta_pos.len()).max(Coord::ZERO), radius)
             }
         };
 
