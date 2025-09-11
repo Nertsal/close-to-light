@@ -84,7 +84,7 @@ impl GameUI {
             // Score
             {
                 let width = layout_size * 13.0;
-                let height = layout_size * 22.0;
+                let height = layout_size * 21.5;
 
                 let score = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
                     .extend_left(width)

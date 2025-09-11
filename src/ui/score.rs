@@ -96,6 +96,8 @@ impl WidgetOld for ScoreWidget {
         self.difficulty_name.update(diff, context);
         self.difficulty_name.options.color = theme.highlight;
 
+        main.cut_top(context.font_size * 0.1);
+
         let mods_row = main.cut_top(context.font_size * 1.0);
         let mods = mods_row.stack_aligned(
             vec2(mods_row.height(), 0.0),
@@ -113,6 +115,7 @@ impl WidgetOld for ScoreWidget {
             .with_width(context.layout_size * 5.0, 0.0);
         // self.score_text.update(score, &context.scale_font(1.2));
         self.score_value.update(score, &context.scale_font(1.2));
+        self.score_value.options.color = theme.dark;
 
         // let mut grade = main
         //     .cut_top(context.font_size * 2.0)
@@ -125,7 +128,7 @@ impl WidgetOld for ScoreWidget {
             _ => ThemeColor::Highlight,
         };
 
-        main.cut_top(context.font_size * 0.5);
+        main.cut_top(context.font_size * 1.0);
 
         let columns = main.split_columns(2);
         let mut acc_col = columns[0];
