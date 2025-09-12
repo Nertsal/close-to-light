@@ -1,61 +1,34 @@
 {
-  description = "Development";
-
   inputs = {
-    nixpkgs.url      = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url  = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    systems.url = "github:nix-systems/default";
+    geng.url = "github:geng-engine/cargo-geng";
+    geng.inputs.nixpkgs.follows = "nixpkgs";
   };
-
-  outputs = { nixpkgs, rust-overlay, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs {
-          inherit system overlays;
-        };
-        waylandDeps = with pkgs; [
-          libxkbcommon
-          wayland
-        ];
-        xorgDeps = with pkgs; [
-          xorg.libX11
-          xorg.libXcursor
-          xorg.libXi
-          xorg.libXrandr
-        ];
-        libDeps = with pkgs; waylandDeps ++ xorgDeps ++ [
-            alsa-lib
-            udev
-            libGL
-            xorg.libxcb
-            cmake
-            fontconfig
-            mesa
-            freeglut
-        ];
-        libPath = pkgs.lib.makeLibraryPath libDeps;
-      in
-      with pkgs;
-      {
-        devShells.default = mkShell {
-          buildInputs = libDeps ++ [
-            sqlite
-            rlwrap
-            gcc
-            openssl
-            pkg-config
-            # rust-bin.stable.latest.default
-            (rust-bin.stable.latest.default.override {
-              extensions = [ "rust-src" ];
-              targets = [ "wasm32-unknown-unknown" ];
-            })
-          ];
-          shellHook = ''
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${libPath}"
-            export WINIT_UNIX_BACKEND=x11
-          '';
-        };
-      }
-    );
+  outputs = { geng, nixpkgs, systems, self }:
+    let
+      pkgsFor = system: import nixpkgs { inherit system; };
+      forEachSystem = f: nixpkgs.lib.genAttrs (import systems) (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        f { inherit system pkgs; });
+    in
+    {
+      devShells = forEachSystem ({ system, pkgs, ... }:
+        {
+          default = geng.lib.mkShell {
+            inherit system;
+            target.linux.enable = true;
+            target.web.enable = true;
+            packages = with pkgs; [
+              just
+              butler
+              sqlite
+              rlwrap
+            ];
+          };
+        });
+      formatter = forEachSystem ({ pkgs, ... }: pkgs.nixfmt);
+    };
 }
