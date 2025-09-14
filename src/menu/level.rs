@@ -74,20 +74,6 @@ pub struct MenuState {
     pub notifications: Vec<String>,
 }
 
-pub struct GroupEntry {
-    pub meta: LevelSetInfo,
-    pub logo: Option<ugli::Texture>,
-}
-
-impl Debug for GroupEntry {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("GroupEntry")
-            .field("meta", &self.meta)
-            .field("logo", &self.logo.as_ref().map(|_| "<logo>"))
-            .finish()
-    }
-}
-
 impl MenuState {
     fn get_category(&self) -> ScoreCategory {
         let mods = self.config.modifiers.clone();
@@ -172,15 +158,17 @@ impl MenuState {
             }
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync
-                    && let Some(client) = self.leaderboard.client.clone() {
-                        sync.discard_changes(client);
-                    }
+                    && let Some(client) = self.leaderboard.client.clone()
+                {
+                    sync.discard_changes(client);
+                }
             }
             ConfirmAction::SyncUpload => {
                 if let Some(sync) = &mut ui.sync
-                    && let Some(client) = self.leaderboard.client.clone() {
-                        sync.upload(client);
-                    }
+                    && let Some(client) = self.leaderboard.client.clone()
+                {
+                    sync.upload(client);
+                }
             }
             ConfirmAction::DownloadRecommended => {
                 self.context.local.download_recommended();

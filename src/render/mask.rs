@@ -196,7 +196,7 @@ impl MaskedRender {
     }
 
     /// Clears and returns the masking utility buffer to draw into.
-    pub fn start(&mut self) -> Masking {
+    pub fn start(&'_ mut self) -> Masking<'_> {
         let mut mask =
             geng_utils::texture::attach_texture(&mut self.mask_texture, self.geng.ugli());
         let mut color =

@@ -17,7 +17,7 @@ impl PostRender {
     }
 
     /// Get access to the internal texture to render into.
-    pub fn begin(&mut self, screen_size: vec2<usize>) -> ugli::Framebuffer {
+    pub fn begin(&'_ mut self, screen_size: vec2<usize>) -> ugli::Framebuffer<'_> {
         geng_utils::texture::update_texture_size(
             &mut self.texture,
             screen_size,
