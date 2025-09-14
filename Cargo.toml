@@ -36,7 +36,7 @@ data-encoding = "2.5.0"
 generational-arena = "0.2.9"
 bincode = "1.3.3"
 cbor4ii = { version = "0.3.3", features = ["serde1", "use_std"] }
-time = { version = "0.3.31", features = ["serde"] }
+time = { version = "0.3.31", features = ["serde", "wasm-bindgen"] }
 
 # Game
 geng = "0.18"
@@ -62,6 +62,10 @@ darling = "0.20"
 proc-macro2 = "1.0"
 quote = "1.0"
 
+# Client
+reqwest = { version = "0.11.23", features = ["json", "multipart", "stream"] }
+url = "2.5.0"
+
 # Server
 axum = { version = "0.7.2", features = ["macros", "multipart"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
@@ -79,10 +83,6 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 sqlx = { version = "0.7.3", features = ["uuid", "runtime-tokio", "sqlite"] }
 dotenv = "0.15.0"
-
-# Client
-reqwest = { version = "0.11.23", features = ["json", "multipart", "stream"] }
-url = "2.5.0"
 
 [package]
 name = "close-to-light"
