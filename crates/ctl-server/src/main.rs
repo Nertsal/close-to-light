@@ -26,6 +26,7 @@ struct AppConfig {
 
 #[derive(Deserialize)]
 struct AppSecrets {
+    server_addr: String,
     discord: DiscordSecrets,
 }
 

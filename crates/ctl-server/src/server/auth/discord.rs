@@ -1,8 +1,5 @@
 use super::*;
 
-// const REDIRECT_URI: &str = "https://nertboard.kuviman.com/auth/discord";
-const REDIRECT_URI: &str = "http://localhost:3000/auth/discord";
-
 pub fn router() -> Router {
     Router::new().route("/auth/discord", get(auth_discord))
 }
@@ -51,7 +48,10 @@ async fn auth_discord(
 
 async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User> {
     let token: color_eyre::Result<AccessTokenResponse> = async {
-        let body = format!("grant_type=authorization_code&code={code}&redirect_uri={REDIRECT_URI}");
+        let server_addr = &app.secrets.server_addr;
+        let body = format!(
+            "grant_type=authorization_code&code={code}&redirect_uri={server_addr}/auth/discord"
+        );
         let response = client
             .post("https://discord.com/api/oauth2/token")
             .basic_auth(
@@ -62,7 +62,10 @@ async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User>
             .body(body)
             .send()
             .await?;
-        let token = response.json().await?;
+        let content = response.text().await?;
+        let token = serde_json::from_str(&content).map_err(|err| {
+            color_eyre::eyre::eyre!("received message: {content:?}, error: {err:?}")
+        })?;
         Ok(token)
     }
     .await;
