@@ -155,19 +155,21 @@ impl StatefulWidget for SyncWidget {
     ) {
         let local = &state.context.local;
 
-        if std::mem::take(&mut self.reload) && self.task_group_info.is_none()
-            && let Some(client) = local.client() {
-                let group_id = self.cached_group.local.meta.id;
-                if group_id == 0 {
-                    self.status.text = "Level is local".into();
-                    self.response.hide();
-                    self.upload.show();
-                    self.discard.hide();
-                } else {
-                    let future = async move { client.get_group_info(group_id).await };
-                    self.task_group_info = Some(Task::new(&self.geng, future));
-                }
+        if std::mem::take(&mut self.reload)
+            && self.task_group_info.is_none()
+            && let Some(client) = local.client()
+        {
+            let group_id = self.cached_group.local.meta.id;
+            if group_id == 0 {
+                self.status.text = "Level is local".into();
+                self.response.hide();
+                self.upload.show();
+                self.discard.hide();
+            } else {
+                let future = async move { client.get_group_info(group_id).await };
+                self.task_group_info = Some(Task::new(&self.geng, future));
             }
+        }
 
         if let Some(task) = self.task_group_info.take() {
             match task.poll() {
@@ -315,7 +317,7 @@ impl StatefulWidget for SyncWidget {
                 } else {
                     state.popup_confirm(
                         ConfirmAction::SyncUpload,
-                        "Uploading a new version will reset leaderboards of all difficulties",
+                        "Uploading a new version will reset leaderboards of the changed difficulties",
                         "upload",
                         "cancel",
                     );

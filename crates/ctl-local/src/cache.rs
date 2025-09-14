@@ -348,30 +348,32 @@ impl LevelCache {
     pub fn fetch_groups(&self) {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.fetch_groups.is_none()
-            && let Some(client) = inner.tasks.client.clone() {
-                let future = async move {
-                    let groups = client
-                        .get_group_list(&LevelSetsQuery { recommended: false })
-                        .await?;
-                    Ok(groups)
-                };
-                inner.tasks.fetch_groups = Some(Task::new(&self.geng, future));
-                inner.group_list = CacheState::Loading;
-            }
+            && let Some(client) = inner.tasks.client.clone()
+        {
+            let future = async move {
+                let groups = client
+                    .get_group_list(&LevelSetsQuery { recommended: false })
+                    .await?;
+                Ok(groups)
+            };
+            inner.tasks.fetch_groups = Some(Task::new(&self.geng, future));
+            inner.group_list = CacheState::Loading;
+        }
     }
 
     pub fn download_recommended(&self) {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.get_recommended.is_none()
-            && let Some(client) = inner.tasks.client.clone() {
-                let future = async move {
-                    let list = client
-                        .get_group_list(&LevelSetsQuery { recommended: true })
-                        .await?;
-                    Ok(list)
-                };
-                inner.tasks.get_recommended = Some(Task::new(&self.geng, future));
-            }
+            && let Some(client) = inner.tasks.client.clone()
+        {
+            let future = async move {
+                let list = client
+                    .get_group_list(&LevelSetsQuery { recommended: true })
+                    .await?;
+                Ok(list)
+            };
+            inner.tasks.get_recommended = Some(Task::new(&self.geng, future));
+        }
     }
 
     pub fn download_group(&self, group_id: Id) {
@@ -573,6 +575,7 @@ impl LevelCache {
 
         let mut new_group: LocalGroup = cached.local.clone();
         new_group.data = group;
+        new_group.update_hash();
 
         drop(inner);
         self.update_group_local(group_index, new_group, reset_origin)
@@ -596,6 +599,7 @@ impl LevelCache {
         }
         new_group.meta = group_meta;
         new_group.data = group;
+        new_group.update_hash();
 
         drop(inner);
         self.update_group_local(group_index, new_group, None).ok()

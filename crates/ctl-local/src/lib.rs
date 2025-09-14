@@ -39,6 +39,15 @@ pub struct LocalGroup {
     pub data: LevelSet,
 }
 
+impl LocalGroup {
+    pub fn update_hash(&mut self) {
+        self.meta.hash = self.data.calculate_hash();
+        for (level, meta) in self.data.levels.iter().zip(&mut self.meta.levels) {
+            meta.hash = level.calculate_hash();
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CachedGroup {
     pub local: LocalGroup,
