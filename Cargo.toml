@@ -126,3 +126,4 @@ tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 [patch.crates-io]
 geng = { git = "https://github.com/geng-engine/geng", rev = "1e35585545463c919ff0da849af4fdad69ab02fa" }
 geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}
+time = { git = "https://github.com/Nertsal/time", rev = "748366af4446aa890220a9da14873ee728fe0108" } # NOTE: until <https://github.com/time-rs/time/issues/751> is resolved
