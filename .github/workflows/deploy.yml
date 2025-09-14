@@ -8,7 +8,7 @@ jobs:
   build-web:
     name: Build (Web)
     runs-on: ubuntu-latest
-    container: ghcr.io/geng-engine/cargo-geng@sha256:65384ff654422795fb53780fcb9096f89ac44cf5f44d5fb6662e25ec258b90c3
+    container: ghcr.io/geng-engine/cargo-geng@sha256:c3b33ef1f25fda66b45d0bffe495c734c3080f2b9b88238c69f41424d7716e01
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -48,7 +48,7 @@ jobs:
           toolchain: stable
           profile: minimal
       - name: Install cargo-geng
-        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --rev 8e869f6508d39890a6f84122fb1c7f86a9da18da
+        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --rev aa2c2242d7024734f3d5f6e5c9879a19c01b100a
       - name: Build
         uses: actions-rs/cargo@v1
         with:
