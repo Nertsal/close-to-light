@@ -103,12 +103,12 @@ impl Score {
     }
 
     pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
-        if completion < R32::ONE {
+        if completion.as_f32() < 0.999999 {
             return ScoreGrade::F;
         }
         let acc = self.calculated.accuracy.as_f32();
         if acc >= 1.0 {
-            if self.calculated.precision.as_f32() == 1.0 {
+            if self.calculated.precision.as_f32() > 1.0 {
                 ScoreGrade::SSS
             } else {
                 ScoreGrade::SS
