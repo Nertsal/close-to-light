@@ -197,18 +197,18 @@ impl geng::State for MainMenu {
 
         let fading = self.play_button.is_fading();
         if !fading
-            && let Some(pos) = self
+            && let Ok(pos) = self
                 .camera
                 .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
-            {
-                self.ui_render.draw_texture(
-                    Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
-                    &self.context.assets.sprites.title,
-                    THEME.light,
-                    1.0,
-                    &mut framebuffer,
-                );
-            }
+        {
+            self.ui_render.draw_texture(
+                Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
+                &self.context.assets.sprites.title,
+                THEME.light,
+                1.0,
+                &mut framebuffer,
+            );
+        }
 
         self.dither.finish(self.time, &theme);
 

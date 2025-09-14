@@ -171,14 +171,15 @@ impl GameRender {
         }
 
         if let State::Playing = model.state
-            && !model.level.config.modifiers.clean_auto {
-                self.util.draw_health(
-                    &model.player.health,
-                    model.player.get_lit_state(),
-                    // &model.config.theme,
-                    &mut framebuffer,
-                );
-            }
+            && !model.level.config.modifiers.clean_auto
+        {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                // &model.config.theme,
+                &mut framebuffer,
+            );
+        }
 
         // TODO: option
         // {
@@ -272,7 +273,7 @@ impl GameRender {
             let position = Aabb2::point(vec2(-8.3, 3.2)).extend_uniform(0.3);
             for (i, modifier) in model.level.config.modifiers.iter().enumerate() {
                 let position = position.translate(vec2(i as f32, 0.0) * position.size());
-                if let Some(position) = model
+                if let Ok(position) = model
                     .camera
                     .world_to_screen(framebuffer.size().as_f32(), position.center())
                 {
