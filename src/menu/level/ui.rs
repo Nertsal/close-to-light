@@ -165,11 +165,10 @@ impl MenuUI {
             if let Some(action) = temp_state.1 {
                 match action {
                     ExploreAction::PlayMusic(group_id) => {
-                        if let Some((_index, group)) = self.context.local.get_group_id(group_id) {
-                            if let Some(music) = &group.local.music {
+                        if let Some((_index, group)) = self.context.local.get_group_id(group_id)
+                            && let Some(music) = &group.local.music {
                                 self.context.music.switch(music);
                             }
-                        }
                     }
                     ExploreAction::PauseMusic => {
                         self.context.music.stop();

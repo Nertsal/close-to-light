@@ -170,8 +170,8 @@ impl GameRender {
             }
         }
 
-        if let State::Playing = model.state {
-            if !model.level.config.modifiers.clean_auto {
+        if let State::Playing = model.state
+            && !model.level.config.modifiers.clean_auto {
                 self.util.draw_health(
                     &model.player.health,
                     model.player.get_lit_state(),
@@ -179,7 +179,6 @@ impl GameRender {
                     &mut framebuffer,
                 );
             }
-        }
 
         // TODO: option
         // {

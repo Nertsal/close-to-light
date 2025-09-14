@@ -60,8 +60,8 @@ async fn logout(
         RequestError::Internal
     })?;
 
-    if let Some(user) = user {
-        if let Some(token) = query.token {
+    if let Some(user) = user
+        && let Some(token) = query.token {
             // Remove the login token from the database
             sqlx::query("DELETE FROM user_auth_tokens WHERE user_id = ? AND token = ?")
                 .bind(user.user_id)
@@ -69,7 +69,6 @@ async fn logout(
                 .execute(&app.database)
                 .await?;
         }
-    }
 
     Ok(())
 }

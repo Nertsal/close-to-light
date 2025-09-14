@@ -347,8 +347,8 @@ impl LevelCache {
 
     pub fn fetch_groups(&self) {
         let mut inner = self.inner.borrow_mut();
-        if inner.tasks.fetch_groups.is_none() {
-            if let Some(client) = inner.tasks.client.clone() {
+        if inner.tasks.fetch_groups.is_none()
+            && let Some(client) = inner.tasks.client.clone() {
                 let future = async move {
                     let groups = client
                         .get_group_list(&LevelSetsQuery { recommended: false })
@@ -358,13 +358,12 @@ impl LevelCache {
                 inner.tasks.fetch_groups = Some(Task::new(&self.geng, future));
                 inner.group_list = CacheState::Loading;
             }
-        }
     }
 
     pub fn download_recommended(&self) {
         let mut inner = self.inner.borrow_mut();
-        if inner.tasks.get_recommended.is_none() {
-            if let Some(client) = inner.tasks.client.clone() {
+        if inner.tasks.get_recommended.is_none()
+            && let Some(client) = inner.tasks.client.clone() {
                 let future = async move {
                     let list = client
                         .get_group_list(&LevelSetsQuery { recommended: true })
@@ -373,7 +372,6 @@ impl LevelCache {
                 };
                 inner.tasks.get_recommended = Some(Task::new(&self.geng, future));
             }
-        }
     }
 
     pub fn download_group(&self, group_id: Id) {

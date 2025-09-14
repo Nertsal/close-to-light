@@ -196,8 +196,8 @@ impl geng::State for MainMenu {
         );
 
         let fading = self.play_button.is_fading();
-        if !fading {
-            if let Some(pos) = self
+        if !fading
+            && let Some(pos) = self
                 .camera
                 .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
             {
@@ -209,7 +209,6 @@ impl geng::State for MainMenu {
                     &mut framebuffer,
                 );
             }
-        }
 
         self.dither.finish(self.time, &theme);
 

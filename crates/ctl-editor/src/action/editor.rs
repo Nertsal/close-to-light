@@ -81,8 +81,8 @@ impl Editor {
                 self.scroll_time_by(speed, scroll);
             }
             EditorAction::StopPlaying => {
-                if let Some(level_editor) = &mut self.level_edit {
-                    if let EditingState::Playing {
+                if let Some(level_editor) = &mut self.level_edit
+                    && let EditingState::Playing {
                         start_time,
                         start_target_time,
                         playing_time: _,
@@ -96,7 +96,6 @@ impl Editor {
                         level_editor.state = *old_state.clone();
                         level_editor.context.music.stop();
                     }
-                }
             }
             EditorAction::StartPlaying => {
                 if let Some(level_editor) = &mut self.level_edit {

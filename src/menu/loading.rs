@@ -69,11 +69,10 @@ impl<T: 'static> LoadingScreen<T> {
         }
 
         // Check completion and timer
-        if self.real_time > self.min_load_time {
-            if let Some(result) = self.result.take() {
+        if self.real_time > self.min_load_time
+            && let Some(result) = self.result.take() {
                 return Some(result);
             }
-        }
 
         None
     }

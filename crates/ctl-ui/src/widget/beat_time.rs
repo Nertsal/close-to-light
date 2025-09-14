@@ -68,16 +68,13 @@ impl BeatValueWidget {
         self.value_text.update(main, context);
         if self.value_text.editing {
             // TODO: handle errors
-            if let Some((num, den)) = self.value_text.raw.split_once('/') {
-                if let Ok(num) = num.parse::<Time>() {
-                    if let Ok(den) = den.parse::<Time>() {
-                        if 16 % den == 0 {
+            if let Some((num, den)) = self.value_text.raw.split_once('/')
+                && let Ok(num) = num.parse::<Time>()
+                    && let Ok(den) = den.parse::<Time>()
+                        && 16 % den == 0 {
                             let units = num * (16 / den);
                             target = BeatTime::from_units(units);
                         }
-                    }
-                }
-            }
         }
 
         // Check bounds

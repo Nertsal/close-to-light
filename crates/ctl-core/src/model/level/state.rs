@@ -63,11 +63,10 @@ impl LevelState {
         event_id: Option<usize>,
         config: &LevelConfig,
     ) {
-        if let Some(time) = self.ignore_after {
-            if event.time > time {
+        if let Some(time) = self.ignore_after
+            && event.time > time {
                 return;
             }
-        }
 
         let time = self.time - event.time;
 

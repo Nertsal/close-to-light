@@ -310,11 +310,10 @@ async fn download_by_query(
         // Get the music for the level_set
         let music_id = get_music_id_for_level(&app, level_set_id).await?;
 
-        if let Some(query_music) = query.music_id {
-            if music_id != query_music {
+        if let Some(query_music) = query.music_id
+            && music_id != query_music {
                 return Err(RequestError::InvalidLevel); // TODO: better error
             }
-        }
 
         music_id
     } else if let Some(music_id) = query.music_id {

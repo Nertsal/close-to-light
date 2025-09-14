@@ -25,11 +25,10 @@ impl EditorState {
             _ => (),
         }
 
-        if self.ui_focused {
-            if let geng::Event::Wheel { .. } | geng::Event::MousePress { .. } = &event {
+        if self.ui_focused
+            && let geng::Event::Wheel { .. } | geng::Event::MousePress { .. } = &event {
                 return actions;
             }
-        }
 
         if self.editor.tab != EditorTab::Edit {
             return actions;
@@ -438,8 +437,8 @@ impl EditorState {
                 } else if let Some(event) = level_editor.level_state.hovered_event() {
                     // Clicked on a light
                     let light_id = LightId { event };
-                    if let Some(e) = level_editor.level.events.get(event) {
-                        if let Event::Light(_light) = &e.event {
+                    if let Some(e) = level_editor.level.events.get(event)
+                        && let Event::Light(_light) = &e.event {
                             match button {
                                 geng::MouseButton::Left => {
                                     // Left click
@@ -548,7 +547,6 @@ impl EditorState {
                                 }
                             }
                         }
-                    }
                 } else {
                     // Clicked on empty space - deselect
                     match button {
@@ -591,8 +589,8 @@ impl EditorState {
                             waypoints.hovered.and_then(|i| waypoints.points.get(i))
                         {
                             // Clicked on a waypoint
-                            if let Some(waypoint) = hovered.original {
-                                if let Some(event) =
+                            if let Some(waypoint) = hovered.original
+                                && let Some(event) =
                                     level_editor.level.events.get(waypoints.light.event)
                                 {
                                     self.click_waypoint(
@@ -603,7 +601,6 @@ impl EditorState {
                                         &mut actions,
                                     );
                                 }
-                            }
                         } else {
                             // Clicked on empty space - deselect
                             actions.push(LevelAction::DeselectWaypoint.into());
@@ -713,15 +710,14 @@ impl EditorState {
             return;
         }
 
-        if let Some(waypoints) = &level_editor.level_state.waypoints {
-            if let Some(selected) = waypoints.selected {
+        if let Some(waypoints) = &level_editor.level_state.waypoints
+            && let Some(selected) = waypoints.selected {
                 actions.push(
                     LevelAction::RotateWaypoint(waypoints.light, selected, Change::Add(rotate_by))
                         .into(),
                 );
                 return;
             }
-        }
 
         if let Selection::Lights(lights) = &level_editor.selection {
             let scale = r32(lights.len() as f32).recip();

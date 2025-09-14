@@ -10,11 +10,10 @@ impl EditorRender {
             self.context.geng.ugli(),
         );
 
-        if let Some(level_editor) = &editor.level_edit {
-            if level_editor.level_state.relevant().swap_palette {
+        if let Some(level_editor) = &editor.level_edit
+            && level_editor.level_state.relevant().swap_palette {
                 std::mem::swap(&mut theme.light, &mut theme.dark);
             }
-        }
 
         ugli::clear(game_buffer, Some(theme.dark), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
@@ -500,8 +499,8 @@ impl EditorRender {
             }
 
             // Selection
-            if let Some(drag) = &editor.drag {
-                if let DragTarget::SelectionArea { .. } = drag.target {
+            if let Some(drag) = &editor.drag
+                && let DragTarget::SelectionArea { .. } = drag.target {
                     let color = Color::lerp(theme.dark, theme.highlight, 0.5);
                     let selection =
                         Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)
@@ -522,7 +521,6 @@ impl EditorRender {
                     self.ui
                         .draw_outline(selection, width, color, &mut ui_buffer);
                 }
-            }
 
             geng_utils::texture::DrawTexture::new(&self.ui_texture)
                 .fit(screen_aabb, vec2(0.5, 0.5))

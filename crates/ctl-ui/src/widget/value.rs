@@ -126,12 +126,11 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         context.update_focus(controlling);
 
         self.value_text.update(main, context);
-        if self.value_text.editing {
-            if let Ok(typed_value) = self.value_text.raw.parse::<f32>() {
+        if self.value_text.editing
+            && let Ok(typed_value) = self.value_text.raw.parse::<f32>() {
                 controlling = true;
                 target = T::from_f32(typed_value);
             } // TODO: check error
-        }
 
         // Check bounds
         match self.control {

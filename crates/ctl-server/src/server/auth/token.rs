@@ -14,14 +14,13 @@ pub async fn auth_header_required_middleware(
     mut request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> impl IntoResponse {
-    if session.user.is_none() {
-        if let Some(auth_header) = auth_header {
+    if session.user.is_none()
+        && let Some(auth_header) = auth_header {
             // Attempt extracting token from header
             if auth_token(&mut session, auth_header.0).await.is_ok() {
                 request.extensions_mut().insert(session);
             }
         }
-    }
     next.run(request).await
 }
 

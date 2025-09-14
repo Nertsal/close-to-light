@@ -276,12 +276,11 @@ impl LevelEditor {
                 self.selection.clear();
             }
             LevelAction::ChangeShape(id, shape) => {
-                if let Some(event) = self.level.events.get_mut(id.event) {
-                    if let Event::Light(light) = &mut event.event {
+                if let Some(event) = self.level.events.get_mut(id.event)
+                    && let Event::Light(light) = &mut event.event {
                         light.shape = shape;
                         self.save_state(HistoryLabel::Unknown);
                     }
-                }
             }
             LevelAction::RotateLightAround(light, anchor, delta) => {
                 self.modify_movement(light, |movement| movement.rotate_around(anchor, delta))
@@ -294,19 +293,18 @@ impl LevelEditor {
             }
             LevelAction::ToggleDanger(light) => self.toggle_danger(light),
             LevelAction::ChangeFadeOut(id, change) => {
-                if let Some(event) = self.level.events.get_mut(id.event) {
-                    if let Event::Light(light) = &mut event.event {
+                if let Some(event) = self.level.events.get_mut(id.event)
+                    && let Event::Light(light) = &mut event.event {
                         let movement = &mut light.movement;
                         let mut value = movement.fade_out;
                         change.apply(&mut value);
                         movement.change_fade_out(value);
                         self.save_state(HistoryLabel::FadeOut(id));
                     }
-                }
             }
             LevelAction::ChangeFadeIn(id, change) => {
-                if let Some(event) = self.level.events.get_mut(id.event) {
-                    if let Event::Light(light) = &mut event.event {
+                if let Some(event) = self.level.events.get_mut(id.event)
+                    && let Event::Light(light) = &mut event.event {
                         let movement = &mut light.movement;
                         let from = movement.fade_in;
                         let change = change.into_delta(from);
@@ -314,7 +312,6 @@ impl LevelEditor {
                         event.time -= movement.fade_in - from;
                         self.save_state(HistoryLabel::FadeIn(id));
                     }
-                }
             }
             LevelAction::MoveLight(light, time, pos) => self.move_light(light, time, pos),
             LevelAction::HoverLight(light) => {
@@ -334,15 +331,13 @@ impl LevelEditor {
                 self.rotate(light, waypoint, change)
             }
             LevelAction::ScaleWaypoint(light_id, waypoint_id, change) => {
-                if let Some(event) = self.level.events.get_mut(light_id.event) {
-                    if let Event::Light(light) = &mut event.event {
-                        if let Some(frame) = light.movement.get_frame_mut(waypoint_id) {
+                if let Some(event) = self.level.events.get_mut(light_id.event)
+                    && let Event::Light(light) = &mut event.event
+                        && let Some(frame) = light.movement.get_frame_mut(waypoint_id) {
                             change.apply(&mut frame.scale);
                             frame.scale = frame.scale.clamp(r32(0.0), r32(10.0));
                             self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
                         }
-                    }
-                }
             }
             LevelAction::SetWaypointInterpolation(light, waypoint, interpolation) => {
                 self.set_waypoint_interpolation(light, waypoint, interpolation)
@@ -468,21 +463,19 @@ impl LevelEditor {
         // Initial frame is treated specially
         if let Some((original_id, transform, time)) = frames.next() {
             let fixed_id = WaypointId::Initial;
-            if let Some(waypoints) = &mut self.level_state.waypoints {
-                if fix_selection
+            if let Some(waypoints) = &mut self.level_state.waypoints
+                && fix_selection
                     && self.selection.is_light_single(light_id)
                     && waypoints.selected == Some(original_id)
                 {
                     waypoints.selected = Some(fixed_id);
                     fix_selection = false;
                 }
-            }
-            if let Some(waypoint) = &mut fix_drag_waypoint_id {
-                if original_id == **waypoint {
+            if let Some(waypoint) = &mut fix_drag_waypoint_id
+                && original_id == **waypoint {
                     **waypoint = fixed_id;
                     fix_drag_waypoint_id = None;
                 }
-            }
 
             // TODO: config option to keep curves at waypoints
             // let (interpolation, curve) = event
@@ -499,21 +492,19 @@ impl LevelEditor {
         // Update all other frames
         for (i, (original_id, transform, time)) in frames.enumerate() {
             let fixed_id = WaypointId::Frame(i);
-            if let Some(waypoints) = &mut self.level_state.waypoints {
-                if fix_selection
+            if let Some(waypoints) = &mut self.level_state.waypoints
+                && fix_selection
                     && self.selection.is_light_single(light_id)
                     && waypoints.selected == Some(original_id)
                 {
                     waypoints.selected = Some(fixed_id);
                     fix_selection = false;
                 }
-            }
-            if let Some(waypoint) = &mut fix_drag_waypoint_id {
-                if original_id == **waypoint {
+            if let Some(waypoint) = &mut fix_drag_waypoint_id
+                && original_id == **waypoint {
                     **waypoint = fixed_id;
                     fix_drag_waypoint_id = None;
                 }
-            }
 
             // TODO: config option to keep curves at waypoints
             // let (interpolation, curve) = event
@@ -690,11 +681,10 @@ impl LevelEditor {
     }
 
     fn toggle_danger(&mut self, light_id: LightId) {
-        if let Some(event) = self.level.events.get_mut(light_id.event) {
-            if let Event::Light(event) = &mut event.event {
+        if let Some(event) = self.level.events.get_mut(light_id.event)
+            && let Event::Light(event) = &mut event.event {
                 event.danger = !event.danger;
             }
-        }
     }
 
     fn cancel(&mut self) {
@@ -711,11 +701,10 @@ impl LevelEditor {
                 // Cancel selection
                 match state {
                     WaypointsState::Idle => {
-                        if let Some(waypoints) = &mut self.level_state.waypoints {
-                            if waypoints.selected.take().is_some() {
+                        if let Some(waypoints) = &mut self.level_state.waypoints
+                            && waypoints.selected.take().is_some() {
                                 return;
                             }
-                        }
                         self.state = EditingState::Idle
                     }
                     WaypointsState::New => *state = WaypointsState::Idle,

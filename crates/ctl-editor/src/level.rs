@@ -387,9 +387,9 @@ impl LevelEditor {
             .map(|time| LevelState::render(level, &self.model.level.config, time, None));
 
         let mut hovered_light = self.timeline_light_hover.take();
-        if hovered_light.is_none() {
-            if let EditingState::Idle = self.state {
-                if let Some(level) = &static_level {
+        if hovered_light.is_none()
+            && let EditingState::Idle = self.state
+                && let Some(level) = &static_level {
                     hovered_light = cursor_world_pos.and_then(|cursor| {
                         level
                             .lights
@@ -399,14 +399,12 @@ impl LevelEditor {
                             .map(|event| LightId { event })
                     });
                 }
-            }
-        }
 
         let mut waypoints = None;
         if let EditingState::Waypoints { light_id, state } = &self.state {
             let light_id = *light_id;
-            if let Some(timed_event) = self.level.events.get(light_id.event) {
-                if let Event::Light(light_event) = &timed_event.event {
+            if let Some(timed_event) = self.level.events.get(light_id.event)
+                && let Event::Light(light_event) = &timed_event.event {
                     let event_time = timed_event.time;
                     // If some waypoints overlap, render the temporaly closest one
                     let base_collider = Collider::new(vec2::ZERO, light_event.shape);
@@ -463,8 +461,8 @@ impl LevelEditor {
                     }
                     points.sort_by_key(|(point, _)| point.original); // Restore proper order
 
-                    if let WaypointsState::New = state {
-                        if let Some(cursor_world_pos_snapped) = cursor_world_pos_snapped {
+                    if let WaypointsState::New = state
+                        && let Some(cursor_world_pos_snapped) = cursor_world_pos_snapped {
                             // NOTE: assuming that positions don't go backwards in time
                             // Insert a new waypoint at current time
                             let new_time = self.current_time.value - event_time;
@@ -490,7 +488,6 @@ impl LevelEditor {
                                 ),
                             );
                         }
-                    }
 
                     let hovered = cursor_world_pos.and_then(|cursor_world_pos| {
                         points
@@ -519,7 +516,6 @@ impl LevelEditor {
                             .and_then(|waypoints| waypoints.selected),
                     });
                 }
-            }
         }
 
         self.level_state = EditorLevelState {

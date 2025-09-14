@@ -88,11 +88,10 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
     write!(writer, "{s}")?;
 
     // Save music
-    if save_music {
-        if let Some(music) = &group.local.music {
+    if save_music
+        && let Some(music) = &group.local.music {
             std::fs::write(path.join("music.mp3"), &music.bytes)?;
         }
-    }
 
     log::debug!("Saved group ({}) successfully", group.local.meta.id);
 

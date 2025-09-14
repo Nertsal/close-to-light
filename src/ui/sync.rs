@@ -155,8 +155,8 @@ impl StatefulWidget for SyncWidget {
     ) {
         let local = &state.context.local;
 
-        if std::mem::take(&mut self.reload) && self.task_group_info.is_none() {
-            if let Some(client) = local.client() {
+        if std::mem::take(&mut self.reload) && self.task_group_info.is_none()
+            && let Some(client) = local.client() {
                 let group_id = self.cached_group.local.meta.id;
                 if group_id == 0 {
                     self.status.text = "Level is local".into();
@@ -168,7 +168,6 @@ impl StatefulWidget for SyncWidget {
                     self.task_group_info = Some(Task::new(&self.geng, future));
                 }
             }
-        }
 
         if let Some(task) = self.task_group_info.take() {
             match task.poll() {

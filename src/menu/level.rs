@@ -171,18 +171,16 @@ impl MenuState {
                 self.context.local.delete_level(group, level)
             }
             ConfirmAction::SyncDiscard => {
-                if let Some(sync) = &mut ui.sync {
-                    if let Some(client) = self.leaderboard.client.clone() {
+                if let Some(sync) = &mut ui.sync
+                    && let Some(client) = self.leaderboard.client.clone() {
                         sync.discard_changes(client);
                     }
-                }
             }
             ConfirmAction::SyncUpload => {
-                if let Some(sync) = &mut ui.sync {
-                    if let Some(client) = self.leaderboard.client.clone() {
+                if let Some(sync) = &mut ui.sync
+                    && let Some(client) = self.leaderboard.client.clone() {
                         sync.upload(client);
                     }
-                }
             }
             ConfirmAction::DownloadRecommended => {
                 self.context.local.download_recommended();

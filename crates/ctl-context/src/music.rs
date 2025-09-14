@@ -41,11 +41,10 @@ impl MusicManager {
 
     pub fn set_speed(&self, speed: f32) {
         let mut inner = self.inner.borrow_mut();
-        if let Some(music) = &mut inner.playing {
-            if let Some(effect) = &mut music.effect {
+        if let Some(music) = &mut inner.playing
+            && let Some(effect) = &mut music.effect {
                 effect.set_speed(speed);
             }
-        }
     }
 
     pub fn stop(&self) {

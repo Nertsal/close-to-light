@@ -283,8 +283,8 @@ impl EditorEditUi {
                 std::cmp::Ordering::Equal => {
                     // Exactly 1 light selected
                     let light_id = *selected.first().unwrap();
-                    if let Some(event) = level_editor.level.events.get(light_id.event) {
-                        if let Event::Light(light) = &event.event {
+                    if let Some(event) = level_editor.level.events.get(light_id.event)
+                        && let Event::Light(light) = &event.event {
                             let danger_pos = bar.cut_top(button_height);
                             bar.cut_top(spacing);
                             let button = context.state.get_root_or(|| {
@@ -391,17 +391,16 @@ impl EditorEditUi {
 
                             bar.cut_top(spacing);
                         }
-                    }
                 }
                 std::cmp::Ordering::Less => {}
             }
             right_bar = bar;
         }
 
-        if let Some(waypoints) = &level_editor.level_state.waypoints {
-            if let Some(selected) = waypoints.selected {
-                if let Some(event) = level_editor.level.events.get(waypoints.light.event) {
-                    if let Event::Light(light) = &event.event {
+        if let Some(waypoints) = &level_editor.level_state.waypoints
+            && let Some(selected) = waypoints.selected
+                && let Some(event) = level_editor.level.events.get(waypoints.light.event)
+                    && let Event::Light(light) = &event.event {
                         let frames = light.movement.key_frames.len();
                         if let Some(frame) = light.movement.get_frame(selected) {
                             // Waypoint
@@ -429,11 +428,10 @@ impl EditorEditUi {
                                     )
                                 });
                                 button.update(prev, context);
-                                if button.icon.state.mouse_left.clicked {
-                                    if let Some(id) = selected.prev() {
+                                if button.icon.state.mouse_left.clicked
+                                    && let Some(id) = selected.prev() {
                                         actions.push(LevelAction::SelectWaypoint(id, true).into());
                                     }
-                                }
                             };
 
                             let i = match selected {
@@ -609,9 +607,6 @@ impl EditorEditUi {
                             right_bar = bar;
                         }
                     }
-                }
-            }
-        }
 
         let _ = left_bar;
         let _ = right_bar;

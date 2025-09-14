@@ -35,8 +35,8 @@ impl EditorConfigUi {
 
         // TODO: bpm editor
         let bpm_pos = bar.cut_top(context.font_size);
-        if let Some(level_editor) = &editor.level_edit {
-            if let Some(timing) = level_editor.level.timing.points.first() {
+        if let Some(level_editor) = &editor.level_edit
+            && let Some(timing) = level_editor.level.timing.points.first() {
                 let mut bpm = 60.0 / timing.beat_time.as_f32();
                 let slider = context.state.get_root_or(|| {
                     ValueWidget::new(
@@ -52,7 +52,6 @@ impl EditorConfigUi {
                 slider.update(bpm_pos, context, &mut bpm);
                 actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
             }
-        }
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
@@ -70,15 +69,14 @@ impl EditorConfigUi {
         .into();
         button.update(button_pos, context);
         #[cfg(not(target_arch = "wasm32"))]
-        if button.text.state.mouse_left.clicked {
-            if let Some(path) = rfd::FileDialog::new()
+        if button.text.state.mouse_left.clicked
+            && let Some(path) = rfd::FileDialog::new()
                 .add_filter("music", &["mp3"])
                 .set_can_create_directories(false)
                 .pick_file()
             {
                 actions.push(EditorStateAction::SelectMusicFile(path));
             }
-        }
 
         let music_pos = bar.cut_top(context.font_size);
         if let Some(music) = &editor.group.music {
@@ -147,11 +145,10 @@ impl EditorConfigUi {
             let name = bar.cut_top(context.font_size);
             level.update(name, context);
 
-            if let Some(level_editor) = &editor.level_edit {
-                if level_editor.static_level.level_index == i {
+            if let Some(level_editor) = &editor.level_edit
+                && level_editor.static_level.level_index == i {
                     level_name = level_editor.name.clone().into();
                 }
-            }
             level.text = level_name;
 
             if level.state.mouse_left.clicked {

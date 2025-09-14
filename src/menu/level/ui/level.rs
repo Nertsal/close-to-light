@@ -36,8 +36,8 @@ impl PlayLevelWidget {
         let local = &state.context.local;
         let mut music_t = 1.0;
         let mut level_t = 1.0;
-        if let Some(show_group) = &state.selected_group {
-            if let Some(group) = local.get_group(show_group.data) {
+        if let Some(show_group) = &state.selected_group
+            && let Some(group) = local.get_group(show_group.data) {
                 // Music
                 if let Some(music) = &group.local.music {
                     self.music.text = music.meta.name.clone();
@@ -51,15 +51,13 @@ impl PlayLevelWidget {
                 }
 
                 // Difficulty
-                if let Some(show_level) = &state.selected_level {
-                    if let Some(level) = local.get_level(show_group.data, show_level.data) {
+                if let Some(show_level) = &state.selected_level
+                    && let Some(level) = local.get_level(show_group.data, show_level.data) {
                         self.difficulty.text = level.meta.name.clone();
                         self.mappers.text = author_text("mapped", level.meta.authors()).into();
                         level_t = crate::util::smoothstep(1.0 - show_level.time.get_ratio());
                     }
-                }
             }
-        }
 
         // Music
         let slide_off = context.font_size * 2.0;
