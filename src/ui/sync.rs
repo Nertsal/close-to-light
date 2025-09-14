@@ -48,7 +48,7 @@ impl SyncWidget {
         group: Rc<CachedGroup>,
         group_index: Index,
     ) -> Self {
-        Self {
+        let mut sync = Self {
             geng: geng.clone(),
             cached_group_index: group_index,
             cached_group: group,
@@ -69,7 +69,10 @@ impl SyncWidget {
             task_group_info: None,
             task_group_upload: None,
             task_group_download: None,
-        }
+        };
+        sync.upload.hide();
+        sync.discard.hide();
+        sync
     }
 
     pub fn discard_changes(&mut self, client: Arc<Nertboard>) {

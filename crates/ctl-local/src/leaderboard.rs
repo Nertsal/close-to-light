@@ -429,6 +429,7 @@ impl Leaderboard {
         let fs = self.fs.clone();
         let hash = self.loaded.level.hash.clone();
         let version = self.loaded.category.version;
+        self.loaded.local_high = None;
         let task = async move {
             let mut scores = match fs.load_local_scores(&hash).await {
                 Ok(scores) => scores,
