@@ -475,17 +475,14 @@ impl geng::State for LevelMenu {
         if !fading {
             // UI lights
             let mut draw_light = |light: &SelectLightUi| {
-                let light_pos = vec2(light.pos_x, light.light_y.current());
+                let light_pos = (vec2(light.pos_x, light.light_y.current())
+                    - self.ui.screen.position.bottom_left())
+                    / self.ui.screen.position.size()
+                    * dither_buffer.size().as_f32();
                 let light_pos = self
                     .camera
-                    .screen_to_world(self.framebuffer_size.as_f32(), light_pos)
+                    .screen_to_world(dither_buffer.size().as_f32(), light_pos)
                     .as_r32();
-
-                // let telegraph_pos = vec2(light.pos_x, light.telegraph_y.current());
-                // let telegraph_pos = self
-                //     .camera
-                //     .screen_to_world(self.framebuffer_size.as_f32(), telegraph_pos)
-                //     .as_r32();
 
                 let radius = (self
                     .camera
@@ -496,13 +493,6 @@ impl geng::State for LevelMenu {
                 .len()
                 .as_r32();
 
-                // self.util.draw_outline(
-                //     &Collider::new(telegraph_pos, Shape::Circle { radius }),
-                //     0.05,
-                //     crate::render::THEME.light,
-                //     &self.camera,
-                //     &mut dither_buffer,
-                // );
                 self.util.draw_light_gradient(
                     &Collider::new(light_pos, Shape::Circle { radius }),
                     crate::render::THEME.light,

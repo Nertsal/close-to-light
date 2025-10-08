@@ -108,18 +108,32 @@ impl LevelSelectUI {
         self.light_diff.pos_x = light_diffs.center().x;
         self.light_diff.radius = light_diffs.width() * 0.4;
 
-        if state.selected_level.is_none() {
-            self.light_level.light_y.change_target(bar.center().y);
-        }
-        if state.selected_diff.is_none() {
-            self.light_diff.light_y.change_target(bar.center().y);
-        }
-
         let mut action = None;
         let act = self.layout_levels(levels, state, context);
         action = action.or(act);
         let act = self.layout_diffs(diffs, state, context);
         action = action.or(act);
+
+        match state.switch_level {
+            None => self.light_level.light_y.change_target(bar.center().y),
+            Some(selected) => {
+                if let Some(widget) = self.levels.iter().find(|level| level.index == selected) {
+                    self.light_level
+                        .light_y
+                        .change_target(widget.state.position.center().y)
+                }
+            }
+        }
+        match state.switch_diff {
+            None => self.light_diff.light_y.change_target(bar.center().y),
+            Some(selected) => {
+                if let Some(widget) = self.diffs.iter().find(|diff| diff.index == selected) {
+                    self.light_diff
+                        .light_y
+                        .change_target(widget.state.position.center().y)
+                }
+            }
+        }
 
         action
     }
