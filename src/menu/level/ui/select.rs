@@ -1,5 +1,5 @@
 use crate::ui::UiWindow;
-use ctl_local::CachedGroup;
+use ctl_local::{CachedGroup, SavedScore};
 
 use super::*;
 
@@ -267,7 +267,12 @@ impl LevelSelectUI {
             });
             let edited =
                 origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
-            widget.sync(group_idx, level_id, cached, edited);
+            let local_score = state
+                .leaderboard
+                .loaded
+                .all_highscores
+                .get(&cached.meta.hash);
+            widget.sync(group_idx, level_id, cached, local_score, edited, context);
         }
 
         drop(local);
@@ -407,6 +412,7 @@ pub struct ItemDiffWidget {
     pub group: Index,
     pub index: usize,
     pub level: LevelFull,
+    pub grade: IconWidget,
     pub menu: ItemMenuWidget,
 }
 
@@ -428,11 +434,20 @@ impl ItemDiffWidget {
             group,
             index,
             level,
+            grade: IconWidget::new(assets.atlas.grade_s()),
             menu,
         }
     }
 
-    pub fn sync(&mut self, group_idx: Index, level_index: usize, cached: &LevelFull, edited: bool) {
+    pub fn sync(
+        &mut self,
+        group_idx: Index,
+        level_index: usize,
+        cached: &LevelFull,
+        local_highscore: Option<&SavedScore>,
+        edited: bool,
+        context: &UiContext,
+    ) {
         self.index = level_index;
         self.group = group_idx;
         self.level = cached.clone();
@@ -446,6 +461,24 @@ impl ItemDiffWidget {
                 self.edited.show();
             } else {
                 self.edited.hide();
+            }
+        }
+
+        match local_highscore {
+            Some(highscore) => {
+                let grade = highscore
+                    .meta
+                    .score
+                    .calculate_grade(highscore.meta.completion);
+                self.grade.texture = context.context.assets.get_grade(grade);
+                self.grade.color = match grade {
+                    ScoreGrade::F => ThemeColor::Danger,
+                    _ => ThemeColor::Highlight,
+                };
+                self.grade.show();
+            }
+            None => {
+                self.grade.hide();
             }
         }
     }
@@ -471,6 +504,11 @@ impl ItemDiffWidget {
         }
 
         self.state.update(position, context);
+
+        let grade = position
+            .align_aabb(vec2::splat(position.height()), vec2(1.0, 0.5))
+            .translate(vec2(position.height(), 0.0));
+        self.grade.update(grade, context);
 
         let widgets = [&mut self.edited, &mut self.local];
         if widgets.iter().any(|widget| widget.state.visible) {

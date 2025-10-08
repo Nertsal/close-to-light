@@ -30,6 +30,7 @@ pub struct Leaderboard {
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
     fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
+    highscores_task: Option<Task<anyhow::Result<HashMap<String, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -44,6 +45,7 @@ impl Clone for Leaderboard {
             log_task: None,
             task: None,
             fs_task: None,
+            highscores_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard {
                 category: self.loaded.category.clone(),
@@ -62,6 +64,7 @@ pub struct SavedScore {
 }
 
 pub struct LoadedBoard {
+    pub all_highscores: HashMap<String, SavedScore>,
     pub level: LevelInfo,
     pub player: Option<Id>,
     pub category: ScoreCategory,
@@ -132,7 +135,7 @@ impl ScoreMeta {
 
 impl Leaderboard {
     pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
-        Self {
+        let mut leaderboard = Self {
             geng: geng.clone(),
             fs: fs.clone(),
             user: None,
@@ -140,9 +143,12 @@ impl Leaderboard {
             log_task: None,
             task: None,
             fs_task: None,
+            highscores_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
-        }
+        };
+        leaderboard.refresh_local_highscores();
+        leaderboard
     }
 
     pub fn new(
@@ -151,15 +157,8 @@ impl Leaderboard {
         fs: &Rc<crate::fs::Controller>,
     ) -> Self {
         let mut leaderboard = Self {
-            geng: geng.clone(),
-            fs: fs.clone(),
-            user: None,
             client: client.cloned(),
-            log_task: None,
-            task: None,
-            fs_task: None,
-            status: LeaderboardStatus::None,
-            loaded: LoadedBoard::new(),
+            ..Self::empty(geng, fs)
         };
         leaderboard.relogin();
         leaderboard
@@ -318,6 +317,11 @@ impl Leaderboard {
                 Err(task) => self.fs_task = Some(task),
                 Ok(res) => match res {
                     Ok(update) => {
+                        if let Some(score) = &update {
+                            self.loaded
+                                .all_highscores
+                                .insert(self.loaded.level.hash.clone(), score.clone());
+                        }
                         self.loaded.local_high = update;
                     }
                     Err(err) => {
@@ -326,6 +330,30 @@ impl Leaderboard {
                 },
             }
         }
+
+        if let Some(task) = self.highscores_task.take() {
+            match task.poll() {
+                Err(task) => self.highscores_task = Some(task),
+                Ok(res) => match res {
+                    Ok(update) => {
+                        self.loaded.all_highscores = update;
+                    }
+                    Err(err) => {
+                        log::error!("Loading local highscores failed: {err:?}");
+                    }
+                },
+            }
+        }
+    }
+
+    fn refresh_local_highscores(&mut self) {
+        if self.highscores_task.is_some() {
+            return;
+        }
+
+        let fs = self.fs.clone();
+        let future = async move { fs.load_local_highscores().await };
+        self.highscores_task = Some(Task::new(&self.geng, future));
     }
 
     fn load_scores(&mut self, mut scores: Vec<ScoreEntry>) {
@@ -460,6 +488,7 @@ impl Leaderboard {
 impl LoadedBoard {
     fn new() -> Self {
         Self {
+            all_highscores: HashMap::new(),
             level: LevelInfo::default(),
             player: None,
             category: ScoreCategory::new(LevelModifiers::default(), HealthConfig::default()),

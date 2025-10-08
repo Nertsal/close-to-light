@@ -171,6 +171,7 @@ impl MenuRender {
             );
             let selected = state.switch_diff == Some(diff.index);
             self.draw_item_widget(&diff.text, selected, 1.0, theme, framebuffer);
+            self.ui.draw_icon(&diff.grade, theme, framebuffer);
         }
 
         // Context menu

@@ -140,6 +140,23 @@ impl Controller {
         }
     }
 
+    pub async fn load_local_highscores(&self) -> Result<HashMap<String, SavedScore>> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            match web::load_local_highscores(&self.rexie).await {
+                Ok(res) => Ok(res),
+                Err(err) => {
+                    log::error!("failed to load local scores the web file system: {:?}", err);
+                    anyhow::bail!("check logs");
+                }
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            native::load_local_highscores()
+        }
+    }
+
     pub async fn load_local_scores(&self, level_hash: &str) -> Result<Vec<SavedScore>> {
         #[cfg(target_arch = "wasm32")]
         {

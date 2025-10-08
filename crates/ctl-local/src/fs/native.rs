@@ -88,14 +88,39 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
     write!(writer, "{s}")?;
 
     // Save music
-    if save_music
-        && let Some(music) = &group.local.music {
-            std::fs::write(path.join("music.mp3"), &music.bytes)?;
-        }
+    if save_music && let Some(music) = &group.local.music {
+        std::fs::write(path.join("music.mp3"), &music.bytes)?;
+    }
 
     log::debug!("Saved group ({}) successfully", group.local.meta.id);
 
     Ok(())
+}
+
+pub fn load_local_highscores() -> Result<HashMap<String, SavedScore>> {
+    let dir_path = base_path().join("scores");
+    let mut res = HashMap::new();
+    for entry in std::fs::read_dir(dir_path)? {
+        let process = || -> Result<()> {
+            let entry = entry?;
+            if entry.metadata()?.is_file() {
+                let hash = entry
+                    .file_name()
+                    .into_string()
+                    .map_err(|_| anyhow!("encountered non-unicode file name"))?;
+                let reader = std::io::BufReader::new(std::fs::File::open(entry.path())?);
+                let scores: Vec<SavedScore> = cbor4ii::serde::from_reader(reader)?;
+                if let Some(score) = scores.into_iter().max_by_key(|score| score.score) {
+                    res.insert(hash, score);
+                }
+            }
+            Ok(())
+        };
+        if let Err(err) = process() {
+            log::error!("score file error: {err:?}");
+        }
+    }
+    Ok(res)
 }
 
 pub fn load_local_scores(level_hash: &str) -> Result<Vec<SavedScore>> {
