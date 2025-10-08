@@ -142,6 +142,31 @@ pub async fn remove_group(rexie: &Rexie, id: &str) -> Result<()> {
     Ok(())
 }
 
+pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<String, SavedScore>> {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
+
+    let store = transaction.store("scores")?;
+
+    let all_scores = store.scan(None, None, None, None).await?;
+    let mut result = HashMap::new();
+    for (hash, scores) in all_scores {
+        let process = || -> Result<()> {
+            let scores: Vec<SavedScore> = serde_wasm_bindgen::from_value(scores)?;
+            if let Some(score) = scores.into_iter().max_by_key(|score| score.score) {
+                let hash: String = serde_wasm_bindgen::from_value(hash)?;
+                result.insert(hash, score);
+            }
+            Ok(())
+        };
+        if let Err(err) = process() {
+            log::error!("score file error: {err:?}");
+        }
+    }
+
+    transaction.done().await?;
+    Ok(result)
+}
+
 pub async fn load_local_scores(rexie: &Rexie, level_hash: &str) -> Result<Vec<SavedScore>> {
     let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
 
