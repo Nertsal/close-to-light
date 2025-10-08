@@ -103,9 +103,9 @@ impl ModifiersWidget {
         }
 
         // Slide in when a level is selected
-        let t = state.selected_level.as_ref().map_or(0.0, |show| {
+        let t = state.selected_diff.as_ref().map_or(0.0, |show| {
             let mut t = show.time.get_ratio();
-            if state.switch_level.is_some() {
+            if state.switch_diff.is_some() {
                 t = t.max(self.t);
             }
             t

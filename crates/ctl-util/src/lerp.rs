@@ -50,4 +50,9 @@ impl<T: Float> Lerp<T> {
         self.to = to;
         self.time.set_ratio(0.0);
     }
+
+    pub fn snap_to(&mut self, to: T) {
+        self.from = to;
+        self.to = to;
+    }
 }

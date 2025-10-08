@@ -6,14 +6,14 @@ use super::*;
 
 use crate::{
     render::{THEME, mask::MaskedRender, menu::MenuRender, post::PostRender},
-    ui::{
-        ShowTime, UiContext, WidgetRequest,
-        widget::{ConfirmPopup, WidgetOld},
-    },
+    ui::{ShowTime, UiContext, WidgetRequest, widget::ConfirmPopup},
 };
 
 use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
 use ctl_logic::PlayGroup;
+
+const LEVEL_SWITCH_TIME: f32 = 0.5;
+const DIFF_SWITCH_TIME: f32 = 0.5;
 
 #[derive(Debug)]
 pub enum ConfirmAction {
@@ -57,15 +57,17 @@ pub struct MenuState {
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
-    /// Currently showing group.
-    pub selected_group: Option<ShowTime<Index>>,
-    /// Currently showing level of the active group.
-    pub selected_level: Option<ShowTime<usize>>,
+    /// Currently showing level.
+    pub selected_level: Option<ShowTime<Index>>,
+    /// Currently showing difficulty of the active level.
+    pub selected_diff: Option<ShowTime<usize>>,
 
-    /// Switch to the group after current one finishes its animation.
-    pub switch_group: Option<Index>,
-    /// Switch to the level of the active group after current one finishes its animation.
-    pub switch_level: Option<usize>,
+    /// The last level that was selected before the most recent animation.
+    pub last_selected_level: Option<Index>,
+    /// Switch to the level after current one finishes its animation.
+    pub switch_level: Option<Index>,
+    /// Switch to the difficulty of the active level after current one finishes its animation.
+    pub switch_diff: Option<usize>,
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
@@ -85,19 +87,19 @@ impl MenuState {
         self.leaderboard.change_category(self.get_category());
     }
 
-    fn select_group(&mut self, group: Index) {
-        self.switch_group = Some(group);
+    fn select_level(&mut self, group: Index) {
+        self.switch_level = Some(group);
         if self
-            .selected_group
+            .selected_level
             .as_ref()
             .is_none_or(|selected| selected.data != group)
         {
-            self.switch_level = None;
+            self.switch_diff = None;
         }
     }
 
-    fn select_level(&mut self, level: usize) {
-        self.switch_level = Some(level);
+    fn select_difficulty(&mut self, level: usize) {
+        self.switch_diff = Some(level);
     }
 
     fn edit_level(&mut self, group: Index, level: Option<usize>) {
@@ -105,7 +107,7 @@ impl MenuState {
     }
 
     fn new_group(&mut self) {
-        self.switch_group = None; // Deselect group
+        self.switch_level = None; // Deselect group
         let local = &self.context.local;
         let group_index = local.new_group();
         self.edit_level(group_index, None);
@@ -218,11 +220,12 @@ impl LevelMenu {
 
                 confirm_popup: None,
 
-                selected_group: None,
                 selected_level: None,
+                selected_diff: None,
 
-                switch_group: None,
+                last_selected_level: None,
                 switch_level: None,
+                switch_diff: None,
 
                 edit_level: None,
 
@@ -230,7 +233,7 @@ impl LevelMenu {
             },
             play_button: HoverButton::new(
                 Collider {
-                    position: vec2(4.9, -0.5).as_r32(),
+                    position: vec2(4.5, -0.5).as_r32(),
                     rotation: Angle::ZERO,
                     shape: Shape::Circle { radius: r32(0.8) },
                 },
@@ -258,13 +261,13 @@ impl LevelMenu {
     fn get_active_level(&self) -> Option<(PlayGroup, usize, LevelFull)> {
         let local = self.context.local.inner.borrow();
 
-        let group = self.state.selected_group.as_ref()?;
+        let group = self.state.selected_level.as_ref()?;
         let group_index = group.data;
         let group = local.groups.get(group_index)?;
 
         let music = group.local.music.clone();
 
-        let level = self.state.selected_level.as_ref()?;
+        let level = self.state.selected_diff.as_ref()?;
         let level_index = level.data;
         let level = group.local.data.levels.get(level_index)?;
         let meta = group.local.meta.levels.get(level_index)?;
@@ -325,55 +328,17 @@ impl LevelMenu {
         self.state.leaderboard.status = LeaderboardStatus::None;
     }
 
-    fn update_active_group(&mut self, delta_time: FloatTime) {
-        let delta_time = delta_time.as_f32();
-        if let Some(current_group) = &mut self.state.selected_group {
-            if let Some(switch_group) = self.state.switch_group {
-                if current_group.data != switch_group {
-                    // Change level first
-                    self.state.switch_level = None;
-                    // if self.state.show_level.is_some() {
-                    //     return;
-                    // }
-
-                    current_group.time.change(-delta_time);
-                    current_group.going_up = false;
-
-                    if current_group.time.is_min() {
-                        // Switch
-                        current_group.data = switch_group;
-                    }
-                } else {
-                    current_group.time.change(delta_time);
-                    current_group.going_up = true;
-                }
-            } else {
-                current_group.time.change(-delta_time);
-                current_group.going_up = false;
-
-                if current_group.time.is_min() {
-                    // Remove
-                    self.state.selected_group = None;
-                    self.state.selected_level = None;
-                    self.ui.level_select.tab_diffs.hide();
-                    self.ui.level_select.select_tab(LevelSelectTab::Group);
-                }
-            }
-        } else if let Some(group) = self.state.switch_group {
-            self.state.selected_group = Some(ShowTime {
-                data: group,
-                time: Bounded::new_zero(0.25),
-                going_up: true,
-            });
-        }
-    }
-
     fn update_active_level(&mut self, delta_time: FloatTime) {
         let delta_time = delta_time.as_f32();
         if let Some(current_level) = &mut self.state.selected_level {
             if let Some(switch_level) = self.state.switch_level {
                 if current_level.data != switch_level {
-                    // self.state.show_leaderboard.going_up = false; // Hide leaderboard
+                    // Change level first
+                    self.state.switch_diff = None;
+                    // if self.state.show_level.is_some() {
+                    //     return;
+                    // }
+
                     current_level.time.change(-delta_time);
                     current_level.going_up = false;
 
@@ -384,21 +349,61 @@ impl LevelMenu {
                 } else {
                     current_level.time.change(delta_time);
                     current_level.going_up = true;
+                    if current_level.time.is_max() {
+                        self.state.last_selected_level = Some(switch_level);
+                    }
                 }
             } else {
-                // self.state.level_up = false;
                 current_level.time.change(-delta_time);
                 current_level.going_up = false;
 
                 if current_level.time.is_min() {
                     // Remove
                     self.state.selected_level = None;
+                    self.state.selected_diff = None;
+                    self.state.last_selected_level = None;
                 }
             }
         } else if let Some(level) = self.state.switch_level {
             self.state.selected_level = Some(ShowTime {
                 data: level,
-                time: Bounded::new_zero(0.25),
+                time: Bounded::new_zero(LEVEL_SWITCH_TIME),
+                going_up: true,
+            });
+        }
+    }
+
+    fn update_active_diff(&mut self, delta_time: FloatTime) {
+        let delta_time = delta_time.as_f32();
+        if let Some(current_diff) = &mut self.state.selected_diff {
+            if let Some(switch_diff) = self.state.switch_diff {
+                if current_diff.data != switch_diff {
+                    // self.state.show_leaderboard.going_up = false; // Hide leaderboard
+                    current_diff.time.change(-delta_time);
+                    current_diff.going_up = false;
+
+                    if current_diff.time.is_min() {
+                        // Switch
+                        current_diff.data = switch_diff;
+                    }
+                } else {
+                    current_diff.time.change(delta_time);
+                    current_diff.going_up = true;
+                }
+            } else {
+                // self.state.level_up = false;
+                current_diff.time.change(-delta_time);
+                current_diff.going_up = false;
+
+                if current_diff.time.is_min() {
+                    // Remove
+                    self.state.selected_diff = None;
+                }
+            }
+        } else if let Some(diff) = self.state.switch_diff {
+            self.state.selected_diff = Some(ShowTime {
+                data: diff,
+                time: Bounded::new_zero(DIFF_SWITCH_TIME),
                 going_up: true,
             });
         }
@@ -452,7 +457,7 @@ impl geng::State for LevelMenu {
         if !fading || self.play_button.is_fading() {
             let play_time = r32(self
                 .state
-                .selected_level
+                .selected_diff
                 .as_ref()
                 .map_or(0.0, |show| show.time.get_ratio()));
             let scale = crate::util::smoothstep(play_time);
@@ -465,6 +470,51 @@ impl geng::State for LevelMenu {
                 &self.camera,
                 &mut dither_buffer,
             );
+        }
+
+        if !fading {
+            // UI lights
+            let mut draw_light = |light: &SelectLightUi| {
+                let light_pos = vec2(light.pos_x, light.light_y.current());
+                let light_pos = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size.as_f32(), light_pos)
+                    .as_r32();
+
+                // let telegraph_pos = vec2(light.pos_x, light.telegraph_y.current());
+                // let telegraph_pos = self
+                //     .camera
+                //     .screen_to_world(self.framebuffer_size.as_f32(), telegraph_pos)
+                //     .as_r32();
+
+                let radius = (self
+                    .camera
+                    .screen_to_world(self.framebuffer_size.as_f32(), vec2(0.0, 0.0))
+                    - self
+                        .camera
+                        .screen_to_world(self.framebuffer_size.as_f32(), vec2(light.radius, 0.0)))
+                .len()
+                .as_r32();
+
+                // self.util.draw_outline(
+                //     &Collider::new(telegraph_pos, Shape::Circle { radius }),
+                //     0.05,
+                //     crate::render::THEME.light,
+                //     &self.camera,
+                //     &mut dither_buffer,
+                // );
+                self.util.draw_light_gradient(
+                    &Collider::new(light_pos, Shape::Circle { radius }),
+                    crate::render::THEME.light,
+                    &self.camera,
+                    &mut dither_buffer,
+                );
+            };
+
+            draw_light(&self.ui.level_select.light_level);
+            if self.ui.level_select.tab_diffs.state.visible {
+                draw_light(&self.ui.level_select.light_diff);
+            }
         }
 
         self.dither.finish(self.time, &theme);
@@ -569,8 +619,8 @@ impl geng::State for LevelMenu {
                     self.ui.explore.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.leaderboard.window.show.time.is_max() {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
-                } else if self.state.switch_level.take().is_some()
-                    || self.state.switch_group.take().is_some()
+                } else if self.state.switch_diff.take().is_some()
+                    || self.state.switch_level.take().is_some()
                 {
                 } else {
                     // Go to main menu
@@ -607,7 +657,7 @@ impl geng::State for LevelMenu {
 
         let target_music = || {
             self.state
-                .selected_group
+                .selected_level
                 .as_ref()
                 .and_then(|group| self.state.context.local.get_group(group.data))
                 .and_then(|group| group.local.music.clone())
@@ -631,7 +681,7 @@ impl geng::State for LevelMenu {
         } else {
             // Music volume
             let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
-                .min(show_ratio(&self.state.selected_group).unwrap_or(0.0));
+                .min(show_ratio(&self.state.selected_level).unwrap_or(0.0));
             self.context.music.set_volume(options.volume.music() * t);
 
             // Playing music
@@ -660,7 +710,7 @@ impl geng::State for LevelMenu {
 
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
-        if !self.ui_focused && self.state.selected_level.is_some() {
+        if !self.ui_focused && self.state.selected_diff.is_some() {
             self.state
                 .player
                 .update_distance_simple(&self.play_button.base_collider);
@@ -683,8 +733,8 @@ impl geng::State for LevelMenu {
             self.state.player.info.id = player;
         }
 
-        self.update_active_group(delta_time);
         self.update_active_level(delta_time);
+        self.update_active_diff(delta_time);
         self.update_leaderboard();
 
         self.context.local.poll();

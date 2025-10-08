@@ -33,10 +33,10 @@ impl MenuRender {
 
         let theme = state.context.get_options().theme;
 
-        self.ui.draw_icon(&ui.ctl_logo, theme, framebuffer);
+        // self.ui.draw_icon(&ui.ctl_logo, theme, framebuffer);
 
-        self.ui
-            .draw_quad(ui.separator.position, theme.light, framebuffer);
+        // self.ui
+        //     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
@@ -133,53 +133,47 @@ impl MenuRender {
         let ui = &ui.level_select;
         let theme = state.context.get_options().theme;
 
-        self.ui
-            .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
-        self.ui
-            .draw_toggle_widget(&ui.tab_diffs, theme, framebuffer);
+        self.ui.draw_text(&ui.tab_levels, framebuffer);
+        self.ui.draw_text(&ui.tab_diffs, framebuffer);
 
-        if ui.tab_levels.selected {
-            for group in &ui.grid_levels {
-                self.ui.draw_icon(&group.edited, theme, framebuffer);
-                self.ui.draw_icon(&group.local, theme, framebuffer);
-                self.ui.draw_outline(
-                    group.state.position,
-                    self.font_size * 0.1,
-                    theme.light,
-                    framebuffer,
-                );
-                let selected = state.switch_group == Some(group.index);
-                self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&group.menu, theme, framebuffer);
-            }
-
-            self.draw_item_widget(
-                &ui.add_level.text,
-                ui.add_level.menu.state.visible,
-                0.5,
-                theme,
+        for group in &ui.levels {
+            self.ui.draw_icon(&group.edited, theme, framebuffer);
+            self.ui.draw_icon(&group.local, theme, framebuffer);
+            self.ui.draw_outline(
+                group.state.position,
+                self.font_size * 0.1,
+                theme.light,
                 framebuffer,
             );
-            self.draw_add_menu(&ui.add_level.menu, theme, framebuffer);
-        } else if ui.tab_diffs.selected {
-            self.ui.draw_text(&ui.no_diffs, framebuffer);
-            for level in &ui.grid_diffs {
-                self.ui.draw_icon(&level.edited, theme, framebuffer);
-                self.ui.draw_icon(&level.local, theme, framebuffer);
-                self.ui.draw_outline(
-                    level.state.position,
-                    self.font_size * 0.2,
-                    theme.light,
-                    framebuffer,
-                );
-                let selected = state.switch_level == Some(level.index);
-                self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&level.menu, theme, framebuffer);
-            }
+            let selected = state.switch_level == Some(group.index);
+            self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
+            self.draw_item_menu(&group.menu, theme, framebuffer);
+        }
+
+        self.ui.draw_text(&ui.no_level_selected, framebuffer);
+        self.ui.draw_text(&ui.no_diffs, framebuffer);
+        for level in &ui.diffs {
+            self.ui.draw_icon(&level.edited, theme, framebuffer);
+            self.ui.draw_icon(&level.local, theme, framebuffer);
+            self.ui.draw_outline(
+                level.state.position,
+                self.font_size * 0.2,
+                theme.light,
+                framebuffer,
+            );
+            let selected = state.switch_diff == Some(level.index);
+            self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
+            self.draw_item_menu(&level.menu, theme, framebuffer);
         }
 
         self.ui
             .draw_quad(ui.separator.position, theme.light, framebuffer);
+        self.ui.draw_outline(
+            ui.state.position,
+            self.font_size * 0.5,
+            theme.light,
+            framebuffer,
+        );
     }
 
     fn draw_play_level(
@@ -501,41 +495,6 @@ impl MenuRender {
         self.ui.draw_text_colored(text, fg_color, framebuffer);
         self.ui
             .draw_outline(text.state.position, outline_width, out_color, framebuffer);
-    }
-
-    fn draw_add_menu(
-        &mut self,
-        menu: &crate::menu::NewMenuWidget,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        if !menu.state.visible {
-            return;
-        }
-
-        let position = menu.state.position;
-        let t = menu.window.show.time.get_ratio();
-        let t = crate::util::smoothstep(t);
-        let position = position.extend_down(-position.height() * (1.0 - t));
-        if position.height() < 1.0 {
-            return;
-        }
-
-        let outline_width = self.font_size * 0.2;
-        self.ui.draw_window(
-            &mut self.masked,
-            position,
-            None,
-            outline_width,
-            theme,
-            framebuffer,
-            |framebuffer| {
-                self.ui
-                    .draw_toggle_button(&menu.create, false, false, theme, framebuffer);
-                self.ui
-                    .draw_toggle_button(&menu.browse, false, false, theme, framebuffer);
-            },
-        );
     }
 
     fn draw_item_menu(

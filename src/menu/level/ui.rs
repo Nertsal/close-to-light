@@ -13,9 +13,8 @@ use itertools::Itertools;
 pub struct MenuUI {
     context: Context,
     pub screen: WidgetState,
-    pub ctl_logo: IconWidget,
-    pub separator: WidgetState,
-
+    // pub ctl_logo: IconWidget,
+    // pub separator: WidgetState,
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
@@ -42,9 +41,8 @@ impl MenuUI {
 
         Self {
             screen: WidgetState::new(),
-            ctl_logo: IconWidget::new(assets.atlas.title()),
-            separator: WidgetState::new(),
-
+            // ctl_logo: IconWidget::new(assets.atlas.title()),
+            // separator: WidgetState::new(),
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
@@ -95,13 +93,13 @@ impl MenuUI {
         let mut right = self.screen.position;
         let left = right.split_left(0.55);
 
-        let separator = Aabb2::point(vec2(right.min.x, right.center().y))
-            .extend_symmetric(vec2(0.1 * layout_size, screen.height() - 10.0 * layout_size) / 2.0);
-        self.separator.update(separator, context);
+        // let separator = Aabb2::point(vec2(right.min.x, right.center().y))
+        //     .extend_symmetric(vec2(0.1 * layout_size, screen.height() - 10.0 * layout_size) / 2.0);
+        // self.separator.update(separator, context);
 
-        let mut left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
-        let logo = left.cut_top(2.5 * layout_size);
-        self.ctl_logo.update(logo, context);
+        let left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
+        // let logo = left.cut_top(2.5 * layout_size);
+        // self.ctl_logo.update(logo, context);
 
         if let Some(confirm) = &mut self.confirm {
             let size = vec2(20.0, 10.0) * layout_size;
@@ -166,9 +164,10 @@ impl MenuUI {
                 match action {
                     ExploreAction::PlayMusic(group_id) => {
                         if let Some((_index, group)) = self.context.local.get_group_id(group_id)
-                            && let Some(music) = &group.local.music {
-                                self.context.music.switch(music);
-                            }
+                            && let Some(music) = &group.local.music
+                        {
+                            self.context.music.switch(music);
+                        }
                     }
                     ExploreAction::PauseMusic => {
                         self.context.music.stop();
@@ -176,8 +175,7 @@ impl MenuUI {
                     ExploreAction::GotoGroup(group_id) => {
                         if let Some((index, _group)) = self.context.local.get_group_id(group_id) {
                             self.explore.window.request = Some(WidgetRequest::Close);
-                            self.level_select.select_tab(LevelSelectTab::Difficulty);
-                            state.switch_group = Some(index);
+                            state.switch_level = Some(index);
                         }
                     }
                 }
@@ -187,7 +185,28 @@ impl MenuUI {
             context.update_focus(true);
         }
 
-        let action = self.level_select.update(left, state, context);
+        let level_select_t = state
+            .selected_level
+            .as_ref()
+            .filter(|show| {
+                !show.going_up && state.switch_level.is_none()
+                    || show.going_up && state.last_selected_level.is_none()
+            })
+            .map_or(
+                if state.last_selected_level.is_some() {
+                    1.0
+                } else {
+                    0.0
+                },
+                |show| show.time.get_ratio(),
+            );
+        let level_select_t = crate::util::smoothstep(1.0 - level_select_t);
+        let level_select = left.translate(vec2(
+            (screen.center().x - left.center().x) * level_select_t,
+            0.0,
+        ));
+
+        let action = self.level_select.update(level_select, state, context);
         if let Some(action) = action {
             match action {
                 LevelSelectAction::SyncGroup(group_index) => {
@@ -224,31 +243,11 @@ impl MenuUI {
                     );
                 }
             }
-        } else if self
-            .level_select
-            .add_level
-            .menu
-            .browse
-            .state
-            .mouse_left
-            .clicked
-        {
-            self.explore_groups();
-        } else if self
-            .level_select
-            .add_level
-            .menu
-            .create
-            .state
-            .mouse_left
-            .clicked
-        {
-            state.new_group();
         }
 
         let options = right.extend_positive(-vec2(2.0, 2.0) * layout_size);
 
-        right.cut_left(5.0 * layout_size);
+        right.cut_left(2.0 * layout_size);
         right.cut_right(5.0 * layout_size);
         right.cut_top(3.5 * layout_size);
         right.cut_bottom(2.0 * layout_size);
@@ -265,7 +264,7 @@ impl MenuUI {
             let pos = main.align_pos(vec2(1.0, 0.5));
 
             let base_t = state
-                .selected_level
+                .selected_diff
                 .as_ref()
                 .map_or(0.0, |show| show.time.get_ratio());
             let base_t = crate::util::smoothstep(base_t);
