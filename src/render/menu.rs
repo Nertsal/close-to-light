@@ -136,34 +136,46 @@ impl MenuRender {
         self.ui.draw_text(&ui.tab_levels, framebuffer);
         self.ui.draw_text(&ui.tab_diffs, framebuffer);
 
-        for group in &ui.levels {
-            self.ui.draw_icon(&group.edited, theme, framebuffer);
-            self.ui.draw_icon(&group.local, theme, framebuffer);
-            self.ui.draw_outline(
-                group.state.position,
-                self.font_size * 0.1,
-                theme.light,
-                framebuffer,
-            );
-            let selected = state.switch_level == Some(group.index);
-            self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
-            self.draw_item_menu(&group.menu, theme, framebuffer);
-        }
-
-        self.ui.draw_text(&ui.no_level_selected, framebuffer);
-        self.ui.draw_text(&ui.no_diffs, framebuffer);
-        for level in &ui.diffs {
+        // Levels
+        for level in &ui.levels {
             self.ui.draw_icon(&level.edited, theme, framebuffer);
             self.ui.draw_icon(&level.local, theme, framebuffer);
             self.ui.draw_outline(
                 level.state.position,
+                self.font_size * 0.1,
+                theme.light,
+                framebuffer,
+            );
+            let selected = state.switch_level == Some(level.index);
+            self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
+        }
+
+        // Context menu
+        for level in &ui.levels {
+            self.draw_item_menu(&level.menu, theme, framebuffer);
+        }
+
+        // Difficulty status/hint text
+        self.ui.draw_text(&ui.no_level_selected, framebuffer);
+        self.ui.draw_text(&ui.no_diffs, framebuffer);
+
+        // Difficulties
+        for diff in &ui.diffs {
+            self.ui.draw_icon(&diff.edited, theme, framebuffer);
+            self.ui.draw_icon(&diff.local, theme, framebuffer);
+            self.ui.draw_outline(
+                diff.state.position,
                 self.font_size * 0.2,
                 theme.light,
                 framebuffer,
             );
-            let selected = state.switch_diff == Some(level.index);
-            self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
-            self.draw_item_menu(&level.menu, theme, framebuffer);
+            let selected = state.switch_diff == Some(diff.index);
+            self.draw_item_widget(&diff.text, selected, 1.0, theme, framebuffer);
+        }
+
+        // Context menu
+        for diff in &ui.diffs {
+            self.draw_item_menu(&diff.menu, theme, framebuffer);
         }
 
         self.ui
