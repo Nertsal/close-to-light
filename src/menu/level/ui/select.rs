@@ -177,7 +177,7 @@ impl LevelSelectUI {
         // Layout
         let spacing = vec2(1.0, 0.75) * context.layout_size;
         let item_size = vec2(main.width() - spacing.x, 1.3 * context.font_size);
-        let rows = Aabb2::point(main.top_left() + vec2(0.0, -item_size.y - spacing.y))
+        let rows = Aabb2::point(main.top_left() + vec2(spacing.x * 0.5, -item_size.y - spacing.y))
             .extend_positive(item_size)
             .stack(vec2(0.0, -item_size.y - spacing.y), self.levels.len());
 
