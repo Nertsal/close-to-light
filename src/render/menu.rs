@@ -146,11 +146,27 @@ impl MenuRender {
             let selected = state.switch_level == Some(level.index);
             self.draw_item_widget(&level.state, &level.text, selected, 1.0, theme, framebuffer);
             for (diff, color) in &level.diffs {
-                self.ui.draw_quad(diff.position, theme.light, framebuffer);
-                self.ui.draw_quad(
+                let mut pp_quad = |pos: Aabb2<f32>, color| {
+                    let size = pos.size().map(|x| {
+                        let mut x = x as usize;
+                        if x % 2 == 1 {
+                            x += 1;
+                        }
+                        x
+                    });
+                    let pos = geng_utils::pixel::pixel_perfect_aabb(
+                        pos.center(),
+                        vec2(0.5, 0.5),
+                        size,
+                        &geng::PixelPerfectCamera,
+                        framebuffer.size().as_f32(),
+                    );
+                    self.ui.draw_quad(pos, color, framebuffer);
+                };
+                pp_quad(diff.position, theme.light);
+                pp_quad(
                     diff.position.extend_uniform(-diff.position.height() * 0.2),
                     theme.get_color(*color),
-                    framebuffer,
                 );
             }
             self.ui.draw_outline(
@@ -192,7 +208,9 @@ impl MenuRender {
         }
 
         self.ui
-            .draw_quad(ui.separator.position, theme.light, framebuffer);
+            .draw_quad(ui.separator_level.position, theme.light, framebuffer);
+        self.ui
+            .draw_quad(ui.separator_diff.position, theme.light, framebuffer);
         self.ui.draw_outline(
             ui.state.position,
             self.font_size * 0.5,

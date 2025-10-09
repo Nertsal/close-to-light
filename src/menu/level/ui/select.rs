@@ -11,7 +11,8 @@ pub struct LevelSelectUI {
     pub light_level: SelectLightUi,
     pub tab_diffs: TextWidget,
     pub light_diff: SelectLightUi,
-    pub separator: WidgetState,
+    pub separator_level: WidgetState,
+    pub separator_diff: WidgetState,
 
     pub levels: Vec<ItemLevelWidget>,
     pub diffs: Vec<ItemDiffWidget>,
@@ -63,7 +64,8 @@ impl LevelSelectUI {
             light_level: SelectLightUi::default(),
             tab_diffs: TextWidget::new("Difficulty"),
             light_diff: SelectLightUi::default(),
-            separator: WidgetState::new(),
+            separator_level: WidgetState::new(),
+            separator_diff: WidgetState::new(),
 
             levels: Vec::new(),
             diffs: Vec::new(),
@@ -139,25 +141,26 @@ impl LevelSelectUI {
     }
 
     fn tabs(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
-        let sep_size = vec2(main.width() * 0.9, 0.1 * context.layout_size);
-        let sep = main.align_aabb(sep_size, vec2(0.5, 0.0));
-        self.separator.update(sep, context);
+        // let mut sep_diff = main.align_aabb(sep_size, vec2(0.5, 0.0));
+        // let sep_level = sep_diff.split_left(0.5);
+        // self.separator_level
+        //     .update(sep_level.extend_right(-context.layout_size), context);
+        // self.separator_diff
+        //     .update(sep_diff.extend_left(-context.layout_size), context);
 
-        let buttons = [
-            self.tab_levels
-                .state
-                .visible
-                .then_some(&mut self.tab_levels),
-            self.tab_diffs.state.visible.then_some(&mut self.tab_diffs),
-        ];
-        let all_buttons = buttons.len();
-        let buttons: Vec<_> = buttons.into_iter().flatten().collect();
+        let mut tab_level = main;
+        let tab_diff = tab_level.split_right(0.5);
+        self.tab_levels.update(tab_level, context);
+        self.tab_diffs.update(tab_diff, context);
 
-        let buttons_layout = main.split_columns(all_buttons);
+        let sep_height = 0.1 * context.layout_size;
+        let sep_level =
+            tab_level.align_aabb(vec2(tab_level.width() * 1.0, sep_height), vec2(0.5, 0.0));
+        let sep_diff =
+            tab_diff.align_aabb(vec2(tab_level.width() * 0.75, sep_height), vec2(0.5, 0.0));
 
-        for (button, pos) in buttons.into_iter().zip(buttons_layout) {
-            button.update(pos, context);
-        }
+        self.separator_level.update(sep_level, context);
+        self.separator_diff.update(sep_diff, context);
     }
 
     fn layout_levels(
@@ -307,7 +310,7 @@ impl LevelSelectUI {
 
         // Layout
         let spacing = vec2(1.0, 0.75) * context.layout_size;
-        let item_size = vec2(main.width() - spacing.x * 5.0, 1.15 * context.font_size);
+        let item_size = vec2(main.width() - spacing.x * 4.0, 1.15 * context.font_size);
         let rows = Aabb2::point(
             main.top_right() + vec2(-main.width() / 2.0, -item_size.y * 0.5 - spacing.y),
         )
@@ -349,7 +352,7 @@ impl ItemLevelWidget {
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
             menu: ItemMenuWidget::new(assets),
-            text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
+            text: TextWidget::new(text).aligned(vec2(0.5, 0.0)),
             index,
             diffs: Vec::new(),
         }
@@ -433,7 +436,7 @@ impl ItemLevelWidget {
         }
 
         if !self.diffs.is_empty() {
-            position.cut_bottom(context.font_size * 0.1);
+            position.cut_bottom(context.font_size * 0.15);
             let diffs = position
                 .cut_bottom(context.font_size * 0.3)
                 .extend_symmetric(-vec2(context.font_size * 0.2, 0.0));
@@ -442,6 +445,10 @@ impl ItemLevelWidget {
                 let pos = pos.extend_symmetric(-vec2(0.2, 0.05) * context.font_size);
                 widget.update(pos, context);
             }
+            position.cut_bottom(context.font_size * 0.1);
+            self.text.align(vec2(0.5, 0.0));
+        } else {
+            self.text.align(vec2(0.5, 0.5));
         }
 
         self.text.update(position, &context.scale_font(0.9));
