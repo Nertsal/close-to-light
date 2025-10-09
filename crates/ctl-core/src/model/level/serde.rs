@@ -34,6 +34,7 @@ pub enum Event {
     Light(LightEvent),
     /// Swap light and dark colors.
     PaletteSwap,
+    RgbSplit(Time),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -117,11 +118,11 @@ impl Timing {
 }
 
 impl TimedEvent {
-    /// Returns the duration (in beats) of the event.
+    /// Returns the duration of the event.
     pub fn duration(&self) -> Time {
         match &self.event {
             Event::Light(event) => event.movement.total_duration(),
-            Event::PaletteSwap => Time::ZERO,
+            Event::PaletteSwap | Event::RgbSplit(_) => Time::ZERO,
         }
     }
 }

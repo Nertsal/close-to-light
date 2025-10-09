@@ -583,7 +583,13 @@ impl geng::State for LevelMenu {
             .fit_screen(vec2(0.5, 0.5), buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
-        self.post.post_process(framebuffer, self.time);
+        self.post.post_process(
+            crate::render::post::PostVfx {
+                time: self.time,
+                rgb_split: 0.0,
+            },
+            framebuffer,
+        );
 
         self.ui_context.frame_end();
     }

@@ -111,7 +111,13 @@ impl geng::State for Game {
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         }
 
-        self.post.post_process(framebuffer, self.model.real_time);
+        self.post.post_process(
+            crate::render::post::PostVfx {
+                time: self.model.real_time,
+                rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
+            },
+            framebuffer,
+        );
     }
 
     fn handle_event(&mut self, event: geng::Event) {

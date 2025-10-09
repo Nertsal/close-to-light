@@ -22,6 +22,7 @@ impl Model {
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime) {
         self.context.music.set_volume(self.options.volume.music());
+        self.vfx.update(delta_time);
 
         let delta_ms = seconds_to_time(delta_time);
         self.update_rhythm(delta_ms);
@@ -38,8 +39,23 @@ impl Model {
 
         if let State::Starting { .. } = self.state {
         } else {
+            let last_frame_time = self.play_time_ms;
             self.play_time += delta_time;
             self.play_time_ms = seconds_to_time(self.play_time);
+
+            let frame_time_range = last_frame_time..self.play_time_ms;
+            let frame_events = self
+                .level
+                .level
+                .data
+                .events
+                .iter()
+                .filter(|event| frame_time_range.contains(&event.time))
+                .cloned()
+                .collect::<Vec<_>>();
+            for event in &frame_events {
+                self.handle_level_event(event);
+            }
         }
         if let State::Playing = self.state {
             self.completion_time += delta_time;
@@ -129,11 +145,6 @@ impl Model {
             }
             State::Playing => {
                 if self.level_state.is_finished {
-                    // if self.level.rng_end {
-                    //     // No more events - start rng
-                    //     let telegraph = self.random_light_telegraphed();
-                    //     self.telegraphs.push(telegraph);
-                    // } else
                     self.finish();
                 } else if !self.level.config.modifiers.clean_auto {
                     // Player health

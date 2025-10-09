@@ -2,6 +2,7 @@ use super::*;
 
 use ctl_assets::Options;
 use ctl_local::{CachedGroup, Leaderboard, LocalMusic};
+use ctl_util::{SecondOrderDynamics, SecondOrderState};
 use generational_arena::Index;
 
 #[derive(Debug, Clone)]
@@ -119,6 +120,57 @@ pub struct Rhythm {
     pub perfect: bool,
 }
 
+pub struct VfxValue {
+    pub value: SecondOrderState<R32>,
+    pub time_left: FloatTime,
+}
+
+impl VfxValue {
+    pub fn new(frequency: f32, damping: f32, response: f32) -> Self {
+        Self {
+            value: SecondOrderState::new(SecondOrderDynamics::new(
+                frequency,
+                damping,
+                response,
+                R32::ZERO,
+            )),
+            time_left: FloatTime::ZERO,
+        }
+    }
+
+    pub fn update(&mut self, delta_time: FloatTime) {
+        self.time_left = (self.time_left - delta_time).max(FloatTime::ZERO);
+        self.value.target = if self.time_left.as_f32() > 0.0 {
+            r32(1.0)
+        } else {
+            r32(0.0)
+        };
+        self.value.update(delta_time.as_f32());
+    }
+}
+
+pub struct Vfx {
+    pub rgb_split: VfxValue,
+}
+
+impl Vfx {
+    pub fn new() -> Self {
+        Self {
+            rgb_split: VfxValue::new(2.0, 1.0, 0.0),
+        }
+    }
+
+    pub fn update(&mut self, delta_time: FloatTime) {
+        self.rgb_split.update(delta_time);
+    }
+}
+
+impl Default for Vfx {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct Model {
     pub context: Context,
     pub transition: Option<Transition>,
@@ -128,6 +180,7 @@ pub struct Model {
     pub player: Player,
     /// Whether the cursor clicked last frame.
     pub cursor_clicked: bool,
+    pub vfx: Vfx,
 
     pub options: Options,
     /// The level being played. Not changed, apart from music being played.
@@ -208,6 +261,7 @@ impl Model {
                 level.config.health.max,
             ),
             cursor_clicked: false,
+            vfx: Vfx::new(),
 
             level_state: LevelState::default(),
             state: State::Starting {

@@ -171,6 +171,7 @@ pub struct Shaders {
     pub ellipse: ugli::Program,
     pub texture_ui: ugli::Program,
     pub crt: ugli::Program,
+    pub rgb_split: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]

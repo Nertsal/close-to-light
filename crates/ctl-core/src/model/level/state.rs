@@ -64,9 +64,10 @@ impl LevelState {
         config: &LevelConfig,
     ) {
         if let Some(time) = self.ignore_after
-            && event.time > time {
-                return;
-            }
+            && event.time > time
+        {
+            return;
+        }
 
         let time = self.time - event.time;
 
@@ -88,6 +89,7 @@ impl LevelState {
                 self.telegraphs.extend(telegraph);
                 self.lights.extend(light);
             }
+            Event::RgbSplit(_) => {}
         }
 
         self.is_finished = self.is_finished && self.lights.is_empty() && self.telegraphs.is_empty();

@@ -280,7 +280,12 @@ impl geng::State for EditorState {
         let buffer = &mut self.post_render.begin(framebuffer.size());
         self.render
             .draw_editor(&self.editor, &self.ui, &self.ui_context, buffer);
-        self.post_render
-            .post_process(framebuffer, self.editor.real_time);
+        self.post_render.post_process(
+            crate::render::post::PostVfx {
+                time: self.editor.real_time,
+                rgb_split: 0.0,
+            },
+            framebuffer,
+        );
     }
 }

@@ -244,7 +244,13 @@ impl geng::State for MainMenu {
             .fit_screen(vec2(0.5, 0.5), buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
-        self.post_render.post_process(screen_buffer, self.time);
+        self.post_render.post_process(
+            crate::render::post::PostVfx {
+                time: self.time,
+                rgb_split: 0.0,
+            },
+            screen_buffer,
+        );
 
         self.ui_context.frame_end();
     }
