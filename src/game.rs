@@ -154,8 +154,8 @@ impl geng::State for Game {
             .window()
             .set_cursor_type(geng::CursorType::None);
 
-        self.model.leaderboard.poll();
-        if let Some(player) = self.model.leaderboard.loaded.player {
+        self.model.leaderboard.get_mut().poll();
+        if let Some(player) = self.model.leaderboard.get_loaded().player {
             self.model.player.info.id = player;
         }
 
@@ -174,24 +174,12 @@ impl geng::State for Game {
                         self.model.current_completion(),
                     );
 
-                    if submit_score {
-                        self.model.leaderboard.reload_submit(
-                            Some(raw_score),
-                            self.model.level.level.meta.clone(),
-                            meta,
-                        );
-                    } else {
-                        self.model.leaderboard.loaded.category = meta.category.clone();
-                        // Save highscores on lost runs only locally
-                        self.model
-                            .leaderboard
-                            .update_local(Some(ctl_local::SavedScore {
-                                user: self.model.player.info.clone(),
-                                score: raw_score,
-                                meta,
-                            }));
-                        self.model.leaderboard.refetch();
-                    }
+                    self.model.leaderboard.get_mut().reload_submit(
+                        Some(raw_score),
+                        submit_score,
+                        self.model.level.level.meta.clone(),
+                        meta,
+                    );
                 }
                 Transition::Exit => self.transition = Some(geng::state::Transition::Pop),
             }

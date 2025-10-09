@@ -21,7 +21,12 @@ struct BoardUpdate {
     scores: Vec<ScoreEntry>,
 }
 
+#[derive(Clone)]
 pub struct Leaderboard {
+    inner: Rc<RefCell<LeaderboardImpl>>,
+}
+
+pub struct LeaderboardImpl {
     geng: Geng,
     fs: Rc<crate::fs::Controller>,
     /// Logged in as user with a name.
@@ -33,27 +38,6 @@ pub struct Leaderboard {
     highscores_task: Option<Task<anyhow::Result<HashMap<String, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
-}
-
-impl Clone for Leaderboard {
-    fn clone(&self) -> Self {
-        Self {
-            geng: self.geng.clone(),
-            fs: self.fs.clone(),
-            user: self.user.clone(),
-            client: self.client.clone(),
-            log_task: None,
-            task: None,
-            fs_task: None,
-            highscores_task: None,
-            status: LeaderboardStatus::None,
-            loaded: LoadedBoard {
-                category: self.loaded.category.clone(),
-                local_high: self.loaded.local_high.clone(),
-                ..LoadedBoard::new()
-            },
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,6 +118,40 @@ impl ScoreMeta {
 }
 
 impl Leaderboard {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs))),
+        }
+    }
+
+    pub fn new(
+        geng: &Geng,
+        client: Option<&Arc<Nertboard>>,
+        fs: &Rc<crate::fs::Controller>,
+    ) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(LeaderboardImpl::new(geng, client, fs))),
+        }
+    }
+
+    pub fn get_mut(&mut self) -> RefMut<'_, LeaderboardImpl> {
+        self.inner.borrow_mut()
+    }
+
+    pub fn get(&self) -> Ref<'_, LeaderboardImpl> {
+        self.inner.borrow()
+    }
+
+    pub fn get_loaded(&self) -> Ref<'_, LoadedBoard> {
+        Ref::map(self.inner.borrow(), |board| &board.loaded)
+    }
+
+    pub fn get_user(&self) -> Ref<'_, Option<UserLogin>> {
+        Ref::map(self.inner.borrow(), |board| &board.user)
+    }
+}
+
+impl LeaderboardImpl {
     pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
         let mut leaderboard = Self {
             geng: geng.clone(),
@@ -317,7 +335,9 @@ impl Leaderboard {
                 Err(task) => self.fs_task = Some(task),
                 Ok(res) => match res {
                     Ok(update) => {
+                        log::debug!("Updating local highscore: {update:?}");
                         if let Some(score) = &update {
+                            log::debug!("Adding to {:?} score {score:?}", self.loaded.level.hash);
                             self.loaded
                                 .all_highscores
                                 .insert(self.loaded.level.hash.clone(), score.clone());
@@ -336,6 +356,7 @@ impl Leaderboard {
                 Err(task) => self.highscores_task = Some(task),
                 Ok(res) => match res {
                     Ok(update) => {
+                        log::debug!("Loaded all local highscores");
                         self.loaded.all_highscores = update;
                     }
                     Err(err) => {
@@ -403,7 +424,14 @@ impl Leaderboard {
         }
     }
 
-    pub fn reload_submit(&mut self, score: Option<i32>, level: LevelInfo, meta: ScoreMeta) {
+    pub fn reload_submit(
+        &mut self,
+        score: Option<i32>,
+        submit_score: bool,
+        level: LevelInfo,
+        meta: ScoreMeta,
+    ) {
+        log::debug!("Reloading leaderboard for level {}", level.hash);
         let score = score.map(|score| SavedScore {
             user: self.user.as_ref().map_or(
                 UserInfo {
@@ -425,7 +453,7 @@ impl Leaderboard {
 
         if let Some(board) = &self.client {
             let mut score = score;
-            if self.user.is_none() {
+            if !submit_score || self.user.is_none() {
                 score = None;
             }
             let board = Arc::clone(board);
@@ -452,7 +480,7 @@ impl Leaderboard {
         }
     }
 
-    pub fn update_local(&mut self, score: Option<SavedScore>) {
+    fn update_local(&mut self, score: Option<SavedScore>) {
         log::debug!("Updating local scores with a new score: {score:?}");
         let fs = self.fs.clone();
         let hash = self.loaded.level.hash.clone();

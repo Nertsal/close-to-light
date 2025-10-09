@@ -185,15 +185,17 @@ impl LevelSelectUI {
         }
 
         // Synchronize data
+        let loaded = state.leaderboard.get_loaded();
         for (widget, &(group_id, cached)) in self.levels.iter_mut().zip(&groups) {
             let scores: Vec<_> = cached
                 .level_hashes
                 .iter()
-                .map(|hash| state.leaderboard.loaded.all_highscores.get(hash))
+                .map(|hash| loaded.all_highscores.get(hash))
                 .collect();
             widget.sync(group_id, cached, &scores);
         }
 
+        drop(loaded);
         drop(local);
 
         // Layout
@@ -280,6 +282,7 @@ impl LevelSelectUI {
         let group = state.context.local.get_group(group_idx)?;
 
         // Synchronize data
+        let loaded = state.leaderboard.get_loaded();
         for (widget, (level_id, cached)) in self.diffs.iter_mut().zip(levels.iter().enumerate()) {
             let origin_hash = group.origin.as_ref().and_then(|info| {
                 info.levels
@@ -289,14 +292,11 @@ impl LevelSelectUI {
             });
             let edited =
                 origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
-            let local_score = state
-                .leaderboard
-                .loaded
-                .all_highscores
-                .get(&cached.meta.hash);
+            let local_score = loaded.all_highscores.get(&cached.meta.hash);
             widget.sync(group_idx, level_id, cached, local_score, edited, context);
         }
 
+        drop(loaded);
         drop(local);
 
         if self.diffs.is_empty() {

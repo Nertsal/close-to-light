@@ -115,7 +115,7 @@ impl geng::State for MainMenu {
 
         self.context.music.stop(); // TODO: menu music
 
-        self.leaderboard.poll();
+        self.leaderboard.get_mut().poll();
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(

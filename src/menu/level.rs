@@ -84,7 +84,8 @@ impl MenuState {
     }
 
     fn update_board_meta(&mut self) {
-        self.leaderboard.change_category(self.get_category());
+        let category = self.get_category();
+        self.leaderboard.get_mut().change_category(category);
     }
 
     fn select_level(&mut self, group: Index) {
@@ -160,14 +161,14 @@ impl MenuState {
             }
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync
-                    && let Some(client) = self.leaderboard.client.clone()
+                    && let Some(client) = self.leaderboard.get().client.clone()
                 {
                     sync.discard_changes(client);
                 }
             }
             ConfirmAction::SyncUpload => {
                 if let Some(sync) = &mut ui.sync
-                    && let Some(client) = self.leaderboard.client.clone()
+                    && let Some(client) = self.leaderboard.get().client.clone()
                 {
                     sync.upload(client);
                 }
@@ -324,7 +325,7 @@ impl LevelMenu {
             ),
         )));
         // Queue leaderboard fetch when coming back
-        self.state.leaderboard.status = LeaderboardStatus::None;
+        self.state.leaderboard.get_mut().status = LeaderboardStatus::None;
     }
 
     fn update_active_level(&mut self, delta_time: FloatTime) {
@@ -415,7 +416,8 @@ impl LevelMenu {
             let meta = ScoreMeta::new_category(category, score, R32::ZERO);
             self.state
                 .leaderboard
-                .reload_submit(None, level.meta.clone(), meta);
+                .get_mut()
+                .reload_submit(None, false, level.meta.clone(), meta);
         }
     }
 
@@ -723,8 +725,8 @@ impl geng::State for LevelMenu {
             self.play_level();
         }
 
-        self.state.leaderboard.poll();
-        if let Some(player) = self.state.leaderboard.loaded.player {
+        self.state.leaderboard.get_mut().poll();
+        if let Some(player) = self.state.leaderboard.get_loaded().player {
             self.state.player.info.id = player;
         }
 

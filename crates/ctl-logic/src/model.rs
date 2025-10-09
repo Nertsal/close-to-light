@@ -213,12 +213,10 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(context: Context, level: PlayLevel, mut leaderboard: Leaderboard) -> Self {
-        leaderboard.loaded.level = level.level.meta.clone();
-
+    pub fn new(context: Context, level: PlayLevel, leaderboard: Leaderboard) -> Self {
         let start_time = level.start_time;
         let mut model = Self::empty(context, level);
-        if let Some(player) = &leaderboard.user {
+        if let Some(player) = &*leaderboard.get_user() {
             model.player.info = UserInfo {
                 id: player.id,
                 name: player.name.clone(),

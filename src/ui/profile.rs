@@ -70,7 +70,7 @@ impl StatefulWidget for ProfileWidget {
         let margin = context.layout_size * 0.5;
         let main = position.extend_uniform(-margin);
 
-        let (off, reg, log) = match (state.is_online(), state.user.is_some()) {
+        let (off, reg, log) = match (state.get().is_online(), state.get_user().is_some()) {
             (false, _) => (true, false, false),
             (true, false) => (false, true, false),
             (true, true) => (false, false, true),
@@ -147,7 +147,7 @@ impl StatefulWidget for RegisterWidget {
         }
 
         if self.discord.icon.state.mouse_left.clicked {
-            state.login_discord();
+            state.get_mut().login_discord();
         }
     }
 }
@@ -167,7 +167,7 @@ impl StatefulWidget for LoggedWidget {
     ) {
         self.state.update(position, context);
 
-        if let Some(user) = &state.user {
+        if let Some(user) = &*state.get_user() {
             self.username.text = user.name.clone();
         }
 
@@ -178,7 +178,7 @@ impl StatefulWidget for LoggedWidget {
         self.logout.update(rows[1], context);
 
         if self.logout.text.state.mouse_left.clicked {
-            state.logout();
+            state.get_mut().logout();
         }
     }
 }

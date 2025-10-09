@@ -72,13 +72,13 @@ impl LeaderboardWidget {
     }
 
     pub fn update_state(&mut self, leaderboard: &Leaderboard) {
-        if leaderboard.user.is_some() {
+        if leaderboard.get_user().is_some() {
             self.subtitle.hide();
         } else {
             self.subtitle.show();
         }
 
-        let user = &leaderboard.user.as_ref().map_or(
+        let user = &leaderboard.get_user().as_ref().map_or(
             UserInfo {
                 id: 0,
                 name: "local highscore".into(),
@@ -92,17 +92,17 @@ impl LeaderboardWidget {
 
         self.rows.clear();
         self.status.text = "".into();
-        match leaderboard.status {
+        match leaderboard.get().status {
             LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".into(),
             LeaderboardStatus::Pending => self.status.text = "LOADING...".into(),
             LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".into(),
             LeaderboardStatus::Done => {
-                if leaderboard.loaded.filtered.is_empty() {
+                if leaderboard.get_loaded().filtered.is_empty() {
                     self.status.text = "EMPTY :(".into();
                 }
             }
         }
-        self.load_scores(&leaderboard.loaded, user);
+        self.load_scores(&leaderboard.get_loaded(), user);
     }
 
     pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {
@@ -135,7 +135,7 @@ impl LeaderboardWidget {
                     &self.assets,
                     board
                         .my_position
-                        .map_or("???".into(), |rank| format!("{}", rank + 1)),
+                        .map_or("??".into(), |rank| format!("{}", rank + 1)),
                     score.clone(),
                     false,
                 );
