@@ -708,9 +708,11 @@ impl UtilRender {
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let options = self.context.get_options();
+
         // Player tail
         for tail in &player.tail {
-            let radius = r32(0.1) * tail.lifetime.get_ratio();
+            let radius = r32(options.cursor.inner_radius.value()) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
                 LitState::Dark => (THEME.danger, THEME.dark),
@@ -726,7 +728,15 @@ impl UtilRender {
         }
 
         // Player
-        self.draw_outline(&player.collider, 0.05, THEME.light, camera, framebuffer);
+        if options.cursor.show_perfect_radius {
+            self.draw_outline(
+                &player.collider,
+                options.cursor.outer_radius.value(),
+                THEME.highlight,
+                camera,
+                framebuffer,
+            );
+        }
     }
 
     pub fn draw_health(

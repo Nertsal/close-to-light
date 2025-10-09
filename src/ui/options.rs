@@ -6,7 +6,7 @@ use crate::{
     ui::layout::AreaOps,
 };
 
-use ctl_assets::GraphicsOptions;
+use ctl_assets::{CursorOptions, GraphicsOptions};
 use ctl_core::types::Name;
 use ctl_util::{SecondOrderDynamics, SecondOrderState};
 use geng_utils::bounded::Bounded;
@@ -87,6 +87,7 @@ pub struct OptionsWidget {
     pub volume: VolumeWidget,
     pub palette: PaletteChooseWidget,
     pub graphics: GraphicsWidget,
+    pub cursor: CursorWidget,
 }
 
 impl OptionsWidget {
@@ -101,6 +102,7 @@ impl OptionsWidget {
             volume: VolumeWidget::new(),
             palette: PaletteChooseWidget::new(palettes),
             graphics: GraphicsWidget::new(),
+            cursor: CursorWidget::new(),
         }
     }
 }
@@ -158,6 +160,10 @@ impl StatefulWidget for OptionsWidget {
         let graphics = main.clone().cut_top(5.0 * context.font_size);
         self.graphics
             .update(graphics, context, &mut options.graphics);
+        main.cut_top(self.graphics.state.position.height());
+
+        let cursor = main.clone().cut_top(5.0 * context.font_size);
+        self.cursor.update(cursor, context, &mut options.cursor);
         main.cut_top(self.graphics.state.position.height());
 
         state.context.set_options(options);
@@ -292,6 +298,74 @@ impl StatefulWidget for GraphicsWidget {
             };
         }
         self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Light;
+
+        let mut position = position;
+        position.min.y = min_y;
+        self.state.update(position, context);
+    }
+}
+
+pub struct CursorWidget {
+    pub state: WidgetState,
+    pub title: TextWidget,
+    pub show_perfect_radius: ToggleWidget,
+    pub inner_radius: SliderWidget,
+    pub outer_radius: SliderWidget,
+}
+
+impl CursorWidget {
+    pub fn new() -> Self {
+        Self {
+            state: WidgetState::new(),
+            title: TextWidget::new("Cursor"),
+            show_perfect_radius: ToggleWidget::new("Show Range"),
+            inner_radius: SliderWidget::new("Inner radius").with_display_precision(2),
+            outer_radius: SliderWidget::new("Outer radius").with_display_precision(2),
+        }
+    }
+}
+
+impl StatefulWidget for CursorWidget {
+    type State<'a> = CursorOptions;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
+        let mut main = position;
+
+        let title = main.cut_top(context.font_size * 1.2);
+        self.title.align(vec2(0.5, 0.5));
+        self.title.update(title, context);
+
+        let mut current_row = Aabb2::point(main.top_left())
+            .extend_right(main.width())
+            .extend_down(context.font_size * 1.1);
+        let mut min_y = current_row.min.y;
+        let mut next_row = || -> Aabb2<f32> {
+            let row = current_row;
+            current_row =
+                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            min_y = row.min.y;
+            row
+        };
+
+        self.show_perfect_radius.update(next_row(), context);
+        if self.show_perfect_radius.state.mouse_left.clicked {
+            state.show_perfect_radius = !state.show_perfect_radius;
+        }
+        self.show_perfect_radius.checked = state.show_perfect_radius;
+
+        self.inner_radius
+            .update(next_row(), context, &mut state.inner_radius);
+        self.outer_radius
+            .update(next_row(), context, &mut state.outer_radius);
 
         let mut position = position;
         position.min.y = min_y;

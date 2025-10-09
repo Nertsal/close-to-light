@@ -8,6 +8,7 @@ pub struct Options {
     pub volume: VolumeOptions,
     pub theme: Theme,
     pub graphics: GraphicsOptions,
+    pub cursor: CursorOptions,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -48,6 +49,32 @@ impl Default for GraphicsLightsOptions {
         Self {
             telegraph_color: ThemeColor::Light,
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CursorOptions {
+    pub show_perfect_radius: bool,
+    pub inner_radius: Bounded<f32>,
+    pub outer_radius: Bounded<f32>,
+}
+
+impl Default for CursorOptions {
+    fn default() -> Self {
+        Self {
+            show_perfect_radius: true,
+            inner_radius: Bounded::new(0.1, 0.05..=0.25),
+            outer_radius: Bounded::new(0.05, 0.01..=0.2),
+        }
+    }
+}
+
+impl PartialEq for CursorOptions {
+    fn eq(&self, other: &Self) -> bool {
+        self.show_perfect_radius == other.show_perfect_radius
+            && self.inner_radius.value() == other.inner_radius.value()
+            && self.outer_radius.value() == other.outer_radius.value()
     }
 }
 

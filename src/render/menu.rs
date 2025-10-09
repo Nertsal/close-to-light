@@ -422,6 +422,18 @@ impl MenuRender {
                     self.ui
                         .draw_toggle_widget(&graphics.telegraph_color, theme, framebuffer);
                 }
+
+                {
+                    // Cursor
+                    let cursor = &ui.options.cursor;
+                    self.ui.draw_text(&cursor.title, framebuffer);
+                    self.ui
+                        .draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
+                    self.ui
+                        .draw_slider(&cursor.inner_radius, theme, framebuffer);
+                    self.ui
+                        .draw_slider(&cursor.outer_radius, theme, framebuffer);
+                }
             },
         );
     }
