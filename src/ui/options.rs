@@ -297,7 +297,7 @@ impl StatefulWidget for GraphicsWidget {
                 ThemeColor::Light
             };
         }
-        self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Light;
+        self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Highlight;
 
         let mut position = position;
         position.min.y = min_y;
