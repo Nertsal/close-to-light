@@ -547,7 +547,7 @@ impl MenuRender {
     ) {
         let (bg_color, fg_color, _out_color) = if selected {
             (theme.light, theme.dark, theme.light)
-        } else if text.state.hovered {
+        } else if state.hovered {
             (theme.light, theme.dark, theme.dark)
         } else {
             (theme.dark, theme.light, theme.light)
