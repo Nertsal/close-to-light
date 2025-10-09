@@ -27,7 +27,7 @@ impl OptionsButtonWidget {
             options: OptionsWidget::new(
                 assets,
                 vec![
-                    // TODO: custom
+                    // TODO: custom palettes
                     PaletteWidget::new("Classic", Theme::classic()),
                     PaletteWidget::new("Stargazer", Theme::peach_mint()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
@@ -222,6 +222,7 @@ pub struct GraphicsWidget {
     pub title: TextWidget,
     pub crt: ToggleWidget,
     pub crt_scanlines: SliderWidget,
+    pub telegraph_color: ToggleWidget,
 }
 
 impl GraphicsWidget {
@@ -231,6 +232,7 @@ impl GraphicsWidget {
             title: TextWidget::new("Graphics"),
             crt: ToggleWidget::new("CRT Shader"),
             crt_scanlines: SliderWidget::new("CRT Scanlines").with_display_precision(0),
+            telegraph_color: ToggleWidget::new("Telegraph highlight"),
         }
     }
 }
@@ -254,14 +256,20 @@ impl StatefulWidget for GraphicsWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let row = Aabb2::point(main.top_left())
+        let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
-        let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 2);
-        let min_y = rows.last().unwrap().min.y;
+        let mut min_y = current_row.min.y;
+        let mut next_row = || -> Aabb2<f32> {
+            let row = current_row;
+            current_row =
+                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            min_y = row.min.y;
+            row
+        };
 
         self.crt.checked = state.crt.enabled;
-        self.crt.update(rows[0], context);
+        self.crt.update(next_row(), context);
         if self.crt.state.mouse_left.clicked {
             state.crt.enabled = !state.crt.enabled;
         }
@@ -269,11 +277,21 @@ impl StatefulWidget for GraphicsWidget {
         if state.crt.enabled {
             self.crt_scanlines.state.show();
             let mut value = Bounded::new(state.crt.scanlines * 100.0, 0.0..=100.0);
-            self.crt_scanlines.update(rows[1], context, &mut value);
+            self.crt_scanlines.update(next_row(), context, &mut value);
             state.crt.scanlines = value.value() / 100.0;
         } else {
             self.crt_scanlines.state.hide();
         }
+
+        self.telegraph_color.update(next_row(), context);
+        if self.telegraph_color.state.mouse_left.clicked {
+            state.lights.telegraph_color = if state.lights.telegraph_color == ThemeColor::Light {
+                ThemeColor::Highlight
+            } else {
+                ThemeColor::Light
+            };
+        }
+        self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Light;
 
         let mut position = position;
         position.min.y = min_y;

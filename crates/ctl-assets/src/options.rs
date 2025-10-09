@@ -14,6 +14,7 @@ pub struct Options {
 #[serde(default)]
 pub struct GraphicsOptions {
     pub crt: GraphicsCrtOptions,
+    pub lights: GraphicsLightsOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -32,6 +33,20 @@ impl Default for GraphicsCrtOptions {
             curvature: 20.0,
             vignette: 0.2,
             scanlines: 0.5,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GraphicsLightsOptions {
+    pub telegraph_color: ThemeColor,
+}
+
+impl Default for GraphicsLightsOptions {
+    fn default() -> Self {
+        Self {
+            telegraph_color: ThemeColor::Light,
         }
     }
 }

@@ -627,21 +627,6 @@ impl UiRender {
 
     pub fn draw_toggle_widget(
         &self,
-        toggle: &ToggleButtonWidget,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        self.draw_toggle_button(
-            &toggle.text,
-            toggle.selected,
-            toggle.can_deselect,
-            theme,
-            framebuffer,
-        );
-    }
-
-    pub fn draw_new_toggle_widget(
-        &self,
         toggle: &ToggleWidget,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,

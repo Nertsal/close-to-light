@@ -45,6 +45,7 @@ impl GameRender {
     ) {
         self.dither.set_noise(1.0);
         let mut framebuffer = self.dither.start();
+        let options = self.context.get_options();
 
         let camera = &model.camera;
         let theme = &model.options.theme;
@@ -62,7 +63,7 @@ impl GameRender {
                 let color = if tele.light.danger {
                     THEME.danger
                 } else {
-                    THEME.light
+                    THEME.get_color(options.graphics.lights.telegraph_color)
                 };
                 self.util
                     .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
