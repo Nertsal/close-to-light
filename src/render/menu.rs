@@ -1,3 +1,5 @@
+use ctl_ui::widget::WidgetState;
+
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::{
@@ -61,6 +63,7 @@ impl MenuRender {
         self.draw_sync(ui, state, framebuffer);
 
         self.draw_item_widget(
+            &ui.notifications.discard_all.state,
             &ui.notifications.discard_all,
             false,
             1.0,
@@ -140,14 +143,22 @@ impl MenuRender {
         for level in &ui.levels {
             self.ui.draw_icon(&level.edited, theme, framebuffer);
             self.ui.draw_icon(&level.local, theme, framebuffer);
+            let selected = state.switch_level == Some(level.index);
+            self.draw_item_widget(&level.state, &level.text, selected, 1.0, theme, framebuffer);
+            for (diff, color) in &level.diffs {
+                self.ui.draw_quad(diff.position, theme.light, framebuffer);
+                self.ui.draw_quad(
+                    diff.position.extend_uniform(-diff.position.height() * 0.2),
+                    theme.get_color(*color),
+                    framebuffer,
+                );
+            }
             self.ui.draw_outline(
                 level.state.position,
                 self.font_size * 0.1,
                 theme.light,
                 framebuffer,
             );
-            let selected = state.switch_level == Some(level.index);
-            self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
         }
 
         // Context menu
@@ -163,14 +174,15 @@ impl MenuRender {
         for diff in &ui.diffs {
             self.ui.draw_icon(&diff.edited, theme, framebuffer);
             self.ui.draw_icon(&diff.local, theme, framebuffer);
+            let selected = state.switch_diff == Some(diff.index);
+            self.draw_item_widget(&diff.state, &diff.text, selected, 1.0, theme, framebuffer);
             self.ui.draw_outline(
                 diff.state.position,
-                self.font_size * 0.2,
+                self.font_size * 0.1,
                 theme.light,
                 framebuffer,
             );
-            let selected = state.switch_diff == Some(diff.index);
-            self.draw_item_widget(&diff.text, selected, 1.0, theme, framebuffer);
+
             self.ui.draw_icon(&diff.grade, theme, framebuffer);
         }
 
@@ -488,13 +500,14 @@ impl MenuRender {
 
     fn draw_item_widget(
         &mut self,
+        state: &WidgetState,
         text: &crate::ui::widget::TextWidget,
         selected: bool,
         width: f32,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let (bg_color, fg_color, out_color) = if selected {
+        let (bg_color, fg_color, _out_color) = if selected {
             (theme.light, theme.dark, theme.light)
         } else if text.state.hovered {
             (theme.light, theme.dark, theme.dark)
@@ -502,14 +515,11 @@ impl MenuRender {
             (theme.dark, theme.light, theme.light)
         };
         let outline_width = self.font_size * 0.1 * width;
-        self.ui.draw_quad(
-            text.state.position.extend_uniform(-outline_width),
-            bg_color,
-            framebuffer,
-        );
-        self.ui.draw_text_colored(text, fg_color, framebuffer);
         self.ui
-            .draw_outline(text.state.position, outline_width, out_color, framebuffer);
+            .fill_quad_width(state.position, outline_width, bg_color, framebuffer);
+        self.ui.draw_text_colored(text, fg_color, framebuffer);
+        // self.ui
+        //     .draw_outline(text.state.position, outline_width, out_color, framebuffer);
     }
 
     fn draw_item_menu(

@@ -151,6 +151,31 @@ impl UiRender {
         );
     }
 
+    pub fn fill_quad_width(
+        &self,
+        position: Aabb2<f32>,
+        width: f32,
+        color: Color,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let scale = get_pixel_scale(framebuffer.size());
+        let (texture, real_width) = if width < 2.0 * scale {
+            (&self.context.assets.sprites.fill_thinner, 1.0 * scale)
+        } else if width < 16.0 * scale {
+            (&self.context.assets.sprites.fill_thin, 2.0 * scale)
+        } else {
+            (&self.context.assets.sprites.fill, 4.0 * scale)
+        };
+        self.util.draw_nine_slice(
+            position.extend_uniform(real_width - width),
+            color,
+            texture,
+            scale,
+            &geng::PixelPerfectCamera,
+            framebuffer,
+        );
+    }
+
     pub fn draw_quad(
         &self,
         quad: Aabb2<f32>,

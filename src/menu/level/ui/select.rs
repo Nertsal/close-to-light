@@ -183,7 +183,12 @@ impl LevelSelectUI {
 
         // Synchronize data
         for (widget, &(group_id, cached)) in self.levels.iter_mut().zip(&groups) {
-            widget.sync(group_id, cached);
+            let scores: Vec<_> = cached
+                .level_hashes
+                .iter()
+                .map(|hash| state.leaderboard.loaded.all_highscores.get(hash))
+                .collect();
+            widget.sync(group_id, cached, &scores);
         }
 
         drop(local);
@@ -334,6 +339,7 @@ pub struct ItemLevelWidget {
     pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
+    pub diffs: Vec<(WidgetState, ThemeColor)>,
 }
 
 impl ItemLevelWidget {
@@ -345,10 +351,16 @@ impl ItemLevelWidget {
             menu: ItemMenuWidget::new(assets),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             index,
+            diffs: Vec::new(),
         }
     }
 
-    pub fn sync(&mut self, group_id: Index, cached: &CachedGroup) {
+    pub fn sync(
+        &mut self,
+        group_id: Index,
+        cached: &CachedGroup,
+        local_highscores: &[Option<&SavedScore>],
+    ) {
         self.index = group_id;
         self.text.text = cached
             .local
@@ -370,6 +382,23 @@ impl ItemLevelWidget {
             } else {
                 self.edited.hide();
             }
+        }
+
+        if self.diffs.len() > local_highscores.len() {
+            self.diffs.drain(local_highscores.len()..);
+        } else {
+            self.diffs.extend(
+                (self.diffs.len()..local_highscores.len())
+                    .map(|_| (WidgetState::new(), ThemeColor::Dark)),
+            );
+        }
+        for ((_, color), score) in self.diffs.iter_mut().zip(local_highscores) {
+            *color = score.map_or(ThemeColor::Dark, |score| {
+                match score.meta.score.calculate_grade(score.meta.completion) {
+                    ScoreGrade::F => ThemeColor::Danger,
+                    _ => ThemeColor::Highlight,
+                }
+            });
         }
     }
 
@@ -399,6 +428,18 @@ impl ItemLevelWidget {
                 .extend_symmetric(-vec2(0.0, context.font_size * 0.15));
             let positions = icons.split_rows(widgets.len());
             for (widget, pos) in widgets.into_iter().zip(positions) {
+                widget.update(pos, context);
+            }
+        }
+
+        if !self.diffs.is_empty() {
+            position.cut_bottom(context.font_size * 0.1);
+            let diffs = position
+                .cut_bottom(context.font_size * 0.3)
+                .extend_symmetric(-vec2(context.font_size * 0.2, 0.0));
+            let diffs = diffs.split_columns(self.diffs.len());
+            for ((widget, _), pos) in self.diffs.iter_mut().zip(diffs) {
+                let pos = pos.extend_symmetric(-vec2(0.2, 0.05) * context.font_size);
                 widget.update(pos, context);
             }
         }

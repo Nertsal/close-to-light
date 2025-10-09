@@ -82,6 +82,7 @@ pub struct Sprites {
     pub border_thinner: PixelTexture,
     pub fill: PixelTexture,
     pub fill_thin: PixelTexture,
+    pub fill_thinner: PixelTexture,
     pub circle: PixelTexture,
 }
 
