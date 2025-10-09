@@ -1,6 +1,6 @@
 id = 1
 featured = false
-hash = "124850c478189fc9439f04694194e8d2151ee640913fb21474d89f3b0b4910e8"
+hash = "eefa336e974f755072d46477c3bf32deb5be26aa7a918b973c7e4f61893a084c"
 
 [music]
 id = 1
@@ -41,7 +41,7 @@ romanized = "IcyLava"
 [[levels]]
 id = 3
 name = "Hard"
-hash = "4cb026f04b217042da863341fe37f1b9e4f612b1efb3333659daac792b1cc1ef"
+hash = "33d9de650eb4fc7ae7f5523b94cec29088ec8175ff05ec9c5bfc31c1911c3ce5"
 
 [[levels.authors]]
 id = 1
