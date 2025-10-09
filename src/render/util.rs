@@ -732,7 +732,7 @@ impl UtilRender {
             self.draw_outline(
                 &player.collider,
                 options.cursor.outer_radius.value(),
-                THEME.highlight,
+                THEME.light,
                 camera,
                 framebuffer,
             );

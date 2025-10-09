@@ -416,7 +416,7 @@ impl LevelMenu {
             let meta = ScoreMeta::new_category(category, score, R32::ZERO);
             self.state
                 .leaderboard
-                .submit(None, level.meta.clone(), meta);
+                .reload_submit(None, level.meta.clone(), meta);
         }
     }
 

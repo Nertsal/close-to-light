@@ -403,16 +403,12 @@ impl Leaderboard {
         }
     }
 
-    pub fn submit(&mut self, mut score: Option<i32>, level: LevelInfo, meta: ScoreMeta) {
-        if self.user.is_none() {
-            score = None;
-        }
-
+    pub fn reload_submit(&mut self, score: Option<i32>, level: LevelInfo, meta: ScoreMeta) {
         let score = score.map(|score| SavedScore {
             user: self.user.as_ref().map_or(
                 UserInfo {
                     id: 0,
-                    name: "<anon>".into(),
+                    name: "you".into(),
                 },
                 |user| UserInfo {
                     id: user.id,
@@ -428,6 +424,10 @@ impl Leaderboard {
         self.update_local(score.clone());
 
         if let Some(board) = &self.client {
+            let mut score = score;
+            if self.user.is_none() {
+                score = None;
+            }
             let board = Arc::clone(board);
             let level_hash = self.loaded.level.hash.clone();
             let future = async move {

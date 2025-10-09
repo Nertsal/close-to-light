@@ -163,12 +163,8 @@ impl geng::State for Game {
         if let Some(transition) = self.model.transition.take() {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
-                    let player_name = self.model.player.info.name.clone();
-                    let do_submit_score = submit_score && !player_name.trim().is_empty();
-
                     let score = &self.model.score;
                     let raw_score = score.calculated.combined;
-                    let submit_score = do_submit_score.then_some(raw_score);
 
                     let meta = ctl_local::ScoreMeta::new(
                         self.model.level.config.modifiers.clone(),
@@ -177,9 +173,9 @@ impl geng::State for Game {
                         self.model.current_completion(),
                     );
 
-                    if do_submit_score {
-                        self.model.leaderboard.submit(
-                            submit_score,
+                    if submit_score {
+                        self.model.leaderboard.reload_submit(
+                            Some(raw_score),
                             self.model.level.level.meta.clone(),
                             meta,
                         );
