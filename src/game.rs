@@ -29,12 +29,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(
-        context: Context,
-        options: Options,
-        level: PlayLevel,
-        leaderboard: Leaderboard,
-    ) -> Self {
+    pub fn new(context: Context, level: PlayLevel, leaderboard: Leaderboard) -> Self {
         if level.group.music.is_none() {
             log::warn!(
                 "Starting level {:?} but no music got loaded.",
@@ -44,7 +39,7 @@ impl Game {
 
         Self::preloaded(
             context.clone(),
-            Model::new(context, options, level.clone(), leaderboard),
+            Model::new(context, level.clone(), leaderboard),
         )
     }
 
@@ -76,7 +71,8 @@ impl geng::State for Game {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(self.model.options.theme.dark), None, None);
+        let options = self.context.get_options();
+        ugli::clear(framebuffer, Some(options.theme.dark), None, None);
 
         let buffer = &mut self.post.begin(framebuffer.size());
 
@@ -102,10 +98,9 @@ impl geng::State for Game {
                 &self.model.camera,
                 &mut dither_buffer,
             );
-            self.render.dither.finish(
-                self.model.real_time,
-                &self.model.options.theme.transparent(),
-            );
+            self.render
+                .dither
+                .finish(self.model.real_time, &options.theme.transparent());
             geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
                 .fit_screen(vec2(0.5, 0.5), buffer)
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);

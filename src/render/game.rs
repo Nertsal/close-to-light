@@ -48,7 +48,7 @@ impl GameRender {
         let options = self.context.get_options();
 
         let camera = &model.camera;
-        let theme = &model.options.theme;
+        let theme = &options.theme;
         let beat_time = model
             .level
             .level
@@ -230,11 +230,8 @@ impl GameRender {
         self.masked.update_size(framebuffer.size());
         self.masked2.update_size(framebuffer.size());
 
-        // let camera = &geng::PixelPerfectCamera;
-        let theme = model.options.theme;
-        // let font_size = framebuffer.size().y as f32 * 0.05;
-
-        // let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
+        let options = self.context.get_options();
+        let theme = options.theme;
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
         // let precision = model.score.calculated.precision.as_f32() * 100.0;

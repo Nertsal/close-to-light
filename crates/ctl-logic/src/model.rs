@@ -1,6 +1,5 @@
 use super::*;
 
-use ctl_assets::Options;
 use ctl_local::{CachedGroup, Leaderboard, LocalMusic};
 use ctl_util::{SecondOrderDynamics, SecondOrderState};
 use generational_arena::Index;
@@ -182,7 +181,7 @@ pub struct Model {
     pub cursor_clicked: bool,
     pub vfx: Vfx,
 
-    pub options: Options,
+    pub music_offset: Time,
     /// The level being played. Not changed, apart from music being played.
     pub level: PlayLevel,
     /// Current state of the level.
@@ -214,16 +213,11 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(
-        context: Context,
-        options: Options,
-        level: PlayLevel,
-        mut leaderboard: Leaderboard,
-    ) -> Self {
+    pub fn new(context: Context, level: PlayLevel, mut leaderboard: Leaderboard) -> Self {
         leaderboard.loaded.level = level.level.meta.clone();
 
         let start_time = level.start_time;
-        let mut model = Self::empty(context, options, level);
+        let mut model = Self::empty(context, level);
         if let Some(player) = &leaderboard.user {
             model.player.info = UserInfo {
                 id: player.id,
@@ -236,7 +230,8 @@ impl Model {
         model
     }
 
-    pub fn empty(context: Context, options: Options, level: PlayLevel) -> Self {
+    pub fn empty(context: Context, level: PlayLevel) -> Self {
+        let options = context.get_options();
         Self {
             transition: None,
             leaderboard: Leaderboard::empty(&context.geng, &context.local.fs),
@@ -263,6 +258,7 @@ impl Model {
             cursor_clicked: false,
             vfx: Vfx::new(),
 
+            music_offset: seconds_to_time(r32(options.gameplay.music_offset.value() * 1e-3)),
             level_state: LevelState::default(),
             state: State::Starting {
                 start_timer: FloatTime::ZERO, // reset during init
@@ -289,7 +285,6 @@ impl Model {
             ),
 
             transition_button: level.transition_button.clone(),
-            options,
             level,
         }
     }

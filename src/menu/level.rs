@@ -302,7 +302,6 @@ impl LevelMenu {
         let future = {
             let context = self.context.clone();
             let leaderboard = self.state.leaderboard.clone();
-            let options = self.state.context.get_options();
             let config = self.state.config.clone();
 
             async move {
@@ -314,7 +313,7 @@ impl LevelMenu {
                     start_time: Time::ZERO,
                     transition_button: Some(transition_button),
                 };
-                crate::game::Game::new(context, options, level, leaderboard)
+                crate::game::Game::new(context, level, leaderboard)
             }
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(

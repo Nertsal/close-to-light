@@ -10,7 +10,7 @@ impl Model {
         // NOTE: double conversion in case of floating point errors
         // since `play_time` is used to recalculate `play_time_ms` every frame
         self.play_time = time_to_seconds(target_time);
-        self.play_time_ms = seconds_to_time(self.play_time);
+        self.play_time_ms = seconds_to_time(self.play_time) - self.music_offset;
         self.completion_time = self.play_time;
 
         self.player.health.set_ratio(FloatTime::ONE);
@@ -21,7 +21,8 @@ impl Model {
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime) {
-        self.context.music.set_volume(self.options.volume.music());
+        let options = self.context.get_options();
+        self.context.music.set_volume(options.volume.music());
         self.vfx.update(delta_time);
 
         let delta_ms = seconds_to_time(delta_time);
@@ -41,7 +42,7 @@ impl Model {
         } else {
             let last_frame_time = self.play_time_ms;
             self.play_time += delta_time;
-            self.play_time_ms = seconds_to_time(self.play_time);
+            self.play_time_ms = seconds_to_time(self.play_time) - self.music_offset;
 
             let frame_time_range = last_frame_time..self.play_time_ms;
             let frame_events = self
@@ -69,7 +70,7 @@ impl Model {
             let speed = (t - 0.1).max(0.5);
             self.context.music.set_speed(speed);
 
-            let volume = t * self.options.volume.music();
+            let volume = t * options.volume.music();
             if volume < 0.0 {
                 self.context.music.stop();
             } else {
@@ -221,11 +222,8 @@ impl Model {
 
     fn restart(&mut self) {
         log::info!("Restarting...");
-        // TODO: highscore
-        // self.save_highscore();
         *self = Self::new(
             self.context.clone(),
-            self.options.clone(),
             PlayLevel {
                 transition_button: Some(self.restart_button.clone()),
                 ..self.level.clone()

@@ -9,6 +9,7 @@ pub struct Options {
     pub theme: Theme,
     pub graphics: GraphicsOptions,
     pub cursor: CursorOptions,
+    pub gameplay: GameplayOptions,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -75,6 +76,27 @@ impl PartialEq for CursorOptions {
         self.show_perfect_radius == other.show_perfect_radius
             && self.inner_radius.value() == other.inner_radius.value()
             && self.outer_radius.value() == other.outer_radius.value()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct GameplayOptions {
+    /// Music offset in ms.
+    pub music_offset: Bounded<f32>,
+}
+
+impl Default for GameplayOptions {
+    fn default() -> Self {
+        Self {
+            music_offset: Bounded::new(0.0, -50.0..=50.0),
+        }
+    }
+}
+
+impl PartialEq for GameplayOptions {
+    fn eq(&self, other: &Self) -> bool {
+        self.music_offset.value() == other.music_offset.value()
     }
 }
 

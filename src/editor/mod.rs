@@ -73,8 +73,7 @@ impl EditorState {
     pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
-        let options = context.get_options();
-        let model = Model::empty(context.clone(), options, level.clone());
+        let model = Model::empty(context.clone(), level.clone());
         editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true, false));
         editor
     }
@@ -93,9 +92,8 @@ impl EditorState {
             return;
         };
 
-        self.context
-            .music
-            .set_volume(level_editor.model.options.volume.music());
+        let options = self.context.get_options();
+        self.context.music.set_volume(options.volume.music());
 
         level_editor.real_time += delta_time;
         level_editor.current_time.update(delta_time);
@@ -201,7 +199,6 @@ impl EditorState {
         self.transition = Some(geng::state::Transition::Push(Box::new(
             crate::game::Game::new(
                 self.context.clone(),
-                level_editor.model.options.clone(),
                 level,
                 Leaderboard::new(&self.context.geng, None, &self.context.local.fs),
             ),

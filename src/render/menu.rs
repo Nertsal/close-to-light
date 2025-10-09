@@ -412,6 +412,14 @@ impl MenuRender {
                 }
 
                 {
+                    // Gameplay
+                    let gameplay = &ui.options.gameplay;
+                    self.ui.draw_text(&gameplay.title, framebuffer);
+                    self.ui
+                        .draw_slider(&gameplay.music_offset, theme, framebuffer);
+                }
+
+                {
                     // Graphics
                     let graphics = &ui.options.graphics;
                     self.ui.draw_text(&graphics.title, framebuffer);

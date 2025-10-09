@@ -6,7 +6,7 @@ use crate::{
     ui::layout::AreaOps,
 };
 
-use ctl_assets::{CursorOptions, GraphicsOptions};
+use ctl_assets::{CursorOptions, GameplayOptions, GraphicsOptions};
 use ctl_core::types::Name;
 use ctl_util::{SecondOrderDynamics, SecondOrderState};
 use geng_utils::bounded::Bounded;
@@ -88,6 +88,7 @@ pub struct OptionsWidget {
     pub palette: PaletteChooseWidget,
     pub graphics: GraphicsWidget,
     pub cursor: CursorWidget,
+    pub gameplay: GameplayWidget,
 }
 
 impl OptionsWidget {
@@ -103,6 +104,7 @@ impl OptionsWidget {
             palette: PaletteChooseWidget::new(palettes),
             graphics: GraphicsWidget::new(),
             cursor: CursorWidget::new(),
+            gameplay: GameplayWidget::new(),
         }
     }
 }
@@ -156,6 +158,11 @@ impl StatefulWidget for OptionsWidget {
         let palette = main.clone().cut_top(6.0 * context.layout_size);
         self.palette.update(palette, context, &mut options.theme);
         main.cut_top(self.palette.state.position.height());
+
+        let gameplay = main.clone().cut_top(6.0 * context.layout_size);
+        self.gameplay
+            .update(gameplay, context, &mut options.gameplay);
+        main.cut_top(self.gameplay.state.position.height());
 
         let graphics = main.clone().cut_top(5.0 * context.font_size);
         self.graphics
@@ -366,6 +373,62 @@ impl StatefulWidget for CursorWidget {
             .update(next_row(), context, &mut state.inner_radius);
         self.outer_radius
             .update(next_row(), context, &mut state.outer_radius);
+
+        let mut position = position;
+        position.min.y = min_y;
+        self.state.update(position, context);
+    }
+}
+
+pub struct GameplayWidget {
+    pub state: WidgetState,
+    pub title: TextWidget,
+    pub music_offset: SliderWidget,
+}
+
+impl GameplayWidget {
+    pub fn new() -> Self {
+        Self {
+            state: WidgetState::new(),
+            title: TextWidget::new("Gameplay"),
+            music_offset: SliderWidget::new("Music offset").with_display_precision(0),
+        }
+    }
+}
+
+impl StatefulWidget for GameplayWidget {
+    type State<'a> = GameplayOptions;
+
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
+
+    fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &mut UiContext,
+        state: &mut Self::State<'_>,
+    ) {
+        let mut main = position;
+
+        let title = main.cut_top(context.font_size * 1.2);
+        self.title.align(vec2(0.5, 0.5));
+        self.title.update(title, context);
+
+        let mut current_row = Aabb2::point(main.top_left())
+            .extend_right(main.width())
+            .extend_down(context.font_size * 1.1);
+        let mut min_y = current_row.min.y;
+        let mut next_row = || -> Aabb2<f32> {
+            let row = current_row;
+            current_row =
+                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            min_y = row.min.y;
+            row
+        };
+
+        self.music_offset
+            .update(next_row(), context, &mut state.music_offset);
 
         let mut position = position;
         position.min.y = min_y;

@@ -82,9 +82,10 @@ pub struct DragLight {
 impl Editor {
     pub fn delete_level(&mut self, level_index: usize) {
         if let Some(level_editor) = &self.level_edit
-            && level_index == level_editor.static_level.level_index {
-                self.level_edit = None;
-            }
+            && level_index == level_editor.static_level.level_index
+        {
+            self.level_edit = None;
+        }
 
         if !(0..self.group.cached.local.data.levels.len()).contains(&level_index) {
             log::error!("Tried to remove a level by an invalid index {level_index}");
@@ -195,11 +196,7 @@ impl Editor {
                 start_time: Time::ZERO,
                 transition_button: None,
             };
-            let model = Model::empty(
-                self.context.clone(),
-                self.context.get_options(),
-                level.clone(),
-            );
+            let model = Model::empty(self.context.clone(), level.clone());
             self.level_edit = Some(LevelEditor::new(
                 self.context.clone(),
                 model,
@@ -317,11 +314,12 @@ impl Editor {
 
         level_editor.scroll_time(scroll);
         if let Some(music) = &level_editor.static_level.group.music
-            && self.config.playback_duration > FloatTime::ZERO {
-                self.context
-                    .music
-                    .play_from_time(music, level_editor.current_time.target);
-                self.music_timer = self.config.playback_duration;
-            }
+            && self.config.playback_duration > FloatTime::ZERO
+        {
+            self.context
+                .music
+                .play_from_time(music, level_editor.current_time.target);
+            self.music_timer = self.config.playback_duration;
+        }
     }
 }
