@@ -444,7 +444,8 @@ impl geng::State for LevelMenu {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        let theme = self.context.get_options().theme;
+        let options = self.context.get_options();
+        let theme = options.theme;
         ugli::clear(framebuffer, Some(theme.dark), None, None);
         self.masked.update_size(framebuffer.size());
 
@@ -587,6 +588,7 @@ impl geng::State for LevelMenu {
         self.post.post_process(
             crate::render::post::PostVfx {
                 time: self.time,
+                crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
             },
             framebuffer,

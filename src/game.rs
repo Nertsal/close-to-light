@@ -109,6 +109,7 @@ impl geng::State for Game {
         self.post.post_process(
             crate::render::post::PostVfx {
                 time: self.model.real_time,
+                crt: options.graphics.crt.enabled,
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
             },
             framebuffer,

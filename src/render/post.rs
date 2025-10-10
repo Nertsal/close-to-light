@@ -7,8 +7,10 @@ pub struct PostRender {
     swap_buffer: (ugli::Texture, ugli::Texture),
 }
 
+#[derive(Debug, Clone)]
 pub struct PostVfx {
     pub time: FloatTime,
+    pub crt: bool,
     pub rgb_split: f32,
 }
 
@@ -62,6 +64,10 @@ impl PostRender {
         buffer
     }
 
+    pub fn continue_render(&mut self) -> ugli::Framebuffer<'_> {
+        geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli())
+    }
+
     pub fn post_process(&mut self, vfx: PostVfx, framebuffer: &mut ugli::Framebuffer) {
         let options = self.context.get_options();
 
@@ -77,7 +83,7 @@ impl PostRender {
         }
 
         // CRT
-        if options.graphics.crt.enabled {
+        if vfx.crt {
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,

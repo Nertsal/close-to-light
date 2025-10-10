@@ -1,14 +1,11 @@
 use super::*;
 
 impl EditorRender {
-    pub(super) fn draw_game(&mut self, editor: &Editor, visible: bool) {
+    pub(super) fn draw_game(&mut self, editor: &Editor, visible: bool, post_vfx: PostVfx) {
         let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
 
-        let game_buffer = &mut geng_utils::texture::attach_texture(
-            &mut self.game_texture,
-            self.context.geng.ugli(),
-        );
+        let game_buffer = &mut self.post_render.begin(self.game_texture.size());
 
         if let Some(level_editor) = &editor.level_edit {
             let swap_t = level_editor.model.vfx.palette_swap.current.as_f32();
@@ -28,11 +25,11 @@ impl EditorRender {
         }
 
         macro_rules! draw_game {
-            ($alpha:expr) => {{
+            ($alpha:expr, $buffer:expr) => {{
                 self.dither
                     .finish(level_editor.real_time, &theme.transparent());
                 self.context.geng.draw2d().textured_quad(
-                    game_buffer,
+                    $buffer,
                     &geng::PixelPerfectCamera,
                     screen_aabb,
                     self.dither.get_buffer(),
@@ -146,7 +143,7 @@ impl EditorRender {
             }
         }
 
-        let mut pixel_buffer = draw_game!(dynamic_alpha);
+        let mut pixel_buffer = draw_game!(dynamic_alpha, game_buffer);
 
         if let Some(level) = &level_editor.level_state.static_level {
             for tele in &level.telegraphs {
@@ -156,7 +153,13 @@ impl EditorRender {
                 draw_light(light, &mut pixel_buffer);
             }
         }
-        let mut pixel_buffer = draw_game!(static_alpha);
+        let mut pixel_buffer = draw_game!(static_alpha, game_buffer);
+
+        let game_buffer = &mut geng_utils::texture::attach_texture(
+            &mut self.game_texture,
+            self.context.geng.ugli(),
+        );
+        self.post_render.post_process(post_vfx, game_buffer);
 
         {
             // Current action
@@ -180,7 +183,7 @@ impl EditorRender {
                 );
             }
         }
-        let mut pixel_buffer = draw_game!(1.0);
+        let mut pixel_buffer = draw_game!(1.0, game_buffer);
 
         // TODO: adapt to movement density
         /// How much time away are the waypoints still visible
@@ -393,7 +396,7 @@ impl EditorRender {
                 }
             }
         }
-        draw_game!(1.0);
+        draw_game!(1.0, game_buffer);
 
         let gameplay_fov = 10.0;
         let gameplay_area =

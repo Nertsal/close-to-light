@@ -178,7 +178,8 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        let theme = self.context.get_options().theme;
+        let options = self.context.get_options();
+        let theme = options.theme;
         ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
         let mut framebuffer = self.dither.start();
@@ -247,6 +248,7 @@ impl geng::State for MainMenu {
         self.post_render.post_process(
             crate::render::post::PostVfx {
                 time: self.time,
+                crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
             },
             screen_buffer,

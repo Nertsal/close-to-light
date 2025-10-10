@@ -11,7 +11,11 @@ use super::{
     *,
 };
 
-use crate::{editor::*, ui::UiContext};
+use crate::{
+    editor::*,
+    render::post::{PostRender, PostVfx},
+    ui::UiContext,
+};
 
 pub struct EditorRender {
     context: Context,
@@ -20,6 +24,7 @@ pub struct EditorRender {
     ui: UiRender,
     mask: MaskedRender,
     mask_stack: MaskedStack,
+    post_render: PostRender,
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
@@ -41,6 +46,7 @@ impl EditorRender {
             ui: UiRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             mask_stack: MaskedStack::new(&context.geng, &context.assets),
+            post_render: PostRender::new(context.clone()),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,
@@ -55,15 +61,9 @@ impl EditorRender {
         editor: &Editor,
         ui: &EditorUi,
         context: &UiContext,
+        post_vfx: PostVfx,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        ugli::clear(
-            framebuffer,
-            Some(editor.context.get_options().theme.dark),
-            None,
-            None,
-        );
-
         self.mask.update_size(framebuffer.size());
         self.mask_stack.update_size(framebuffer.size());
         geng_utils::texture::update_texture_size(
@@ -81,7 +81,7 @@ impl EditorRender {
         }
 
         let edit_tab = matches!(editor.tab, EditorTab::Edit);
-        self.draw_game(editor, edit_tab);
+        self.draw_game(editor, edit_tab, post_vfx);
         if !editor.render_options.hide_ui {
             self.draw_ui(ui, context);
         }

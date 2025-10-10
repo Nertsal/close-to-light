@@ -254,13 +254,15 @@ impl geng::State for EditorState {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(Color::BLACK), None, None);
 
+        let options = self.context.get_options();
         let vfx = self
             .editor
             .level_edit
             .as_ref()
             .map_or(Vfx::new(), |level| level.model.vfx.clone());
-        let post_vfx = crate::render::post::PostVfx {
+        let game_post_vfx = crate::render::post::PostVfx {
             time: self.editor.real_time,
+            crt: false,
             rgb_split: vfx.rgb_split.value.current.as_f32(),
         };
 
@@ -287,9 +289,19 @@ impl geng::State for EditorState {
         }
 
         let buffer = &mut self.post_render.begin(framebuffer.size());
-        self.render
-            .draw_editor(&self.editor, &self.ui, &self.ui_context, buffer);
+        self.render.draw_editor(
+            &self.editor,
+            &self.ui,
+            &self.ui_context,
+            game_post_vfx.clone(),
+            buffer,
+        );
 
-        self.post_render.post_process(post_vfx, framebuffer);
+        let editor_post_vfx = crate::render::post::PostVfx {
+            crt: options.graphics.crt.enabled,
+            rgb_split: 0.0,
+            ..game_post_vfx
+        };
+        self.post_render.post_process(editor_post_vfx, framebuffer);
     }
 }
