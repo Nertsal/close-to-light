@@ -48,6 +48,12 @@ impl LevelState {
             is_finished: true,
         };
 
+        if let Some(vfx) = &mut vfx {
+            // Reset accumulative fields
+            vfx.palette_swap.target = R32::ZERO;
+            vfx.rgb_split.time_left = FloatTime::ZERO;
+        }
+
         for (i, e) in level.events.iter().enumerate() {
             state.render_event(e, Some(i), config, vfx.as_deref_mut());
         }
@@ -59,7 +65,7 @@ impl LevelState {
         event: &TimedEvent,
         event_id: Option<usize>,
         config: &LevelConfig,
-        mut vfx: Option<&mut Vfx>,
+        vfx: Option<&mut Vfx>,
     ) {
         if let Some(time) = self.ignore_after
             && event.time > time
@@ -71,12 +77,6 @@ impl LevelState {
         if time < 0 {
             // The event is in the future
             self.is_finished = false;
-        }
-
-        if let Some(vfx) = &mut vfx {
-            // Reset accumulative fields
-            vfx.palette_swap.target = R32::ZERO;
-            vfx.rgb_split.time_left = FloatTime::ZERO;
         }
 
         match &event.event {
