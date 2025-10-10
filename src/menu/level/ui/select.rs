@@ -442,7 +442,7 @@ impl ItemLevelWidget {
                 .extend_symmetric(-vec2(context.font_size * 0.2, 0.0));
             let diffs = diffs.split_columns(self.diffs.len());
             for ((widget, _), pos) in self.diffs.iter_mut().zip(diffs) {
-                let pos = pos.extend_symmetric(-vec2(0.2, 0.05) * context.font_size);
+                let pos = pos.extend_symmetric(-vec2(0.1, 0.05) * context.font_size);
                 widget.update(pos, context);
             }
             position.cut_bottom(context.font_size * 0.1);

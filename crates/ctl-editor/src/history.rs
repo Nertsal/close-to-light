@@ -5,6 +5,11 @@ pub enum HistoryLabel {
     #[default]
     Unknown,
     Merge,
+
+    MoveEvent(usize),
+
+    RgbDuration(usize),
+
     FadeIn(LightId),
     FadeOut(LightId),
     Rotate(LightId, WaypointId),
@@ -12,6 +17,7 @@ pub enum HistoryLabel {
     MoveLight(LightId),
     MoveWaypoint(LightId, WaypointId),
     MoveWaypointTime(LightId, WaypointId),
+
     Drag,
 }
 

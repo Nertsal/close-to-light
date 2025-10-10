@@ -12,6 +12,10 @@ const PPU: usize = 2;
 const LIGHT_LINE_WIDTH: f32 = 16.0;
 const LIGHT_LINE_SPACE: f32 = 4.0;
 
+// TODO: unmagic constant - max click shake distance and duration
+const MAX_CLICK_DISTANCE: f32 = 25.0;
+const MAX_CLICK_DURATION: f32 = 0.5;
+
 pub struct TimelineWidget {
     cursor_pos: vec2<f32>,
     expansion: SecondOrderState<f32>,
@@ -25,6 +29,7 @@ pub struct TimelineWidget {
     dots: Vec<vec2<f32>>,
     marks: Vec<(vec2<f32>, Color)>,
     ticks: Vec<(vec2<f32>, BeatTime)>,
+    dragging_event: Option<(vec2<f32>, f32)>,
     dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: bool,
 
@@ -66,6 +71,7 @@ impl TimelineWidget {
             dots: Vec::new(),
             marks: Vec::new(),
             ticks: Vec::new(),
+            dragging_event: None,
             dragging_light: None,
             dragging_waypoint: false,
 
@@ -142,7 +148,7 @@ impl TimelineWidget {
         let snap = BeatTime::QUARTER;
 
         // Check highlight bounds
-        self.highlight_bar = self
+        let light_selection = self
             .selection
             .light_single()
             .and_then(|id| self.level.events.get(id.event))
@@ -162,6 +168,28 @@ impl TimelineWidget {
                     None
                 }
             });
+        self.highlight_bar = light_selection.or_else(|| {
+            self.selection
+                .event_single()
+                .and_then(|id| self.level.events.get(id))
+                .and_then(|event| {
+                    let duration = match &event.event {
+                        Event::Light(_) => return None,
+                        Event::PaletteSwap => return None,
+                        Event::RgbSplit(duration) => duration,
+                    };
+                    let from_time = event.time;
+                    let from = render_time(&self.highlight_line, from_time).center();
+                    let to_time = event.time + duration;
+                    let to = render_time(&self.highlight_line, to_time).center();
+                    Some(HighlightBar {
+                        from_time,
+                        from,
+                        to_time,
+                        to,
+                    })
+                })
+        });
 
         // Render events on the timeline
         let mut occupied = BTreeMap::new();
@@ -172,283 +200,369 @@ impl TimelineWidget {
             *focus = self.state.hovered;
             f
         };
-        for (i, event) in self.level.events.iter().enumerate() {
-            if let Event::Light(light_event) = &event.event {
-                let light_id = LightId { event: i };
-                let is_selected = self.selection.is_light_single(light_id);
-
-                // Selected light's waypoints
-                if is_selected {
-                    if !context.can_focus() || !context.cursor.left.down {
-                        match self.dragging_light.take() {
-                            // TODO: unmagic constant - max click shake distance and duration
-                            Some((from, from_time))
-                                if (context.cursor.position - from).len_sqr() < 25.0
-                                    && (context.real_time - from_time).abs() < 0.5 => {}
-                            Some(_) => {
-                                if is_selected {
-                                    actions.push(LevelAction::DeselectLight.into());
+        let can_focus = context.can_focus();
+        for (event_i, event) in self.level.events.iter().enumerate() {
+            let is_selected = self.selection.is_event_single(event_i);
+            match &event.event {
+                Event::Light(light_event) => {
+                    let light_id = LightId { event: event_i };
+                    let is_selected = self.selection.is_light_single(light_id);
+                    if is_selected {
+                        if !can_focus || !context.cursor.left.down {
+                            match self.dragging_light.take() {
+                                Some((from, from_time))
+                                    if (context.cursor.position - from).len_sqr()
+                                        < MAX_CLICK_DISTANCE
+                                        && (context.real_time - from_time).abs()
+                                            < MAX_CLICK_DURATION => {}
+                                Some(_) => {
+                                    if is_selected {
+                                        actions.push(LevelAction::Deselect.into());
+                                    }
                                 }
+                                None => {}
                             }
-                            None => {}
                         }
-                    }
-                    if self.dragging_light.is_some() {
-                        let time = unrender_time(context.cursor.position.x);
-                        let time = editor.level.timing.snap_to_beat(time, snap)
-                            - light_event.movement.fade_in;
-                        actions.push(
-                            LevelAction::MoveLight(
-                                light_id,
-                                Change::Set(time),
-                                Change::Add(vec2::ZERO),
-                            )
-                            .into(),
-                        );
-                    }
-
-                    let from_time = event.time;
-                    let from = render_time(&self.highlight_line, from_time).center();
-                    let to_time = event.time + light_event.movement.total_duration();
-                    let to = render_time(&self.highlight_line, to_time).center();
-
-                    let size = vec2(4.0, 16.0) * PPU as f32;
-
-                    // Fade in
-                    if self.state.position.contains(from) {
-                        let position = Aabb2::point(from).extend_symmetric(size / 2.0);
-                        let tick = context.state.get_or(self.state.id, || {
-                            // TODO: somehow mask this with other stuff
-                            IconButtonWidget::new(atlas.timeline_tick_smol())
-                                .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                        });
-                        tick.update(position, context);
-                        if tick.state.mouse_left.pressed.is_some() {
-                            // Drag fade in
-                            let target = unrender_time(context.cursor.position.x);
-                            let target = editor.level.timing.snap_to_beat(target, snap);
-                            let fade_in = event.time + light_event.movement.fade_in - target;
-                            actions.push(
-                                LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in)).into(),
-                            );
-                        }
-                        if tick.state.mouse_left.just_released {
-                            actions.push(
-                                LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
-                                    .into(),
-                            );
-                        }
-                    }
-
-                    // Fade out
-                    if self.state.position.contains(to) {
-                        let position = Aabb2::point(to).extend_symmetric(size / 2.0);
-                        let tick = context.state.get_or(self.state.id, || {
-                            // TODO: somehow mask this with other stuff
-                            IconButtonWidget::new(atlas.timeline_tick_smol())
-                                .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                        });
-                        tick.update(position, context);
-                        if tick.state.mouse_left.pressed.is_some() {
-                            // Drag fade out
-                            let target = unrender_time(context.cursor.position.x);
-                            let target = editor.level.timing.snap_to_beat(target, snap);
-                            let fade_out = target - to_time + light_event.movement.fade_out;
-                            actions.push(
-                                LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out)).into(),
-                            );
-                        }
-                        if tick.state.mouse_left.just_released {
-                            actions.push(
-                                LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(light_id)))
-                                    .into(),
-                            );
-                        }
-                    }
-
-                    let last_id =
-                        WaypointId::Frame(light_event.movement.key_frames.len().saturating_sub(1));
-                    for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
-                        let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
-
-                        let position = render_light(event.time + offset, 0).center();
-                        if !self.state.position.contains(position) {
-                            continue;
-                        }
-
-                        // Icon
-                        let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
-                        let texture = atlas.timeline_waypoint();
-                        // TODO: somehow mask this with other stuff
-                        let icon = context
-                            .state
-                            .get_or(self.state.id, || IconButtonWidget::new(texture));
-                        icon.color = if is_waypoint_selected {
-                            ThemeColor::Highlight
-                        } else {
-                            ThemeColor::Light
-                        };
-                        icon.update(position, context);
-
-                        // Tick
-                        let position =
-                            render_time(&self.highlight_line, event.time + offset).center();
-                        let position = Aabb2::point(position).extend_symmetric(size / 2.0);
-                        let texture = match waypoint_id {
-                            WaypointId::Initial => atlas.timeline_tick_big(),
-                            WaypointId::Frame(_) if waypoint_id == last_id => {
-                                atlas.timeline_tick_mid()
-                            }
-                            WaypointId::Frame(_) => atlas.timeline_tick_smol(),
-                        };
-                        let tick = context.state.get_or(self.state.id, || {
-                            // TODO: somehow mask this with other stuff
-                            IconButtonWidget::new(texture)
-                                .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                        });
-                        tick.update(position, context);
-
-                        // Waypoint drag
-                        if icon.state.mouse_left.clicked || tick.state.mouse_left.clicked {
-                            actions.extend([
-                                LevelAction::SelectLight(SelectMode::Set, vec![light_id]).into(),
-                                LevelAction::SelectWaypoint(waypoint_id, false).into(),
-                            ]);
-                            self.dragging_waypoint = true;
-                        } else if !context.cursor.left.down {
-                            if self.dragging_waypoint {
-                                actions.push(
-                                    LevelAction::FlushChanges(Some(
-                                        HistoryLabel::MoveWaypointTime(light_id, waypoint_id),
-                                    ))
-                                    .into(),
-                                );
-                            }
-                            self.dragging_waypoint = false;
-                        }
-                        if self.dragging_waypoint && is_waypoint_selected {
+                        if self.dragging_light.is_some() {
                             let time = unrender_time(context.cursor.position.x);
-                            let time = editor.level.timing.snap_to_beat(time, snap);
+                            let time = editor.level.timing.snap_to_beat(time, snap)
+                                - light_event.movement.fade_in;
                             actions.push(
-                                LevelAction::MoveWaypoint(
+                                LevelAction::MoveLight(
                                     light_id,
-                                    waypoint_id,
                                     Change::Set(time),
                                     Change::Add(vec2::ZERO),
                                 )
                                 .into(),
                             );
                         }
+
+                        let from_time = event.time;
+                        let from = render_time(&self.highlight_line, from_time).center();
+                        let to_time = event.time + light_event.movement.total_duration();
+                        let to = render_time(&self.highlight_line, to_time).center();
+
+                        let size = vec2(4.0, 16.0) * PPU as f32;
+
+                        // Fade in
+                        if self.state.position.contains(from) {
+                            let position = Aabb2::point(from).extend_symmetric(size / 2.0);
+                            let tick = context.state.get_or(self.state.id, || {
+                                // TODO: somehow mask this with other stuff
+                                IconButtonWidget::new(atlas.timeline_tick_smol())
+                                    .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                            });
+                            tick.update(position, context);
+                            if tick.state.mouse_left.pressed.is_some() {
+                                // Drag fade in
+                                let target = unrender_time(context.cursor.position.x);
+                                let target = editor.level.timing.snap_to_beat(target, snap);
+                                let fade_in = event.time + light_event.movement.fade_in - target;
+                                actions.push(
+                                    LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in))
+                                        .into(),
+                                );
+                            }
+                            if tick.state.mouse_left.just_released {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
+                                        .into(),
+                                );
+                            }
+                        }
+
+                        // Fade out
+                        if self.state.position.contains(to) {
+                            let position = Aabb2::point(to).extend_symmetric(size / 2.0);
+                            let tick = context.state.get_or(self.state.id, || {
+                                // TODO: somehow mask this with other stuff
+                                IconButtonWidget::new(atlas.timeline_tick_smol())
+                                    .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                            });
+                            tick.update(position, context);
+                            if tick.state.mouse_left.pressed.is_some() {
+                                // Drag fade out
+                                let target = unrender_time(context.cursor.position.x);
+                                let target = editor.level.timing.snap_to_beat(target, snap);
+                                let fade_out = target - to_time + light_event.movement.fade_out;
+                                actions.push(
+                                    LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out))
+                                        .into(),
+                                );
+                            }
+                            if tick.state.mouse_left.just_released {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(
+                                        light_id,
+                                    )))
+                                    .into(),
+                                );
+                            }
+                        }
+
+                        let last_id = WaypointId::Frame(
+                            light_event.movement.key_frames.len().saturating_sub(1),
+                        );
+                        for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
+                            let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
+
+                            let position = render_light(event.time + offset, 0).center();
+                            if !self.state.position.contains(position) {
+                                continue;
+                            }
+
+                            // Icon
+                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                            let texture = atlas.timeline_waypoint();
+                            // TODO: somehow mask this with other stuff
+                            let icon = context
+                                .state
+                                .get_or(self.state.id, || IconButtonWidget::new(texture));
+                            icon.color = if is_waypoint_selected {
+                                ThemeColor::Highlight
+                            } else {
+                                ThemeColor::Light
+                            };
+                            icon.update(position, context);
+
+                            // Tick
+                            let position =
+                                render_time(&self.highlight_line, event.time + offset).center();
+                            let position = Aabb2::point(position).extend_symmetric(size / 2.0);
+                            let texture = match waypoint_id {
+                                WaypointId::Initial => atlas.timeline_tick_big(),
+                                WaypointId::Frame(_) if waypoint_id == last_id => {
+                                    atlas.timeline_tick_mid()
+                                }
+                                WaypointId::Frame(_) => atlas.timeline_tick_smol(),
+                            };
+                            let tick = context.state.get_or(self.state.id, || {
+                                // TODO: somehow mask this with other stuff
+                                IconButtonWidget::new(texture)
+                                    .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                            });
+                            tick.update(position, context);
+
+                            // Waypoint drag
+                            if icon.state.mouse_left.just_pressed
+                                || tick.state.mouse_left.just_pressed
+                            {
+                                actions.extend([
+                                    LevelAction::SelectLight(SelectMode::Set, vec![light_id])
+                                        .into(),
+                                    LevelAction::SelectWaypoint(waypoint_id, false).into(),
+                                ]);
+                                self.dragging_waypoint = true;
+                            } else if !context.cursor.left.down {
+                                if self.dragging_waypoint {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(
+                                            HistoryLabel::MoveWaypointTime(light_id, waypoint_id),
+                                        ))
+                                        .into(),
+                                    );
+                                }
+                                self.dragging_waypoint = false;
+                            }
+                            if self.dragging_waypoint && is_waypoint_selected {
+                                let time = unrender_time(context.cursor.position.x);
+                                let time = editor.level.timing.snap_to_beat(time, snap);
+                                actions.push(
+                                    LevelAction::MoveWaypoint(
+                                        light_id,
+                                        waypoint_id,
+                                        Change::Set(time),
+                                        Change::Add(vec2::ZERO),
+                                    )
+                                    .into(),
+                                );
+                            }
+                        }
+                    }
+                    let mut is_hovered = false;
+                    let mut overlapped = 0;
+                    let light_time = event.time + light_event.movement.fade_in;
+                    let visible = !is_selected
+                        && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
+                    if visible {
+                        overlapped =
+                            if self.highlight_bar.as_ref().is_some_and(|bar| {
+                                (bar.from_time..=bar.to_time).contains(&light_time)
+                            }) {
+                                1
+                            } else {
+                                *occupied
+                                    .entry(light_time)
+                                    .and_modify(|x| *x += 1)
+                                    .or_insert(0)
+                            };
+
+                        if overlapped as f32 <= self.expansion.current + 0.9 {
+                            let light = render_light(light_time, overlapped);
+                            let texture = match light_event.shape {
+                                Shape::Circle { .. } => atlas.timeline_circle(),
+                                Shape::Line { .. } => atlas.timeline_square(),
+                                Shape::Rectangle { .. } => atlas.timeline_square(),
+                            };
+                            // TODO: somehow mask this with other stuff
+                            let icon = context
+                                .state
+                                .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
+                            icon.update(light, context);
+                            icon.color = if self.selection.is_light_selected(light_id) {
+                                ThemeColor::Highlight
+                            } else if light_event.danger {
+                                ThemeColor::Danger
+                            } else {
+                                ThemeColor::Light
+                            };
+                            icon.texture = texture;
+                            is_hovered = is_hovered || icon.state.hovered;
+                            if icon.state.hovered {
+                                actions.push(LevelAction::HoverLight(light_id).into());
+                            }
+                            if icon.state.mouse_left.just_pressed {
+                                actions.push(
+                                    LevelAction::SelectLight(SelectMode::Set, vec![light_id])
+                                        .into(),
+                                );
+                                self.dragging_light =
+                                    Some((context.cursor.position, context.real_time));
+                            }
+                        } else {
+                            // Dots to indicate there are more lights in that position
+                            let dots = render_time(&self.extra_line, light_time);
+                            let texture = atlas.timeline_dots();
+                            // TODO: somehow mask this with other stuff
+                            let icon = context
+                                .state
+                                .get_or(self.state.id, || IconWidget::new(texture));
+                            icon.update(dots, context);
+                        }
+                    }
+                    let is_hovered =
+                        is_hovered || editor.level_state.hovered_light == Some(light_id);
+                    if !is_selected && is_hovered {
+                        // Waypoints
+                        for (_, _, offset) in light_event.movement.timed_positions().skip(1) {
+                            // Icon
+                            let position = render_light(event.time + offset, overlapped).center();
+                            if !self.state.position.contains(position) {
+                                continue;
+                            }
+
+                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                            let texture = atlas.timeline_waypoint();
+                            // TODO: somehow mask this with other stuff
+                            let icon = context
+                                .state
+                                .get_or(self.state.id, || IconButtonWidget::new(texture));
+                            icon.color = ThemeColor::Light;
+                            icon.update(position, context);
+                        }
+                    }
+                    if is_selected || is_hovered {
+                        // Dots
+                        let last_dot_time = event.time;
+                        let time = event.time + light_event.movement.total_duration();
+
+                        // TODO: variable timing within this segment
+                        let timing = self.level.timing.get_timing(event.time);
+
+                        let resolution = 4.0; // Ticks per beat
+                        let step = timing.beat_time / r32(resolution);
+                        let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
+                            .floor() as usize;
+                        let overlapped = if is_selected { 0 } else { overlapped };
+                        let dots = (0..=dots)
+                            .map(|i| {
+                                let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                                render_light(time, overlapped).center()
+                            })
+                            .filter(|&pos| self.state.position.contains(pos));
+
+                        self.dots.extend(dots);
                     }
                 }
+                &Event::RgbSplit(duration) => {
+                    if is_selected {
+                        if !can_focus || !context.cursor.left.down {
+                            match self.dragging_event.take() {
+                                Some((from, from_time))
+                                    if (context.cursor.position - from).len_sqr()
+                                        < MAX_CLICK_DISTANCE
+                                        && (context.real_time - from_time).abs()
+                                            < MAX_CLICK_DURATION => {}
+                                Some(_) => {
+                                    if is_selected {
+                                        actions.push(LevelAction::Deselect.into());
+                                    }
+                                }
+                                None => {}
+                            }
+                        }
+                        if self.dragging_event.is_some() {
+                            let time = unrender_time(context.cursor.position.x);
+                            let time = editor.level.timing.snap_to_beat(time, snap);
+                            actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
+                        }
+                    }
 
-                let mut is_hovered = false;
-                let mut overlapped = 0;
-
-                // Light icon
-                let light_time = event.time + light_event.movement.fade_in;
-                let visible =
-                    !is_selected && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
-                if visible {
-                    overlapped = if self
+                    let overlapped = if self
                         .highlight_bar
                         .as_ref()
-                        .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&light_time))
+                        .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event.time))
                     {
-                        1
+                        0
                     } else {
                         *occupied
-                            .entry(light_time)
+                            .entry(event.time)
                             .and_modify(|x| *x += 1)
                             .or_insert(0)
                     };
 
-                    if overlapped as f32 <= self.expansion.current + 0.9 {
-                        let light = render_light(light_time, overlapped);
-                        let texture = match light_event.shape {
-                            Shape::Circle { .. } => atlas.timeline_circle(),
-                            Shape::Line { .. } => atlas.timeline_square(),
-                            Shape::Rectangle { .. } => atlas.timeline_square(),
-                        };
-                        // TODO: somehow mask this with other stuff
-                        let icon = context
-                            .state
-                            .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
-                        icon.update(light, context);
-                        icon.color = if self.selection.is_light_selected(light_id) {
-                            ThemeColor::Highlight
-                        } else if light_event.danger {
-                            ThemeColor::Danger
-                        } else {
-                            ThemeColor::Light
-                        };
-                        icon.texture = texture;
-                        is_hovered = is_hovered || icon.state.hovered;
-                        if icon.state.hovered {
-                            actions.push(LevelAction::HoverLight(light_id).into());
-                        }
-                        if icon.state.mouse_left.clicked {
-                            actions.push(
-                                LevelAction::SelectLight(SelectMode::Set, vec![light_id]).into(),
-                            );
-                            self.dragging_light =
-                                Some((context.cursor.position, context.real_time));
-                        }
-                    } else {
-                        // Dots to indicate there are more lights in that position
-                        let dots = render_time(&self.extra_line, light_time);
-                        let texture = atlas.timeline_dots();
-                        // TODO: somehow mask this with other stuff
-                        let icon = context
-                            .state
-                            .get_or(self.state.id, || IconWidget::new(texture));
-                        icon.update(dots, context);
-                    }
-                }
-
-                let is_hovered = is_hovered || editor.level_state.hovered_light == Some(light_id);
-
-                if !is_selected && is_hovered {
-                    // Waypoints
-                    for (_, _, offset) in light_event.movement.timed_positions().skip(1) {
-                        // Icon
-                        let position = render_light(event.time + offset, overlapped).center();
-                        if !self.state.position.contains(position) {
-                            continue;
-                        }
-
+                    let mut is_hovered = false;
+                    let visible = (event.time + self.scroll).abs() < self.visible_scroll() / 2;
+                    if visible && overlapped as f32 <= self.expansion.current + 0.9 {
+                        let position = render_light(event.time, overlapped).center();
                         let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
-                        let texture = atlas.timeline_waypoint();
-                        // TODO: somehow mask this with other stuff
-                        let icon = context
-                            .state
-                            .get_or(self.state.id, || IconButtonWidget::new(texture));
+                        let icon = context.state.get_or(self.state.id, || {
+                            IconButtonWidget::new(atlas.timeline_rgb_split())
+                        });
                         icon.color = ThemeColor::Light;
                         icon.update(position, context);
+                        is_hovered = is_hovered || icon.state.hovered;
+                        if icon.state.mouse_left.just_pressed {
+                            actions.push(LevelAction::SelectEvent(event_i).into());
+                            self.dragging_event =
+                                Some((context.cursor.position, context.real_time));
+                        }
+                    }
+
+                    if is_selected || is_hovered {
+                        // Dots
+                        let last_dot_time = event.time;
+                        let time = event.time + duration;
+
+                        // TODO: variable timing within this segment
+                        let timing = self.level.timing.get_timing(event.time);
+
+                        let resolution = 4.0; // Ticks per beat
+                        let step = timing.beat_time / r32(resolution);
+                        let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
+                            .floor() as usize;
+                        let overlapped = if is_selected { 0 } else { overlapped };
+                        let dots = (0..=dots)
+                            .map(|i| {
+                                let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                                render_light(time, overlapped).center()
+                            })
+                            .filter(|&pos| self.state.position.contains(pos));
+
+                        self.dots.extend(dots);
                     }
                 }
-                if is_selected || is_hovered {
-                    // Dots
-                    let last_dot_time = event.time;
-                    let time = event.time + light_event.movement.total_duration();
-
-                    // TODO: variable timing within this segment
-                    let timing = self.level.timing.get_timing(event.time);
-
-                    let resolution = 4.0; // Ticks per beat
-                    let step = timing.beat_time / r32(resolution);
-                    let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
-                        .floor() as usize;
-                    let overlapped = if is_selected { 0 } else { overlapped };
-                    let dots = (0..=dots)
-                        .map(|i| {
-                            let time = last_dot_time + seconds_to_time(step * r32(i as f32));
-                            render_light(time, overlapped).center()
-                        })
-                        .filter(|&pos| self.state.position.contains(pos));
-
-                    self.dots.extend(dots);
-                }
+                _ => (),
             }
         }
 

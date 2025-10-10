@@ -130,7 +130,7 @@ impl EditorEditUi {
                 let button = context.state.get_root_or(|| ButtonWidget::new("RGB Split"));
                 button.update(new_rgb, context);
                 if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::RgbSplit(TIME_IN_FLOAT_TIME).into());
+                    actions.push(LevelAction::NewRgbSplit(TIME_IN_FLOAT_TIME).into());
                 }
             }
 
@@ -245,160 +245,225 @@ impl EditorEditUi {
 
         // Light
 
-        if let Selection::Lights(selected) = &level_editor.selection {
-            let mut bar = right_bar;
-
-            // Any number of selected lights
-            let light_pos = bar.cut_top(title_size);
-            let text = context
-                .state
-                .get_root_or(|| TextWidget::new("Light").aligned(vec2(0.0, 0.5)));
-            text.update(light_pos, context);
-            text.options.size = title_size;
-
-            let delete = bar.cut_top(button_height).cut_left(delete_width);
-            let button = context
-                .state
-                .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
-            button.update(delete, context);
-            tooltip.update(&button.text.state, "X", context);
-            if button.text.state.mouse_left.clicked {
-                actions.push(
-                    LevelAction::list(selected.iter().copied().map(LevelAction::DeleteLight))
-                        .into(),
-                );
-            }
-
-            match selected.len().cmp(&1) {
-                std::cmp::Ordering::Greater => {
-                    // More than 1 selected light
-                    let danger_pos = bar.cut_top(button_height);
-                    bar.cut_top(spacing);
-                    let button = context.state.get_root_or(|| {
-                        ButtonWidget::new("Toggle Danger").color(ThemeColor::Danger)
-                    });
-                    button.update(danger_pos, context);
-                    if button.text.state.mouse_left.clicked {
-                        actions.push(
-                            LevelAction::list(
-                                selected.iter().copied().map(LevelAction::ToggleDanger),
-                            )
+        match &level_editor.selection {
+            Selection::Empty => {}
+            Selection::Lights(selected) => {
+                let mut bar = right_bar;
+                let light_pos = bar.cut_top(title_size);
+                let text = context
+                    .state
+                    .get_root_or(|| TextWidget::new("Light").aligned(vec2(0.0, 0.5)));
+                text.update(light_pos, context);
+                text.options.size = title_size;
+                let delete = bar.cut_top(button_height).cut_left(delete_width);
+                let button = context
+                    .state
+                    .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+                button.update(delete, context);
+                tooltip.update(&button.text.state, "X", context);
+                if button.text.state.mouse_left.clicked {
+                    actions.push(
+                        LevelAction::list(selected.iter().copied().map(LevelAction::DeleteLight))
                             .into(),
-                        );
-                    }
-                    tooltip.update(&button.text.state, "D", context);
+                    );
                 }
-                std::cmp::Ordering::Equal => {
-                    // Exactly 1 light selected
-                    let light_id = *selected.first().unwrap();
-                    if let Some(event) = level_editor.level.events.get(light_id.event)
-                        && let Event::Light(light) = &event.event
-                    {
+                match selected.len().cmp(&1) {
+                    std::cmp::Ordering::Greater => {
+                        // More than 1 selected light
                         let danger_pos = bar.cut_top(button_height);
                         bar.cut_top(spacing);
-                        let button = context
-                            .state
-                            .get_root_or(|| ToggleWidget::new("Danger").color(ThemeColor::Danger));
+                        let button = context.state.get_root_or(|| {
+                            ButtonWidget::new("Toggle Danger").color(ThemeColor::Danger)
+                        });
                         button.update(danger_pos, context);
-                        if button.state.mouse_left.clicked {
-                            actions.push(LevelAction::ToggleDanger(light_id).into());
-                        }
-                        button.checked = light.danger;
-                        tooltip.update(&button.state, "D", context);
-
-                        let timing = &level_editor.level.timing;
-
-                        {
-                            let timing_point = timing.get_timing(event.time);
-                            let fade_in = bar.cut_top(value_height);
-                            bar.cut_top(spacing);
-                            let mut fade = BeatTime::from_beats_float(
-                                time_to_seconds(light.movement.fade_in) / timing_point.beat_time,
-                            );
-                            let slider = context.state.get_root_or(|| {
-                                BeatValueWidget::new(
-                                    "Fade in",
-                                    fade,
-                                    BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                                    snap,
+                        if button.text.state.mouse_left.clicked {
+                            actions.push(
+                                LevelAction::list(
+                                    selected.iter().copied().map(LevelAction::ToggleDanger),
                                 )
+                                .into(),
+                            );
+                        }
+                        tooltip.update(&button.text.state, "D", context);
+                    }
+                    std::cmp::Ordering::Equal => {
+                        // Exactly 1 light selected
+                        let light_id = *selected.first().unwrap();
+                        if let Some(event) = level_editor.level.events.get(light_id.event)
+                            && let Event::Light(light) = &event.event
+                        {
+                            let danger_pos = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
+                            let button = context.state.get_root_or(|| {
+                                ToggleWidget::new("Danger").color(ThemeColor::Danger)
                             });
-                            slider.scroll_by = snap;
-                            if slider.update(fade_in, context, &mut fade) {
-                                actions.push(
-                                    LevelAction::ChangeFadeIn(
-                                        light_id,
-                                        Change::Set(fade.as_time(timing_point.beat_time)),
-                                    )
-                                    .into(),
-                                );
+                            button.update(danger_pos, context);
+                            if button.state.mouse_left.clicked {
+                                actions.push(LevelAction::ToggleDanger(light_id).into());
                             }
-                            if slider.control_state.mouse_left.just_released {
-                                actions.push(
-                                    LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
+                            button.checked = light.danger;
+                            tooltip.update(&button.state, "D", context);
+
+                            let timing = &level_editor.level.timing;
+
+                            {
+                                let timing_point = timing.get_timing(event.time);
+                                let fade_in = bar.cut_top(value_height);
+                                bar.cut_top(spacing);
+                                let mut fade = BeatTime::from_beats_float(
+                                    time_to_seconds(light.movement.fade_in)
+                                        / timing_point.beat_time,
+                                );
+                                let slider = context.state.get_root_or(|| {
+                                    BeatValueWidget::new(
+                                        "Fade in",
+                                        fade,
+                                        BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                        snap,
+                                    )
+                                });
+                                slider.scroll_by = snap;
+                                if slider.update(fade_in, context, &mut fade) {
+                                    actions.push(
+                                        LevelAction::ChangeFadeIn(
+                                            light_id,
+                                            Change::Set(fade.as_time(timing_point.beat_time)),
+                                        )
                                         .into(),
-                                );
+                                    );
+                                }
+                                if slider.control_state.mouse_left.just_released {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(
+                                            light_id,
+                                        )))
+                                        .into(),
+                                    );
+                                }
+                                context.update_focus(slider.state.hovered);
                             }
-                            context.update_focus(slider.state.hovered);
-                        }
 
-                        {
-                            let to_time = event.time
-                                + light.movement.fade_in
-                                + light.movement.movement_duration();
-                            let timing_point = timing.get_timing(to_time);
-                            let fade_out = bar.cut_top(value_height);
+                            {
+                                let to_time = event.time
+                                    + light.movement.fade_in
+                                    + light.movement.movement_duration();
+                                let timing_point = timing.get_timing(to_time);
+                                let fade_out = bar.cut_top(value_height);
+                                bar.cut_top(spacing);
+                                let mut fade = BeatTime::from_beats_float(
+                                    time_to_seconds(light.movement.fade_out)
+                                        / timing_point.beat_time,
+                                );
+                                let slider = context.state.get_root_or(|| {
+                                    BeatValueWidget::new(
+                                        "Fade out",
+                                        fade,
+                                        BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                        snap,
+                                    )
+                                });
+                                slider.scroll_by = snap;
+                                if slider.update(fade_out, context, &mut fade) {
+                                    actions.push(
+                                        LevelAction::ChangeFadeOut(
+                                            light_id,
+                                            Change::Set(fade.as_time(timing_point.beat_time)),
+                                        )
+                                        .into(),
+                                    );
+                                }
+                                if slider.control_state.mouse_left.just_released {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(
+                                            light_id,
+                                        )))
+                                        .into(),
+                                    );
+                                }
+                                context.update_focus(slider.state.hovered);
+                            }
+
+                            bar.cut_top(layout_size * 1.5);
+
+                            let waypoints = bar.cut_top(title_size);
+                            let button =
+                                context.state.get_root_or(|| ToggleWidget::new("Waypoints"));
+                            button.update(waypoints, context);
+                            button.text.options.size = title_size;
+                            button.checked =
+                                matches!(level_editor.state, EditingState::Waypoints { .. });
+                            if button.state.mouse_left.clicked {
+                                actions.push(LevelAction::ToggleWaypointsView.into());
+                            }
+
                             bar.cut_top(spacing);
-                            let mut fade = BeatTime::from_beats_float(
-                                time_to_seconds(light.movement.fade_out) / timing_point.beat_time,
+                        }
+                    }
+                    std::cmp::Ordering::Less => {}
+                }
+                right_bar = bar;
+            }
+            &Selection::Event(event_i) => {
+                if let Some(event) = level_editor.level.events.get(event_i) {
+                    let timing = &level_editor.level.timing;
+                    let timing_point = timing.get_timing(event.time);
+                    match &event.event {
+                        Event::Light(_) => {}
+                        Event::PaletteSwap => todo!(),
+                        &Event::RgbSplit(duration) => {
+                            let mut bar = right_bar;
+
+                            let light_pos = bar.cut_top(title_size);
+                            let text = context.state.get_root_or(|| {
+                                TextWidget::new("RGB Split").aligned(vec2(0.0, 0.5))
+                            });
+                            text.update(light_pos, context);
+                            text.options.size = title_size;
+
+                            let delete = bar.cut_top(button_height).cut_left(delete_width);
+                            let button = context.state.get_root_or(|| {
+                                ButtonWidget::new("Delete").color(ThemeColor::Danger)
+                            });
+                            button.update(delete, context);
+                            tooltip.update(&button.text.state, "X", context);
+                            if button.text.state.mouse_left.clicked {
+                                actions.push(LevelAction::DeleteEvent(event_i).into());
+                            }
+
+                            let duration_pos = bar.cut_top(value_height);
+                            let mut duration = BeatTime::from_beats_float(
+                                time_to_seconds(duration) / timing_point.beat_time,
                             );
                             let slider = context.state.get_root_or(|| {
                                 BeatValueWidget::new(
-                                    "Fade out",
-                                    fade,
+                                    "Duration",
+                                    duration,
                                     BeatTime::ZERO..=BeatTime::WHOLE * 10,
                                     snap,
                                 )
                             });
                             slider.scroll_by = snap;
-                            if slider.update(fade_out, context, &mut fade) {
+                            if slider.update(duration_pos, context, &mut duration) {
                                 actions.push(
-                                    LevelAction::ChangeFadeOut(
-                                        light_id,
-                                        Change::Set(fade.as_time(timing_point.beat_time)),
+                                    LevelAction::ChangeRgbDuration(
+                                        event_i,
+                                        Change::Set(duration.as_time(timing_point.beat_time)),
                                     )
                                     .into(),
                                 );
                             }
                             if slider.control_state.mouse_left.just_released {
                                 actions.push(
-                                    LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(
-                                        light_id,
+                                    LevelAction::FlushChanges(Some(HistoryLabel::RgbDuration(
+                                        event_i,
                                     )))
                                     .into(),
                                 );
                             }
-                            context.update_focus(slider.state.hovered);
                         }
-
-                        bar.cut_top(layout_size * 1.5);
-
-                        let waypoints = bar.cut_top(title_size);
-                        let button = context.state.get_root_or(|| ToggleWidget::new("Waypoints"));
-                        button.update(waypoints, context);
-                        button.text.options.size = title_size;
-                        button.checked =
-                            matches!(level_editor.state, EditingState::Waypoints { .. });
-                        if button.state.mouse_left.clicked {
-                            actions.push(LevelAction::ToggleWaypointsView.into());
-                        }
-
-                        bar.cut_top(spacing);
                     }
                 }
-                std::cmp::Ordering::Less => {}
             }
-            right_bar = bar;
         }
 
         if let Some(waypoints) = &level_editor.level_state.waypoints

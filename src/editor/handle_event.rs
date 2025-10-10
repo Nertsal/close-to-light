@@ -26,9 +26,10 @@ impl EditorState {
         }
 
         if self.ui_focused
-            && let geng::Event::Wheel { .. } | geng::Event::MousePress { .. } = &event {
-                return actions;
-            }
+            && let geng::Event::Wheel { .. } | geng::Event::MousePress { .. } = &event
+        {
+            return actions;
+        }
 
         if self.editor.tab != EditorTab::Edit {
             return actions;
@@ -112,6 +113,9 @@ impl EditorState {
                                         )
                                         .into(),
                                     );
+                                }
+                                Selection::Event(index) => {
+                                    actions.push(LevelAction::DeleteEvent(*index).into());
                                 }
                             }
                         }
@@ -435,123 +439,126 @@ impl EditorState {
                         extra: Selection::Empty,
                     }));
                 } else if let Some(event) = level_editor.level_state.hovered_event() {
-                    // Clicked on a light
+                    // Clicked on an light
                     let light_id = LightId { event };
                     if let Some(e) = level_editor.level.events.get(event)
-                        && let Event::Light(_light) = &e.event {
-                            match button {
-                                geng::MouseButton::Left => {
-                                    // Left click
-                                    let mut selection =
-                                        if level_editor.selection.is_light_selected(light_id) {
-                                            // Drag all selected
-                                            level_editor.selection.clone()
-                                        } else {
-                                            // Select single light
-                                            Selection::Empty
-                                        };
-                                    selection.add_light(light_id);
-                                    let lights = match selection {
-                                        Selection::Empty => vec![],
-                                        Selection::Lights(light_ids) => light_ids,
+                        && let Event::Light(_light) = &e.event
+                    {
+                        match button {
+                            geng::MouseButton::Left => {
+                                // Left click
+                                let mut selection =
+                                    if level_editor.selection.is_light_selected(light_id) {
+                                        // Drag all selected
+                                        level_editor.selection.clone()
+                                    } else {
+                                        // Select single light
+                                        Selection::Empty
                                     };
+                                selection.add_light(light_id);
+                                let lights = match selection {
+                                    Selection::Empty => vec![],
+                                    Selection::Lights(light_ids) => light_ids,
+                                    Selection::Event(_) => vec![],
+                                };
+                                actions.push(
+                                    LevelAction::SelectLight(SelectMode::Set, lights.clone())
+                                        .into(),
+                                );
+
+                                let double = level_editor.selection.is_light_selected(light_id);
+                                let target = DragTarget::Light {
+                                    double,
+                                    lights: lights
+                                        .into_iter()
+                                        .flat_map(|id| {
+                                            let e = level_editor.level.events.get(id.event)?;
+                                            let Event::Light(light) = &e.event else {
+                                                return None;
+                                            };
+                                            Some(DragLight {
+                                                id,
+                                                initial_time: e.time,
+                                                initial_translation: light
+                                                    .movement
+                                                    .initial
+                                                    .translation,
+                                            })
+                                        })
+                                        .collect(),
+                                };
+                                actions.push(EditorStateAction::StartDrag(target));
+                            }
+                            geng::MouseButton::Middle => {}
+                            geng::MouseButton::Right => {
+                                // Right click
+                                let lights = if level_editor.selection.is_light_selected(light_id) {
+                                    match &level_editor.selection {
+                                        Selection::Empty => vec![],
+                                        Selection::Lights(vec) => vec.clone(),
+                                        Selection::Event(_) => vec![],
+                                    }
+                                } else {
                                     actions.push(
-                                        LevelAction::SelectLight(SelectMode::Set, lights.clone())
+                                        LevelAction::SelectLight(SelectMode::Set, vec![light_id])
                                             .into(),
                                     );
-
-                                    let double = level_editor.selection.is_light_selected(light_id);
-                                    let target = DragTarget::Light {
-                                        double,
-                                        lights: lights
-                                            .into_iter()
-                                            .flat_map(|id| {
-                                                let e = level_editor.level.events.get(id.event)?;
-                                                let Event::Light(light) = &e.event else {
-                                                    return None;
-                                                };
-                                                Some(DragLight {
-                                                    id,
-                                                    initial_time: e.time,
-                                                    initial_translation: light
-                                                        .movement
-                                                        .initial
-                                                        .translation,
-                                                })
-                                            })
-                                            .collect(),
-                                    };
-                                    actions.push(EditorStateAction::StartDrag(target));
-                                }
-                                geng::MouseButton::Middle => {}
-                                geng::MouseButton::Right => {
-                                    // Right click
-                                    let lights =
-                                        if level_editor.selection.is_light_selected(light_id) {
-                                            match &level_editor.selection {
-                                                Selection::Empty => vec![],
-                                                Selection::Lights(vec) => vec.clone(),
-                                            }
-                                        } else {
-                                            actions.push(
-                                                LevelAction::SelectLight(
-                                                    SelectMode::Set,
-                                                    vec![light_id],
-                                                )
-                                                .into(),
-                                            );
-                                            vec![light_id]
-                                        };
-                                    // let anchor = light
-                                    //     .movement
-                                    //     .get(level_editor.current_time.target - e.time)
-                                    //     .translation;
-                                    let anchor = vec2::ZERO;
-                                    actions.push(EditorStateAction::ContextMenu(
-                                        self.ui_context.cursor.position,
-                                        vec![
-                                            (
-                                                "Copy".into(),
-                                                LevelAction::CopySelection(
-                                                    level_editor.selection.clone(),
-                                                )
-                                                .into(),
-                                            ),
-                                            ("Paste".into(), LevelAction::Paste.into()),
-                                            (
-                                                "Flip horizontally".into(),
-                                                LevelAction::list(lights.iter().copied().map(
-                                                    |id| LevelAction::FlipHorizontal(id, anchor),
-                                                ))
-                                                .into(),
-                                            ),
-                                            (
-                                                "Flip vertically".into(),
-                                                LevelAction::list(lights.iter().copied().map(
-                                                    |id| LevelAction::FlipVertical(id, anchor),
-                                                ))
-                                                .into(),
-                                            ),
-                                            (
-                                                "Delete".into(),
-                                                LevelAction::list(
-                                                    lights
-                                                        .iter()
-                                                        .copied()
-                                                        .map(LevelAction::DeleteLight),
-                                                )
-                                                .into(),
-                                            ),
-                                        ],
-                                    ));
-                                }
+                                    vec![light_id]
+                                };
+                                // let anchor = light
+                                //     .movement
+                                //     .get(level_editor.current_time.target - e.time)
+                                //     .translation;
+                                let anchor = vec2::ZERO;
+                                actions.push(EditorStateAction::ContextMenu(
+                                    self.ui_context.cursor.position,
+                                    vec![
+                                        (
+                                            "Copy".into(),
+                                            LevelAction::CopySelection(
+                                                level_editor.selection.clone(),
+                                            )
+                                            .into(),
+                                        ),
+                                        ("Paste".into(), LevelAction::Paste.into()),
+                                        (
+                                            "Flip horizontally".into(),
+                                            LevelAction::list(
+                                                lights.iter().copied().map(|id| {
+                                                    LevelAction::FlipHorizontal(id, anchor)
+                                                }),
+                                            )
+                                            .into(),
+                                        ),
+                                        (
+                                            "Flip vertically".into(),
+                                            LevelAction::list(
+                                                lights.iter().copied().map(|id| {
+                                                    LevelAction::FlipVertical(id, anchor)
+                                                }),
+                                            )
+                                            .into(),
+                                        ),
+                                        (
+                                            "Delete".into(),
+                                            LevelAction::list(
+                                                lights
+                                                    .iter()
+                                                    .copied()
+                                                    .map(LevelAction::DeleteLight),
+                                            )
+                                            .into(),
+                                        ),
+                                    ],
+                                ));
                             }
                         }
+                    }
                 } else {
                     // Clicked on empty space - deselect
                     match button {
                         geng::MouseButton::Right => {
-                            actions.push(LevelAction::DeselectLight.into());
+                            actions.push(LevelAction::Deselect.into());
                             actions.push(EditorStateAction::ContextMenu(
                                 self.ui_context.cursor.position,
                                 vec![("Paste".into(), LevelAction::Paste.into())],
@@ -561,7 +568,7 @@ impl EditorState {
                             let original = if self.ui_context.mods.shift {
                                 level_editor.selection.clone()
                             } else {
-                                actions.push(LevelAction::DeselectLight.into());
+                                actions.push(LevelAction::Deselect.into());
                                 Selection::Empty
                             };
                             actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
@@ -570,7 +577,7 @@ impl EditorState {
                             }));
                         }
                         geng::MouseButton::Middle => {
-                            actions.push(LevelAction::DeselectLight.into());
+                            actions.push(LevelAction::Deselect.into());
                         }
                     }
                 }
@@ -592,15 +599,15 @@ impl EditorState {
                             if let Some(waypoint) = hovered.original
                                 && let Some(event) =
                                     level_editor.level.events.get(waypoints.light.event)
-                                {
-                                    self.click_waypoint(
-                                        waypoints,
-                                        event,
-                                        waypoint,
-                                        button,
-                                        &mut actions,
-                                    );
-                                }
+                            {
+                                self.click_waypoint(
+                                    waypoints,
+                                    event,
+                                    waypoint,
+                                    button,
+                                    &mut actions,
+                                );
+                            }
                         } else {
                             // Clicked on empty space - deselect
                             actions.push(LevelAction::DeselectWaypoint.into());
@@ -711,13 +718,14 @@ impl EditorState {
         }
 
         if let Some(waypoints) = &level_editor.level_state.waypoints
-            && let Some(selected) = waypoints.selected {
-                actions.push(
-                    LevelAction::RotateWaypoint(waypoints.light, selected, Change::Add(rotate_by))
-                        .into(),
-                );
-                return;
-            }
+            && let Some(selected) = waypoints.selected
+        {
+            actions.push(
+                LevelAction::RotateWaypoint(waypoints.light, selected, Change::Add(rotate_by))
+                    .into(),
+            );
+            return;
+        }
 
         if let Selection::Lights(lights) = &level_editor.selection {
             let scale = r32(lights.len() as f32).recip();

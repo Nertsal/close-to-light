@@ -38,6 +38,7 @@ pub enum Selection {
     #[default]
     Empty,
     Lights(Vec<LightId>),
+    Event(usize),
 }
 
 impl Selection {
@@ -49,6 +50,7 @@ impl Selection {
         match self {
             Selection::Empty => true,
             Selection::Lights(light_ids) => light_ids.is_empty(),
+            Selection::Event(_) => false,
         }
     }
 
@@ -56,10 +58,27 @@ impl Selection {
         *self = Self::Empty;
     }
 
+    pub fn event_single(&self) -> Option<usize> {
+        match self {
+            Selection::Empty => None,
+            Selection::Lights(_) => None,
+            Selection::Event(idx) => Some(*idx),
+        }
+    }
+
+    pub fn is_event_single(&self, id: usize) -> bool {
+        match self {
+            Selection::Empty => false,
+            Selection::Lights(_) => false,
+            Selection::Event(idx) => id == *idx,
+        }
+    }
+
     pub fn light_single(&self) -> Option<LightId> {
         match self {
             Selection::Empty => None,
             Selection::Lights(lights) => (lights.len() == 1).then(|| *lights.first().unwrap()),
+            Selection::Event(_) => None,
         }
     }
 
@@ -71,6 +90,7 @@ impl Selection {
         match self {
             Selection::Empty => false,
             Selection::Lights(lights) => lights.contains(&id),
+            Selection::Event(_) => false,
         }
     }
 
@@ -82,6 +102,7 @@ impl Selection {
                     lights.push(id)
                 }
             }
+            Selection::Event(_) => *self = Self::Lights(vec![id]),
         }
     }
 
@@ -93,6 +114,7 @@ impl Selection {
                     lights.swap_remove(i);
                 }
             }
+            Selection::Event(_) => {}
         }
     }
 
@@ -104,6 +126,7 @@ impl Selection {
                     self.add_light(id);
                 }
             }
+            Selection::Event(_) => *self = other,
         }
     }
 }
@@ -389,133 +412,135 @@ impl LevelEditor {
         let mut hovered_light = self.timeline_light_hover.take();
         if hovered_light.is_none()
             && let EditingState::Idle = self.state
-                && let Some(level) = &static_level {
-                    hovered_light = cursor_world_pos.and_then(|cursor| {
-                        level
-                            .lights
-                            .iter()
-                            .find(|light| light.collider.contains(cursor))
-                            .and_then(|light| light.event_id)
-                            .map(|event| LightId { event })
-                    });
-                }
+            && let Some(level) = &static_level
+        {
+            hovered_light = cursor_world_pos.and_then(|cursor| {
+                level
+                    .lights
+                    .iter()
+                    .find(|light| light.collider.contains(cursor))
+                    .and_then(|light| light.event_id)
+                    .map(|event| LightId { event })
+            });
+        }
 
         let mut waypoints = None;
         if let EditingState::Waypoints { light_id, state } = &self.state {
             let light_id = *light_id;
             if let Some(timed_event) = self.level.events.get(light_id.event)
-                && let Event::Light(light_event) = &timed_event.event {
-                    let event_time = timed_event.time;
-                    // If some waypoints overlap, render the temporaly closest one
-                    let base_collider = Collider::new(vec2::ZERO, light_event.shape);
+                && let Event::Light(light_event) = &timed_event.event
+            {
+                let event_time = timed_event.time;
+                // If some waypoints overlap, render the temporaly closest one
+                let base_collider = Collider::new(vec2::ZERO, light_event.shape);
 
-                    /// Waypoints past this time-distance are not rendered at all
-                    const MAX_VISIBILITY: Time = 5 * TIME_IN_FLOAT_TIME;
-                    let visible = |beat: Time| {
-                        let d = (event_time + beat - self.current_time.value).abs();
-                        d <= MAX_VISIBILITY
-                    };
+                /// Waypoints past this time-distance are not rendered at all
+                const MAX_VISIBILITY: Time = 5 * TIME_IN_FLOAT_TIME;
+                let visible = |beat: Time| {
+                    let d = (event_time + beat - self.current_time.value).abs();
+                    d <= MAX_VISIBILITY
+                };
 
-                    // TODO: use cached
-                    let curve = light_event.movement.bake();
-                    let mut points: Vec<_> = light_event
-                        .movement
-                        .timed_positions()
-                        .map(|(i, trans_control, time)| {
-                            let trans_actual = match i {
-                                WaypointId::Initial => curve.get(0, FloatTime::ZERO),
-                                WaypointId::Frame(i) => curve.get(i, FloatTime::ONE),
-                            }
-                            .unwrap_or(trans_control); // Should be unreachable, but just in case
-                            (
-                                Waypoint {
-                                    visible: visible(time),
-                                    original: Some(i),
-                                    control: base_collider.transformed(trans_control),
-                                    actual: base_collider.transformed(trans_actual),
-                                },
-                                time,
-                            )
-                        })
-                        .collect();
-                    points.sort_by_key(|(point, time)| {
+                // TODO: use cached
+                let curve = light_event.movement.bake();
+                let mut points: Vec<_> = light_event
+                    .movement
+                    .timed_positions()
+                    .map(|(i, trans_control, time)| {
+                        let trans_actual = match i {
+                            WaypointId::Initial => curve.get(0, FloatTime::ZERO),
+                            WaypointId::Frame(i) => curve.get(i, FloatTime::ONE),
+                        }
+                        .unwrap_or(trans_control); // Should be unreachable, but just in case
                         (
-                            point.control.position.x,
-                            point.control.position.y,
-                            (event_time + *time - self.current_time.value).abs(),
+                            Waypoint {
+                                visible: visible(time),
+                                original: Some(i),
+                                control: base_collider.transformed(trans_control),
+                                actual: base_collider.transformed(trans_actual),
+                            },
+                            time,
                         )
-                    });
+                    })
+                    .collect();
+                points.sort_by_key(|(point, time)| {
+                    (
+                        point.control.position.x,
+                        point.control.position.y,
+                        (event_time + *time - self.current_time.value).abs(),
+                    )
+                });
 
-                    {
-                        let mut points = points.iter_mut();
-                        if let Some(last) = points.next() {
-                            let mut last = last.0.control.position;
-                            for (point, _) in points {
-                                let pos = point.control.position;
-                                if last == pos {
-                                    point.visible = false;
-                                }
-                                last = pos;
+                {
+                    let mut points = points.iter_mut();
+                    if let Some(last) = points.next() {
+                        let mut last = last.0.control.position;
+                        for (point, _) in points {
+                            let pos = point.control.position;
+                            if last == pos {
+                                point.visible = false;
                             }
+                            last = pos;
                         }
                     }
-                    points.sort_by_key(|(point, _)| point.original); // Restore proper order
-
-                    if let WaypointsState::New = state
-                        && let Some(cursor_world_pos_snapped) = cursor_world_pos_snapped {
-                            // NOTE: assuming that positions don't go backwards in time
-                            // Insert a new waypoint at current time
-                            let new_time = self.current_time.value - event_time;
-                            let i = match points.binary_search_by_key(&new_time, |(_, time)| *time)
-                            {
-                                Ok(i) | Err(i) => i,
-                            };
-                            let control = base_collider.transformed(Transform {
-                                translation: cursor_world_pos_snapped,
-                                rotation: self.place_rotation,
-                                scale: self.place_scale,
-                            });
-                            points.insert(
-                                i,
-                                (
-                                    Waypoint {
-                                        visible: true,
-                                        original: None,
-                                        actual: control.clone(),
-                                        control,
-                                    },
-                                    new_time,
-                                ),
-                            );
-                        }
-
-                    let hovered = cursor_world_pos.and_then(|cursor_world_pos| {
-                        points
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, (point, _))| {
-                                point.visible
-                                    && (point.control.contains(cursor_world_pos)
-                                        || point.actual.contains(cursor_world_pos))
-                            })
-                            .min_by_key(|(_, (_, time))| {
-                                (self.current_time.value - event_time - *time).abs()
-                            })
-                            .map(|(i, _)| i)
-                    });
-                    let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
-
-                    waypoints = Some(Waypoints {
-                        light: light_id,
-                        points,
-                        hovered,
-                        selected: self
-                            .level_state
-                            .waypoints
-                            .as_ref()
-                            .and_then(|waypoints| waypoints.selected),
-                    });
                 }
+                points.sort_by_key(|(point, _)| point.original); // Restore proper order
+
+                if let WaypointsState::New = state
+                    && let Some(cursor_world_pos_snapped) = cursor_world_pos_snapped
+                {
+                    // NOTE: assuming that positions don't go backwards in time
+                    // Insert a new waypoint at current time
+                    let new_time = self.current_time.value - event_time;
+                    let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
+                        Ok(i) | Err(i) => i,
+                    };
+                    let control = base_collider.transformed(Transform {
+                        translation: cursor_world_pos_snapped,
+                        rotation: self.place_rotation,
+                        scale: self.place_scale,
+                    });
+                    points.insert(
+                        i,
+                        (
+                            Waypoint {
+                                visible: true,
+                                original: None,
+                                actual: control.clone(),
+                                control,
+                            },
+                            new_time,
+                        ),
+                    );
+                }
+
+                let hovered = cursor_world_pos.and_then(|cursor_world_pos| {
+                    points
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, (point, _))| {
+                            point.visible
+                                && (point.control.contains(cursor_world_pos)
+                                    || point.actual.contains(cursor_world_pos))
+                        })
+                        .min_by_key(|(_, (_, time))| {
+                            (self.current_time.value - event_time - *time).abs()
+                        })
+                        .map(|(i, _)| i)
+                });
+                let points: Vec<_> = points.into_iter().map(|(point, _)| point).collect();
+
+                waypoints = Some(Waypoints {
+                    light: light_id,
+                    points,
+                    hovered,
+                    selected: self
+                        .level_state
+                        .waypoints
+                        .as_ref()
+                        .and_then(|waypoints| waypoints.selected),
+                });
+            }
         }
 
         self.level_state = EditorLevelState {

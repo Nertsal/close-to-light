@@ -277,7 +277,6 @@ impl UiContext {
 
     /// Should be called before layout.
     /// Updates input values.
-    // TODO: use window from context
     pub fn update(&mut self, delta_time: f32) {
         self.reset_focus();
 

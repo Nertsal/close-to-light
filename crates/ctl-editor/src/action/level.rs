@@ -23,9 +23,16 @@ pub enum LevelAction {
     /// Selected a shape, but the specific action is up to interpretation.
     /// If there is a light selected, changes its shape; otherwise creates a new light.
     Shape(Shape),
+    Deselect,
+
+    // General event
+    SelectEvent(usize),
+    DeleteEvent(usize),
+    MoveEvent(usize, Change<Time>),
 
     // Vfx
-    RgbSplit(Time),
+    NewRgbSplit(Time),
+    ChangeRgbDuration(usize, Change<Time>),
 
     // Light actions
     NewLight(Shape),
@@ -33,7 +40,6 @@ pub enum LevelAction {
     PlaceLight(vec2<Coord>),
     DeleteLight(LightId),
     SelectLight(SelectMode, Vec<LightId>), // TODO: smallvec
-    DeselectLight,
     ChangeShape(LightId, Shape),
     RotateLightAround(LightId, vec2<Coord>, Angle<Coord>),
     FlipHorizontal(LightId, vec2<Coord>),
@@ -128,7 +134,12 @@ impl LevelAction {
             LevelAction::TimingUpdate(..) => false,
             LevelAction::Shape(..) => false,
 
-            LevelAction::RgbSplit(_) => false,
+            LevelAction::SelectEvent(_) => false,
+            LevelAction::DeleteEvent(_) => false,
+            LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
+
+            LevelAction::NewRgbSplit(_) => false,
+            LevelAction::ChangeRgbDuration(_, delta) => delta.is_noop(&0),
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -137,7 +148,7 @@ impl LevelAction {
             LevelAction::SelectLight(mode, lights) => {
                 matches!(mode, SelectMode::Add | SelectMode::Remove) && lights.is_empty()
             }
-            LevelAction::DeselectLight => false,
+            LevelAction::Deselect => false,
             LevelAction::ChangeShape(_, _) => false,
             LevelAction::RotateLightAround(_, _, delta) => *delta == Angle::ZERO,
             LevelAction::FlipHorizontal(_, _) => false,
@@ -202,6 +213,11 @@ impl LevelEditor {
                     self.clipboard
                         .copy(ClipboardItem::Events(self.current_time.target, lights));
                 }
+                Selection::Event(index) => {
+                    let events = self.level.events.get(index).cloned().into_iter().collect();
+                    self.clipboard
+                        .copy(ClipboardItem::Events(self.current_time.target, events));
+                }
             },
             LevelAction::SetSelection(selection) => {
                 self.selection = selection;
@@ -261,15 +277,41 @@ impl LevelEditor {
                 }
             }
 
-            LevelAction::RgbSplit(duration) => {
+            LevelAction::SelectEvent(index) => {
+                if self.level.events.get(index).is_some() {
+                    self.selection = Selection::Event(index);
+                }
+            }
+            LevelAction::DeleteEvent(index) => {
+                if self.level.events.get(index).is_some() {
+                    self.execute(LevelAction::Deselect, drag);
+                    self.level.events.swap_remove(index);
+                }
+            }
+            LevelAction::MoveEvent(index, change) => {
+                if let Some(event) = self.level.events.get_mut(index) {
+                    change.apply(&mut event.time);
+                    self.save_state(HistoryLabel::MoveEvent(index));
+                }
+            }
+
+            LevelAction::NewRgbSplit(duration) => {
+                self.execute(LevelAction::Deselect, drag);
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::RgbSplit(duration),
                 });
             }
+            LevelAction::ChangeRgbDuration(index, change) => {
+                if let Some(event) = self.level.events.get_mut(index)
+                    && let Event::RgbSplit(duration) = &mut event.event
+                {
+                    change.apply(duration);
+                }
+            }
 
             LevelAction::NewLight(shape) => {
-                self.execute(LevelAction::DeselectLight, drag);
+                self.execute(LevelAction::Deselect, drag);
                 self.state = EditingState::Place {
                     shape,
                     danger: false,
@@ -283,7 +325,7 @@ impl LevelEditor {
             LevelAction::PlaceLight(position) => self.place_light(position),
             LevelAction::DeleteLight(light) => self.delete_light(light),
             LevelAction::SelectLight(mode, ids) => self.select_light(mode, ids),
-            LevelAction::DeselectLight => {
+            LevelAction::Deselect => {
                 self.execute(LevelAction::DeselectWaypoint, drag);
                 self.selection.clear();
             }
@@ -710,7 +752,7 @@ impl LevelEditor {
         match &mut self.state {
             EditingState::Idle => {
                 // Cancel selection
-                self.execute(LevelAction::DeselectLight, None);
+                self.execute(LevelAction::Deselect, None);
             }
             EditingState::Place { .. } => {
                 // Cancel creation
