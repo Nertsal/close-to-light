@@ -8,8 +8,6 @@ pub struct LevelState {
     /// The time after which events are not rendered.
     ignore_after: Option<Time>,
     timing: Timing,
-    /// Whether the palette should be swapped.
-    pub swap_palette: bool,
     pub lights: Vec<Light>,
     pub telegraphs: Vec<LightTelegraph>,
     pub is_finished: bool,
@@ -21,7 +19,6 @@ impl Default for LevelState {
             time: Time::ZERO,
             ignore_after: None,
             timing: Timing::default(),
-            swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
             is_finished: false,
@@ -40,19 +37,19 @@ impl LevelState {
         config: &LevelConfig,
         time: Time,
         ignore_after: Option<Time>,
+        mut vfx: Option<&mut Vfx>,
     ) -> Self {
         let mut state = Self {
             time,
             ignore_after,
             timing: level.timing.clone(),
-            swap_palette: false,
             lights: Vec::new(),
             telegraphs: Vec::new(),
             is_finished: true,
         };
 
         for (i, e) in level.events.iter().enumerate() {
-            state.render_event(e, Some(i), config);
+            state.render_event(e, Some(i), config, vfx.as_deref_mut());
         }
         state
     }
@@ -62,6 +59,7 @@ impl LevelState {
         event: &TimedEvent,
         event_id: Option<usize>,
         config: &LevelConfig,
+        mut vfx: Option<&mut Vfx>,
     ) {
         if let Some(time) = self.ignore_after
             && event.time > time
@@ -70,12 +68,21 @@ impl LevelState {
         }
 
         let time = self.time - event.time;
+        if time < 0 {
+            // The event is in the future
+            self.is_finished = false;
+        }
+
+        if let Some(vfx) = &mut vfx {
+            // Reset accumulative fields
+            vfx.palette_swap.target = R32::ZERO;
+            vfx.rgb_split.time_left = FloatTime::ZERO;
+        }
 
         match &event.event {
             Event::Light(light) => {
                 let precede_time = seconds_to_time(self.timing.get_timing(event.time).beat_time);
                 if self.time < event.time - precede_time {
-                    self.is_finished = false;
                     return;
                 }
                 let (telegraph, light) = render_light(light, time, event_id, config, precede_time);
@@ -85,12 +92,24 @@ impl LevelState {
             Event::Effect(effect) => match effect {
                 EffectEvent::PaletteSwap => {
                     if self.time < event.time {
-                        self.is_finished = false;
                         return;
                     }
-                    self.swap_palette = !self.swap_palette
+                    if let Some(vfx) = vfx {
+                        vfx.palette_swap.target = if vfx.palette_swap.target > R32::ZERO {
+                            R32::ONE
+                        } else {
+                            R32::ZERO
+                        };
+                    }
                 }
-                EffectEvent::RgbSplit(_) => {}
+                EffectEvent::RgbSplit(duration) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.rgb_split.time_left = time_to_seconds(duration - time);
+                    }
+                }
             },
         }
 

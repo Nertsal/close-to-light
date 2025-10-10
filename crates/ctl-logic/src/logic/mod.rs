@@ -90,6 +90,7 @@ impl Model {
             &self.level.config,
             self.play_time_ms,
             ignore_time,
+            Some(&mut self.vfx),
         );
 
         // Update player's light state

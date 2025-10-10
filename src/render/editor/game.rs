@@ -10,10 +10,12 @@ impl EditorRender {
             self.context.geng.ugli(),
         );
 
-        if let Some(level_editor) = &editor.level_edit
-            && level_editor.level_state.relevant().swap_palette {
-                std::mem::swap(&mut theme.light, &mut theme.dark);
-            }
+        if let Some(level_editor) = &editor.level_edit {
+            let swap_t = level_editor.model.vfx.palette_swap.current.as_f32();
+            let (light, dark) = (theme.light, theme.dark);
+            theme.light = Color::lerp(light, dark, swap_t);
+            theme.dark = Color::lerp(dark, light, swap_t);
+        }
 
         ugli::clear(game_buffer, Some(theme.dark), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
@@ -500,27 +502,27 @@ impl EditorRender {
 
             // Selection
             if let Some(drag) = &editor.drag
-                && let DragTarget::SelectionArea { .. } = drag.target {
-                    let color = Color::lerp(theme.dark, theme.highlight, 0.5);
-                    let selection =
-                        Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)
-                            .map_bounds(|p| {
-                                crate::util::world_to_screen(
-                                    &level_editor.model.camera,
-                                    game_buffer.size().as_f32(),
-                                    p.as_f32(),
-                                )
-                            });
-                    let pixel = ctl_render_core::get_pixel_scale(ui_buffer.size());
-                    let width = 2.0 * pixel;
-                    self.ui.fill_quad(
-                        selection.extend_uniform(width),
-                        crate::util::with_alpha(color, 0.5),
-                        &mut ui_buffer,
-                    );
-                    self.ui
-                        .draw_outline(selection, width, color, &mut ui_buffer);
-                }
+                && let DragTarget::SelectionArea { .. } = drag.target
+            {
+                let color = Color::lerp(theme.dark, theme.highlight, 0.5);
+                let selection = Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)
+                    .map_bounds(|p| {
+                        crate::util::world_to_screen(
+                            &level_editor.model.camera,
+                            game_buffer.size().as_f32(),
+                            p.as_f32(),
+                        )
+                    });
+                let pixel = ctl_render_core::get_pixel_scale(ui_buffer.size());
+                let width = 2.0 * pixel;
+                self.ui.fill_quad(
+                    selection.extend_uniform(width),
+                    crate::util::with_alpha(color, 0.5),
+                    &mut ui_buffer,
+                );
+                self.ui
+                    .draw_outline(selection, width, color, &mut ui_buffer);
+            }
 
             geng_utils::texture::DrawTexture::new(&self.ui_texture)
                 .fit(screen_aabb, vec2(0.5, 0.5))

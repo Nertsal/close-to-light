@@ -74,6 +74,10 @@ impl TimeInterpolation {
 
     pub fn update(&mut self, delta_time: FloatTime) {
         self.state.update(delta_time.as_f32());
+        if (self.state.current - self.state.target).abs().as_f32() < 0.002 {
+            // Skip the final step for better precision on dependent visuals
+            self.state.current = self.state.target;
+        }
         self.value = seconds_to_time(self.state.current);
     }
 

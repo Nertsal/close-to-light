@@ -92,9 +92,6 @@ impl EditorState {
             return;
         };
 
-        let options = self.context.get_options();
-        self.context.music.set_volume(options.volume.music());
-
         level_editor.real_time += delta_time;
         level_editor.current_time.update(delta_time);
         level_editor.timeline_zoom.update(delta_time.as_f32());
@@ -105,6 +102,8 @@ impl EditorState {
                 self.context.music.stop();
             }
         }
+
+        level_editor.model.vfx.update(delta_time);
 
         // TODO: maybe config option?
         // if let Some(waypoints) = &level_editor.level_state.waypoints {
@@ -217,6 +216,9 @@ impl geng::State for EditorState {
         self.delta_time = delta_time;
         self.editor.real_time += delta_time;
 
+        let options = self.context.get_options();
+        self.context.music.set_volume(options.volume.music());
+
         self.context.local.poll();
         self.context
             .geng
@@ -252,6 +254,16 @@ impl geng::State for EditorState {
         self.framebuffer_size = framebuffer.size();
         ugli::clear(framebuffer, Some(Color::BLACK), None, None);
 
+        let vfx = self
+            .editor
+            .level_edit
+            .as_ref()
+            .map_or(Vfx::new(), |level| level.model.vfx.clone());
+        let post_vfx = crate::render::post::PostVfx {
+            time: self.editor.real_time,
+            rgb_split: vfx.rgb_split.value.current.as_f32(),
+        };
+
         self.ui_context.state.frame_start();
         self.ui_context.geometry.update(framebuffer.size());
         let (can_focus, actions) = if !self.editor.render_options.hide_ui {
@@ -277,12 +289,7 @@ impl geng::State for EditorState {
         let buffer = &mut self.post_render.begin(framebuffer.size());
         self.render
             .draw_editor(&self.editor, &self.ui, &self.ui_context, buffer);
-        self.post_render.post_process(
-            crate::render::post::PostVfx {
-                time: self.editor.real_time,
-                rgb_split: 0.0,
-            },
-            framebuffer,
-        );
+
+        self.post_render.post_process(post_vfx, framebuffer);
     }
 }
