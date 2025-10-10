@@ -72,13 +72,6 @@ impl LevelState {
         let time = self.time - event.time;
 
         match &event.event {
-            Event::PaletteSwap => {
-                if self.time < event.time {
-                    self.is_finished = false;
-                    return;
-                }
-                self.swap_palette = !self.swap_palette
-            }
             Event::Light(light) => {
                 let precede_time = seconds_to_time(self.timing.get_timing(event.time).beat_time);
                 if self.time < event.time - precede_time {
@@ -89,7 +82,16 @@ impl LevelState {
                 self.telegraphs.extend(telegraph);
                 self.lights.extend(light);
             }
-            Event::RgbSplit(_) => {}
+            Event::Effect(effect) => match effect {
+                EffectEvent::PaletteSwap => {
+                    if self.time < event.time {
+                        self.is_finished = false;
+                        return;
+                    }
+                    self.swap_palette = !self.swap_palette
+                }
+                EffectEvent::RgbSplit(_) => {}
+            },
         }
 
         self.is_finished = self.is_finished && self.lights.is_empty() && self.telegraphs.is_empty();

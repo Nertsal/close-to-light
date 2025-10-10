@@ -215,9 +215,22 @@ impl Editor {
 
     pub fn save(&mut self) {
         let Some(level_editor) = &mut self.level_edit else {
+            // Save whole group
+            // NOTE: null action, but it might update the saved format/version
+            if let Some(group) = self.context.local.update_group(
+                self.group.group_index,
+                self.group.cached.local.data.clone(),
+                None,
+            ) {
+                self.group.cached = group;
+                log::info!("Saved the levelset successfully");
+            } else {
+                log::error!("Failed to write levelset data");
+            }
             return;
         };
 
+        // Save level
         if let Some((group, level)) = self.context.local.update_level(
             level_editor.static_level.group.group_index,
             level_editor.static_level.level_index,

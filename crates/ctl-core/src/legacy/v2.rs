@@ -11,19 +11,11 @@ type Name = Arc<str>;
 const TIME_IN_FLOAT_TIME: Time = 1000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LevelSet<L = LevelFull> {
-    pub id: Id,
-    pub owner: UserInfo,
+pub struct LevelSet<L = Level> {
     pub levels: Vec<L>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LevelFull {
-    pub meta: LevelInfo,
-    pub data: Level,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LevelSetInfo {
     /// Id `0` for local groups.
     #[serde(default)]
@@ -31,12 +23,9 @@ pub struct LevelSetInfo {
     pub music: MusicInfo,
     pub owner: UserInfo,
     pub levels: Vec<LevelInfo>,
+    #[serde(default)]
+    pub featured: bool,
     pub hash: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GroupMeta {
-    pub music: Option<MusicInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -44,9 +33,13 @@ pub struct MusicInfo {
     /// Id `0` for local music.
     #[serde(default)]
     pub id: Id,
+    #[serde(default)]
     pub original: bool,
+    #[serde(default)]
+    pub featured: bool,
     pub name: Name,
     pub romanized: Name,
+    #[serde(default)]
     pub authors: Vec<MusicianInfo>,
 }
 
@@ -55,6 +48,7 @@ impl Default for MusicInfo {
         Self {
             id: 0,
             original: false,
+            featured: false,
             name: "<name>".into(),
             romanized: "<romanized>".into(),
             authors: Vec::new(),
@@ -63,20 +57,12 @@ impl Default for MusicInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct MusicianInfo {
-    pub id: Id,
-    pub name: Name,
-    pub romanized: Name,
-    pub user: Option<Id>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct LevelInfo {
     /// Id `0` for local levels.
     pub id: Id,
     pub name: Name,
-    pub authors: Vec<UserInfo>,
+    pub authors: Vec<MapperInfo>,
     pub hash: String,
 }
 
@@ -91,10 +77,26 @@ impl Default for LevelInfo {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserInfo {
     pub id: Id,
     pub name: Name,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MapperInfo {
+    /// User id `0` for non-registered mapper.
+    pub id: Id,
+    pub name: Name,
+    pub romanized: Name,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MusicianInfo {
+    /// Id `0` for non-registered musicians.
+    pub id: Id,
+    pub name: Name,
+    pub romanized: Name,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -131,6 +133,7 @@ pub enum Event {
     Light(LightEvent),
     /// Swap light and dark colors.
     PaletteSwap,
+    RgbSplit(Time),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -253,16 +256,18 @@ impl Movement {
     }
 }
 
-pub fn convert_group(value: LevelSet) -> (crate::LevelSet, crate::LevelSetInfo) {
-    let levels_info = value
+pub fn convert_group(
+    value: LevelSet,
+    info: LevelSetInfo,
+) -> (crate::LevelSet, crate::LevelSetInfo) {
+    let levels_info = info
         .levels
         .iter()
         .map(|level| {
             crate::LevelInfo {
-                id: level.meta.id,
-                name: level.meta.name.clone(),
+                id: level.id,
+                name: level.name.clone(),
                 authors: level
-                    .meta
                     .authors
                     .iter()
                     .map(|user| crate::MapperInfo {
@@ -271,7 +276,7 @@ pub fn convert_group(value: LevelSet) -> (crate::LevelSet, crate::LevelSetInfo) 
                         romanized: user.name.clone(),
                     })
                     .collect(),
-                hash: level.meta.hash.clone(), // TODO: should i recalculate the hash?
+                hash: level.hash.clone(), // TODO: should i recalculate the hash?
             }
         })
         .collect();
@@ -279,21 +284,37 @@ pub fn convert_group(value: LevelSet) -> (crate::LevelSet, crate::LevelSetInfo) 
         levels: value
             .levels
             .into_iter()
-            .map(|level| Rc::new(convert_level(level.data)))
+            .map(|level| Rc::new(convert_level(level)))
             .collect(),
     };
     let hash = level_set.calculate_hash();
     (
         level_set,
         crate::LevelSetInfo {
-            id: value.id,
+            id: info.id,
             owner: crate::UserInfo {
-                id: value.owner.id,
-                name: value.owner.name,
+                id: info.owner.id,
+                name: info.owner.name,
             },
-            music: crate::MusicInfo::default(),
+            music: crate::MusicInfo {
+                id: info.music.id,
+                original: info.music.original,
+                featured: info.music.featured,
+                name: info.music.name,
+                romanized: info.music.romanized,
+                authors: info
+                    .music
+                    .authors
+                    .into_iter()
+                    .map(|author| crate::MusicianInfo {
+                        id: author.id,
+                        name: author.name,
+                        romanized: author.romanized,
+                    })
+                    .collect(),
+            },
             levels: levels_info,
-            featured: false,
+            featured: info.featured,
             hash,
         },
     )
@@ -330,7 +351,12 @@ fn convert_level(value: Level) -> crate::Level {
                                 .collect(),
                         },
                     }),
-                    Event::PaletteSwap => crate::Event::PaletteSwap,
+                    Event::PaletteSwap => {
+                        crate::Event::Effect(crate::model::EffectEvent::PaletteSwap)
+                    }
+                    Event::RgbSplit(duration) => {
+                        crate::Event::Effect(crate::model::EffectEvent::RgbSplit(duration))
+                    }
                 },
             })
             .collect(),

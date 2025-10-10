@@ -246,30 +246,43 @@ fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInf
         (Ok(set), Ok(info)) => Ok((set, info)),
         (Ok(_), Err(err)) | (Err(err), _) => {
             // Try legacy version, for backwards compatibility
-            match cbor4ii::serde::from_slice::<ctl_client::core::legacy::v2::LevelSet>(level_bytes)
-                .with_context(|| "when parsing levels data")
-            {
-                Ok(value) => {
-                    let (set, mut info) = ctl_client::core::legacy::v2::convert_group(value);
-                    info.music = toml::from_str::<ctl_client::core::legacy::v2::GroupMeta>(meta)
-                        .with_context(|| "when parsing meta file")?
-                        .music
-                        .unwrap_or_default()
-                        .into();
+
+            // v2
+            let (set, info) = (
+                cbor4ii::serde::from_slice::<ctl_client::core::legacy::v2::LevelSet>(level_bytes)
+                    .with_context(|| "when parsing levels data"),
+                toml::from_str::<ctl_client::core::legacy::v2::LevelSetInfo>(meta)
+                    .with_context(|| "when parsing level set metadata"),
+            );
+            match (set, info) {
+                (Ok(set), Ok(info)) => {
+                    log::info!("Migrating level {:?} from v2", info.id);
+                    let (set, info) = ctl_client::core::legacy::v2::convert_group(set, info);
                     return Ok((set, info));
                 }
-                Err(err) => log::error!("v2 parse failed: {err:?}"),
+                (set, info) => {
+                    if let Err(err) = set {
+                        log::error!("v2 data parse failed: {err:?}");
+                    }
+                    if let Err(err) = info {
+                        log::error!("v2 meta parse failed: {err:?}");
+                    }
+                }
             }
+
+            // v1
             match bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(level_bytes)
                 .with_context(|| "when parsing levels data")
             {
                 Ok(value) => {
                     let beat_time = r32(60.0) / r32(150.0);
                     let (set, info) = ctl_client::core::legacy::v1::convert_group(beat_time, value);
+                    log::info!("Migrating level {:?} from v1", info.id);
                     return Ok((set, info));
                 }
                 Err(err) => log::error!("v1 parse failed: {err:?}"),
             }
+
             Err(err)
         }
     }

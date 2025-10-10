@@ -299,12 +299,12 @@ impl LevelEditor {
                 self.execute(LevelAction::Deselect, drag);
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
-                    event: Event::RgbSplit(duration),
+                    event: Event::Effect(EffectEvent::RgbSplit(duration)),
                 });
             }
             LevelAction::ChangeRgbDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
-                    && let Event::RgbSplit(duration) = &mut event.event
+                    && let Event::Effect(EffectEvent::RgbSplit(duration)) = &mut event.event
                 {
                     change.apply(duration);
                 }

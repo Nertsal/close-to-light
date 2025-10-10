@@ -4,6 +4,11 @@ impl EditorState {
     pub fn process_event(&self, event: geng::Event) -> Vec<EditorStateAction> {
         let mut actions = vec![];
 
+        let window = self.context.geng.window();
+        let ctrl = window.is_key_pressed(geng::Key::ControlLeft);
+        let shift = window.is_key_pressed(geng::Key::ShiftLeft);
+        let alt = window.is_key_pressed(geng::Key::AltLeft);
+
         match &event {
             geng::Event::KeyPress { key } => {
                 if self.ui_context.text_edit.any_active() {
@@ -11,6 +16,11 @@ impl EditorState {
                         actions.push(EditorStateAction::StopTextEdit);
                     }
                     return actions;
+                }
+                if let geng::Key::S = key
+                    && ctrl
+                {
+                    actions.push(EditorAction::Save.into());
                 }
             }
             geng::Event::EditText(text) => {
@@ -37,11 +47,6 @@ impl EditorState {
         let Some(level_editor) = &self.editor.level_edit else {
             return actions;
         };
-
-        let window = self.context.geng.window();
-        let ctrl = window.is_key_pressed(geng::Key::ControlLeft);
-        let shift = window.is_key_pressed(geng::Key::ShiftLeft);
-        let alt = window.is_key_pressed(geng::Key::AltLeft);
 
         let scroll_speed = if shift {
             ScrollSpeed::Slow
@@ -120,9 +125,6 @@ impl EditorState {
                             }
                         }
                     }
-                }
-                geng::Key::S if ctrl => {
-                    actions.push(EditorAction::Save.into());
                 }
                 geng::Key::Q => self.rotate(&mut actions, rotate_by),
                 geng::Key::E => self.rotate(&mut actions, -rotate_by),

@@ -409,58 +409,60 @@ impl EditorEditUi {
                     let timing_point = timing.get_timing(event.time);
                     match &event.event {
                         Event::Light(_) => {}
-                        Event::PaletteSwap => todo!(),
-                        &Event::RgbSplit(duration) => {
-                            let mut bar = right_bar;
+                        Event::Effect(effect) => match effect {
+                            EffectEvent::PaletteSwap => todo!(),
+                            &EffectEvent::RgbSplit(duration) => {
+                                let mut bar = right_bar;
 
-                            let light_pos = bar.cut_top(title_size);
-                            let text = context.state.get_root_or(|| {
-                                TextWidget::new("RGB Split").aligned(vec2(0.0, 0.5))
-                            });
-                            text.update(light_pos, context);
-                            text.options.size = title_size;
+                                let light_pos = bar.cut_top(title_size);
+                                let text = context.state.get_root_or(|| {
+                                    TextWidget::new("RGB Split").aligned(vec2(0.0, 0.5))
+                                });
+                                text.update(light_pos, context);
+                                text.options.size = title_size;
 
-                            let delete = bar.cut_top(button_height).cut_left(delete_width);
-                            let button = context.state.get_root_or(|| {
-                                ButtonWidget::new("Delete").color(ThemeColor::Danger)
-                            });
-                            button.update(delete, context);
-                            tooltip.update(&button.text.state, "X", context);
-                            if button.text.state.mouse_left.clicked {
-                                actions.push(LevelAction::DeleteEvent(event_i).into());
-                            }
+                                let delete = bar.cut_top(button_height).cut_left(delete_width);
+                                let button = context.state.get_root_or(|| {
+                                    ButtonWidget::new("Delete").color(ThemeColor::Danger)
+                                });
+                                button.update(delete, context);
+                                tooltip.update(&button.text.state, "X", context);
+                                if button.text.state.mouse_left.clicked {
+                                    actions.push(LevelAction::DeleteEvent(event_i).into());
+                                }
 
-                            let duration_pos = bar.cut_top(value_height);
-                            let mut duration = BeatTime::from_beats_float(
-                                time_to_seconds(duration) / timing_point.beat_time,
-                            );
-                            let slider = context.state.get_root_or(|| {
-                                BeatValueWidget::new(
-                                    "Duration",
-                                    duration,
-                                    BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                                    snap,
-                                )
-                            });
-                            slider.scroll_by = snap;
-                            if slider.update(duration_pos, context, &mut duration) {
-                                actions.push(
-                                    LevelAction::ChangeRgbDuration(
-                                        event_i,
-                                        Change::Set(duration.as_time(timing_point.beat_time)),
+                                let duration_pos = bar.cut_top(value_height);
+                                let mut duration = BeatTime::from_beats_float(
+                                    time_to_seconds(duration) / timing_point.beat_time,
+                                );
+                                let slider = context.state.get_root_or(|| {
+                                    BeatValueWidget::new(
+                                        "Duration",
+                                        duration,
+                                        BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                        snap,
                                     )
-                                    .into(),
-                                );
+                                });
+                                slider.scroll_by = snap;
+                                if slider.update(duration_pos, context, &mut duration) {
+                                    actions.push(
+                                        LevelAction::ChangeRgbDuration(
+                                            event_i,
+                                            Change::Set(duration.as_time(timing_point.beat_time)),
+                                        )
+                                        .into(),
+                                    );
+                                }
+                                if slider.control_state.mouse_left.just_released {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(HistoryLabel::RgbDuration(
+                                            event_i,
+                                        )))
+                                        .into(),
+                                    );
+                                }
                             }
-                            if slider.control_state.mouse_left.just_released {
-                                actions.push(
-                                    LevelAction::FlushChanges(Some(HistoryLabel::RgbDuration(
-                                        event_i,
-                                    )))
-                                    .into(),
-                                );
-                            }
-                        }
+                        },
                     }
                 }
             }
