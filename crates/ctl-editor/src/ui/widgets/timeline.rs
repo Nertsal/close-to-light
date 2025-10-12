@@ -193,6 +193,33 @@ impl TimelineWidget {
                 })
         });
 
+        let timeline_tick =
+            |size: vec2<f32>,
+             pos: vec2<f32>,
+             texture: SubTexture,
+             actions: &mut Vec<EditorAction>,
+             while_pressed: &mut dyn FnMut(&mut Vec<EditorAction>, Time),
+             on_release: &mut dyn FnMut(&mut Vec<EditorAction>)| {
+                if !self.state.position.contains(pos) {
+                    return;
+                }
+                let position = Aabb2::point(pos).extend_symmetric(size / 2.0);
+                let tick = context.state.get_or(self.state.id, || {
+                    // TODO: somehow mask this with other stuff
+                    IconButtonWidget::new(texture)
+                        .highlight(HighlightMode::Color(ThemeColor::Highlight))
+                });
+                tick.update(position, context);
+                if tick.state.mouse_left.pressed.is_some() {
+                    let target = unrender_time(context.cursor.position.x);
+                    let target = editor.level.timing.snap_to_beat(target, snap);
+                    while_pressed(actions, target);
+                }
+                if tick.state.mouse_left.just_released {
+                    on_release(actions);
+                }
+            };
+
         // Render events on the timeline
         let mut occupied = BTreeMap::new();
         self.dots.clear();
@@ -244,63 +271,52 @@ impl TimelineWidget {
                         let to_time = event.time + light_event.movement.total_duration();
                         let to = render_time(&self.highlight_line, to_time).center();
 
-                        let size = vec2(4.0, 16.0) * PPU as f32;
+                        let tick_size = vec2(4.0, 16.0) * PPU as f32;
 
                         // Fade in
-                        if self.state.position.contains(from) {
-                            let position = Aabb2::point(from).extend_symmetric(size / 2.0);
-                            let tick = context.state.get_or(self.state.id, || {
-                                // TODO: somehow mask this with other stuff
-                                IconButtonWidget::new(atlas.timeline_tick_smol())
-                                    .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                            });
-                            tick.update(position, context);
-                            if tick.state.mouse_left.pressed.is_some() {
+                        timeline_tick(
+                            tick_size,
+                            from,
+                            atlas.timeline_tick_smol(),
+                            actions,
+                            &mut |actions, target| {
                                 // Drag fade in
-                                let target = unrender_time(context.cursor.position.x);
-                                let target = editor.level.timing.snap_to_beat(target, snap);
                                 let fade_in = event.time + light_event.movement.fade_in - target;
                                 actions.push(
                                     LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in))
                                         .into(),
                                 );
-                            }
-                            if tick.state.mouse_left.just_released {
+                            },
+                            &mut |actions| {
                                 actions.push(
                                     LevelAction::FlushChanges(Some(HistoryLabel::FadeIn(light_id)))
                                         .into(),
                                 );
-                            }
-                        }
+                            },
+                        );
 
                         // Fade out
-                        if self.state.position.contains(to) {
-                            let position = Aabb2::point(to).extend_symmetric(size / 2.0);
-                            let tick = context.state.get_or(self.state.id, || {
-                                // TODO: somehow mask this with other stuff
-                                IconButtonWidget::new(atlas.timeline_tick_smol())
-                                    .highlight(HighlightMode::Color(ThemeColor::Highlight))
-                            });
-                            tick.update(position, context);
-                            if tick.state.mouse_left.pressed.is_some() {
-                                // Drag fade out
-                                let target = unrender_time(context.cursor.position.x);
-                                let target = editor.level.timing.snap_to_beat(target, snap);
+                        timeline_tick(
+                            tick_size,
+                            to,
+                            atlas.timeline_tick_smol(),
+                            actions,
+                            &mut |actions, target| {
                                 let fade_out = target - to_time + light_event.movement.fade_out;
                                 actions.push(
                                     LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out))
                                         .into(),
                                 );
-                            }
-                            if tick.state.mouse_left.just_released {
+                            },
+                            &mut |actions| {
                                 actions.push(
                                     LevelAction::FlushChanges(Some(HistoryLabel::FadeOut(
                                         light_id,
                                     )))
                                     .into(),
                                 );
-                            }
-                        }
+                            },
+                        );
 
                         let last_id = WaypointId::Frame(
                             light_event.movement.key_frames.len().saturating_sub(1),
@@ -330,7 +346,7 @@ impl TimelineWidget {
                             // Tick
                             let position =
                                 render_time(&self.highlight_line, event.time + offset).center();
-                            let position = Aabb2::point(position).extend_symmetric(size / 2.0);
+                            let position = Aabb2::point(position).extend_symmetric(tick_size / 2.0);
                             let texture = match waypoint_id {
                                 WaypointId::Initial => atlas.timeline_tick_big(),
                                 WaypointId::Frame(_) if waypoint_id == last_id => {
@@ -512,6 +528,69 @@ impl TimelineWidget {
                                     LevelAction::MoveEvent(event_i, Change::Set(time)).into(),
                                 );
                             }
+
+                            // Start time
+                            timeline_tick(
+                                vec2(4.0, 16.0) * PPU as f32,
+                                render_time(&self.highlight_line, event.time).center(),
+                                atlas.timeline_tick_smol(),
+                                actions,
+                                &mut |actions, target| {
+                                    // Drag start time
+                                    let duration = (*duration + event.time - target).max(1);
+                                    actions.push(
+                                        LevelAction::list_with(
+                                            HistoryLabel::MoveEvent(event_i),
+                                            [
+                                                LevelAction::MoveEvent(
+                                                    event_i,
+                                                    Change::Set(target),
+                                                ),
+                                                LevelAction::ChangeRgbDuration(
+                                                    event_i,
+                                                    Change::Set(duration),
+                                                ),
+                                            ],
+                                        )
+                                        .into(),
+                                    );
+                                },
+                                &mut |actions| {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(HistoryLabel::MoveEvent(
+                                            event_i,
+                                        )))
+                                        .into(),
+                                    );
+                                },
+                            );
+
+                            // End time
+                            timeline_tick(
+                                vec2(4.0, 16.0) * PPU as f32,
+                                render_time(&self.highlight_line, event.time + *duration).center(),
+                                atlas.timeline_tick_smol(),
+                                actions,
+                                &mut |actions, target| {
+                                    // Drag end time
+                                    let duration = (target - event.time).max(1);
+                                    actions.push(
+                                        LevelAction::ChangeRgbDuration(
+                                            event_i,
+                                            Change::Set(duration),
+                                        )
+                                        .into(),
+                                    );
+                                },
+                                &mut |actions| {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(HistoryLabel::RgbDuration(
+                                            event_i,
+                                        )))
+                                        .into(),
+                                    );
+                                },
+                            );
                         }
 
                         let overlapped =

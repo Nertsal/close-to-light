@@ -64,10 +64,6 @@ impl PostRender {
         buffer
     }
 
-    pub fn continue_render(&mut self) -> ugli::Framebuffer<'_> {
-        geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli())
-    }
-
     pub fn post_process(&mut self, vfx: PostVfx, framebuffer: &mut ugli::Framebuffer) {
         let options = self.context.get_options();
 
