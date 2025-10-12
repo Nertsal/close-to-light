@@ -32,7 +32,7 @@ impl PostRender {
     }
 
     /// Get access to the internal texture to render into.
-    pub fn begin(&'_ mut self, screen_size: vec2<usize>) -> ugli::Framebuffer<'_> {
+    pub fn begin(&'_ mut self, screen_size: vec2<usize>, dark: Color) -> ugli::Framebuffer<'_> {
         geng_utils::texture::update_texture_size(
             &mut self.swap_buffer.0,
             screen_size,
@@ -43,7 +43,7 @@ impl PostRender {
                 &mut self.swap_buffer.0,
                 self.context.geng.ugli(),
             ),
-            Some(self.context.get_options().theme.dark),
+            Some(dark),
             None,
             None,
         );
@@ -55,12 +55,7 @@ impl PostRender {
         );
         let mut buffer =
             geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli());
-        ugli::clear(
-            &mut buffer,
-            Some(self.context.get_options().theme.dark),
-            None,
-            None,
-        );
+        ugli::clear(&mut buffer, Some(dark), None, None);
         buffer
     }
 

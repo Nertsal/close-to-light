@@ -5,14 +5,14 @@ impl EditorRender {
         let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
 
-        let game_buffer = &mut self.post_render.begin(self.game_texture.size());
-
         if let Some(level_editor) = &editor.level_edit {
             let swap_t = level_editor.model.vfx.palette_swap.current.as_f32();
             let (light, dark) = (theme.light, theme.dark);
             theme.light = Color::lerp(light, dark, swap_t);
             theme.dark = Color::lerp(dark, light, swap_t);
         }
+
+        let game_buffer = &mut self.post_render.begin(self.game_texture.size(), theme.dark);
 
         ugli::clear(game_buffer, Some(theme.dark), None, None);
         let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());

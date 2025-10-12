@@ -99,13 +99,6 @@ impl EditorEditUi {
                 bar.cut_top(button_height);
                 bar.cut_top(spacing);
             } else {
-                // let palette = bar.cut_top(button_height);
-                // bar.cut_top(spacing);
-                // update!(self.new_palette, palette);
-                // if self.new_palette.text.state.clicked {
-                //     level_editor.palette_swap();
-                // }
-
                 let new_light_width = font_size * 3.0;
 
                 for (i, shape) in editor.config.shapes.iter().enumerate() {
@@ -131,6 +124,16 @@ impl EditorEditUi {
                 button.update(new_rgb, context);
                 if button.text.state.mouse_left.clicked {
                     actions.push(LevelAction::NewRgbSplit(TIME_IN_FLOAT_TIME).into());
+                }
+
+                let new_palette = bar.cut_top(button_height).cut_left(font_size * 2.5);
+                bar.cut_top(spacing);
+                let button = context
+                    .state
+                    .get_root_or(|| ButtonWidget::new("Palette swap"));
+                button.update(new_palette, context);
+                if button.text.state.mouse_left.clicked {
+                    actions.push(LevelAction::NewPaletteSwap(TIME_IN_FLOAT_TIME / 2).into());
                 }
             }
 
@@ -407,29 +410,37 @@ impl EditorEditUi {
                 if let Some(event) = level_editor.level.events.get(event_i) {
                     let timing = &level_editor.level.timing;
                     let timing_point = timing.get_timing(event.time);
+
+                    let event_title_delete =
+                        |bar: &mut Aabb2<f32>,
+                         title: &str,
+                         tooltip: &mut TooltipWidget,
+                         actions: &mut Vec<EditorStateAction>| {
+                            let light_pos = bar.cut_top(title_size);
+                            let text = context
+                                .state
+                                .get_root_or(|| TextWidget::new(title).aligned(vec2(0.0, 0.5)));
+                            text.update(light_pos, context);
+                            text.options.size = title_size;
+
+                            let delete = bar.cut_top(button_height).cut_left(delete_width);
+                            let button = context.state.get_root_or(|| {
+                                ButtonWidget::new("Delete").color(ThemeColor::Danger)
+                            });
+                            button.update(delete, context);
+                            tooltip.update(&button.text.state, "X", context);
+                            if button.text.state.mouse_left.clicked {
+                                actions.push(LevelAction::DeleteEvent(event_i).into());
+                            }
+                        };
+
                     match &event.event {
                         Event::Light(_) => {}
-                        Event::Effect(effect) => match effect {
-                            EffectEvent::PaletteSwap => todo!(),
-                            &EffectEvent::RgbSplit(duration) => {
+                        Event::Effect(effect) => match *effect {
+                            EffectEvent::PaletteSwap(duration) => {
                                 let mut bar = right_bar;
 
-                                let light_pos = bar.cut_top(title_size);
-                                let text = context.state.get_root_or(|| {
-                                    TextWidget::new("RGB Split").aligned(vec2(0.0, 0.5))
-                                });
-                                text.update(light_pos, context);
-                                text.options.size = title_size;
-
-                                let delete = bar.cut_top(button_height).cut_left(delete_width);
-                                let button = context.state.get_root_or(|| {
-                                    ButtonWidget::new("Delete").color(ThemeColor::Danger)
-                                });
-                                button.update(delete, context);
-                                tooltip.update(&button.text.state, "X", context);
-                                if button.text.state.mouse_left.clicked {
-                                    actions.push(LevelAction::DeleteEvent(event_i).into());
-                                }
+                                event_title_delete(&mut bar, "Palette Flip", tooltip, actions);
 
                                 let duration_pos = bar.cut_top(value_height);
                                 let mut duration = BeatTime::from_beats_float(
@@ -446,7 +457,7 @@ impl EditorEditUi {
                                 slider.scroll_by = snap;
                                 if slider.update(duration_pos, context, &mut duration) {
                                     actions.push(
-                                        LevelAction::ChangeRgbDuration(
+                                        LevelAction::ChangeEffectDuration(
                                             event_i,
                                             Change::Set(duration.as_time(timing_point.beat_time)),
                                         )
@@ -455,9 +466,45 @@ impl EditorEditUi {
                                 }
                                 if slider.control_state.mouse_left.just_released {
                                     actions.push(
-                                        LevelAction::FlushChanges(Some(HistoryLabel::RgbDuration(
+                                        LevelAction::FlushChanges(Some(
+                                            HistoryLabel::EventDuration(event_i),
+                                        ))
+                                        .into(),
+                                    );
+                                }
+                            }
+                            EffectEvent::RgbSplit(duration) => {
+                                let mut bar = right_bar;
+
+                                event_title_delete(&mut bar, "RGB Split", tooltip, actions);
+
+                                let duration_pos = bar.cut_top(value_height);
+                                let mut duration = BeatTime::from_beats_float(
+                                    time_to_seconds(duration) / timing_point.beat_time,
+                                );
+                                let slider = context.state.get_root_or(|| {
+                                    BeatValueWidget::new(
+                                        "Duration",
+                                        duration,
+                                        BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                        snap,
+                                    )
+                                });
+                                slider.scroll_by = snap;
+                                if slider.update(duration_pos, context, &mut duration) {
+                                    actions.push(
+                                        LevelAction::ChangeEffectDuration(
                                             event_i,
-                                        )))
+                                            Change::Set(duration.as_time(timing_point.beat_time)),
+                                        )
+                                        .into(),
+                                    );
+                                }
+                                if slider.control_state.mouse_left.just_released {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(
+                                            HistoryLabel::EventDuration(event_i),
+                                        ))
                                         .into(),
                                     );
                                 }

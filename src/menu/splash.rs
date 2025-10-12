@@ -41,7 +41,7 @@ impl geng::State for SplashScreen {
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
 
-        let buffer = &mut self.post.begin(framebuffer.size());
+        let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let camera = &Camera2d {
             center: vec2::ZERO,

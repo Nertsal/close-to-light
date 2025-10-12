@@ -449,7 +449,7 @@ impl geng::State for LevelMenu {
         ugli::clear(framebuffer, Some(theme.dark), None, None);
         self.masked.update_size(framebuffer.size());
 
-        let buffer = &mut self.post.begin(framebuffer.size());
+        let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         self.dither.set_noise(1.0);
         let mut dither_buffer = self.dither.start();

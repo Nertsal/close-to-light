@@ -48,7 +48,7 @@ impl GameRender {
         let options = self.context.get_options();
 
         let camera = &model.camera;
-        let theme = &options.theme;
+        let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
         let beat_time = model
             .level
             .level
@@ -177,7 +177,6 @@ impl GameRender {
             self.util.draw_health(
                 &model.player.health,
                 model.player.get_lit_state(),
-                // &model.config.theme,
                 &mut framebuffer,
             );
         }
@@ -207,7 +206,7 @@ impl GameRender {
         //     }
         // }
 
-        self.dither.finish(model.real_time, theme);
+        self.dither.finish(model.real_time, &theme);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
@@ -231,7 +230,7 @@ impl GameRender {
         self.masked2.update_size(framebuffer.size());
 
         let options = self.context.get_options();
-        let theme = options.theme;
+        let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
         // let precision = model.score.calculated.precision.as_f32() * 100.0;
@@ -304,7 +303,7 @@ impl GameRender {
                 .draw_score(&ui.score, theme, self.font_size * 0.1, framebuffer);
         }
         if ui.leaderboard.state.visible {
-            let theme = self.context.get_options().theme;
+            // let theme = self.context.get_options().theme;
             let width = self.font_size * 0.2;
 
             self.ui.draw_window(

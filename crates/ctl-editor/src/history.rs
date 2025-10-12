@@ -7,8 +7,7 @@ pub enum HistoryLabel {
     Merge,
 
     MoveEvent(usize),
-
-    RgbDuration(usize),
+    EventDuration(usize),
 
     FadeIn(LightId),
     FadeOut(LightId),

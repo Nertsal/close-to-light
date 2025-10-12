@@ -352,7 +352,9 @@ fn convert_level(value: Level) -> crate::Level {
                         },
                     }),
                     Event::PaletteSwap => {
-                        crate::Event::Effect(crate::model::EffectEvent::PaletteSwap)
+                        crate::Event::Effect(crate::model::EffectEvent::PaletteSwap(
+                            crate::types::TIME_IN_FLOAT_TIME / 2,
+                        ))
                     }
                     Event::RgbSplit(duration) => {
                         crate::Event::Effect(crate::model::EffectEvent::RgbSplit(duration))

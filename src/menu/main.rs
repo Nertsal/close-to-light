@@ -213,7 +213,7 @@ impl geng::State for MainMenu {
 
         self.dither.finish(self.time, &theme);
 
-        let buffer = &mut self.post_render.begin(screen_buffer.size());
+        let buffer = &mut self.post_render.begin(screen_buffer.size(), theme.dark);
 
         let aabb = Aabb2::ZERO.extend_positive(buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())

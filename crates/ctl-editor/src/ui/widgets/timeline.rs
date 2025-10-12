@@ -176,7 +176,7 @@ impl TimelineWidget {
                     let duration = match &event.event {
                         Event::Light(_) => return None,
                         Event::Effect(effect) => match effect {
-                            EffectEvent::PaletteSwap => return None,
+                            EffectEvent::PaletteSwap(duration) => duration,
                             EffectEvent::RgbSplit(duration) => duration,
                         },
                     };
@@ -230,8 +230,70 @@ impl TimelineWidget {
             f
         };
         let can_focus = context.can_focus();
+        let visible_scroll = self.visible_scroll();
         for (event_i, event) in self.level.events.iter().enumerate() {
             let is_selected = self.selection.is_event_single(event_i);
+
+            let regular_event = |event_time: Time,
+                                 event_duration: Time,
+                                 actions: &mut Vec<EditorAction>,
+                                 occupied: &mut BTreeMap<i64, usize>,
+                                 dragging_event: &mut Option<(vec2<f32>, f32)>,
+                                 dots: &mut Vec<vec2<f32>>| {
+                let overlapped = if self
+                    .highlight_bar
+                    .as_ref()
+                    .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time))
+                {
+                    0
+                } else {
+                    *occupied
+                        .entry(event.time)
+                        .and_modify(|x| *x += 1)
+                        .or_insert(0)
+                };
+
+                let mut is_hovered = false;
+                let visible = (event.time + self.scroll).abs() < visible_scroll / 2;
+                if visible && overlapped as f32 <= self.expansion.current + 0.9 {
+                    let position = render_light(event.time, overlapped).center();
+                    let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                    let icon = context.state.get_or(self.state.id, || {
+                        IconButtonWidget::new(atlas.timeline_rgb_split())
+                    });
+                    icon.color = ThemeColor::Light;
+                    icon.update(position, context);
+                    is_hovered = is_hovered || icon.state.hovered;
+                    if icon.state.mouse_left.just_pressed {
+                        actions.push(LevelAction::SelectEvent(event_i).into());
+                        *dragging_event = Some((context.cursor.position, context.real_time));
+                    }
+                }
+
+                if is_selected || is_hovered {
+                    // Dots
+                    let last_dot_time = event.time;
+                    let time = event_time + event_duration;
+
+                    // TODO: variable timing within this segment
+                    let timing = self.level.timing.get_timing(event.time);
+
+                    let resolution = 4.0; // Ticks per beat
+                    let step = timing.beat_time / r32(resolution);
+                    let ds = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1).floor()
+                        as usize;
+                    let overlapped = if is_selected { 0 } else { overlapped };
+                    let ds = (0..=ds)
+                        .map(|i| {
+                            let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                            render_light(time, overlapped).center()
+                        })
+                        .filter(|&pos| self.state.position.contains(pos));
+
+                    dots.extend(ds);
+                }
+            };
+
             match &event.event {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
@@ -502,153 +564,107 @@ impl TimelineWidget {
                         self.dots.extend(dots);
                     }
                 }
-                Event::Effect(effect) => match effect {
-                    EffectEvent::PaletteSwap => {}
-                    EffectEvent::RgbSplit(duration) => {
-                        if is_selected {
-                            if !can_focus || !context.cursor.left.down {
-                                match self.dragging_event.take() {
-                                    Some((from, from_time))
-                                        if (context.cursor.position - from).len_sqr()
-                                            < MAX_CLICK_DISTANCE
-                                            && (context.real_time - from_time).abs()
-                                                < MAX_CLICK_DURATION => {}
-                                    Some(_) => {
-                                        if is_selected {
-                                            actions.push(LevelAction::Deselect.into());
-                                        }
+                Event::Effect(effect) => {
+                    if is_selected {
+                        // Release drag
+                        if !can_focus || !context.cursor.left.down {
+                            match self.dragging_event.take() {
+                                Some((from, from_time))
+                                    if (context.cursor.position - from).len_sqr()
+                                        < MAX_CLICK_DISTANCE
+                                        && (context.real_time - from_time).abs()
+                                            < MAX_CLICK_DURATION => {}
+                                Some(_) => {
+                                    if is_selected {
+                                        actions.push(LevelAction::Deselect.into());
                                     }
-                                    None => {}
                                 }
-                            }
-                            if self.dragging_event.is_some() {
-                                let time = unrender_time(context.cursor.position.x);
-                                let time = editor.level.timing.snap_to_beat(time, snap);
-                                actions.push(
-                                    LevelAction::MoveEvent(event_i, Change::Set(time)).into(),
-                                );
-                            }
-
-                            // Start time
-                            timeline_tick(
-                                vec2(4.0, 16.0) * PPU as f32,
-                                render_time(&self.highlight_line, event.time).center(),
-                                atlas.timeline_tick_smol(),
-                                actions,
-                                &mut |actions, target| {
-                                    // Drag start time
-                                    let duration = (*duration + event.time - target).max(1);
-                                    actions.push(
-                                        LevelAction::list_with(
-                                            HistoryLabel::MoveEvent(event_i),
-                                            [
-                                                LevelAction::MoveEvent(
-                                                    event_i,
-                                                    Change::Set(target),
-                                                ),
-                                                LevelAction::ChangeRgbDuration(
-                                                    event_i,
-                                                    Change::Set(duration),
-                                                ),
-                                            ],
-                                        )
-                                        .into(),
-                                    );
-                                },
-                                &mut |actions| {
-                                    actions.push(
-                                        LevelAction::FlushChanges(Some(HistoryLabel::MoveEvent(
-                                            event_i,
-                                        )))
-                                        .into(),
-                                    );
-                                },
-                            );
-
-                            // End time
-                            timeline_tick(
-                                vec2(4.0, 16.0) * PPU as f32,
-                                render_time(&self.highlight_line, event.time + *duration).center(),
-                                atlas.timeline_tick_smol(),
-                                actions,
-                                &mut |actions, target| {
-                                    // Drag end time
-                                    let duration = (target - event.time).max(1);
-                                    actions.push(
-                                        LevelAction::ChangeRgbDuration(
-                                            event_i,
-                                            Change::Set(duration),
-                                        )
-                                        .into(),
-                                    );
-                                },
-                                &mut |actions| {
-                                    actions.push(
-                                        LevelAction::FlushChanges(Some(HistoryLabel::RgbDuration(
-                                            event_i,
-                                        )))
-                                        .into(),
-                                    );
-                                },
-                            );
-                        }
-
-                        let overlapped =
-                            if self.highlight_bar.as_ref().is_some_and(|bar| {
-                                (bar.from_time..=bar.to_time).contains(&event.time)
-                            }) {
-                                0
-                            } else {
-                                *occupied
-                                    .entry(event.time)
-                                    .and_modify(|x| *x += 1)
-                                    .or_insert(0)
-                            };
-
-                        let mut is_hovered = false;
-                        let visible = (event.time + self.scroll).abs() < self.visible_scroll() / 2;
-                        if visible && overlapped as f32 <= self.expansion.current + 0.9 {
-                            let position = render_light(event.time, overlapped).center();
-                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
-                            let icon = context.state.get_or(self.state.id, || {
-                                IconButtonWidget::new(atlas.timeline_rgb_split())
-                            });
-                            icon.color = ThemeColor::Light;
-                            icon.update(position, context);
-                            is_hovered = is_hovered || icon.state.hovered;
-                            if icon.state.mouse_left.just_pressed {
-                                actions.push(LevelAction::SelectEvent(event_i).into());
-                                self.dragging_event =
-                                    Some((context.cursor.position, context.real_time));
+                                None => {}
                             }
                         }
-
-                        if is_selected || is_hovered {
-                            // Dots
-                            let last_dot_time = event.time;
-                            let time = event.time + duration;
-
-                            // TODO: variable timing within this segment
-                            let timing = self.level.timing.get_timing(event.time);
-
-                            let resolution = 4.0; // Ticks per beat
-                            let step = timing.beat_time / r32(resolution);
-                            let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32()
-                                + 0.1)
-                                .floor() as usize;
-                            let overlapped = if is_selected { 0 } else { overlapped };
-                            let dots = (0..=dots)
-                                .map(|i| {
-                                    let time =
-                                        last_dot_time + seconds_to_time(step * r32(i as f32));
-                                    render_light(time, overlapped).center()
-                                })
-                                .filter(|&pos| self.state.position.contains(pos));
-
-                            self.dots.extend(dots);
+                        if self.dragging_event.is_some() {
+                            let time = unrender_time(context.cursor.position.x);
+                            let time = editor.level.timing.snap_to_beat(time, snap);
+                            actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
                         }
                     }
-                },
+
+                    let duration = match *effect {
+                        EffectEvent::PaletteSwap(duration) | EffectEvent::RgbSplit(duration) => {
+                            duration
+                        }
+                    };
+                    if is_selected {
+                        // Start time
+                        timeline_tick(
+                            vec2(4.0, 16.0) * PPU as f32,
+                            render_time(&self.highlight_line, event.time).center(),
+                            atlas.timeline_tick_smol(),
+                            actions,
+                            &mut |actions, target| {
+                                // Drag start time
+                                let duration = (duration + event.time - target).max(1);
+                                actions.push(
+                                    LevelAction::list_with(
+                                        HistoryLabel::MoveEvent(event_i),
+                                        [
+                                            LevelAction::MoveEvent(event_i, Change::Set(target)),
+                                            LevelAction::ChangeEffectDuration(
+                                                event_i,
+                                                Change::Set(duration),
+                                            ),
+                                        ],
+                                    )
+                                    .into(),
+                                );
+                            },
+                            &mut |actions| {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(HistoryLabel::MoveEvent(
+                                        event_i,
+                                    )))
+                                    .into(),
+                                );
+                            },
+                        );
+
+                        // End time
+                        timeline_tick(
+                            vec2(4.0, 16.0) * PPU as f32,
+                            render_time(&self.highlight_line, event.time + duration).center(),
+                            atlas.timeline_tick_smol(),
+                            actions,
+                            &mut |actions, target| {
+                                // Drag end time
+                                let duration = (target - event.time).max(1);
+                                actions.push(
+                                    LevelAction::ChangeEffectDuration(
+                                        event_i,
+                                        Change::Set(duration),
+                                    )
+                                    .into(),
+                                );
+                            },
+                            &mut |actions| {
+                                actions.push(
+                                    LevelAction::FlushChanges(Some(HistoryLabel::EventDuration(
+                                        event_i,
+                                    )))
+                                    .into(),
+                                );
+                            },
+                        );
+                    }
+
+                    regular_event(
+                        event.time,
+                        duration,
+                        actions,
+                        &mut occupied,
+                        &mut self.dragging_event,
+                        &mut self.dots,
+                    );
+                }
             }
         }
 

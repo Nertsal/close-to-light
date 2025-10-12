@@ -40,23 +40,8 @@ impl Model {
 
         if let State::Starting { .. } = self.state {
         } else {
-            let last_frame_time = self.play_time_ms;
             self.play_time += delta_time;
             self.play_time_ms = seconds_to_time(self.play_time) - self.music_offset;
-
-            let frame_time_range = last_frame_time..self.play_time_ms;
-            let frame_events = self
-                .level
-                .level
-                .data
-                .events
-                .iter()
-                .filter(|event| frame_time_range.contains(&event.time))
-                .cloned()
-                .collect::<Vec<_>>();
-            for event in &frame_events {
-                self.handle_level_event(event);
-            }
         }
         if let State::Playing = self.state {
             self.completion_time += delta_time;

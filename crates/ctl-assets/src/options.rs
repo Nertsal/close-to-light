@@ -228,6 +228,14 @@ impl Theme {
             ThemeColor::Highlight => self.highlight,
         }
     }
+
+    pub fn swap(self, t: f32) -> Self {
+        Self {
+            light: Color::lerp(self.light, self.dark, t),
+            dark: Color::lerp(self.dark, self.light, t),
+            ..self
+        }
+    }
 }
 
 impl Default for Theme {

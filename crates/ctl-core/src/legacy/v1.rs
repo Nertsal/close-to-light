@@ -235,7 +235,9 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
                         },
                     }),
                     Event::PaletteSwap => {
-                        crate::Event::Effect(crate::model::EffectEvent::PaletteSwap)
+                        crate::Event::Effect(crate::model::EffectEvent::PaletteSwap(
+                            crate::types::TIME_IN_FLOAT_TIME / 2,
+                        ))
                     }
                 },
             })

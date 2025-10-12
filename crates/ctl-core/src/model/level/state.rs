@@ -57,6 +57,14 @@ impl LevelState {
         for (i, e) in level.events.iter().enumerate() {
             state.render_event(e, Some(i), config, vfx.as_deref_mut());
         }
+
+        if state.is_finished
+            && let Some(vfx) = vfx
+        {
+            // Reset persistent vfx
+            vfx.palette_swap.target = R32::ZERO;
+        }
+
         state
     }
 
@@ -90,15 +98,16 @@ impl LevelState {
                 self.lights.extend(light);
             }
             Event::Effect(effect) => match effect {
-                EffectEvent::PaletteSwap => {
+                &EffectEvent::PaletteSwap(duration) => {
                     if self.time < event.time {
                         return;
                     }
                     if let Some(vfx) = vfx {
-                        vfx.palette_swap.target = if vfx.palette_swap.target > R32::ZERO {
-                            R32::ONE
+                        let t = (time as f32 / duration as f32).clamp(0.0, 1.0);
+                        vfx.palette_swap.target = if vfx.palette_swap.target > r32(0.5) {
+                            r32(1.0 - t)
                         } else {
-                            R32::ZERO
+                            r32(t)
                         };
                     }
                 }

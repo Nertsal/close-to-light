@@ -288,7 +288,9 @@ impl geng::State for EditorState {
                 geng::Camera2dFov::Vertical(10.0 / self.editor.view_zoom.current);
         }
 
-        let buffer = &mut self.post_render.begin(framebuffer.size());
+        let buffer = &mut self
+            .post_render
+            .begin(framebuffer.size(), options.theme.dark);
         self.render.draw_editor(
             &self.editor,
             &self.ui,

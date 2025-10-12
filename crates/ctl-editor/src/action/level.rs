@@ -32,7 +32,8 @@ pub enum LevelAction {
 
     // Vfx
     NewRgbSplit(Time),
-    ChangeRgbDuration(usize, Change<Time>),
+    NewPaletteSwap(Time),
+    ChangeEffectDuration(usize, Change<Time>),
 
     // Light actions
     NewLight(Shape),
@@ -139,7 +140,8 @@ impl LevelAction {
             LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
 
             LevelAction::NewRgbSplit(_) => false,
-            LevelAction::ChangeRgbDuration(_, delta) => delta.is_noop(&0),
+            LevelAction::NewPaletteSwap(_) => false,
+            LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -302,11 +304,24 @@ impl LevelEditor {
                     event: Event::Effect(EffectEvent::RgbSplit(duration)),
                 });
             }
-            LevelAction::ChangeRgbDuration(index, change) => {
+            LevelAction::NewPaletteSwap(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::PaletteSwap(duration)),
+                });
+            }
+            LevelAction::ChangeEffectDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
-                    && let Event::Effect(EffectEvent::RgbSplit(duration)) = &mut event.event
+                    && let Event::Effect(effect) = &mut event.event
                 {
+                    let duration = match effect {
+                        EffectEvent::PaletteSwap(duration) | EffectEvent::RgbSplit(duration) => {
+                            duration
+                        }
+                    };
                     change.apply(duration);
+                    self.save_state(HistoryLabel::EventDuration(index));
                 }
             }
 

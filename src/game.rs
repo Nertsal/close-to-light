@@ -72,9 +72,12 @@ impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
         let options = self.context.get_options();
-        ugli::clear(framebuffer, Some(options.theme.dark), None, None);
+        let theme = options
+            .theme
+            .swap(self.model.vfx.palette_swap.current.as_f32());
+        ugli::clear(framebuffer, Some(theme.dark), None, None);
 
-        let buffer = &mut self.post.begin(framebuffer.size());
+        let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
@@ -100,7 +103,7 @@ impl geng::State for Game {
             );
             self.render
                 .dither
-                .finish(self.model.real_time, &options.theme.transparent());
+                .finish(self.model.real_time, &theme.transparent());
             geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
                 .fit_screen(vec2(0.5, 0.5), buffer)
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);

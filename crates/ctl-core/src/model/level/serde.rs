@@ -38,7 +38,10 @@ pub enum Event {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum EffectEvent {
     /// Swap light and dark colors.
-    PaletteSwap,
+    /// Time specifies the duration of the **transition**.
+    PaletteSwap(Time),
+    /// Apply an RGB-splitting shader to the screen.
+    /// Time specifies the duration of the **effect**.
     RgbSplit(Time),
 }
 

@@ -36,7 +36,7 @@ pub struct Vfx {
 impl Vfx {
     pub fn new() -> Self {
         Self {
-            palette_swap: SecondOrderState::new(1.0, 1.0, 0.0, R32::ZERO),
+            palette_swap: SecondOrderState::new(3.0, 1.0, 0.0, R32::ZERO),
             rgb_split: VfxValue::new(2.0, 1.0, 0.0),
         }
     }

@@ -24,16 +24,4 @@ impl Model {
             }
         }
     }
-
-    pub fn handle_level_event(&mut self, event: &TimedEvent) {
-        match &event.event {
-            Event::Light(_) => {}
-            Event::Effect(effect) => match effect {
-                EffectEvent::PaletteSwap => {}
-                &EffectEvent::RgbSplit(duration) => {
-                    self.vfx.rgb_split.time_left = time_to_seconds(duration);
-                }
-            },
-        }
-    }
 }
