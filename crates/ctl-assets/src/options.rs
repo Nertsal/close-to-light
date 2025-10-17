@@ -65,7 +65,7 @@ impl Default for CursorOptions {
     fn default() -> Self {
         Self {
             show_perfect_radius: true,
-            inner_radius: Bounded::new(0.1, 0.05..=0.25),
+            inner_radius: Bounded::new(0.1, 0.1..=0.3),
             outer_radius: Bounded::new(0.05, 0.01..=0.2),
         }
     }

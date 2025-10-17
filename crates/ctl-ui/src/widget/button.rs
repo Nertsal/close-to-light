@@ -249,9 +249,7 @@ impl ToggleWidget {
         let mut main = position;
         self.state.update(main, context);
         let size = main.height() * 3.0 / 5.0;
-        let tick = main
-            .cut_right(size)
-            .extend_symmetric(vec2(0.0, size - main.height()) / 2.0);
+        let tick = main.cut_right(size).with_height(size, 0.5);
         self.tick.update(tick, context);
         self.text.update(main, context);
     }

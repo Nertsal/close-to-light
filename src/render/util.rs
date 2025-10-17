@@ -211,16 +211,18 @@ impl UtilRender {
         let font = &self.context.assets.fonts.pixel;
         let framebuffer_size = framebuffer.size().as_f32();
 
+        // Transform to screen space
         let position = position.map(Float::as_f32);
         let position = crate::util::world_to_screen(camera, framebuffer_size, position);
 
+        // scale to screen
         let scale = crate::util::world_to_screen(
             camera,
             framebuffer_size,
             vec2::splat(std::f32::consts::FRAC_1_SQRT_2),
         ) - crate::util::world_to_screen(camera, framebuffer_size, vec2::ZERO);
         options.size *= scale.len();
-        let font_size = options.size * 0.6; // TODO: could rescale all dependent code but whatever
+        let font_size = options.size * 0.6;
 
         let mut position = position;
         for line in text.lines() {

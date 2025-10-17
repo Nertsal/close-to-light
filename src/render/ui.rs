@@ -324,8 +324,9 @@ impl UiRender {
             left.abs().max(right.abs())
         };
 
-        let max_width = width * 0.9; // Leave some space TODO: move into a parameter or smth
-        let max_size = max_width / measure.width() / 0.6; // Magic constant from the util renderer that scales everything by 0.6 idk why
+        // let max_height = size.y;
+        let max_width = width * 0.95; // Leave some space TODO: move into a parameter or smth
+        let max_size = (max_width / measure.width()) / 0.6; //.min(max_height / measure.height());
         let size = widget.options.size.min(max_size);
 
         widget.options.size = size;
@@ -337,6 +338,14 @@ impl UiRender {
             &geng::PixelPerfectCamera,
             framebuffer,
         );
+        // self.draw_quad(
+        //     widget
+        //         .state
+        //         .position
+        //         .align_aabb(measure.size() * size, widget.options.align),
+        //     Rgba::new(0.7, 0.5, 0.5, 0.75),
+        //     framebuffer,
+        // );
     }
 
     pub fn draw_slider(

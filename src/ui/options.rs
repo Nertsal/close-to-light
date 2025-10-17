@@ -134,7 +134,7 @@ impl StatefulWidget for OptionsWidget {
         );
 
         let mut main = position
-            .extend_symmetric(vec2(-1.0, -1.0) * context.layout_size)
+            .extend_symmetric(vec2(-1.5, -1.0) * context.layout_size)
             .extend_down(100.0 * context.layout_size) // Technically infinite because we can scroll
             .translate(vec2(0.0, -self.scroll.current));
         let main_top = main.max.y;
@@ -151,27 +151,33 @@ impl StatefulWidget for OptionsWidget {
         self.separator.update(separator, context);
 
         let mut options = state.context.get_options();
+        let spacing = context.layout_size;
 
         let volume = main.cut_top(5.0 * context.layout_size);
         self.volume.update(volume, context, &mut options.volume);
+        // main.cut_top(spacing);
 
         let palette = main.clone().cut_top(6.0 * context.layout_size);
         self.palette.update(palette, context, &mut options.theme);
         main.cut_top(self.palette.state.position.height());
+        main.cut_top(spacing);
 
         let gameplay = main.clone().cut_top(6.0 * context.layout_size);
         self.gameplay
             .update(gameplay, context, &mut options.gameplay);
         main.cut_top(self.gameplay.state.position.height());
+        main.cut_top(spacing);
 
         let graphics = main.clone().cut_top(5.0 * context.font_size);
         self.graphics
             .update(graphics, context, &mut options.graphics);
         main.cut_top(self.graphics.state.position.height());
+        main.cut_top(spacing);
 
         let cursor = main.clone().cut_top(5.0 * context.font_size);
         self.cursor.update(cursor, context, &mut options.cursor);
         main.cut_top(self.graphics.state.position.height());
+        main.cut_top(spacing);
 
         state.context.set_options(options);
 
@@ -325,9 +331,9 @@ impl CursorWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Cursor"),
-            show_perfect_radius: ToggleWidget::new("Show Range"),
-            inner_radius: SliderWidget::new("Inner radius").with_display_precision(2),
-            outer_radius: SliderWidget::new("Outer radius").with_display_precision(2),
+            show_perfect_radius: ToggleWidget::new("Show Outline"),
+            inner_radius: SliderWidget::new("Size").with_display_precision(2),
+            outer_radius: SliderWidget::new("Outline width").with_display_precision(2),
         }
     }
 }
