@@ -29,7 +29,7 @@ pub struct TimelineWidget {
     dots: Vec<vec2<f32>>,
     marks: Vec<(vec2<f32>, Color)>,
     ticks: Vec<(vec2<f32>, BeatTime)>,
-    dragging_event: Option<(vec2<f32>, f32)>,
+    dragging_event: Option<(usize, vec2<f32>, f32)>,
     dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: bool,
 
@@ -235,11 +235,12 @@ impl TimelineWidget {
         for (event_i, event) in self.level.events.iter().enumerate() {
             let is_selected = self.selection.is_event_single(event_i);
 
-            let regular_event = |event_time: Time,
+            let regular_event = |event_i: usize,
+                                 event_time: Time,
                                  event_duration: Time,
                                  actions: &mut Vec<EditorAction>,
                                  occupied: &mut BTreeMap<i64, usize>,
-                                 dragging_event: &mut Option<(vec2<f32>, f32)>,
+                                 dragging_event: &mut Option<(usize, vec2<f32>, f32)>,
                                  dots: &mut Vec<vec2<f32>>| {
                 let overlapped = if self
                     .highlight_bar
@@ -260,14 +261,15 @@ impl TimelineWidget {
                     let position = render_light(event.time, overlapped).center();
                     let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                     let icon = context.state.get_or(self.state.id, || {
-                        IconButtonWidget::new(atlas.timeline_rgb_split())
+                        IconButtonWidget::new(atlas.timeline_rgb_split()) // TODO: icons
                     });
                     icon.color = ThemeColor::Light;
                     icon.update(position, context);
                     is_hovered = is_hovered || icon.state.hovered;
                     if icon.state.mouse_left.just_pressed {
                         actions.push(LevelAction::SelectEvent(event_i).into());
-                        *dragging_event = Some((context.cursor.position, context.real_time));
+                        *dragging_event =
+                            Some((event_i, context.cursor.position, context.real_time));
                     }
                 }
 
@@ -570,7 +572,7 @@ impl TimelineWidget {
                         // Release drag
                         if !can_focus || !context.cursor.left.down {
                             match self.dragging_event.take() {
-                                Some((from, from_time))
+                                Some((_, from, from_time))
                                     if (context.cursor.position - from).len_sqr()
                                         < MAX_CLICK_DISTANCE
                                         && (context.real_time - from_time).abs()
@@ -583,7 +585,9 @@ impl TimelineWidget {
                                 None => {}
                             }
                         }
-                        if self.dragging_event.is_some() {
+                        if let Some((i, _, _)) = self.dragging_event
+                            && i == event_i
+                        {
                             let time = unrender_time(context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap);
                             actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
@@ -658,6 +662,7 @@ impl TimelineWidget {
                     }
 
                     regular_event(
+                        event_i,
                         event.time,
                         duration,
                         actions,
