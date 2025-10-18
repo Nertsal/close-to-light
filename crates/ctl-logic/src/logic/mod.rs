@@ -25,6 +25,11 @@ impl Model {
         self.context.music.set_volume(options.volume.music());
         self.vfx.update(delta_time);
 
+        // Camera shake
+        self.camera.center = self.camera.center * 0.5
+            + Angle::from_degrees(thread_rng().gen_range(0.0..=360.0)).unit_vec()
+                * self.vfx.camera_shake.as_f32();
+
         let delta_ms = seconds_to_time(delta_time);
         self.update_rhythm(delta_ms);
 

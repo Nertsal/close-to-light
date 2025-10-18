@@ -33,7 +33,9 @@ pub enum LevelAction {
     // Vfx
     NewRgbSplit(Time),
     NewPaletteSwap(Time),
+    NewCameraShake(Time),
     ChangeEffectDuration(usize, Change<Time>),
+    ChangeCameraShakeIntensity(usize, Change<R32>),
 
     // Light actions
     NewLight(Shape),
@@ -141,7 +143,9 @@ impl LevelAction {
 
             LevelAction::NewRgbSplit(_) => false,
             LevelAction::NewPaletteSwap(_) => false,
+            LevelAction::NewCameraShake(_) => false,
             LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
+            LevelAction::ChangeCameraShakeIntensity(_, delta) => delta.is_noop(&R32::ZERO),
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -304,6 +308,13 @@ impl LevelEditor {
                     event: Event::Effect(EffectEvent::RgbSplit(duration)),
                 });
             }
+            LevelAction::NewCameraShake(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::CameraShake(duration, r32(0.25))),
+                });
+            }
             LevelAction::NewPaletteSwap(duration) => {
                 self.execute(LevelAction::Deselect, drag);
                 self.level.events.push(TimedEvent {
@@ -316,12 +327,20 @@ impl LevelEditor {
                     && let Event::Effect(effect) = &mut event.event
                 {
                     let duration = match effect {
-                        EffectEvent::PaletteSwap(duration) | EffectEvent::RgbSplit(duration) => {
-                            duration
-                        }
+                        EffectEvent::PaletteSwap(duration)
+                        | EffectEvent::RgbSplit(duration)
+                        | EffectEvent::CameraShake(duration, _) => duration,
                     };
                     change.apply(duration);
                     self.save_state(HistoryLabel::EventDuration(index));
+                }
+            }
+            LevelAction::ChangeCameraShakeIntensity(index, change) => {
+                if let Some(event) = self.level.events.get_mut(index)
+                    && let Event::Effect(EffectEvent::CameraShake(_, intensity)) = &mut event.event
+                {
+                    change.apply(intensity);
+                    self.save_state(HistoryLabel::CameraShakeIntensity(index));
                 }
             }
 

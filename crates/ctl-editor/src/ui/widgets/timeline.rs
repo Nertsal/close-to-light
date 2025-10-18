@@ -176,8 +176,9 @@ impl TimelineWidget {
                     let duration = match &event.event {
                         Event::Light(_) => return None,
                         Event::Effect(effect) => match effect {
-                            EffectEvent::PaletteSwap(duration) => duration,
-                            EffectEvent::RgbSplit(duration) => duration,
+                            EffectEvent::PaletteSwap(duration)
+                            | EffectEvent::RgbSplit(duration)
+                            | EffectEvent::CameraShake(duration, _) => duration,
                         },
                     };
                     let from_time = event.time;
@@ -590,9 +591,9 @@ impl TimelineWidget {
                     }
 
                     let duration = match *effect {
-                        EffectEvent::PaletteSwap(duration) | EffectEvent::RgbSplit(duration) => {
-                            duration
-                        }
+                        EffectEvent::PaletteSwap(duration)
+                        | EffectEvent::RgbSplit(duration)
+                        | EffectEvent::CameraShake(duration, _) => duration,
                     };
                     if is_selected {
                         // Start time

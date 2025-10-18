@@ -31,6 +31,7 @@ impl VfxValue {
 pub struct Vfx {
     pub palette_swap: SecondOrderState<R32>,
     pub rgb_split: VfxValue,
+    pub camera_shake: R32,
 }
 
 impl Vfx {
@@ -38,6 +39,7 @@ impl Vfx {
         Self {
             palette_swap: SecondOrderState::new(3.0, 1.0, 0.0, R32::ZERO),
             rgb_split: VfxValue::new(2.0, 1.0, 0.0),
+            camera_shake: R32::ZERO,
         }
     }
 

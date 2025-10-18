@@ -6,14 +6,21 @@ pub enum HistoryLabel {
     Unknown,
     Merge,
 
+    // General events
     MoveEvent(usize),
     EventDuration(usize),
 
+    // Vfx
+    CameraShakeIntensity(usize),
+
+    // Lights
     FadeIn(LightId),
     FadeOut(LightId),
     Rotate(LightId, WaypointId),
     Scale(LightId, WaypointId),
     MoveLight(LightId),
+
+    // Waypoints
     MoveWaypoint(LightId, WaypointId),
     MoveWaypointTime(LightId, WaypointId),
 

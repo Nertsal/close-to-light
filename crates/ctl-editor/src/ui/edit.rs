@@ -135,6 +135,16 @@ impl EditorEditUi {
                 if button.text.state.mouse_left.clicked {
                     actions.push(LevelAction::NewPaletteSwap(TIME_IN_FLOAT_TIME / 2).into());
                 }
+
+                let new_palette = bar.cut_top(button_height).cut_left(font_size * 2.5);
+                bar.cut_top(spacing);
+                let button = context
+                    .state
+                    .get_root_or(|| ButtonWidget::new("Camera shake"));
+                button.update(new_palette, context);
+                if button.text.state.mouse_left.clicked {
+                    actions.push(LevelAction::NewCameraShake(TIME_IN_FLOAT_TIME / 8).into());
+                }
             }
 
             bar.cut_top(layout_size * 1.5);
@@ -504,6 +514,74 @@ impl EditorEditUi {
                                     actions.push(
                                         LevelAction::FlushChanges(Some(
                                             HistoryLabel::EventDuration(event_i),
+                                        ))
+                                        .into(),
+                                    );
+                                }
+                            }
+                            EffectEvent::CameraShake(duration, intensity) => {
+                                let mut bar = right_bar;
+
+                                event_title_delete(&mut bar, "Camera Shake", tooltip, actions);
+
+                                let duration_pos = bar.cut_top(value_height);
+                                let mut duration = BeatTime::from_beats_float(
+                                    time_to_seconds(duration) / timing_point.beat_time,
+                                );
+                                let slider = context.state.get_root_or(|| {
+                                    BeatValueWidget::new(
+                                        "Duration",
+                                        duration,
+                                        BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                                        snap,
+                                    )
+                                });
+                                slider.scroll_by = snap;
+                                if slider.update(duration_pos, context, &mut duration) {
+                                    actions.push(
+                                        LevelAction::ChangeEffectDuration(
+                                            event_i,
+                                            Change::Set(duration.as_time(timing_point.beat_time)),
+                                        )
+                                        .into(),
+                                    );
+                                }
+                                if slider.control_state.mouse_left.just_released {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(
+                                            HistoryLabel::EventDuration(event_i),
+                                        ))
+                                        .into(),
+                                    );
+                                }
+
+                                let intensity_pos = bar.cut_top(value_height);
+                                let scale = r32(2.0);
+                                let mut intensity = intensity * scale;
+                                let slider = context.state.get_root_or(|| {
+                                    ValueWidget::new(
+                                        "Intensity",
+                                        intensity,
+                                        ValueControl::Slider {
+                                            min: R32::ZERO,
+                                            max: r32(1.0),
+                                        },
+                                        r32(0.05),
+                                    )
+                                });
+                                if slider.update(intensity_pos, context, &mut intensity) {
+                                    actions.push(
+                                        LevelAction::ChangeCameraShakeIntensity(
+                                            event_i,
+                                            Change::Set(intensity / scale),
+                                        )
+                                        .into(),
+                                    );
+                                }
+                                if slider.control_state.mouse_left.just_released {
+                                    actions.push(
+                                        LevelAction::FlushChanges(Some(
+                                            HistoryLabel::CameraShakeIntensity(event_i),
                                         ))
                                         .into(),
                                     );

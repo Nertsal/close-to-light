@@ -52,6 +52,7 @@ impl LevelState {
             // Reset accumulative fields
             vfx.palette_swap.target = R32::ZERO;
             vfx.rgb_split.time_left = FloatTime::ZERO;
+            vfx.camera_shake = R32::ZERO;
         }
 
         for (i, e) in level.events.iter().enumerate() {
@@ -97,8 +98,8 @@ impl LevelState {
                 self.telegraphs.extend(telegraph);
                 self.lights.extend(light);
             }
-            Event::Effect(effect) => match effect {
-                &EffectEvent::PaletteSwap(duration) => {
+            Event::Effect(effect) => match *effect {
+                EffectEvent::PaletteSwap(duration) => {
                     if self.time < event.time {
                         return;
                     }
@@ -117,6 +118,14 @@ impl LevelState {
                     }
                     if let Some(vfx) = vfx {
                         vfx.rgb_split.time_left = time_to_seconds(duration - time);
+                    }
+                }
+                EffectEvent::CameraShake(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.camera_shake = intensity;
                     }
                 }
             },

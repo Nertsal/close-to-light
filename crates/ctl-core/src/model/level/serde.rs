@@ -43,6 +43,10 @@ pub enum EffectEvent {
     /// Apply an RGB-splitting shader to the screen.
     /// Time specifies the duration of the **effect**.
     RgbSplit(Time),
+    /// Apply an screen shake effect to the camera.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/amplitude.
+    CameraShake(Time, R32),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
