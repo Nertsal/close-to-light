@@ -63,8 +63,9 @@ impl geng::State for SplashScreen {
             buffer,
         );
         let warning = "
-ABCDEFGHIJKLMNOPQRSTUVWXYZ
-abcdefghijklmnopqrstuvwxyz
+This game contains flashing lights which might
+
+trigger seizures for people with photosensitive epilepsy
             ";
         self.util.draw_text(
             warning,
