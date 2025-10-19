@@ -85,21 +85,25 @@ impl ModifiersWidget {
         let head = main.align_aabb(head_size, vec2(0.5, 0.0));
 
         // Active mods
-        self.active_mods = state
-            .config
-            .modifiers
-            .iter()
-            .map(|modifier| IconWidget::new(context.context.assets.get_modifier(modifier)))
-            .collect();
-        let mods = head.translate(vec2(0.0, head.height()));
-        let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
-        let mods = mod_pos.stack_aligned(
-            vec2(mod_pos.width(), 0.0),
-            self.active_mods.len(),
-            vec2(0.5, 0.5),
-        );
-        for (modifier, pos) in self.active_mods.iter_mut().zip(mods) {
-            modifier.update(pos, context);
+        if state.selected_diff.is_some() {
+            self.active_mods = state
+                .config
+                .modifiers
+                .iter()
+                .map(|modifier| IconWidget::new(context.context.assets.get_modifier(modifier)))
+                .collect();
+            let mods = head.translate(vec2(0.0, head.height()));
+            let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
+            let mods = mod_pos.stack_aligned(
+                vec2(mod_pos.width(), 0.0),
+                self.active_mods.len(),
+                vec2(0.5, 0.5),
+            );
+            for (modifier, pos) in self.active_mods.iter_mut().zip(mods) {
+                modifier.update(pos, context);
+            }
+        } else {
+            self.active_mods.clear();
         }
 
         // Slide in when a level is selected
