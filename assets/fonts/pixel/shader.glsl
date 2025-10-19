@@ -26,6 +26,10 @@ uniform ivec2 u_texture_size;
 uniform vec4 u_color;
 
 void main() {
-    gl_FragColor = u_color * smoothTexture2D(v_uv, u_texture, u_texture_size).a;
+    float value = smoothTexture2D(v_uv, u_texture, u_texture_size).a;
+    if (value < 0.1) {
+        discard;
+    }
+    gl_FragColor = u_color * value;
 }
 #endif

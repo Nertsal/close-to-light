@@ -279,7 +279,7 @@ impl UiRender {
         let lines = crate::util::wrap_text(
             &self.context.assets.fonts.pixel,
             &widget.text,
-            main.width() / widget.options.size / 0.6, // Magic constant from the util renderer that scales everything by 0.6 idk why
+            main.width() / widget.options.size,
         );
         let row = main.align_aabb(vec2(main.width(), widget.options.size), vec2(0.5, 1.0));
         let rows = row.stack(vec2(0.0, -row.height()), lines.len());
@@ -324,8 +324,8 @@ impl UiRender {
             left.abs().max(right.abs())
         };
 
-        let max_height = size.y * 0.9;
-        let max_width = width * 0.9; // Leave some space TODO: move into a parameter or smth
+        let max_height = size.y;
+        let max_width = width * 0.85; // Leave some space TODO: move into a parameter or smth
         let max_size = (max_width / measure.width()).min(max_height / measure.height());
         let size = widget.options.size.min(max_size).min(max_height);
 
