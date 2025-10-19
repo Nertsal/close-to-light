@@ -80,11 +80,16 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
 
     // Save levels
     let writer = std::io::BufWriter::new(std::fs::File::create(path.join("levels.cbor"))?);
-    cbor4ii::serde::to_writer(writer, &group.local.data)?;
+    cbor4ii::serde::to_writer(
+        writer,
+        &ctl_core::legacy::VersionedLevelSet::latest(group.local.data.clone()),
+    )?;
 
     // Save meta
     let mut writer = std::io::BufWriter::new(std::fs::File::create(path.join("meta.toml"))?);
-    let s = toml::ser::to_string_pretty(&group.local.meta)?;
+    let s = toml::ser::to_string_pretty(&ctl_core::legacy::VersionedLevelSetInfo::latest(
+        group.local.meta.clone(),
+    ))?;
     write!(writer, "{s}")?;
 
     // Save music

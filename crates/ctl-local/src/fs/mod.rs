@@ -239,25 +239,29 @@ pub fn generate_group_path(group: Id) -> PathBuf {
 }
 
 fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
-    match (
+    let versioned: (
+        Result<ctl_core::legacy::VersionedLevelSet>,
+        Result<ctl_core::legacy::VersionedLevelSetInfo>,
+    ) = (
         cbor4ii::serde::from_slice(level_bytes).with_context(|| "when parsing levels data"),
         toml::from_str(meta).with_context(|| "when parsing meta file"),
-    ) {
-        (Ok(set), Ok(info)) => Ok((set, info)),
+    );
+    match versioned {
+        (Ok(set), Ok(info)) => Ok(ctl_core::legacy::migrate(set, info)),
         (Ok(_), Err(err)) | (Err(err), _) => {
-            // Try legacy version, for backwards compatibility
+            // Try legacy versions, for backwards compatibility
 
             // v2
             let (set, info) = (
-                cbor4ii::serde::from_slice::<ctl_client::core::legacy::v2::LevelSet>(level_bytes)
+                cbor4ii::serde::from_slice::<ctl_core::legacy::v2::LevelSet>(level_bytes)
                     .with_context(|| "when parsing levels data"),
-                toml::from_str::<ctl_client::core::legacy::v2::LevelSetInfo>(meta)
+                toml::from_str::<ctl_core::legacy::v2::LevelSetInfo>(meta)
                     .with_context(|| "when parsing level set metadata"),
             );
             match (set, info) {
                 (Ok(set), Ok(info)) => {
                     log::info!("Migrating level {:?} from v2", info.id);
-                    let (set, info) = ctl_client::core::legacy::v2::convert_group(set, info);
+                    let (set, info) = ctl_core::legacy::v2::convert_group(set, info);
                     return Ok((set, info));
                 }
                 (set, info) => {
@@ -271,12 +275,12 @@ fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInf
             }
 
             // v1
-            match bincode::deserialize::<ctl_client::core::legacy::v1::LevelSet>(level_bytes)
+            match bincode::deserialize::<ctl_core::legacy::v1::LevelSet>(level_bytes)
                 .with_context(|| "when parsing levels data")
             {
                 Ok(value) => {
                     let beat_time = r32(60.0) / r32(150.0);
-                    let (set, info) = ctl_client::core::legacy::v1::convert_group(beat_time, value);
+                    let (set, info) = ctl_core::legacy::v1::convert_group(beat_time, value);
                     log::info!("Migrating level {:?} from v1", info.id);
                     return Ok((set, info));
                 }

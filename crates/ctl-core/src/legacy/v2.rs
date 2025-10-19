@@ -131,9 +131,21 @@ pub struct TimedEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Event {
     Light(LightEvent),
+    Effect(EffectEvent),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum EffectEvent {
     /// Swap light and dark colors.
-    PaletteSwap,
+    /// Time specifies the duration of the **transition**.
+    PaletteSwap(Time),
+    /// Apply an RGB-splitting shader to the screen.
+    /// Time specifies the duration of the **effect**.
     RgbSplit(Time),
+    /// Apply an screen shake effect to the camera.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/amplitude.
+    CameraShake(Time, R32),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -341,8 +353,8 @@ fn convert_level(value: Level) -> crate::Level {
                             fade_in: light.movement.fade_in,
                             fade_out: light.movement.fade_out,
                             initial: light.movement.initial.into(),
-                            interpolation: crate::MoveInterpolation::default(),
-                            curve: crate::TrajectoryInterpolation::default(),
+                            interpolation: light.movement.interpolation.into(),
+                            curve: light.movement.curve.into(),
                             key_frames: light
                                 .movement
                                 .key_frames
@@ -351,14 +363,17 @@ fn convert_level(value: Level) -> crate::Level {
                                 .collect(),
                         },
                     }),
-                    Event::PaletteSwap => {
-                        crate::Event::Effect(crate::model::EffectEvent::PaletteSwap(
-                            crate::types::TIME_IN_FLOAT_TIME / 2,
-                        ))
-                    }
-                    Event::RgbSplit(duration) => {
-                        crate::Event::Effect(crate::model::EffectEvent::RgbSplit(duration))
-                    }
+                    Event::Effect(effect) => crate::Event::Effect(match effect {
+                        EffectEvent::PaletteSwap(duration) => {
+                            crate::model::EffectEvent::PaletteSwap(duration)
+                        }
+                        EffectEvent::RgbSplit(duration) => {
+                            crate::model::EffectEvent::RgbSplit(duration)
+                        }
+                        EffectEvent::CameraShake(duration, intensity) => {
+                            crate::model::EffectEvent::CameraShake(duration, intensity)
+                        }
+                    }),
                 },
             })
             .collect(),
@@ -430,7 +445,7 @@ impl From<MusicInfo> for crate::MusicInfo {
         Self {
             id: value.id,
             original: value.original,
-            featured: false,
+            featured: value.featured,
             name: value.name,
             romanized: value.romanized,
             authors: value.authors.into_iter().map(Into::into).collect(),
