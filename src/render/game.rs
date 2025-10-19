@@ -12,6 +12,7 @@ pub struct GameRender {
     context: Context,
     pub dither: DitherRender,
     masked: MaskedRender,
+    masked2: MaskedRender,
     pub util: UtilRender,
     ui: UiRender,
 
@@ -23,6 +24,7 @@ impl GameRender {
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             util: UtilRender::new(context.clone()),
             ui: UiRender::new(context.clone()),
             context,
@@ -43,9 +45,17 @@ impl GameRender {
     ) {
         self.dither.set_noise(1.0);
         let mut framebuffer = self.dither.start();
+        let options = self.context.get_options();
 
         let camera = &model.camera;
-        let theme = &model.options.theme;
+        let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
+        let beat_time = model
+            .level
+            .level
+            .data
+            .timing
+            .get_timing(model.play_time_ms)
+            .beat_time;
 
         if !model.level.config.modifiers.sudden {
             // Telegraphs
@@ -53,7 +63,7 @@ impl GameRender {
                 let color = if tele.light.danger {
                     THEME.danger
                 } else {
-                    THEME.light
+                    THEME.get_color(options.graphics.lights.telegraph_color)
                 };
                 self.util
                     .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
@@ -68,13 +78,25 @@ impl GameRender {
                 } else {
                     THEME.light
                 };
-                self.util
-                    .draw_light(light, color, THEME.dark, camera, &mut framebuffer);
+                self.util.draw_light(
+                    light,
+                    color,
+                    THEME.dark,
+                    beat_time,
+                    camera,
+                    &mut framebuffer,
+                );
             }
         }
 
+        if let Some(button) = &model.transition_button {
+            self.util
+                .draw_button(button, "", &THEME, camera, &mut framebuffer);
+        }
+
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
-        if let State::Lost { .. } | State::Finished = model.state {
+        let end_screen = matches!(model.state, State::Lost { .. } | State::Finished);
+        if end_screen {
             for (button, text) in [
                 (&model.restart_button, "RESTART"),
                 (&model.exit_button, "EXIT"),
@@ -86,11 +108,13 @@ impl GameRender {
                 self.util
                     .draw_button(&button, text, &THEME, camera, &mut framebuffer);
             }
+        }
 
+        if end_screen || model.transition_button.is_some() {
             self.util.draw_text(
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.7).color(THEME.dark),
+                TextRenderOptions::new(0.5).color(THEME.dark),
                 camera,
                 &mut framebuffer,
             );
@@ -103,7 +127,7 @@ impl GameRender {
             } else {
                 THEME.danger
             };
-            let t = rhythm.time.get_ratio().as_f32();
+            let t = rhythm.time.clone().map(|t| t as f32).get_ratio();
 
             let scale = r32(crate::util::smoothstep(1.0 - t));
             let mut visual = model
@@ -121,13 +145,16 @@ impl GameRender {
         }
 
         if !fading {
+            let t = (model.switch_time.as_f32() / 2.0).min(1.0);
+            // let t = crate::util::smoothstep(t);
+            let color = THEME.light.map_rgb(|x| x * t);
             match model.state {
                 State::Starting { .. } | State::Playing => {}
                 State::Lost { .. } => {
                     self.util.draw_text(
-                        "YOU FAILED TO CHASE THE LIGHT",
+                        "DARKNESS ABSORBS YOU",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(THEME.light),
+                        TextRenderOptions::new(0.8).color(color),
                         camera,
                         &mut framebuffer,
                     );
@@ -136,7 +163,7 @@ impl GameRender {
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(1.0).color(THEME.light),
+                        TextRenderOptions::new(1.0).color(color),
                         camera,
                         &mut framebuffer,
                     );
@@ -144,15 +171,14 @@ impl GameRender {
             }
         }
 
-        if let State::Playing = model.state {
-            if !model.level.config.modifiers.clean_auto {
-                self.util.draw_health(
-                    &model.player.health,
-                    model.player.get_lit_state(),
-                    // &model.config.theme,
-                    &mut framebuffer,
-                );
-            }
+        if let State::Playing = model.state
+            && !model.level.config.modifiers.clean_auto
+        {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                &mut framebuffer,
+            );
         }
 
         // TODO: option
@@ -180,7 +206,7 @@ impl GameRender {
         //     }
         // }
 
-        self.dither.finish(model.real_time, theme);
+        self.dither.finish(model.real_time, &theme);
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
@@ -201,40 +227,15 @@ impl GameRender {
     ) {
         self.font_size = framebuffer.size().y as f32 * 0.04;
         self.masked.update_size(framebuffer.size());
+        self.masked2.update_size(framebuffer.size());
 
-        // let camera = &geng::PixelPerfectCamera;
-        let theme = model.options.theme;
-        // let font_size = framebuffer.size().y as f32 * 0.05;
-
-        let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
+        let options = self.context.get_options();
+        let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
-        let precision = model.score.calculated.precision.as_f32() * 100.0;
+        // let precision = model.score.calculated.precision.as_f32() * 100.0;
 
         if let State::Lost { .. } | State::Finished = model.state {
-            if !fading {
-                self.util.draw_text(
-                    &format!("SCORE: {}", model.score.calculated.combined),
-                    vec2(-3.0, -3.0),
-                    TextRenderOptions::new(0.7).color(theme.light),
-                    &model.camera,
-                    framebuffer,
-                );
-                self.util.draw_text(
-                    &format!("ACCURACY: {:.2}%", accuracy),
-                    vec2(-3.0, -3.5),
-                    TextRenderOptions::new(0.7).color(theme.light),
-                    &model.camera,
-                    framebuffer,
-                );
-                self.util.draw_text(
-                    &format!("PRECISION: {:.2}%", precision),
-                    vec2(-3.0, -4.0),
-                    TextRenderOptions::new(0.7).color(theme.light),
-                    &model.camera,
-                    framebuffer,
-                );
-            }
         } else if !model.level.config.modifiers.clean_auto {
             self.util.draw_text(
                 format!("SCORE: {}", model.score.calculated.combined),
@@ -247,7 +248,7 @@ impl GameRender {
             );
 
             self.util.draw_text(
-                format!("{:3.2}%", accuracy),
+                format!("{accuracy:3.2}%"),
                 vec2(-8.5, 3.9).as_r32(),
                 TextRenderOptions::new(0.7)
                     .color(theme.light)
@@ -269,13 +270,18 @@ impl GameRender {
             let position = Aabb2::point(vec2(-8.3, 3.2)).extend_uniform(0.3);
             for (i, modifier) in model.level.config.modifiers.iter().enumerate() {
                 let position = position.translate(vec2(i as f32, 0.0) * position.size());
-                if let Some(position) = model
+                if let Ok(position) = model
                     .camera
                     .world_to_screen(framebuffer.size().as_f32(), position.center())
                 {
                     let texture = self.context.assets.get_modifier(modifier);
-                    self.ui
-                        .draw_texture(Aabb2::point(position), texture, theme.light, framebuffer);
+                    self.ui.draw_subtexture(
+                        Aabb2::point(position),
+                        &texture,
+                        theme.light,
+                        1.0,
+                        framebuffer,
+                    );
                 }
             }
 
@@ -292,20 +298,32 @@ impl GameRender {
             }
         }
 
+        if ui.score.state.visible {
+            self.ui
+                .draw_score(&ui.score, theme, self.font_size * 0.1, framebuffer);
+        }
         if ui.leaderboard.state.visible {
-            self.ui.draw_leaderboard(
-                &ui.leaderboard,
-                theme,
-                self.font_size * 0.1,
+            // let theme = self.context.get_options().theme;
+            let width = self.font_size * 0.2;
+
+            self.ui.draw_window(
                 &mut self.masked,
-                framebuffer,
-            );
-            self.ui.draw_outline(
                 ui.leaderboard.state.position,
-                self.font_size * 0.2,
-                theme.light,
+                Some(ui.leaderboard_head.state.position),
+                width,
+                theme,
                 framebuffer,
+                |framebuffer| {
+                    self.ui.draw_leaderboard(
+                        &ui.leaderboard,
+                        theme,
+                        self.font_size * 0.1,
+                        &mut self.masked2,
+                        framebuffer,
+                    );
+                },
             );
+            self.ui.draw_text(&ui.leaderboard_head, framebuffer);
         }
     }
 }

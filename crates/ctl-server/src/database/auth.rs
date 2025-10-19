@@ -12,14 +12,16 @@ pub struct User {
     pub username: String,
     /// Password hash.
     password: Option<String>,
+    pub created_at: OffsetDateTime,
 }
 
 impl std::fmt::Debug for User {
     fn fmt(&self, f: &mut ctl_core::prelude::fmt::Formatter<'_>) -> ctl_core::prelude::fmt::Result {
-        f.debug_struct("Player")
+        f.debug_struct("User")
             .field("id", &self.user_id)
             .field("name", &self.username)
             .field("password", &"[redacted]")
+            .field("created_at", &self.created_at)
             .finish()
     }
 }
@@ -70,11 +72,12 @@ impl AuthnBackend for Backend {
         &self,
         creds: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        let login = sqlx::query("SELECT null FROM user_tokens WHERE user_id = ? AND token = ?")
-            .bind(creds.user_id)
-            .bind(&creds.token)
-            .fetch_optional(&self.db)
-            .await?;
+        let login =
+            sqlx::query("SELECT null FROM user_auth_tokens WHERE user_id = ? AND token = ?")
+                .bind(creds.user_id)
+                .bind(&creds.token)
+                .fetch_optional(&self.db)
+                .await?;
         if login.is_none() {
             return Err(RequestError::InvalidCredentials);
         }

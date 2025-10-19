@@ -6,18 +6,15 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use ctl_client::{
+    Nertboard,
     core::{
         prelude::Uuid,
-        types::{Id, NewArtist, UserLogin},
+        types::{Id, NewMusician, UserLogin},
     },
-    Nertboard,
 };
 
 #[derive(clap::Subcommand)]
 pub enum Command {
-    MigrateGroup {
-        path: PathBuf,
-    },
     /// Just display some dithered text on screen.
     Text {
         text: String,
@@ -48,10 +45,6 @@ pub enum MusicCommand {
         name: String,
         #[clap(long)]
         romanized_name: Option<String>,
-        #[clap(long)]
-        original: bool,
-        #[clap(long)]
-        bpm: f32,
     },
     /// Update music info.
     Update {
@@ -59,11 +52,9 @@ pub enum MusicCommand {
         #[clap(long)]
         name: Option<String>,
         #[clap(long)]
-        public: Option<bool>,
-        #[clap(long)]
         original: Option<bool>,
         #[clap(long)]
-        bpm: Option<f32>,
+        featured: Option<bool>,
     },
 }
 
@@ -112,51 +103,6 @@ impl Command {
         };
 
         match self {
-            // TODO remove
-            Command::MigrateGroup { path } => {
-                use ctl_client::core::types::*;
-
-                #[derive(Deserialize)]
-                struct GroupMeta {
-                    id: Id,
-                    music: Id,
-                }
-
-                let meta: GroupMeta = file::load_detect(path.join("meta.toml")).await?;
-                let mut levels = Vec::new();
-                for entry in path.read_dir()? {
-                    let entry = entry?;
-                    if !entry.path().is_dir() {
-                        continue;
-                    }
-
-                    let path = entry.path();
-                    let meta: LevelInfo = file::load_detect(path.join("meta.toml")).await?;
-                    let data: ctl_client::core::model::Level =
-                        file::load_detect(path.join("level.json")).await?;
-                    levels.push(Rc::new(LevelFull { meta, data }));
-                }
-                let group = LevelSet {
-                    id: meta.id,
-                    music: meta.music,
-                    owner: UserInfo {
-                        id: 0,
-                        name: "<unknown>".into(),
-                    },
-                    levels,
-                };
-
-                let data = bincode::serialize(&group)?;
-                let path = path.with_file_name(format!(
-                    "{}.ctl",
-                    path.file_name().unwrap().to_str().unwrap()
-                ));
-                if path.exists() {
-                    log::error!("duplicate entry at {:?}", path);
-                } else {
-                    std::fs::write(path, data)?;
-                }
-            }
             Command::Text { text } => {
                 let state = media::MediaState::new(context.clone()).with_text(text);
                 context.geng.run_state(state).await;
@@ -168,37 +114,31 @@ impl Command {
                         path,
                         name,
                         romanized_name,
-                        original,
-                        bpm,
                     } => {
                         let music = ctl_client::core::types::NewMusic {
                             romanized_name: romanized_name.unwrap_or(name.clone()),
                             name,
-                            original,
-                            bpm,
                         };
-                        log::info!("Uploading music from {:?}: {:?}", path, music);
+                        log::info!("Uploading music from {path:?}: {music:?}");
 
                         let music_id = client
-                            .upload_music(&path, &music)
+                            .upload_music_file(&path, &music)
                             .await
                             .context("failed to upload music")?;
-                        log::info!("Music uploaded successfully, id: {}", music_id);
+                        log::info!("Music uploaded successfully, id: {music_id}");
                     }
                     MusicCommand::Update {
                         id,
                         name,
-                        public,
                         original,
-                        bpm,
+                        featured,
                     } => {
                         let update = ctl_client::core::types::MusicUpdate {
                             name,
-                            public,
                             original,
-                            bpm,
+                            featured,
                         };
-                        log::info!("Updating music {}: {:#?}", id, update);
+                        log::info!("Updating music {id}: {update:#?}");
 
                         client
                             .update_music(id, &update)
@@ -208,14 +148,14 @@ impl Command {
                     }
                     MusicCommand::Author(author) => match author.command {
                         MusicAuthorCommand::Add { music, artist } => {
-                            log::info!("Adding artist {} as author of music {}", artist, music);
+                            log::info!("Adding artist {artist} as author of music {music}");
                             client
                                 .music_author_add(music, artist)
                                 .await
                                 .context("when adding artist as author")?;
                         }
                         MusicAuthorCommand::Remove { music, artist } => {
-                            log::info!("Removing artist {} as author of music {}", artist, music);
+                            log::info!("Removing artist {artist} as author of music {music}");
                             client
                                 .music_author_remove(music, artist)
                                 .await
@@ -232,9 +172,9 @@ impl Command {
                         romanized,
                         user,
                     } => {
-                        log::info!("Creating a new artist {} (user: {:?})", name, user);
+                        log::info!("Creating a new artist {name} (user: {user:?})");
                         client
-                            .create_artist(NewArtist {
+                            .create_artist(NewMusician {
                                 romanized_name: romanized.unwrap_or(name.clone()),
                                 name,
                                 user,
@@ -251,7 +191,7 @@ impl Command {
 }
 
 async fn login(client: &Nertboard) -> Result<()> {
-    let user: Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE);
+    let user: Option<UserLogin> = preferences::load(ctl_local::PLAYER_LOGIN_STORAGE);
 
     if let Some(user) = user {
         let user = client
@@ -261,12 +201,12 @@ async fn login(client: &Nertboard) -> Result<()> {
         log::debug!("logged in as {}", user.name);
     } else {
         let state = Uuid::new_v4().to_string();
-        webbrowser::open(&format!("{}&state={}", crate::DISCORD_LOGIN_URL, state))?;
+        webbrowser::open(&format!("{}&state={}", ctl_core::DISCORD_LOGIN_URL, state))?;
         let user = client
             .login_external(state)
             .await?
             .map_err(|err| anyhow!(err))?;
-        preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
+        preferences::save(ctl_local::PLAYER_LOGIN_STORAGE, &user);
     }
 
     Ok(())

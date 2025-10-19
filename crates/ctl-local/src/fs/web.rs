@@ -1,0 +1,203 @@
+use super::*;
+
+use base64::prelude::*;
+use rexie::*;
+use serde_wasm_bindgen::Serializer;
+
+#[derive(thiserror::Error, Debug)]
+pub enum WebError {
+    #[error("rexie: {0}")]
+    Rexie(#[from] rexie::Error),
+    #[error("serde_wasm_bindgen: {0}")]
+    SerdeWasm(#[from] serde_wasm_bindgen::Error),
+    #[error("base64: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
+    #[error("UTF-8: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
+    #[error("ron: {0}")]
+    RonSpanned(#[from] ron::error::SpannedError),
+    #[error("ron: {0}")]
+    Ron(#[from] ron::Error),
+    #[error("cbor4ii: {0}")]
+    CborEncode(#[from] cbor4ii::serde::EncodeError<std::collections::TryReserveError>),
+    #[error("anyhow: {0}")]
+    Anyhow(#[from] anyhow::Error),
+}
+
+type Result<T> = std::result::Result<T, WebError>;
+
+#[derive(Serialize, Deserialize)]
+struct GroupItem {
+    meta: String,
+    data: String,
+    music: Option<String>,
+}
+
+pub async fn build_database() -> rexie::Result<Rexie> {
+    // Create a new database
+    let rexie = Rexie::builder("close-to-light")
+        .version(2)
+        .add_object_store(ObjectStore::new("groups"))
+        .add_object_store(ObjectStore::new("scores"))
+        .build()
+        .await?;
+
+    Ok(rexie)
+}
+
+pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGroup>> {
+    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadOnly)?;
+
+    let groups = transaction.store("groups")?;
+
+    let raw_items = groups.scan(None, None, None, None).await?;
+    let mut items = Vec::with_capacity(raw_items.len());
+    for (key, item) in raw_items {
+        let process_item = async |key, item| -> Result<LocalGroup> {
+            let key: String = serde_wasm_bindgen::from_value(key)?;
+            let path = super::all_groups_path().join(key);
+            let item: GroupItem = serde_wasm_bindgen::from_value(item)?;
+
+            let data = BASE64_STANDARD.decode(&item.data)?;
+            let meta_bytes = BASE64_STANDARD.decode(&item.meta)?;
+            let meta_str = String::from_utf8(meta_bytes)?;
+            let (group, meta) = decode_group(&data, &meta_str)?;
+
+            let music = match &item.music {
+                None => None,
+                Some(music) => {
+                    let data = BASE64_STANDARD.decode(music)?;
+                    let music = geng.audio().decode(data.clone()).await?;
+                    Some(Rc::new(LocalMusic::new(
+                        meta.music.clone(),
+                        music,
+                        data.into(),
+                    )))
+                }
+            };
+
+            Ok(LocalGroup {
+                path,
+                meta,
+                music,
+                data: group,
+            })
+        };
+
+        if let Ok(group) = process_item(key, item).await {
+            items.push(group);
+        }
+    }
+
+    Ok(items)
+}
+
+pub async fn save_group(
+    rexie: &Rexie,
+    group: &CachedGroup,
+    music: Option<&[u8]>,
+    id: &str,
+) -> Result<()> {
+    log::debug!("Storing group {:?} into browser storage", id);
+
+    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
+
+    let store = transaction.store("groups")?;
+
+    let data = cbor4ii::serde::to_vec(Vec::new(), &group.local.data)?;
+    let data = BASE64_STANDARD.encode(&data);
+
+    let music = music.map(|music| BASE64_STANDARD.encode(&music));
+
+    let meta = ron::ser::to_string(&group.local.meta)?;
+    let meta = BASE64_STANDARD.encode(&meta);
+
+    let item = GroupItem { data, music, meta };
+
+    let serializer = Serializer::json_compatible();
+    let item = item.serialize(&serializer)?;
+    let id = id.serialize(&serializer)?;
+
+    store.put(&item, Some(&id)).await?;
+
+    transaction.done().await?;
+
+    Ok(())
+}
+
+pub async fn remove_group(rexie: &Rexie, id: &str) -> Result<()> {
+    log::debug!("Deleting group {:?} from browser storage", id);
+
+    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
+
+    let store = transaction.store("groups")?;
+
+    let serializer = Serializer::json_compatible();
+    let id = id.serialize(&serializer)?;
+
+    store.delete(id).await?;
+
+    transaction.done().await?;
+
+    Ok(())
+}
+
+pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<String, SavedScore>> {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
+
+    let store = transaction.store("scores")?;
+
+    let all_scores = store.scan(None, None, None, None).await?;
+    let mut result = HashMap::new();
+    for (hash, scores) in all_scores {
+        let process = || -> Result<()> {
+            let scores: Vec<SavedScore> = serde_wasm_bindgen::from_value(scores)?;
+            if let Some(score) = scores.into_iter().max_by_key(|score| score.score) {
+                let hash: String = serde_wasm_bindgen::from_value(hash)?;
+                result.insert(hash, score);
+            }
+            Ok(())
+        };
+        if let Err(err) = process() {
+            log::error!("score file error: {err:?}");
+        }
+    }
+
+    transaction.done().await?;
+    Ok(result)
+}
+
+pub async fn load_local_scores(rexie: &Rexie, level_hash: &str) -> Result<Vec<SavedScore>> {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
+
+    let store = transaction.store("scores")?;
+
+    let serializer = Serializer::json_compatible();
+    let level_hash = level_hash.serialize(&serializer)?;
+
+    let Some(scores) = store.get(level_hash).await? else {
+        return Ok(vec![]);
+    };
+    let scores: Vec<SavedScore> = serde_wasm_bindgen::from_value(scores)?;
+
+    transaction.done().await?;
+    Ok(scores)
+}
+
+pub async fn save_local_scores(
+    rexie: &Rexie,
+    level_hash: &str,
+    scores: &[SavedScore],
+) -> Result<()> {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadWrite)?;
+
+    let store = transaction.store("scores")?;
+
+    let serializer = Serializer::json_compatible();
+    let level_hash = level_hash.serialize(&serializer)?;
+    let scores = scores.serialize(&serializer)?;
+    store.put(&scores, Some(&level_hash)).await?;
+
+    transaction.done().await?;
+    Ok(())
+}

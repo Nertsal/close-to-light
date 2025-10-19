@@ -1,10 +1,11 @@
 use super::*;
 
 use crate::{
-    leaderboard::Leaderboard,
-    render::{ui::UiRender, THEME},
-    ui::{layout::AreaOps, widget::*, UiContext},
+    render::{THEME, post::PostRender, ui::UiRender},
+    ui::{UiContext, layout::AreaOps, widget::*},
 };
+
+use ctl_local::Leaderboard;
 
 pub struct MainMenu {
     context: Context,
@@ -14,6 +15,7 @@ pub struct MainMenu {
     dither: DitherRender,
     util_render: UtilRender,
     ui_render: UiRender,
+    post_render: PostRender,
 
     framebuffer_size: vec2<usize>,
     /// Cursor position in screen space.
@@ -24,7 +26,7 @@ pub struct MainMenu {
     cursor_world_pos: vec2<Coord>,
     camera: Camera2d,
 
-    time: Time,
+    time: FloatTime,
     play_button: HoverButton,
     player: Player,
 
@@ -41,12 +43,13 @@ struct MainUI {
 
 impl MainMenu {
     pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
-        let leaderboard = Leaderboard::new(&context.geng, client);
+        let leaderboard = Leaderboard::new(&context.geng, client, &context.local.fs);
 
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
+            post_render: PostRender::new(context.clone()),
             leaderboard,
 
             framebuffer_size: vec2(1, 1),
@@ -57,10 +60,10 @@ impl MainMenu {
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: 10.0,
+                fov: Camera2dFov::Vertical(10.0),
             },
 
-            time: Time::ZERO,
+            time: FloatTime::ZERO,
             play_button: HoverButton::new(
                 Collider {
                     position: vec2(0.0, 0.0).as_r32(),
@@ -84,18 +87,13 @@ impl MainMenu {
 
     fn play(&mut self) {
         let context = self.context.clone();
-        let state = LevelMenu::new(context, self.leaderboard.clone());
+        let state = LevelMenu::new(
+            context,
+            self.leaderboard.clone(),
+            Some(self.play_button.clone()),
+        );
+        self.play_button.reset();
         self.transition = Some(geng::state::Transition::Push(Box::new(state)));
-    }
-
-    fn draw_ui(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        let theme = self.context.get_options().theme;
-        let ui = &self.ui;
-
-        self.ui_render.draw_text(&ui.join_community, framebuffer);
-        self.ui_render
-            .draw_icon_button(&ui.join_discord, theme, framebuffer);
-        self.ui_render.draw_profile(&ui.profile, framebuffer);
     }
 }
 
@@ -105,7 +103,7 @@ impl geng::State for MainMenu {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
 
         self.context
@@ -113,12 +111,11 @@ impl geng::State for MainMenu {
             .window()
             .set_cursor_type(geng::CursorType::None);
 
-        self.ui_context
-            .update(self.context.geng.window(), delta_time.as_f32());
+        self.ui_context.update(delta_time.as_f32());
 
         self.context.music.stop(); // TODO: menu music
 
-        self.leaderboard.poll();
+        self.leaderboard.get_mut().poll();
 
         let pos = self.cursor_pos.as_f32();
         let game_pos = geng_utils::layout::fit_aabb(
@@ -139,8 +136,7 @@ impl geng::State for MainMenu {
         self.play_button.update(hovering, delta_time);
         self.player
             .update_distance_simple(&self.play_button.base_collider);
-        if self.play_button.hover_time.is_max() {
-            self.play_button.hover_time.set_ratio(Time::ZERO);
+        if self.play_button.is_fading() {
             self.play();
         }
 
@@ -148,7 +144,7 @@ impl geng::State for MainMenu {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
         self.player.update_tail(delta_time);
     }
 
@@ -182,7 +178,8 @@ impl geng::State for MainMenu {
 
     fn draw(&mut self, screen_buffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = screen_buffer.size();
-        let theme = self.context.get_options().theme;
+        let options = self.context.get_options();
+        let theme = options.theme;
         ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
         let mut framebuffer = self.dither.start();
@@ -191,40 +188,71 @@ impl geng::State for MainMenu {
         self.util_render
             .draw_button(&button, "START", &THEME, &self.camera, &mut framebuffer);
 
+        self.util_render.draw_text(
+            "made in rust btw",
+            vec2(0.0, -4.0),
+            TextRenderOptions::new(0.5).color(THEME.dark),
+            &self.camera,
+            &mut framebuffer,
+        );
+
         let fading = self.play_button.is_fading();
-        if !fading {
-            if let Some(pos) = self
+        if !fading
+            && let Ok(pos) = self
                 .camera
                 .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
-            {
-                self.ui_render.draw_texture(
-                    Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
-                    &self.context.assets.sprites.title,
-                    THEME.light,
-                    &mut framebuffer,
-                );
-            }
-
-            self.util_render
-                .draw_player(&self.player, &self.camera, &mut framebuffer);
+        {
+            self.ui_render.draw_texture(
+                Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
+                &self.context.assets.sprites.title,
+                THEME.light,
+                1.0,
+                &mut framebuffer,
+            );
         }
 
         self.dither.finish(self.time, &theme);
 
-        let aabb = Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32());
+        let buffer = &mut self.post_render.begin(screen_buffer.size(), theme.dark);
+
+        let aabb = Aabb2::ZERO.extend_positive(buffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, screen_buffer);
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         if !fading {
             self.ui.layout(
-                Aabb2::ZERO.extend_positive(screen_buffer.size().as_f32()),
+                Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
                 &mut self.leaderboard,
             );
 
-            self.draw_ui(screen_buffer);
+            // UI
+            let theme = self.context.get_options().theme;
+            let ui = &self.ui;
+
+            self.ui_render.draw_text(&ui.join_community, buffer);
+            self.ui_render
+                .draw_icon_button(&ui.join_discord, theme, buffer);
+            self.ui_render.draw_profile(&ui.profile, buffer);
         }
+
+        let mut dither_buffer = self.dither.start();
+        self.util_render
+            .draw_player(&self.player, &self.camera, &mut dither_buffer);
+        self.dither.finish(self.time, &theme.transparent());
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+            .fit_screen(vec2(0.5, 0.5), buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+
+        self.post_render.post_process(
+            crate::render::post::PostVfx {
+                time: self.time,
+                crt: options.graphics.crt.enabled,
+                rgb_split: 0.0,
+            },
+            screen_buffer,
+        );
 
         self.ui_context.frame_end();
     }
@@ -235,7 +263,7 @@ impl MainUI {
         Self {
             screen: WidgetState::new(),
             join_community: TextWidget::new("Join our community!"),
-            join_discord: IconButtonWidget::new_normal(&context.assets.sprites.discord),
+            join_discord: IconButtonWidget::new_normal(context.assets.atlas.discord()),
             profile: ProfileWidget::new(&context.assets),
         }
     }
@@ -265,7 +293,7 @@ impl MainUI {
         let text = join.cut_top(font_size * 1.5);
         self.join_community.update(text, context);
         self.join_discord.update(join, context);
-        if self.join_discord.state.clicked {
+        if self.join_discord.icon.state.mouse_left.clicked {
             let _ = webbrowser::open(crate::DISCORD_SERVER_URL);
         }
 

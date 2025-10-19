@@ -13,9 +13,8 @@ use itertools::Itertools;
 pub struct MenuUI {
     context: Context,
     pub screen: WidgetState,
-    pub ctl_logo: IconWidget,
-    pub separator: WidgetState,
-
+    // pub ctl_logo: IconWidget,
+    // pub separator: WidgetState,
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
@@ -42,9 +41,8 @@ impl MenuUI {
 
         Self {
             screen: WidgetState::new(),
-            ctl_logo: IconWidget::new(&assets.sprites.title),
-            separator: WidgetState::new(),
-
+            // ctl_logo: IconWidget::new(assets.atlas.title()),
+            // separator: WidgetState::new(),
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
@@ -64,12 +62,6 @@ impl MenuUI {
 
             context,
         }
-    }
-
-    fn explore_music(&mut self) {
-        self.explore.window.request = Some(WidgetRequest::Open);
-        self.explore.select_tab(ExploreTab::Music);
-        self.explore.show();
     }
 
     fn explore_groups(&mut self) {
@@ -101,22 +93,26 @@ impl MenuUI {
         let mut right = self.screen.position;
         let left = right.split_left(0.55);
 
-        let separator = Aabb2::point(vec2(right.min.x, right.center().y))
-            .extend_symmetric(vec2(0.1 * layout_size, screen.height() - 10.0 * layout_size) / 2.0);
-        self.separator.update(separator, context);
+        // let separator = Aabb2::point(vec2(right.min.x, right.center().y))
+        //     .extend_symmetric(vec2(0.1 * layout_size, screen.height() - 10.0 * layout_size) / 2.0);
+        // self.separator.update(separator, context);
 
-        let mut left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
-        let logo = left.cut_top(2.5 * layout_size);
-        self.ctl_logo.update(logo, context);
+        let left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
+        // let logo = left.cut_top(2.5 * layout_size);
+        // self.ctl_logo.update(logo, context);
 
         if let Some(confirm) = &mut self.confirm {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
-            if confirm.confirm.state.clicked {
+            if confirm.confirm_icon.icon.state.mouse_left.clicked
+                || confirm.confirm_text.text.state.mouse_left.clicked
+            {
                 confirm.window.show.going_up = false;
                 state.confirm_action(self);
-            } else if confirm.discard.state.clicked {
+            } else if confirm.discard_icon.icon.state.mouse_left.clicked
+                || confirm.discard_text.text.state.mouse_left.clicked
+            {
                 confirm.window.show.going_up = false;
                 state.confirm_popup = None;
             } else if confirm.window.show.time.is_min() {
@@ -130,9 +126,22 @@ impl MenuUI {
                 &self.context.assets,
                 popup.title.clone(),
                 popup.message.clone(),
+                popup.confirm_text.clone(),
+                popup.discard_text.clone(),
             );
             confirm.window.show.going_up = true;
             self.confirm = Some(confirm);
+        }
+
+        if let Some(sync) = &mut self.sync {
+            let size = vec2(20.0, 17.0) * layout_size;
+            let pos = screen.align_aabb(size, vec2(0.5, 0.5));
+            sync.update(pos, context, state);
+            context.update_focus(sync.state.hovered);
+            if !sync.window.show.going_up && sync.window.show.time.is_min() {
+                // Close window
+                self.sync = None;
+            }
         }
 
         for message in state.notifications.drain(..) {
@@ -153,43 +162,51 @@ impl MenuUI {
                 .update(window.translate(slide), context, &mut temp_state);
             if let Some(action) = temp_state.1 {
                 match action {
-                    ExploreAction::PlayMusic(music_id) => {
-                        if let Some(music) = self.context.local.get_music(music_id) {
-                            self.context.music.switch(&music);
+                    ExploreAction::PlayMusic(group_id) => {
+                        if let Some((_index, group)) = self.context.local.get_group_id(group_id)
+                            && let Some(music) = &group.local.music
+                        {
+                            self.context.music.switch(music);
                         }
                     }
                     ExploreAction::PauseMusic => {
                         self.context.music.stop();
                     }
-                    ExploreAction::GotoMusic(music_id) => {
-                        self.explore.window.request = Some(WidgetRequest::Close);
-                        self.level_select.select_tab(LevelSelectTab::Group);
-                        state.switch_music = Some(music_id);
-                    }
                     ExploreAction::GotoGroup(group_id) => {
-                        if let Some((index, group)) = self
-                            .context
-                            .local
-                            .inner
-                            .borrow()
-                            .groups
-                            .iter()
-                            .find(|(_, group)| group.data.id == group_id)
-                        {
+                        if let Some((index, _group)) = self.context.local.get_group_id(group_id) {
                             self.explore.window.request = Some(WidgetRequest::Close);
-                            self.level_select.select_tab(LevelSelectTab::Difficulty);
-                            state.switch_music = Some(group.data.music);
-                            state.switch_group = Some(index);
+                            state.switch_level = Some(index);
                         }
                     }
                 }
             }
 
             // NOTE: Everything below `explore` cannot get focused
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
-        let action = self.level_select.update(left, state, context);
+        let level_select_t = state
+            .selected_level
+            .as_ref()
+            .filter(|show| {
+                !show.going_up && state.switch_level.is_none()
+                    || show.going_up && state.last_selected_level.is_none()
+            })
+            .map_or(
+                if state.last_selected_level.is_some() {
+                    1.0
+                } else {
+                    0.0
+                },
+                |show| show.time.get_ratio(),
+            );
+        let level_select_t = crate::util::smoothstep(1.0 - level_select_t);
+        let level_select = left.translate(vec2(
+            (screen.center().x - left.center().x) * level_select_t,
+            0.0,
+        ));
+
+        let action = self.level_select.update(level_select, state, context);
         if let Some(action) = action {
             match action {
                 LevelSelectAction::SyncGroup(group_index) => {
@@ -203,38 +220,34 @@ impl MenuUI {
                         ));
                     }
                 }
-                LevelSelectAction::EditLevel(group, level) => {
+                LevelSelectAction::EditDifficulty(group, level) => {
                     state.edit_level(group, Some(level));
                 }
-                LevelSelectAction::DeleteLevel(group, level) => {
-                    self.context.local.delete_level(group, level);
+                LevelSelectAction::DeleteDifficulty(group, level) => {
+                    state.popup_confirm(
+                        ConfirmAction::DeleteLevel(group, level),
+                        "delete difficulty",
+                        "delete",
+                        "cancel",
+                    );
                 }
                 LevelSelectAction::EditGroup(group) => {
                     state.edit_level(group, None);
                 }
                 LevelSelectAction::DeleteGroup(group) => {
-                    state.popup_confirm(ConfirmAction::DeleteGroup(group), "delete the group");
-                }
-                LevelSelectAction::DeleteMusic(music) => {
                     state.popup_confirm(
-                        ConfirmAction::DeleteMusic(music),
-                        "delete the music and all inner groups",
+                        ConfirmAction::DeleteGroup(group),
+                        "delete group",
+                        "delete",
+                        "cancel",
                     );
                 }
             }
-        } else if self.level_select.add_music.state.clicked {
-            self.explore_music();
-        } else if self.level_select.add_group.menu.browse.state.clicked {
-            self.explore_groups();
-        } else if self.level_select.add_group.menu.create.state.clicked {
-            if let Some(music) = &state.selected_music {
-                state.new_group(music.data);
-            }
         }
 
-        let options = right.extend_positive(-vec2(1.5, 1.5) * layout_size);
+        let options = right.extend_positive(-vec2(2.0, 2.0) * layout_size);
 
-        right.cut_left(5.0 * layout_size);
+        right.cut_left(2.0 * layout_size);
         right.cut_right(5.0 * layout_size);
         right.cut_top(3.5 * layout_size);
         right.cut_bottom(2.0 * layout_size);
@@ -251,7 +264,7 @@ impl MenuUI {
             let pos = main.align_pos(vec2(1.0, 0.5));
 
             let base_t = state
-                .selected_level
+                .selected_diff
                 .as_ref()
                 .map_or(0.0, |show| show.time.get_ratio());
             let base_t = crate::util::smoothstep(base_t);
@@ -273,7 +286,8 @@ impl MenuUI {
 
             self.leaderboard.update_state(&state.leaderboard);
             self.leaderboard.update(leaderboard, context);
-            self.leaderboard_head.update(leaderboard_head, context);
+            self.leaderboard_head
+                .update(leaderboard_head, &context.scale_font(0.9));
             context.update_focus(self.leaderboard.state.hovered);
 
             let hover = base_t > 0.0
@@ -289,17 +303,6 @@ impl MenuUI {
         self.options.update(options, context, state);
         context.update_focus(self.options.options.state.hovered);
 
-        if let Some(sync) = &mut self.sync {
-            let size = vec2(20.0, 17.0) * layout_size;
-            let pos = screen.align_aabb(size, vec2(0.5, 0.5));
-            sync.update(pos, context, state);
-            context.update_focus(sync.state.hovered);
-            if !sync.window.show.going_up && sync.window.show.time.is_min() {
-                // Close window
-                self.sync = None;
-            }
-        }
-
-        !context.can_focus
+        !context.can_focus()
     }
 }

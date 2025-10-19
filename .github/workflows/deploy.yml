@@ -8,7 +8,7 @@ jobs:
   build-web:
     name: Build (Web)
     runs-on: ubuntu-latest
-    container: ghcr.io/geng-engine/cargo-geng
+    container: ghcr.io/geng-engine/cargo-geng@sha256:ce60c252b0ac348e7dfbd6828d5473d3b6531d67502cf9efa9aece7cada6706c
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -48,7 +48,7 @@ jobs:
           toolchain: stable
           profile: minimal
       - name: Install cargo-geng
-        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --rev b2655fd973409f990e7967b37ce8a349b44eda31
+        run: cargo install cargo-geng --git https://github.com/geng-engine/cargo-geng --rev aa2c2242d7024734f3d5f6e5c9879a19c01b100a
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -65,7 +65,7 @@ jobs:
 
   deploy-pages:
     name: Deploy Github Pages
-    if: github.ref == 'refs/heads/main' && github.repository_owner == 'nertsal'
+    if: github.ref == 'refs/heads/release/itch' && github.repository_owner == 'nertsal'
     runs-on: ubuntu-latest
     needs:
       - build-web
@@ -85,7 +85,7 @@ jobs:
 
   deploy-pages-dev:
     name: Deploy Github Pages (dev)
-    if: github.ref == 'refs/heads/dev' && github.repository_owner == 'nertsal'
+    if: github.ref == 'refs/heads/main' && github.repository_owner == 'nertsal'
     runs-on: ubuntu-latest
     needs:
       - build-web

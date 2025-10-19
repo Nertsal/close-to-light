@@ -1,9 +1,9 @@
 EditorConfig(
     grid: GridConfig(
-        height: 16.0,
+        cell_size: 0.625,
         thick_every: 4, // 0 to disable thickness, 1 to make everything thick
     ),
-    playback_duration: 0.5,
+    playback_duration: 0.0,
     scroll_slow: 0.25,
     scroll_normal: 1.0,
     scroll_fast: 16.0,
@@ -14,5 +14,6 @@ EditorConfig(
     shapes: [
         Circle( radius: 1.3 ),
         Line( width: 1.7 ),
+        Rectangle( width: 1.7, height: 1.7 ),
     ],
 )

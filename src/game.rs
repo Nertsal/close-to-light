@@ -4,22 +4,23 @@ pub use self::ui::GameUI;
 use self::ui::UiContext;
 
 use crate::{
-    leaderboard::Leaderboard,
-    local::{CachedGroup, CachedMusic},
     prelude::*,
-    render::game::GameRender,
+    render::{game::GameRender, post::PostRender},
 };
+
+use ctl_local::Leaderboard;
 
 pub struct Game {
     context: Context,
     transition: Option<geng::state::Transition>,
     render: GameRender,
+    post: PostRender,
 
     model: Model,
     debug_mode: bool,
 
     framebuffer_size: vec2<usize>,
-    delta_time: Time,
+    delta_time: FloatTime,
 
     active_touch: Option<u64>,
     ui: GameUI,
@@ -27,32 +28,18 @@ pub struct Game {
     ui_context: UiContext,
 }
 
-#[derive(Debug, Clone)]
-pub struct PlayGroup {
-    pub group_index: Index,
-    pub cached: Rc<CachedGroup>,
-    pub music: Rc<CachedMusic>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PlayLevel {
-    pub group: PlayGroup,
-    pub level_index: usize,
-    pub level: Rc<LevelFull>,
-    pub config: LevelConfig,
-    pub start_time: Time,
-}
-
 impl Game {
-    pub fn new(
-        context: Context,
-        options: Options,
-        level: PlayLevel,
-        leaderboard: Leaderboard,
-    ) -> Self {
+    pub fn new(context: Context, level: PlayLevel, leaderboard: Leaderboard) -> Self {
+        if level.group.music.is_none() {
+            log::warn!(
+                "Starting level {:?} but no music got loaded.",
+                level.level.meta.name
+            );
+        }
+
         Self::preloaded(
             context.clone(),
-            Model::new(context, options, level.clone(), leaderboard),
+            Model::new(context, level.clone(), leaderboard),
         )
     }
 
@@ -71,6 +58,7 @@ impl Game {
 
             transition: None,
             render: GameRender::new(context.clone()),
+            post: PostRender::new(context.clone()),
             context,
         }
     }
@@ -83,21 +71,26 @@ impl geng::State for Game {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        ugli::clear(framebuffer, Some(self.model.options.theme.dark), None, None);
+        let options = self.context.get_options();
+        let theme = options
+            .theme
+            .swap(self.model.vfx.palette_swap.current.as_f32());
+        ugli::clear(framebuffer, Some(theme.dark), None, None);
+
+        let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
-        self.render
-            .draw_world(&self.model, self.debug_mode, framebuffer);
+        self.render.draw_world(&self.model, self.debug_mode, buffer);
 
         if !fading {
             self.ui_focused = self.ui.layout(
                 &mut self.model,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
             );
             self.render
-                .draw_ui(&self.ui, &self.model, self.debug_mode, framebuffer);
+                .draw_ui(&self.ui, &self.model, self.debug_mode, buffer);
         }
         self.ui_context.frame_end();
 
@@ -108,14 +101,22 @@ impl geng::State for Game {
                 &self.model.camera,
                 &mut dither_buffer,
             );
-            self.render.dither.finish(
-                self.model.real_time,
-                &self.model.options.theme.transparent(),
-            );
+            self.render
+                .dither
+                .finish(self.model.real_time, &theme.transparent());
             geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
-                .fit_screen(vec2(0.5, 0.5), framebuffer)
-                .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+                .fit_screen(vec2(0.5, 0.5), buffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         }
+
+        self.post.post_process(
+            crate::render::post::PostVfx {
+                time: self.model.real_time,
+                crt: options.graphics.crt.enabled,
+                rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
+            },
+            framebuffer,
+        );
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -149,7 +150,7 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
         self.delta_time = delta_time;
 
         self.context
@@ -157,49 +158,32 @@ impl geng::State for Game {
             .window()
             .set_cursor_type(geng::CursorType::None);
 
-        self.model.leaderboard.poll();
-        if let Some(player) = self.model.leaderboard.loaded.player {
+        self.model.leaderboard.get_mut().poll();
+        if let Some(player) = self.model.leaderboard.get_loaded().player {
             self.model.player.info.id = player;
         }
 
-        self.ui_context
-            .update(self.context.geng.window(), delta_time.as_f32());
+        self.ui_context.update(delta_time.as_f32());
 
         if let Some(transition) = self.model.transition.take() {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
-                    let player_name = self.model.player.info.name.clone();
-                    let do_submit_score = submit_score && !player_name.trim().is_empty();
-
                     let score = &self.model.score;
                     let raw_score = score.calculated.combined;
-                    let submit_score = do_submit_score.then_some(raw_score);
 
-                    let meta = crate::leaderboard::ScoreMeta::new(
+                    let meta = ctl_local::ScoreMeta::new(
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
                         score.clone(),
+                        self.model.current_completion(),
                     );
 
-                    if do_submit_score {
-                        self.model.leaderboard.submit(
-                            submit_score,
-                            self.model.level.level.meta.id,
-                            meta,
-                        );
-                    } else {
-                        self.model.leaderboard.loaded.category = meta.category.clone();
-                        // Save highscores on lost runs only locally
-                        self.model.leaderboard.loaded.reload_local(Some(
-                            &crate::leaderboard::SavedScore {
-                                user: self.model.player.info.clone(),
-                                level: self.model.level.level.meta.id,
-                                score: raw_score,
-                                meta,
-                            },
-                        ));
-                        self.model.leaderboard.refetch();
-                    }
+                    self.model.leaderboard.get_mut().reload_submit(
+                        Some(raw_score),
+                        submit_score,
+                        self.model.level.level.meta.clone(),
+                        meta,
+                    );
                 }
                 Transition::Exit => self.transition = Some(geng::state::Transition::Pop),
             }
@@ -207,7 +191,7 @@ impl geng::State for Game {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
 
         let pos = self.ui_context.cursor.position;
         let game_pos = geng_utils::layout::fit_aabb(

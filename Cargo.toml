@@ -4,11 +4,21 @@ resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [workspace.dependencies]
+ctl-derive = { path = "crates/ctl-derive" }
 ctl-core = { path = "crates/ctl-core" }
 ctl-client = { path = "crates/ctl-client" }
+ctl-assets = { path = "crates/ctl-assets" }
+ctl-util = { path = "crates/ctl-util" }
+ctl-font = { path = "crates/ctl-font" }
+ctl-render-core = { path = "crates/ctl-render-core" }
+ctl-local = { path = "crates/ctl-local" }
+ctl-context = { path = "crates/ctl-context" }
+ctl-ui = { path = "crates/ctl-ui" }
+ctl-logic = { path = "crates/ctl-logic" }
+ctl-editor = { path = "crates/ctl-editor" }
 
 # Common
 clap = { version = "4.4.11", features = ["derive"] }
@@ -20,21 +30,40 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["rt", "macros"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 enum-iterator = "1.4.1"
-uuid = { version = "1.6.1", features = ["serde", "v4"] }
+uuid = { version = "1.6.1", features = ["serde", "v4", "js"] }
 sha2 = "0.10.8"
 data-encoding = "2.5.0"
 generational-arena = "0.2.9"
 bincode = "1.3.3"
+cbor4ii = { version = "0.3.3", features = ["serde1", "use_std"] }
+toml = "0.9.8"
+time = { version = "0.3.31", features = ["serde", "wasm-bindgen"] }
 
 # Game
 geng = "0.18"
-geng-utils = "0.3.0"
+wasm-bindgen = { version = "=0.2.100", features = ["serde"] }
+geng-utils = "0.4.0"
 parry2d = "0.13.5"
 async-executor = "1.8.0"
-webbrowser = "1.0.1"
-directories = "5.0.1"
 base64 = "0.22.1"
 async-compat = "0.2.4"
+rfd = "0.15.3"
+
+# Local storage
+webbrowser = "1.0.1"
+directories = "5.0.1"
+
+# UI
+num-rational = "0.4.2"
+
+# Derive
+darling = "0.20"
+proc-macro2 = "1.0"
+quote = "1.0"
+
+# Client
+reqwest = { version = "0.11.23", features = ["json", "multipart", "stream"] }
+url = "2.5.0"
 
 # Server
 axum = { version = "0.7.2", features = ["macros", "multipart"] }
@@ -48,16 +77,11 @@ tower-sessions = { version = "0.12", default-features = false, features = [
     "signed",
 ] }
 tower-sessions-sqlx-store = { version = "0.12", features = ["sqlite"] }
-time = "0.3.31"
 http-body-util = "0.1.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 sqlx = { version = "0.7.3", features = ["uuid", "runtime-tokio", "sqlite"] }
 dotenv = "0.15.0"
-
-# Client
-reqwest = { version = "0.11.23", features = ["json", "multipart"] }
-url = "2.5.0"
 
 [package]
 name = "close-to-light"
@@ -65,7 +89,18 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+ctl-core.workspace = true
 ctl-client.workspace = true
+ctl-derive.workspace = true
+ctl-util.workspace = true
+ctl-font.workspace = true
+ctl-assets.workspace = true
+ctl-render-core.workspace = true
+ctl-local.workspace = true
+ctl-context.workspace = true
+ctl-ui.workspace = true
+ctl-logic.workspace = true
+ctl-editor.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true
@@ -79,17 +114,18 @@ async-executor.workspace = true
 generational-arena.workspace = true
 bincode.workspace = true
 webbrowser.workspace = true
-directories.workspace = true
 base64.workspace = true
 async-compat.workspace = true
+cbor4ii.workspace = true
+rfd.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-rexie = "0.5.0"
-serde-wasm-bindgen = "0.6.5"
+web-sys = "=0.3.77"
 
 [patch.crates-io]
-async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" } # TODO: until https://github.com/smol-rs/async-broadcast/pull/47 is merged
-geng = { git = "https://github.com/geng-engine/geng", rev = "38a550f6389d8b2720fefd2f42b5fb58fba106c2" }
+geng = { git = "https://github.com/geng-engine/geng", rev = "1e35585545463c919ff0da849af4fdad69ab02fa" }
+geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}
+time = { git = "https://github.com/Nertsal/time", rev = "748366af4446aa890220a9da14873ee728fe0108" } # NOTE: until <https://github.com/time-rs/time/issues/751> is resolved

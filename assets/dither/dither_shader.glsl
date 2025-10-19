@@ -137,6 +137,8 @@ vec4 dither_final(vec3 amps) {
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-	gl_FragColor = dither_final(in_color.rgb);
+	vec4 out_color = dither_final(in_color.rgb);
+	out_color.a *= in_color.a;
+	gl_FragColor = out_color;
 }
 #endif

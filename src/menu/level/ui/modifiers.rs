@@ -10,9 +10,56 @@ pub struct ModifiersWidget {
     pub body: WidgetState,
     pub description: Vec<TextWidget>,
     pub description_lerp: Lerp<f32>,
-    pub mods: Vec<(ToggleWidget, IconWidget, Modifier)>,
+    pub mods: Vec<ModButtonWidget>,
     pub score_multiplier: TextWidget,
     pub separator: WidgetState,
+}
+
+pub struct ModButtonWidget {
+    pub state: WidgetState,
+    pub selected: bool,
+    pub icon: IconWidget,
+    pub text: TextWidget,
+    pub modifier: Modifier,
+}
+
+impl ModButtonWidget {
+    pub fn new(modifier: Modifier, icon: ctl_render_core::SubTexture) -> Self {
+        Self {
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
+            selected: false,
+            icon: IconWidget::new(icon),
+            text: TextWidget::new(format!("{modifier}")).aligned(vec2(0.5, 0.5)),
+            modifier,
+        }
+    }
+
+    fn update(&mut self, pos: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
+        self.state.update(pos, context);
+        let icon_size = vec2::splat(0.7) * context.font_size;
+        let text_size = context.font_size * 0.8;
+        let spacing = context.font_size * 0.0;
+        let total_size = icon_size + vec2(0.0, text_size + spacing);
+        let mut pos = pos.align_aabb(total_size, vec2(0.5, 0.5));
+
+        let icon_pos = pos.cut_top(icon_size.y);
+        pos.cut_top(spacing);
+        let icon_pos = icon_pos.align_aabb(icon_size, vec2(0.5, 0.5));
+
+        let text_pos = pos;
+
+        self.text.update(text_pos, context);
+        self.text.options.size = text_size;
+
+        self.icon.update(icon_pos, context);
+
+        let value = state.config.modifiers.get_mut(self.modifier);
+        self.selected = *value;
+        if self.state.mouse_left.clicked {
+            self.selected = !self.selected;
+        }
+        *value = self.selected;
+    }
 }
 
 impl ModifiersWidget {
@@ -26,13 +73,7 @@ impl ModifiersWidget {
             description: Vec::new(),
             description_lerp: Lerp::new_smooth(0.25, 0.0, 0.0),
             mods: enum_iterator::all::<Modifier>()
-                .map(|modifier| {
-                    (
-                        ToggleWidget::new_deselectable(format!("{}", modifier)),
-                        IconWidget::new(assets.get_modifier(modifier)),
-                        modifier,
-                    )
-                })
+                .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
                 .collect(),
             score_multiplier: TextWidget::new(""),
             separator: WidgetState::new(),
@@ -44,27 +85,31 @@ impl ModifiersWidget {
         let head = main.align_aabb(head_size, vec2(0.5, 0.0));
 
         // Active mods
-        self.active_mods = state
-            .config
-            .modifiers
-            .iter()
-            .map(|modifier| IconWidget::new(context.context.assets.get_modifier(modifier)))
-            .collect();
-        let mods = head.translate(vec2(0.0, head.height()));
-        let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
-        let mods = mod_pos.stack_aligned(
-            vec2(mod_pos.width(), 0.0),
-            self.active_mods.len(),
-            vec2(0.5, 0.5),
-        );
-        for (modifier, pos) in self.active_mods.iter_mut().zip(mods) {
-            modifier.update(pos, context);
+        if state.selected_diff.is_some() {
+            self.active_mods = state
+                .config
+                .modifiers
+                .iter()
+                .map(|modifier| IconWidget::new(context.context.assets.get_modifier(modifier)))
+                .collect();
+            let mods = head.translate(vec2(0.0, head.height()));
+            let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
+            let mods = mod_pos.stack_aligned(
+                vec2(mod_pos.width(), 0.0),
+                self.active_mods.len(),
+                vec2(0.5, 0.5),
+            );
+            for (modifier, pos) in self.active_mods.iter_mut().zip(mods) {
+                modifier.update(pos, context);
+            }
+        } else {
+            self.active_mods.clear();
         }
 
         // Slide in when a level is selected
-        let t = state.selected_level.as_ref().map_or(0.0, |show| {
+        let t = state.selected_diff.as_ref().map_or(0.0, |show| {
             let mut t = show.time.get_ratio();
-            if state.switch_level.is_some() {
+            if state.switch_diff.is_some() {
                 t = t.max(self.t);
             }
             t
@@ -102,17 +147,16 @@ impl ModifiersWidget {
         }
 
         if self.body.visible && body_size.y > 20.0 {
-            let mut main = body.extend_uniform(-1.0 * context.layout_size);
+            let mut main = body.extend_uniform(-context.layout_size);
 
-            let buttons = main.cut_bottom(1.0 * context.font_size);
-            let _icons = main.cut_bottom(0.7 * context.font_size);
+            let buttons = main.cut_bottom(1.7 * context.font_size);
 
             let mut multipler = main.cut_bottom(1.0 * context.font_size);
             multipler.cut_bottom(context.layout_size);
             self.score_multiplier.text =
                 format!("Score x{:.2}", state.config.modifiers.multiplier()).into();
             self.score_multiplier
-                .update(multipler, &mut context.scale_font(0.7));
+                .update(multipler, &context.scale_font(0.7));
 
             let separator = main.cut_bottom(1.0 * context.layout_size);
             let separator = separator.align_aabb(
@@ -127,15 +171,12 @@ impl ModifiersWidget {
     }
 
     pub fn update_description(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
-        if let Some((_, _, modifier)) = self
-            .mods
-            .iter()
-            .find(|(widget, _, _)| widget.text.state.hovered)
-        {
+        if let Some(widget) = self.mods.iter().find(|widget| widget.state.hovered) {
+            let modifier = &widget.modifier;
             let lines = crate::util::wrap_text(
                 &context.font,
                 modifier.description(),
-                main.width() / context.font_size,
+                main.width() / context.font_size / 0.6, // Magic constant from the util renderer that scales everything by 0.6 idk why
             );
             let row = main.align_aabb(vec2(main.width(), 0.8 * context.font_size), vec2(0.5, 0.0));
             let rows = row.stack(vec2(0.0, row.height()), lines.len());
@@ -168,26 +209,15 @@ impl ModifiersWidget {
         let columns = self.mods.len();
         let spacing = 1.0 * context.layout_size;
 
-        let icon_size = vec2::splat(0.7) * context.font_size;
-
         let button_size = vec2(
             (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
-            1.0 * context.font_size,
+            2.0 * context.font_size,
         );
         let button = main.align_aabb(button_size, vec2(0.5, 0.5));
         let stack =
             button.stack_aligned(vec2(button_size.x + spacing, 0.0), columns, vec2(0.5, 0.5));
-        for ((button, icon, modifier), pos) in self.mods.iter_mut().zip(stack) {
-            let value = state.config.modifiers.get_mut(*modifier);
-            button.selected = *value;
-            button.update(pos, context);
-            button.text.options.size = pos.height() * 0.8;
-            *value = button.selected;
-
-            let icon_pos = pos.align_aabb(icon_size, vec2(0.5, 1.0));
-            let icon_pos =
-                icon_pos.translate(vec2(0.0, icon_pos.height() + context.layout_size * 0.1));
-            icon.update(icon_pos, context);
+        for (widget, pos) in self.mods.iter_mut().zip(stack) {
+            widget.update(pos, state, context);
         }
     }
 }

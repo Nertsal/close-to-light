@@ -1,3 +1,5 @@
+use ctl_ui::widget::WidgetState;
+
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::{
@@ -33,10 +35,10 @@ impl MenuRender {
 
         let theme = state.context.get_options().theme;
 
-        self.ui.draw_icon(&ui.ctl_logo, theme, framebuffer);
+        // self.ui.draw_icon(&ui.ctl_logo, theme, framebuffer);
 
-        self.ui
-            .draw_quad(ui.separator.position, theme.light, framebuffer);
+        // self.ui
+        //     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
@@ -61,6 +63,7 @@ impl MenuRender {
         self.draw_sync(ui, state, framebuffer);
 
         self.draw_item_widget(
+            &ui.notifications.discard_all.state,
             &ui.notifications.discard_all,
             false,
             1.0,
@@ -133,71 +136,87 @@ impl MenuRender {
         let ui = &ui.level_select;
         let theme = state.context.get_options().theme;
 
-        self.ui
-            .draw_toggle_widget(&ui.tab_music, theme, framebuffer);
-        self.ui
-            .draw_toggle_widget(&ui.tab_groups, theme, framebuffer);
-        self.ui
-            .draw_toggle_widget(&ui.tab_levels, theme, framebuffer);
+        self.ui.draw_text(&ui.tab_levels, framebuffer);
+        self.ui.draw_text(&ui.tab_diffs, framebuffer);
 
-        if ui.tab_music.selected {
-            for music in &ui.grid_music {
-                self.ui.draw_icon(&music.edited, theme, framebuffer);
-                self.ui.draw_outline(
-                    music.state.position,
-                    self.font_size * 0.2,
-                    theme.light,
-                    framebuffer,
+        // Levels
+        for level in &ui.levels {
+            self.ui.draw_icon(&level.edited, theme, framebuffer);
+            self.ui.draw_icon(&level.local, theme, framebuffer);
+            let selected = state.switch_level == Some(level.index);
+            self.draw_item_widget(&level.state, &level.text, selected, 1.0, theme, framebuffer);
+            for (diff, color) in &level.diffs {
+                let mut pp_quad = |pos: Aabb2<f32>, color| {
+                    let size = pos.size().map(|x| {
+                        let mut x = x as usize;
+                        if x % 2 == 1 {
+                            x += 1;
+                        }
+                        x
+                    });
+                    let pos = geng_utils::pixel::pixel_perfect_aabb(
+                        pos.center(),
+                        vec2(0.5, 0.5),
+                        size,
+                        &geng::PixelPerfectCamera,
+                        framebuffer.size().as_f32(),
+                    );
+                    self.ui.draw_quad(pos, color, framebuffer);
+                };
+                pp_quad(diff.position, theme.light);
+                pp_quad(
+                    diff.position.extend_uniform(-diff.position.height() * 0.2),
+                    theme.get_color(*color),
                 );
-                let selected =
-                    state.selected_music.as_ref().map(|m| m.data) == Some(music.music.meta.id);
-                self.draw_item_widget(&music.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&music.menu, theme, framebuffer);
             }
-
-            self.draw_item_widget(&ui.add_music, false, 0.5, theme, framebuffer);
-        } else if ui.tab_groups.selected {
-            for group in &ui.grid_groups {
-                self.ui.draw_icon(&group.edited, theme, framebuffer);
-                self.ui.draw_icon(&group.local, theme, framebuffer);
-                self.ui.draw_outline(
-                    group.state.position,
-                    self.font_size * 0.2,
-                    theme.light,
-                    framebuffer,
-                );
-                let selected = state.switch_group == Some(group.index);
-                self.draw_item_widget(&group.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&group.menu, theme, framebuffer);
-            }
-
-            self.draw_item_widget(
-                &ui.add_group.text,
-                ui.add_group.menu.state.visible,
-                0.5,
-                theme,
+            self.ui.draw_outline(
+                level.state.position,
+                self.font_size * 0.1,
+                theme.light,
                 framebuffer,
             );
-            self.draw_add_menu(&ui.add_group.menu, theme, framebuffer);
-        } else if ui.tab_levels.selected {
-            self.ui.draw_text(&ui.no_levels, framebuffer);
-            for level in &ui.grid_levels {
-                self.ui.draw_icon(&level.edited, theme, framebuffer);
-                self.ui.draw_icon(&level.local, theme, framebuffer);
-                self.ui.draw_outline(
-                    level.state.position,
-                    self.font_size * 0.2,
-                    theme.light,
-                    framebuffer,
-                );
-                let selected = state.switch_level == Some(level.index);
-                self.draw_item_widget(&level.text, selected, 1.0, theme, framebuffer);
-                self.draw_item_menu(&level.menu, theme, framebuffer);
-            }
+        }
+
+        // Context menu
+        for level in &ui.levels {
+            self.draw_item_menu(&level.menu, theme, framebuffer);
+        }
+
+        // Difficulty status/hint text
+        self.ui.draw_text(&ui.no_level_selected, framebuffer);
+        self.ui.draw_text(&ui.no_diffs, framebuffer);
+
+        // Difficulties
+        for diff in &ui.diffs {
+            self.ui.draw_icon(&diff.edited, theme, framebuffer);
+            self.ui.draw_icon(&diff.local, theme, framebuffer);
+            let selected = state.switch_diff == Some(diff.index);
+            self.draw_item_widget(&diff.state, &diff.text, selected, 1.0, theme, framebuffer);
+            self.ui.draw_outline(
+                diff.state.position,
+                self.font_size * 0.1,
+                theme.light,
+                framebuffer,
+            );
+
+            self.ui.draw_icon(&diff.grade, theme, framebuffer);
+        }
+
+        // Context menu
+        for diff in &ui.diffs {
+            self.draw_item_menu(&diff.menu, theme, framebuffer);
         }
 
         self.ui
-            .draw_quad(ui.separator.position, theme.light, framebuffer);
+            .draw_quad(ui.separator_level.position, theme.light, framebuffer);
+        self.ui
+            .draw_quad(ui.separator_diff.position, theme.light, framebuffer);
+        self.ui.draw_outline(
+            ui.state.position,
+            self.font_size * 0.5,
+            theme.light,
+            framebuffer,
+        );
     }
 
     fn draw_play_level(
@@ -261,9 +280,44 @@ impl MenuRender {
                 theme,
                 framebuffer,
                 |framebuffer| {
-                    for (modifier, icon, _) in &ui.mods {
-                        self.ui.draw_toggle_widget(modifier, theme, framebuffer);
-                        self.ui.draw_icon(icon, theme, framebuffer);
+                    for widget in &ui.mods {
+                        let state = &widget.state;
+                        if !state.visible {
+                            continue;
+                        }
+
+                        let (bg_color, fg_color) = if widget.selected {
+                            (theme.light, theme.dark)
+                        } else {
+                            (theme.dark, theme.light)
+                        };
+
+                        let width = widget.text.options.size * 0.2;
+                        let shrink = if state.hovered && widget.selected {
+                            width
+                        } else {
+                            0.0
+                        };
+                        let pos = state.position.extend_uniform(-shrink);
+                        self.ui
+                            .draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
+                        if state.hovered || widget.selected {
+                            self.ui.draw_outline(pos, width, theme.light, framebuffer);
+                        }
+                        self.ui.util.draw_text(
+                            &widget.text.text,
+                            geng_utils::layout::aabb_pos(
+                                widget.text.state.position,
+                                widget.text.options.align,
+                            ),
+                            widget.text.options.color(fg_color),
+                            &geng::PixelPerfectCamera,
+                            framebuffer,
+                        );
+                        let mut theme = theme;
+                        theme.light = fg_color;
+                        theme.dark = bg_color;
+                        self.ui.draw_icon(&widget.icon, theme, framebuffer);
                     }
                     self.ui
                         .draw_text_colored(&ui.score_multiplier, theme.light, framebuffer);
@@ -290,7 +344,11 @@ impl MenuRender {
         let theme = state.context.get_options().theme;
 
         let width = 12.0;
-        let options = ui.options.state.position.extend_up(width);
+        let options = ui
+            .options
+            .state
+            .position
+            .extend_positive(vec2::splat(width));
 
         self.ui.draw_window(
             &mut self.masked,
@@ -352,6 +410,38 @@ impl MenuRender {
                         );
                     }
                 }
+
+                {
+                    // Gameplay
+                    let gameplay = &ui.options.gameplay;
+                    self.ui.draw_text(&gameplay.title, framebuffer);
+                    self.ui
+                        .draw_slider(&gameplay.music_offset, theme, framebuffer);
+                }
+
+                {
+                    // Graphics
+                    let graphics = &ui.options.graphics;
+                    self.ui.draw_text(&graphics.title, framebuffer);
+                    self.ui
+                        .draw_toggle_widget(&graphics.crt, theme, framebuffer);
+                    self.ui
+                        .draw_slider(&graphics.crt_scanlines, theme, framebuffer);
+                    self.ui
+                        .draw_toggle_widget(&graphics.telegraph_color, theme, framebuffer);
+                }
+
+                {
+                    // Cursor
+                    let cursor = &ui.options.cursor;
+                    self.ui.draw_text(&cursor.title, framebuffer);
+                    self.ui
+                        .draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
+                    self.ui
+                        .draw_slider(&cursor.inner_radius, theme, framebuffer);
+                    self.ui
+                        .draw_slider(&cursor.outer_radius, theme, framebuffer);
+                }
             },
         );
     }
@@ -380,42 +470,12 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
-                for (tab, active) in [
-                    (&ui.tab_music, ui.music.state.visible),
-                    (&ui.tab_levels, ui.levels.state.visible),
-                ] {
-                    self.ui
-                        .draw_toggle_button(tab, active, false, theme, framebuffer);
-                }
-
                 self.ui.draw_icon(&ui.reload.icon, theme, framebuffer);
                 self.ui.draw_icon(&ui.close.icon, theme, framebuffer);
-                self.ui
-                    .draw_quad(ui.separator.position, theme.light, framebuffer);
 
                 let mut mask = self.masked2.start();
 
-                if ui.music.state.visible {
-                    mask.mask_quad(ui.music.items_state.position);
-                    self.ui.draw_text(&ui.music.status, &mut mask.color);
-                    for item in &ui.music.items {
-                        self.ui
-                            .draw_icon_button(&item.download, theme, &mut mask.color);
-                        self.ui.draw_icon(&item.downloading, theme, &mut mask.color);
-                        self.ui.draw_icon_button(&item.play, theme, &mut mask.color);
-                        self.ui
-                            .draw_icon_button(&item.pause, theme, &mut mask.color);
-                        self.ui.draw_icon_button(&item.goto, theme, &mut mask.color);
-                        self.ui.draw_text(&item.name, &mut mask.color);
-                        self.ui.draw_text(&item.author, &mut mask.color);
-                        self.ui.draw_outline(
-                            item.state.position,
-                            self.font_size * 0.2,
-                            theme.light,
-                            &mut mask.color,
-                        );
-                    }
-                } else if ui.levels.state.visible {
+                if ui.levels.state.visible {
                     mask.mask_quad(ui.levels.items_state.position);
                     self.ui.draw_text(&ui.levels.status, &mut mask.color);
                     for item in &ui.levels.items {
@@ -423,6 +483,10 @@ impl MenuRender {
                             .draw_icon_button(&item.download, theme, &mut mask.color);
                         self.ui.draw_icon(&item.downloading, theme, &mut mask.color);
                         self.ui.draw_icon(&item.goto.icon, theme, &mut mask.color);
+                        self.ui
+                            .draw_icon(&item.play_music.icon, theme, &mut mask.color);
+                        self.ui
+                            .draw_icon(&item.pause_music.icon, theme, &mut mask.color);
                         self.ui.draw_text(&item.name, &mut mask.color);
                         self.ui.draw_text(&item.author, &mut mask.color);
                         self.ui.draw_outline(
@@ -474,63 +538,26 @@ impl MenuRender {
 
     fn draw_item_widget(
         &mut self,
+        state: &WidgetState,
         text: &crate::ui::widget::TextWidget,
         selected: bool,
         width: f32,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let (bg_color, fg_color, out_color) = if selected {
+        let (bg_color, fg_color, _out_color) = if selected {
             (theme.light, theme.dark, theme.light)
-        } else if text.state.hovered {
+        } else if state.hovered {
             (theme.light, theme.dark, theme.dark)
         } else {
             (theme.dark, theme.light, theme.light)
         };
-        let outline_width = self.font_size * 0.2 * width;
-        self.ui.draw_quad(
-            text.state.position.extend_uniform(-outline_width),
-            bg_color,
-            framebuffer,
-        );
-        self.ui.draw_text_colored(text, fg_color, framebuffer);
+        let outline_width = self.font_size * 0.1 * width;
         self.ui
-            .draw_outline(text.state.position, outline_width, out_color, framebuffer);
-    }
-
-    fn draw_add_menu(
-        &mut self,
-        menu: &crate::menu::NewMenuWidget,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        if !menu.state.visible {
-            return;
-        }
-
-        let position = menu.state.position;
-        let t = menu.window.show.time.get_ratio();
-        let t = crate::util::smoothstep(t);
-        let position = position.extend_down(-position.height() * (1.0 - t));
-        if position.height() < 1.0 {
-            return;
-        }
-
-        let outline_width = self.font_size * 0.2;
-        self.ui.draw_window(
-            &mut self.masked,
-            position,
-            None,
-            outline_width,
-            theme,
-            framebuffer,
-            |framebuffer| {
-                self.ui
-                    .draw_toggle_button(&menu.create, false, false, theme, framebuffer);
-                self.ui
-                    .draw_toggle_button(&menu.browse, false, false, theme, framebuffer);
-            },
-        );
+            .fill_quad_width(state.position, outline_width, bg_color, framebuffer);
+        self.ui.draw_text_colored(text, fg_color, framebuffer);
+        // self.ui
+        //     .draw_outline(text.state.position, outline_width, out_color, framebuffer);
     }
 
     fn draw_item_menu(

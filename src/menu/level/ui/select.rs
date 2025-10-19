@@ -1,88 +1,77 @@
-use crate::{local::CachedGroup, ui::UiWindow};
+use crate::ui::UiWindow;
+use ctl_local::{CachedGroup, SavedScore};
 
 use super::*;
 
 pub struct LevelSelectUI {
     // geng: Geng,
     assets: Rc<Assets>,
-    pub tab_music: ToggleWidget,
-    pub tab_groups: ToggleWidget,
-    pub tab_levels: ToggleWidget,
-    pub separator: WidgetState,
+    pub state: WidgetState,
+    pub tab_levels: TextWidget,
+    pub light_level: SelectLightUi,
+    pub tab_diffs: TextWidget,
+    pub light_diff: SelectLightUi,
+    pub separator_level: WidgetState,
+    pub separator_diff: WidgetState,
 
-    pub add_music: TextWidget,
-    pub grid_music: Vec<ItemMusicWidget>,
-    pub add_group: AddItemWidget,
-    pub grid_groups: Vec<ItemGroupWidget>,
-    pub no_levels: TextWidget,
-    pub grid_levels: Vec<ItemLevelWidget>,
+    pub levels: Vec<ItemLevelWidget>,
+    pub diffs: Vec<ItemDiffWidget>,
+    pub no_diffs: TextWidget,
+    pub no_level_selected: TextWidget,
+}
+
+pub struct SelectLightUi {
+    pub radius: f32,
+    pub pos_x: f32,
+    pub light_y: ctl_util::Lerp<f32>,
+    // pub telegraph_y: ctl_util::Lerp<f32>,
+}
+
+impl Default for SelectLightUi {
+    fn default() -> Self {
+        Self {
+            radius: 0.0,
+            pos_x: 0.0,
+            light_y: ctl_util::Lerp::new_smooth(0.25, 0.0, 0.0),
+            // telegraph_y: ctl_util::Lerp::new_smooth(0.25, 0.0, 0.0),
+        }
+    }
+}
+
+impl SelectLightUi {
+    pub fn update(&mut self, delta_time: f32) {
+        self.light_y.update(delta_time);
+        // self.telegraph_y.update(delta_time);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum LevelSelectAction {
-    EditLevel(Index, usize),
-    DeleteLevel(Index, usize),
+    EditDifficulty(Index, usize),
+    DeleteDifficulty(Index, usize),
     SyncGroup(Index),
     EditGroup(Index),
     DeleteGroup(Index),
-    DeleteMusic(Id),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum LevelSelectTab {
-    Music,
-    Group,
-    Difficulty,
 }
 
 impl LevelSelectUI {
     pub fn new(_geng: &Geng, assets: &Rc<Assets>) -> Self {
-        let mut ui = Self {
+        Self {
             // geng: geng.clone(),
             assets: assets.clone(),
-            tab_music: ToggleWidget::new("Music"),
-            tab_groups: ToggleWidget::new("Group"),
-            tab_levels: ToggleWidget::new("Difficulty"),
-            separator: WidgetState::new(),
+            state: WidgetState::new(),
+            tab_levels: TextWidget::new("Level"),
+            light_level: SelectLightUi::default(),
+            tab_diffs: TextWidget::new("Difficulty"),
+            light_diff: SelectLightUi::default(),
+            separator_level: WidgetState::new(),
+            separator_diff: WidgetState::new(),
 
-            add_music: TextWidget::new("+"),
-            grid_music: Vec::new(),
-            add_group: AddItemWidget::new(assets),
-            grid_groups: Vec::new(),
-            no_levels: TextWidget::new("Create a Difficulty in the editor"),
-            grid_levels: Vec::new(),
-        };
-        ui.tab_music.selected = true;
-        ui.tab_groups.hide();
-        ui.tab_levels.hide();
-        ui
-    }
-
-    pub fn select_tab(&mut self, tab: LevelSelectTab) {
-        for button in [
-            &mut self.tab_music,
-            &mut self.tab_groups,
-            &mut self.tab_levels,
-        ] {
-            if !button.text.state.clicked {
-                button.selected = false;
-            }
+            levels: Vec::new(),
+            diffs: Vec::new(),
+            no_diffs: TextWidget::new("Create a Difficulty in the editor"),
+            no_level_selected: TextWidget::new("Select a level\n<-"),
         }
-
-        let tab = match tab {
-            LevelSelectTab::Music => &mut self.tab_music,
-            LevelSelectTab::Group => {
-                self.tab_music.show();
-                &mut self.tab_groups
-            }
-            LevelSelectTab::Difficulty => {
-                self.tab_music.show();
-                self.tab_groups.show();
-                &mut self.tab_levels
-            }
-        };
-        tab.show();
-        tab.selected = true;
     }
 
     pub fn update(
@@ -91,182 +80,90 @@ impl LevelSelectUI {
         state: &mut MenuState,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        let mut main = main;
+        self.state.update(main, context);
+        self.light_level.update(context.delta_time);
+        self.light_diff.update(context.delta_time);
+
+        let mut main = main.extend_uniform(-context.font_size * 0.5);
         main.cut_top(context.layout_size * 1.5);
         let bar = main.cut_top(context.font_size * 1.2);
         main.cut_top(context.layout_size * 1.0);
 
-        self.tabs(bar, context);
+        let light_size = context.font_size;
+        self.tabs(bar.extend_symmetric(-vec2(light_size, 0.0)), context);
+
+        if self.light_level.pos_x == 0.0 {
+            self.light_level.light_y.snap_to(bar.center().y);
+            // self.light_level.telegraph_y.snap_to(bar.center().y);
+        }
+        if self.light_diff.pos_x == 0.0 {
+            self.light_diff.light_y.snap_to(bar.center().y);
+            // self.light_diff.telegraph_y.snap_to(bar.center().y);
+        }
+
+        let mut levels = main;
+        let mut diffs = levels.split_right(0.5);
+        let light_levels = levels.cut_left(light_size);
+        let light_diffs = diffs.cut_right(light_size);
+        self.light_level.pos_x = light_levels.center().x;
+        self.light_level.radius = light_levels.width() * 0.4;
+        self.light_diff.pos_x = light_diffs.center().x;
+        self.light_diff.radius = light_diffs.width() * 0.4;
 
         let mut action = None;
-        if self.tab_music.selected {
-            let act = self.grid_music(main, state, context);
-            action = action.or(act);
-        } else if self.tab_groups.selected {
-            let act = self.grid_groups(main, state, context);
-            action = action.or(act);
-        } else if self.tab_levels.selected {
-            let act = self.grid_levels(main, state, context);
-            action = action.or(act);
+        let act = self.layout_levels(levels, state, context);
+        action = action.or(act);
+        let act = self.layout_diffs(diffs, state, context);
+        action = action.or(act);
+
+        match state.switch_level {
+            None => self.light_level.light_y.change_target(bar.center().y),
+            Some(selected) => {
+                if let Some(widget) = self.levels.iter().find(|level| level.index == selected) {
+                    self.light_level
+                        .light_y
+                        .change_target(widget.state.position.center().y)
+                }
+            }
+        }
+        match state.switch_diff {
+            None => self.light_diff.light_y.change_target(bar.center().y),
+            Some(selected) => {
+                if let Some(widget) = self.diffs.iter().find(|diff| diff.index == selected) {
+                    self.light_diff
+                        .light_y
+                        .change_target(widget.state.position.center().y)
+                }
+            }
         }
 
         action
     }
 
     fn tabs(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
-        let sep_size = vec2(main.width() * 0.9, 0.3 * context.layout_size);
-        let sep = main.align_aabb(sep_size, vec2(0.5, 0.0));
-        self.separator.update(sep, context);
+        // let mut sep_diff = main.align_aabb(sep_size, vec2(0.5, 0.0));
+        // let sep_level = sep_diff.split_left(0.5);
+        // self.separator_level
+        //     .update(sep_level.extend_right(-context.layout_size), context);
+        // self.separator_diff
+        //     .update(sep_diff.extend_left(-context.layout_size), context);
 
-        let buttons: Vec<_> = [
-            Some(&mut self.tab_music),
-            self.tab_groups
-                .text
-                .state
-                .visible
-                .then_some(&mut self.tab_groups),
-            self.tab_levels
-                .text
-                .state
-                .visible
-                .then_some(&mut self.tab_levels),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
+        let mut tab_level = main;
+        let tab_diff = tab_level.split_right(0.5);
+        self.tab_levels.update(tab_level, context);
+        self.tab_diffs.update(tab_diff, context);
 
-        let spacing = 1.0 * context.layout_size;
-        let button_size = vec2(7.0 * context.layout_size, main.height());
-        let button = Aabb2::point(main.center()).extend_symmetric(button_size / 2.0);
+        let sep_height = 0.1 * context.layout_size;
+        let sep_level =
+            tab_level.align_aabb(vec2(tab_level.width() * 1.0, sep_height), vec2(0.5, 0.0));
+        let sep_diff =
+            tab_diff.align_aabb(vec2(tab_level.width() * 0.75, sep_height), vec2(0.5, 0.0));
 
-        let all_buttons = 3;
-        let buttons_layout = button.stack_aligned(
-            vec2(button_size.x + spacing, 0.0),
-            all_buttons,
-            vec2(0.5, 0.5),
-        );
-
-        let mut deselect = false;
-        for (button, pos) in buttons.into_iter().zip(buttons_layout) {
-            button.update(pos, context);
-            if button.text.state.clicked {
-                deselect = true;
-            }
-        }
-        if deselect {
-            for button in [
-                &mut self.tab_music,
-                &mut self.tab_groups,
-                &mut self.tab_levels,
-            ] {
-                if !button.text.state.clicked {
-                    button.selected = false;
-                }
-            }
-        }
+        self.separator_level.update(sep_level, context);
+        self.separator_diff.update(sep_diff, context);
     }
 
-    fn grid_music(
-        &mut self,
-        main: Aabb2<f32>,
-        state: &mut MenuState,
-        context: &mut UiContext,
-    ) -> Option<LevelSelectAction> {
-        let local = state.context.local.clone();
-        let music: Vec<_> = local
-            .inner
-            .borrow()
-            .music
-            .iter()
-            .sorted_by_key(|(&k, _)| k)
-            .map(|(_, music)| music.clone())
-            .collect();
-
-        // Synchronize vec length
-        if self.grid_music.len() != music.len() {
-            if let Some(cached) = music.first() {
-                self.grid_music =
-                    vec![ItemMusicWidget::new(&self.assets, "", cached.clone()); music.len()];
-            } else {
-                self.grid_music.clear();
-            }
-        }
-
-        // Synchronize data
-        for (widget, cache) in self.grid_music.iter_mut().zip(&music) {
-            widget.music = cache.clone();
-            widget.text.text = cache.meta.name.clone();
-        }
-
-        // Layout
-        let columns = 3;
-        let rows = self.grid_music.len() / columns + 1;
-        let spacing = vec2(1.0, 2.0) * context.layout_size;
-        let item_size = vec2(
-            (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
-            1.3 * context.font_size,
-        );
-
-        let mut action = None;
-        for row in 0..rows {
-            let top_left =
-                Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
-                    .extend_right(item_size.x)
-                    .extend_down(item_size.y);
-            let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
-
-            let mut row_items = 3;
-            let mut skip = 0;
-            if row == 0 {
-                skip = 1;
-                let pos = layout[0];
-                self.add_music
-                    .update(pos.extend_symmetric(-pos.size() * 0.1), context);
-            }
-            row_items -= skip;
-
-            let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
-            let range = (i + row_items).min(self.grid_music.len());
-
-            let mut tab = None;
-            for (widget, pos) in self.grid_music[i..range]
-                .iter_mut()
-                .zip(layout.into_iter().skip(skip))
-            {
-                // Check edited
-                let edited = local
-                    .inner
-                    .borrow()
-                    .groups
-                    .iter()
-                    .filter(|(_, group)| group.data.music == widget.music.meta.id)
-                    .any(|(_, group)| {
-                        group.data.id == 0
-                            || group.origin.as_ref().map(|info| &info.hash) != Some(&group.hash)
-                    });
-                if edited {
-                    widget.edited.show();
-                } else {
-                    widget.edited.hide();
-                }
-
-                // Update
-                let act = widget.update(pos, context);
-                action = action.or(act);
-                if widget.state.clicked {
-                    state.select_music(widget.music.meta.id);
-                    tab = Some(LevelSelectTab::Group);
-                }
-            }
-            if let Some(tab) = tab {
-                self.select_tab(tab);
-            }
-        }
-
-        action
-    }
-
-    fn grid_groups(
+    fn layout_levels(
         &mut self,
         main: Aabb2<f32>,
         state: &mut MenuState,
@@ -276,96 +173,98 @@ impl LevelSelectUI {
         let groups: Vec<_> = local
             .groups
             .iter()
-            .filter(|(_, group)| Some(group.data.music) == state.switch_music)
-            .sorted_by_key(|(_, group)| group.data.id)
+            .sorted_by_key(|(_, group)| group.local.meta.id)
             .collect();
 
         // Synchronize vec length
-        if self.grid_groups.len() != groups.len() {
-            self.grid_groups =
-                vec![
-                    ItemGroupWidget::new(&self.assets, "", Index::from_raw_parts(0, 0),);
-                    groups.len()
-                ];
+        if self.levels.len() != groups.len() {
+            self.levels = vec![
+                ItemLevelWidget::new(&self.assets, "", Index::from_raw_parts(0, 0),);
+                groups.len()
+            ];
         }
 
         // Synchronize data
-        for (widget, &(group_id, cached)) in self.grid_groups.iter_mut().zip(&groups) {
-            widget.sync(group_id, cached);
+        let loaded = state.leaderboard.get_loaded();
+        for (widget, &(group_id, cached)) in self.levels.iter_mut().zip(&groups) {
+            let scores: Vec<_> = cached
+                .level_hashes
+                .iter()
+                .map(|hash| loaded.all_highscores.get(hash))
+                .collect();
+            widget.sync(group_id, cached, &scores);
         }
 
+        drop(loaded);
         drop(local);
 
         // Layout
-        let columns = 3;
-        let rows = self.grid_groups.len() / columns + 1;
-        let spacing = vec2(1.0, 2.0) * context.layout_size;
-        let item_size = vec2(
-            (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
-            1.3 * context.font_size,
-        );
+        let spacing = vec2(1.0, 0.75) * context.layout_size;
+        let item_size = vec2(main.width() - spacing.x, 1.3 * context.font_size);
+        let rows = Aabb2::point(main.top_left() + vec2(spacing.x * 0.5, -item_size.y - spacing.y))
+            .extend_positive(item_size)
+            .stack(vec2(0.0, -item_size.y - spacing.y), self.levels.len());
 
         let mut action = None;
-        for row in 0..rows {
-            let top_left =
-                Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
-                    .extend_right(item_size.x)
-                    .extend_down(item_size.y);
-            let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
-
-            let mut row_items = 3;
-            let mut skip = 0;
-            if row == 0 {
-                skip = 1;
-                let pos = layout[0];
-                self.add_group
-                    .update(pos.extend_symmetric(-pos.size() * 0.1), context);
+        for (widget, pos) in self.levels.iter_mut().zip(rows) {
+            let act = widget.update(pos, context);
+            action = action.or(act);
+            if widget.state.mouse_left.clicked {
+                state.select_level(widget.index);
+                self.light_level.light_y.change_target(pos.center().y);
             }
-            row_items -= skip;
-
-            let i = if row == 0 { 0 } else { 2 + columns * (row - 1) };
-            let range = (i + row_items).min(self.grid_groups.len());
-
-            let mut tab = None;
-            for (widget, pos) in self.grid_groups[i..range]
-                .iter_mut()
-                .zip(layout.into_iter().skip(skip))
-            {
-                let act = widget.update(pos, context);
-                action = action.or(act);
-                if widget.state.clicked {
-                    state.select_group(widget.index);
-                    tab = Some(LevelSelectTab::Difficulty);
-                }
-            }
-            if let Some(tab) = tab {
-                self.select_tab(tab);
-            }
+            // if widget.state.hovered {
+            //     self.light_level.telegraph_y.change_target(pos.center().y);
+            // }
         }
 
         action
     }
 
-    fn grid_levels(
+    fn layout_diffs(
         &mut self,
         main: Aabb2<f32>,
         state: &mut MenuState,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
         let local = state.context.local.inner.borrow();
-        let group_idx = state.switch_group;
+        let group_idx = state.switch_level;
+
+        if group_idx.is_none() {
+            self.no_level_selected.show();
+            self.no_diffs.hide();
+            let size = vec2(main.width().min(5.0), 1.2) * context.font_size;
+            let pos = main
+                .align_aabb(size, vec2(0.5, 1.0))
+                .translate(vec2(0.0, -1.0) * context.font_size);
+            self.no_level_selected.update(pos, context);
+        } else {
+            self.no_level_selected.hide();
+        }
+
         let levels: Vec<_> = group_idx
             .and_then(|group| local.groups.get(group))
-            .map(|group| group.data.levels.clone())
+            .map(|group| {
+                group
+                    .local
+                    .data
+                    .levels
+                    .iter()
+                    .zip(&group.local.meta.levels)
+                    .map(|(data, meta)| LevelFull {
+                        meta: meta.clone(),
+                        data: data.clone(),
+                    })
+            })
             .into_iter()
             .flatten()
             .collect();
 
         // Synchronize vec length
-        if self.grid_levels.len() != levels.len() {
+        if self.diffs.len() != levels.len() {
             if let Some(cached) = levels.first() {
-                self.grid_levels = vec![
-                    ItemLevelWidget::new(
+                self.diffs = vec![
+                    ItemDiffWidget::new(
                         &self.assets,
                         "",
                         Index::from_raw_parts(0, 0),
@@ -375,7 +274,7 @@ impl LevelSelectUI {
                     levels.len()
                 ];
             } else {
-                self.grid_levels.clear();
+                self.diffs.clear();
             }
         }
 
@@ -383,9 +282,8 @@ impl LevelSelectUI {
         let group = state.context.local.get_group(group_idx)?;
 
         // Synchronize data
-        for (widget, (level_id, cached)) in
-            self.grid_levels.iter_mut().zip(levels.iter().enumerate())
-        {
+        let loaded = state.leaderboard.get_loaded();
+        for (widget, (level_id, cached)) in self.diffs.iter_mut().zip(levels.iter().enumerate()) {
             let origin_hash = group.origin.as_ref().and_then(|info| {
                 info.levels
                     .iter()
@@ -393,197 +291,87 @@ impl LevelSelectUI {
                     .map(|level| &level.hash)
             });
             let edited =
-                origin_hash.map_or(false, |hash| Some(hash) != group.level_hashes.get(level_id));
-            widget.sync(group_idx, level_id, cached, edited);
+                origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
+            let local_score = loaded.all_highscores.get(&cached.meta.hash);
+            widget.sync(group_idx, level_id, cached, local_score, edited, context);
         }
 
+        drop(loaded);
         drop(local);
 
-        if self.grid_levels.is_empty() {
-            self.no_levels.show();
+        if self.diffs.is_empty() {
+            self.no_diffs.show();
             let size = vec2(10.0, 1.2) * context.font_size;
             let pos = main.align_aabb(size, vec2(0.5, 0.5));
-            self.no_levels.update(pos, context);
+            self.no_diffs.update(pos, context);
         } else {
-            self.no_levels.hide();
+            self.no_diffs.hide();
         }
 
         // Layout
-        let columns = 3;
-        let rows = self.grid_levels.len() / columns + 1;
-        let spacing = vec2(1.0, 2.0) * context.layout_size;
-        let item_size = vec2(
-            (main.width() - spacing.x * (columns as f32 - 1.0)) / columns as f32,
-            1.3 * context.font_size,
-        );
+        let spacing = vec2(1.0, 0.75) * context.layout_size;
+        let item_size = vec2(main.width() - spacing.x * 4.0, 1.15 * context.font_size);
+        let rows = Aabb2::point(
+            main.top_right() + vec2(-main.width() / 2.0, -item_size.y * 0.5 - spacing.y),
+        )
+        .extend_symmetric(item_size / 2.0)
+        .stack(vec2(0.0, -item_size.y - spacing.y), self.diffs.len());
 
         let mut action = None;
-        for row in 0..rows {
-            let top_left =
-                Aabb2::point(main.top_left() - vec2(0.0, item_size.y + spacing.y) * row as f32)
-                    .extend_right(item_size.x)
-                    .extend_down(item_size.y);
-            let layout = top_left.stack(vec2(item_size.x + spacing.x, 0.0), columns);
-
-            let row_items = 3;
-            let skip = 0;
-
-            let i = columns * row;
-            let range = (i + row_items).min(self.grid_levels.len());
-
-            let mut tab = None;
-            for (widget, pos) in self.grid_levels[i..range]
-                .iter_mut()
-                .zip(layout.into_iter().skip(skip))
-            {
-                let act = widget.update(pos, context);
-                action = action.or(act);
-                if widget.state.clicked {
-                    state.select_level(widget.index);
-                    tab = Some(LevelSelectTab::Difficulty);
-                }
+        for (widget, pos) in self.diffs.iter_mut().zip(rows) {
+            let act = widget.update(pos, context);
+            action = action.or(act);
+            if widget.state.mouse_left.clicked {
+                state.select_difficulty(widget.index);
+                self.light_diff.light_y.change_target(pos.center().y);
             }
-            if let Some(tab) = tab {
-                self.select_tab(tab);
-            }
+            // if widget.state.hovered {
+            //     self.light_diff.telegraph_y.change_target(pos.center().y);
+            // }
         }
 
         action
     }
 }
 
-pub struct AddItemWidget {
-    pub state: WidgetState,
-    pub text: TextWidget,
-    pub menu: NewMenuWidget,
-}
-
-impl AddItemWidget {
-    pub fn new(assets: &Rc<Assets>) -> Self {
-        Self {
-            state: WidgetState::new(),
-            text: TextWidget::new("+"),
-            menu: NewMenuWidget::new(assets),
-        }
-    }
-}
-
-impl Widget for AddItemWidget {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.state.update(position, context);
-        self.text.update(position, context);
-        if self.state.clicked {
-            self.menu.window.request = Some(WidgetRequest::Open);
-            self.menu.show();
-        } else if !self.state.hovered && !self.menu.state.hovered {
-            self.menu.window.request = Some(WidgetRequest::Close);
-        }
-        self.menu.window.update(context.delta_time);
-        if self.menu.window.show.time.is_min() {
-            self.menu.hide();
-        } else {
-            self.menu.update(position, context);
-        }
-        if self.menu.state.hovered {
-            context.can_focus = false;
-        }
-    }
-}
-
 #[derive(Clone)]
-pub struct ItemMusicWidget {
-    pub state: WidgetState,
-    pub menu: ItemMenuWidget,
-    pub edited: IconWidget,
-    pub text: TextWidget,
-    pub music: Rc<CachedMusic>,
-}
-
-impl ItemMusicWidget {
-    pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, music: Rc<CachedMusic>) -> Self {
-        let mut menu = ItemMenuWidget::new(assets);
-        menu.sync.hide();
-        menu.edit.hide();
-
-        Self {
-            state: WidgetState::new(),
-            menu,
-            edited: IconWidget::new(&assets.sprites.star),
-            text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
-            music,
-        }
-    }
-
-    fn update(
-        &mut self,
-        mut position: Aabb2<f32>,
-        context: &mut UiContext,
-    ) -> Option<LevelSelectAction> {
-        if self.state.right_clicked {
-            self.menu.window.request = Some(WidgetRequest::Open);
-            self.menu.show();
-        } else if !self.state.hovered && !self.menu.state.hovered {
-            self.menu.window.request = Some(WidgetRequest::Close);
-        }
-        self.menu.update(position, context);
-        if self.menu.state.hovered {
-            context.can_focus = false;
-        }
-
-        self.state.update(position, context);
-
-        let widgets = [&mut self.edited];
-        if widgets.iter().any(|widget| widget.state.visible) {
-            let icons = position
-                .cut_left(position.height() / 2.0)
-                .extend_left(-context.font_size * 0.2)
-                .extend_symmetric(-vec2(0.0, context.font_size * 0.15));
-            let positions = icons.split_rows(widgets.len());
-            for (widget, pos) in widgets.into_iter().zip(positions) {
-                widget.update(pos, context);
-            }
-        }
-
-        self.text.update(position, &mut context.scale_font(0.9));
-
-        let mut action = None;
-        if self.menu.delete.state.clicked {
-            action = Some(LevelSelectAction::DeleteMusic(self.music.meta.id));
-        }
-        action
-    }
-}
-
-#[derive(Clone)]
-pub struct ItemGroupWidget {
+pub struct ItemLevelWidget {
     pub state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
     pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
+    pub diffs: Vec<(WidgetState, ThemeColor)>,
 }
 
-impl ItemGroupWidget {
+impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
-            state: WidgetState::new(),
-            edited: IconWidget::new(&assets.sprites.star),
-            local: IconWidget::new(&assets.sprites.local),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
+            edited: IconWidget::new(assets.atlas.star()),
+            local: IconWidget::new(assets.atlas.local()),
             menu: ItemMenuWidget::new(assets),
-            text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
+            text: TextWidget::new(text).aligned(vec2(0.5, 0.0)),
             index,
+            diffs: Vec::new(),
         }
     }
 
-    pub fn sync(&mut self, group_id: Index, cached: &CachedGroup) {
+    pub fn sync(
+        &mut self,
+        group_id: Index,
+        cached: &CachedGroup,
+        local_highscores: &[Option<&SavedScore>],
+    ) {
         self.index = group_id;
-        self.text.text = cached.data.owner.name.clone();
-        if cached.data.id == 0 {
+        self.text.text = cached
+            .local
+            .music
+            .as_ref()
+            .map(|music| music.meta.name.clone())
+            .unwrap_or_else(|| cached.local.meta.owner.name.clone());
+        if cached.local.meta.id == 0 {
             self.local.show();
             self.edited.hide();
         } else {
@@ -591,12 +379,29 @@ impl ItemGroupWidget {
             if cached
                 .origin
                 .as_ref()
-                .map_or(false, |info| info.hash != cached.hash)
+                .is_some_and(|info| info.hash != cached.local.meta.hash)
             {
                 self.edited.show();
             } else {
                 self.edited.hide();
             }
+        }
+
+        if self.diffs.len() > local_highscores.len() {
+            self.diffs.drain(local_highscores.len()..);
+        } else {
+            self.diffs.extend(
+                (self.diffs.len()..local_highscores.len())
+                    .map(|_| (WidgetState::new(), ThemeColor::Dark)),
+            );
+        }
+        for ((_, color), score) in self.diffs.iter_mut().zip(local_highscores) {
+            *color = score.map_or(ThemeColor::Dark, |score| {
+                match score.meta.score.calculate_grade(score.meta.completion) {
+                    ScoreGrade::F => ThemeColor::Danger,
+                    _ => ThemeColor::Highlight,
+                }
+            });
         }
     }
 
@@ -605,7 +410,7 @@ impl ItemGroupWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.right_clicked {
+        if self.state.mouse_right.clicked {
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -613,7 +418,7 @@ impl ItemGroupWidget {
         }
         self.menu.update(position, context);
         if self.menu.state.hovered {
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         self.state.update(position, context);
@@ -630,14 +435,30 @@ impl ItemGroupWidget {
             }
         }
 
-        self.text.update(position, &mut context.scale_font(0.9));
+        if !self.diffs.is_empty() {
+            position.cut_bottom(context.font_size * 0.15);
+            let diffs = position
+                .cut_bottom(context.font_size * 0.3)
+                .extend_symmetric(-vec2(context.font_size * 0.2, 0.0));
+            let diffs = diffs.split_columns(self.diffs.len());
+            for ((widget, _), pos) in self.diffs.iter_mut().zip(diffs) {
+                let pos = pos.extend_symmetric(-vec2(0.1, 0.05) * context.font_size);
+                widget.update(pos, context);
+            }
+            position.cut_bottom(-context.font_size * 0.05);
+            self.text.align(vec2(0.5, 0.0));
+        } else {
+            self.text.align(vec2(0.5, 0.5));
+        }
+
+        self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
-        if self.menu.edit.state.clicked {
+        if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditGroup(self.index));
-        } else if self.menu.sync.state.clicked {
+        } else if self.menu.sync.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.index));
-        } else if self.menu.delete.state.clicked {
+        } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteGroup(self.index));
         }
         action
@@ -645,35 +466,37 @@ impl ItemGroupWidget {
 }
 
 #[derive(Clone)]
-pub struct ItemLevelWidget {
+pub struct ItemDiffWidget {
     pub state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
     pub text: TextWidget,
     pub group: Index,
     pub index: usize,
-    pub level: Rc<LevelFull>,
+    pub level: LevelFull,
+    pub grade: IconWidget,
     pub menu: ItemMenuWidget,
 }
 
-impl ItemLevelWidget {
+impl ItemDiffWidget {
     pub fn new(
         assets: &Rc<Assets>,
         text: impl Into<Name>,
         group: Index,
         index: usize,
-        level: Rc<LevelFull>,
+        level: LevelFull,
     ) -> Self {
         let mut menu = ItemMenuWidget::new(assets);
         menu.sync.hide();
         Self {
-            state: WidgetState::new(),
-            edited: IconWidget::new(&assets.sprites.star),
-            local: IconWidget::new(&assets.sprites.local),
+            state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
+            edited: IconWidget::new(assets.atlas.star()),
+            local: IconWidget::new(assets.atlas.local()),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
             group,
             index,
             level,
+            grade: IconWidget::new(assets.atlas.grade_s()),
             menu,
         }
     }
@@ -682,8 +505,10 @@ impl ItemLevelWidget {
         &mut self,
         group_idx: Index,
         level_index: usize,
-        cached: &Rc<LevelFull>,
+        cached: &LevelFull,
+        local_highscore: Option<&SavedScore>,
         edited: bool,
+        context: &UiContext,
     ) {
         self.index = level_index;
         self.group = group_idx;
@@ -700,6 +525,24 @@ impl ItemLevelWidget {
                 self.edited.hide();
             }
         }
+
+        match local_highscore {
+            Some(highscore) => {
+                let grade = highscore
+                    .meta
+                    .score
+                    .calculate_grade(highscore.meta.completion);
+                self.grade.texture = context.context.assets.get_grade(grade);
+                self.grade.color = match grade {
+                    ScoreGrade::F => ThemeColor::Danger,
+                    _ => ThemeColor::Highlight,
+                };
+                self.grade.show();
+            }
+            None => {
+                self.grade.hide();
+            }
+        }
     }
 
     fn update(
@@ -707,7 +550,7 @@ impl ItemLevelWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.right_clicked {
+        if self.state.mouse_right.clicked {
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -719,10 +562,15 @@ impl ItemLevelWidget {
         }
         self.menu.update(position, context);
         if self.menu.state.hovered {
-            context.can_focus = false;
+            context.update_focus(true);
         }
 
         self.state.update(position, context);
+
+        let grade = position
+            .align_aabb(vec2::splat(position.height()), vec2(1.0, 0.5))
+            .translate(vec2(position.height(), 0.0));
+        self.grade.update(grade, context);
 
         let widgets = [&mut self.edited, &mut self.local];
         if widgets.iter().any(|widget| widget.state.visible) {
@@ -736,65 +584,17 @@ impl ItemLevelWidget {
             }
         }
 
-        self.text.update(position, &mut context.scale_font(0.9));
+        self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
-        if self.menu.edit.state.clicked {
-            action = Some(LevelSelectAction::EditLevel(self.group, self.index));
-        } else if self.menu.sync.state.clicked {
+        if self.menu.edit.icon.state.mouse_left.clicked {
+            action = Some(LevelSelectAction::EditDifficulty(self.group, self.index));
+        } else if self.menu.sync.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::SyncGroup(self.group));
-        } else if self.menu.delete.state.clicked {
-            action = Some(LevelSelectAction::DeleteLevel(self.group, self.index));
+        } else if self.menu.delete.icon.state.mouse_left.clicked {
+            action = Some(LevelSelectAction::DeleteDifficulty(self.group, self.index));
         }
         action
-    }
-}
-
-pub struct NewMenuWidget {
-    pub window: UiWindow<()>,
-    pub state: WidgetState,
-    pub create: TextWidget,
-    pub browse: TextWidget,
-}
-
-impl NewMenuWidget {
-    pub fn new(_assets: &Rc<Assets>) -> Self {
-        Self {
-            window: UiWindow::new((), 0.15),
-            state: WidgetState::new(),
-            create: TextWidget::new("create"),
-            browse: TextWidget::new("browse"),
-        }
-    }
-}
-
-impl Widget for NewMenuWidget {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        let position =
-            position.translate(vec2(0.0, -position.height() + context.layout_size * 0.5));
-        let size = vec2(position.width(), 2.5 * context.font_size);
-        let position = position.align_aabb(size, vec2(0.0, 1.0));
-
-        self.state.update(position, context);
-        let rows = [&mut self.browse, &mut self.create];
-        let spacing = context.layout_size * 0.3;
-        let item_size = vec2(
-            size.x - context.layout_size * 0.6,
-            (size.y - spacing) / rows.len() as f32 - spacing,
-        );
-        let item = position
-            .extend_up(-spacing)
-            .align_aabb(item_size, vec2(0.5, 1.0));
-        let positions = item.stack(vec2(0.0, -item.height() - spacing), rows.len());
-        for (widget, pos) in rows.into_iter().zip(positions) {
-            widget.update(pos, &mut context.scale_font(0.7));
-        }
-
-        context.update_focus(self.state.hovered);
     }
 }
 
@@ -812,14 +612,14 @@ impl ItemMenuWidget {
         Self {
             window: UiWindow::new((), 0.15),
             state: WidgetState::new(),
-            sync: IconButtonWidget::new_normal(&assets.sprites.reset),
-            edit: IconButtonWidget::new_normal(&assets.sprites.edit),
-            delete: IconButtonWidget::new_danger(&assets.sprites.trash),
+            sync: IconButtonWidget::new_normal(assets.atlas.reset()),
+            edit: IconButtonWidget::new_normal(assets.atlas.edit()),
+            delete: IconButtonWidget::new_danger(assets.atlas.trash()),
         }
     }
 }
 
-impl Widget for ItemMenuWidget {
+impl WidgetOld for ItemMenuWidget {
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
     }
@@ -832,7 +632,7 @@ impl Widget for ItemMenuWidget {
 
         let mut columns: Vec<_> = [&mut self.delete, &mut self.edit, &mut self.sync]
             .into_iter()
-            .filter(|widget| widget.state.visible)
+            .filter(|widget| widget.icon.state.visible)
             .collect();
 
         let position = position.translate(vec2(context.layout_size, -position.height()));

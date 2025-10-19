@@ -4,14 +4,20 @@ use crate::game::ui::layout::AreaOps;
 pub use crate::ui::{layout, widget::*, *};
 
 pub struct GameUI {
+    pub leaderboard_head: TextWidget,
     pub leaderboard: LeaderboardWidget,
+    pub score: ScoreWidget,
 }
 
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
         let mut leaderboard = LeaderboardWidget::new(assets, true);
         leaderboard.reload.hide();
-        Self { leaderboard }
+        Self {
+            leaderboard_head: TextWidget::new("Leaderboard").rotated(Angle::from_degrees(90.0)),
+            leaderboard,
+            score: ScoreWidget::new(assets),
+        }
     }
 
     pub fn layout(
@@ -28,12 +34,6 @@ impl GameUI {
         context.layout_size = layout_size;
         context.font_size = screen.height() * 0.05;
 
-        macro_rules! update {
-            ($widget:expr, $position:expr) => {{
-                $widget.update($position, context);
-            }};
-        }
-
         // Margin
         let mut main = screen.extend_uniform(-layout_size * 2.0);
 
@@ -43,28 +43,82 @@ impl GameUI {
         let main = main.extend_up(-layout_size * 3.0);
 
         if let State::Lost { .. } | State::Finished = model.state {
-            // Leaderboard
             self.leaderboard.show();
-            // self.leaderboard.close.hide();
+            self.score.show();
 
-            let width = layout_size * 20.0;
-            let height = main.height() + layout_size * 2.0;
+            // Leaderboard
+            {
+                let main = screen;
 
-            let leaderboard = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
-                .extend_left(width)
-                .extend_down(height);
+                let size = vec2(layout_size * 22.0, main.height() - layout_size * 6.0);
+                let head_size = vec2(context.font_size, layout_size * 8.0);
+                let pos = main.align_pos(vec2(1.0, 0.5));
 
-            let offset = main.height();
+                let hover_t = self.leaderboard.window.show.time.get_ratio();
+                let hover_t = crate::util::smoothstep(hover_t);
 
-            let leaderboard = leaderboard.translate(vec2(0.0, offset));
+                let slide =
+                    vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + head_size.x);
 
-            self.leaderboard.update_state(&model.leaderboard);
-            update!(self.leaderboard, leaderboard);
-            context.update_focus(self.leaderboard.state.hovered);
+                let up = 0.4;
+                let leaderboard = Aabb2::point(pos + vec2(head_size.x, 0.0) + slide)
+                    .extend_right(size.x)
+                    .extend_up(size.y * up)
+                    .extend_down(size.y * (1.0 - up));
+                let leaderboard_head = Aabb2::point(pos + slide)
+                    .extend_right(head_size.x)
+                    .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
+
+                self.leaderboard.update_state(&model.leaderboard);
+                self.leaderboard.update(leaderboard, context);
+                self.leaderboard_head.update(leaderboard_head, context);
+                context.update_focus(self.leaderboard.state.hovered);
+
+                let hover = self.leaderboard.state.hovered || self.leaderboard_head.state.hovered;
+                self.leaderboard.window.layout(
+                    hover,
+                    context.cursor.position.x < leaderboard.min.x && !hover,
+                );
+            }
+
+            // Score
+            {
+                let width = layout_size * 13.0;
+                let height = layout_size * 21.5;
+
+                let score = Aabb2::point(main.bottom_right() + vec2(0.0, 2.0) * layout_size)
+                    .extend_left(width)
+                    .extend_down(height);
+
+                let t = (model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0);
+                let t = crate::util::smoothstep(1.0 - t);
+                let offset = main.height() + screen.height() * t;
+
+                let score = score.translate(vec2(-layout_size * 7.0, offset));
+                self.score.update_state(
+                    &ctl_local::ScoreMeta::new(
+                        model.level.config.modifiers.clone(),
+                        model.level.config.health.clone(),
+                        model.score.clone(),
+                        model.current_completion(),
+                    ),
+                    &model
+                        .level
+                        .group
+                        .music
+                        .as_ref()
+                        .map(|music| music.meta.clone())
+                        .unwrap_or_default(),
+                    &model.level.level.meta,
+                );
+                self.score.update(score, context);
+                context.update_focus(self.score.state.hovered);
+            }
         } else {
             self.leaderboard.hide();
+            self.score.hide();
         }
 
-        !context.can_focus
+        !context.can_focus()
     }
 }

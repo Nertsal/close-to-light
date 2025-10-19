@@ -1,11 +1,9 @@
 [package]
 name = "ctl-server"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ctl-core.workspace = true
 
 axum.workspace = true
@@ -32,7 +30,9 @@ dotenv.workspace = true
 clap.workspace = true
 thiserror.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 bincode.workspace = true
+cbor4ii.workspace = true
 rand.workspace = true
 color-eyre.workspace = true
 

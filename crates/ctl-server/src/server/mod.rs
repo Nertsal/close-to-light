@@ -1,8 +1,8 @@
-mod artists;
 mod auth;
-mod group;
 mod level;
+mod level_set;
 mod music;
+mod musicians;
 mod users;
 
 #[cfg(test)]
@@ -20,7 +20,7 @@ use crate::{
 
 use std::collections::BTreeMap;
 
-use ctl_core::prelude::{GroupInfo, Id, LevelInfo, MusicInfo, UserInfo};
+use ctl_core::prelude::{Id, LevelInfo, LevelSetInfo, MusicInfo, UserInfo};
 
 use axum::{
     body::Body,
@@ -37,7 +37,7 @@ use axum_login::{
 use reqwest::Client;
 use serde::Deserialize;
 use sqlx::Row;
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use tokio::sync::RwLock;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::cookie::Key;
@@ -64,7 +64,7 @@ pub async fn run(
     config: AppConfig,
     secrets: AppSecrets,
 ) -> color_eyre::Result<()> {
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{port}");
     info!("Starting the server on {}", addr);
 
     let app = Arc::new(App {
@@ -98,15 +98,18 @@ pub async fn run(
         .route("/", get(get_root))
         .merge(auth::router())
         .merge(users::router())
-        .merge(artists::router());
+        .merge(musicians::router());
 
     let router = music::route(router);
-    let router = group::route(router);
+    let router = level_set::route(router);
     let router = level::route(router);
 
-    let client = Client::builder()
-        .build()
-        .wrap_err("failed to build the http client")?;
+    let mut client = Client::builder();
+    if let Some(proxy) = &app.config.proxy {
+        info!("Configuring proxy server: {proxy}");
+        client = client.proxy(reqwest::Proxy::all(proxy).wrap_err("when configuring proxy")?);
+    }
+    let client = client.build().wrap_err("failed to build the http client")?;
 
     let router = router
         .layer(axum::middleware::from_fn(
@@ -143,19 +146,25 @@ enum AuthorityLevel {
     Admin,
 }
 
-async fn get_auth(session: &AuthSession, app: &App) -> Result<AuthorityLevel> {
-    let Some(user) = &session.user else {
-        return Ok(AuthorityLevel::Unauthorized);
-    };
-
+async fn get_user_auth(user: &User, trans: &mut Transaction) -> Result<AuthorityLevel> {
     let auth = sqlx::query("SELECT null FROM admins WHERE user_id = ?")
         .bind(user.user_id)
-        .fetch_optional(&app.database)
+        .fetch_optional(&mut **trans)
         .await?;
     match auth {
         None => Ok(AuthorityLevel::User),
         Some(_) => Ok(AuthorityLevel::Admin),
     }
+}
+
+async fn get_auth(session: &AuthSession, app: &App) -> Result<AuthorityLevel> {
+    let Some(user) = &session.user else {
+        return Ok(AuthorityLevel::Unauthorized);
+    };
+    let mut trans = app.database.begin().await?;
+    let auth = get_user_auth(user, &mut trans).await?;
+    trans.commit().await?;
+    Ok(auth)
 }
 
 fn cmp_auth(auth: AuthorityLevel, required: AuthorityLevel) -> Result<()> {
@@ -177,10 +186,18 @@ async fn check_auth(session: &AuthSession, app: &App, required: AuthorityLevel) 
     cmp_auth(auth, required)
 }
 
-fn validate_name(name: String) -> Result<String> {
+fn validate_name(name: &str) -> Result<String> {
     let name = name.trim().to_owned();
     if name.is_empty() {
         return Err(RequestError::InvalidName(name));
+    }
+    Ok(name)
+}
+
+fn validate_romanized_name(name: &str) -> Result<String> {
+    let name = validate_name(name)?;
+    if !name.is_ascii() {
+        return Err(RequestError::NonAscii);
     }
     Ok(name)
 }
@@ -211,7 +228,7 @@ async fn send_file(
     // `File` implements `AsyncRead`
     let file = match tokio::fs::File::open(path).await {
         Ok(file) => file,
-        Err(err) => return Err(RequestError::FileNotFound(format!("{}", err))),
+        Err(err) => return Err(RequestError::FileNotFound(format!("{err}"))),
     };
     // convert the `AsyncRead` into a `Stream`
     let stream = tokio_util::io::ReaderStream::new(file);
@@ -222,7 +239,7 @@ async fn send_file(
         (header::CONTENT_TYPE, content_type),
         (
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename={:?}", filename),
+            format!("attachment; filename={filename:?}"),
         ),
     ];
 

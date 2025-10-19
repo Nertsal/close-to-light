@@ -1,7 +1,9 @@
-use crate::render::util::TextRenderOptions;
-use crate::render::{dither::DitherRender, util::UtilRender};
+use crate::{
+    prelude::*,
+    render::{dither::DitherRender, util::UtilRender},
+};
 
-use crate::prelude::*;
+use ctl_render_core::TextRenderOptions;
 
 pub struct MediaState {
     context: Context,
@@ -9,7 +11,7 @@ pub struct MediaState {
     dither: DitherRender,
     text: String,
     theme: Theme,
-    time: Time,
+    time: FloatTime,
     camera: Camera2d,
 }
 
@@ -20,11 +22,11 @@ impl MediaState {
             dither: DitherRender::new(&context.geng, &context.assets),
             text: String::new(),
             theme: Theme::default(),
-            time: Time::ZERO,
+            time: FloatTime::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: 10.0,
+                fov: Camera2dFov::Vertical(10.0),
             },
             context,
         }
@@ -61,7 +63,7 @@ impl geng::State for MediaState {
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
     }
 }

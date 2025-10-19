@@ -1,0 +1,16 @@
+[package]
+name = "ctl-ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ctl-core.workspace = true
+ctl-assets.workspace = true
+ctl-font.workspace = true
+ctl-context.workspace = true
+ctl-render-core.workspace = true
+ctl-local.workspace = true
+ctl-util.workspace = true
+geng.workspace = true
+geng-utils.workspace = true
+num-rational.workspace = true

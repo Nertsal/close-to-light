@@ -1,0 +1,50 @@
+version = "V3"
+id = 2
+featured = false
+hash = "8797fc2050f010faefa8c936111f5c647e8503524004fdccbaddd372e0942204"
+
+[music]
+id = 2
+original = true
+featured = true
+name = "Rest"
+romanized = "Rest"
+
+[[music.authors]]
+id = 0
+name = "Nertsal"
+romanized = "Nertsal"
+
+[owner]
+id = 1
+name = "Nertsal"
+
+[[levels]]
+id = 4
+name = "Easy"
+hash = "4d6dda82fbc2ec02c3f2009de109222d3a6f556fd4cd83f007d0ee0d2c460deb"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
+
+[[levels]]
+id = 5
+name = "Normal"
+hash = "baebdc613cb93f29e526aed79c35339ecc735f2215564030808ee1049966929e"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
+
+[[levels]]
+id = 6
+name = "Hard"
+hash = "1c323c3aa40e247d00533f0ccdeba2a35b430f884326eb797150cc2961fdb45e"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"

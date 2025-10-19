@@ -5,20 +5,20 @@ pub use self::ui::*;
 use super::*;
 
 use crate::{
-    game::PlayGroup,
-    leaderboard::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta},
-    local::CachedMusic,
-    render::{mask::MaskedRender, menu::MenuRender},
-    ui::{
-        widget::{ConfirmPopup, Widget},
-        ShowTime, UiContext, WidgetRequest,
-    },
+    render::{THEME, mask::MaskedRender, menu::MenuRender, post::PostRender},
+    ui::{ShowTime, UiContext, WidgetRequest, widget::ConfirmPopup},
 };
+
+use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
+use ctl_logic::PlayGroup;
+
+const LEVEL_SWITCH_TIME: f32 = 0.5;
+const DIFF_SWITCH_TIME: f32 = 0.5;
 
 #[derive(Debug)]
 pub enum ConfirmAction {
-    DeleteMusic(Id),
     DeleteGroup(Index),
+    DeleteLevel(Index, usize),
     SyncDiscard,
     DownloadRecommended,
     SyncUpload,
@@ -32,10 +32,11 @@ pub struct LevelMenu {
     util: UtilRender,
     dither: DitherRender,
     masked: MaskedRender,
+    post: PostRender,
 
     framebuffer_size: vec2<usize>,
-    last_delta_time: Time,
-    time: Time,
+    last_delta_time: FloatTime,
+    time: FloatTime,
 
     ui: MenuUI,
     ui_focused: bool,
@@ -44,6 +45,8 @@ pub struct LevelMenu {
     camera: Camera2d,
     state: MenuState,
     play_button: HoverButton,
+    /// Button that was used to transition into the menu.
+    transition_button: Option<HoverButton>,
 }
 
 pub struct MenuState {
@@ -54,39 +57,23 @@ pub struct MenuState {
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
-    /// Currently showing music.
-    pub selected_music: Option<ShowTime<Id>>,
-    /// Currently showing group.
-    pub selected_group: Option<ShowTime<Index>>,
-    /// Currently showing level of the active group.
-    pub selected_level: Option<ShowTime<usize>>,
+    /// Currently showing level.
+    pub selected_level: Option<ShowTime<Index>>,
+    /// Currently showing difficulty of the active level.
+    pub selected_diff: Option<ShowTime<usize>>,
 
-    /// Switch to the music after current one finishes its animation.
-    pub switch_music: Option<Id>,
-    /// Switch to the group after current one finishes its animation.
-    pub switch_group: Option<Index>,
-    /// Switch to the level of the active group after current one finishes its animation.
-    pub switch_level: Option<usize>,
+    /// The last level that was selected before the most recent animation.
+    pub last_selected_level: Option<Index>,
+    /// Switch to the level after current one finishes its animation.
+    pub switch_level: Option<Index>,
+    /// Switch to the difficulty of the active level after current one finishes its animation.
+    pub switch_diff: Option<usize>,
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
 
     /// List of notifications to be consumed and transferred to UI.
     pub notifications: Vec<String>,
-}
-
-pub struct GroupEntry {
-    pub meta: GroupInfo,
-    pub logo: Option<ugli::Texture>,
-}
-
-impl Debug for GroupEntry {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("GroupEntry")
-            .field("meta", &self.meta)
-            .field("logo", &self.logo.as_ref().map(|_| "<logo>"))
-            .finish()
-    }
 }
 
 impl MenuState {
@@ -97,52 +84,50 @@ impl MenuState {
     }
 
     fn update_board_meta(&mut self) {
-        self.leaderboard.change_category(self.get_category());
+        let category = self.get_category();
+        self.leaderboard.get_mut().change_category(category);
     }
 
-    fn select_music(&mut self, music: Id) {
-        self.switch_music = Some(music);
+    fn select_level(&mut self, group: Index) {
+        self.switch_level = Some(group);
         if self
-            .selected_music
+            .selected_level
             .as_ref()
-            .map_or(true, |selected| selected.data != music)
+            .is_none_or(|selected| selected.data != group)
         {
-            self.switch_group = None;
-            self.switch_level = None;
+            self.switch_diff = None;
         }
     }
 
-    fn select_group(&mut self, group: Index) {
-        self.switch_group = Some(group);
-        if self
-            .selected_group
-            .as_ref()
-            .map_or(true, |selected| selected.data != group)
-        {
-            self.switch_level = None;
-        }
-    }
-
-    fn select_level(&mut self, level: usize) {
-        self.switch_level = Some(level);
+    fn select_difficulty(&mut self, level: usize) {
+        self.switch_diff = Some(level);
     }
 
     fn edit_level(&mut self, group: Index, level: Option<usize>) {
         self.edit_level = Some((group, level));
     }
 
-    fn new_group(&mut self, music: Id) {
-        self.switch_group = None; // Deselect group
+    fn new_group(&mut self) {
+        self.switch_level = None; // Deselect group
         let local = &self.context.local;
-        local.new_group(music);
+        let group_index = local.new_group();
+        self.edit_level(group_index, None);
     }
 
     /// Create a popup window with a message for the given action.
-    pub fn popup_confirm(&mut self, action: ConfirmAction, message: impl Into<Name>) {
+    pub fn popup_confirm(
+        &mut self,
+        action: ConfirmAction,
+        message: impl Into<Name>,
+        confirm: impl Into<Name>,
+        discard: impl Into<Name>,
+    ) {
         self.confirm_popup = Some(ConfirmPopup {
             action,
             title: "Are you sure?".into(),
             message: message.into(),
+            confirm_text: confirm.into(),
+            discard_text: discard.into(),
         });
     }
 
@@ -152,11 +137,15 @@ impl MenuState {
         action: ConfirmAction,
         title: impl Into<Name>,
         message: impl Into<Name>,
+        confirm: impl Into<Name>,
+        discard: impl Into<Name>,
     ) {
         self.confirm_popup = Some(ConfirmPopup {
             action,
             title: title.into(),
             message: message.into(),
+            confirm_text: confirm.into(),
+            discard_text: discard.into(),
         });
     }
 
@@ -166,20 +155,22 @@ impl MenuState {
             return;
         };
         match popup.action {
-            ConfirmAction::DeleteMusic(id) => self.context.local.delete_music(id),
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
+            ConfirmAction::DeleteLevel(group, level) => {
+                self.context.local.delete_level(group, level)
+            }
             ConfirmAction::SyncDiscard => {
-                if let Some(sync) = &mut ui.sync {
-                    if let Some(client) = self.leaderboard.client.clone() {
-                        sync.discard_changes(client);
-                    }
+                if let Some(sync) = &mut ui.sync
+                    && let Some(client) = self.leaderboard.get().client.clone()
+                {
+                    sync.discard_changes(client);
                 }
             }
             ConfirmAction::SyncUpload => {
-                if let Some(sync) = &mut ui.sync {
-                    if let Some(client) = self.leaderboard.client.clone() {
-                        sync.upload(client);
-                    }
+                if let Some(sync) = &mut ui.sync
+                    && let Some(client) = self.leaderboard.get().client.clone()
+                {
+                    sync.upload(client);
                 }
             }
             ConfirmAction::DownloadRecommended => {
@@ -192,7 +183,11 @@ impl MenuState {
 }
 
 impl LevelMenu {
-    pub fn new(context: Context, leaderboard: Leaderboard) -> Self {
+    pub fn new(
+        context: Context,
+        leaderboard: Leaderboard,
+        transition_button: Option<HoverButton>,
+    ) -> Self {
         let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
             r32(0.0),
@@ -203,10 +198,11 @@ impl LevelMenu {
             util: UtilRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            post: PostRender::new(context.clone()),
 
             framebuffer_size: vec2(1, 1),
-            last_delta_time: Time::ONE,
-            time: Time::ZERO,
+            last_delta_time: FloatTime::ONE,
+            time: FloatTime::ZERO,
 
             ui: MenuUI::new(context.clone()),
             ui_focused: false,
@@ -215,7 +211,7 @@ impl LevelMenu {
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: 10.0,
+                fov: Camera2dFov::Vertical(10.0),
             },
             state: MenuState {
                 context: context.clone(),
@@ -225,13 +221,12 @@ impl LevelMenu {
 
                 confirm_popup: None,
 
-                selected_music: None,
-                selected_group: None,
                 selected_level: None,
+                selected_diff: None,
 
-                switch_music: None,
-                switch_group: None,
+                last_selected_level: None,
                 switch_level: None,
+                switch_diff: None,
 
                 edit_level: None,
 
@@ -239,12 +234,13 @@ impl LevelMenu {
             },
             play_button: HoverButton::new(
                 Collider {
-                    position: vec2(4.9, -0.5).as_r32(),
+                    position: vec2(4.5, -0.5).as_r32(),
                     rotation: Angle::ZERO,
                     shape: Shape::Circle { radius: r32(0.8) },
                 },
                 1.5,
             ),
+            transition_button,
 
             context,
             transition: None,
@@ -255,32 +251,42 @@ impl LevelMenu {
                 ConfirmAction::DownloadRecommended,
                 "Download recommended levels?",
                 "",
+                "",
+                "",
             );
         }
 
         state
     }
 
-    fn get_active_level(&self) -> Option<(PlayGroup, usize, Rc<LevelFull>)> {
+    fn get_active_level(&self) -> Option<(PlayGroup, usize, LevelFull)> {
         let local = self.context.local.inner.borrow();
 
-        let group = self.state.selected_group.as_ref()?;
+        let group = self.state.selected_level.as_ref()?;
         let group_index = group.data;
         let group = local.groups.get(group_index)?;
 
-        let music = group.music.as_ref()?;
+        let music = group.local.music.clone();
 
-        let level = self.state.selected_level.as_ref()?;
+        let level = self.state.selected_diff.as_ref()?;
         let level_index = level.data;
-        let level = group.data.levels.get(level_index)?;
+        let level = group.local.data.levels.get(level_index)?;
+        let meta = group.local.meta.levels.get(level_index)?;
 
         let group = PlayGroup {
-            music: Rc::clone(music),
+            music,
             group_index,
             cached: Rc::clone(group),
         };
 
-        Some((group, level_index, Rc::clone(level)))
+        Some((
+            group,
+            level_index,
+            LevelFull {
+                meta: meta.clone(),
+                data: Rc::clone(level),
+            },
+        ))
     }
 
     fn play_level(&mut self) {
@@ -291,23 +297,24 @@ impl LevelMenu {
 
         self.context.music.stop();
         self.ui_context.cursor.reset();
-        self.play_button.hover_time.set(Time::ZERO);
+        let transition_button = self.play_button.clone();
+        self.play_button.reset();
 
         let future = {
             let context = self.context.clone();
             let leaderboard = self.state.leaderboard.clone();
-            let options = self.state.context.get_options();
             let config = self.state.config.clone();
 
             async move {
-                let level = crate::game::PlayLevel {
+                let level = ctl_logic::PlayLevel {
                     group,
                     level_index,
                     level: level.clone(),
                     config,
                     start_time: Time::ZERO,
+                    transition_button: Some(transition_button),
                 };
-                crate::game::Game::new(context, options, level, leaderboard)
+                crate::game::Game::new(context, level, leaderboard)
             }
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(
@@ -318,95 +325,20 @@ impl LevelMenu {
             ),
         )));
         // Queue leaderboard fetch when coming back
-        self.state.leaderboard.status = LeaderboardStatus::None;
+        self.state.leaderboard.get_mut().status = LeaderboardStatus::None;
     }
 
-    fn update_active_music(&mut self, delta_time: Time) {
-        let delta_time = delta_time.as_f32();
-        if let Some(current_music) = &mut self.state.selected_music {
-            if let Some(switch_music) = self.state.switch_music {
-                if current_music.data != switch_music {
-                    current_music.time.change(-delta_time);
-                    current_music.going_up = false;
-
-                    if current_music.time.is_min() {
-                        // Switch
-                        current_music.data = switch_music;
-                    }
-                } else {
-                    current_music.time.change(delta_time);
-                    current_music.going_up = true;
-                }
-            } else {
-                current_music.time.change(-delta_time);
-                current_music.going_up = false;
-
-                if current_music.time.is_min() {
-                    // Remove
-                    self.state.selected_music = None;
-                    self.ui.level_select.tab_groups.hide();
-                    self.ui.level_select.tab_levels.hide();
-                    self.ui.level_select.select_tab(LevelSelectTab::Music);
-                }
-            }
-        } else if let Some(music) = self.state.switch_music {
-            self.state.selected_music = Some(ShowTime {
-                data: music,
-                time: Bounded::new_zero(0.25),
-                going_up: true,
-            });
-        }
-    }
-
-    fn update_active_group(&mut self, delta_time: Time) {
-        let delta_time = delta_time.as_f32();
-        if let Some(current_group) = &mut self.state.selected_group {
-            if let Some(switch_group) = self.state.switch_group {
-                if current_group.data != switch_group {
-                    // Change level first
-                    self.state.switch_level = None;
-                    // if self.state.show_level.is_some() {
-                    //     return;
-                    // }
-
-                    current_group.time.change(-delta_time);
-                    current_group.going_up = false;
-
-                    if current_group.time.is_min() {
-                        // Switch
-                        current_group.data = switch_group;
-                    }
-                } else {
-                    current_group.time.change(delta_time);
-                    current_group.going_up = true;
-                }
-            } else {
-                current_group.time.change(-delta_time);
-                current_group.going_up = false;
-
-                if current_group.time.is_min() {
-                    // Remove
-                    self.state.selected_group = None;
-                    self.state.selected_level = None;
-                    self.ui.level_select.tab_levels.hide();
-                    self.ui.level_select.select_tab(LevelSelectTab::Group);
-                }
-            }
-        } else if let Some(group) = self.state.switch_group {
-            self.state.selected_group = Some(ShowTime {
-                data: group,
-                time: Bounded::new_zero(0.25),
-                going_up: true,
-            });
-        }
-    }
-
-    fn update_active_level(&mut self, delta_time: Time) {
+    fn update_active_level(&mut self, delta_time: FloatTime) {
         let delta_time = delta_time.as_f32();
         if let Some(current_level) = &mut self.state.selected_level {
             if let Some(switch_level) = self.state.switch_level {
                 if current_level.data != switch_level {
-                    // self.state.show_leaderboard.going_up = false; // Hide leaderboard
+                    // Change level first
+                    self.state.switch_diff = None;
+                    // if self.state.show_level.is_some() {
+                    //     return;
+                    // }
+
                     current_level.time.change(-delta_time);
                     current_level.going_up = false;
 
@@ -417,21 +349,61 @@ impl LevelMenu {
                 } else {
                     current_level.time.change(delta_time);
                     current_level.going_up = true;
+                    if current_level.time.is_max() {
+                        self.state.last_selected_level = Some(switch_level);
+                    }
                 }
             } else {
-                // self.state.level_up = false;
                 current_level.time.change(-delta_time);
                 current_level.going_up = false;
 
                 if current_level.time.is_min() {
                     // Remove
                     self.state.selected_level = None;
+                    self.state.selected_diff = None;
+                    self.state.last_selected_level = None;
                 }
             }
         } else if let Some(level) = self.state.switch_level {
             self.state.selected_level = Some(ShowTime {
                 data: level,
-                time: Bounded::new_zero(0.25),
+                time: Bounded::new_zero(LEVEL_SWITCH_TIME),
+                going_up: true,
+            });
+        }
+    }
+
+    fn update_active_diff(&mut self, delta_time: FloatTime) {
+        let delta_time = delta_time.as_f32();
+        if let Some(current_diff) = &mut self.state.selected_diff {
+            if let Some(switch_diff) = self.state.switch_diff {
+                if current_diff.data != switch_diff {
+                    // self.state.show_leaderboard.going_up = false; // Hide leaderboard
+                    current_diff.time.change(-delta_time);
+                    current_diff.going_up = false;
+
+                    if current_diff.time.is_min() {
+                        // Switch
+                        current_diff.data = switch_diff;
+                    }
+                } else {
+                    current_diff.time.change(delta_time);
+                    current_diff.going_up = true;
+                }
+            } else {
+                // self.state.level_up = false;
+                current_diff.time.change(-delta_time);
+                current_diff.going_up = false;
+
+                if current_diff.time.is_min() {
+                    // Remove
+                    self.state.selected_diff = None;
+                }
+            }
+        } else if let Some(diff) = self.state.switch_diff {
+            self.state.selected_diff = Some(ShowTime {
+                data: diff,
+                time: Bounded::new_zero(DIFF_SWITCH_TIME),
                 going_up: true,
             });
         }
@@ -440,11 +412,12 @@ impl LevelMenu {
     fn fetch_leaderboard(&mut self) {
         let category = self.state.get_category();
         if let Some((_, _, level)) = self.get_active_level() {
-            let meta = ScoreMeta {
-                score: Score::new(category.mods.multiplier()),
-                category,
-            };
-            self.state.leaderboard.submit(None, level.meta.id, meta);
+            let score = Score::new(category.mods.multiplier());
+            let meta = ScoreMeta::new_category(category, score, R32::ZERO);
+            self.state
+                .leaderboard
+                .get_mut()
+                .reload_submit(None, false, level.meta.clone(), meta);
         }
     }
 
@@ -471,9 +444,12 @@ impl geng::State for LevelMenu {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size();
-        let theme = self.context.get_options().theme;
+        let options = self.context.get_options();
+        let theme = options.theme;
         ugli::clear(framebuffer, Some(theme.dark), None, None);
         self.masked.update_size(framebuffer.size());
+
+        let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         self.dither.set_noise(1.0);
         let mut dither_buffer = self.dither.start();
@@ -483,7 +459,7 @@ impl geng::State for LevelMenu {
         if !fading || self.play_button.is_fading() {
             let play_time = r32(self
                 .state
-                .selected_level
+                .selected_diff
                 .as_ref()
                 .map_or(0.0, |show| show.time.get_ratio()));
             let scale = crate::util::smoothstep(play_time);
@@ -498,18 +474,53 @@ impl geng::State for LevelMenu {
             );
         }
 
+        if !fading {
+            // UI lights
+            let mut draw_light = |light: &SelectLightUi| {
+                let light_pos = (vec2(light.pos_x, light.light_y.current())
+                    - self.ui.screen.position.bottom_left())
+                    / self.ui.screen.position.size()
+                    * dither_buffer.size().as_f32();
+                let light_pos = self
+                    .camera
+                    .screen_to_world(dither_buffer.size().as_f32(), light_pos)
+                    .as_r32();
+
+                let radius = (self
+                    .camera
+                    .screen_to_world(self.framebuffer_size.as_f32(), vec2(0.0, 0.0))
+                    - self
+                        .camera
+                        .screen_to_world(self.framebuffer_size.as_f32(), vec2(light.radius, 0.0)))
+                .len()
+                .as_r32();
+
+                self.util.draw_light_gradient(
+                    &Collider::new(light_pos, Shape::Circle { radius }),
+                    crate::render::THEME.light,
+                    &self.camera,
+                    &mut dither_buffer,
+                );
+            };
+
+            draw_light(&self.ui.level_select.light_level);
+            if self.ui.level_select.tab_diffs.state.visible {
+                draw_light(&self.ui.level_select.light_diff);
+            }
+        }
+
         self.dither.finish(self.time, &theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), framebuffer)
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+            .fit_screen(vec2(0.5, 0.5), buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         if !fading {
             let mut masked = self.masked.start();
 
             self.ui_focused = self.ui.layout(
                 &mut self.state,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
             );
             self.render
@@ -540,27 +551,50 @@ impl geng::State for LevelMenu {
                 // );
 
                 geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-                    .fit_screen(vec2(0.5, 0.5), framebuffer)
-                    .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+                    .fit_screen(vec2(0.5, 0.5), buffer)
+                    .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
             } else {
                 self.masked.draw(
                     ugli::DrawParameters {
                         blend_mode: Some(ugli::BlendMode::straight_alpha()),
                         ..default()
                     },
-                    framebuffer,
+                    buffer,
                 );
             };
         }
-        self.ui_context.frame_end();
 
         let mut dither_buffer = self.dither.start();
         self.util
             .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
+        if let Some(button) = &self.transition_button {
+            self.util
+                .draw_button(button, "", &THEME, &self.camera, &mut dither_buffer);
+        }
+        if fading || self.transition_button.is_some() {
+            self.util.draw_text(
+                "made in rust btw",
+                vec2(0.0, -3.0).as_r32(),
+                TextRenderOptions::new(0.5).color(THEME.dark),
+                &self.camera,
+                &mut dither_buffer,
+            );
+        }
         self.dither.finish(self.time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), framebuffer)
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+            .fit_screen(vec2(0.5, 0.5), buffer)
+            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+
+        self.post.post_process(
+            crate::render::post::PostVfx {
+                time: self.time,
+                crt: options.graphics.crt.enabled,
+                rgb_split: 0.0,
+            },
+            framebuffer,
+        );
+
+        self.ui_context.frame_end();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -569,20 +603,23 @@ impl geng::State for LevelMenu {
                 key: geng::Key::F11,
             } => self.context.geng.window().toggle_fullscreen(),
             geng::Event::EditText(text) => {
-                self.ui_context.text_edit.text = text;
+                self.ui_context.text_edit.set_text(text);
             }
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {
-                if let Some(sync) = &mut self.ui.sync {
+                if self.state.confirm_popup.take().is_some() {
+                    if let Some(confirm) = &mut self.ui.confirm {
+                        confirm.window.request = Some(WidgetRequest::Close);
+                    }
+                } else if let Some(sync) = &mut self.ui.sync {
                     sync.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.explore.window.show.time.is_max() {
                     self.ui.explore.window.request = Some(WidgetRequest::Close);
                 } else if self.ui.leaderboard.window.show.time.is_max() {
                     self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
-                } else if self.state.switch_level.take().is_some()
-                    || self.state.switch_group.take().is_some()
-                    || self.state.switch_music.take().is_some()
+                } else if self.state.switch_diff.take().is_some()
+                    || self.state.switch_level.take().is_some()
                 {
                 } else {
                     // Go to main menu
@@ -600,12 +637,12 @@ impl geng::State for LevelMenu {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as _);
+        let delta_time = FloatTime::new(delta_time as _);
         self.state.player.update_tail(delta_time);
     }
 
     fn update(&mut self, delta_time: f64) {
-        let delta_time = Time::new(delta_time as f32);
+        let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
 
         self.context
@@ -615,14 +652,26 @@ impl geng::State for LevelMenu {
 
         let options = self.context.get_options();
 
-        self.ui_context
-            .update(self.context.geng.window(), delta_time.as_f32());
+        self.ui_context.update(delta_time.as_f32());
 
+        let target_music = || {
+            self.state
+                .selected_level
+                .as_ref()
+                .and_then(|group| self.state.context.local.get_group(group.data))
+                .and_then(|group| group.local.music.clone())
+        };
         if self.ui.explore.state.visible {
-            let t = if !self.ui.explore.window.show.going_up
-                && self.context.music.current().map(|info| info.id)
-                    != self.state.selected_music.as_ref().map(|show| show.data)
-            {
+            let music_change = || {
+                let current = self.context.music.current();
+                let target = target_music();
+                match (current, target) {
+                    (None, None) => false,
+                    (Some(a), Some(b)) => Rc::ptr_eq(&a.sound, &b.sound),
+                    _ => true,
+                }
+            };
+            let t = if !self.ui.explore.window.show.going_up && music_change() {
                 self.ui.explore.window.show.time.get_ratio()
             } else {
                 1.0
@@ -631,22 +680,24 @@ impl geng::State for LevelMenu {
         } else {
             // Music volume
             let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
-                .min(show_ratio(&self.state.selected_music).unwrap_or(0.0));
+                .min(show_ratio(&self.state.selected_level).unwrap_or(0.0));
             self.context.music.set_volume(options.volume.music() * t);
 
             // Playing music
-            if let Some(active) = self
-                .state
-                .selected_music
-                .as_ref()
-                .and_then(|music| self.state.context.local.get_music(music.data))
-            {
+            if let Some(active) = target_music() {
                 self.context.music.switch(&active); // TODO: rng start
             } else {
                 self.context.music.stop();
             }
         }
         self.context.music.set_speed(1.0);
+
+        if let Some(button) = &mut self.transition_button {
+            button.update(true, delta_time);
+            if button.hover_time.is_max() {
+                self.transition_button = None;
+            }
+        }
 
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
@@ -658,7 +709,7 @@ impl geng::State for LevelMenu {
 
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
-        if !self.ui_focused && self.state.selected_level.is_some() {
+        if !self.ui_focused && self.state.selected_diff.is_some() {
             self.state
                 .player
                 .update_distance_simple(&self.play_button.base_collider);
@@ -667,23 +718,22 @@ impl geng::State for LevelMenu {
                 .play_button
                 .base_collider
                 .contains(cursor_world.as_r32());
-            if hovering && self.ui_context.cursor.was_down {
+            if hovering && self.ui_context.cursor.left.was_down {
                 self.play_button.clicked = true;
             }
             self.play_button.update(hovering, delta_time);
         }
-        if self.play_button.hover_time.is_max() {
+        if self.play_button.is_fading() {
             self.play_level();
         }
 
-        self.state.leaderboard.poll();
-        if let Some(player) = self.state.leaderboard.loaded.player {
+        self.state.leaderboard.get_mut().poll();
+        if let Some(player) = self.state.leaderboard.get_loaded().player {
             self.state.player.info.id = player;
         }
 
-        self.update_active_music(delta_time);
-        self.update_active_group(delta_time);
         self.update_active_level(delta_time);
+        self.update_active_diff(delta_time);
         self.update_leaderboard();
 
         self.context.local.poll();
@@ -695,54 +745,72 @@ impl geng::State for LevelMenu {
             .state
             .edit_level
             .take()
-            .and_then(|(group_index, level_index)| {
-                // TODO: warn if smth wrong
+            .map(|(group_index, level_index)| {
+                log::debug!("Requested edit for group {group_index:?}, level {level_index:?}");
                 let local = self.state.context.local.inner.borrow();
-                local.groups.get(group_index).and_then(|group| {
-                    group.music.as_ref().map(|music| {
-                        let level = level_index.and_then(|idx| {
-                            group.data.levels.get(idx).map(|level| (idx, level.clone()))
-                        });
-                        let group = PlayGroup {
-                            group_index,
-                            cached: Rc::clone(group),
-                            music: Rc::clone(music),
-                        };
-                        (group, level)
-                    })
-                })
+                let group = local
+                    .groups
+                    .get(group_index)
+                    .ok_or_else(|| anyhow!("Group not found for {:?}", group_index))?;
+                let music = group.local.music.clone();
+                let level = level_index.and_then(|idx| {
+                    let data = group.local.data.levels.get(idx)?.clone();
+                    let meta = group.local.meta.levels.get(idx)?.clone();
+                    Some((idx, LevelFull { meta, data }))
+                });
+                let group = PlayGroup {
+                    group_index,
+                    cached: Rc::clone(group),
+                    music,
+                };
+                anyhow::Ok((group, level))
             });
         let context = self.context.clone();
         let manager = self.context.geng.asset_manager().clone();
         let assets_path = run_dir().join("assets");
 
-        if let Some((group, level)) = edit_level {
-            let future = async move {
-                let config: crate::editor::EditorConfig =
-                    geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
-                        .await
-                        .expect("failed to load editor config");
-
-                if let Some((level_index, level)) = level {
-                    let level = crate::game::PlayLevel {
-                        group,
-                        level_index,
-                        level,
-                        config: LevelConfig::default(),
-                        start_time: Time::ZERO,
-                    };
-                    crate::editor::EditorState::new_level(context, config, level)
-                } else {
-                    crate::editor::EditorState::new_group(context, config, group)
+        if let Some(edit_level) = edit_level {
+            match edit_level {
+                Err(err) => {
+                    log::error!("Edit failed: {err:?}");
                 }
-            };
-            let state = geng::LoadingScreen::new(
-                &self.context.geng,
-                geng::EmptyLoadingScreen::new(&self.context.geng),
-                future,
-            );
+                Ok((group, level)) => {
+                    let level_index = level.as_ref().map(|(idx, _)| idx);
+                    log::debug!(
+                        "Editing group {:?}, level {:?}",
+                        group.group_index,
+                        level_index
+                    );
 
-            self.transition = Some(geng::state::Transition::Push(Box::new(state)));
+                    let future = async move {
+                        let config: crate::editor::EditorConfig =
+                            geng::asset::Load::load(&manager, &assets_path.join("editor.ron"), &())
+                                .await
+                                .expect("failed to load editor config");
+
+                        if let Some((level_index, level)) = level {
+                            let level = ctl_logic::PlayLevel {
+                                group,
+                                level_index,
+                                level,
+                                config: LevelConfig::default(),
+                                start_time: Time::ZERO,
+                                transition_button: None,
+                            };
+                            crate::editor::EditorState::new_level(context, config, level)
+                        } else {
+                            crate::editor::EditorState::new_group(context, config, group)
+                        }
+                    };
+                    let state = geng::LoadingScreen::new(
+                        &self.context.geng,
+                        geng::EmptyLoadingScreen::new(&self.context.geng),
+                        future,
+                    );
+
+                    self.transition = Some(geng::state::Transition::Push(Box::new(state)));
+                }
+            }
         }
 
         self.last_delta_time = delta_time;

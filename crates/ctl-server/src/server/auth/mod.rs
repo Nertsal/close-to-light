@@ -74,7 +74,7 @@ impl RegisterError {
 impl axum::response::IntoResponse for RegisterError {
     fn into_response(self) -> axum::response::Response {
         tracing::debug!("Responding with an error: {:?}", self);
-        let body = format!("{}", self);
+        let body = format!("{self}");
         (self.status(), body).into_response()
     }
 }
@@ -116,13 +116,14 @@ async fn register_user(
     }
 
     // Create new user
-    let user_id =
-        sqlx::query("INSERT INTO users (username, password) VALUES (?, ?) RETURNING user_id")
-            .bind(&username)
-            .bind(&password)
-            .try_map(|row: DBRow| row.try_get("user_id"))
-            .fetch_one(&app.database)
-            .await?;
+    let user_id: Id = sqlx::query_scalar(
+        "INSERT INTO users (username, password, created_at) VALUES (?, ?, ?) RETURNING user_id",
+    )
+    .bind(&username)
+    .bind(&password)
+    .bind(OffsetDateTime::now_utc())
+    .fetch_one(&app.database)
+    .await?;
 
     Ok(user_id)
 }
