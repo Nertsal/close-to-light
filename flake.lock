@@ -97,6 +97,7 @@
       "original": {
         "owner": "geng-engine",
         "repo": "cargo-geng",
+        "rev": "aa2c2242d7024734f3d5f6e5c9879a19c01b100a",
         "type": "github"
       }
     },
