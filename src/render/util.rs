@@ -211,8 +211,7 @@ impl UtilRender {
         let font = &self.context.assets.fonts.pixel;
 
         let position = position.map(|x| x.as_f32());
-        // for line in text.lines() {
-        let transform = mat3::translate(position) * mat3::rotate(options.rotation);
+        let transform = mat3::translate(position);
         font.draw_with(
             framebuffer,
             camera,
@@ -222,8 +221,6 @@ impl UtilRender {
             transform,
             params.clone(),
         );
-        //     position.y -= options.size;
-        // }
     }
 
     pub fn draw_light(

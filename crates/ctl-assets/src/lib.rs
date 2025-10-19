@@ -17,7 +17,7 @@ use geng_utils::gif::GifFrame;
 pub struct LoadingAssets {
     #[load(path = "sprites/title.png", options(filter = "ugli::Filter::Nearest"))]
     pub title: ugli::Texture,
-    #[load(path = "fonts/pixel.ttf")]
+    #[load(path = "fonts/pixel")]
     pub font: Font,
     #[load(load_with = "load_gif(&manager, &base_path.join(\"sprites/loading_background.gif\"))")]
     pub background: Vec<GifFrame>,
@@ -61,7 +61,7 @@ pub struct Assets {
 
 #[derive(geng::asset::Load)]
 pub struct Fonts {
-    pub default: Rc<Font>,
+    // pub default: Rc<Font>,
     pub pixel: Rc<Font>,
 }
 

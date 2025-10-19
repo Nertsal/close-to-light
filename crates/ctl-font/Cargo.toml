@@ -8,4 +8,5 @@ ctl-util.workspace = true
 ctl-render-core.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
-rusttype.workspace = true
+serde.workspace = true
+toml.workspace = true

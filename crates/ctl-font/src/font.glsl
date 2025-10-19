@@ -33,15 +33,15 @@ float aa(float edge, float x) {
 
 void main() {
     float dist = (texture2D(u_texture, v_uv).x - 0.5) * 2.0;
-    // if (dist > 0) {
-    //     gl_FragColor = u_color;
-    // } else {
-    //     discard;
-    // }
-    float w = length(vec2(dFdx(dist), dFdy(dist)));
-    float inside = aa(0.0, dist);
-    float inside_border = aa(-u_outline_dist, dist);
-    vec4 outside = u_outline_color * inside_border + vec4(u_outline_color.xyz, 0.0) * (1.0 - inside_border);
-    gl_FragColor = u_color * inside + (1.0 - inside) * outside;
+    if (dist > 0) {
+        gl_FragColor = u_color;
+    } else {
+        discard;
+    }
+    // float w = length(vec2(dFdx(dist), dFdy(dist)));
+    // float inside = aa(0.0, dist);
+    // float inside_border = aa(-u_outline_dist, dist);
+    // vec4 outside = u_outline_color * inside_border + vec4(u_outline_color.xyz, 0.0) * (1.0 - inside_border);
+    // gl_FragColor = u_color * inside + (1.0 - inside) * outside;
 }
 #endif
