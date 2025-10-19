@@ -187,7 +187,8 @@ impl geng::asset::Load for Font {
         let path = path.to_owned();
         async move {
             let config: Config = manager.load_serde(path.join("config.toml")).await?;
-            let texture: ugli::Texture = manager.load(path.join("texture.png")).await?;
+            let mut texture: ugli::Texture = manager.load(path.join("texture.png")).await?;
+            texture.set_filter(ugli::Filter::Nearest);
             let program: ugli::Program = manager.load(path.join("shader.glsl")).await?;
             assert_eq!(
                 texture.size().x % config.tile_size.x,

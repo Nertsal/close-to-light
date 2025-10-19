@@ -358,25 +358,6 @@ impl UiRender {
             return;
         }
 
-        self.context.geng.draw2d().quad(
-            framebuffer,
-            &geng::PixelPerfectCamera,
-            slider.text.state.position,
-            theme.light,
-        );
-        self.context.geng.draw2d().quad(
-            framebuffer,
-            &geng::PixelPerfectCamera,
-            slider.bar_box.position,
-            theme.danger,
-        );
-        self.context.geng.draw2d().quad(
-            framebuffer,
-            &geng::PixelPerfectCamera,
-            slider.value.state.position,
-            theme.highlight,
-        );
-
         if slider.state.hovered {
             std::mem::swap(&mut theme.dark, &mut theme.light);
             self.fill_quad(slider.state.position, theme.dark, framebuffer);
@@ -691,8 +672,9 @@ impl UiRender {
             fg_color = theme.get_color(toggle.checked_color);
         }
         if toggle.checked {
-            self.fill_quad(
+            self.fill_quad_width(
                 toggle.tick.position,
+                width,
                 theme.get_color(toggle.checked_color),
                 framebuffer,
             );

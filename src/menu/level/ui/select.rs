@@ -445,7 +445,7 @@ impl ItemLevelWidget {
                 let pos = pos.extend_symmetric(-vec2(0.1, 0.05) * context.font_size);
                 widget.update(pos, context);
             }
-            position.cut_bottom(context.font_size * 0.1);
+            position.cut_bottom(-context.font_size * 0.05);
             self.text.align(vec2(0.5, 0.0));
         } else {
             self.text.align(vec2(0.5, 0.5));

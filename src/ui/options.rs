@@ -250,7 +250,7 @@ impl GraphicsWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             crt: ToggleWidget::new("CRT Shader"),
-            crt_scanlines: SliderWidget::new("CRT Scanlines").with_display_precision(0),
+            crt_scanlines: SliderWidget::new("Scanlines").with_display_precision(0),
             telegraph_color: ToggleWidget::new("Telegraph highlight"),
         }
     }
@@ -274,6 +274,8 @@ impl StatefulWidget for GraphicsWidget {
         let title = main.cut_top(context.font_size * 1.2);
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
+
+        let context = &mut context.scale_font(0.8);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
@@ -357,6 +359,8 @@ impl StatefulWidget for CursorWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
+        let context = &mut context.scale_font(0.8);
+
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
@@ -377,8 +381,10 @@ impl StatefulWidget for CursorWidget {
 
         self.inner_radius
             .update(next_row(), context, &mut state.inner_radius);
-        self.outer_radius
-            .update(next_row(), context, &mut state.outer_radius);
+        if state.show_perfect_radius {
+            self.outer_radius
+                .update(next_row(), context, &mut state.outer_radius);
+        }
 
         let mut position = position;
         position.min.y = min_y;
@@ -420,6 +426,8 @@ impl StatefulWidget for GameplayWidget {
         let title = main.cut_top(context.font_size * 1.2);
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
+
+        let context = &mut context.scale_font(0.8);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())

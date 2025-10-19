@@ -286,7 +286,8 @@ impl MenuUI {
 
             self.leaderboard.update_state(&state.leaderboard);
             self.leaderboard.update(leaderboard, context);
-            self.leaderboard_head.update(leaderboard_head, context);
+            self.leaderboard_head
+                .update(leaderboard_head, &context.scale_font(0.9));
             context.update_focus(self.leaderboard.state.hovered);
 
             let hover = base_t > 0.0

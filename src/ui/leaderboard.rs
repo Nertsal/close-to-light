@@ -183,7 +183,7 @@ impl WidgetOld for LeaderboardWidget {
 
         let title = main.cut_top(context.font_size * 1.2);
         if self.show_title {
-            self.title.update(title, &context.scale_font(1.1)); // TODO: better
+            self.title.update(title, &context.scale_font(1.1));
         }
 
         let subtitle = main.cut_top(context.font_size * 1.0);
@@ -192,7 +192,8 @@ impl WidgetOld for LeaderboardWidget {
         let separator = main.cut_top(context.font_size * 0.1);
         self.separator_title.update(separator, context);
 
-        let status = main.clone().cut_top(context.font_size * 1.0);
+        let mut status = main.clone().cut_top(context.font_size * 3.0);
+        status.cut_top(context.font_size);
         self.status.update(status, context);
 
         let highscore = main.cut_bottom(context.font_size * 2.0);
@@ -309,7 +310,7 @@ impl WidgetOld for LeaderboardEntryWidget {
         score.min.y = right.center().y - context.font_size * 0.25;
         self.score.update(score, context);
         let mut acc = right;
-        acc.max.y = score.min.y - context.font_size * 0.1;
+        acc.max.y = score.min.y;
         self.accuracy.update(acc, &context.scale_font(0.5));
 
         let grade = if self.modifiers.is_empty() {
