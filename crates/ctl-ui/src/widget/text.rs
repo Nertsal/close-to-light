@@ -74,8 +74,8 @@ impl TextWidget {
         };
 
         let max_height = size.y;
-        let max_width = width * 0.9; // Leave some space TODO: move into a parameter or smth
-        let max_size = max_width / measure.width() / 0.6; // Magic constant from the util renderer that scales everything by 0.6 idk why
+        let max_width = width;
+        let max_size = max_width / measure.width();
         let size = self.options.size.min(max_size).min(max_height);
 
         let mut options = self.options;
