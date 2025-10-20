@@ -324,7 +324,7 @@ impl UiRender {
             left.abs().max(right.abs())
         };
 
-        let max_height = size.y;
+        let max_height = size.y * 0.9;
         let max_width = width * 0.85; // Leave some space TODO: move into a parameter or smth
         let max_size = (max_width / measure.width()).min(max_height / measure.height());
         let size = widget.options.size.min(max_size).min(max_height);

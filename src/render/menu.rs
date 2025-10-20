@@ -235,10 +235,20 @@ impl MenuRender {
                 .music_original
                 .state
                 .position
-                .extend_uniform(self.font_size * 0.2);
+                .extend_uniform(self.font_size * 0.1);
             self.ui.fill_quad(pos, theme.light, framebuffer);
             self.ui
                 .draw_text_colored(&ui.music_original, theme.dark, framebuffer);
+        }
+        if ui.music_featured.state.visible {
+            let pos = ui
+                .music_featured
+                .state
+                .position
+                .extend_uniform(self.font_size * 0.1);
+            self.ui.fill_quad(pos, theme.light, framebuffer);
+            self.ui
+                .draw_text_colored(&ui.music_featured, theme.dark, framebuffer);
         }
         self.ui
             .draw_text_colored(&ui.difficulty, theme.highlight, framebuffer);
