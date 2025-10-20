@@ -64,6 +64,7 @@ impl MenuRender {
 
         self.draw_item_widget(
             &ui.notifications.discard_all.state,
+            &ui.notifications.discard_all.state,
             &ui.notifications.discard_all,
             false,
             1.0,
@@ -141,10 +142,18 @@ impl MenuRender {
 
         // Levels
         for level in &ui.levels {
+            let selected = state.switch_level == Some(level.index);
+            self.draw_item_widget(
+                &level.state,
+                &level.iconless_state,
+                &level.text,
+                selected,
+                1.0,
+                theme,
+                framebuffer,
+            );
             self.ui.draw_icon(&level.edited, theme, framebuffer);
             self.ui.draw_icon(&level.local, theme, framebuffer);
-            let selected = state.switch_level == Some(level.index);
-            self.draw_item_widget(&level.state, &level.text, selected, 1.0, theme, framebuffer);
             for (diff, color) in &level.diffs {
                 let mut pp_quad = |pos: Aabb2<f32>, color| {
                     let size = pos.size().map(|x| {
@@ -191,7 +200,15 @@ impl MenuRender {
             self.ui.draw_icon(&diff.edited, theme, framebuffer);
             self.ui.draw_icon(&diff.local, theme, framebuffer);
             let selected = state.switch_diff == Some(diff.index);
-            self.draw_item_widget(&diff.state, &diff.text, selected, 1.0, theme, framebuffer);
+            self.draw_item_widget(
+                &diff.state,
+                &diff.iconless_state,
+                &diff.text,
+                selected,
+                1.0,
+                theme,
+                framebuffer,
+            );
             self.ui.draw_outline(
                 diff.state.position,
                 self.font_size * 0.1,
@@ -546,16 +563,18 @@ impl MenuRender {
         self.ui.draw_text(&ui.leaderboard_head, framebuffer);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_item_widget(
         &mut self,
         state: &WidgetState,
+        iconless_state: &WidgetState,
         text: &crate::ui::widget::TextWidget,
         selected: bool,
         width: f32,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let (bg_color, fg_color, _out_color) = if selected {
+        let (bg_color, fg_color, out_color) = if selected {
             (theme.light, theme.dark, theme.light)
         } else if state.hovered {
             (theme.light, theme.dark, theme.dark)
@@ -563,11 +582,19 @@ impl MenuRender {
             (theme.dark, theme.light, theme.light)
         };
         let outline_width = self.font_size * 0.1 * width;
-        self.ui
-            .fill_quad_width(state.position, outline_width, bg_color, framebuffer);
+        self.ui.fill_quad_width(
+            iconless_state.position,
+            outline_width,
+            bg_color,
+            framebuffer,
+        );
         self.ui.draw_text_colored(text, fg_color, framebuffer);
-        // self.ui
-        //     .draw_outline(text.state.position, outline_width, out_color, framebuffer);
+        self.ui.draw_outline(
+            iconless_state.position,
+            outline_width,
+            out_color,
+            framebuffer,
+        );
     }
 
     fn draw_item_menu(

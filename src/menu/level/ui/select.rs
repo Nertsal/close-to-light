@@ -337,6 +337,7 @@ impl LevelSelectUI {
 #[derive(Clone)]
 pub struct ItemLevelWidget {
     pub state: WidgetState,
+    pub iconless_state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
     pub menu: ItemMenuWidget,
@@ -349,6 +350,7 @@ impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
+            iconless_state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
             menu: ItemMenuWidget::new(assets),
@@ -435,6 +437,8 @@ impl ItemLevelWidget {
             }
         }
 
+        self.iconless_state.update(position, context);
+
         if !self.diffs.is_empty() {
             position.cut_bottom(context.font_size * 0.15);
             let diffs = position
@@ -468,6 +472,7 @@ impl ItemLevelWidget {
 #[derive(Clone)]
 pub struct ItemDiffWidget {
     pub state: WidgetState,
+    pub iconless_state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
     pub text: TextWidget,
@@ -490,6 +495,7 @@ impl ItemDiffWidget {
         menu.sync.hide();
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
+            iconless_state: WidgetState::new(),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
@@ -584,6 +590,7 @@ impl ItemDiffWidget {
             }
         }
 
+        self.iconless_state.update(position, context);
         self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;
