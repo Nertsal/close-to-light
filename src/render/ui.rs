@@ -98,8 +98,14 @@ impl UiRender {
         pixel_scale: f32,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let size = texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size());
-        let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+        let pos = geng_utils::pixel::pixel_perfect_aabb(
+            quad.center(),
+            vec2(0.5, 0.5),
+            (texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size()))
+                .map(|x| x as usize),
+            &geng::PixelPerfectCamera,
+            framebuffer.size().as_f32(),
+        );
         self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,
@@ -618,45 +624,6 @@ impl UiRender {
                 self.draw_icon(icon, theme, framebuffer);
             }
         }
-    }
-
-    pub fn draw_toggle_button(
-        &self,
-        text: &TextWidget,
-        selected: bool,
-        can_deselect: bool,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let state = &text.state;
-        if !state.visible {
-            return;
-        }
-
-        let (bg_color, fg_color) = if selected {
-            (theme.light, theme.dark)
-        } else {
-            (theme.dark, theme.light)
-        };
-
-        let width = text.options.size * 0.2;
-        let shrink = if can_deselect && state.hovered && selected {
-            width
-        } else {
-            0.0
-        };
-        let pos = state.position.extend_uniform(-shrink);
-        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
-        if state.hovered || selected {
-            self.draw_outline(pos, width, theme.light, framebuffer);
-        }
-        self.util.draw_text(
-            &text.text,
-            geng_utils::layout::aabb_pos(state.position, text.options.align),
-            text.options.color(fg_color),
-            &geng::PixelPerfectCamera,
-            framebuffer,
-        );
     }
 
     pub fn draw_toggle_widget(

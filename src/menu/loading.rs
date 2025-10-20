@@ -198,7 +198,10 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
         let title = geng_utils::pixel::pixel_perfect_aabb(
             screen.align_pos(vec2(0.5, 0.8)),
             vec2(0.5, 0.5),
-            self.assets.title.size() * 2 * (buffer.size().y / 360),
+            (self.assets.title.size().as_f32()
+                * 2.0
+                * ctl_render_core::get_pixel_scale(buffer.size()))
+            .map(|x| x as usize),
             camera,
             framebuffer_size,
         );

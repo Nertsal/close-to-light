@@ -203,7 +203,7 @@ impl geng::State for MainMenu {
                 .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
         {
             self.ui_render.draw_texture(
-                Aabb2::point(pos).extend_symmetric(vec2(0.0, 1.2) / 2.0),
+                Aabb2::point(pos),
                 &self.context.assets.sprites.title,
                 THEME.light,
                 1.0,
