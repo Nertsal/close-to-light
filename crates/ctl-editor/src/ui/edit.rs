@@ -317,6 +317,15 @@ impl EditorEditUi {
                             button.checked = light.danger;
                             tooltip.update(&button.state, "D", context);
 
+                            let fire_pos = bar.cut_top(button_height);
+                            bar.cut_top(spacing);
+                            let button = context.state.get_root_or(|| ToggleWidget::new("Fire"));
+                            button.update(fire_pos, context);
+                            if button.state.mouse_left.clicked {
+                                actions.push(LevelAction::ToggleFire(light_id).into());
+                            }
+                            button.checked = light.fire;
+
                             let timing = &level_editor.level.timing;
 
                             {

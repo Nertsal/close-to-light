@@ -111,19 +111,20 @@ impl EditorRender {
             1.0
         } * static_alpha;
 
-        let draw_telegraph = |tele: &LightTelegraph, framebuffer: &mut ugli::Framebuffer| {
-            let color = get_color(tele.light.event_id);
-            self.util.draw_outline(
-                &tele.light.collider,
-                0.02,
-                color,
-                &level_editor.model.camera,
-                framebuffer,
-            );
-        };
-        let draw_light = |light: &Light, framebuffer: &mut ugli::Framebuffer| {
+        let draw_telegraph =
+            |util: &UtilRender, tele: &LightTelegraph, framebuffer: &mut ugli::Framebuffer| {
+                let color = get_color(tele.light.event_id);
+                util.draw_outline(
+                    &tele.light.collider,
+                    0.02,
+                    color,
+                    &level_editor.model.camera,
+                    framebuffer,
+                );
+            };
+        let draw_light = |util: &UtilRender, light: &Light, framebuffer: &mut ugli::Framebuffer| {
             let color = get_color(light.event_id);
-            self.util.draw_light_gradient(
+            util.draw_light_gradient(
                 &light.collider,
                 color,
                 &level_editor.model.camera,
@@ -136,10 +137,18 @@ impl EditorRender {
 
         if let Some(level) = &level_editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
-                draw_telegraph(tele, &mut pixel_buffer);
+                draw_telegraph(&self.util, tele, &mut pixel_buffer);
             }
             for light in &level.lights {
-                draw_light(light, &mut pixel_buffer);
+                draw_light(&self.util, light, &mut pixel_buffer);
+            }
+            if level_editor.level_state.static_level.is_none() {
+                self.util.draw_fire(
+                    level_editor.model.real_time,
+                    &level_editor.model.fire,
+                    &level_editor.model.camera,
+                    &mut pixel_buffer,
+                );
             }
         }
 
@@ -147,11 +156,17 @@ impl EditorRender {
 
         if let Some(level) = &level_editor.level_state.static_level {
             for tele in &level.telegraphs {
-                draw_telegraph(tele, &mut pixel_buffer);
+                draw_telegraph(&self.util, tele, &mut pixel_buffer);
             }
             for light in &level.lights {
-                draw_light(light, &mut pixel_buffer);
+                draw_light(&self.util, light, &mut pixel_buffer);
             }
+            self.util.draw_fire(
+                level_editor.model.real_time,
+                &level_editor.model.fire,
+                &level_editor.model.camera,
+                &mut pixel_buffer,
+            );
         }
         let mut pixel_buffer = draw_game!(static_alpha, game_buffer);
 

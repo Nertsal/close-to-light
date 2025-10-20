@@ -342,6 +342,7 @@ fn convert_level(value: Level) -> crate::Level {
                 event: match event.event {
                     Event::Light(light) => crate::Event::Light(crate::LightEvent {
                         danger: light.danger,
+                        fire: false,
                         shape: match light.shape {
                             Shape::Circle { radius } => crate::Shape::Circle { radius },
                             Shape::Line { width } => crate::Shape::Line { width },

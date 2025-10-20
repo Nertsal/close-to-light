@@ -182,8 +182,6 @@ pub struct Shaders {
     pub crt: ugli::Program,
     /// RGB splitting screen shader.
     pub rgb_split: ugli::Program,
-    /// Light gradient for fire effect.
-    pub light_fire: ugli::Program,
     /// Particles for fire effect.
     pub fire_particles: ugli::Program,
     /// Fire screen shader (masked).

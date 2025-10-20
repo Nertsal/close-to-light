@@ -54,6 +54,9 @@ pub struct LightEvent {
     /// Whether the light is dangerous.
     #[serde(default)]
     pub danger: bool,
+    /// Whether the light is on fire.
+    #[serde(default)]
+    pub fire: bool,
     pub shape: Shape,
     /// Movement with timings in beats.
     #[serde(default)]
@@ -147,6 +150,7 @@ impl LightEvent {
             collider,
             lifetime: Time::ZERO,
             danger: self.danger,
+            fire: self.fire,
             event_id,
             closest_waypoint: (Time::ZERO, WaypointId::Initial),
         }

@@ -92,9 +92,11 @@ impl EditorState {
             return;
         };
 
+        let last_time = level_editor.current_time.value;
         level_editor.real_time += delta_time;
         level_editor.current_time.update(delta_time);
         level_editor.timeline_zoom.update(delta_time.as_f32());
+        let time_scroll = time_to_seconds(level_editor.current_time.value - last_time);
 
         if self.editor.music_timer > FloatTime::ZERO {
             self.editor.music_timer -= delta_time;
@@ -156,6 +158,7 @@ impl EditorState {
                     * level_editor.model.vfx.camera_shake.as_f32();
         }
 
+        // Render
         let include_cursor = !self.ui_focused
             && (self.editor.render_options.hide_ui
                 || self
@@ -170,6 +173,16 @@ impl EditorState {
             self.editor.show_only_selected,
         );
 
+        // Fire
+        level_editor.model.level_state = level_editor.level_state.relevant().clone();
+        let fire_delta_time = if let EditingState::Playing { .. } = level_editor.state {
+            delta_time
+        } else {
+            delta_time + time_scroll.abs()
+        };
+        level_editor.model.update_fire(fire_delta_time);
+
+        // Cursor
         let pos = self.ui_context.cursor.position;
         let pos = pos - self.ui_context.screen.bottom_left();
         let pos = level_editor

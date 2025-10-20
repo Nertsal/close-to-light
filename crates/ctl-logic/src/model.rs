@@ -118,6 +118,13 @@ pub struct Rhythm {
     pub perfect: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct FireParticle {
+    pub position: vec2<Coord>,
+    pub size: Coord,
+    pub danger: bool,
+}
+
 pub struct Model {
     pub context: Context,
     pub transition: Option<Transition>,
@@ -128,8 +135,7 @@ pub struct Model {
     /// Whether the cursor clicked last frame.
     pub cursor_clicked: bool,
     pub vfx: Vfx,
-    /// List of fire particles with position, radius, and danger.
-    pub fire: Vec<(vec2<Coord>, Coord, bool)>,
+    pub fire: Vec<FireParticle>,
 
     pub music_offset: Time,
     /// The level being played. Not changed, apart from music being played.

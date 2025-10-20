@@ -212,6 +212,7 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
                 event: match event.event {
                     Event::Light(light) => crate::Event::Light(crate::LightEvent {
                         danger: light.light.danger,
+                        fire: false,
                         shape: match light.light.shape {
                             Shape::Circle { radius } => crate::Shape::Circle { radius },
                             Shape::Line { width } => crate::Shape::Line { width },

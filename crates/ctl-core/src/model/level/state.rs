@@ -1,7 +1,7 @@
 use super::*;
 
 /// A renderable state of the level at some given time.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LevelState {
     /// The time at which the render has been done.
     time: Time,

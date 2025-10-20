@@ -15,7 +15,6 @@ pub struct GameRender {
     masked2: MaskedRender,
     pub util: UtilRender,
     ui: UiRender,
-    fire: ugli::Texture,
 
     font_size: f32,
 }
@@ -28,12 +27,6 @@ impl GameRender {
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             util: UtilRender::new(context.clone()),
             ui: UiRender::new(context.clone()),
-            fire: {
-                let mut texture =
-                    geng_utils::texture::new_texture(context.geng.ugli(), dither::DITHER_SIZE);
-                texture.set_filter(ugli::Filter::Nearest);
-                texture
-            },
             context,
 
             font_size: 1.0,
@@ -95,69 +88,11 @@ impl GameRender {
                 );
             }
 
-            // Fire effect
-            #[derive(ugli::Vertex)]
-            struct FireVertex {
-                i_model_matrix: mat3<f32>,
-                i_color: Rgba<f32>,
-            }
-            let fire = model
-                .fire
-                .iter()
-                .map(|(pos, size, danger)| FireVertex {
-                    i_model_matrix: mat3::translate(pos.as_f32())
-                        * mat3::scale_uniform(size.as_f32()),
-                    i_color: if *danger { THEME.danger } else { THEME.light },
-                })
-                .collect();
-            let fire = ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), fire);
-
-            // Particles
-            let mut fire_buffer =
-                geng_utils::texture::attach_texture(&mut self.fire, self.context.geng.ugli());
-            ugli::clear(&mut fire_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
-            let framebuffer_size = fire_buffer.size().as_f32();
-            let intensity = 0.2;
-            ugli::draw(
-                &mut fire_buffer,
-                &self.context.assets.shaders.fire_particles,
-                ugli::DrawMode::TriangleFan,
-                ugli::instanced(&self.util.unit_quad, &fire),
-                (
-                    ugli::uniforms! {
-                        u_color: Rgba::new(intensity, intensity, intensity, 1.0),
-                    },
-                    model.camera.uniforms(framebuffer_size),
-                ),
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::combined(ugli::ChannelBlendMode {
-                        src_factor: ugli::BlendFactor::One,
-                        dst_factor: ugli::BlendFactor::One,
-                        equation: ugli::BlendEquation::Max,
-                    })),
-                    ..Default::default()
-                },
-            );
-
-            // Render
-            let t = model.real_time.as_f32();
-            ugli::draw(
+            self.util.draw_fire(
+                model.real_time,
+                &model.fire,
+                &model.camera,
                 &mut framebuffer,
-                &self.context.assets.shaders.fire,
-                ugli::DrawMode::TriangleFan,
-                &self.util.unit_quad,
-                ugli::uniforms! {
-                    u_time: t,
-                    u_texture: &self.fire,
-                },
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::combined(ugli::ChannelBlendMode {
-                        src_factor: ugli::BlendFactor::One,
-                        dst_factor: ugli::BlendFactor::One,
-                        equation: ugli::BlendEquation::Max,
-                    })),
-                    ..Default::default()
-                },
             );
         }
 

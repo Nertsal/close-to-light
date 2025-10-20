@@ -9,12 +9,19 @@ pub use ctl_render_core::{DashRenderOptions, TextRenderOptions};
 pub struct UtilRender {
     context: Context,
     pub unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
+    fire_texture: ugli::Texture,
 }
 
 impl UtilRender {
     pub fn new(context: Context) -> Self {
         Self {
             unit_quad: geng_utils::geometry::unit_quad_geometry(context.geng.ugli()),
+            fire_texture: {
+                let mut texture =
+                    geng_utils::texture::new_texture(context.geng.ugli(), dither::DITHER_SIZE);
+                texture.set_filter(ugli::Filter::Nearest);
+                texture
+            },
             context,
         }
     }
@@ -223,6 +230,82 @@ impl UtilRender {
         );
     }
 
+    pub fn draw_fire(
+        &mut self,
+        time: FloatTime,
+        fire: &[FireParticle],
+        camera: &impl AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        // Fire effect
+        #[derive(ugli::Vertex)]
+        struct FireVertex {
+            i_model_matrix: mat3<f32>,
+            i_color: Rgba<f32>,
+        }
+        let fire = fire
+            .iter()
+            .map(|particle| FireVertex {
+                i_model_matrix: mat3::translate(particle.position.as_f32())
+                    * mat3::scale_uniform(particle.size.as_f32()),
+                i_color: if particle.danger {
+                    THEME.danger
+                } else {
+                    THEME.light
+                },
+            })
+            .collect();
+        let fire = ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), fire);
+
+        // Particles
+        let mut fire_buffer =
+            geng_utils::texture::attach_texture(&mut self.fire_texture, self.context.geng.ugli());
+        ugli::clear(&mut fire_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+        let framebuffer_size = fire_buffer.size().as_f32();
+        let intensity = 0.2;
+        ugli::draw(
+            &mut fire_buffer,
+            &self.context.assets.shaders.fire_particles,
+            ugli::DrawMode::TriangleFan,
+            ugli::instanced(&self.unit_quad, &fire),
+            (
+                ugli::uniforms! {
+                    u_color: Rgba::new(intensity, intensity, intensity, 1.0),
+                },
+                camera.uniforms(framebuffer_size),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::combined(ugli::ChannelBlendMode {
+                    src_factor: ugli::BlendFactor::One,
+                    dst_factor: ugli::BlendFactor::One,
+                    equation: ugli::BlendEquation::Max,
+                })),
+                ..Default::default()
+            },
+        );
+
+        // Render
+        let t = time.as_f32();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.fire,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            ugli::uniforms! {
+                u_time: t,
+                u_texture: &self.fire_texture,
+            },
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::combined(ugli::ChannelBlendMode {
+                    src_factor: ugli::BlendFactor::One,
+                    dst_factor: ugli::BlendFactor::One,
+                    equation: ugli::BlendEquation::Max,
+                })),
+                ..Default::default()
+            },
+        );
+    }
+
     pub fn draw_light(
         &self,
         light: &Light,
@@ -301,58 +384,6 @@ impl UtilRender {
                     u_model_matrix: transform,
                     u_color: color,
                     u_texture: texture,
-                },
-                camera.uniforms(framebuffer_size.as_f32()),
-            ),
-            ugli::DrawParameters {
-                blend_mode: Some(additive()),
-                ..default()
-            },
-        );
-    }
-
-    pub fn draw_light_fire_gradient(
-        &self,
-        collider: &Collider,
-        color: Color,
-        camera: &impl geng::AbstractCamera2d,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let (texture, transform) = match collider.shape {
-            Shape::Circle { radius } => (
-                &self.context.assets.sprites.radial_gradient,
-                mat3::scale_uniform(radius.as_f32()),
-            ),
-            Shape::Line { width } => {
-                let inf = 999.0;
-                (
-                    &self.context.assets.sprites.linear_gradient,
-                    mat3::scale(vec2(inf, width.as_f32()) / 2.0),
-                )
-            }
-            Shape::Rectangle { width, height } => (
-                &self.context.assets.sprites.square_gradient,
-                mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
-            ),
-        };
-        let texture = &*texture.texture;
-        let transform = mat3::translate(collider.position.as_f32())
-            * mat3::rotate(collider.rotation.map(Coord::as_f32))
-            * transform
-            * mat3::scale_uniform(3.0);
-
-        let framebuffer_size = framebuffer.size();
-        ugli::draw(
-            framebuffer,
-            &self.context.assets.shaders.light_fire,
-            ugli::DrawMode::TriangleFan,
-            &self.unit_quad,
-            (
-                ugli::uniforms! {
-                    u_model_matrix: transform,
-                    u_color: color,
-                    u_texture: texture,
-                    u_fire: 1.0,
                 },
                 camera.uniforms(framebuffer_size.as_f32()),
             ),

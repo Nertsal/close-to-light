@@ -1,58 +1,7 @@
 mod event;
+mod fire;
 
 use super::*;
-
-#[derive(Debug, Clone)]
-pub enum ParticleDistribution {
-    Circle {
-        center: vec2<Coord>,
-        radius: Coord,
-    },
-    Quad {
-        aabb: Aabb2<Coord>,
-        angle: Angle<Coord>,
-    },
-}
-
-impl ParticleDistribution {
-    pub fn sample(&self, rng: &mut impl Rng, density: R32) -> Vec<vec2<Coord>> {
-        match *self {
-            ParticleDistribution::Quad { aabb, angle } => {
-                let amount = density * aabb.width() * aabb.height();
-                let extra = if rng.gen_bool(amount.fract().as_f32().into()) {
-                    1
-                } else {
-                    0
-                };
-                let amount = (amount.floor()).as_f32() as usize + extra;
-
-                (0..amount)
-                    .map(|_| {
-                        (vec2(
-                            rng.gen_range(aabb.min.x..=aabb.max.x),
-                            rng.gen_range(aabb.min.y..=aabb.max.y),
-                        ) - aabb.center())
-                        .rotate(angle)
-                            + aabb.center()
-                    })
-                    .collect()
-            }
-            ParticleDistribution::Circle { center, radius } => {
-                let amount = density * radius.sqr() * R32::PI;
-                let extra = if rng.gen_bool(amount.fract().as_f32().into()) {
-                    1
-                } else {
-                    0
-                };
-                let amount = (amount.floor()).as_f32() as usize + extra;
-
-                (0..amount)
-                    .map(|_| rng.gen_circle(center, radius))
-                    .collect()
-            }
-        }
-    }
-}
 
 impl Model {
     /// Initialize the level by playing the events from the negative time.
@@ -135,45 +84,7 @@ impl Model {
             Some(&mut self.vfx),
         );
 
-        // Update fire
-        for (pos, size, _) in &mut self.fire {
-            *pos += vec2(0.0, 2.0).as_r32() * delta_time;
-            *size -= r32(0.5) * delta_time;
-        }
-        self.fire.retain(|(_, size, _)| size.as_f32() > 0.0);
-        let mut rng = thread_rng();
-        for light in &self.level_state.lights {
-            let cover = r32(0.7);
-            let (size, shape) = match light.collider.shape {
-                Shape::Circle { radius } => (
-                    radius,
-                    ParticleDistribution::Circle {
-                        center: light.collider.position,
-                        radius: radius * cover,
-                    },
-                ),
-                Shape::Line { width } => (
-                    width,
-                    ParticleDistribution::Quad {
-                        aabb: Aabb2::point(light.collider.position)
-                            .extend_symmetric(vec2(r32(20.0), width * r32(0.25) * cover)),
-                        angle: light.collider.rotation,
-                    },
-                ),
-                Shape::Rectangle { width, height } => (
-                    width.min(height),
-                    ParticleDistribution::Quad {
-                        aabb: Aabb2::point(light.collider.position)
-                            .extend_symmetric(vec2(width, height) * r32(0.25) * cover),
-                        angle: light.collider.rotation,
-                    },
-                ),
-            };
-            let pos = shape.sample(&mut rng, r32(1.0));
-            let size = size * r32(0.3);
-            self.fire
-                .extend(pos.into_iter().map(|pos| (pos, size, light.danger)));
-        }
+        self.update_fire(delta_time);
 
         // Update player's light state
         // And check for missed rhythm
