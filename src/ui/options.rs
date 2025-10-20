@@ -78,6 +78,7 @@ impl StatefulWidget for OptionsButtonWidget {
 
 pub struct OptionsWidget {
     pub state: WidgetState,
+    pub drag_state: WidgetState,
     pub window: UiWindow<()>,
     content_size: f32,
     /// Downward scroll.
@@ -97,6 +98,7 @@ impl OptionsWidget {
     pub fn new(assets: &Rc<Assets>, palettes: Vec<PaletteWidget>) -> Self {
         Self {
             state: WidgetState::new(),
+            drag_state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
             content_size: 1.0,
             scroll: ScrollState::new(),
@@ -126,8 +128,8 @@ impl StatefulWidget for OptionsWidget {
         context: &mut UiContext,
         state: &mut Self::State<'_>,
     ) {
-        self.state.update(position, context);
         self.window.update(context.delta_time);
+        self.state.update(position, context);
 
         position.cut_right(context.layout_size * 0.25);
         let scrollbar = position
@@ -146,7 +148,7 @@ impl StatefulWidget for OptionsWidget {
             self.scroll.state.update(context.delta_time);
         } else {
             // Scroll drag
-            self.scroll.drag(context, &self.state);
+            self.scroll.drag(context, &self.drag_state);
         }
 
         let handle_t = -self.scroll.state.current / (self.content_size - position.height());
@@ -205,6 +207,8 @@ impl StatefulWidget for OptionsWidget {
         self.content_size = main_top - main.max.y + context.font_size * 2.0;
         self.scroll
             .overflow(context.delta_time, self.content_size, position.height());
+
+        self.drag_state.update(position, context);
     }
 }
 

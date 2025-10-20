@@ -103,7 +103,7 @@ impl SliderWidget {
                 state.set_ratio(cursor_t);
             } else if self.bar_box.mouse_left.pressed.is_some() {
                 if self.is_dragging {
-                    context.total_focus();
+                    context.update_focus(true);
                     state.set_ratio(cursor_t);
                 } else if !self.lock_drag {
                     let delta = context.cursor.position - context.cursor.last_position;
