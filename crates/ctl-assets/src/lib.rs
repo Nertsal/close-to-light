@@ -166,14 +166,28 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
 
 #[derive(geng::asset::Load)]
 pub struct Shaders {
+    /// A solid color.
     pub solid: ugli::Program,
+    /// Light gradient based on the texture.
     pub light: ugli::Program,
+    /// Mask parts of the texture.
     pub masked: ugli::Program,
+    /// Textured rendering.
     pub texture: ugli::Program,
+    /// Ellipse.
     pub ellipse: ugli::Program,
+    /// Textured rendering with z_index.
     pub texture_ui: ugli::Program,
+    /// CRT screen shader.
     pub crt: ugli::Program,
+    /// RGB splitting screen shader.
     pub rgb_split: ugli::Program,
+    /// Light gradient for fire effect.
+    pub light_fire: ugli::Program,
+    /// Particles for fire effect.
+    pub fire_particles: ugli::Program,
+    /// Fire screen shader (masked).
+    pub fire: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]

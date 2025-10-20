@@ -311,6 +311,58 @@ impl UtilRender {
         );
     }
 
+    pub fn draw_light_fire_gradient(
+        &self,
+        collider: &Collider,
+        color: Color,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let (texture, transform) = match collider.shape {
+            Shape::Circle { radius } => (
+                &self.context.assets.sprites.radial_gradient,
+                mat3::scale_uniform(radius.as_f32()),
+            ),
+            Shape::Line { width } => {
+                let inf = 999.0;
+                (
+                    &self.context.assets.sprites.linear_gradient,
+                    mat3::scale(vec2(inf, width.as_f32()) / 2.0),
+                )
+            }
+            Shape::Rectangle { width, height } => (
+                &self.context.assets.sprites.square_gradient,
+                mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
+            ),
+        };
+        let texture = &*texture.texture;
+        let transform = mat3::translate(collider.position.as_f32())
+            * mat3::rotate(collider.rotation.map(Coord::as_f32))
+            * transform
+            * mat3::scale_uniform(3.0);
+
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.light_fire,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: transform,
+                    u_color: color,
+                    u_texture: texture,
+                    u_fire: 1.0,
+                },
+                camera.uniforms(framebuffer_size.as_f32()),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(additive()),
+                ..default()
+            },
+        );
+    }
+
     fn circle_with_cut(
         &self,
         framebuffer: &mut ugli::Framebuffer,

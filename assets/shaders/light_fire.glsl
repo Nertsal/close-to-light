@@ -21,14 +21,23 @@ void main() {
 #ifdef FRAGMENT_SHADER
 uniform vec4 u_color;
 uniform sampler2D u_texture;
+uniform float u_fire;
 
 void main() {
     float alpha = texture2D(u_texture, v_vt).a;
+    // NOTE: light gradient texture is assumed to be fully filled,
+    // but the coordinates passed into the shader cover the light with extra margin
+    // to account for the fire effect.
+    // alpha = max(
+    //     (alpha - 0.666) / 0.333, // Light itself
+    //     alpha * u_fire * 0.5 // Fire
+    // );
+    alpha = alpha * u_fire;
 
-    vec4 m_color = u_color * v_color;
-    vec4 color = vec4(m_color.rgb, alpha);
-    color = vec4(color.rgb * color.a, m_color.a); // Premultiply alpha
+    vec4 color = u_color * v_color;
+    color = vec4(color.rgb * alpha, color.a); // Premultiply alpha
 
     gl_FragColor = color;
 }
 #endif
+

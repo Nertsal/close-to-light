@@ -1,5 +1,7 @@
 use super::*;
 
+pub const DITHER_SIZE: vec2<usize> = vec2(640, 360);
+
 pub struct DitherRender {
     geng: Geng,
     assets: Rc<Assets>,
@@ -10,9 +12,7 @@ pub struct DitherRender {
 
 impl DitherRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        let height = 360;
-        let size = vec2(height * 16 / 9, height);
-        Self::new_sized(geng, assets, size)
+        Self::new_sized(geng, assets, DITHER_SIZE)
     }
 
     pub fn new_sized(geng: &Geng, assets: &Rc<Assets>, size: vec2<usize>) -> Self {

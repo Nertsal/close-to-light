@@ -30,9 +30,10 @@ uniform sampler2D u_dither1;
 uniform sampler2D u_dither2;
 uniform sampler2D u_dither3;
 
-//	<https://www.shadertoy.com/view/4dS3Wd>
-//	By Morgan McGuire @morgan3d, http://graphicscodex.com
-//
+// Adapted from
+// <https://www.shadertoy.com/view/4dS3Wd>
+// By Morgan McGuire @morgan3d, http://graphicscodex.com
+
 float hash(float n) { return fract(sin(n) * 1e4); }
 float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
 
@@ -114,12 +115,9 @@ float dither_inverted(float amp) {
 	return 1.0;
 }
 
-vec4 dither_final(vec3 amps) {
-	float noise_light = u_noise * 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
-	float noise_danger = u_noise * 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
-	
-	float amp_light = amps.g + noise_light;
-	float amp_danger = amps.r + noise_danger;
+vec4 dither_noiseless(vec3 amps) {
+	float amp_light = amps.g;
+	float amp_danger = amps.r;
 	float amp_highlight = amps.b;
 	float total = amp_light + amp_danger;
 	if (total > 1.0) {
@@ -137,7 +135,17 @@ vec4 dither_final(vec3 amps) {
 
 void main() {
 	vec4 in_color = texture2D(u_texture, v_vt);
-	vec4 out_color = dither_final(in_color.rgb);
+
+	float light = in_color.g;
+	float danger = in_color.r;
+	float highlight = in_color.b;
+
+	// Noise
+	light += u_noise * 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
+	danger += u_noise * 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
+
+	vec4 out_color = dither_noiseless(vec3(danger, light, highlight));
+
 	out_color.a *= in_color.a;
 	gl_FragColor = out_color;
 }

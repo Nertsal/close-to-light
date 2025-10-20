@@ -128,6 +128,8 @@ pub struct Model {
     /// Whether the cursor clicked last frame.
     pub cursor_clicked: bool,
     pub vfx: Vfx,
+    /// List of fire particles with position, radius, and danger.
+    pub fire: Vec<(vec2<Coord>, Coord, bool)>,
 
     pub music_offset: Time,
     /// The level being played. Not changed, apart from music being played.
@@ -203,6 +205,7 @@ impl Model {
             ),
             cursor_clicked: false,
             vfx: Vfx::new(),
+            fire: Vec::new(),
 
             music_offset: seconds_to_time(r32(options.gameplay.music_offset * 1e-3)),
             level_state: LevelState::default(),
