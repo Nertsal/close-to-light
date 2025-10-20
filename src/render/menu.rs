@@ -469,6 +469,16 @@ impl MenuRender {
                     self.ui
                         .draw_slider(&cursor.outer_radius, theme, framebuffer);
                 }
+
+                // Scrollbar
+                self.ui
+                    .draw_outline(ui.options.scrollbar.position, 4.0, theme.light, framebuffer);
+                self.ui.fill_quad_width(
+                    ui.options.scrollbar_handle.position,
+                    4.0,
+                    theme.light,
+                    framebuffer,
+                );
             },
         );
     }
