@@ -12,6 +12,8 @@ pub struct SliderWidget {
     pub bar: WidgetState,
     /// Hitbox
     pub bar_box: WidgetState,
+    pub is_dragging: bool,
+    pub lock_drag: bool,
     pub head: WidgetState,
     pub value: TextWidget,
     pub options: TextRenderOptions,
@@ -25,6 +27,8 @@ impl SliderWidget {
             text: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
             bar: WidgetState::new(),
             bar_box: WidgetState::new(),
+            is_dragging: false,
+            lock_drag: false,
             head: WidgetState::new(),
             value: TextWidget::new("").aligned(vec2(1.0, 0.5)),
             options: TextRenderOptions::default(),
@@ -91,11 +95,31 @@ impl SliderWidget {
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 
-        if self.bar_box.mouse_left.pressed.is_some() && self.bar.position.width() > 0.0 {
-            let t =
+        if self.bar.position.width() > 0.0 {
+            let cursor_t =
                 (context.cursor.position.x - self.bar.position.min.x) / self.bar.position.width();
-            let t = t.clamp(0.0, 1.0);
-            state.set_ratio(t);
+            let cursor_t = cursor_t.clamp(0.0, 1.0);
+            if self.bar_box.mouse_left.clicked {
+                state.set_ratio(cursor_t);
+            } else if self.bar_box.mouse_left.pressed.is_some() {
+                if self.is_dragging {
+                    context.total_focus();
+                    state.set_ratio(cursor_t);
+                } else if !self.lock_drag {
+                    let delta = context.cursor.position - context.cursor.last_position;
+                    if delta != vec2::ZERO {
+                        if (delta.arg().as_degrees() / 90.0 + 0.5).floor() as i32 % 2 == 0 {
+                            // Only horizontal drag counts
+                            self.is_dragging = true;
+                        } else {
+                            self.lock_drag = true;
+                        }
+                    }
+                }
+            } else {
+                self.is_dragging = false;
+                self.lock_drag = false;
+            }
         }
     }
 }
