@@ -24,7 +24,7 @@ impl ScrollState {
             state: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
             drag_from: None,
             release_velocity: None,
-            release_slowdown: 0.95,
+            release_slowdown: 0.85,
         }
     }
 

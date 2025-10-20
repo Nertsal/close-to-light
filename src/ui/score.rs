@@ -44,7 +44,7 @@ impl ScoreWidget {
             grade: IconWidget::new(assets.atlas.grade_f()).with_pixel_scale(2.0),
             accuracy_bar: WidgetState::new(),
             accuracy_value: TextWidget::new("100.00%"),
-            accuracy_text: TextWidget::new("Accuracy"),
+            accuracy_text: TextWidget::new("Rhythm"),
             precision_bar: WidgetState::new(),
             precision_value: TextWidget::new("99.99%"),
             precision_text: TextWidget::new("Precision"),
@@ -110,9 +110,10 @@ impl WidgetOld for ScoreWidget {
 
         let mut grade = main.cut_top(context.font_size * 2.0);
         self.grade_back.update(grade, context);
-        let score = grade
+        let mut score = grade
             .split_right(0.5)
-            .with_width(context.layout_size * 5.0, 0.0);
+            .with_width(context.layout_size * 4.5, 0.0);
+        score.cut_left(context.layout_size * 0.5);
         // self.score_text.update(score, &context.scale_font(1.2));
         self.score_value.update(score, &context.scale_font(1.2));
         self.score_value.options.color = theme.dark;
