@@ -243,7 +243,7 @@ impl LeaderboardEntryWidget {
         let grade = IconWidget::new(assets.get_grade(score_grade));
 
         let accuracy = TextWidget::new(format!(
-            "accuracy: {}%",
+            "rhythm: {}%",
             (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
         ))
         .aligned(vec2(1.0, 1.0));
