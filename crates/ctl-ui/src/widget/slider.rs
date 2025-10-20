@@ -39,6 +39,18 @@ impl SliderWidget {
         }
     }
 
+    pub fn update_value(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &UiContext,
+        state: &mut f32,
+        range: RangeInclusive<f32>,
+    ) {
+        let mut bounded = Bounded::new(*state, range);
+        self.update(position, context, &mut bounded);
+        *state = bounded.value();
+    }
+
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Bounded<f32>) {
         self.state.update(
             position.with_width(position.width() + context.font_size * 0.3, 0.5),

@@ -1,14 +1,35 @@
 use super::*;
 
-use geng_utils::bounded::Bounded;
+use serde::Deserializer;
+
+fn ok_or_default<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+    T: DeserializeOwned + Default,
+    D: Deserializer<'de>,
+{
+    let v: ron::Value = Deserialize::deserialize(deserializer)?;
+    Ok(T::deserialize(v).unwrap_or_else(|err| {
+        log::error!(
+            "failed to deserialize type {}, using default, error: {:?}",
+            std::any::type_name::<T>(),
+            err
+        );
+        T::default()
+    }))
+}
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct Options {
+    #[serde(deserialize_with = "ok_or_default")]
     pub volume: VolumeOptions,
+    #[serde(deserialize_with = "ok_or_default")]
     pub theme: Theme,
+    #[serde(deserialize_with = "ok_or_default")]
     pub graphics: GraphicsOptions,
+    #[serde(deserialize_with = "ok_or_default")]
     pub cursor: CursorOptions,
+    #[serde(deserialize_with = "ok_or_default")]
     pub gameplay: GameplayOptions,
 }
 
@@ -53,50 +74,34 @@ impl Default for GraphicsLightsOptions {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct CursorOptions {
     pub show_perfect_radius: bool,
-    pub inner_radius: Bounded<f32>,
-    pub outer_radius: Bounded<f32>,
+    pub inner_radius: f32,
+    pub outer_radius: f32,
 }
 
 impl Default for CursorOptions {
     fn default() -> Self {
         Self {
             show_perfect_radius: true,
-            inner_radius: Bounded::new(0.1, 0.1..=0.3),
-            outer_radius: Bounded::new(0.05, 0.01..=0.2),
+            inner_radius: 0.15,
+            outer_radius: 0.05,
         }
     }
 }
 
-impl PartialEq for CursorOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.show_perfect_radius == other.show_perfect_radius
-            && self.inner_radius.value() == other.inner_radius.value()
-            && self.outer_radius.value() == other.outer_radius.value()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GameplayOptions {
     /// Music offset in ms.
-    pub music_offset: Bounded<f32>,
+    pub music_offset: f32,
 }
 
 impl Default for GameplayOptions {
     fn default() -> Self {
-        Self {
-            music_offset: Bounded::new(0.0, -50.0..=50.0),
-        }
-    }
-}
-
-impl PartialEq for GameplayOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.music_offset.value() == other.music_offset.value()
+        Self { music_offset: 20.0 }
     }
 }
 
@@ -117,45 +122,16 @@ pub enum ThemeColor {
     Highlight,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(from = "VolumeOptionsRaw", into = "VolumeOptionsRaw")]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct VolumeOptions {
     /// Volume in range `0..=100`.
-    pub master: Bounded<f32>, // TODO: range should be part of the type
-}
-
-#[derive(Serialize, Deserialize)]
-struct VolumeOptionsRaw {
-    master: f32,
-}
-
-impl From<VolumeOptionsRaw> for VolumeOptions {
-    fn from(value: VolumeOptionsRaw) -> Self {
-        let VolumeOptionsRaw { master } = value;
-
-        let mut opt = Self::default();
-        opt.master.set(master);
-        opt
-    }
-}
-
-impl From<VolumeOptions> for VolumeOptionsRaw {
-    fn from(value: VolumeOptions) -> Self {
-        Self {
-            master: value.master.value(),
-        }
-    }
-}
-
-impl PartialEq for VolumeOptions {
-    fn eq(&self, other: &Self) -> bool {
-        self.master.value() == other.master.value()
-    }
+    pub master: f32, // TODO: range should be part of the type
 }
 
 impl VolumeOptions {
     pub fn master(&self) -> f32 {
-        self.master.value() / 100.0
+        self.master / 100.0
     }
 
     pub fn music(&self) -> f32 {
@@ -169,9 +145,7 @@ impl VolumeOptions {
 
 impl Default for VolumeOptions {
     fn default() -> Self {
-        Self {
-            master: Bounded::new(50.0, 0.0..=100.0),
-        }
+        Self { master: 50.0 }
     }
 }
 

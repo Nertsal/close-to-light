@@ -232,7 +232,8 @@ impl StatefulWidget for VolumeWidget {
             .extend_down(context.font_size * 1.1);
         let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 1);
 
-        self.master.update(rows[0], context, &mut state.master);
+        self.master
+            .update_value(rows[0], context, &mut state.master, 0.0..=100.0);
     }
 }
 
@@ -380,10 +381,14 @@ impl StatefulWidget for CursorWidget {
         self.show_perfect_radius.checked = state.show_perfect_radius;
 
         self.inner_radius
-            .update(next_row(), context, &mut state.inner_radius);
+            .update_value(next_row(), context, &mut state.inner_radius, 0.1..=0.5);
         if state.show_perfect_radius {
-            self.outer_radius
-                .update(next_row(), context, &mut state.outer_radius);
+            self.outer_radius.update_value(
+                next_row(),
+                context,
+                &mut state.outer_radius,
+                0.05..=0.5,
+            );
         }
 
         let mut position = position;
@@ -442,7 +447,7 @@ impl StatefulWidget for GameplayWidget {
         };
 
         self.music_offset
-            .update(next_row(), context, &mut state.music_offset);
+            .update_value(next_row(), context, &mut state.music_offset, -50.0..=50.0);
 
         let mut position = position;
         position.min.y = min_y;

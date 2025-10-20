@@ -685,7 +685,7 @@ impl UtilRender {
 
         // Player tail
         for tail in &player.tail {
-            let radius = r32(options.cursor.inner_radius.value()) * tail.lifetime.get_ratio();
+            let radius = r32(options.cursor.inner_radius) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
                 LitState::Dark => (THEME.danger, THEME.dark),
@@ -704,7 +704,7 @@ impl UtilRender {
         if options.cursor.show_perfect_radius {
             self.draw_outline(
                 &player.collider,
-                options.cursor.outer_radius.value(),
+                options.cursor.outer_radius,
                 THEME.light,
                 camera,
                 framebuffer,

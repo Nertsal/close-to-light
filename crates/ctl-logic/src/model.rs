@@ -204,7 +204,7 @@ impl Model {
             cursor_clicked: false,
             vfx: Vfx::new(),
 
-            music_offset: seconds_to_time(r32(options.gameplay.music_offset.value() * 1e-3)),
+            music_offset: seconds_to_time(r32(options.gameplay.music_offset * 1e-3)),
             level_state: LevelState::default(),
             state: State::Starting {
                 start_timer: FloatTime::ZERO, // reset during init
