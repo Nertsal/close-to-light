@@ -8,7 +8,7 @@ use crate::{
 
 use ctl_assets::{CursorOptions, GameplayOptions, GraphicsOptions};
 use ctl_core::types::Name;
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_ui::util::ScrollState;
 use geng_utils::bounded::Bounded;
 
 pub struct OptionsButtonWidget {
@@ -81,8 +81,7 @@ pub struct OptionsWidget {
     pub window: UiWindow<()>,
     content_size: f32,
     /// Downward scroll.
-    pub scroll: SecondOrderState<f32>,
-    scroll_drag_from: f32,
+    pub scroll: ScrollState,
     pub scrollbar: WidgetState,
     pub scrollbar_handle: WidgetState,
     pub profile: ProfileWidget,
@@ -100,8 +99,7 @@ impl OptionsWidget {
             state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
             content_size: 1.0,
-            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
-            scroll_drag_from: 0.0,
+            scroll: ScrollState::new(),
             scrollbar: WidgetState::new(),
             scrollbar_handle: WidgetState::new(),
             profile: ProfileWidget::new(assets),
@@ -144,26 +142,21 @@ impl StatefulWidget for OptionsWidget {
                 / self.scrollbar.position.height();
             let max_scroll = self.content_size - position.height();
             let scroll = -max_scroll * (1.0 - t);
-            self.scroll.target = scroll;
-            self.scroll.update(context.delta_time);
+            self.scroll.state.target = scroll;
+            self.scroll.state.update(context.delta_time);
         } else {
             // Scroll drag
-            ctl_ui::util::scroll_drag(
-                context,
-                &self.state,
-                &mut self.scroll,
-                &mut self.scroll_drag_from,
-            );
+            self.scroll.drag(context, &self.state);
         }
 
-        let handle_t = -self.scroll.current / (self.content_size - position.height());
+        let handle_t = -self.scroll.state.current / (self.content_size - position.height());
         let handle = scrollbar.with_height(handle_height, 1.0 - handle_t.clamp(0.0, 1.0));
         self.scrollbar_handle.update(handle, context);
 
         let mut main = position
             .extend_symmetric(vec2(-1.5, -1.0) * context.layout_size)
             .extend_down(100.0 * context.layout_size) // Technically infinite because we can scroll
-            .translate(vec2(0.0, -self.scroll.current));
+            .translate(vec2(0.0, -self.scroll.state.current));
         let main_top = main.max.y;
 
         let profile = main.cut_top(3.0 * context.font_size);
@@ -210,12 +203,8 @@ impl StatefulWidget for OptionsWidget {
 
         // Limit scroll to the contents
         self.content_size = main_top - main.max.y + context.font_size * 2.0;
-        ctl_ui::util::overflow_scroll(
-            context.delta_time,
-            &mut self.scroll.target,
-            self.content_size,
-            position.height(),
-        );
+        self.scroll
+            .overflow(context.delta_time, self.content_size, position.height());
     }
 }
 

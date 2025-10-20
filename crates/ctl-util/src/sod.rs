@@ -28,6 +28,10 @@ impl<T: Interpolatable + Copy> SecondOrderState<T> {
         self.dynamics.y = value;
         self.dynamics.update(delta_time, value);
     }
+
+    pub fn velocity(&self) -> T {
+        self.dynamics.yd
+    }
 }
 
 /// Second order dynamic system as described by

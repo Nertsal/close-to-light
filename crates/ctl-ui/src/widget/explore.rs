@@ -1,11 +1,10 @@
 use super::*;
 
-use crate::layout::AreaOps;
+use crate::{layout::AreaOps, util::ScrollState};
 
 use ctl_assets::Assets;
 use ctl_core::types::{Id, LevelSetInfo};
 use ctl_local::{CacheState, LevelCache};
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ExploreAction {
@@ -34,8 +33,7 @@ pub struct ExploreLevelsWidget {
     assets: Rc<Assets>,
     pub state: WidgetState,
     pub status: TextWidget,
-    pub scroll: SecondOrderState<f32>,
-    scroll_drag_from: f32,
+    pub scroll: ScrollState,
     pub items_state: WidgetState,
     pub items: Vec<LevelItemWidget>,
 }
@@ -139,8 +137,7 @@ impl ExploreLevelsWidget {
             assets: assets.clone(),
             state: WidgetState::new(),
             status: TextWidget::new("Offline"),
-            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
-            scroll_drag_from: 0.0,
+            scroll: ScrollState::new(),
             items_state: WidgetState::new(),
             items: Vec::new(),
         }
@@ -207,19 +204,14 @@ impl StatefulWidget for ExploreLevelsWidget {
         self.state.update(position, context);
 
         // Scroll
-        crate::util::scroll_drag(
-            context,
-            &self.state,
-            &mut self.scroll,
-            &mut self.scroll_drag_from,
-        );
+        self.scroll.drag(context, &self.state);
 
         let main = position;
 
         self.items_state.update(main, context);
         self.status.update(main, context);
 
-        let main = main.translate(vec2(0.0, -self.scroll.current));
+        let main = main.translate(vec2(0.0, -self.scroll.state.current));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 2.0);
@@ -237,12 +229,8 @@ impl StatefulWidget for ExploreLevelsWidget {
             }
         }
 
-        crate::util::overflow_scroll(
-            context.delta_time,
-            &mut self.scroll.target,
-            height,
-            main.height(),
-        );
+        self.scroll
+            .overflow(context.delta_time, height, main.height());
     }
 }
 

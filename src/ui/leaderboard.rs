@@ -4,7 +4,7 @@ use crate::{prelude::Assets, ui::layout::AreaOps};
 
 use ctl_core::types::{Name, UserInfo};
 use ctl_local::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore};
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_ui::util::ScrollState;
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
@@ -17,8 +17,7 @@ pub struct LeaderboardWidget {
     pub subtitle: TextWidget,
     pub separator_title: WidgetState,
     pub status: TextWidget,
-    pub scroll: SecondOrderState<f32>,
-    scroll_drag_from: f32,
+    pub scroll: ScrollState,
     pub rows_state: WidgetState,
     pub rows: Vec<LeaderboardEntryWidget>,
     pub separator_highscore: WidgetState,
@@ -50,8 +49,7 @@ impl LeaderboardWidget {
             subtitle: TextWidget::new("login to submit scores"),
             separator_title: WidgetState::new(),
             status: TextWidget::new(""),
-            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
-            scroll_drag_from: 0.0,
+            scroll: ScrollState::new(),
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator_highscore: WidgetState::new(),
@@ -155,12 +153,7 @@ impl WidgetOld for LeaderboardWidget {
 
         let main = position;
 
-        ctl_ui::util::scroll_drag(
-            context,
-            &self.state,
-            &mut self.scroll,
-            &mut self.scroll_drag_from,
-        );
+        self.scroll.drag(context, &self.state);
 
         // let close = layout::align_aabb(
         //     vec2::splat(1.0) * context.font_size,
@@ -208,7 +201,7 @@ impl WidgetOld for LeaderboardWidget {
         main.cut_bottom(0.2 * context.font_size);
 
         self.rows_state.update(main, context);
-        let main = main.translate(vec2(0.0, -self.scroll.current));
+        let main = main.translate(vec2(0.0, -self.scroll.state.current));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 2.0);
@@ -219,12 +212,8 @@ impl WidgetOld for LeaderboardWidget {
             row.update(position, context);
         }
 
-        ctl_ui::util::overflow_scroll(
-            context.delta_time,
-            &mut self.scroll.target,
-            height,
-            main.height(),
-        );
+        self.scroll
+            .overflow(context.delta_time, height, main.height());
     }
 }
 
