@@ -54,7 +54,7 @@ impl EditorState {
                 meta.music.name = name.into();
                 meta.music.romanized = meta.music.name.clone(); // TODO: separate config
 
-                match self.context.local.update_group_meta(group, meta) {
+                match self.context.local.update_group_meta(group, meta, false) {
                     None => {
                         log::error!("Failed to rename level");
                     }

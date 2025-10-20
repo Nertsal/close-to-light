@@ -474,6 +474,7 @@ impl LevelCache {
         }
     }
 
+    /// Update levelset info based on the downloaded data.
     pub fn synchronize_meta(
         &self,
         group_index: Index,
@@ -491,7 +492,7 @@ impl LevelCache {
 
         drop(inner);
 
-        self.update_group_meta(group_index, info)
+        self.update_group_meta(group_index, info, true)
     }
 
     fn update_group_local(
@@ -548,6 +549,7 @@ impl LevelCache {
         &self,
         group_index: Index,
         group_meta: LevelSetInfo,
+        set_origin: bool,
     ) -> Option<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
         let cached = inner.groups.get_mut(group_index)?;
@@ -558,10 +560,11 @@ impl LevelCache {
             new_music.meta = group_meta.music.clone();
             new_group.music = Some(Rc::new(new_music));
         }
-        new_group.meta = group_meta;
+        new_group.meta = group_meta.clone();
 
         drop(inner);
-        self.update_group_local(group_index, new_group, None).ok()
+        self.update_group_local(group_index, new_group, set_origin.then_some(group_meta))
+            .ok()
     }
 
     pub fn update_group(
