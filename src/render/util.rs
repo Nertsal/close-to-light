@@ -689,7 +689,11 @@ impl UtilRender {
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
                 LitState::Dark => (THEME.danger, THEME.dark),
-                LitState::Light => (THEME.dark, THEME.light),
+                LitState::Light { perfect: false } => (THEME.dark, THEME.light),
+                LitState::Light { perfect: true } => (
+                    THEME.dark,
+                    THEME.get_color(options.graphics.lights.perfect_color),
+                ),
                 LitState::Danger => (THEME.light, THEME.danger),
             };
             self.context.geng.draw2d().draw2d(
@@ -754,7 +758,7 @@ impl UtilRender {
 
         // Health fill
         let color = match state {
-            LitState::Light => crate::util::with_alpha(theme.light, 1.0),
+            LitState::Light { .. } => crate::util::with_alpha(theme.light, 1.0),
             LitState::Dark => crate::util::with_alpha(theme.light, 0.7),
             LitState::Danger => crate::util::with_alpha(theme.danger, 0.7),
         };

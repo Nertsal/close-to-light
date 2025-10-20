@@ -36,7 +36,7 @@ pub struct PlayerTail {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LitState {
     Dark,
-    Light,
+    Light { perfect: bool },
     Danger,
 }
 
@@ -65,7 +65,9 @@ impl Player {
         if self.danger_distance.is_some() {
             LitState::Danger
         } else if self.light_distance.is_some() {
-            LitState::Light
+            LitState::Light {
+                perfect: self.is_perfect,
+            }
         } else {
             LitState::Dark
         }

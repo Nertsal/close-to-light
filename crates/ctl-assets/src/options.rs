@@ -64,12 +64,14 @@ impl Default for GraphicsCrtOptions {
 #[serde(default)]
 pub struct GraphicsLightsOptions {
     pub telegraph_color: ThemeColor,
+    pub perfect_color: ThemeColor,
 }
 
 impl Default for GraphicsLightsOptions {
     fn default() -> Self {
         Self {
             telegraph_color: ThemeColor::Light,
+            perfect_color: ThemeColor::Light,
         }
     }
 }

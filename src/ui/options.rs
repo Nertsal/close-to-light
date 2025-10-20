@@ -264,6 +264,7 @@ pub struct GraphicsWidget {
     pub crt: ToggleWidget,
     pub crt_scanlines: SliderWidget,
     pub telegraph_color: ToggleWidget,
+    pub perfect_color: ToggleWidget,
 }
 
 impl GraphicsWidget {
@@ -274,6 +275,7 @@ impl GraphicsWidget {
             crt: ToggleWidget::new("CRT Shader"),
             crt_scanlines: SliderWidget::new("Scanlines").with_display_precision(0),
             telegraph_color: ToggleWidget::new("Telegraph highlight"),
+            perfect_color: ToggleWidget::new("Perfect highlight"),
         }
     }
 }
@@ -335,6 +337,16 @@ impl StatefulWidget for GraphicsWidget {
             };
         }
         self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Highlight;
+
+        self.perfect_color.update(next_row(), context);
+        if self.perfect_color.state.mouse_left.clicked {
+            state.lights.perfect_color = if state.lights.perfect_color == ThemeColor::Light {
+                ThemeColor::Highlight
+            } else {
+                ThemeColor::Light
+            };
+        }
+        self.perfect_color.checked = state.lights.perfect_color == ThemeColor::Highlight;
 
         let mut position = position;
         position.min.y = min_y;
