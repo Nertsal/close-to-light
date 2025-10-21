@@ -43,6 +43,15 @@ impl Model {
         // Move
         self.player.collider.position = player_target;
 
+        self.update_timers(delta_time);
+        self.render_level();
+        self.update_player(delta_time);
+        self.update_state(delta_time);
+    }
+
+    fn update_timers(&mut self, delta_time: FloatTime) {
+        let options = self.context.get_options();
+
         if let State::Starting { .. } = self.state {
         } else {
             self.play_time += delta_time;
@@ -67,8 +76,10 @@ impl Model {
                 self.context.music.set_volume(volume);
             }
         }
+    }
 
-        // Update level state
+    /// Update renderable level state based on the data and play_time.
+    fn render_level(&mut self) {
         let ignore_time = match self.state {
             State::Lost {
                 death_time_ms: death_beat_time,
@@ -82,9 +93,10 @@ impl Model {
             ignore_time,
             Some(&mut self.vfx),
         );
+    }
 
-        // Update player's light state
-        // And check for missed rhythm
+    /// Update player's light state and check for missed rhythm.
+    fn update_player(&mut self, delta_time: FloatTime) {
         let get_light = |id: Option<usize>, pass: bool| {
             id.and_then(|id| {
                 self.level_state
@@ -112,18 +124,31 @@ impl Model {
 
         // Update light state
         self.player.reset_distance();
+        self.recent_rhythm
+            .retain(|_, time| (self.level_state.time() - *time).abs() <= COYOTE_TIME * 2);
         for light in self.level_state.lights.iter() {
-            self.player.update_light_distance(light, self.last_rhythm);
+            self.player
+                .update_light_distance(light, &self.recent_rhythm);
         }
 
         // Check missed rhythm
         let light = get_light(self.player.closest_light, false);
-        if last_light.is_some() && last_light != light && last_light != Some(self.last_rhythm) {
+        if last_light.is_some()
+            && last_light != light
+            && last_light.is_none_or(|last_light| !self.recent_rhythm.contains_key(&last_light))
+        {
             // Light has changed and no perfect rhythm
             self.score.metrics.discrete.missed_rhythm();
             self.handle_event(GameEvent::Rhythm { perfect: false });
         }
 
+        if !self.level.config.modifiers.clean_auto {
+            // Player tail
+            self.player.update_tail(delta_time);
+        }
+    }
+
+    fn update_state(&mut self, delta_time: FloatTime) {
         match &mut self.state {
             State::Starting {
                 start_timer,
@@ -196,11 +221,6 @@ impl Model {
                 }
             }
             _ => (),
-        }
-
-        if !self.level.config.modifiers.clean_auto {
-            // Player tail
-            self.player.update_tail(delta_time);
         }
     }
 

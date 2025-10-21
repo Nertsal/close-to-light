@@ -139,8 +139,9 @@ pub struct Model {
     /// Button that was used to transition into the game.
     pub transition_button: Option<HoverButton>,
 
-    /// List collected rhythm (event_id, waypoint_id).
-    pub last_rhythm: (usize, WaypointId),
+    /// List collected rhythm (event_id, waypoint_id)
+    /// with times of their collection.
+    pub recent_rhythm: HashMap<(usize, WaypointId), Time>,
     /// Waypoint rhythms.
     pub rhythms: Vec<Rhythm>,
 
@@ -212,7 +213,7 @@ impl Model {
             },
             score: Score::new(level.config.modifiers.multiplier()),
 
-            last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
+            recent_rhythm: HashMap::new(),
             rhythms: Vec::new(),
 
             real_time: FloatTime::ZERO,

@@ -65,7 +65,7 @@ pub enum TrajectoryInterpolation {
     Bezier,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WaypointId {
     Initial,
     Frame(usize),

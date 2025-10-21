@@ -2,7 +2,7 @@ use super::*;
 
 /// Extra distance within which the player is still counted as in-light
 /// to give some leeway on fading lights.
-const LEEWAY: f32 = 0.01;
+const LEEWAY: f32 = 0.025;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -10,11 +10,12 @@ pub struct Player {
     pub collider: Collider,
     pub health: Bounded<FloatTime>,
 
-    /// Whether currently perfectly inside the center of the light.
+    /// Whether currently perfectly inside of any light.
     /// Controlled by the collider.
     pub is_perfect: bool,
-    /// Whether currently closest light is in a keyframe.
-    pub is_keyframe: bool,
+    /// Lights which are at their waypoint and the player is perfectly inside.
+    /// Controlled by the collider.
+    pub perfect_waypoints: Vec<usize>,
 
     /// Event id of the closest friendly light.
     pub closest_light: Option<usize>,
@@ -51,7 +52,7 @@ impl Player {
             health: Bounded::new_max(health),
 
             is_perfect: false,
-            is_keyframe: false,
+            perfect_waypoints: Vec::new(),
 
             closest_light: None,
             light_distance: None,
@@ -95,7 +96,7 @@ impl Player {
 
     pub fn reset_distance(&mut self) {
         self.is_perfect = false;
-        self.is_keyframe = false;
+        self.perfect_waypoints.clear();
         self.closest_light = None;
         self.light_distance = None;
         self.danger_distance = None;
@@ -105,7 +106,23 @@ impl Player {
         self.update_distance(light, None, false, false)
     }
 
-    pub fn update_distance(
+    /// Update player's light distance, perfect measurement, and waypoint detection.
+    /// Uses `last_rhythm` to account for completed rhythms to avoid double counting.
+    pub fn update_light_distance(
+        &mut self,
+        light: &Light,
+        last_rhythm: &HashMap<(usize, WaypointId), Time>,
+    ) {
+        let (time, waypoint) = light.closest_waypoint;
+        let at_waypoint = time > -COYOTE_TIME
+            && time < BUFFER_TIME
+            && light
+                .event_id
+                .is_some_and(|event| !last_rhythm.contains_key(&(event, waypoint)));
+        self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
+    }
+
+    fn update_distance(
         &mut self,
         light: &Collider,
         light_id: Option<usize>,
@@ -153,6 +170,7 @@ impl Player {
         };
 
         if raw_distance > max_distance {
+            // Outside of the light
             return;
         }
 
@@ -165,7 +183,6 @@ impl Player {
             if self.light_distance.is_none_or(|old| raw_distance < old) {
                 self.light_distance = Some(raw_distance);
                 self.closest_light = light_id;
-                self.is_keyframe = at_waypoint;
             }
 
             let radius = match self.collider.shape {
@@ -173,17 +190,12 @@ impl Player {
                 Shape::Line { .. } => unimplemented!(),
                 Shape::Rectangle { .. } => unimplemented!(),
             };
-            self.is_perfect = raw_distance < radius;
+            if raw_distance < radius {
+                self.is_perfect = true;
+                if at_waypoint {
+                    self.perfect_waypoints.extend(light_id);
+                }
+            }
         }
-    }
-
-    pub fn update_light_distance(&mut self, light: &Light, last_rhythm: (usize, WaypointId)) {
-        let (time, waypoint) = light.closest_waypoint;
-        let at_waypoint = time > -COYOTE_TIME
-            && time < BUFFER_TIME
-            && light
-                .event_id
-                .is_some_and(|event| last_rhythm != (event, waypoint));
-        self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
     }
 }
