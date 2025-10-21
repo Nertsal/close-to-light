@@ -196,6 +196,7 @@ pub struct LevelSetInfo {
     pub id: Id,
     pub music: MusicInfo,
     pub owner: UserInfo,
+    #[serde(default)]
     pub levels: Vec<LevelInfo>,
     #[serde(default)]
     pub featured: bool,

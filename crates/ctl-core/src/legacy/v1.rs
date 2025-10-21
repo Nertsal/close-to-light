@@ -12,6 +12,7 @@ pub struct LevelSet<L = LevelFull> {
     pub id: Id,
     pub music: Id,
     pub owner: UserInfo,
+    #[serde(default = "Vec::new")]
     pub levels: Vec<L>,
 }
 
