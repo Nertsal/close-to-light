@@ -427,7 +427,7 @@ impl LevelEditor {
                 level
                     .lights
                     .iter()
-                    .find(|light| light.collider.contains(cursor))
+                    .find(|light| light.contains_point(cursor))
                     .and_then(|light| light.event_id)
                     .map(|event| LightId { event })
             });
