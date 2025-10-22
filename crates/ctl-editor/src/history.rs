@@ -18,6 +18,7 @@ pub enum HistoryLabel {
     FadeOut(LightId),
     Rotate(LightId, WaypointId),
     Scale(LightId, WaypointId),
+    Hollow(LightId),
     MoveLight(LightId),
 
     // Waypoints

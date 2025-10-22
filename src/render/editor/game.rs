@@ -125,6 +125,7 @@ impl EditorRender {
             let color = get_color(light.event_id);
             self.util.draw_light_gradient(
                 &light.collider,
+                light.hollow,
                 color,
                 &level_editor.model.camera,
                 framebuffer,

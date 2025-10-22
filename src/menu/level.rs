@@ -497,6 +497,7 @@ impl geng::State for LevelMenu {
 
                 self.util.draw_light_gradient(
                     &Collider::new(light_pos, Shape::Circle { radius }),
+                    None,
                     crate::render::THEME.light,
                     &self.camera,
                     &mut dither_buffer,

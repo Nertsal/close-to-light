@@ -21,11 +21,20 @@ void main() {
 #ifdef FRAGMENT_SHADER
 uniform vec4 u_color;
 uniform sampler2D u_texture;
+uniform float u_hollow_cut;
 
 void main() {
     vec4 color = texture2D(u_texture, v_vt);
+    if (u_hollow_cut > 0) {
+        color.a = min(
+            min(color.a / (1.0 - u_hollow_cut), 1.0),
+            max((1.0 - color.a - u_hollow_cut) / (1.0 - u_hollow_cut), 0.0)
+        );
+    }
+
     vec4 m_color = u_color * v_color;
     color.rgb *= m_color.rgb;
+
     color = vec4(color.rgb * color.a, m_color.a); // Premultiply alpha
     gl_FragColor = color;
 }

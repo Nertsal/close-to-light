@@ -48,6 +48,8 @@ pub enum LevelAction {
     FlipHorizontal(LightId, vec2<Coord>),
     FlipVertical(LightId, vec2<Coord>),
     ToggleDanger(LightId),
+    ToggleHollow(LightId),
+    ChangeHollow(LightId, Change<R32>),
     ChangeFadeOut(LightId, Change<Time>),
     ChangeFadeIn(LightId, Change<Time>),
     MoveLight(LightId, Change<Time>, Change<vec2<Coord>>),
@@ -160,6 +162,8 @@ impl LevelAction {
             LevelAction::FlipHorizontal(_, _) => false,
             LevelAction::FlipVertical(_, _) => false,
             LevelAction::ToggleDanger(..) => false,
+            LevelAction::ToggleHollow(..) => false,
+            LevelAction::ChangeHollow(_, delta) => delta.is_noop(&R32::ZERO),
             LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
             LevelAction::MoveLight(_, time, position) => {
@@ -381,6 +385,8 @@ impl LevelEditor {
                 self.modify_movement(light, |movement| movement.flip_vertical(anchor))
             }
             LevelAction::ToggleDanger(light) => self.toggle_danger(light),
+            LevelAction::ToggleHollow(light) => self.toggle_hollow(light),
+            LevelAction::ChangeHollow(light, change) => self.change_hollow(light, change),
             LevelAction::ChangeFadeOut(id, change) => {
                 if let Some(event) = self.level.events.get_mut(id.event)
                     && let Event::Light(light) = &mut event.event
@@ -782,6 +788,29 @@ impl LevelEditor {
         }
     }
 
+    fn toggle_hollow(&mut self, light_id: LightId) {
+        if let Some(event) = self.level.events.get_mut(light_id.event)
+            && let Event::Light(event) = &mut event.event
+        {
+            event.hollow = if event.hollow.is_some() {
+                None
+            } else {
+                Some(r32(0.5))
+            };
+        }
+    }
+
+    fn change_hollow(&mut self, light_id: LightId, change: Change<R32>) {
+        if let Some(event) = self.level.events.get_mut(light_id.event)
+            && let Event::Light(event) = &mut event.event
+        {
+            let mut hollow = event.hollow.unwrap_or(r32(0.5));
+            change.apply(&mut hollow);
+            event.hollow = Some(hollow.clamp(R32::ZERO, R32::ONE));
+            self.save_state(HistoryLabel::Hollow(light_id));
+        }
+    }
+
     fn cancel(&mut self) {
         match &mut self.state {
             EditingState::Idle => {
@@ -832,6 +861,7 @@ impl LevelEditor {
             shape,
             movement,
             danger,
+            hollow: None,
         };
 
         let beat = start_beat - light.movement.fade_in; // extra time for the fade in and telegraph

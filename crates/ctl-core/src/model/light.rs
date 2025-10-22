@@ -10,6 +10,8 @@ pub struct Light {
     pub lifetime: Time,
     /// Whether the light is dangerous.
     pub danger: bool,
+    /// Makes the light hollow.
+    pub hollow: Option<R32>,
     /// Id of the original event in the level.
     pub event_id: Option<usize>,
     /// Time delta to the closest waypoint.
