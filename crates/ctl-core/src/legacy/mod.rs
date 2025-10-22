@@ -1,4 +1,4 @@
-/// Version as of June 21, 2024 (Mapping Update).
+/// Version as of June 21st, 2024 (Mapping Update).
 pub mod v1;
 /// Version as of October 24th, 2025 (Visual Update).
 pub mod v2;
@@ -7,12 +7,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub enum VersionedLevelSet {
+    V2(v2::LevelSet),
     V3(crate::LevelSet),
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "version")]
 pub enum VersionedLevelSetInfo {
+    V2(v2::LevelSetInfo),
     V3(crate::LevelSetInfo),
 }
 
@@ -28,11 +30,21 @@ impl VersionedLevelSetInfo {
     }
 }
 
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum LevelMigrationError {
+    #[error("Found mismatching versions of data and metadata, migration is not possible")]
+    MismatchingVersions,
+}
+
 pub fn migrate(
     value: VersionedLevelSet,
     info: VersionedLevelSetInfo,
-) -> (crate::LevelSet, crate::LevelSetInfo) {
+) -> Result<(crate::LevelSet, crate::LevelSetInfo), LevelMigrationError> {
     match (value, info) {
-        (VersionedLevelSet::V3(value), VersionedLevelSetInfo::V3(info)) => (value, info),
+        (VersionedLevelSet::V2(value), VersionedLevelSetInfo::V2(info)) => {
+            Ok(v2::migrate(value, info))
+        }
+        (VersionedLevelSet::V3(value), VersionedLevelSetInfo::V3(info)) => Ok((value, info)),
+        _ => Err(LevelMigrationError::MismatchingVersions),
     }
 }

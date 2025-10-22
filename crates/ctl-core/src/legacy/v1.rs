@@ -147,7 +147,7 @@ impl Default for Movement {
     }
 }
 
-pub fn convert_group(
+pub fn migrate(
     beat_time: crate::FloatTime,
     value: LevelSet,
 ) -> (crate::LevelSet, crate::LevelSetInfo) {

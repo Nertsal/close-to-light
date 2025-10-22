@@ -14,6 +14,7 @@ uuid.workspace = true
 cbor4ii.workspace = true
 enum-iterator.workspace = true
 time.workspace = true
+thiserror.workspace = true
 
 data-encoding.workspace = true
 sha2.workspace = true
