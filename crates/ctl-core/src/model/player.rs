@@ -103,7 +103,7 @@ impl Player {
     }
 
     pub fn update_distance_simple(&mut self, light: &Collider) {
-        self.update_distance(light, None, false, false)
+        self.update_distance(light, None, false, None, false)
     }
 
     /// Update player's light distance, perfect measurement, and waypoint detection.
@@ -119,7 +119,13 @@ impl Player {
             && light
                 .event_id
                 .is_some_and(|event| !last_rhythm.contains_key(&(event, waypoint)));
-        self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
+        self.update_distance(
+            &light.collider,
+            light.event_id,
+            light.danger,
+            light.hollow,
+            at_waypoint,
+        )
     }
 
     fn update_distance(
@@ -127,6 +133,7 @@ impl Player {
         light: &Collider,
         light_id: Option<usize>,
         danger: bool,
+        hollow: Option<R32>,
         at_waypoint: bool,
     ) {
         let leeway = if danger {
@@ -137,14 +144,16 @@ impl Player {
         };
         let with_leeway = |distance: Coord| (distance - leeway).max(Coord::ZERO);
 
+        let hollow = hollow.unwrap_or(R32::ZERO);
         let delta_pos = self.collider.position - light.position;
-        let (raw_distance, max_distance) = match light.shape {
-            Shape::Circle { radius } => (with_leeway(delta_pos.len()), radius),
+        let (raw_distance, min_distance, max_distance) = match light.shape {
+            Shape::Circle { radius } => (with_leeway(delta_pos.len()), hollow * radius, radius),
             Shape::Line { width } => {
                 let dir = light.rotation.unit_vec();
                 let dir = vec2(-dir.y, dir.x); // perpendicular
                 let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
-                (with_leeway(dot.abs()), width / r32(2.0))
+                let radius = width / r32(2.0);
+                (with_leeway(dot.abs()), hollow * radius, radius)
             }
             Shape::Rectangle { width, height } => {
                 let delta_pos = delta_pos.rotate(-light.rotation);
@@ -165,23 +174,31 @@ impl Player {
                     let w = vec2::dot(delta_pos, vec2::UNIT_X);
                     vec2(w, height / r32(2.0)).len()
                 };
-                (with_leeway(delta_pos.len()).max(Coord::ZERO), radius)
+                (
+                    with_leeway(delta_pos.len()).max(Coord::ZERO),
+                    hollow * radius,
+                    radius,
+                )
             }
         };
 
-        if raw_distance > max_distance {
-            // Outside of the light
+        if !(min_distance..=max_distance).contains(&raw_distance) {
+            // Outside of the light or inside of the hollow light
             return;
         }
 
+        // Account for hollow lights
+        let zero_distance = max_distance * (hollow + r32(1.0)) / r32(2.0);
+        let distance = (raw_distance - zero_distance).abs();
+
         let update = |value: &mut Option<Coord>| {
-            *value = Some(value.map_or(raw_distance, |value| value.min(raw_distance)));
+            *value = Some(value.map_or(distance, |value| value.min(distance)));
         };
         if danger {
             update(&mut self.danger_distance);
         } else {
-            if self.light_distance.is_none_or(|old| raw_distance < old) {
-                self.light_distance = Some(raw_distance);
+            if self.light_distance.is_none_or(|old| distance < old) {
+                self.light_distance = Some(distance);
                 self.closest_light = light_id;
             }
 
@@ -190,7 +207,7 @@ impl Player {
                 Shape::Line { .. } => unimplemented!(),
                 Shape::Rectangle { .. } => unimplemented!(),
             };
-            if raw_distance < radius {
+            if distance < radius {
                 self.is_perfect = true;
                 if at_waypoint {
                     self.perfect_waypoints.extend(light_id);
