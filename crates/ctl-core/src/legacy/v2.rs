@@ -362,7 +362,7 @@ fn convert_level(value: Level) -> crate::Level {
                             }
                         },
                         movement: crate::Movement {
-                            // fade_out: convert_time(beat_time, light.light.movement.fade_out),
+                            // Fade in
                             initial: crate::WaypointInitial {
                                 lerp_time: light.movement.fade_in,
                                 interpolation: light.movement.interpolation.into(),
@@ -372,13 +372,17 @@ fn convert_level(value: Level) -> crate::Level {
                                     ..light.movement.initial.into()
                                 },
                             },
-                            last: light
-                                .movement
-                                .key_frames
-                                .back()
-                                .map(|frame| frame.transform)
-                                .unwrap_or(light.movement.initial)
-                                .into(),
+                            // Fade out
+                            last: crate::Transform {
+                                scale: R32::ZERO,
+                                ..light
+                                    .movement
+                                    .key_frames
+                                    .back()
+                                    .map(|frame| frame.transform)
+                                    .unwrap_or(light.movement.initial)
+                                    .into()
+                            },
                             waypoints: {
                                 let mut waypoints: VecDeque<crate::Waypoint> = light
                                     .movement
@@ -386,7 +390,21 @@ fn convert_level(value: Level) -> crate::Level {
                                     .into_iter()
                                     .map(Into::into)
                                     .collect();
-                                for i in 0..waypoints.len() {
+                                waypoints.push_front(crate::Waypoint {
+                                    lerp_time: waypoints.front().map_or_else(
+                                        || light.movement.fade_out,
+                                        |frame| frame.lerp_time,
+                                    ),
+                                    interpolation: light.movement.interpolation.into(),
+                                    change_curve: Some(crate::TrajectoryInterpolation::from(
+                                        light.movement.curve,
+                                    ))
+                                    .filter(|curve| {
+                                        *curve != crate::TrajectoryInterpolation::default()
+                                    }),
+                                    transform: light.movement.initial.into(),
+                                });
+                                for i in 1..waypoints.len() {
                                     let time = waypoints.get(i + 1).map_or_else(
                                         || light.movement.fade_out,
                                         |frame| frame.lerp_time,

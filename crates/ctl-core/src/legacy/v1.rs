@@ -231,25 +231,36 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
                                     ..light.light.movement.initial.into()
                                 },
                             },
-                            last: light
-                                .light
-                                .movement
-                                .key_frames
-                                .back()
-                                .map(|frame| frame.transform)
-                                .unwrap_or(light.light.movement.initial)
-                                .into(),
-                            waypoints: {
-                                let mut waypoints: VecDeque<crate::Waypoint> = light
+                            last: crate::Transform {
+                                scale: R32::ZERO,
+                                ..light
                                     .light
                                     .movement
+                                    .key_frames
+                                    .back()
+                                    .map(|frame| frame.transform)
+                                    .unwrap_or(light.light.movement.initial)
+                                    .into()
+                            },
+                            waypoints: {
+                                let movement = light.light.movement;
+                                let mut waypoints: VecDeque<crate::Waypoint> = movement
                                     .key_frames
                                     .into_iter()
                                     .map(|frame| convert_frame(beat_time, frame))
                                     .collect();
-                                for i in 0..waypoints.len() {
+                                waypoints.push_front(crate::Waypoint {
+                                    lerp_time: waypoints.front().map_or_else(
+                                        || convert_time(beat_time, movement.fade_out),
+                                        |frame| frame.lerp_time,
+                                    ),
+                                    interpolation: crate::MoveInterpolation::default(),
+                                    change_curve: None,
+                                    transform: movement.initial.into(),
+                                });
+                                for i in 1..waypoints.len() {
                                     let time = waypoints.get(i + 1).map_or_else(
-                                        || convert_time(beat_time, light.light.movement.fade_out),
+                                        || convert_time(beat_time, movement.fade_out),
                                         |frame| frame.lerp_time,
                                     );
                                     waypoints.get_mut(i).unwrap().lerp_time = time;

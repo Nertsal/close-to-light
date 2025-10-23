@@ -668,7 +668,7 @@ impl EditorEditUi {
                     .cut_right(current.height() * 0.6)
                     .zero_size(vec2(0.5, 0.5))
                     .extend_uniform(font_size * 0.7);
-                if i >= frames {
+                if i > frames {
                     let button = context.state.get_root_or(|| {
                         IconWidget::new(context.context.assets.atlas.button_next_hollow())
                     });

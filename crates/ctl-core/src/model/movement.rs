@@ -326,12 +326,15 @@ impl Movement {
 
         // Find the target frame
         let mut from = self.initial.transform;
-        let interpolation = self.initial.interpolation;
-        for (i, (frame, lerp_time)) in itertools::chain![
-            [(self.initial.transform, self.initial.lerp_time)],
-            self.waypoints
-                .iter()
-                .map(|waypoint| (waypoint.transform, waypoint.lerp_time))
+        let mut lerp_time = self.initial.lerp_time;
+        let mut interpolation = self.initial.interpolation;
+        for (i, (frame, next_lerp_time, next_interpolation)) in itertools::chain![
+            self.waypoints.iter().map(|waypoint| (
+                waypoint.transform,
+                waypoint.lerp_time,
+                waypoint.interpolation
+            )),
+            [(self.last, Time::ZERO, MoveInterpolation::default())]
         ]
         .enumerate()
         {
@@ -347,6 +350,8 @@ impl Movement {
             }
             time -= lerp_time;
             from = frame;
+            lerp_time = next_lerp_time;
+            interpolation = next_interpolation;
         }
 
         // Past all waypoints just return the last transform
@@ -355,14 +360,12 @@ impl Movement {
 
     /// Returns the total duration of the movement.
     pub fn duration(&self) -> Time {
-        // NOTE: skip last waypoint because its lerp_time is redundant
-        // as there are no waypoints after it to lerp to
-        self.waypoints
-            .iter()
-            .rev()
-            .skip(1)
-            .map(|frame| frame.lerp_time)
-            .fold(Time::ZERO, Add::add)
+        self.initial.lerp_time
+            + self
+                .waypoints
+                .iter()
+                .map(|frame| frame.lerp_time)
+                .fold(Time::ZERO, Add::add)
     }
 
     /// Returns the total distance that a light will travel following this movement.
@@ -383,9 +386,7 @@ impl Movement {
     }
 
     pub fn get_fade_in(&self) -> Time {
-        self.waypoints
-            .front()
-            .map_or(self.initial.lerp_time, |waypoint| waypoint.lerp_time)
+        self.initial.lerp_time
     }
 
     pub fn change_fade_out(&mut self, target: Time) {
@@ -401,12 +402,7 @@ impl Movement {
 
     pub fn change_fade_in(&mut self, target: Time) {
         let target = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
-        let value = self
-            .waypoints
-            .front_mut()
-            .map_or(&mut self.initial.lerp_time, |waypoint| {
-                &mut waypoint.lerp_time
-            });
+        let value = &mut self.initial.lerp_time;
         *value = target;
     }
 
@@ -415,9 +411,12 @@ impl Movement {
         bake_movement(
             self.initial.transform,
             self.initial.curve,
-            self.waypoints
-                .iter()
-                .map(|frame| (frame.transform, frame.change_curve)),
+            itertools::chain![
+                self.waypoints
+                    .iter()
+                    .map(|frame| (frame.transform, frame.change_curve)),
+                [(self.last, None)]
+            ],
         )
     }
 
