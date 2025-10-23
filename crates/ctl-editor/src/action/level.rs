@@ -531,6 +531,8 @@ impl LevelEditor {
             });
 
         // Update time
+        let fade_in = event.movement.get_fade_in();
+        let fade_out = event.movement.get_fade_out();
         let mut frames: Vec<_> = event
             .movement
             .timed_transforms()
@@ -542,6 +544,14 @@ impl LevelEditor {
                 (id, transform, time)
             })
             .collect();
+
+        // Edge (fade in/out) waypoints keep their relative timings unless moved directly
+        if matches!(waypoint_id, WaypointId::Frame(_)) {
+            let len = frames.len();
+            assert!(len >= 2);
+            frames[0].2 = frames[1].2 - fade_in;
+            frames[len - 1].2 = frames[len - 2].2 + fade_out;
+        }
 
         // Sort frames by absolute time
         frames.sort_by_key(|(_, _, time)| *time);
@@ -614,8 +624,8 @@ impl LevelEditor {
                     fixed_frame.transform = transform;
                     // fixed_frame.interpolation = interpolation;
                     // fixed_frame.curve = curve;
-                    fixed_frame.lerp_time = time - future_time;
-                    timed_event.time = time - event.movement.get_fade_in();
+                    fixed_frame.lerp_time = future_time - time;
+                    timed_event.time = time;
                 }
                 WaypointId::Frame(i) => {
                     let fixed_frame = fixed_movement
@@ -625,7 +635,7 @@ impl LevelEditor {
                     fixed_frame.transform = transform;
                     // fixed_frame.interpolation = interpolation;
                     // fixed_frame.curve = curve;
-                    fixed_frame.lerp_time = time - future_time;
+                    fixed_frame.lerp_time = future_time - time;
                 }
                 WaypointId::Last => unreachable!(),
             }

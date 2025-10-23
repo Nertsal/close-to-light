@@ -31,7 +31,7 @@ pub struct TimelineWidget {
     ticks: Vec<(vec2<f32>, BeatTime)>,
     dragging_event: Option<(usize, vec2<f32>, f32)>,
     dragging_light: Option<(vec2<f32>, f32)>,
-    dragging_waypoint: bool,
+    dragging_waypoint: Option<WaypointId>,
 
     /// Render scale in pixels per beat.
     scale: f32,
@@ -73,7 +73,7 @@ impl TimelineWidget {
             ticks: Vec::new(),
             dragging_event: None,
             dragging_light: None,
-            dragging_waypoint: false,
+            dragging_waypoint: None,
 
             scale: 0.5,
             scroll: Time::ZERO,
@@ -438,9 +438,9 @@ impl TimelineWidget {
                                         .into(),
                                     LevelAction::SelectWaypoint(waypoint_id, false).into(),
                                 ]);
-                                self.dragging_waypoint = true;
+                                self.dragging_waypoint = Some(waypoint_id);
                             } else if !context.cursor.left.down {
-                                if self.dragging_waypoint {
+                                if self.dragging_waypoint == Some(waypoint_id) {
                                     actions.push(
                                         LevelAction::FlushChanges(Some(
                                             HistoryLabel::MoveWaypointTime(light_id, waypoint_id),
@@ -448,9 +448,9 @@ impl TimelineWidget {
                                         .into(),
                                     );
                                 }
-                                self.dragging_waypoint = false;
+                                self.dragging_waypoint = None;
                             }
-                            if self.dragging_waypoint && is_waypoint_selected {
+                            if self.dragging_waypoint == Some(waypoint_id) && is_waypoint_selected {
                                 let time = unrender_time(context.cursor.position.x);
                                 let time = editor.level.timing.snap_to_beat(time, snap);
                                 actions.push(
