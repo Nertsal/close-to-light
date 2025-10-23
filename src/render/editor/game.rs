@@ -231,16 +231,15 @@ impl EditorRender {
                         const POINTS_DENSITY: f32 = 5.0;
                         let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
                             .round() as usize;
-                        if !event.movement.key_frames.is_empty() && num_points > 0 {
-                            let period =
-                                time_to_seconds(event.movement.movement_duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
+                        if !event.movement.waypoints.is_empty() && num_points > 0 {
+                            let period = time_to_seconds(event.movement.duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
                             let speed = r32(1.0 / 8.0); // game time per real time
                             let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
                                 .map(|i| {
                                     let t = r32(i as f32 / num_points as f32);
                                     let t = (level_editor.real_time / period * speed + t).fract()
                                         * period;
-                                    let t = seconds_to_time(t) + event.movement.fade_in;
+                                    let t = seconds_to_time(t) + event.movement.get_fade_in();
                                     let alpha = visibility(t);
                                     draw2d::ColoredVertex {
                                         a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance

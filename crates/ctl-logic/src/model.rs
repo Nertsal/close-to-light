@@ -39,12 +39,9 @@ impl HoverButton {
             base_collider: collider,
             hover_time: Lifetime::new_zero(hover_time.as_r32()),
             animation: Movement {
-                fade_in: seconds_to_time(r32(0.0)),
-                initial: Transform::scale(2.25),
-                key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
-                interpolation: MoveInterpolation::Smoothstep,
-                curve: TrajectoryInterpolation::Linear,
-                fade_out: seconds_to_time(r32(0.2)),
+                initial: WaypointInitial::new(seconds_to_time(0.5), Transform::scale(2.25)),
+                waypoints: vec![Waypoint::scale(seconds_to_time(0.25), 5.0)].into(),
+                last: Transform::scale(75.0),
             },
             clicked: false,
         }

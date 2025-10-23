@@ -1,4 +1,4 @@
-use geng::prelude::{Angle, R32, r32, vec2};
+use geng::prelude::{Angle, R32, UNum, r32, vec2};
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, rc::Rc, sync::Arc};
 
@@ -362,17 +362,39 @@ fn convert_level(value: Level) -> crate::Level {
                             }
                         },
                         movement: crate::Movement {
-                            fade_in: light.movement.fade_in,
-                            fade_out: light.movement.fade_out,
-                            initial: light.movement.initial.into(),
-                            interpolation: light.movement.interpolation.into(),
-                            curve: light.movement.curve.into(),
-                            key_frames: light
+                            // fade_out: convert_time(beat_time, light.light.movement.fade_out),
+                            initial: crate::WaypointInitial {
+                                lerp_time: light.movement.fade_in,
+                                interpolation: light.movement.interpolation.into(),
+                                curve: light.movement.curve.into(),
+                                transform: crate::Transform {
+                                    scale: R32::ZERO,
+                                    ..light.movement.initial.into()
+                                },
+                            },
+                            last: light
                                 .movement
                                 .key_frames
-                                .into_iter()
-                                .map(Into::into)
-                                .collect(),
+                                .back()
+                                .map(|frame| frame.transform)
+                                .unwrap_or(light.movement.initial)
+                                .into(),
+                            waypoints: {
+                                let mut waypoints: VecDeque<crate::Waypoint> = light
+                                    .movement
+                                    .key_frames
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .collect();
+                                for i in 0..waypoints.len() {
+                                    let time = waypoints.get(i + 1).map_or_else(
+                                        || light.movement.fade_out,
+                                        |frame| frame.lerp_time,
+                                    );
+                                    waypoints.get_mut(i).unwrap().lerp_time = time;
+                                }
+                                waypoints
+                            },
                         },
                     }),
                     Event::Effect(effect) => crate::Event::Effect(match effect {
@@ -403,7 +425,7 @@ impl From<Transform> for crate::Transform {
     }
 }
 
-impl From<MoveFrame> for crate::MoveFrame {
+impl From<MoveFrame> for crate::Waypoint {
     fn from(value: MoveFrame) -> Self {
         Self {
             lerp_time: value.lerp_time,

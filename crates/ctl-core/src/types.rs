@@ -14,7 +14,7 @@ pub const TIME_IN_FLOAT_TIME: Time = 1000;
 pub const COYOTE_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
 pub const BUFFER_TIME: Time = TIME_IN_FLOAT_TIME / 10; // 0.1s
 
-pub fn seconds_to_time(time: FloatTime) -> Time {
+pub fn seconds_to_time(time: impl Float) -> Time {
     (time.as_f32() * TIME_IN_FLOAT_TIME as f32).round() as Time
 }
 

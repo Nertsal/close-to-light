@@ -136,7 +136,7 @@ impl TimedEvent {
     /// Returns the duration of the event.
     pub fn duration(&self) -> Time {
         match &self.event {
-            Event::Light(event) => event.movement.total_duration(),
+            Event::Light(event) => event.movement.duration(),
             Event::Effect(_) => Time::ZERO,
         }
     }

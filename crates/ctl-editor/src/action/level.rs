@@ -392,7 +392,7 @@ impl LevelEditor {
                     && let Event::Light(light) = &mut event.event
                 {
                     let movement = &mut light.movement;
-                    let mut value = movement.fade_out;
+                    let mut value = movement.get_fade_out();
                     change.apply(&mut value);
                     movement.change_fade_out(value);
                     self.save_state(HistoryLabel::FadeOut(id));
@@ -403,10 +403,10 @@ impl LevelEditor {
                     && let Event::Light(light) = &mut event.event
                 {
                     let movement = &mut light.movement;
-                    let from = movement.fade_in;
+                    let from = movement.get_fade_in();
                     let change = change.into_delta(from);
-                    movement.change_fade_in(movement.fade_in + change);
-                    event.time -= movement.fade_in - from;
+                    movement.change_fade_in(from + change);
+                    event.time -= movement.get_fade_in() - from;
                     self.save_state(HistoryLabel::FadeIn(id));
                 }
             }
@@ -470,11 +470,11 @@ impl LevelEditor {
 
         change_time.apply(&mut timed_event.time);
 
-        let change_pos = Change::Add(change_pos.into_delta(event.movement.initial.translation));
-        change_pos.apply(&mut event.movement.initial.translation);
-        for frame in &mut event.movement.key_frames {
-            change_pos.apply(&mut frame.transform.translation);
-        }
+        let change_pos =
+            Change::Add(change_pos.into_delta(event.movement.initial.transform.translation));
+        event
+            .movement
+            .modify_transforms(|transform| change_pos.apply(&mut transform.translation));
 
         self.save_state(HistoryLabel::MoveLight(light_id));
     }
@@ -533,7 +533,7 @@ impl LevelEditor {
         // Update time
         let mut frames: Vec<_> = event
             .movement
-            .timed_positions()
+            .timed_transforms()
             .map(|(id, transform, mut time)| {
                 time += timed_event.time;
                 if id == waypoint_id {
@@ -553,14 +553,14 @@ impl LevelEditor {
         }
 
         // Reorder frames to fit the new time
-        let mut frames = frames.into_iter();
+        let mut frames = frames.into_iter().rev(); // NOTE: iterate in reverse because lerp_time has to be calculated based on future frame times
         let mut fixed_movement = event.movement.clone();
-        let mut last_time = Time::ZERO;
+        let mut future_time = Time::ZERO; // Time of the next (time-wise) frame
         let mut fix_selection = true;
 
-        // Initial frame is treated specially
+        // Last frame is treated specially
         if let Some((original_id, transform, time)) = frames.next() {
-            let fixed_id = WaypointId::Initial;
+            let fixed_id = WaypointId::Last;
             if let Some(waypoints) = &mut self.level_state.waypoints
                 && fix_selection
                 && self.selection.is_light_single(light_id)
@@ -576,33 +576,30 @@ impl LevelEditor {
                 fix_drag_waypoint_id = None;
             }
 
-            // TODO: config option to keep curves at waypoints
-            // let (interpolation, curve) = event
-            //     .movement
-            //     .get_interpolation(fixed_id)
-            //     .expect("invalid waypoint id when fixing");
-            fixed_movement.initial = transform;
-            // fixed_movement.interpolation = interpolation;
-            // fixed_movement.curve = curve.unwrap_or_default();
-            timed_event.time = time - event.movement.fade_in;
-            last_time = time;
+            fixed_movement.last = transform;
+            future_time = time;
         }
 
         // Update all other frames
-        for (i, (original_id, transform, time)) in frames.enumerate() {
-            let fixed_id = WaypointId::Frame(i);
+        for (id, (original_id, transform, time)) in frames.enumerate() {
+            // Restore proper index
+            let id = match fixed_movement.waypoints.len().checked_sub(id + 1) {
+                Some(i) => WaypointId::Frame(i),
+                None => WaypointId::Initial,
+            };
+
             if let Some(waypoints) = &mut self.level_state.waypoints
                 && fix_selection
                 && self.selection.is_light_single(light_id)
                 && waypoints.selected == Some(original_id)
             {
-                waypoints.selected = Some(fixed_id);
+                waypoints.selected = Some(id);
                 fix_selection = false;
             }
             if let Some(waypoint) = &mut fix_drag_waypoint_id
                 && original_id == **waypoint
             {
-                **waypoint = fixed_id;
+                **waypoint = id;
                 fix_drag_waypoint_id = None;
             }
 
@@ -611,15 +608,28 @@ impl LevelEditor {
             //     .movement
             //     .get_interpolation(fixed_id)
             //     .expect("invalid waypoint id when fixing");
-            let fixed_frame = fixed_movement
-                .key_frames
-                .get_mut(i)
-                .expect("invalid waypoint index when fixing");
-            fixed_frame.transform = transform;
-            // fixed_frame.interpolation = interpolation;
-            // fixed_frame.curve = curve;
-            fixed_frame.lerp_time = time - last_time;
-            last_time = time;
+            match id {
+                WaypointId::Initial => {
+                    let fixed_frame = &mut fixed_movement.initial;
+                    fixed_frame.transform = transform;
+                    // fixed_frame.interpolation = interpolation;
+                    // fixed_frame.curve = curve;
+                    fixed_frame.lerp_time = time - future_time;
+                    timed_event.time = time - event.movement.get_fade_in();
+                }
+                WaypointId::Frame(i) => {
+                    let fixed_frame = fixed_movement
+                        .waypoints
+                        .get_mut(i)
+                        .expect("invalid waypoint index when fixing");
+                    fixed_frame.transform = transform;
+                    // fixed_frame.interpolation = interpolation;
+                    // fixed_frame.curve = curve;
+                    fixed_frame.lerp_time = time - future_time;
+                }
+                WaypointId::Last => unreachable!(),
+            }
+            future_time = time;
         }
 
         event.movement = fixed_movement;
@@ -643,15 +653,16 @@ impl LevelEditor {
 
         match waypoint_id {
             WaypointId::Initial => {
-                event.movement.curve = curve.unwrap_or_default();
+                event.movement.initial.curve = curve.unwrap_or_default();
             }
             WaypointId::Frame(frame) => {
-                let Some(frame) = event.movement.key_frames.get_mut(frame) else {
+                let Some(frame) = event.movement.waypoints.get_mut(frame) else {
                     return;
                 };
                 frame.change_curve = curve;
                 self.save_state(default());
             }
+            WaypointId::Last => {} // Noop
         }
     }
 
@@ -671,15 +682,16 @@ impl LevelEditor {
 
         match waypoint_id {
             WaypointId::Initial => {
-                event.movement.interpolation = interpolation;
+                event.movement.initial.interpolation = interpolation;
             }
             WaypointId::Frame(frame) => {
-                let Some(frame) = event.movement.key_frames.get_mut(frame) else {
+                let Some(frame) = event.movement.waypoints.get_mut(frame) else {
                     return;
                 };
                 frame.interpolation = interpolation;
                 self.save_state(default());
             }
+            WaypointId::Last => {} // Noop
         }
     }
 
@@ -864,7 +876,7 @@ impl LevelEditor {
             hollow: None,
         };
 
-        let beat = start_beat - light.movement.fade_in; // extra time for the fade in and telegraph
+        let beat = start_beat - light.movement.get_fade_in(); // extra time for the fade in and telegraph
         let event = commit_light(light.clone());
         let event = TimedEvent {
             time: beat,
@@ -902,6 +914,10 @@ impl LevelEditor {
             return;
         };
 
+        // NOTE: target to make sure it is snapped to the beat
+        // assume time interpolation doesn't take long, so not visually weird
+        let target_time = self.current_time.target;
+
         let mut transform = Transform {
             translation: position,
             rotation: self.place_rotation,
@@ -912,34 +928,36 @@ impl LevelEditor {
         match i.checked_sub(1) {
             None => {
                 // Replace initial
-                std::mem::swap(&mut light.movement.initial, &mut transform);
-                std::mem::swap(&mut light.movement.interpolation, &mut interpolation);
-                change_curve = Some(light.movement.curve);
-                light.movement.curve = TrajectoryInterpolation::default();
+                std::mem::swap(&mut light.movement.initial.transform, &mut transform);
+                std::mem::swap(
+                    &mut light.movement.initial.interpolation,
+                    &mut interpolation,
+                );
+                change_curve = Some(light.movement.initial.curve);
+                light.movement.initial.curve = TrajectoryInterpolation::default();
 
-                // NOTE: target to make sure it is snapped to the beat
-                // assume time interpolation doesn't take long, so not visually weird
-                let time = self.current_time.target - light.movement.fade_in; // Extra time for fade in
-                light.movement.key_frames.push_front(MoveFrame {
-                    lerp_time: event.time - time,
+                let time = target_time - light.movement.get_fade_in(); // Extra time for fade in
+                let mut lerp_time = event.time - time;
+                std::mem::swap(&mut light.movement.initial.lerp_time, &mut lerp_time);
+
+                light.movement.waypoints.push_front(Waypoint {
+                    lerp_time,
                     interpolation,
                     change_curve,
                     transform,
                 });
                 event.time = time;
             }
-            Some(i) => {
+            Some(i) if i <= light.movement.waypoints.len() => {
                 // Insert keyframe
-                let last = light.movement.timed_positions().nth(i);
-                if let Some((_, _, last_time)) = last {
-                    let last_time = event.time + last_time;
-                    // NOTE: target to make sure it is snapped to the beat
-                    // assume time interpolation doesn't take long, so not visually weird
-                    let lerp_time = self.current_time.target - last_time;
+                let next = light.movement.timed_transforms().nth(i + 1);
+                if let Some((_, _, next_time)) = next {
+                    let next_time = event.time + next_time;
+                    let lerp_time = next_time - target_time;
 
-                    light.movement.key_frames.insert(
+                    light.movement.waypoints.insert(
                         i,
-                        MoveFrame {
+                        Waypoint {
                             lerp_time,
                             interpolation,
                             change_curve,
@@ -947,10 +965,22 @@ impl LevelEditor {
                         },
                     );
 
-                    if let Some(next) = light.movement.key_frames.get_mut(i + 1) {
-                        next.lerp_time -= lerp_time;
+                    if let Some(prev) = light.movement.waypoints.get_mut(i) {
+                        prev.lerp_time -= lerp_time;
                     }
                 }
+            }
+            Some(i) => {
+                // Replace last
+                std::mem::swap(&mut light.movement.last, &mut transform);
+
+                let lerp_time = target_time - light.movement.timed_transforms().nth(i).unwrap().2;
+                light.movement.waypoints.push_back(Waypoint {
+                    lerp_time,
+                    interpolation,
+                    change_curve,
+                    transform,
+                });
             }
         }
     }

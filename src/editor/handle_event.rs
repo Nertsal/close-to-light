@@ -319,7 +319,7 @@ impl EditorState {
                 for (i, event) in level_editor.level.events.iter().enumerate() {
                     if let Event::Light(light) = &event.event {
                         let time = level_editor.current_time.target - event.time;
-                        if time >= Time::ZERO && time <= light.movement.total_duration() {
+                        if time >= Time::ZERO && time <= light.movement.duration() {
                             let transform = light.movement.get(time);
                             if area.contains(transform.translation) {
                                 let id = LightId { event: i };
@@ -484,6 +484,7 @@ impl EditorState {
                                                 initial_translation: light
                                                     .movement
                                                     .initial
+                                                    .transform
                                                     .translation,
                                             })
                                         })

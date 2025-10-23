@@ -4,33 +4,42 @@ use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Movement {
-    /// Time (in milliseconds) to spend fading into the initial position.
-    pub fade_in: Time,
-    /// Time (in milliseconds) to spend fading out of the last keyframe.
-    pub fade_out: Time,
-    pub initial: Transform,
-    #[serde(default)]
-    pub interpolation: MoveInterpolation,
-    #[serde(default)]
-    pub curve: TrajectoryInterpolation,
-    pub key_frames: VecDeque<MoveFrame>,
+    /// The spawn waypoint that is the very first transformation of the light when it appears on the screen.
+    /// Typically it is used to setup the *fade in* effect from scale zero.
+    pub initial: WaypointInitial,
+    pub waypoints: VecDeque<Waypoint>,
+    /// The final waypoint that is the very last transformation of the light when it is visible on the screen.
+    /// Typically it is used to setup the *fade out* effect to scale zero.
+    pub last: Transform,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct MoveFrame {
-    /// How long (in beats) should the interpolation from the last frame to this frame last.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WaypointInitial {
+    /// Duration of the interpolation from this frame to the next.
     pub lerp_time: Time,
     /// Interpolation to use when moving away from this frame to the next.
     #[serde(default)]
     pub interpolation: MoveInterpolation,
-    /// Whether to start a new curve going towards from this frame further.
+    /// The initial curve going from this frame to the next.
+    pub curve: TrajectoryInterpolation,
+    #[serde(default)]
+    pub transform: Transform,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Waypoint {
+    /// Duration of the interpolation from this frame to the next.
+    pub lerp_time: Time,
+    /// Interpolation to use when moving away from this frame to the next.
+    #[serde(default)]
+    pub interpolation: MoveInterpolation,
+    /// Whether to start a new curve going from this frame to the next.
     /// If set to `None`, the curve will continue as the previous type.
     pub change_curve: Option<TrajectoryInterpolation>,
     pub transform: Transform,
 }
 
 /// Controls the speed of the light when moving between keyframes.
-/// Default is Smoothstep.
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MoveInterpolation {
     Linear,
@@ -69,21 +78,36 @@ pub enum TrajectoryInterpolation {
 pub enum WaypointId {
     Initial,
     Frame(usize),
+    Last,
 }
 
 impl WaypointId {
-    pub fn prev(self) -> Option<Self> {
+    pub fn prev(self, waypoints: usize) -> Option<Self> {
         match self {
             Self::Initial => None,
             Self::Frame(0) => Some(Self::Initial),
             Self::Frame(i) => Some(Self::Frame(i - 1)),
+            Self::Last => Some(if waypoints > 0 {
+                Self::Frame(waypoints - 1)
+            } else {
+                Self::Initial
+            }),
         }
     }
 
-    pub fn next(self) -> Self {
+    pub fn next(self, waypoints: usize) -> Option<Self> {
         match self {
-            Self::Initial => Self::Frame(0),
-            Self::Frame(i) => Self::Frame(i + 1),
+            Self::Initial => Some(if waypoints > 0 {
+                Self::Frame(0)
+            } else {
+                Self::Last
+            }),
+            Self::Frame(i) => Some(if i + 1 < waypoints {
+                Self::Frame(i + 1)
+            } else {
+                Self::Last
+            }),
+            Self::Last => None,
         }
     }
 }
@@ -127,10 +151,30 @@ impl Interpolatable for Transform {
     }
 }
 
-impl MoveFrame {
-    pub fn scale(lerp_time: impl Float, scale: impl Float) -> Self {
+impl WaypointInitial {
+    pub fn new(lerp_time: Time, transform: Transform) -> Self {
         Self {
-            lerp_time: seconds_to_time(FloatTime::new(lerp_time.as_f32())),
+            lerp_time,
+            interpolation: MoveInterpolation::default(),
+            curve: TrajectoryInterpolation::default(),
+            transform,
+        }
+    }
+}
+
+impl Waypoint {
+    pub fn new(lerp_time: Time, transform: Transform) -> Self {
+        Self {
+            lerp_time,
+            interpolation: MoveInterpolation::default(),
+            change_curve: None,
+            transform,
+        }
+    }
+
+    pub fn scale(lerp_time: Time, scale: impl Float) -> Self {
+        Self {
+            lerp_time,
             interpolation: MoveInterpolation::default(),
             change_curve: None,
             transform: Transform::scale(scale),
@@ -178,39 +222,38 @@ impl Default for Movement {
 impl Movement {
     pub fn new(fade_time: Time, initial: Transform) -> Self {
         Self {
-            fade_in: fade_time,
-            fade_out: fade_time,
-            initial,
-            interpolation: MoveInterpolation::default(),
-            curve: TrajectoryInterpolation::default(),
-            key_frames: VecDeque::new(),
+            // Fade in
+            initial: WaypointInitial {
+                lerp_time: fade_time,
+                interpolation: MoveInterpolation::default(),
+                curve: TrajectoryInterpolation::default(),
+                transform: Transform {
+                    scale: R32::ZERO,
+                    ..initial
+                },
+            },
+            waypoints: vec![Waypoint::new(fade_time, initial)].into(),
+            // Fade out
+            last: Transform {
+                scale: R32::ZERO,
+                ..initial
+            },
         }
-    }
-
-    /// Iterate over frames with corrected (accumulated) transforms.
-    pub fn frames_iter(&self) -> impl Iterator<Item = &MoveFrame> {
-        self.key_frames.iter()
-    }
-
-    /// Iterate over all key transformations (including initial)
-    /// together with their start times.
-    pub fn timed_positions(&self) -> impl Iterator<Item = (WaypointId, Transform, Time)> + '_ {
-        std::iter::once((WaypointId::Initial, self.initial, self.fade_in))
-            .chain(
-                self.frames_iter()
-                    .enumerate()
-                    .map(|(i, frame)| (WaypointId::Frame(i), frame.transform, frame.lerp_time)),
-            )
-            .scan(Time::ZERO, |time, (i, trans, duration)| {
-                *time += duration;
-                Some((i, trans, *time))
-            })
     }
 
     pub fn get_frame(&self, id: WaypointId) -> Option<Transform> {
         match id {
-            WaypointId::Initial => Some(self.initial),
-            WaypointId::Frame(i) => self.key_frames.get(i).map(|frame| frame.transform),
+            WaypointId::Initial => Some(self.initial.transform),
+            WaypointId::Frame(i) => self.waypoints.get(i).map(|frame| frame.transform),
+            WaypointId::Last => Some(self.last),
+        }
+    }
+
+    pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut Transform> {
+        match id {
+            WaypointId::Initial => Some(&mut self.initial.transform),
+            WaypointId::Frame(i) => self.waypoints.get_mut(i).map(|frame| &mut frame.transform),
+            WaypointId::Last => Some(&mut self.last),
         }
     }
 
@@ -219,113 +262,105 @@ impl Movement {
         id: WaypointId,
     ) -> Option<(MoveInterpolation, Option<TrajectoryInterpolation>)> {
         match id {
-            WaypointId::Initial => Some((self.interpolation, Some(self.curve))),
+            WaypointId::Initial => Some((self.initial.interpolation, Some(self.initial.curve))),
             WaypointId::Frame(i) => self
-                .key_frames
+                .waypoints
                 .get(i)
                 .map(|frame| (frame.interpolation, frame.change_curve)),
+            WaypointId::Last => None,
         }
     }
 
-    pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut Transform> {
-        match id {
-            WaypointId::Initial => Some(&mut self.initial),
-            WaypointId::Frame(i) => self.key_frames.get_mut(i).map(|frame| &mut frame.transform),
-        }
+    /// Iterate over all transforms (including initial).
+    pub fn transforms_iter(&self) -> impl Iterator<Item = Transform> {
+        itertools::chain![
+            [self.initial.transform],
+            self.waypoints.iter().map(|waypoint| waypoint.transform),
+            [self.last]
+        ]
     }
 
+    /// Iterate over all transforms together with their start times.
+    pub fn timed_transforms(&self) -> impl Iterator<Item = (WaypointId, Transform, Time)> + '_ {
+        itertools::chain![
+            [(
+                WaypointId::Initial,
+                self.initial.transform,
+                self.initial.lerp_time
+            )],
+            self.waypoints.iter().enumerate().map(|(i, &waypoint)| (
+                WaypointId::Frame(i),
+                waypoint.transform,
+                waypoint.lerp_time
+            )),
+            [(WaypointId::Last, self.last, 0)],
+        ]
+        .scan(Time::ZERO, |time, (i, transform, lerp_time)| {
+            let frame_time = *time;
+            *time += lerp_time;
+            Some((i, transform, frame_time))
+        })
+    }
+
+    /// Get the start time of the waypoint.
     pub fn get_time(&self, id: WaypointId) -> Option<Time> {
         let i = match id {
             WaypointId::Initial => 0,
             WaypointId::Frame(i) => i + 1,
+            WaypointId::Last => self.waypoints.len() + 1,
         };
-        self.timed_positions().nth(i).map(|(_, _, time)| time)
+        self.timed_transforms().nth(i).map(|(_, _, time)| time)
     }
 
     /// Find the temporaly closest waypoint (in past or future).
     pub fn closest_waypoint(&self, time: Time) -> (WaypointId, Transform, Time) {
-        self.timed_positions()
+        self.timed_transforms()
             .min_by_key(|(_, _, key_time)| (*key_time - time).abs())
-            .expect("Light has no waypoints") // NOTE: Can unwrap because there is always at least one waypoint - initial
+            .expect("Light has no waypoints") // NOTE: Can unwrap because there is always at least two waypoints - initial and last
     }
 
     /// Get the transform at the given time.
     pub fn get(&self, mut time: Time) -> Transform {
-        let mut from = self.initial;
-
-        let lerp = |from: Transform, to, time, duration, interpolation: MoveInterpolation| {
-            let t = if duration > Time::ZERO {
-                FloatTime::new(time as f32 / duration as f32)
-            } else {
-                FloatTime::ONE
-            };
-            let t = interpolation.apply(t);
-            from.lerp(&to, t)
-        };
-
-        // Fade in
-        if time <= self.fade_in {
-            let interpolation = MoveInterpolation::Smoothstep; // TODO: customize?
-            return lerp(
-                Transform {
-                    scale: Coord::ZERO,
-                    ..from
-                },
-                from,
-                time,
-                self.fade_in,
-                interpolation,
-            );
-        }
-        time -= self.fade_in;
-
         // TODO: bake only once before starting the level, then cache
-        let interpolation = self.bake();
+        let curve_interpolation = self.bake();
 
         // Find the target frame
-        let mut move_interp = self.interpolation;
-        for (i, frame) in self.frames_iter().enumerate() {
-            if time <= frame.lerp_time {
+        let mut from = self.initial.transform;
+        let interpolation = self.initial.interpolation;
+        for (i, (frame, lerp_time)) in itertools::chain![
+            [(self.initial.transform, self.initial.lerp_time)],
+            self.waypoints
+                .iter()
+                .map(|waypoint| (waypoint.transform, waypoint.lerp_time))
+        ]
+        .enumerate()
+        {
+            if time <= lerp_time {
                 // Apply frame's move interpolation
-                let time = if frame.lerp_time > Time::ZERO {
-                    FloatTime::new(time as f32 / frame.lerp_time as f32)
+                let time = if lerp_time > Time::ZERO {
+                    FloatTime::new(time as f32 / lerp_time as f32)
                 } else {
                     FloatTime::ONE
                 };
-                let time = move_interp.apply(time);
-                return interpolation.get(i, time).unwrap_or(from);
+                let time = interpolation.apply(time);
+                return curve_interpolation.get(i, time).unwrap_or(from);
             }
-            time -= frame.lerp_time;
-            from = frame.transform;
-            move_interp = frame.interpolation;
+            time -= lerp_time;
+            from = frame;
         }
 
-        // Fade out
-        if time > Time::ZERO && time <= self.fade_out {
-            let target = Transform {
-                scale: Coord::ZERO,
-                ..from
-            };
-            let interpolation = MoveInterpolation::Smoothstep; // TODO: customize?
-            return lerp(from, target, time, self.fade_out, interpolation);
-        }
-
-        // After fade out - empty
-        Transform {
-            scale: Coord::ZERO,
-            ..from
-        }
+        // Past all waypoints just return the last transform
+        self.last
     }
 
-    /// Returns the total duration of the movement including fade in/out.
-    pub fn total_duration(&self) -> Time {
-        self.fade_in + self.movement_duration() + self.fade_out
-    }
-
-    /// Returns the duration of the movement excluding fade in/out.
-    pub fn movement_duration(&self) -> Time {
-        self.key_frames
+    /// Returns the total duration of the movement.
+    pub fn duration(&self) -> Time {
+        // NOTE: skip last waypoint because its lerp_time is redundant
+        // as there are no waypoints after it to lerp to
+        self.waypoints
             .iter()
+            .rev()
+            .skip(1)
             .map(|frame| frame.lerp_time)
             .fold(Time::ZERO, Add::add)
     }
@@ -341,29 +376,57 @@ impl Movement {
             .fold(Coord::ZERO, |a, b| a + b)
     }
 
+    pub fn get_fade_out(&self) -> Time {
+        self.waypoints
+            .back()
+            .map_or(self.initial.lerp_time, |waypoint| waypoint.lerp_time)
+    }
+
+    pub fn get_fade_in(&self) -> Time {
+        self.waypoints
+            .front()
+            .map_or(self.initial.lerp_time, |waypoint| waypoint.lerp_time)
+    }
+
     pub fn change_fade_out(&mut self, target: Time) {
-        self.fade_out = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
+        let target = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
+        let value = self
+            .waypoints
+            .back_mut()
+            .map_or(&mut self.initial.lerp_time, |waypoint| {
+                &mut waypoint.lerp_time
+            });
+        *value = target;
     }
 
     pub fn change_fade_in(&mut self, target: Time) {
-        self.fade_in = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
+        let target = target.clamp(0, TIME_IN_FLOAT_TIME * 50);
+        let value = self
+            .waypoints
+            .front_mut()
+            .map_or(&mut self.initial.lerp_time, |waypoint| {
+                &mut waypoint.lerp_time
+            });
+        *value = target;
     }
 
     /// Bakes the interpolation path based on the keypoints.
     pub fn bake(&self) -> Interpolation<Transform> {
         bake_movement(
-            self.initial,
-            self.curve,
-            self.frames_iter()
+            self.initial.transform,
+            self.initial.curve,
+            self.waypoints
+                .iter()
                 .map(|frame| (frame.transform, frame.change_curve)),
         )
     }
 
-    fn modify_transforms(&mut self, mut f: impl FnMut(&mut Transform)) {
-        f(&mut self.initial);
-        for frame in &mut self.key_frames {
+    pub fn modify_transforms(&mut self, mut f: impl FnMut(&mut Transform)) {
+        f(&mut self.initial.transform);
+        for frame in &mut self.waypoints {
             f(&mut frame.transform);
         }
+        f(&mut self.last);
     }
 
     pub fn rotate_around(&mut self, anchor: vec2<Coord>, delta: Angle<Coord>) {

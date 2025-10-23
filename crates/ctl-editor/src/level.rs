@@ -186,7 +186,7 @@ impl LevelEditor {
         };
         match waypoint {
             WaypointId::Initial => {
-                match event.movement.key_frames.pop_front() {
+                match event.movement.waypoints.pop_front() {
                     None => {
                         // No waypoints -> delete the whole event
                         if light.event < self.level.events.len() {
@@ -197,16 +197,37 @@ impl LevelEditor {
                     }
                     Some(frame) => {
                         // Make the first frame the initial position
-                        event.movement.initial = frame.transform;
-                        timed_event.time += frame.lerp_time;
+                        timed_event.time += event.movement.initial.lerp_time;
+                        event.movement.initial = WaypointInitial {
+                            lerp_time: frame.lerp_time,
+                            interpolation: frame.interpolation,
+                            curve: frame.change_curve.unwrap_or_default(),
+                            transform: frame.transform,
+                        };
                     }
                 }
             }
             WaypointId::Frame(i) => {
-                if let Some(frame) = event.movement.key_frames.remove(i) {
+                if let Some(frame) = event.movement.waypoints.remove(i) {
                     // Offset the next one
-                    if let Some(next) = event.movement.key_frames.get_mut(i) {
+                    if let Some(next) = event.movement.waypoints.get_mut(i) {
                         next.lerp_time += frame.lerp_time;
+                    }
+                }
+            }
+            WaypointId::Last => {
+                match event.movement.waypoints.pop_back() {
+                    None => {
+                        // No waypoints -> delete the whole event
+                        if light.event < self.level.events.len() {
+                            self.level.events.swap_remove(light.event);
+                            self.level_state.waypoints = None;
+                            self.state = EditingState::Idle;
+                        }
+                    }
+                    Some(frame) => {
+                        // Make the last frame the last position
+                        event.movement.last = frame.transform;
                     }
                 }
             }
@@ -454,15 +475,18 @@ impl LevelEditor {
                 let curve = light_event.movement.bake();
                 let mut points: Vec<_> = light_event
                     .movement
-                    .timed_positions()
+                    .timed_transforms()
                     .map(|(i, trans_control, time)| {
                         let trans_actual = match i {
                             WaypointId::Initial => curve.get(0, FloatTime::ZERO),
                             WaypointId::Frame(i) => curve.get(i, FloatTime::ONE),
+                            WaypointId::Last => {
+                                curve.get(light_event.movement.waypoints.len(), FloatTime::ONE)
+                            }
                         }
                         .unwrap_or(trans_control); // Should be unreachable, but just in case
                         (
-                            Waypoint {
+                            WaypointEdit {
                                 visible: visible(time),
                                 original: Some(i),
                                 control: base_collider.transformed(trans_control),
@@ -512,7 +536,7 @@ impl LevelEditor {
                     points.insert(
                         i,
                         (
-                            Waypoint {
+                            WaypointEdit {
                                 visible: true,
                                 original: None,
                                 actual: control.clone(),

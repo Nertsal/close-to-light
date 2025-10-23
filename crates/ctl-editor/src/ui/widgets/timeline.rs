@@ -156,7 +156,7 @@ impl TimelineWidget {
                 if let Event::Light(light) = &event.event {
                     let from_time = event.time;
                     let from = render_time(&self.highlight_line, from_time).center();
-                    let to_time = event.time + light.movement.total_duration();
+                    let to_time = event.time + light.movement.duration();
                     let to = render_time(&self.highlight_line, to_time).center();
                     Some(HighlightBar {
                         from_time,
@@ -320,7 +320,7 @@ impl TimelineWidget {
                         if self.dragging_light.is_some() {
                             let time = unrender_time(context.cursor.position.x);
                             let time = editor.level.timing.snap_to_beat(time, snap)
-                                - light_event.movement.fade_in;
+                                - light_event.movement.get_fade_in();
                             actions.push(
                                 LevelAction::MoveLight(
                                     light_id,
@@ -333,7 +333,7 @@ impl TimelineWidget {
 
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
-                        let to_time = event.time + light_event.movement.total_duration();
+                        let to_time = event.time + light_event.movement.duration();
                         let to = render_time(&self.highlight_line, to_time).center();
 
                         let tick_size = vec2(4.0, 16.0) * PPU as f32;
@@ -346,7 +346,8 @@ impl TimelineWidget {
                             actions,
                             &mut |actions, target| {
                                 // Drag fade in
-                                let fade_in = event.time + light_event.movement.fade_in - target;
+                                let fade_in =
+                                    event.time + light_event.movement.get_fade_in() - target;
                                 actions.push(
                                     LevelAction::ChangeFadeIn(light_id, Change::Set(fade_in))
                                         .into(),
@@ -367,7 +368,8 @@ impl TimelineWidget {
                             atlas.timeline_tick_smol(),
                             actions,
                             &mut |actions, target| {
-                                let fade_out = target - to_time + light_event.movement.fade_out;
+                                let fade_out =
+                                    target - to_time + light_event.movement.get_fade_out();
                                 actions.push(
                                     LevelAction::ChangeFadeOut(light_id, Change::Set(fade_out))
                                         .into(),
@@ -384,9 +386,9 @@ impl TimelineWidget {
                         );
 
                         let last_id = WaypointId::Frame(
-                            light_event.movement.key_frames.len().saturating_sub(1),
+                            light_event.movement.waypoints.len().saturating_sub(1),
                         );
-                        for (waypoint_id, _, offset) in light_event.movement.timed_positions() {
+                        for (waypoint_id, _, offset) in light_event.movement.timed_transforms() {
                             let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
 
                             let position = render_light(event.time + offset, 0).center();
@@ -418,6 +420,7 @@ impl TimelineWidget {
                                     atlas.timeline_tick_mid()
                                 }
                                 WaypointId::Frame(_) => atlas.timeline_tick_smol(),
+                                WaypointId::Last => atlas.timeline_tick_mid(),
                             };
                             let tick = context.state.get_or(self.state.id, || {
                                 // TODO: somehow mask this with other stuff
@@ -464,7 +467,7 @@ impl TimelineWidget {
                     }
                     let mut is_hovered = false;
                     let mut overlapped = 0;
-                    let light_time = event.time + light_event.movement.fade_in;
+                    let light_time = event.time + light_event.movement.get_fade_in();
                     let visible = !is_selected
                         && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                     if visible {
@@ -527,7 +530,7 @@ impl TimelineWidget {
                         is_hovered || editor.level_state.hovered_light == Some(light_id);
                     if !is_selected && is_hovered {
                         // Waypoints
-                        for (_, _, offset) in light_event.movement.timed_positions().skip(1) {
+                        for (_, _, offset) in light_event.movement.timed_transforms().skip(1) {
                             // Icon
                             let position = render_light(event.time + offset, overlapped).center();
                             if !self.state.position.contains(position) {
@@ -547,7 +550,7 @@ impl TimelineWidget {
                     if is_selected || is_hovered {
                         // Dots
                         let last_dot_time = event.time;
-                        let time = event.time + light_event.movement.total_duration();
+                        let time = event.time + light_event.movement.duration();
 
                         // TODO: variable timing within this segment
                         let timing = self.level.timing.get_timing(event.time);

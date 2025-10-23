@@ -352,7 +352,7 @@ impl EditorEditUi {
                                 let fade_in = bar.cut_top(value_height);
                                 bar.cut_top(spacing);
                                 let mut fade = BeatTime::from_beats_float(
-                                    time_to_seconds(light.movement.fade_in)
+                                    time_to_seconds(light.movement.get_fade_in())
                                         / timing_point.beat_time,
                                 );
                                 let slider = context.state.get_root_or(|| {
@@ -386,13 +386,14 @@ impl EditorEditUi {
 
                             {
                                 let to_time = event.time
-                                    + light.movement.fade_in
-                                    + light.movement.movement_duration();
+                                    + light.movement.get_fade_in()
+                                    + light.movement.duration()
+                                    - light.movement.get_fade_out();
                                 let timing_point = timing.get_timing(to_time);
                                 let fade_out = bar.cut_top(value_height);
                                 bar.cut_top(spacing);
                                 let mut fade = BeatTime::from_beats_float(
-                                    time_to_seconds(light.movement.fade_out)
+                                    time_to_seconds(light.movement.get_fade_out())
                                         / timing_point.beat_time,
                                 );
                                 let slider = context.state.get_root_or(|| {
@@ -626,7 +627,7 @@ impl EditorEditUi {
             && let Some(event) = level_editor.level.events.get(waypoints.light.event)
             && let Event::Light(light) = &event.event
         {
-            let frames = light.movement.key_frames.len();
+            let frames = light.movement.waypoints.len();
             if let Some(frame) = light.movement.get_frame(selected) {
                 // Waypoint
                 let mut bar = right_bar;
@@ -650,7 +651,7 @@ impl EditorEditUi {
                     });
                     button.update(prev, context);
                     if button.icon.state.mouse_left.clicked
-                        && let Some(id) = selected.prev()
+                        && let Some(id) = selected.prev(frames)
                     {
                         actions.push(LevelAction::SelectWaypoint(id, true).into());
                     }
@@ -659,6 +660,7 @@ impl EditorEditUi {
                 let i = match selected {
                     WaypointId::Initial => 0,
                     WaypointId::Frame(i) => i + 1,
+                    WaypointId::Last => frames + 1,
                 };
 
                 // Next waypoint
@@ -676,8 +678,10 @@ impl EditorEditUi {
                         IconButtonWidget::new_normal(context.context.assets.atlas.button_next())
                     });
                     button.update(next, context);
-                    if button.icon.state.mouse_left.clicked {
-                        actions.push(LevelAction::SelectWaypoint(selected.next(), true).into());
+                    if button.icon.state.mouse_left.clicked
+                        && let Some(next) = selected.next(frames)
+                    {
+                        actions.push(LevelAction::SelectWaypoint(next, true).into());
                     }
                 }
 

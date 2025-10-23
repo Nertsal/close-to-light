@@ -145,7 +145,7 @@ pub fn render_light(
     let movement = &event.movement;
     let base_light = event.clone().instantiate(event_id);
     let base_tele = base_light.clone().into_telegraph();
-    let duration = event.movement.total_duration();
+    let duration = event.movement.duration();
 
     // Light
     let light = (relative_time > Time::ZERO && relative_time < duration).then(|| {
@@ -171,10 +171,10 @@ pub fn render_light(
             let fade_time = seconds_to_time(config.waypoints.fade_time);
             let sustain_scale = config.waypoints.sustain_scale;
 
-            let mut last_pos = movement.initial.translation;
+            let mut last_pos = movement.initial.transform.translation;
             let waypoints = movement
-                .timed_positions()
-                .take(movement.key_frames.len()) // Ignore the last position
+                .timed_transforms()
+                .take(movement.waypoints.len()) // Ignore the last position
                 .skip(1) // Ignore the initial position
                 .filter_map(|(_, mut transform, time)| {
                     let relative_time = relative_time - time;
