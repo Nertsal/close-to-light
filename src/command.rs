@@ -15,6 +15,15 @@ use ctl_client::{
 
 #[derive(clap::Subcommand)]
 pub enum Command {
+    Play {
+        level: String,
+        diff: String,
+        start_time: Option<String>,
+    },
+    Edit {
+        level: String,
+        diff: Option<String>,
+    },
     /// Just display some dithered text on screen.
     Text {
         text: String,
@@ -93,22 +102,159 @@ pub enum ArtistCommand {
 
 impl Command {
     pub async fn execute(self, context: Context, secrets: Option<Secrets>) -> Result<()> {
-        let client = if let Some(secrets) = &secrets {
-            let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
-                .context("Client initialization failed")?;
-            login(&client).await?;
-            Some(client)
-        } else {
-            None
+        async fn init_client(secrets: Option<&Secrets>) -> Result<Option<Arc<Nertboard>>> {
+            if let Some(secrets) = &secrets {
+                let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
+                    .context("Client initialization failed")?;
+                login(&client).await?;
+                Ok(Some(Arc::new(client)))
+            } else {
+                Ok(None)
+            }
+        }
+
+        let find_group = |local: &ctl_local::LevelCacheImpl, level: &str| {
+            let Some((index, cached)) = local.groups.iter().find(|(_, group)| {
+                &*group.local.meta.music.name == level
+                    || &*group.local.meta.music.romanized == level
+            }) else {
+                log::error!("Level {:?} not found, available levels:\n", level);
+                for (_, group) in local.groups.iter() {
+                    log::error!("{}", group.local.meta.music.name);
+                }
+                anyhow::bail!("Level {:?} not found", level);
+            };
+            Ok((index, cached.clone()))
+        };
+        let find_diff = |group: &ctl_local::CachedGroup, diff: &str| {
+            let diff_index = if let Ok(index) = diff.parse::<usize>() {
+                index
+            } else {
+                let Some(index) = group
+                    .local
+                    .meta
+                    .levels
+                    .iter()
+                    .position(|level| &*level.name == diff)
+                else {
+                    anyhow::bail!("Difficulty named {:?} not found", diff);
+                };
+                index
+            };
+
+            let Some(data) = group.local.data.levels.get(diff_index).cloned() else {
+                anyhow::bail!("Difficulty indexed {} not found", diff_index);
+            };
+            let Some(meta) = group.local.meta.levels.get(diff_index).cloned() else {
+                anyhow::bail!("Difficulty indexed {} lacks metadata", diff_index);
+            };
+
+            Ok((diff_index, ctl_logic::LevelFull { meta, data }))
         };
 
         match self {
+            Command::Play {
+                level,
+                diff,
+                start_time,
+            } => {
+                let start_time = match start_time {
+                    None => None,
+                    Some(time) => {
+                        if let Some(end_of_number) =
+                            time.find(|c: char| c != '.' && !c.is_ascii_digit())
+                        {
+                            let (number, unit) = time.split_at(end_of_number);
+                            let number: f32 = number.parse()?;
+                            let scale = match unit {
+                                "ms" => 1e-3,
+                                "s" => 1.0,
+                                "m" => 60.0,
+                                _ => anyhow::bail!("Unknown time unit: {:?}", unit),
+                            };
+                            Some(ctl_logic::seconds_to_time(r32(number * scale)))
+                        } else {
+                            let number: f32 = time.parse()?;
+                            Some(ctl_logic::seconds_to_time(r32(number)))
+                        }
+                    }
+                };
+
+                let ((group_index, group), (diff_index, diff)) = {
+                    let local = context.local.inner.borrow();
+                    let group = find_group(&local, &level)?;
+                    let diff = find_diff(&group.1, &diff)?;
+                    (group, diff)
+                };
+
+                let level = ctl_logic::PlayLevel {
+                    start_time: start_time.unwrap_or(0),
+                    level: diff,
+                    group: ctl_logic::PlayGroup {
+                        group_index,
+                        music: group.local.music.clone(),
+                        cached: group,
+                    },
+                    level_index: diff_index,
+                    config: ctl_logic::LevelConfig::default(),
+                    transition_button: None,
+                };
+
+                let state = crate::game::Game::new(
+                    context.clone(),
+                    level,
+                    ctl_local::Leaderboard::new(&context.geng, None, &context.local.fs),
+                );
+                context.geng.run_state(state).await;
+            }
+            Command::Edit { level, diff } => {
+                let (group_index, group, level) = {
+                    let local = context.local.inner.borrow();
+                    let (group_index, group) = find_group(&local, &level)?;
+                    let level = match diff {
+                        None => None,
+                        Some(diff) => Some(find_diff(&group, &diff)?),
+                    };
+                    (group_index, group, level)
+                };
+
+                let group = ctl_logic::PlayGroup {
+                    group_index,
+                    music: group.local.music.clone(),
+                    cached: group,
+                };
+
+                let config: crate::editor::EditorConfig = geng::asset::Load::load(
+                    context.geng.asset_manager(),
+                    &run_dir().join("assets").join("editor.ron"),
+                    &(),
+                )
+                .await
+                .expect("failed to load editor config");
+
+                let state = if let Some((level_index, level)) = level {
+                    let level = ctl_logic::PlayLevel {
+                        group,
+                        level_index,
+                        level,
+                        config: ctl_logic::LevelConfig::default(),
+                        start_time: 0,
+                        transition_button: None,
+                    };
+                    crate::editor::EditorState::new_level(context.clone(), config, level)
+                } else {
+                    crate::editor::EditorState::new_group(context.clone(), config, group)
+                };
+                context.geng.run_state(state).await;
+            }
             Command::Text { text } => {
                 let state = media::MediaState::new(context.clone()).with_text(text);
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {
-                let client = client.expect("Cannot update music without secrets");
+                let client = init_client(secrets.as_ref())
+                    .await?
+                    .expect("Cannot update music without secrets");
                 match music.command {
                     MusicCommand::Upload {
                         path,
@@ -165,7 +311,9 @@ impl Command {
                 }
             }
             Command::Artist(artist) => {
-                let client = client.expect("Cannot update artists without secrets");
+                let client = init_client(secrets.as_ref())
+                    .await?
+                    .expect("Cannot update artists without secrets");
                 match artist.command {
                     ArtistCommand::Create {
                         name,
