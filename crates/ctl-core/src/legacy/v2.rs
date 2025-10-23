@@ -411,6 +411,10 @@ fn convert_level(value: Level) -> crate::Level {
                                     );
                                     waypoints.get_mut(i).unwrap().lerp_time = time;
                                 }
+                                if let Some(last) = waypoints.back_mut() {
+                                    last.change_curve =
+                                        Some(crate::TrajectoryInterpolation::default());
+                                }
                                 waypoints
                             },
                         },
