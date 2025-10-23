@@ -54,9 +54,6 @@ pub struct LightEvent {
     /// Whether the light is dangerous.
     #[serde(default)]
     pub danger: bool,
-    /// Turns the light hollow (circle lights become rings),
-    /// with the value indicating the level of hollowness (inner cut ratio).
-    pub hollow: Option<R32>,
     pub shape: Shape,
     /// Movement with timings in beats.
     #[serde(default)]
@@ -150,7 +147,7 @@ impl LightEvent {
             collider,
             lifetime: Time::ZERO,
             danger: self.danger,
-            hollow: self.hollow,
+            hollow: r32(-1.0),
             event_id,
             closest_waypoint: (Time::ZERO, WaypointId::Initial),
         }

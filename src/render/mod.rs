@@ -23,7 +23,7 @@ pub fn smooth_button(button: &HoverButton, time: FloatTime) -> HoverButton {
     let t = crate::util::smoothstep(t);
 
     let mut button = button.clone();
-    button.base_collider = button.base_collider.transformed(Transform {
+    button.base_collider = button.base_collider.transformed(TransformLight {
         scale: t,
         ..default()
     });

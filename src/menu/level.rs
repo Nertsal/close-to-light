@@ -464,7 +464,9 @@ impl geng::State for LevelMenu {
                 .map_or(0.0, |show| show.time.get_ratio()));
             let scale = crate::util::smoothstep(play_time);
             let mut button = self.play_button.clone();
-            button.base_collider = button.base_collider.transformed(Transform::scale(scale));
+            button.base_collider = button
+                .base_collider
+                .transformed(TransformLight::scale(scale));
             self.util.draw_button(
                 &button,
                 "PLAY",
@@ -497,7 +499,7 @@ impl geng::State for LevelMenu {
 
                 self.util.draw_light_gradient(
                     &Collider::new(light_pos, Shape::Circle { radius }),
-                    None,
+                    r32(-1.0),
                     crate::render::THEME.light,
                     &self.camera,
                     &mut dither_buffer,

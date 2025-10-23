@@ -353,7 +353,6 @@ fn convert_level(value: Level) -> crate::Level {
                 event: match event.event {
                     Event::Light(light) => crate::Event::Light(crate::LightEvent {
                         danger: light.danger,
-                        hollow: None,
                         shape: match light.shape {
                             Shape::Circle { radius } => crate::Shape::Circle { radius },
                             Shape::Line { width } => crate::Shape::Line { width },
@@ -367,13 +366,13 @@ fn convert_level(value: Level) -> crate::Level {
                                 lerp_time: light.movement.fade_in,
                                 interpolation: light.movement.interpolation.into(),
                                 curve: light.movement.curve.into(),
-                                transform: crate::Transform {
+                                transform: crate::TransformLight {
                                     scale: R32::ZERO,
                                     ..light.movement.initial.into()
                                 },
                             },
                             // Fade out
-                            last: crate::Transform {
+                            last: crate::TransformLight {
                                 scale: R32::ZERO,
                                 ..light
                                     .movement
@@ -437,12 +436,13 @@ fn convert_level(value: Level) -> crate::Level {
     }
 }
 
-impl From<Transform> for crate::Transform {
+impl From<Transform> for crate::TransformLight {
     fn from(value: Transform) -> Self {
         Self {
             translation: value.translation,
             rotation: value.rotation,
             scale: value.scale,
+            hollow: r32(-1.0),
         }
     }
 }

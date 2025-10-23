@@ -317,34 +317,6 @@ impl EditorEditUi {
                             button.checked = light.danger;
                             tooltip.update(&button.state, "D", context);
 
-                            let hollow_pos = bar.cut_top(button_height);
-                            let button = context.state.get_root_or(|| ToggleWidget::new("Hollow"));
-                            button.update(hollow_pos, context);
-                            if button.state.mouse_left.clicked {
-                                actions.push(LevelAction::ToggleHollow(light_id).into());
-                            }
-                            button.checked = light.hollow.is_some();
-                            if let Some(mut hollow) = light.hollow {
-                                bar.cut_top(-spacing * 0.5);
-                                let hollow_pos = bar.cut_top(value_height);
-                                let value = context.state.get_root_or(|| {
-                                    ValueWidget::new(
-                                        "",
-                                        hollow,
-                                        ValueControl::Slider {
-                                            min: r32(0.0),
-                                            max: r32(1.0),
-                                        },
-                                        r32(0.05),
-                                    )
-                                });
-                                value.update(hollow_pos, context, &mut hollow);
-                                actions.push(
-                                    LevelAction::ChangeHollow(light_id, Change::Set(hollow)).into(),
-                                );
-                            }
-                            bar.cut_top(spacing);
-
                             let timing = &level_editor.level.timing;
 
                             {
@@ -700,6 +672,26 @@ impl EditorEditUi {
                     actions.push(LevelAction::DeleteWaypoint(waypoints.light, selected).into());
                 }
                 tooltip.update(&button.text.state, "X", context);
+
+                let hollow_pos = bar.cut_top(value_height);
+                bar.cut_top(spacing);
+                let mut hollow = frame.hollow;
+                let value = context.state.get_root_or(|| {
+                    ValueWidget::new(
+                        "Hollow",
+                        hollow,
+                        ValueControl::Slider {
+                            min: r32(-1.0),
+                            max: r32(1.0),
+                        },
+                        r32(0.05),
+                    )
+                });
+                value.update(hollow_pos, context, &mut hollow);
+                actions.push(
+                    LevelAction::ChangeHollow(waypoints.light, selected, Change::Set(hollow))
+                        .into(),
+                );
 
                 let scale = bar.cut_top(value_height);
                 bar.cut_top(spacing);

@@ -25,7 +25,7 @@ uniform float u_hollow_cut;
 
 void main() {
     vec4 color = texture2D(u_texture, v_vt);
-    if (u_hollow_cut > 0) {
+    if (u_hollow_cut > -1.0) {
         color.a = min(
             min(color.a / (1.0 - u_hollow_cut), 1.0),
             max((1.0 - color.a - u_hollow_cut) / (1.0 - u_hollow_cut), 0.0)

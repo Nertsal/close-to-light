@@ -154,6 +154,7 @@ pub fn render_light(
         main_light.collider = base_light.collider.transformed(transform);
         let (id, _, closest_time) = event.movement.closest_waypoint(relative_time);
         main_light.closest_waypoint = (closest_time - relative_time, id);
+        main_light.hollow = transform.hollow;
         main_light
     });
 

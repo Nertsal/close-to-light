@@ -48,8 +48,6 @@ pub enum LevelAction {
     FlipHorizontal(LightId, vec2<Coord>),
     FlipVertical(LightId, vec2<Coord>),
     ToggleDanger(LightId),
-    ToggleHollow(LightId),
-    ChangeHollow(LightId, Change<R32>),
     ChangeFadeOut(LightId, Change<Time>),
     ChangeFadeIn(LightId, Change<Time>),
     MoveLight(LightId, Change<Time>, Change<vec2<Coord>>),
@@ -66,6 +64,7 @@ pub enum LevelAction {
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
     MoveWaypoint(LightId, WaypointId, Change<Time>, Change<vec2<Coord>>),
+    ChangeHollow(LightId, WaypointId, Change<R32>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,8 +161,6 @@ impl LevelAction {
             LevelAction::FlipHorizontal(_, _) => false,
             LevelAction::FlipVertical(_, _) => false,
             LevelAction::ToggleDanger(..) => false,
-            LevelAction::ToggleHollow(..) => false,
-            LevelAction::ChangeHollow(_, delta) => delta.is_noop(&R32::ZERO),
             LevelAction::ChangeFadeOut(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeFadeIn(_, delta) => delta.is_noop(&0),
             LevelAction::MoveLight(_, time, position) => {
@@ -183,6 +180,7 @@ impl LevelAction {
             LevelAction::MoveWaypoint(_, _, time, position) => {
                 time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
+            LevelAction::ChangeHollow(_, _, delta) => delta.is_noop(&R32::ZERO),
         }
     }
 }
@@ -385,8 +383,6 @@ impl LevelEditor {
                 self.modify_movement(light, |movement| movement.flip_vertical(anchor))
             }
             LevelAction::ToggleDanger(light) => self.toggle_danger(light),
-            LevelAction::ToggleHollow(light) => self.toggle_hollow(light),
-            LevelAction::ChangeHollow(light, change) => self.change_hollow(light, change),
             LevelAction::ChangeFadeOut(id, change) => {
                 if let Some(event) = self.level.events.get_mut(id.event)
                     && let Event::Light(light) = &mut event.event
@@ -446,6 +442,9 @@ impl LevelEditor {
             LevelAction::MoveWaypoint(light, waypoint, time, pos) => {
                 self.move_waypoint(light, waypoint, pos);
                 self.move_waypoint_time(light, waypoint, time, drag);
+            }
+            LevelAction::ChangeHollow(light, waypoint, change) => {
+                self.change_hollow(light, waypoint, change)
             }
         }
 
@@ -810,26 +809,15 @@ impl LevelEditor {
         }
     }
 
-    fn toggle_hollow(&mut self, light_id: LightId) {
+    fn change_hollow(&mut self, light_id: LightId, waypoint_id: WaypointId, change: Change<R32>) {
         if let Some(event) = self.level.events.get_mut(light_id.event)
             && let Event::Light(event) = &mut event.event
+            && let Some(waypoint) = event.movement.get_frame_mut(waypoint_id)
         {
-            event.hollow = if event.hollow.is_some() {
-                None
-            } else {
-                Some(r32(0.5))
-            };
-        }
-    }
-
-    fn change_hollow(&mut self, light_id: LightId, change: Change<R32>) {
-        if let Some(event) = self.level.events.get_mut(light_id.event)
-            && let Event::Light(event) = &mut event.event
-        {
-            let mut hollow = event.hollow.unwrap_or(r32(0.5));
+            let mut hollow = waypoint.hollow;
             change.apply(&mut hollow);
-            event.hollow = Some(hollow.clamp(R32::ZERO, R32::ONE));
-            self.save_state(HistoryLabel::Hollow(light_id));
+            waypoint.hollow = hollow.clamp(-R32::ONE, R32::ONE);
+            self.save_state(HistoryLabel::Hollow(light_id, waypoint_id));
         }
     }
 
@@ -872,10 +860,11 @@ impl LevelEditor {
         self.place_rotation = rotation;
         let movement = Movement::new(
             seconds_to_time(timing.beat_time),
-            Transform {
+            TransformLight {
                 translation: position,
                 rotation,
                 scale: self.place_scale,
+                hollow: r32(-1.0),
             },
         );
 
@@ -883,7 +872,6 @@ impl LevelEditor {
             shape,
             movement,
             danger,
-            hollow: None,
         };
 
         let beat = start_beat - light.movement.get_fade_in(); // extra time for the fade in and telegraph
@@ -928,10 +916,11 @@ impl LevelEditor {
         // assume time interpolation doesn't take long, so not visually weird
         let target_time = self.current_time.target;
 
-        let mut transform = Transform {
+        let mut transform = TransformLight {
             translation: position,
             rotation: self.place_rotation,
             scale: self.place_scale,
+            hollow: r32(-1.0),
         };
         let mut interpolation = MoveInterpolation::default(); // TODO: use the same as other waypoints
         let mut change_curve = None;

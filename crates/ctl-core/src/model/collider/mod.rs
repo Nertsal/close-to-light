@@ -33,7 +33,7 @@ impl Collider {
         Self::new(aabb.center(), Shape::rectangle(aabb.size()))
     }
 
-    pub fn transformed(&self, transform: Transform) -> Self {
+    pub fn transformed(&self, transform: TransformLight) -> Self {
         Self {
             position: self.position + transform.translation,
             rotation: self.rotation + transform.rotation,

@@ -133,7 +133,7 @@ impl GameRender {
             let mut visual = model
                 .player
                 .collider
-                .transformed(Transform { scale, ..default() });
+                .transformed(TransformLight { scale, ..default() });
             visual.position = rhythm.position;
             self.util
                 .draw_outline(&visual, 0.05, color, camera, &mut framebuffer);

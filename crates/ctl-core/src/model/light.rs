@@ -11,7 +11,7 @@ pub struct Light {
     /// Whether the light is dangerous.
     pub danger: bool,
     /// Makes the light hollow.
-    pub hollow: Option<R32>,
+    pub hollow: R32,
     /// Id of the original event in the level.
     pub event_id: Option<usize>,
     /// Time delta to the closest waypoint.
@@ -47,12 +47,8 @@ pub struct LightDistance {
     pub max: Coord,
 }
 
-pub fn get_light_distance(
-    position: vec2<Coord>,
-    light: &Collider,
-    hollow: Option<R32>,
-) -> LightDistance {
-    let hollow = hollow.unwrap_or(R32::ZERO);
+pub fn get_light_distance(position: vec2<Coord>, light: &Collider, hollow: R32) -> LightDistance {
+    let hollow = hollow.max(R32::ZERO);
     let delta_pos = position - light.position;
     match light.shape {
         Shape::Circle { radius } => LightDistance {

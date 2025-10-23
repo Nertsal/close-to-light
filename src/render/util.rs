@@ -264,7 +264,7 @@ impl UtilRender {
     pub fn draw_light_gradient(
         &self,
         collider: &Collider,
-        hollow_cut: Option<R32>,
+        hollow_cut: R32,
         color: Color,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
@@ -291,9 +291,6 @@ impl UtilRender {
             * mat3::rotate(collider.rotation.map(Coord::as_f32))
             * transform;
 
-        // NOTE: +0.01 because the shader considers 0 as the effect being disabled.
-        let hollow_cut = hollow_cut.map_or(R32::ZERO, |x| x + r32(0.01)).as_f32();
-
         let framebuffer_size = framebuffer.size();
         ugli::draw(
             framebuffer,
@@ -305,7 +302,7 @@ impl UtilRender {
                     u_model_matrix: transform,
                     u_color: color,
                     u_texture: texture,
-                    u_hollow_cut: hollow_cut,
+                    u_hollow_cut: hollow_cut.as_f32(),
                 },
                 camera.uniforms(framebuffer_size.as_f32()),
             ),
@@ -481,7 +478,7 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let collider = button.get_relevant_collider();
-        self.draw_light_gradient(&collider, None, theme.light, camera, framebuffer);
+        self.draw_light_gradient(&collider, r32(-1.0), theme.light, camera, framebuffer);
 
         if !button.is_fading() {
             self.draw_text(

@@ -528,10 +528,11 @@ impl LevelEditor {
                     let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
                         Ok(i) | Err(i) => i,
                     };
-                    let control = base_collider.transformed(Transform {
+                    let control = base_collider.transformed(TransformLight {
                         translation: cursor_world_pos_snapped,
                         rotation: self.place_rotation,
                         scale: self.place_scale,
+                        hollow: r32(-1.0),
                     });
                     points.insert(
                         i,

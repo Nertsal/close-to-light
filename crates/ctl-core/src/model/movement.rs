@@ -10,7 +10,7 @@ pub struct Movement {
     pub waypoints: VecDeque<Waypoint>,
     /// The final waypoint that is the very last transformation of the light when it is visible on the screen.
     /// Typically it is used to setup the *fade out* effect to scale zero.
-    pub last: Transform,
+    pub last: TransformLight,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -23,7 +23,7 @@ pub struct WaypointInitial {
     /// The initial curve going from this frame to the next.
     pub curve: TrajectoryInterpolation,
     #[serde(default)]
-    pub transform: Transform,
+    pub transform: TransformLight,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -36,7 +36,7 @@ pub struct Waypoint {
     /// Whether to start a new curve going from this frame to the next.
     /// If set to `None`, the curve will continue as the previous type.
     pub change_curve: Option<TrajectoryInterpolation>,
-    pub transform: Transform,
+    pub transform: TransformLight,
 }
 
 /// Controls the speed of the light when moving between keyframes.
@@ -114,18 +114,23 @@ impl WaypointId {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
-pub struct Transform {
+pub struct TransformLight {
     pub translation: vec2<Coord>,
     pub rotation: Angle<Coord>,
     pub scale: Coord,
+    /// Turns the light hollow (circle lights become rings),
+    /// with the value indicating the level of hollowness (inner cut ratio).
+    /// Expected range: `-1..=1`.
+    pub hollow: R32,
 }
 
-impl Interpolatable for Transform {
+impl Interpolatable for TransformLight {
     fn add(self, other: Self) -> Self {
         Self {
             translation: self.translation + other.translation,
             rotation: self.rotation + other.rotation,
             scale: self.scale + other.scale,
+            hollow: self.hollow + other.hollow,
         }
     }
 
@@ -134,6 +139,7 @@ impl Interpolatable for Transform {
             translation: self.translation - other.translation,
             rotation: self.rotation - other.rotation,
             scale: self.scale - other.scale,
+            hollow: self.hollow - other.hollow,
         }
     }
 
@@ -143,16 +149,20 @@ impl Interpolatable for Transform {
             translation: self.translation * factor,
             rotation: self.rotation * factor,
             scale: self.scale * factor,
+            hollow: self.hollow * factor,
         }
     }
 
     fn length_sqr(self) -> f32 {
-        self.translation.length_sqr() + self.rotation.length_sqr() + self.scale.length_sqr()
+        self.translation.length_sqr()
+            + self.rotation.length_sqr()
+            + self.scale.length_sqr()
+            + self.hollow.length_sqr()
     }
 }
 
 impl WaypointInitial {
-    pub fn new(lerp_time: Time, transform: Transform) -> Self {
+    pub fn new(lerp_time: Time, transform: TransformLight) -> Self {
         Self {
             lerp_time,
             interpolation: MoveInterpolation::default(),
@@ -163,7 +173,7 @@ impl WaypointInitial {
 }
 
 impl Waypoint {
-    pub fn new(lerp_time: Time, transform: Transform) -> Self {
+    pub fn new(lerp_time: Time, transform: TransformLight) -> Self {
         Self {
             lerp_time,
             interpolation: MoveInterpolation::default(),
@@ -177,17 +187,18 @@ impl Waypoint {
             lerp_time,
             interpolation: MoveInterpolation::default(),
             change_curve: None,
-            transform: Transform::scale(scale),
+            transform: TransformLight::scale(scale),
         }
     }
 }
 
-impl Transform {
+impl TransformLight {
     pub fn identity() -> Self {
         Self {
             translation: vec2::ZERO,
             rotation: Angle::ZERO,
             scale: Coord::ONE,
+            hollow: r32(-1.0),
         }
     }
 
@@ -203,11 +214,12 @@ impl Transform {
             translation: self.translation + (target.translation - self.translation) * t,
             rotation: self.rotation + self.rotation.angle_to(target.rotation) * t,
             scale: self.scale + (target.scale - self.scale) * t,
+            hollow: self.hollow + (target.hollow - self.hollow) * t,
         }
     }
 }
 
-impl Default for Transform {
+impl Default for TransformLight {
     fn default() -> Self {
         Self::identity()
     }
@@ -215,33 +227,33 @@ impl Default for Transform {
 
 impl Default for Movement {
     fn default() -> Self {
-        Self::new(TIME_IN_FLOAT_TIME / 2, Transform::default())
+        Self::new(TIME_IN_FLOAT_TIME / 2, TransformLight::default())
     }
 }
 
 impl Movement {
-    pub fn new(fade_time: Time, initial: Transform) -> Self {
+    pub fn new(fade_time: Time, initial: TransformLight) -> Self {
         Self {
             // Fade in
             initial: WaypointInitial {
                 lerp_time: fade_time,
                 interpolation: MoveInterpolation::default(),
                 curve: TrajectoryInterpolation::default(),
-                transform: Transform {
+                transform: TransformLight {
                     scale: R32::ZERO,
                     ..initial
                 },
             },
             waypoints: vec![Waypoint::new(fade_time, initial)].into(),
             // Fade out
-            last: Transform {
+            last: TransformLight {
                 scale: R32::ZERO,
                 ..initial
             },
         }
     }
 
-    pub fn get_frame(&self, id: WaypointId) -> Option<Transform> {
+    pub fn get_frame(&self, id: WaypointId) -> Option<TransformLight> {
         match id {
             WaypointId::Initial => Some(self.initial.transform),
             WaypointId::Frame(i) => self.waypoints.get(i).map(|frame| frame.transform),
@@ -249,7 +261,7 @@ impl Movement {
         }
     }
 
-    pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut Transform> {
+    pub fn get_frame_mut(&mut self, id: WaypointId) -> Option<&mut TransformLight> {
         match id {
             WaypointId::Initial => Some(&mut self.initial.transform),
             WaypointId::Frame(i) => self.waypoints.get_mut(i).map(|frame| &mut frame.transform),
@@ -272,7 +284,7 @@ impl Movement {
     }
 
     /// Iterate over all transforms (including initial).
-    pub fn transforms_iter(&self) -> impl Iterator<Item = Transform> {
+    pub fn transforms_iter(&self) -> impl Iterator<Item = TransformLight> {
         itertools::chain![
             [self.initial.transform],
             self.waypoints.iter().map(|waypoint| waypoint.transform),
@@ -281,7 +293,9 @@ impl Movement {
     }
 
     /// Iterate over all transforms together with their start times.
-    pub fn timed_transforms(&self) -> impl Iterator<Item = (WaypointId, Transform, Time)> + '_ {
+    pub fn timed_transforms(
+        &self,
+    ) -> impl Iterator<Item = (WaypointId, TransformLight, Time)> + '_ {
         itertools::chain![
             [(
                 WaypointId::Initial,
@@ -313,14 +327,14 @@ impl Movement {
     }
 
     /// Find the temporaly closest waypoint (in past or future).
-    pub fn closest_waypoint(&self, time: Time) -> (WaypointId, Transform, Time) {
+    pub fn closest_waypoint(&self, time: Time) -> (WaypointId, TransformLight, Time) {
         self.timed_transforms()
             .min_by_key(|(_, _, key_time)| (*key_time - time).abs())
             .expect("Light has no waypoints") // NOTE: Can unwrap because there is always at least two waypoints - initial and last
     }
 
     /// Get the transform at the given time.
-    pub fn get(&self, mut time: Time) -> Transform {
+    pub fn get(&self, mut time: Time) -> TransformLight {
         // TODO: bake only once before starting the level, then cache
         let curve_interpolation = self.bake();
 
@@ -407,7 +421,7 @@ impl Movement {
     }
 
     /// Bakes the interpolation path based on the keypoints.
-    pub fn bake(&self) -> Interpolation<Transform> {
+    pub fn bake(&self) -> Interpolation<TransformLight> {
         bake_movement(
             self.initial.transform,
             self.initial.curve,
@@ -420,7 +434,7 @@ impl Movement {
         )
     }
 
-    pub fn modify_transforms(&mut self, mut f: impl FnMut(&mut Transform)) {
+    pub fn modify_transforms(&mut self, mut f: impl FnMut(&mut TransformLight)) {
         f(&mut self.initial.transform);
         for frame in &mut self.waypoints {
             f(&mut frame.transform);
@@ -429,14 +443,14 @@ impl Movement {
     }
 
     pub fn rotate_around(&mut self, anchor: vec2<Coord>, delta: Angle<Coord>) {
-        self.modify_transforms(|transform: &mut Transform| {
+        self.modify_transforms(|transform: &mut TransformLight| {
             transform.translation = anchor + (transform.translation - anchor).rotate(delta);
             transform.rotation += delta;
         })
     }
 
     pub fn flip_horizontal(&mut self, anchor: vec2<Coord>) {
-        self.modify_transforms(|transform: &mut Transform| {
+        self.modify_transforms(|transform: &mut TransformLight| {
             transform.translation =
                 anchor + (transform.translation - anchor) * vec2(-Coord::ONE, Coord::ONE);
             transform.rotation = Angle::from_degrees(r32(180.0)) - transform.rotation;
@@ -444,7 +458,7 @@ impl Movement {
     }
 
     pub fn flip_vertical(&mut self, anchor: vec2<Coord>) {
-        self.modify_transforms(|transform: &mut Transform| {
+        self.modify_transforms(|transform: &mut TransformLight| {
             transform.translation =
                 anchor + (transform.translation - anchor) * vec2(Coord::ONE, -Coord::ONE);
             transform.rotation = -transform.rotation;

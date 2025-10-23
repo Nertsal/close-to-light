@@ -39,9 +39,9 @@ impl HoverButton {
             base_collider: collider,
             hover_time: Lifetime::new_zero(hover_time.as_r32()),
             animation: Movement {
-                initial: WaypointInitial::new(seconds_to_time(0.5), Transform::scale(2.25)),
+                initial: WaypointInitial::new(seconds_to_time(0.5), TransformLight::scale(2.25)),
                 waypoints: vec![Waypoint::scale(seconds_to_time(0.25), 5.0)].into(),
-                last: Transform::scale(75.0),
+                last: TransformLight::scale(75.0),
             },
             clicked: false,
         }
@@ -53,7 +53,7 @@ impl HoverButton {
         let t = self.hover_time.get_ratio();
         let scale = self.animation.get(seconds_to_time(t)).scale;
         self.base_collider
-            .transformed(Transform { scale, ..default() })
+            .transformed(TransformLight { scale, ..default() })
     }
 
     /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
