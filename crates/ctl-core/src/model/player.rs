@@ -103,7 +103,7 @@ impl Player {
     }
 
     pub fn update_distance_simple(&mut self, light: &Collider) {
-        self.update_distance(light, None, false, R32::ZERO, false)
+        self.update_distance(light, None, false, r32(-1.0), false)
     }
 
     /// Update player's light distance, perfect measurement, and waypoint detection.
@@ -155,7 +155,7 @@ impl Player {
         }
 
         // Account for hollow lights
-        let zero_distance = max_distance * (hollow.max(R32::ZERO) + r32(1.0)) / r32(2.0);
+        let zero_distance = max_distance * (hollow + r32(1.0)) / r32(2.0);
         let distance = (raw_distance - zero_distance).abs();
 
         let update = |value: &mut Option<Coord>| {
