@@ -348,12 +348,18 @@ pub struct ItemLevelWidget {
 
 impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
+        let mut menu = ItemMenuWidget::new(assets);
+
+        if cfg!(feature = "itch") {
+            menu.sync.hide(); // NOTE: Disabled in itch demo
+        }
+
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             iconless_state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
-            menu: ItemMenuWidget::new(assets),
+            menu,
             text: TextWidget::new(text).aligned(vec2(0.5, 0.0)),
             index,
             diffs: Vec::new(),
@@ -493,6 +499,7 @@ impl ItemDiffWidget {
     ) -> Self {
         let mut menu = ItemMenuWidget::new(assets);
         menu.sync.hide();
+
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             iconless_state: WidgetState::new(),
