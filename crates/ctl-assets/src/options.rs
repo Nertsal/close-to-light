@@ -7,8 +7,7 @@ where
     T: DeserializeOwned + Default,
     D: Deserializer<'de>,
 {
-    let v: ron::Value = Deserialize::deserialize(deserializer)?;
-    Ok(T::deserialize(v).unwrap_or_else(|err| {
+    Ok(T::deserialize(deserializer).unwrap_or_else(|err| {
         log::error!(
             "failed to deserialize type {}, using default, error: {:?}",
             std::any::type_name::<T>(),
