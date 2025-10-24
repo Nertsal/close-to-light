@@ -268,10 +268,7 @@ impl Movement {
     }
 }
 
-pub fn convert_group(
-    value: LevelSet,
-    info: LevelSetInfo,
-) -> (crate::LevelSet, crate::LevelSetInfo) {
+pub fn migrate(value: LevelSet, info: LevelSetInfo) -> (crate::LevelSet, crate::LevelSetInfo) {
     let levels_info = info
         .levels
         .iter()

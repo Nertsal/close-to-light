@@ -247,33 +247,12 @@ fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInf
         toml::from_str(meta).with_context(|| "when parsing meta file"),
     );
     match versioned {
-        (Ok(set), Ok(info)) => Ok(ctl_core::legacy::migrate(set, info)),
+        (Ok(set), Ok(info)) => {
+            let value = ctl_core::legacy::migrate(set, info)?;
+            Ok(value)
+        }
         (Ok(_), Err(err)) | (Err(err), _) => {
             // Try legacy versions, for backwards compatibility
-
-            // v2
-            let (set, info) = (
-                cbor4ii::serde::from_slice::<ctl_core::legacy::v2::LevelSet>(level_bytes)
-                    .with_context(|| "when parsing levels data"),
-                toml::from_str::<ctl_core::legacy::v2::LevelSetInfo>(meta)
-                    .with_context(|| "when parsing level set metadata"),
-            );
-            match (set, info) {
-                (Ok(set), Ok(info)) => {
-                    log::info!("Migrating level {:?} from v2", info.id);
-                    let (set, info) = ctl_core::legacy::v2::convert_group(set, info);
-                    return Ok((set, info));
-                }
-                (set, info) => {
-                    if let Err(err) = set {
-                        log::error!("v2 data parse failed: {err:?}");
-                    }
-                    if let Err(err) = info {
-                        log::error!("v2 meta parse failed: {err:?}");
-                    }
-                }
-            }
-
             // v1
             match bincode::deserialize::<ctl_core::legacy::v1::LevelSet>(level_bytes)
                 .with_context(|| "when parsing levels data")
