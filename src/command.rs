@@ -24,9 +24,12 @@ pub enum Command {
         level: String,
         diff: Option<String>,
     },
-    /// Just display some dithered text on screen.
-    Text {
-        text: String,
+    /// Picture generation and similar.
+    Media {
+        #[clap(long)]
+        text: Option<String>,
+        #[clap(long)]
+        picture: Option<PathBuf>,
     },
     Music(MusicArgs),
     Artist(ArtistArgs),
@@ -247,8 +250,23 @@ impl Command {
                 };
                 context.geng.run_state(state).await;
             }
-            Command::Text { text } => {
-                let state = media::MediaState::new(context.clone()).with_text(text);
+            Command::Media { text, picture } => {
+                let mut state = media::MediaState::new(context.clone());
+                if let Some(text) = text {
+                    state.set_text(text);
+                }
+                if let Some(path) = picture {
+                    let picture: ugli::Texture = geng::asset::Load::load(
+                        context.geng.asset_manager(),
+                        &path,
+                        &geng::asset::TextureOptions {
+                            filter: ugli::Filter::Nearest,
+                            ..Default::default()
+                        },
+                    )
+                    .await?;
+                    state.set_picture(picture);
+                }
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {
