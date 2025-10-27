@@ -499,6 +499,16 @@ impl LevelEditor {
         };
 
         change_pos.apply(&mut frame.translation);
+        if let WaypointId::Frame(i) = waypoint_id {
+            // Move fade as well
+            if i == 0 {
+                change_pos.apply(&mut event.movement.initial.transform.translation);
+            }
+            if i + 1 == event.movement.waypoints.len() {
+                change_pos.apply(&mut event.movement.last.translation);
+            }
+        }
+
         self.save_state(HistoryLabel::MoveWaypoint(light_id, waypoint_id));
     }
 
@@ -800,6 +810,15 @@ impl LevelEditor {
         };
 
         change.apply(&mut frame.rotation);
+        if let WaypointId::Frame(i) = waypoint_id {
+            // Move fade as well
+            if i == 0 {
+                change.apply(&mut event.movement.initial.transform.rotation);
+            }
+            if i + 1 == event.movement.waypoints.len() {
+                change.apply(&mut event.movement.last.rotation);
+            }
+        }
         self.save_state(HistoryLabel::Rotate(light_id, waypoint_id));
     }
 
