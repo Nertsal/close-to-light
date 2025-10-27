@@ -104,6 +104,7 @@ impl Model {
                     .iter()
                     .find(|light| light.event_id == Some(id))
                     .filter(|light| {
+                        // NOTE
                         // Can only miss after the waypoint, not before, hence no buffer time
                         // (allows for unpunished early exit)
                         //
@@ -114,8 +115,10 @@ impl Model {
                         // because otherwise we cannot detect a miss
                         // as both will get set to `None` at the same frame
                         // (allows for unpunished late entrance)
-                        let time = light.closest_waypoint.0;
-                        time < 0 && (time > -COYOTE_TIME || pass && time > -COYOTE_TIME * 2)
+                        let (time, waypoint) = light.closest_waypoint;
+                        matches!(waypoint, WaypointId::Frame(_))
+                            && time < 0
+                            && (time > -COYOTE_TIME || pass && time > -COYOTE_TIME * 2)
                     })
                     .map(|light| (id, light.closest_waypoint.1))
             })

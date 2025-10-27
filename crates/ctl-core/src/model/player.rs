@@ -114,7 +114,8 @@ impl Player {
         last_rhythm: &HashMap<(usize, WaypointId), Time>,
     ) {
         let (time, waypoint) = light.closest_waypoint;
-        let at_waypoint = time > -COYOTE_TIME
+        let at_waypoint = matches!(waypoint, WaypointId::Frame(_))
+            && time > -COYOTE_TIME
             && time < BUFFER_TIME
             && light
                 .event_id
