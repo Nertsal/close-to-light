@@ -1,5 +1,7 @@
 use super::*;
 
+const MAX_SCALE: f32 = 20.0;
+
 #[derive(Debug, Clone)]
 pub enum LevelAction {
     // Generic actions
@@ -241,7 +243,7 @@ impl LevelEditor {
             LevelAction::ToggleWaypointsView => self.view_waypoints(),
             LevelAction::ScalePlacement(delta) => {
                 delta.apply(&mut self.place_scale);
-                self.place_scale = self.place_scale.clamp(r32(0.25), r32(2.0));
+                self.place_scale = self.place_scale.clamp(r32(0.25), r32(MAX_SCALE));
             }
             LevelAction::RotatePlacement(delta) => {
                 self.place_rotation += delta;
@@ -429,7 +431,7 @@ impl LevelEditor {
                     && let Some(frame) = light.movement.get_frame_mut(waypoint_id)
                 {
                     change.apply(&mut frame.scale);
-                    frame.scale = frame.scale.clamp(r32(0.0), r32(10.0));
+                    frame.scale = frame.scale.clamp(r32(0.0), r32(MAX_SCALE));
                     self.save_state(HistoryLabel::Scale(light_id, waypoint_id));
                 }
             }
@@ -916,28 +918,30 @@ impl LevelEditor {
         // assume time interpolation doesn't take long, so not visually weird
         let target_time = self.current_time.target;
 
-        let mut transform = TransformLight {
+        let prev_frame = i.checked_sub(2).and_then(|i| {
+            light
+                .movement
+                .waypoints
+                .get(i)
+                .or(light.movement.waypoints.back())
+        });
+        let prev_transform =
+            prev_frame.map_or(light.movement.initial.transform, |frame| frame.transform);
+        let transform = TransformLight {
             translation: position,
             rotation: self.place_rotation,
             scale: self.place_scale,
-            hollow: r32(-1.0),
+            hollow: prev_transform.hollow,
         };
-        let mut interpolation = MoveInterpolation::default(); // TODO: use the same as other waypoints
+        let mut interpolation = prev_frame.map_or(light.movement.initial.interpolation, |frame| {
+            frame.interpolation
+        });
         let mut change_curve = None;
         match i.checked_sub(1) {
-            None => {
-                // Replace initial
-                std::mem::swap(&mut light.movement.initial.transform, &mut transform);
-                std::mem::swap(
-                    &mut light.movement.initial.interpolation,
-                    &mut interpolation,
-                );
-                change_curve = Some(light.movement.initial.curve);
-                light.movement.initial.curve = TrajectoryInterpolation::default();
-
-                let time = target_time - light.movement.get_fade_in(); // Extra time for fade in
-                let mut lerp_time = event.time - time;
-                std::mem::swap(&mut light.movement.initial.lerp_time, &mut lerp_time);
+            None | Some(0) => {
+                // Extend fade in
+                let lerp_time = event.time + light.movement.get_fade_in() - target_time;
+                let time = event.time - lerp_time;
 
                 light.movement.waypoints.push_front(Waypoint {
                     lerp_time,
@@ -945,9 +949,14 @@ impl LevelEditor {
                     change_curve,
                     transform,
                 });
+                light.movement.initial.transform = TransformLight {
+                    translation: transform.translation,
+                    rotation: transform.rotation,
+                    ..light.movement.last
+                };
                 event.time = time;
             }
-            Some(i) if i <= light.movement.waypoints.len() => {
+            Some(i) if i < light.movement.waypoints.len() => {
                 // Insert keyframe
                 let next = light.movement.timed_transforms().nth(i + 1);
                 if let Some((_, _, next_time)) = next {
@@ -964,23 +973,44 @@ impl LevelEditor {
                         },
                     );
 
-                    if let Some(prev) = light.movement.waypoints.get_mut(i) {
+                    if let Some(prev) = i
+                        .checked_sub(1)
+                        .and_then(|i| light.movement.waypoints.get_mut(i))
+                    {
                         prev.lerp_time -= lerp_time;
+                    } else {
+                        unreachable!()
+                        // light.movement.initial.lerp_time -= lerp_time;
                     }
                 }
             }
-            Some(i) => {
-                // Replace last
-                std::mem::swap(&mut light.movement.last, &mut transform);
+            Some(i) if i >= light.movement.waypoints.len() => {
+                // Extend fade out
+                let lerp_time = light.movement.get_fade_out();
+                let plus_time =
+                    target_time - event.time - light.movement.timed_transforms().last().unwrap().2;
+                if let Some(prev) = light.movement.waypoints.back_mut() {
+                    std::mem::swap(&mut change_curve, &mut prev.change_curve);
+                    std::mem::swap(&mut interpolation, &mut prev.interpolation);
+                    prev.lerp_time += plus_time;
+                } else {
+                    let prev = &mut light.movement.initial;
+                    prev.lerp_time += plus_time;
+                }
 
-                let lerp_time = target_time - light.movement.timed_transforms().nth(i).unwrap().2;
                 light.movement.waypoints.push_back(Waypoint {
                     lerp_time,
                     interpolation,
                     change_curve,
                     transform,
                 });
+                light.movement.last = TransformLight {
+                    translation: transform.translation,
+                    rotation: transform.rotation,
+                    ..light.movement.last
+                };
             }
+            Some(1..) => unreachable!(), // For some reason Rust does not properly check exhaustivenes here
         }
     }
 }
