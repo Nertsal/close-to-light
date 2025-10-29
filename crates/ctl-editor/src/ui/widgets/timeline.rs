@@ -30,7 +30,6 @@ pub struct TimelineWidget {
     marks: Vec<(vec2<f32>, Color)>,
     ticks: Vec<(vec2<f32>, BeatTime)>,
     dragging_event: Option<(usize, vec2<f32>, f32)>,
-    dragging_light: Option<(vec2<f32>, f32)>,
     dragging_waypoint: Option<WaypointId>,
 
     /// Render scale in pixels per beat.
@@ -72,7 +71,6 @@ impl TimelineWidget {
             marks: Vec::new(),
             ticks: Vec::new(),
             dragging_event: None,
-            dragging_light: None,
             dragging_waypoint: None,
 
             scale: 0.5,
@@ -297,40 +295,40 @@ impl TimelineWidget {
                 }
             };
 
+            let mut drag_event =
+                |preevent_time: Time, dragging_event: &mut Option<(usize, vec2<f32>, f32)>| {
+                    // Release drag
+                    if !can_focus || !context.cursor.left.down {
+                        match dragging_event.take() {
+                            Some((_, from, from_time))
+                                if (context.cursor.position - from).len_sqr()
+                                    < MAX_CLICK_DISTANCE
+                                    && (context.real_time - from_time).abs()
+                                        < MAX_CLICK_DURATION => {}
+                            Some(_) => {
+                                if is_selected {
+                                    actions.push(LevelAction::Deselect.into());
+                                }
+                            }
+                            None => {}
+                        }
+                    }
+                    if let Some((i, _, _)) = dragging_event
+                        && *i == event_i
+                    {
+                        let time = unrender_time(context.cursor.position.x);
+                        let time = editor.level.timing.snap_to_beat(time, snap) - preevent_time;
+                        actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
+                    }
+                };
+
             match &event.event {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
                     let is_selected = self.selection.is_light_single(light_id);
+                    let fade_in = light_event.movement.get_fade_in();
                     if is_selected {
-                        if !can_focus || !context.cursor.left.down {
-                            match self.dragging_light.take() {
-                                Some((from, from_time))
-                                    if (context.cursor.position - from).len_sqr()
-                                        < MAX_CLICK_DISTANCE
-                                        && (context.real_time - from_time).abs()
-                                            < MAX_CLICK_DURATION => {}
-                                Some(_) => {
-                                    if is_selected {
-                                        actions.push(LevelAction::Deselect.into());
-                                    }
-                                }
-                                None => {}
-                            }
-                        }
-                        if self.dragging_light.is_some() {
-                            let time = unrender_time(context.cursor.position.x);
-                            let time = editor.level.timing.snap_to_beat(time, snap)
-                                - light_event.movement.get_fade_in();
-                            actions.push(
-                                LevelAction::MoveLight(
-                                    light_id,
-                                    Change::Set(time),
-                                    Change::Add(vec2::ZERO),
-                                )
-                                .into(),
-                            );
-                        }
-
+                        drag_event(fade_in, &mut self.dragging_event);
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + light_event.movement.duration();
@@ -512,8 +510,8 @@ impl TimelineWidget {
                                     LevelAction::SelectLight(SelectMode::Set, vec![light_id])
                                         .into(),
                                 );
-                                self.dragging_light =
-                                    Some((context.cursor.position, context.real_time));
+                                self.dragging_event =
+                                    Some((event_i, context.cursor.position, context.real_time));
                             }
                         } else {
                             // Dots to indicate there are more lights in that position
@@ -530,7 +528,7 @@ impl TimelineWidget {
                         is_hovered || editor.level_state.hovered_light == Some(light_id);
                     if !is_selected && is_hovered {
                         // Waypoints
-                        for (_, _, offset) in light_event.movement.timed_transforms().skip(1) {
+                        for (_, _, offset) in light_event.movement.timed_transforms() {
                             // Icon
                             let position = render_light(event.time + offset, overlapped).center();
                             if !self.state.position.contains(position) {
@@ -571,38 +569,13 @@ impl TimelineWidget {
                     }
                 }
                 Event::Effect(effect) => {
-                    if is_selected {
-                        // Release drag
-                        if !can_focus || !context.cursor.left.down {
-                            match self.dragging_event.take() {
-                                Some((_, from, from_time))
-                                    if (context.cursor.position - from).len_sqr()
-                                        < MAX_CLICK_DISTANCE
-                                        && (context.real_time - from_time).abs()
-                                            < MAX_CLICK_DURATION => {}
-                                Some(_) => {
-                                    if is_selected {
-                                        actions.push(LevelAction::Deselect.into());
-                                    }
-                                }
-                                None => {}
-                            }
-                        }
-                        if let Some((i, _, _)) = self.dragging_event
-                            && i == event_i
-                        {
-                            let time = unrender_time(context.cursor.position.x);
-                            let time = editor.level.timing.snap_to_beat(time, snap);
-                            actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
-                        }
-                    }
-
                     let duration = match *effect {
                         EffectEvent::PaletteSwap(duration)
                         | EffectEvent::RgbSplit(duration)
                         | EffectEvent::CameraShake(duration, _) => duration,
                     };
                     if is_selected {
+                        drag_event(0, &mut self.dragging_event);
                         // Start time
                         timeline_tick(
                             vec2(4.0, 16.0) * PPU as f32,

@@ -69,7 +69,7 @@ impl Selection {
     pub fn is_event_single(&self, id: usize) -> bool {
         match self {
             Selection::Empty => false,
-            Selection::Lights(_) => false,
+            Selection::Lights(lights) => lights.len() == 1 && lights.first().unwrap().event == id,
             Selection::Event(idx) => id == *idx,
         }
     }
@@ -209,9 +209,11 @@ impl LevelEditor {
             }
             WaypointId::Frame(i) => {
                 if let Some(frame) = event.movement.waypoints.remove(i) {
-                    // Offset the next one
-                    if let Some(next) = event.movement.waypoints.get_mut(i) {
-                        next.lerp_time += frame.lerp_time;
+                    // Offset the previous one
+                    if i == 0 {
+                        event.movement.initial.lerp_time += frame.lerp_time;
+                    } else if let Some(prev) = event.movement.waypoints.get_mut(i - 1) {
+                        prev.lerp_time += frame.lerp_time;
                     }
                 }
             }
