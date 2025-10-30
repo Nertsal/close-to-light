@@ -1,7 +1,7 @@
 version = "V3"
 id = 0
 featured = false
-hash = "879172445537370b04f6ab7c754f811190531ad4bc451f9c8fd127a682507ab8"
+hash = "ec4626d22412541f3b4ff7086ac5c87cc322182ea43626d58728547f2dc4e25d"
 
 [music]
 id = 0
@@ -23,4 +23,4 @@ name = "Nertsal"
 id = 0
 name = "Normal"
 authors = []
-hash = "949a6a93ddd6d1fdd36805d78309bddd6616634cc33caf3948049f4d157ed3c8"
+hash = "8a896eaa07ebab008c4536f996eecca5bbfa6a6bb64f0a5567ccf46e0a76e819"
