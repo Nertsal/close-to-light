@@ -68,6 +68,22 @@ impl GameRender {
                 self.util
                     .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
             }
+            // Waypoints
+            // TODO: config
+            // for waypoint in &model.level_state.waypoints {
+            //     let color = if waypoint.light.danger {
+            //         THEME.danger
+            //     } else {
+            //         THEME.light
+            //     };
+            //     self.util.draw_outline(
+            //         &waypoint.light.collider,
+            //         0.05,
+            //         color,
+            //         camera,
+            //         &mut framebuffer,
+            //     );
+            // }
         }
 
         if !model.level.config.modifiers.hidden {

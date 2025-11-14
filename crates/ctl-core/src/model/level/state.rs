@@ -10,7 +10,15 @@ pub struct LevelState {
     timing: Timing,
     pub lights: Vec<Light>,
     pub telegraphs: Vec<LightTelegraph>,
+    pub waypoints: Vec<LightWaypoint>,
     pub is_finished: bool,
+}
+
+#[derive(Debug)]
+pub struct LightWaypoint {
+    /// The time at which the light will reach this waypoint.
+    pub time: Time,
+    pub light: Light,
 }
 
 impl Default for LevelState {
@@ -21,6 +29,7 @@ impl Default for LevelState {
             timing: Timing::default(),
             lights: Vec::new(),
             telegraphs: Vec::new(),
+            waypoints: Vec::new(),
             is_finished: false,
         }
     }
@@ -34,7 +43,6 @@ impl LevelState {
 
     pub fn render(
         level: &Level,
-        config: &LevelConfig,
         time: Time,
         ignore_after: Option<Time>,
         mut vfx: Option<&mut Vfx>,
@@ -45,6 +53,7 @@ impl LevelState {
             timing: level.timing.clone(),
             lights: Vec::new(),
             telegraphs: Vec::new(),
+            waypoints: Vec::new(),
             is_finished: true,
         };
 
@@ -56,7 +65,7 @@ impl LevelState {
         }
 
         for (i, e) in level.events.iter().enumerate() {
-            state.render_event(e, Some(i), config, vfx.as_deref_mut());
+            state.render_event(e, Some(i), vfx.as_deref_mut());
         }
 
         if state.is_finished
@@ -73,7 +82,6 @@ impl LevelState {
         &mut self,
         event: &TimedEvent,
         event_id: Option<usize>,
-        config: &LevelConfig,
         vfx: Option<&mut Vfx>,
     ) {
         if let Some(time) = self.ignore_after
@@ -90,13 +98,16 @@ impl LevelState {
 
         match &event.event {
             Event::Light(light) => {
-                let precede_time = seconds_to_time(self.timing.get_timing(event.time).beat_time);
+                let timing = self.timing.get_timing(event.time);
+                let precede_time = seconds_to_time(timing.beat_time);
                 if self.time < event.time - precede_time {
                     return;
                 }
-                let (telegraph, light) = render_light(light, time, event_id, config, precede_time);
-                self.telegraphs.extend(telegraph);
+                let (light, telegraph, waypoints) =
+                    render_light(light, time, event_id, precede_time, &timing);
                 self.lights.extend(light);
+                self.telegraphs.extend(telegraph);
+                self.waypoints.extend(waypoints);
             }
             Event::Effect(effect) => match *effect {
                 EffectEvent::PaletteSwap(duration) => {
@@ -139,9 +150,9 @@ pub fn render_light(
     event: &LightEvent,
     relative_time: Time,
     event_id: Option<usize>,
-    config: &LevelConfig,
     precede_time: Time,
-) -> (Vec<LightTelegraph>, Option<Light>) {
+    timing: &TimingPoint,
+) -> (Option<Light>, Option<LightTelegraph>, Vec<LightWaypoint>) {
     let movement = &event.movement;
     let base_light = event.clone().instantiate(event_id);
     let base_tele = base_light.clone().into_telegraph();
@@ -159,51 +170,59 @@ pub fn render_light(
 
     // Telegraph
     let relative_time = relative_time + precede_time;
-    let telegraphs = if relative_time > duration {
-        vec![]
+    let (telegraph, waypoints) = if relative_time > duration {
+        (None, vec![])
     } else {
         let transform = event.movement.get(relative_time);
         let mut main_tele = base_tele.clone();
         main_tele.light.collider = base_light.collider.transformed(transform);
 
-        if config.waypoints.show {
-            let sustain_time = seconds_to_time(config.waypoints.sustain_time);
-            let fade_time = seconds_to_time(config.waypoints.fade_time);
-            let sustain_scale = config.waypoints.sustain_scale;
+        let mut last_pos = movement.initial.translation;
+        let waypoints = movement
+            .timed_positions()
+            // .take(movement.key_frames.len()) // Ignore the last position
+            // .skip(1) // Ignore the initial position
+            .filter_map(|(_, transform, time)| {
+                let relative_time = relative_time - time;
 
-            let mut last_pos = movement.initial.translation;
-            let waypoints = movement
-                .timed_positions()
-                .take(movement.key_frames.len()) // Ignore the last position
-                .skip(1) // Ignore the initial position
-                .filter_map(|(_, mut transform, time)| {
-                    let relative_time = relative_time - time;
-                    let waypoint = (last_pos != transform.translation
-                        && (Time::ZERO..sustain_time + fade_time).contains(&relative_time))
+                // TODO: move these constants into some config
+                let radius_max = 0.2;
+                let width = 0.05;
+                let beat_time = timing.beat_time.as_f32();
+                let fade_in = 0.5 * beat_time;
+                let fade_out = 0.75 * beat_time;
+
+                let t = time_to_seconds(relative_time).as_f32();
+                let t = (t / fade_in + 1.0).min(1.0 - t / fade_out).max(0.0);
+                let radius = r32(t * radius_max);
+
+                let waypoint = (last_pos != transform.translation
+                    && (Time::ZERO..seconds_to_time(r32(fade_in + fade_out)))
+                        .contains(&relative_time)
+                    && radius.as_f32() > width)
                     .then(|| {
-                        let scale = if relative_time < sustain_time {
-                            let t = r32(relative_time as f32 / sustain_time as f32);
-                            sustain_scale
-                                + crate::util::smoothstep(FloatTime::ONE - t)
-                                    * (Coord::ONE - sustain_scale)
-                        } else {
-                            let t = r32((relative_time - sustain_time) as f32 / fade_time as f32);
-                            sustain_scale * crate::util::smoothstep(FloatTime::ONE - t)
+                        let shape = match base_light.collider.shape {
+                            Shape::Circle { .. } => Shape::circle(radius),
+                            Shape::Line { .. } => Shape::line(radius / r32(2.0)),
+                            Shape::Rectangle { .. } => Shape::rectangle(vec2::splat(radius)),
                         };
-                        transform.scale *= scale;
-                        let mut tele = base_tele.clone();
-                        tele.light.collider = base_light.collider.transformed(transform);
-                        tele
+                        let collider = Collider {
+                            shape,
+                            ..base_light.collider.transformed(transform)
+                        };
+                        let mut light = base_light.clone();
+                        light.collider = collider;
+                        LightWaypoint {
+                            time: relative_time - time,
+                            light,
+                        }
                     });
-                    last_pos = transform.translation;
-                    waypoint
-                });
+                last_pos = transform.translation;
+                waypoint
+            });
 
-            std::iter::once(main_tele).chain(waypoints).collect()
-        } else {
-            vec![main_tele]
-        }
+        (Some(main_tele), waypoints.collect())
     };
 
-    (telegraphs, light)
+    (light, telegraph, waypoints)
 }

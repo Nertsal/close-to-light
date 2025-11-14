@@ -5,7 +5,6 @@ use super::*;
 pub struct LevelConfig {
     pub player: PlayerConfig,
     pub health: HealthConfig,
-    pub waypoints: WaypointsConfig,
     pub modifiers: LevelModifiers,
 }
 
@@ -25,15 +24,6 @@ pub struct HealthConfig {
     pub danger_decrease_rate: FloatTime,
     /// How much health restores per second while in light.
     pub restore_rate: FloatTime,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
-pub struct WaypointsConfig {
-    pub show: bool,
-    pub sustain_time: FloatTime,
-    pub fade_time: FloatTime,
-    pub sustain_scale: Coord,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -122,17 +112,6 @@ impl Default for LevelModifiers {
             nofail: false,
             sudden: false,
             hidden: false,
-        }
-    }
-}
-
-impl Default for WaypointsConfig {
-    fn default() -> Self {
-        Self {
-            show: false,
-            sustain_time: r32(1.0),
-            fade_time: r32(0.5),
-            sustain_scale: r32(0.5),
         }
     }
 }

@@ -404,18 +404,11 @@ impl LevelEditor {
             .flatten();
         let level = selected_level.as_ref().unwrap_or(&self.level);
 
-        let static_level = static_time.map(|time| {
-            LevelState::render(
-                level,
-                &self.model.level.config,
-                time,
-                None,
-                Some(&mut self.model.vfx),
-            )
-        });
+        let static_level = static_time
+            .map(|time| LevelState::render(level, time, None, Some(&mut self.model.vfx)));
         let dynamic_level = dynamic_time.map(|time| {
             let vfx = static_time.is_none().then_some(&mut self.model.vfx);
-            LevelState::render(level, &self.model.level.config, time, None, vfx)
+            LevelState::render(level, time, None, vfx)
         });
 
         let mut hovered_light = self.timeline_light_hover.take();
