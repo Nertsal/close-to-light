@@ -75,8 +75,17 @@ impl geng::State for MediaState {
             .fit_screen(vec2(0.5, 0.5), buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         if let Some(picture) = &self.picture {
+            let pixel_scale =
+                (buffer.size().as_f32() / picture.size().as_f32()).map(|x| x.floor().max(1.0));
+            let pixel_scale = pixel_scale.x.min(pixel_scale.y);
             geng_utils::texture::DrawTexture::new(picture)
-                .fit_screen(vec2(0.5, 0.5), buffer)
+                .pixel_perfect(
+                    buffer.size().as_f32() / 2.0,
+                    vec2(0.5, 0.5),
+                    pixel_scale,
+                    &geng::PixelPerfectCamera,
+                    buffer,
+                )
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         }
         self.post.post_process(
