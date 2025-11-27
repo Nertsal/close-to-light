@@ -11,7 +11,7 @@ use crate::{
 };
 
 use ctl_render_core::TextRenderOptions;
-use geng_utils::{conversions::AngleRealConversions, gif::GifFrame};
+use geng_utils::conversions::AngleRealConversions;
 
 pub struct TrailerState {
     context: Context,
@@ -45,10 +45,9 @@ impl TrailerState {
                 fov: Camera2dFov::Vertical(10.0),
             },
             load_texts: vec![
-                "Loading assets...",
                 "Turning the lights on...",
                 "Initializing evil... >:3",
-                "Why is this taking so long?",
+                "Are you ready?",
             ],
 
             context,
@@ -57,6 +56,11 @@ impl TrailerState {
 }
 
 impl geng::State for TrailerState {
+    fn update(&mut self, delta_time: f64) {
+        let delta_time = FloatTime::new(delta_time as f32);
+        self.time += delta_time;
+    }
+
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         let theme = self.theme;
         ugli::clear(framebuffer, Some(theme.dark), None, None);
@@ -64,6 +68,8 @@ impl geng::State for TrailerState {
         // self.game_render.draw_world(&self.model, false, framebuffer);
 
         let mut dither_buffer = self.dither.start();
+
+        // Loading screen lights
         let loading_lights = [
             Collider {
                 position: vec2(-8.75, 4.5).as_r32(),
@@ -96,11 +102,18 @@ impl geng::State for TrailerState {
                 shape: Shape::Circle { radius: r32(0.25) },
             },
         ];
-        for collider in loading_lights {
+        for (i, collider) in loading_lights.into_iter().enumerate() {
+            let offset = (i as f32 - 2.0) / 5.0;
+            let scale = crate::util::smoothstep(
+                ((self.time.as_f32() - 0.75 + offset) / 1.5).clamp(0.0, 1.0),
+            );
             self.util_render.draw_light(
                 &Light {
                     base_collider: collider.clone(),
-                    collider,
+                    collider: Collider {
+                        shape: collider.shape.scaled(r32(scale)),
+                        ..collider
+                    },
                     lifetime: 0,
                     danger: false,
                     event_id: None,
@@ -113,8 +126,17 @@ impl geng::State for TrailerState {
                 &mut dither_buffer,
             );
         }
-        self.dither.finish(self.time, &theme);
 
+        {
+            // Render dithered
+            let mut dither_theme = theme;
+            let danger_t =
+                crate::util::smoothstep((self.time.as_f32() / 1.5 - 1.5).clamp(0.0, 1.0));
+            dither_theme.light = Color::lerp(dither_theme.light, dither_theme.danger, danger_t);
+            self.dither.finish(self.time, &dither_theme);
+        }
+
+        // Draw to post buffer
         let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), buffer)
@@ -124,7 +146,7 @@ impl geng::State for TrailerState {
             // Fake loading bar
             let font_size = 1.0;
             let size = vec2(10.0, 0.8) * font_size;
-            let load_bar = Aabb2::point(vec2(0.0, -font_size * 2.0)).extend_symmetric(size / 2.0);
+            let load_bar = Aabb2::point(vec2(0.0, -font_size * 1.5)).extend_symmetric(size / 2.0);
             let fill_bar = load_bar.extend_uniform(-font_size * 0.1);
             let t = (self.time.as_f32() / 1.5 / 3.0).min(1.0);
             let t = crate::util::smoothstep(t);
@@ -139,57 +161,82 @@ impl geng::State for TrailerState {
                 .quad(buffer, &self.camera, fill_bar, theme.highlight);
         }
 
-        if let Ok(pos) = self
-            .camera
-            .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.0))
         {
-            self.ui_render.draw_texture(
-                Aabb2::point(pos),
-                &self.context.assets.sprites.title,
-                theme.light,
-                2.0,
+            // Title screen
+            if let Ok(pos) = self
+                .camera
+                .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.0))
+            {
+                self.ui_render.draw_texture(
+                    Aabb2::point(pos),
+                    &self.context.assets.sprites.title,
+                    theme.light,
+                    2.0,
+                    buffer,
+                );
+            }
+            self.util_render.draw_text(
+                self.load_texts
+                    [((self.time.as_f32() / 1.5).floor() as usize).min(self.load_texts.len() - 1)],
+                vec2(0.0, -0.5),
+                TextRenderOptions::new(0.8).color(theme.light),
+                &self.camera,
+                buffer,
+            );
+            self.util_render.draw_text(
+                "by Nertsal",
+                vec2(-5.5, 1.75),
+                TextRenderOptions::new(0.7)
+                    .align(vec2(0.0, 0.5))
+                    .color(theme.light),
+                &self.camera,
+                buffer,
+            );
+            self.util_render.draw_text(
+                "music by IcyLava",
+                vec2(5.5, 1.75),
+                TextRenderOptions::new(0.7)
+                    .align(vec2(1.0, 0.5))
+                    .color(theme.light),
+                &self.camera,
                 buffer,
             );
         }
-        self.util_render.draw_text(
-            self.load_texts[(self.time.as_f32() / 1.5).floor() as usize % self.load_texts.len()],
-            vec2(0.0, -1.0),
-            TextRenderOptions::new(0.8).color(theme.light),
-            &self.camera,
-            buffer,
-        );
-        self.util_render.draw_text(
-            "by Nertsal",
-            vec2(-5.5, 1.75),
-            TextRenderOptions::new(0.7)
-                .align(vec2(0.0, 0.5))
-                .color(theme.light),
-            &self.camera,
-            buffer,
-        );
-        self.util_render.draw_text(
-            "music by IcyLava",
-            vec2(5.5, 1.75),
-            TextRenderOptions::new(0.7)
-                .align(vec2(1.0, 0.5))
-                .color(theme.light),
-            &self.camera,
-            buffer,
-        );
-        // if let Some(picture) = &self.picture {
-        //     let pixel_scale =
-        //         (buffer.size().as_f32() / picture.size().as_f32()).map(|x| x.floor().max(1.0));
-        //     let pixel_scale = pixel_scale.x.min(pixel_scale.y);
-        //     geng_utils::texture::DrawTexture::new(picture)
-        //         .pixel_perfect(
-        //             buffer.size().as_f32() / 2.0,
-        //             vec2(0.5, 0.5),
-        //             pixel_scale,
-        //             &geng::PixelPerfectCamera,
-        //             buffer,
-        //         )
-        //         .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
-        // }
+
+        {
+            // Transition light
+            let dither_buffer = &mut self.dither.start();
+            let collider = Collider {
+                position: vec2::ZERO,
+                rotation: Angle::ZERO,
+                shape: Shape::Circle { radius: r32(1.0) },
+            };
+            let scale = ((self.time.as_f32() - 4.0) * 5.0).clamp(0.0, 50.0).powi(3);
+            self.util_render.draw_light(
+                &Light {
+                    base_collider: collider.clone(),
+                    collider: Collider {
+                        shape: collider.shape.scaled(r32(scale)),
+                        ..collider
+                    },
+                    lifetime: 0,
+                    danger: false,
+                    event_id: None,
+                    closest_waypoint: (100, WaypointId::Initial),
+                },
+                THEME.light,
+                THEME.dark,
+                r32(0.01),
+                &self.camera,
+                dither_buffer,
+            );
+            self.dither.finish(self.time, &theme.transparent());
+            geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+                .fit_screen(vec2(0.5, 0.5), buffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+        }
+
+        // Post processing effects
         self.post.post_process(
             PostVfx {
                 time: self.time,
@@ -198,10 +245,5 @@ impl geng::State for TrailerState {
             },
             framebuffer,
         );
-    }
-
-    fn update(&mut self, delta_time: f64) {
-        let delta_time = FloatTime::new(delta_time as f32);
-        self.time += delta_time;
     }
 }
