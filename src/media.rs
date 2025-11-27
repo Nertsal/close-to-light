@@ -1,3 +1,5 @@
+pub mod trailer;
+
 use crate::{
     prelude::*,
     render::{

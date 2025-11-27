@@ -31,6 +31,7 @@ pub enum Command {
         #[clap(long)]
         picture: Option<PathBuf>,
     },
+    Trailer,
     Music(MusicArgs),
     Artist(ArtistArgs),
 }
@@ -267,6 +268,10 @@ impl Command {
                     .await?;
                     state.set_picture(picture);
                 }
+                context.geng.run_state(state).await;
+            }
+            Command::Trailer => {
+                let state = crate::media::trailer::TrailerState::new(context.clone());
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {
