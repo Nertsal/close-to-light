@@ -44,6 +44,7 @@ pub struct TrailerState {
 
 impl TrailerState {
     pub fn new(context: Context, level: PlayLevel) -> Self {
+        let start_time = level.start_time;
         let mut state = Self {
             game_render: GameRender::new(context.clone()),
             util_render: UtilRender::new(context.clone()),
@@ -58,7 +59,7 @@ impl TrailerState {
             ),
 
             theme: Theme::linksider(),
-            time: FloatTime::ZERO,
+            time: time_to_seconds(start_time),
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -71,7 +72,7 @@ impl TrailerState {
             ],
             context,
         };
-        state.model.start(0);
+        state.model.start(start_time);
         state
     }
 }
@@ -107,9 +108,6 @@ impl geng::State for TrailerState {
         }
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
-
-        let post_buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
-        // self.game_render.draw_world(&self.model, false, post_buffer);
 
         let mut dither_buffer = self.dither.start();
 
@@ -224,6 +222,32 @@ impl geng::State for TrailerState {
             }
         }
 
+        if self.time.as_f32() > OUTRO {
+            // Outro screen
+            let t = ((self.time.as_f32() - OUTRO) / 2.5).clamp(0.0, 1.0);
+            let light = crate::util::with_alpha(THEME.light, t);
+
+            if let Ok(pos) = self
+                .camera
+                .world_to_screen(dither_buffer.size().as_f32(), vec2(0.0, 2.0))
+            {
+                self.ui_render.draw_texture(
+                    Aabb2::point(pos),
+                    &self.context.assets.sprites.title,
+                    light,
+                    2.0,
+                    &mut dither_buffer,
+                );
+            }
+            self.util_render.draw_text(
+                "Wishlist now on Steam!",
+                vec2(0.0, 0.0),
+                TextRenderOptions::new(1.0).color(light),
+                &self.camera,
+                &mut dither_buffer,
+            );
+        }
+
         {
             // Render dithered
             let mut dither_theme = theme;
@@ -236,6 +260,7 @@ impl geng::State for TrailerState {
         }
 
         // Draw to post buffer
+        let post_buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), post_buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, post_buffer);

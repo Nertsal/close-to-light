@@ -12,6 +12,7 @@ use ctl_client::{
         types::{Id, NewMusician, UserLogin},
     },
 };
+use ctl_logic::FloatTime;
 
 #[derive(clap::Subcommand)]
 pub enum Command {
@@ -31,7 +32,9 @@ pub enum Command {
         #[clap(long)]
         picture: Option<PathBuf>,
     },
-    Trailer,
+    Trailer {
+        start_time: Option<String>,
+    },
     Music(MusicArgs),
     Artist(ArtistArgs),
 }
@@ -162,27 +165,11 @@ impl Command {
                 diff,
                 start_time,
             } => {
-                let start_time = match start_time {
-                    None => None,
-                    Some(time) => {
-                        if let Some(end_of_number) =
-                            time.find(|c: char| c != '.' && !c.is_ascii_digit())
-                        {
-                            let (number, unit) = time.split_at(end_of_number);
-                            let number: f32 = number.parse()?;
-                            let scale = match unit {
-                                "ms" => 1e-3,
-                                "s" => 1.0,
-                                "m" => 60.0,
-                                _ => anyhow::bail!("Unknown time unit: {:?}", unit),
-                            };
-                            Some(ctl_logic::seconds_to_time(r32(number * scale)))
-                        } else {
-                            let number: f32 = time.parse()?;
-                            Some(ctl_logic::seconds_to_time(r32(number)))
-                        }
-                    }
-                };
+                let start_time = start_time
+                    .as_deref()
+                    .map(parse_time)
+                    .transpose()?
+                    .map(ctl_logic::seconds_to_time);
 
                 let ((group_index, group), (diff_index, diff)) = {
                     let local = context.local.inner.borrow();
@@ -270,7 +257,14 @@ impl Command {
                 }
                 context.geng.run_state(state).await;
             }
-            Command::Trailer => {
+            Command::Trailer { start_time } => {
+                let start_time = start_time
+                    .as_deref()
+                    .map(parse_time)
+                    .transpose()?
+                    .map(ctl_logic::seconds_to_time)
+                    .unwrap_or(0);
+
                 let trailer = run_dir().join("dev-assets").join("trailer");
                 let manager = context.geng.asset_manager();
                 let (level_set, info) = ctl_local::fs::decode_group(
@@ -317,7 +311,7 @@ impl Command {
                         },
                         ..default()
                     },
-                    start_time: 0,
+                    start_time,
                     transition_button: None,
                 };
                 let state = crate::media::trailer::TrailerState::new(context.clone(), level);
@@ -430,4 +424,21 @@ async fn login(client: &Nertboard) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn parse_time(time: &str) -> Result<FloatTime> {
+    if let Some(end_of_number) = time.find(|c: char| c != '.' && !c.is_ascii_digit()) {
+        let (number, unit) = time.split_at(end_of_number);
+        let number: f32 = number.parse()?;
+        let scale = match unit {
+            "ms" => 1e-3,
+            "s" => 1.0,
+            "m" => 60.0,
+            _ => anyhow::bail!("Unknown time unit: {:?}", unit),
+        };
+        Ok(r32(number * scale))
+    } else {
+        let number: f32 = time.parse()?;
+        Ok(r32(number))
+    }
 }
