@@ -271,7 +271,56 @@ impl Command {
                 context.geng.run_state(state).await;
             }
             Command::Trailer => {
-                let state = crate::media::trailer::TrailerState::new(context.clone());
+                let trailer = run_dir().join("dev-assets").join("trailer");
+                let manager = context.geng.asset_manager();
+                let (level_set, info) = ctl_local::fs::decode_group(
+                    &file::load_bytes(&trailer.join("levels.cbor")).await?,
+                    &file::load_string(&trailer.join("meta.toml")).await?,
+                )?;
+                let music: geng::Sound = geng::asset::Load::load(
+                    manager,
+                    &trailer.join("music.mp3"),
+                    &geng::asset::SoundOptions { looped: false },
+                )
+                .await?;
+                let music = Rc::new(ctl_local::LocalMusic::new(
+                    ctl_logic::MusicInfo::default(),
+                    music,
+                    vec![].into(),
+                ));
+
+                let level_data = level_set.levels[0].clone();
+                let level = ctl_logic::PlayLevel {
+                    group: ctl_logic::PlayGroup {
+                        group_index: generational_arena::Index::from_raw_parts(0, 0),
+                        cached: Rc::new(ctl_local::CachedGroup {
+                            local: ctl_local::LocalGroup {
+                                path: "".into(),
+                                meta: info,
+                                music: Some(music.clone()),
+                                data: level_set,
+                            },
+                            origin: None,
+                            level_hashes: vec![],
+                        }),
+                        music: Some(music),
+                    },
+                    level_index: 0,
+                    level: ctl_logic::LevelFull {
+                        meta: ctl_logic::LevelInfo::default(),
+                        data: level_data,
+                    },
+                    config: ctl_logic::LevelConfig {
+                        modifiers: ctl_logic::LevelModifiers {
+                            nofail: true,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    start_time: 0,
+                    transition_button: None,
+                };
+                let state = crate::media::trailer::TrailerState::new(context.clone(), level);
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {

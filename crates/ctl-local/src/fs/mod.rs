@@ -244,7 +244,7 @@ pub fn generate_group_path(group: Id) -> PathBuf {
     }
 }
 
-fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
+pub fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
     let versioned: (
         Result<ctl_core::legacy::VersionedLevelSet>,
         Result<ctl_core::legacy::VersionedLevelSetInfo>,
