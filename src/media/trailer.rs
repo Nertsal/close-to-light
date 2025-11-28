@@ -3,7 +3,6 @@ use crate::{
     render::{
         THEME,
         dither::DitherRender,
-        game::GameRender,
         post::{PostRender, PostVfx},
         ui::UiRender,
         util::UtilRender,
@@ -20,7 +19,7 @@ const fn convert(seconds: i32, fraction: i32) -> f32 {
 const INTRO_TIME: f32 = 5.0;
 const FIRST_HIT: f32 = convert(11, 15);
 const SECOND_HIT: f32 = convert(16, 55);
-const THIRD_HIT: f32 = convert(22, 33);
+// const THIRD_HIT: f32 = convert(22, 33);
 const FOURTH_HIT: f32 = convert(28, 32);
 const FIFTH_HIT: f32 = convert(33, 50);
 const OUTRO: f32 = convert(39, 35);
@@ -28,11 +27,11 @@ const OUTRO: f32 = convert(39, 35);
 pub struct TrailerState {
     context: Context,
 
-    game_render: GameRender,
     util_render: UtilRender,
     ui_render: UiRender,
     dither: DitherRender,
     post: PostRender,
+    framebuffer_size: vec2<usize>,
 
     model: Model,
 
@@ -44,13 +43,18 @@ pub struct TrailerState {
 
 impl TrailerState {
     pub fn new(context: Context, level: PlayLevel) -> Self {
+        context
+            .geng
+            .window()
+            .set_cursor_type(geng::CursorType::None);
+
         let start_time = level.start_time;
         let mut state = Self {
-            game_render: GameRender::new(context.clone()),
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
             post: PostRender::new(context.clone()),
+            framebuffer_size: vec2(1, 1),
 
             model: Model::new(
                 context.clone(),
@@ -78,13 +82,34 @@ impl TrailerState {
 }
 
 impl geng::State for TrailerState {
-    fn update(&mut self, delta_time: f64) {
+    fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
         self.time += delta_time;
-        self.model.update(vec2::ZERO, delta_time);
+
+        let pos = self
+            .context
+            .geng
+            .window()
+            .cursor_position()
+            .unwrap_or(vec2::ZERO)
+            .as_f32();
+        let game_pos = geng_utils::layout::fit_aabb(
+            self.framebuffer_size.as_f32(),
+            Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
+            vec2(0.5, 0.5),
+        );
+        let pos = pos - game_pos.bottom_left();
+        let target_pos = self
+            .model
+            .camera
+            .screen_to_world(game_pos.size(), pos)
+            .as_r32();
+        self.model.update(target_pos, delta_time);
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        self.framebuffer_size = framebuffer.size();
+
         let mut theme = self.theme;
         if self.time.as_f32() > FIRST_HIT - 0.25 {
             let t = ((self.time.as_f32() - FIRST_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
@@ -115,7 +140,7 @@ impl geng::State for TrailerState {
 
         if self.time.as_f32() > INTRO_TIME {
             // Level
-            let model = &self.model;
+            let model = &mut self.model;
             let beat_time = model
                 .level
                 .level
@@ -136,7 +161,7 @@ impl geng::State for TrailerState {
                         &tele.light.collider,
                         0.05,
                         color,
-                        &self.model.camera,
+                        &model.camera,
                         &mut dither_buffer,
                     );
                 }
@@ -155,10 +180,45 @@ impl geng::State for TrailerState {
                         color,
                         THEME.dark,
                         beat_time,
-                        &self.model.camera,
+                        &model.camera,
                         &mut dither_buffer,
                     );
                 }
+            }
+
+            // Rhythm feedback
+            for rhythm in &model.rhythms {
+                let color = if rhythm.perfect {
+                    THEME.highlight
+                } else {
+                    THEME.danger
+                };
+                let t = rhythm.time.clone().map(|t| t as f32).get_ratio();
+
+                let scale = r32(crate::util::smoothstep(1.0 - t));
+                let mut visual = model
+                    .player
+                    .collider
+                    .transformed(Transform { scale, ..default() });
+                visual.position = rhythm.position;
+                self.util_render.draw_outline(
+                    &visual,
+                    0.05,
+                    color,
+                    &model.camera,
+                    &mut dither_buffer,
+                );
+            }
+
+            if !model.level.config.modifiers.clean_auto {
+                let t =
+                    crate::util::smoothstep(((OUTRO - self.time.as_f32()) / 0.5).clamp(0.0, 1.0));
+                let mut options = self.context.get_options();
+                options.cursor.inner_radius = 0.15 * t;
+                self.context.set_options(options);
+                model.player.collider.shape = Shape::circle(r32(0.5 * t));
+                self.util_render
+                    .draw_player(&model.player, &model.camera, &mut dither_buffer);
             }
         }
 
