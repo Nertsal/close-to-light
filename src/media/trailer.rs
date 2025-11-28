@@ -13,7 +13,17 @@ use crate::{
 use ctl_render_core::TextRenderOptions;
 use geng_utils::conversions::AngleRealConversions;
 
+const fn convert(seconds: i32, fraction: i32) -> f32 {
+    seconds as f32 + fraction as f32 / 60.0
+}
+
 const INTRO_TIME: f32 = 5.0;
+const FIRST_HIT: f32 = convert(11, 15);
+const SECOND_HIT: f32 = convert(16, 55);
+const THIRD_HIT: f32 = convert(22, 33);
+const FOURTH_HIT: f32 = convert(28, 32);
+const FIFTH_HIT: f32 = convert(33, 50);
+const OUTRO: f32 = convert(39, 35);
 
 pub struct TrailerState {
     context: Context,
@@ -75,11 +85,26 @@ impl geng::State for TrailerState {
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         let mut theme = self.theme;
-        // if self.time.as_f32() > INTRO_TIME - 1.0 {
-        //     theme = theme.swap(crate::util::smoothstep(
-        //         (self.time.as_f32() - INTRO_TIME + 1.0).clamp(0.0, 1.0),
-        //     ));
+        if self.time.as_f32() > FIRST_HIT - 0.25 {
+            let t = ((self.time.as_f32() - FIRST_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+            theme = lerp_theme(theme, Theme::corruption(), t);
+        }
+        if self.time.as_f32() > SECOND_HIT - 0.25 {
+            let t = ((self.time.as_f32() - SECOND_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+            theme = lerp_theme(theme, Theme::classic(), t);
+        }
+        // if self.time.as_f32() > THIRD_HIT - 0.25 {
+        //     let t = ((self.time.as_f32() - THIRD_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+        //     theme = lerp_theme(theme, Theme::peach_mint(), t);
         // }
+        if self.time.as_f32() > FOURTH_HIT - 0.25 {
+            let t = ((self.time.as_f32() - FOURTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+            theme = lerp_theme(theme, Theme::peach_mint(), t);
+        }
+        if self.time.as_f32() > FIFTH_HIT - 0.25 {
+            let t = ((self.time.as_f32() - FIFTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+            theme = lerp_theme(theme, Theme::linksider(), t);
+        }
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
 
@@ -328,5 +353,14 @@ impl geng::State for TrailerState {
             },
             framebuffer,
         );
+    }
+}
+
+fn lerp_theme(from: Theme, to: Theme, t: f32) -> Theme {
+    Theme {
+        dark: Color::lerp(from.dark, to.dark, t),
+        light: Color::lerp(from.light, to.light, t),
+        danger: Color::lerp(from.danger, to.danger, t),
+        highlight: Color::lerp(from.highlight, to.highlight, t),
     }
 }
