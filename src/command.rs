@@ -16,6 +16,9 @@ use ctl_logic::FloatTime;
 
 #[derive(clap::Subcommand)]
 pub enum Command {
+    CborDecode {
+        path: PathBuf,
+    },
     Play {
         level: String,
         diff: String,
@@ -160,6 +163,13 @@ impl Command {
         };
 
         match self {
+            Command::CborDecode { path } => {
+                let data: cbor4ii::core::Value = cbor4ii::serde::from_reader(
+                    std::io::BufReader::new(std::fs::File::open(path)?),
+                )?;
+                println!("Decoded data:");
+                println!("{data:#?}");
+            }
             Command::Play {
                 level,
                 diff,

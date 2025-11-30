@@ -97,8 +97,13 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
             .context("when loading assets")?;
 
     let load_everything = load_everything(geng.clone());
-    let loading_screen =
-        menu::LoadingScreen::new(&geng, loading_assets, load_everything, opts.skip_intro).run();
+    let loading_screen = menu::LoadingScreen::new(
+        &geng,
+        loading_assets,
+        load_everything,
+        opts.skip_intro || opts.command.is_some(),
+    )
+    .run();
 
     let (context, secrets, client) = loading_screen
         .await
