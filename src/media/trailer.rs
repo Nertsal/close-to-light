@@ -26,6 +26,9 @@ const OUTRO: f32 = convert(39, 35);
 
 pub struct TrailerState {
     context: Context,
+    /// When set to `true`, disables all hard-coded trailer-specific effects.
+    custom: bool,
+    duration: FloatTime,
 
     util_render: UtilRender,
     ui_render: UiRender,
@@ -42,7 +45,12 @@ pub struct TrailerState {
 }
 
 impl TrailerState {
-    pub fn new(context: Context, level: PlayLevel) -> Self {
+    pub fn new(
+        context: Context,
+        level: PlayLevel,
+        custom: bool,
+        duration: Option<FloatTime>,
+    ) -> Self {
         context
             .geng
             .window()
@@ -63,7 +71,11 @@ impl TrailerState {
             ),
 
             theme: Theme::linksider(),
-            time: time_to_seconds(start_time),
+            time: if custom {
+                FloatTime::ZERO
+            } else {
+                time_to_seconds(start_time)
+            },
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -75,6 +87,8 @@ impl TrailerState {
                 "Are you ready?",
             ],
             context,
+            custom,
+            duration: duration.unwrap_or(r32(OUTRO)),
         };
         state.model.start(start_time);
         state
@@ -111,25 +125,27 @@ impl geng::State for TrailerState {
         self.framebuffer_size = framebuffer.size();
 
         let mut theme = self.theme;
-        if self.time.as_f32() > FIRST_HIT - 0.25 {
-            let t = ((self.time.as_f32() - FIRST_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-            theme = lerp_theme(theme, Theme::corruption(), t);
-        }
-        if self.time.as_f32() > SECOND_HIT - 0.25 {
-            let t = ((self.time.as_f32() - SECOND_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-            theme = lerp_theme(theme, Theme::classic(), t);
-        }
-        // if self.time.as_f32() > THIRD_HIT - 0.25 {
-        //     let t = ((self.time.as_f32() - THIRD_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-        //     theme = lerp_theme(theme, Theme::peach_mint(), t);
-        // }
-        if self.time.as_f32() > FOURTH_HIT - 0.25 {
-            let t = ((self.time.as_f32() - FOURTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-            theme = lerp_theme(theme, Theme::peach_mint(), t);
-        }
-        if self.time.as_f32() > FIFTH_HIT - 0.25 {
-            let t = ((self.time.as_f32() - FIFTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-            theme = lerp_theme(theme, Theme::linksider(), t);
+        if !self.custom {
+            if self.time.as_f32() > FIRST_HIT - 0.25 {
+                let t = ((self.time.as_f32() - FIRST_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+                theme = lerp_theme(theme, Theme::corruption(), t);
+            }
+            if self.time.as_f32() > SECOND_HIT - 0.25 {
+                let t = ((self.time.as_f32() - SECOND_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+                theme = lerp_theme(theme, Theme::classic(), t);
+            }
+            // if self.time.as_f32() > THIRD_HIT - 0.25 {
+            //     let t = ((self.time.as_f32() - THIRD_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+            //     theme = lerp_theme(theme, Theme::peach_mint(), t);
+            // }
+            if self.time.as_f32() > FOURTH_HIT - 0.25 {
+                let t = ((self.time.as_f32() - FOURTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+                theme = lerp_theme(theme, Theme::peach_mint(), t);
+            }
+            if self.time.as_f32() > FIFTH_HIT - 0.25 {
+                let t = ((self.time.as_f32() - FIFTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
+                theme = lerp_theme(theme, Theme::linksider(), t);
+            }
         }
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
@@ -137,8 +153,9 @@ impl geng::State for TrailerState {
         let mut dither_buffer = self.dither.start();
 
         let options = self.context.get_options();
+        let intro_time = if self.custom { 2.0 } else { INTRO_TIME };
 
-        if self.time.as_f32() > INTRO_TIME {
+        if self.time.as_f32() > intro_time {
             // Level
             let model = &mut self.model;
             let beat_time = model
@@ -211,8 +228,9 @@ impl geng::State for TrailerState {
             }
 
             if !model.level.config.modifiers.clean_auto {
-                let t =
-                    crate::util::smoothstep(((OUTRO - self.time.as_f32()) / 0.5).clamp(0.0, 1.0));
+                let t = crate::util::smoothstep(
+                    ((self.duration - self.time).as_f32() / 0.5).clamp(0.0, 1.0),
+                );
                 let mut options = self.context.get_options();
                 options.cursor.inner_radius = 0.15 * t;
                 self.context.set_options(options);
@@ -222,7 +240,7 @@ impl geng::State for TrailerState {
             }
         }
 
-        if self.time.as_f32() < INTRO_TIME {
+        if !self.custom && self.time.as_f32() < INTRO_TIME {
             // Loading screen lights
             let loading_lights = [
                 Collider {
@@ -282,9 +300,9 @@ impl geng::State for TrailerState {
             }
         }
 
-        if self.time.as_f32() > OUTRO {
+        if self.time > self.duration {
             // Outro screen
-            let t = ((self.time.as_f32() - OUTRO) / 2.5).clamp(0.0, 1.0);
+            let t = ((self.time - self.duration).as_f32() / 2.5).clamp(0.0, 1.0);
             let light = crate::util::with_alpha(THEME.light, t);
 
             if let Ok(pos) = self
@@ -311,7 +329,7 @@ impl geng::State for TrailerState {
         {
             // Render dithered
             let mut dither_theme = theme;
-            if self.time.as_f32() < INTRO_TIME {
+            if !self.custom && self.time.as_f32() < INTRO_TIME {
                 let danger_t =
                     crate::util::smoothstep((self.time.as_f32() / 1.5 - 1.5).clamp(0.0, 1.0));
                 dither_theme.light = Color::lerp(dither_theme.light, dither_theme.danger, danger_t);
@@ -325,7 +343,7 @@ impl geng::State for TrailerState {
             .fit_screen(vec2(0.5, 0.5), post_buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, post_buffer);
 
-        if self.time.as_f32() < INTRO_TIME {
+        if !self.custom && self.time.as_f32() < INTRO_TIME {
             // Fake loading bar
             let font_size = 1.0;
             let size = vec2(10.0, 0.8) * font_size;
@@ -344,7 +362,7 @@ impl geng::State for TrailerState {
                 .quad(post_buffer, &self.camera, fill_bar, theme.highlight);
         }
 
-        if self.time.as_f32() < INTRO_TIME {
+        if self.time.as_f32() < intro_time {
             // Title screen
             if let Ok(pos) = self
                 .camera
@@ -358,14 +376,16 @@ impl geng::State for TrailerState {
                     post_buffer,
                 );
             }
-            self.util_render.draw_text(
-                self.load_texts
-                    [((self.time.as_f32() / 1.5).floor() as usize).min(self.load_texts.len() - 1)],
-                vec2(0.0, -0.5),
-                TextRenderOptions::new(0.8).color(theme.light),
-                &self.camera,
-                post_buffer,
-            );
+            if !self.custom {
+                self.util_render.draw_text(
+                    self.load_texts[((self.time.as_f32() / 1.5).floor() as usize)
+                        .min(self.load_texts.len() - 1)],
+                    vec2(0.0, -0.5),
+                    TextRenderOptions::new(0.8).color(theme.light),
+                    &self.camera,
+                    post_buffer,
+                );
+            }
             self.util_render.draw_text(
                 "by Nertsal",
                 vec2(-5.5, 1.75),
@@ -375,18 +395,20 @@ impl geng::State for TrailerState {
                 &self.camera,
                 post_buffer,
             );
-            self.util_render.draw_text(
-                "music by IcyLava",
-                vec2(5.5, 1.75),
-                TextRenderOptions::new(0.7)
-                    .align(vec2(1.0, 0.5))
-                    .color(theme.light),
-                &self.camera,
-                post_buffer,
-            );
+            if !self.custom {
+                self.util_render.draw_text(
+                    "music by IcyLava",
+                    vec2(5.5, 1.75),
+                    TextRenderOptions::new(0.7)
+                        .align(vec2(1.0, 0.5))
+                        .color(theme.light),
+                    &self.camera,
+                    post_buffer,
+                );
+            }
         }
 
-        if self.time.as_f32() < INTRO_TIME + 0.5 {
+        if self.time.as_f32() < intro_time + 0.5 {
             // Transition light
             let dither_buffer = &mut self.dither.start();
             let collider = Collider {
@@ -394,7 +416,7 @@ impl geng::State for TrailerState {
                 rotation: Angle::ZERO,
                 shape: Shape::Circle { radius: r32(1.0) },
             };
-            let scale = ((self.time.as_f32() - INTRO_TIME + 1.5) * 5.0)
+            let scale = ((self.time.as_f32() - intro_time + 1.5) * 5.0)
                 .clamp(0.0, 50.0)
                 .powi(3);
             self.util_render.draw_light(
@@ -420,7 +442,7 @@ impl geng::State for TrailerState {
             theme.light = Color::lerp(
                 theme.light,
                 theme.dark,
-                crate::util::smoothstep(((self.time.as_f32() - INTRO_TIME) / 0.5).clamp(0.0, 1.0)),
+                crate::util::smoothstep(((self.time.as_f32() - intro_time) / 0.5).clamp(0.0, 1.0)),
             );
 
             self.dither.finish(self.time, &theme);

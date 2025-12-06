@@ -37,6 +37,12 @@ pub enum Command {
     },
     Trailer {
         start_time: Option<String>,
+        #[clap(long)]
+        level: Option<String>,
+        #[clap(long)]
+        diff: Option<String>,
+        #[clap(long)]
+        level_time_bounds: Option<String>,
     },
     Music(MusicArgs),
     Artist(ArtistArgs),
@@ -267,7 +273,12 @@ impl Command {
                 }
                 context.geng.run_state(state).await;
             }
-            Command::Trailer { start_time } => {
+            Command::Trailer {
+                start_time,
+                level,
+                diff,
+                level_time_bounds,
+            } => {
                 let start_time = start_time
                     .as_deref()
                     .map(parse_time)
@@ -275,56 +286,110 @@ impl Command {
                     .map(ctl_logic::seconds_to_time)
                     .unwrap_or(0);
 
-                let trailer = run_dir().join("dev-assets").join("trailer");
-                let manager = context.geng.asset_manager();
-                let (level_set, info) = ctl_local::fs::decode_group(
-                    &file::load_bytes(&trailer.join("levels.cbor")).await?,
-                    &file::load_string(&trailer.join("meta.toml")).await?,
-                )?;
-                let music: geng::Sound = geng::asset::Load::load(
-                    manager,
-                    &trailer.join("music.mp3"),
-                    &geng::asset::SoundOptions { looped: false },
-                )
-                .await?;
-                let music = Rc::new(ctl_local::LocalMusic::new(
-                    ctl_logic::MusicInfo::default(),
-                    music,
-                    vec![].into(),
-                ));
+                let level_time_bounds: Option<(FloatTime, FloatTime)> = level_time_bounds
+                    .map(|bounds| {
+                        let (from, to) = bounds
+                            .split_once('-')
+                            .ok_or_else(|| anyhow!("Missing '-' in time format"))?;
+                        let from = parse_time(from)?;
+                        let to = parse_time(to)?;
+                        anyhow::Ok((from, to))
+                    })
+                    .transpose()
+                    .context("when parsing time bounds")?;
 
-                let level_data = level_set.levels[0].clone();
-                let level = ctl_logic::PlayLevel {
-                    group: ctl_logic::PlayGroup {
-                        group_index: generational_arena::Index::from_raw_parts(0, 0),
-                        cached: Rc::new(ctl_local::CachedGroup {
-                            local: ctl_local::LocalGroup {
-                                path: "".into(),
-                                meta: info,
-                                music: Some(music.clone()),
-                                data: level_set,
+                let custom = level.is_some();
+                let mut outro = None;
+                let level = if let Some(level) = level {
+                    let diff =
+                        diff.ok_or_else(|| anyhow!("Level specified, but missing --diff"))?;
+
+                    let ((group_index, group), (diff_index, diff)) = {
+                        let local = context.local.inner.borrow();
+                        let group = find_group(&local, &level)?;
+                        let diff = find_diff(&group.1, &diff)?;
+                        (group, diff)
+                    };
+
+                    if let Some((from, to)) = level_time_bounds {
+                        outro = Some((to - from).max(FloatTime::ZERO));
+                    }
+
+                    let start_time = start_time
+                        + level_time_bounds
+                            .map_or(0, |(from, _to)| ctl_logic::seconds_to_time(from));
+                    ctl_logic::PlayLevel {
+                        start_time,
+                        level: diff,
+                        group: ctl_logic::PlayGroup {
+                            group_index,
+                            music: group.local.music.clone(),
+                            cached: group,
+                        },
+                        level_index: diff_index,
+                        config: ctl_logic::LevelConfig {
+                            modifiers: ctl_logic::LevelModifiers {
+                                nofail: true,
+                                ..default()
                             },
-                            origin: None,
-                            level_hashes: vec![],
-                        }),
-                        music: Some(music),
-                    },
-                    level_index: 0,
-                    level: ctl_logic::LevelFull {
-                        meta: ctl_logic::LevelInfo::default(),
-                        data: level_data,
-                    },
-                    config: ctl_logic::LevelConfig {
-                        modifiers: ctl_logic::LevelModifiers {
-                            nofail: true,
                             ..default()
                         },
-                        ..default()
-                    },
-                    start_time,
-                    transition_button: None,
+                        transition_button: None,
+                    }
+                } else {
+                    // Load default trailer path
+                    let trailer = run_dir().join("dev-assets").join("trailer");
+                    let manager = context.geng.asset_manager();
+                    let (level_set, info) = ctl_local::fs::decode_group(
+                        &file::load_bytes(&trailer.join("levels.cbor")).await?,
+                        &file::load_string(&trailer.join("meta.toml")).await?,
+                    )?;
+                    let music: geng::Sound = geng::asset::Load::load(
+                        manager,
+                        &trailer.join("music.mp3"),
+                        &geng::asset::SoundOptions { looped: false },
+                    )
+                    .await?;
+                    let music = Rc::new(ctl_local::LocalMusic::new(
+                        ctl_logic::MusicInfo::default(),
+                        music,
+                        vec![].into(),
+                    ));
+
+                    let level_data = level_set.levels[0].clone();
+                    ctl_logic::PlayLevel {
+                        group: ctl_logic::PlayGroup {
+                            group_index: generational_arena::Index::from_raw_parts(0, 0),
+                            cached: Rc::new(ctl_local::CachedGroup {
+                                local: ctl_local::LocalGroup {
+                                    path: "".into(),
+                                    meta: info,
+                                    music: Some(music.clone()),
+                                    data: level_set,
+                                },
+                                origin: None,
+                                level_hashes: vec![],
+                            }),
+                            music: Some(music),
+                        },
+                        level_index: 0,
+                        level: ctl_logic::LevelFull {
+                            meta: ctl_logic::LevelInfo::default(),
+                            data: level_data,
+                        },
+                        config: ctl_logic::LevelConfig {
+                            modifiers: ctl_logic::LevelModifiers {
+                                nofail: true,
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        start_time,
+                        transition_button: None,
+                    }
                 };
-                let state = crate::media::trailer::TrailerState::new(context.clone(), level);
+                let state =
+                    crate::media::trailer::TrailerState::new(context.clone(), level, custom, outro);
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {
