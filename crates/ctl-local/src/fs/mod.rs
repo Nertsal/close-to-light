@@ -146,7 +146,10 @@ impl Controller {
             match web::load_local_highscores(&self.rexie).await {
                 Ok(res) => Ok(res),
                 Err(err) => {
-                    log::error!("failed to load local scores the web file system: {:?}", err);
+                    log::error!(
+                        "failed to load local highscores from the web file system: {:?}",
+                        err
+                    );
                     anyhow::bail!("check logs");
                 }
             }
@@ -163,7 +166,10 @@ impl Controller {
             match web::load_local_scores(&self.rexie, level_hash).await {
                 Ok(res) => Ok(res),
                 Err(err) => {
-                    log::error!("failed to load local scores the web file system: {:?}", err);
+                    log::error!(
+                        "failed to load local scores from the web file system: {:?}",
+                        err
+                    );
                     anyhow::bail!("check logs");
                 }
             }
@@ -238,7 +244,7 @@ pub fn generate_group_path(group: Id) -> PathBuf {
     }
 }
 
-fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
+pub fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
     let versioned: (
         Result<ctl_core::legacy::VersionedLevelSet>,
         Result<ctl_core::legacy::VersionedLevelSetInfo>,

@@ -139,7 +139,7 @@ pub struct Model {
     /// List collected rhythm (event_id, waypoint_id)
     /// with times of their collection.
     pub recent_rhythm: HashMap<(usize, WaypointId), Time>,
-    /// Waypoint rhythms.
+    /// Waypoint rhythms tracking player accuracy.
     pub rhythms: Vec<Rhythm>,
 
     /// Real time that has passed since the level was opened.

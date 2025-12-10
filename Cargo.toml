@@ -88,6 +88,9 @@ name = "close-to-light"
 version.workspace = true
 edition.workspace = true
 
+[features]
+itch = []
+
 [dependencies]
 ctl-core.workspace = true
 ctl-client.workspace = true

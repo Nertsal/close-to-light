@@ -1,11 +1,20 @@
 list:
     just --list
 
+# Test that all targets build correctly and tests pass
+test:
+    cargo build --release # Native build
+    cargo geng build --platform web --release # Web build
+    cargo test # Tests
+
 game *ARGS:
     cargo run -- {{ARGS}}
 
 web command *ARGS:
     cargo geng {{command}} --platform web --release -- {{ARGS}}
+
+itch command *ARGS:
+    cargo geng {{command}} --platform web --release -- -F itch {{ARGS}}
 
 server PORT *ARGS:
     cargo run --release --package ctl-server {{PORT}} -- {{ARGS}}
