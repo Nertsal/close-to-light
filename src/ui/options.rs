@@ -416,12 +416,15 @@ impl StatefulWidget for CursorWidget {
         self.inner_radius
             .update_value(next_row(), context, &mut state.inner_radius, 0.1..=0.5);
         if state.show_perfect_radius {
+            self.outer_radius.state.show();
             self.outer_radius.update_value(
                 next_row(),
                 context,
                 &mut state.outer_radius,
                 0.05..=0.5,
             );
+        } else {
+            self.outer_radius.state.hide();
         }
 
         let mut position = position;
