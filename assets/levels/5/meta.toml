@@ -22,5 +22,9 @@ name = "Nertsal"
 [[levels]]
 id = 0
 name = "Normal"
-authors = []
 hash = "0680ae59d0bbea82f1e9c27c7bc5a65d0c4f8d88f77fd8136caaecadc5725fad"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
