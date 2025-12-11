@@ -1,7 +1,7 @@
 version = "V3"
 id = 0
 featured = false
-hash = "c82f5d8e02848069b2823ed46efd86ed0ac18ddc006960698d7b4c91b9d72bad"
+hash = "317787c97f0553426f851bbf192d7a864004b34e18ee43410638434db7d82806"
 
 [music]
 id = 0
@@ -22,7 +22,7 @@ name = "Nertsal"
 [[levels]]
 id = 0
 name = "Normal"
-hash = "0680ae59d0bbea82f1e9c27c7bc5a65d0c4f8d88f77fd8136caaecadc5725fad"
+hash = "841dc3e650ce6df8ca40e9f59c243804066a9462e9ca413e326e0f3ed5809aa3"
 
 [[levels.authors]]
 id = 1
