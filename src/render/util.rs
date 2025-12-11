@@ -269,6 +269,7 @@ impl UtilRender {
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let hollow_cut = hollow_cut.as_f32().clamp(-1.0, 1.0);
         let (texture, transform) = match collider.shape {
             Shape::Circle { radius } => (
                 &self.context.assets.sprites.radial_gradient,
@@ -302,7 +303,7 @@ impl UtilRender {
                     u_model_matrix: transform,
                     u_color: color,
                     u_texture: texture,
-                    u_hollow_cut: hollow_cut.as_f32(),
+                    u_hollow_cut: hollow_cut,
                 },
                 camera.uniforms(framebuffer_size.as_f32()),
             ),
