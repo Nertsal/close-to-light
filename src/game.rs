@@ -151,6 +151,7 @@ impl geng::State for Game {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as _);
+        self.context.update(delta_time);
         self.delta_time = delta_time;
 
         self.context

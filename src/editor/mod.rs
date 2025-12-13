@@ -218,6 +218,7 @@ impl geng::State for EditorState {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
+        self.context.update(delta_time);
         self.delta_time = delta_time;
         self.editor.real_time += delta_time;
 

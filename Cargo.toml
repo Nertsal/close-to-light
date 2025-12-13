@@ -48,6 +48,7 @@ async-executor = "1.8.0"
 base64 = "0.22.1"
 async-compat = "0.2.4"
 rfd = "0.15.3"
+steamworks = "0.12.2"
 
 # Local storage
 webbrowser = "1.0.1"
@@ -90,6 +91,7 @@ edition.workspace = true
 
 [features]
 itch = []
+steam = ["ctl-context/steam"]
 
 [dependencies]
 ctl-core.workspace = true

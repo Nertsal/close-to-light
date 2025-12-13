@@ -3,9 +3,13 @@ name = "ctl-context"
 version.workspace = true
 edition.workspace = true
 
+[features]
+steam = ["dep:steamworks"]
+
 [dependencies]
 ctl-core.workspace = true
 ctl-assets.workspace = true
 ctl-client.workspace = true
 ctl-local.workspace = true
 geng.workspace = true
+steamworks = { workspace = true, optional = true }

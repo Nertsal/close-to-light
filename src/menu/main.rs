@@ -104,6 +104,7 @@ impl geng::State for MainMenu {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
+        self.context.update(delta_time);
         self.time += delta_time;
 
         self.context
