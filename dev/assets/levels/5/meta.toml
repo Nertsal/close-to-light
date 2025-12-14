@@ -1,7 +1,7 @@
 version = "V3"
 id = 0
 featured = false
-hash = "2cab33ccbe5922e25e9777894a7549a053cfefa39f768f639d4d43752f640179"
+hash = "f885a6c3ec81e6257ef4b97275a0d355bed06ee346756107fbea6823c5cfa56d"
 
 [music]
 id = 0
@@ -18,6 +18,12 @@ romanized = "artyomzifir"
 [owner]
 id = 1
 name = "Nertsal"
+
+[[levels]]
+id = 0
+name = "Easy"
+authors = []
+hash = "8c2afc9acab8d257bf244213a81c56755e4911f2a31931d414df0d16c4d674ba"
 
 [[levels]]
 id = 0
