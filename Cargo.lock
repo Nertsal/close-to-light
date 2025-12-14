@@ -1324,6 +1324,7 @@ dependencies = [
  "cbor4ii",
  "ctl-assets",
  "ctl-client",
+ "ctl-constants",
  "ctl-context",
  "ctl-core",
  "ctl-derive",
@@ -1689,8 +1690,11 @@ name = "ctl-client"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "ctl-constants",
  "ctl-core",
+ "hex",
  "reqwest 0.11.27",
+ "steamworks",
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
@@ -1698,11 +1702,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctl-constants"
+version = "0.1.0"
+
+[[package]]
 name = "ctl-context"
 version = "0.1.0"
 dependencies = [
  "ctl-assets",
  "ctl-client",
+ "ctl-constants",
  "ctl-core",
  "ctl-local",
  "geng",
@@ -1779,6 +1788,7 @@ dependencies = [
  "rexie",
  "serde",
  "serde-wasm-bindgen",
+ "steamworks",
  "time",
  "webbrowser",
 ]
@@ -1816,6 +1826,7 @@ dependencies = [
  "cbor4ii",
  "clap",
  "color-eyre",
+ "ctl-constants",
  "ctl-core",
  "data-encoding",
  "dotenv",

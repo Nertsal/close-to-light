@@ -168,14 +168,28 @@ async fn load_everything(
             },
         })
     });
-    let client = secrets
+
+    #[allow(unused_mut)] // used with only some features
+    let mut client = secrets
         .as_ref()
         .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
-        .transpose()?
-        .map(Arc::new);
+        .transpose()?;
     if let Some(client) = &client {
         let _ = client.ping().await; // Ping the server to check if we are online
     }
+
+    #[cfg(feature = "steam")]
+    let steam = {
+        let steam = ctl_context::connect_steam();
+        if let Some(steam) = &steam
+            && let Some(client) = &mut client
+        {
+            client.connect_steam(steam.clone());
+        }
+        steam
+    };
+
+    let client = client.map(Arc::new);
 
     let fs = Rc::new(
         ctl_local::fs::Controller::new(&geng)
@@ -183,9 +197,15 @@ async fn load_everything(
             .expect("failed to initialize file system"),
     );
 
-    let context = Context::new(&geng, &assets, client.as_ref(), fs)
+    #[allow(unused_mut)] // used with only some features
+    let mut context = Context::new(&geng, &assets, client.as_ref(), fs)
         .await
         .expect("failed to initialize context");
+
+    #[cfg(feature = "steam")]
+    if let Some(steam) = steam {
+        context.connect_steam(steam.clone());
+    }
 
     Ok((context, secrets, client))
 }

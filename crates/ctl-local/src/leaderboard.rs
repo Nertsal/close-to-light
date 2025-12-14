@@ -222,15 +222,28 @@ impl LeaderboardImpl {
         }
 
         if let Some(client) = &self.client {
-            let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
-            else {
-                return;
-            };
+            #[cfg(feature = "steam")]
+            {
+                // Login directly via Steam
+                let client = Arc::clone(client);
+                let future = async move { client.login_steam().await };
+                self.log_task = Some(Task::new(&self.geng, future));
+                self.user = None;
+            }
 
-            let client = Arc::clone(client);
-            let future = async move { client.login_token(user.id, &user.token).await };
-            self.log_task = Some(Task::new(&self.geng, future));
-            self.user = None;
+            #[cfg(not(feature = "steam"))]
+            {
+                // Retrieve token
+                let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
+                else {
+                    return;
+                };
+
+                let client = Arc::clone(client);
+                let future = async move { client.login_token(user.id, &user.token).await };
+                self.log_task = Some(Task::new(&self.geng, future));
+                self.user = None;
+            }
         }
     }
 
@@ -292,7 +305,10 @@ impl LeaderboardImpl {
                     match res {
                         Ok(Ok(user)) => {
                             log::debug!("Logged in as {}", &user.name);
+
+                            #[cfg(not(feature = "steam"))] // Steam requires full relogin each time
                             preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
+
                             self.loaded.player = Some(user.id);
                             self.user = Some(user);
                         }

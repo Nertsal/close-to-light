@@ -3,9 +3,11 @@ name = "ctl-client"
 version.workspace = true
 edition.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+steam = ["dep:steamworks"]
 
 [dependencies]
+ctl-constants.workspace = true
 ctl-core.workspace = true
 reqwest.workspace = true
 url.workspace = true
@@ -13,3 +15,5 @@ tokio.workspace = true
 tokio-util.workspace = true
 bincode.workspace = true
 thiserror.workspace = true
+steamworks = { workspace = true, optional = true }
+hex.workspace = true

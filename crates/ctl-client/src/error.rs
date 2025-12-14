@@ -23,6 +23,9 @@ pub enum ClientError {
     Client(String),
     #[error("Not found")]
     NotFound,
+    #[cfg(feature = "steam")]
+    #[error("Could not connect to Steam")]
+    Steam,
 }
 
 impl From<reqwest::Error> for ClientError {

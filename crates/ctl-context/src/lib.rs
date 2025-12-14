@@ -17,10 +17,6 @@ use geng::prelude::{time::Duration, *};
 
 pub const OPTIONS_STORAGE: &str = "options";
 
-// TODO: different id for demo
-#[cfg(feature = "steam")]
-const STEAM_APP_ID: u32 = 4209820;
-
 #[derive(Clone)]
 pub struct Context {
     #[cfg(feature = "steam")]
@@ -45,7 +41,7 @@ impl Context {
         ));
         Ok(Self {
             #[cfg(feature = "steam")]
-            steam: connect_steam(),
+            steam: None,
             geng: geng.clone(),
             assets: assets.clone(),
             music: Rc::new(MusicManager::new(geng.clone())),
@@ -53,6 +49,11 @@ impl Context {
             local: Rc::new(LevelCache::load(client, fs, geng).await?),
             options,
         })
+    }
+
+    #[cfg(feature = "steam")]
+    pub fn connect_steam(&mut self, steam: steamworks::Client) {
+        self.steam = Some(steam);
     }
 
     /// Expected to be called every frame to maintain relevant global state.
@@ -77,8 +78,8 @@ impl Context {
 }
 
 #[cfg(feature = "steam")]
-fn connect_steam() -> Option<steamworks::Client> {
-    match steamworks::Client::init_app(STEAM_APP_ID) {
+pub fn connect_steam() -> Option<steamworks::Client> {
+    match steamworks::Client::init_app(ctl_constants::STEAM_APP_ID) {
         Ok(steam) => Some(steam),
         Err(err) => {
             log::error!("failed to connect to steam: {}", err);

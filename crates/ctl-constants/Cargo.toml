@@ -1,0 +1,9 @@
+[package]
+name = "ctl-constants"
+version.workspace = true
+edition.workspace = true
+
+[features]
+steam = []
+
+[dependencies]

@@ -22,6 +22,8 @@ use tokio_util::bytes::Bytes;
 pub type Result<T, E = ClientError> = std::result::Result<T, E>;
 
 pub struct Nertboard {
+    #[cfg(feature = "steam")]
+    steam: Option<steamworks::Client>,
     pub url: Url,
     client: Client,
     online: AtomicBool,
@@ -34,11 +36,18 @@ impl Nertboard {
         let client = client.build()?;
 
         Ok(Self {
+            #[cfg(feature = "steam")]
+            steam: None,
             url: url.into_url()?,
             client,
             online: AtomicBool::new(false),
             auth: RwLock::new(None),
         })
+    }
+
+    #[cfg(feature = "steam")]
+    pub fn connect_steam(&mut self, steam: steamworks::Client) {
+        self.steam = Some(steam);
     }
 
     /// Whether the server is currently online.
