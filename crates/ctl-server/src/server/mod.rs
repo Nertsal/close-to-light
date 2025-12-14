@@ -9,13 +9,13 @@ mod users;
 mod tests;
 
 use crate::{
+    AppConfig, AppSecrets,
     database::{
         auth::{AuthSession, User},
         error::{RequestError, RequestResult as Result},
         types::*,
     },
     prelude::*,
-    AppConfig, AppSecrets,
 };
 
 use std::collections::BTreeMap;
@@ -23,16 +23,16 @@ use std::collections::BTreeMap;
 use ctl_core::prelude::{Id, LevelInfo, LevelSetInfo, MusicInfo, UserInfo};
 
 use axum::{
+    Extension, Form, Json,
     body::Body,
     extract::{Path, Query, State},
     http::header,
     response::IntoResponse,
     routing::{get, post},
-    Extension, Form, Json,
 };
 use axum_login::{
-    tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
     AuthManagerLayerBuilder,
+    tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer},
 };
 use reqwest::Client;
 use serde::Deserialize;
@@ -84,6 +84,7 @@ pub async fn run(
             .clone()
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
+    let token_deletion_task = tokio::task::spawn(auth::token::deletion_task(app.clone()));
 
     let key = Key::generate();
     let session_layer = SessionManagerLayer::new(session_store)
@@ -131,6 +132,7 @@ pub async fn run(
     axum::serve(listener, router).await?;
 
     deletion_task.await??;
+    token_deletion_task.await?;
 
     Ok(())
 }

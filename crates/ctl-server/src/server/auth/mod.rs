@@ -25,13 +25,18 @@ struct StateQuery {
 }
 
 /// Helper function to generate a login token authenticate the session.
-async fn login_user(mut session: AuthSession, app: &App, user_id: Id) -> Result<Json<UserLogin>> {
+async fn login_user(
+    mut session: AuthSession,
+    app: &App,
+    user_id: Id,
+    token_expiration_date: Option<time::OffsetDateTime>,
+) -> Result<Json<UserLogin>> {
     let user: User = sqlx::query_as("SELECT * FROM users WHERE user_id = ?")
         .bind(user_id)
         .fetch_one(&app.database)
         .await?;
 
-    let token = token::generate_login_token(app, user.user_id).await?;
+    let token = token::generate_login_token(app, user.user_id, token_expiration_date).await?;
 
     session
         .login(&user)
@@ -52,7 +57,7 @@ async fn auth_wait(
     Query(query): Query<StateQuery>,
 ) -> Result<Json<UserLogin>> {
     let user_id = wait_login_state(&app, &query.state).await?;
-    login_user(session, &app, user_id).await
+    login_user(session, &app, user_id, None).await
 }
 
 #[derive(thiserror::Error, Debug)]

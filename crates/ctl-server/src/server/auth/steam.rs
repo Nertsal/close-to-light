@@ -41,7 +41,8 @@ async fn auth_steam(
 ) -> Result<Json<UserLogin>> {
     let user = steam_auth(&app, &client, query.ticket, query.username).await?;
     let user_id = steam_login(&app, user).await?;
-    login_user(session, &app, user_id).await
+    let expiration_date = Some(time::OffsetDateTime::now_utc() + time::Duration::days(1));
+    login_user(session, &app, user_id, expiration_date).await
 }
 
 async fn steam_auth(
