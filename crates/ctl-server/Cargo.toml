@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ctl-constants = { workspace = true, features = ["steam"] }
 ctl-core.workspace = true
 
 axum.workspace = true

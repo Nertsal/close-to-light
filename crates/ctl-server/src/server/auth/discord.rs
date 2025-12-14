@@ -20,7 +20,7 @@ struct AccessTokenResponse {
 }
 
 #[derive(Deserialize)]
-struct User {
+struct DiscordUser {
     id: String,
     username: String,
     global_name: Option<String>,
@@ -46,7 +46,7 @@ async fn auth_discord(
     ))
 }
 
-async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User> {
+async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<DiscordUser> {
     let token: color_eyre::Result<AccessTokenResponse> = async {
         let server_addr = &app.secrets.server_addr;
         let body = format!(
@@ -77,7 +77,7 @@ async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User>
         }
     };
 
-    let user: color_eyre::Result<User> = async {
+    let user: color_eyre::Result<DiscordUser> = async {
         let response = client
             .get("https://discord.com/api/users/@me")
             .header(
@@ -101,7 +101,7 @@ async fn discord_oauth(app: &App, client: &Client, code: String) -> Result<User>
     Ok(user)
 }
 
-async fn discord_login(app: &App, user: User) -> Result<Id> {
+async fn discord_login(app: &App, user: DiscordUser) -> Result<Id> {
     // Check for a user with that discord account linked
     let user_id: Option<Id> =
         sqlx::query_scalar("SELECT user_id FROM user_linked_accounts WHERE discord = ?")

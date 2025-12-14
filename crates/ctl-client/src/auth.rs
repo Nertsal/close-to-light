@@ -7,6 +7,7 @@ impl Nertboard {
         match get_json_or::<UserLogin>(response).await? {
             Err(err) => Ok(Err(err)),
             Ok(user) => {
+                log::debug!("Logged in as {} ({})", user.name, user.id);
                 *self.auth.write().await = Some((user.id.to_string(), user.token.to_string()));
                 Ok(Ok(user))
             }

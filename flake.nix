@@ -26,6 +26,7 @@
               butler
               sqlite
               rlwrap
+              sqlx-cli
             ];
           };
         });
