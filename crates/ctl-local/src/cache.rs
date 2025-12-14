@@ -63,6 +63,14 @@ impl CacheTasks {
         }
     }
 
+    /// Checks if there are currently any pending tasks.
+    fn any(&self) -> bool {
+        !self.fs.is_empty()
+            || self.fetch_groups.is_some()
+            || !self.download_group.is_empty()
+            || self.get_recommended.is_some()
+    }
+
     fn poll(&mut self) -> Option<CacheAction> {
         macro_rules! error {
             ($pat:literal, $($arg:expr),*) => {{
@@ -139,6 +147,11 @@ impl LevelCache {
     pub fn client(&self) -> Option<Arc<Nertboard>> {
         let inner = self.inner.borrow();
         inner.tasks.client.as_ref().cloned()
+    }
+
+    /// Checks if there are any pending tasks.
+    pub fn tasks_any(&self) -> bool {
+        self.inner.borrow().tasks.any()
     }
 
     /// Load from the local storage.

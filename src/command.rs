@@ -16,6 +16,7 @@ use ctl_logic::FloatTime;
 
 #[derive(clap::Subcommand)]
 pub enum Command {
+    CreateLevel,
     CborDecode {
         path: PathBuf,
     },
@@ -169,6 +170,19 @@ impl Command {
         };
 
         match self {
+            Command::CreateLevel => {
+                let local = &context.local;
+                let index = local.new_group();
+                let group = local
+                    .get_group(index)
+                    .ok_or(anyhow!("Level creation failed"))?;
+                println!("Waiting for tasks to finish...");
+                while context.local.tasks_any() {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                    context.local.poll();
+                }
+                println!("Created a new group at: {:?}", group.local.path);
+            }
             Command::CborDecode { path } => {
                 let data: cbor4ii::core::Value = cbor4ii::serde::from_reader(
                     std::io::BufReader::new(std::fs::File::open(path)?),
