@@ -430,7 +430,8 @@ impl EditorEditUi {
                             let light_pos = bar.cut_top(title_size);
                             let text = context
                                 .state
-                                .get_root_or(|| TextWidget::new(title).aligned(vec2(0.0, 0.5)));
+                                .get_root_or(|| TextWidget::new("").aligned(vec2(0.0, 0.5)));
+                            text.text = title.into();
                             text.update(light_pos, context);
                             text.options.size = title_size;
 
@@ -451,7 +452,7 @@ impl EditorEditUi {
                             EffectEvent::PaletteSwap(duration) => {
                                 let mut bar = right_bar;
 
-                                event_title_delete(&mut bar, "Palette Flip", tooltip, actions);
+                                event_title_delete(&mut bar, "Palette Swap", tooltip, actions);
 
                                 let duration_pos = bar.cut_top(value_height);
                                 let mut duration = BeatTime::from_beats_float(
