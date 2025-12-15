@@ -6,4 +6,5 @@ mod steam {
     pub const STEAM_SERVER_IDENTITY: &str = "close-to-server";
 }
 
+#[cfg(feature = "steam")]
 pub use self::steam::*;
