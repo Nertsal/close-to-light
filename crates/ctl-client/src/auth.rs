@@ -114,7 +114,7 @@ async fn get_steam_ticket(steam: &steamworks::Client) -> Result<String> {
         .authentication_session_ticket_for_webapi(ctl_constants::STEAM_SERVER_IDENTITY);
 
     // Wait for Steam response
-    for _ in 0..20 {
+    for _ in 0..50 {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         if let Ok(ticket) = receiver.try_recv() {
             return Ok(hex::encode(&ticket));
