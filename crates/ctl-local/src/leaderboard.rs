@@ -183,6 +183,11 @@ impl LeaderboardImpl {
         leaderboard
     }
 
+    /// Returns `true` if currently connecting to the server.
+    pub fn is_connecting(&self) -> bool {
+        self.log_task.is_some()
+    }
+
     pub fn is_online(&self) -> bool {
         self.client
             .as_ref()

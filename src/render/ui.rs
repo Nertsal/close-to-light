@@ -742,5 +742,10 @@ impl UiRender {
             self.draw_text(&logged.username, framebuffer);
             self.draw_button(&logged.logout, theme, framebuffer);
         }
+
+        let connecting = &ui.connecting;
+        if connecting.state.visible {
+            self.draw_text(connecting, framebuffer);
+        }
     }
 }
