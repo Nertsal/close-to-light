@@ -94,6 +94,7 @@ edition.workspace = true
 [features]
 itch = []
 steam = ["ctl-constants/steam", "ctl-client/steam", "ctl-local/steam", "ctl-context/steam"]
+demo = ["ctl-constants/demo", "ctl-client/demo"]
 
 [dependencies]
 ctl-constants.workspace = true

@@ -79,7 +79,7 @@ impl Context {
 
 #[cfg(feature = "steam")]
 pub fn connect_steam() -> Option<steamworks::Client> {
-    match steamworks::Client::init_app(ctl_constants::STEAM_APP_ID) {
+    match steamworks::Client::init_app(ctl_constants::STEAM_APP_ID_CLIENT) {
         Ok(steam) => Some(steam),
         Err(err) => {
             log::error!("failed to connect to steam: {}", err);

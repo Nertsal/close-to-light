@@ -8,8 +8,9 @@ use anyhow::Result;
 use ctl_client::{
     Nertboard,
     core::{
+        auth::UserLogin,
         prelude::Uuid,
-        types::{Id, NewMusician, UserLogin},
+        types::{Id, NewMusician},
     },
 };
 use ctl_logic::FloatTime;

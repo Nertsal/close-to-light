@@ -1,6 +1,6 @@
 use super::*;
 
-use ctl_core::types::UserLogin;
+use ctl_core::auth::{LoginSteam, UserLogin};
 
 impl Nertboard {
     async fn login(&self, response: Response) -> Result<Result<UserLogin, String>> {
@@ -23,11 +23,14 @@ impl Nertboard {
         let ticket = get_steam_ticket(steam).await?;
         let username = steam.friends().name();
 
+        let query = LoginSteam {
+            demo: cfg!(feature = "demo"),
+            ticket,
+            username,
+        };
+
         let url = self.url.join("auth/steam").unwrap();
-        let req = self
-            .client
-            .post(url)
-            .query(&[("ticket", ticket), ("username", username)]);
+        let req = self.client.post(url).query(&query);
         let response = self.send(req).await?;
         self.login(response).await
     }

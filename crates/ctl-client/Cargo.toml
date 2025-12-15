@@ -5,6 +5,7 @@ edition.workspace = true
 
 [features]
 steam = ["dep:steamworks"]
+demo = []
 
 [dependencies]
 ctl-constants.workspace = true

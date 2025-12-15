@@ -1,8 +1,9 @@
 use ctl_client::Nertboard;
 use ctl_core::{
     ScoreEntry, SubmitScore,
+    auth::UserLogin,
     prelude::{HealthConfig, LevelModifiers, Score, Uuid},
-    types::{Id, LevelInfo, UserInfo, UserLogin},
+    types::{Id, LevelInfo, UserInfo},
 };
 use ctl_util::Task;
 use geng::prelude::*;

@@ -1,13 +1,9 @@
 use super::*;
 
+use ctl_core::auth::LoginSteam;
+
 pub fn router() -> Router {
     Router::new().route("/auth/steam", post(auth_steam))
-}
-
-#[derive(Deserialize)]
-struct CodeQuery {
-    ticket: String,
-    username: String,
 }
 
 #[derive(Deserialize)]
@@ -36,10 +32,10 @@ struct AuthResponseP {
 async fn auth_steam(
     session: AuthSession,
     State(app): State<Arc<App>>,
-    Query(query): Query<CodeQuery>,
+    Query(query): Query<LoginSteam>,
     Extension(client): Extension<Client>,
 ) -> Result<Json<UserLogin>> {
-    let user = steam_auth(&app, &client, query.ticket, query.username).await?;
+    let user = steam_auth(&app, &client, query.demo, query.ticket, query.username).await?;
     let user_id = steam_login(&app, user).await?;
     let expiration_date = Some(time::OffsetDateTime::now_utc() + time::Duration::days(1));
     login_user(session, &app, user_id, expiration_date).await
@@ -48,6 +44,7 @@ async fn auth_steam(
 async fn steam_auth(
     app: &App,
     client: &Client,
+    demo: bool,
     ticket: String,
     username: String,
 ) -> Result<SteamUser> {
@@ -61,7 +58,11 @@ async fn steam_auth(
         }
         let query = Query {
             key: &app.secrets.steam.web_api_key,
-            appid: ctl_constants::STEAM_APP_ID,
+            appid: if demo {
+                ctl_constants::STEAM_APP_ID_DEMO
+            } else {
+                ctl_constants::STEAM_APP_ID_FULL
+            },
             ticket: &ticket,
             identity: ctl_constants::STEAM_SERVER_IDENTITY,
         };

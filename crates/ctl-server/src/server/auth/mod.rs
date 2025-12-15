@@ -6,10 +6,7 @@ pub mod token;
 use super::*;
 
 use axum::http::StatusCode;
-use ctl_core::{
-    auth::{PASSWORD_MIN_LEN, USERNAME_MIN_LEN},
-    types::UserLogin,
-};
+use ctl_core::auth::{PASSWORD_MIN_LEN, USERNAME_MIN_LEN, UserLogin};
 
 pub fn router() -> Router {
     native::router()
