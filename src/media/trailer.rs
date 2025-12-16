@@ -140,7 +140,7 @@ impl geng::State for TrailerState {
             // }
             if self.time.as_f32() > FOURTH_HIT - 0.25 {
                 let t = ((self.time.as_f32() - FOURTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-                theme = lerp_theme(theme, Theme::peach_mint(), t);
+                theme = lerp_theme(theme, Theme::stargazer(), t);
             }
             if self.time.as_f32() > FIFTH_HIT - 0.25 {
                 let t = ((self.time.as_f32() - FIFTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
