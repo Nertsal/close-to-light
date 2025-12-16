@@ -151,49 +151,33 @@ impl Default for VolumeOptions {
 }
 
 impl Theme {
+    pub fn new(dark: &str, light: &str, danger: &str, highlight: &str) -> anyhow::Result<Self> {
+        Ok(Self {
+            dark: Color::try_from(dark)?,
+            light: Color::try_from(light)?,
+            danger: Color::try_from(danger)?,
+            highlight: Color::try_from(highlight)?,
+        })
+    }
+
     pub fn classic() -> Self {
-        Self {
-            dark: Color::BLACK,
-            light: Color::WHITE,
-            danger: Color::RED,
-            highlight: Color::CYAN,
-        }
+        Self::new("#000000", "#ffffff", "#ff0000", "#00ffff").unwrap()
     }
 
     pub fn stargazer() -> Self {
-        Self {
-            dark: Color::try_from("#162246").unwrap(),
-            light: Color::try_from("#f9bc76").unwrap(),
-            danger: Color::try_from("#ad3454").unwrap(),
-            highlight: Color::try_from("#1e8294").unwrap(),
-        }
+        Self::new("#162246", "#f9bc76", "#ad3454", "#1e8294").unwrap()
     }
 
     pub fn corruption() -> Self {
-        Self {
-            dark: Color::try_from("#2b172a").unwrap(),
-            light: Color::try_from("#db9d51").unwrap(),
-            danger: Color::try_from("#a23f6d").unwrap(),
-            highlight: Color::try_from("#30aabb").unwrap(),
-        }
+        Self::new("#2b172a", "#db9d51", "#a23f6d", "#30aabb").unwrap()
     }
 
     pub fn linksider() -> Self {
-        Self {
-            dark: Color::try_from("#46425E").unwrap(),
-            light: Color::try_from("#FFEECC").unwrap(),
-            danger: Color::try_from("#FF6973").unwrap(),
-            highlight: Color::try_from("#00B9BE").unwrap(),
-        }
+        Self::new("#46425E", "#FFEECC", "#FF6973", "#00B9BE").unwrap()
     }
 
     pub fn frostlight() -> Self {
-        Self {
-            dark: Color::try_from("#18284A").unwrap(),
-            light: Color::try_from("#EBF9FF").unwrap(),
-            danger: Color::try_from("#D75672").unwrap(),
-            highlight: Color::try_from("#369ADD").unwrap(),
-        }
+        Self::new("#18284A", "#EBF9FF", "#D75672", "#369ADD").unwrap()
     }
 
     /// Make `dark` color transparent black.
