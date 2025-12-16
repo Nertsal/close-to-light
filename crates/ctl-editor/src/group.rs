@@ -175,10 +175,6 @@ impl Editor {
     }
 
     pub fn change_level(&mut self, level_index: usize) {
-        if let Some(_level_editor) = self.level_edit.take() {
-            // TODO: check unsaved changes
-        }
-
         if let (Some(level), Some(meta)) = (
             self.group.cached.local.data.levels.get(level_index),
             self.group.cached.local.meta.levels.get(level_index),
@@ -196,14 +192,21 @@ impl Editor {
                 start_time: Time::ZERO,
                 transition_button: None,
             };
-            let model = Model::empty(self.context.clone(), level.clone());
-            self.level_edit = Some(LevelEditor::new(
-                self.context.clone(),
-                model,
-                level,
-                self.visualize_beat,
-                self.show_only_selected,
-            ));
+
+            let editor = self.level_edit.take().map_or_else(
+                || {
+                    LevelEditor::new(
+                        self.context.clone(),
+                        level.clone(),
+                        self.visualize_beat,
+                        self.show_only_selected,
+                    )
+                },
+                |editor| {
+                    editor.change_level(level.clone(), self.visualize_beat, self.show_only_selected)
+                },
+            );
+            self.level_edit = Some(editor);
         }
     }
 

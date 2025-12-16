@@ -73,8 +73,7 @@ impl EditorState {
     pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
-        let model = Model::empty(context.clone(), level.clone());
-        editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true, false));
+        editor.editor.level_edit = Some(LevelEditor::new(context, level, true, false));
         editor
     }
 

@@ -134,13 +134,11 @@ impl Selection {
 impl LevelEditor {
     pub fn new(
         context: Context,
-        model: Model,
         level: PlayLevel,
         visualize_beat: bool,
         show_only_selected: bool,
     ) -> Self {
         let mut editor = Self {
-            context,
             level: (*level.level.data).clone(),
             name: level.level.meta.name.to_string(),
 
@@ -161,10 +159,35 @@ impl LevelEditor {
             was_scrolling_time: false,
             scrolling_time: false,
 
+            model: Model::empty(context.clone(), level.clone()),
             static_level: level,
-            model,
+
+            context,
         };
         editor.render_lights(None, None, visualize_beat, show_only_selected);
+        editor
+    }
+
+    pub fn change_level(
+        self,
+        level: PlayLevel,
+        visualize_beat: bool,
+        show_only_selected: bool,
+    ) -> Self {
+        let mut editor = Self::new(
+            self.context.clone(),
+            level,
+            visualize_beat,
+            show_only_selected,
+        );
+
+        // Transfer some editor data across difficulties
+        editor.clipboard = self.clipboard;
+        editor.timeline_zoom = self.timeline_zoom;
+        editor.current_time = self.current_time;
+        editor.place_rotation = self.place_rotation;
+        editor.place_scale = self.place_scale;
+
         editor
     }
 
