@@ -90,7 +90,7 @@ impl Default for GraphicsLightsOptions {
     fn default() -> Self {
         Self {
             telegraph_color: ThemeColor::Light,
-            perfect_color: ThemeColor::Light,
+            perfect_color: ThemeColor::Highlight,
         }
     }
 }
