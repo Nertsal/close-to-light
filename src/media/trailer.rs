@@ -459,6 +459,7 @@ impl geng::State for TrailerState {
                 time: self.time,
                 crt: true,
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
+                saturation: 1.0,
             },
             framebuffer,
         );

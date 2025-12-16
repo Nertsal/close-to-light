@@ -263,6 +263,7 @@ pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub crt: ToggleWidget,
+    pub saturation: SliderWidget,
     pub telegraph_color: ToggleWidget,
     pub perfect_color: ToggleWidget,
 }
@@ -273,6 +274,7 @@ impl GraphicsWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             crt: ToggleWidget::new("CRT Shader"),
+            saturation: SliderWidget::new("Saturation").with_display_precision(0),
             telegraph_color: ToggleWidget::new("Telegraph highlight"),
             perfect_color: ToggleWidget::new("Perfect highlight"),
         }
@@ -317,6 +319,12 @@ impl StatefulWidget for GraphicsWidget {
         if self.crt.state.mouse_left.clicked {
             state.crt.enabled = !state.crt.enabled;
         }
+
+        // TODO: fix dragging view while changing value (also for music offset)
+        let mut saturation = state.colors.saturation * 100.0;
+        self.saturation
+            .update_value(next_row(), context, &mut saturation, 0.0..=100.0);
+        state.colors.saturation = saturation / 100.0;
 
         self.telegraph_color.update(next_row(), context);
         if self.telegraph_color.state.mouse_left.clicked {

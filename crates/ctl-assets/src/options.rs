@@ -37,6 +37,7 @@ pub struct Options {
 pub struct GraphicsOptions {
     pub crt: GraphicsCrtOptions,
     pub lights: GraphicsLightsOptions,
+    pub colors: GraphicsColorsOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -59,6 +60,18 @@ impl Default for GraphicsCrtOptions {
             vignette: 0.2,
             scanlines: 0.5,
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GraphicsColorsOptions {
+    pub saturation: f32,
+}
+
+impl Default for GraphicsColorsOptions {
+    fn default() -> Self {
+        Self { saturation: 1.0 }
     }
 }
 

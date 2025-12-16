@@ -12,6 +12,7 @@ pub struct PostVfx {
     pub time: FloatTime,
     pub crt: bool,
     pub rgb_split: f32,
+    pub saturation: f32,
 }
 
 fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
@@ -104,6 +105,22 @@ impl PostRender {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
                     u_offset: 0.01 * vfx.rgb_split,
+                },
+                ugli::DrawParameters::default(),
+            );
+        }
+
+        // Color correction
+        {
+            let (texture, mut buffer) = swap!();
+            ugli::draw(
+                &mut buffer,
+                &self.context.assets.shaders.color_correction,
+                ugli::DrawMode::TriangleFan,
+                &self.unit_quad,
+                ugli::uniforms! {
+                    u_texture: texture,
+                    u_saturation: vfx.saturation,
                 },
                 ugli::DrawParameters::default(),
             );
