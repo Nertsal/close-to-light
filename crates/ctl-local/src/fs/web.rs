@@ -91,6 +91,7 @@ pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGrou
 
             Ok(LocalGroup {
                 path,
+                loaded_from_assets: true,
                 meta,
                 music,
                 data: group,
