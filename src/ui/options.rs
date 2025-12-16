@@ -29,7 +29,7 @@ impl OptionsButtonWidget {
                 vec![
                     // TODO: custom palettes
                     PaletteWidget::new("Classic", Theme::classic()),
-                    PaletteWidget::new("Stargazer", Theme::peach_mint()),
+                    PaletteWidget::new("Stargazer", Theme::stargazer()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
                     PaletteWidget::new("Linksider", Theme::linksider()),
                     PaletteWidget::new("Ice", Theme::ice()),

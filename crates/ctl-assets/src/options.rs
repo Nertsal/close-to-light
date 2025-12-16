@@ -160,21 +160,21 @@ impl Theme {
         }
     }
 
-    pub fn peach_mint() -> Self {
+    pub fn stargazer() -> Self {
         Self {
-            dark: Color::try_from("#2B3A67").unwrap(),
-            light: Color::try_from("#FFC482").unwrap(),
-            danger: Color::try_from("#D34F73").unwrap(),
-            highlight: Color::try_from("#61C9A8").unwrap(),
+            dark: Color::try_from("#162246").unwrap(),
+            light: Color::try_from("#f9bc76").unwrap(),
+            danger: Color::try_from("#ad3454").unwrap(),
+            highlight: Color::try_from("#1e8294").unwrap(),
         }
     }
 
     pub fn corruption() -> Self {
         Self {
-            dark: Color::try_from("#382637").unwrap(),
-            light: Color::try_from("#DEA257").unwrap(),
-            danger: Color::try_from("#A23F6D").unwrap(),
-            highlight: Color::try_from("#43BCCD").unwrap(),
+            dark: Color::try_from("#2b172a").unwrap(),
+            light: Color::try_from("#db9d51").unwrap(),
+            danger: Color::try_from("#a23f6d").unwrap(),
+            highlight: Color::try_from("#30aabb").unwrap(),
         }
     }
 
@@ -191,8 +191,8 @@ impl Theme {
         Self {
             dark: Color::try_from("#18284A").unwrap(),
             light: Color::try_from("#EBF9FF").unwrap(),
-            danger: Color::try_from("#D55672").unwrap(),
-            highlight: Color::try_from("#52A5DE").unwrap(),
+            danger: Color::try_from("#D75672").unwrap(),
+            highlight: Color::try_from("#369ADD").unwrap(),
         }
     }
 
