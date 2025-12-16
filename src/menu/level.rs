@@ -593,7 +593,7 @@ impl geng::State for LevelMenu {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
-                saturation: options.graphics.colors.saturation,
+                colors: options.graphics.colors,
             },
             framebuffer,
         );

@@ -63,15 +63,19 @@ impl Default for GraphicsCrtOptions {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsColorsOptions {
+    pub blue: f32,
     pub saturation: f32,
 }
 
 impl Default for GraphicsColorsOptions {
     fn default() -> Self {
-        Self { saturation: 1.0 }
+        Self {
+            blue: 1.0,
+            saturation: 1.0,
+        }
     }
 }
 

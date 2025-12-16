@@ -114,7 +114,7 @@ impl geng::State for Game {
                 time: self.model.real_time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
-                saturation: options.graphics.colors.saturation,
+                colors: options.graphics.colors,
             },
             framebuffer,
         );

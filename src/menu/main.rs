@@ -251,7 +251,7 @@ impl geng::State for MainMenu {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
-                saturation: options.graphics.colors.saturation,
+                colors: options.graphics.colors,
             },
             screen_buffer,
         );

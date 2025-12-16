@@ -95,7 +95,7 @@ impl geng::State for MediaState {
                 time: self.time,
                 crt: true,
                 rgb_split: 0.0,
-                saturation: 1.0,
+                colors: ctl_assets::GraphicsColorsOptions::default(),
             },
             framebuffer,
         );

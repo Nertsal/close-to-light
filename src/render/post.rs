@@ -1,5 +1,7 @@
 use super::*;
 
+use ctl_assets::GraphicsColorsOptions;
+
 /// Renderer responsible for common post-processing effects, such as crt.
 pub struct PostRender {
     context: Context,
@@ -12,7 +14,7 @@ pub struct PostVfx {
     pub time: FloatTime,
     pub crt: bool,
     pub rgb_split: f32,
-    pub saturation: f32,
+    pub colors: GraphicsColorsOptions,
 }
 
 fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
@@ -120,7 +122,8 @@ impl PostRender {
                 &self.unit_quad,
                 ugli::uniforms! {
                     u_texture: texture,
-                    u_saturation: vfx.saturation,
+                    u_saturation: vfx.colors.saturation,
+                    u_blue: vfx.colors.blue,
                 },
                 ugli::DrawParameters::default(),
             );

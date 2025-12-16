@@ -269,7 +269,7 @@ impl geng::State for EditorState {
             time: self.editor.real_time,
             crt: false,
             rgb_split: vfx.rgb_split.value.current.as_f32(),
-            saturation: options.graphics.colors.saturation,
+            colors: options.graphics.colors,
         };
 
         self.ui_context.state.frame_start();

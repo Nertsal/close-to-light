@@ -13,9 +13,13 @@ void main() {
 #ifdef FRAGMENT_SHADER
 uniform sampler2D u_texture;
 uniform float u_saturation;
+uniform float u_blue;
 
 void main() {
     vec4 color = texture2D(u_texture, v_vt);
+
+    // Blue reduction
+    color.b *= u_blue;
 
     // Saturation reduction
     // Greyscale by relative luminance <https://www.davetech.co.uk/shaderdesaturate>
