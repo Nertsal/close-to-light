@@ -187,7 +187,7 @@ impl Theme {
         }
     }
 
-    pub fn ice() -> Self {
+    pub fn frostlight() -> Self {
         Self {
             dark: Color::try_from("#18284A").unwrap(),
             light: Color::try_from("#EBF9FF").unwrap(),
