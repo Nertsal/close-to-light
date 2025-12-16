@@ -321,6 +321,7 @@ impl LevelCache {
             level_hashes: vec![],
             local: LocalGroup {
                 path,
+                loaded_from_assets: false,
                 meta: LevelSetInfo {
                     id: 0,
                     owner: UserInfo {
@@ -423,6 +424,7 @@ impl LevelCache {
                     let group = CachedGroup {
                         local: LocalGroup {
                             path: fs::generate_group_path(info.id),
+                            loaded_from_assets: false,
                             meta: info.clone(),
                             music: Some(music),
                             data,

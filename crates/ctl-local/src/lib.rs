@@ -34,6 +34,8 @@ impl Debug for LocalMusic {
 pub struct LocalGroup {
     /// Path to the directory containing data files.
     pub path: PathBuf,
+    /// Whether the group was loaded from the assets folder, as opposed to the custom levels folder.
+    pub loaded_from_assets: bool,
     pub meta: LevelSetInfo,
     pub music: Option<Rc<LocalMusic>>,
     pub data: LevelSet,

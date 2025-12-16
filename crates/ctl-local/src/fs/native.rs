@@ -47,6 +47,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
 
             let local = LocalGroup {
                 path,
+                loaded_from_assets: false,
                 meta,
                 music,
                 data: group,

@@ -364,6 +364,7 @@ impl Command {
                             cached: Rc::new(ctl_local::CachedGroup {
                                 local: ctl_local::LocalGroup {
                                     path: "".into(),
+                                    loaded_from_assets: false,
                                     meta: info,
                                     music: Some(music.clone()),
                                     data: level_set,

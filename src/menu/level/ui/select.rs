@@ -293,7 +293,15 @@ impl LevelSelectUI {
             let edited =
                 origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
             let local_score = loaded.all_highscores.get(&cached.meta.hash);
-            widget.sync(group_idx, level_id, cached, local_score, edited, context);
+            widget.sync(
+                group_idx,
+                level_id,
+                &group,
+                cached,
+                local_score,
+                edited,
+                context,
+            );
         }
 
         drop(loaded);
@@ -350,8 +358,8 @@ impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
         let mut menu = ItemMenuWidget::new(assets);
 
-        if cfg!(feature = "itch") {
-            menu.sync.hide(); // NOTE: Disabled in itch demo
+        if cfg!(feature = "demo") {
+            menu.sync.hide(); // NOTE: Disabled in demo
         }
 
         Self {
@@ -372,6 +380,13 @@ impl ItemLevelWidget {
         cached: &CachedGroup,
         local_highscores: &[Option<&SavedScore>],
     ) {
+        if cached.local.loaded_from_assets {
+            // Cannot delete built-in levels
+            self.menu.delete.hide();
+        } else {
+            self.menu.delete.show();
+        }
+
         self.index = group_id;
         self.text.text = cached
             .local
@@ -418,7 +433,8 @@ impl ItemLevelWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked {
+        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+            // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -514,15 +530,25 @@ impl ItemDiffWidget {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn sync(
         &mut self,
         group_idx: Index,
         level_index: usize,
+        group: &CachedGroup,
         cached: &LevelFull,
         local_highscore: Option<&SavedScore>,
         edited: bool,
         context: &UiContext,
     ) {
+        if (cfg!(feature = "steam") || cfg!(feature = "itch")) && group.local.loaded_from_assets {
+            // Cannot delete diffs of built-in levels
+            // Unless in a local build
+            self.menu.delete.hide();
+        } else {
+            self.menu.delete.show();
+        }
+
         self.index = level_index;
         self.group = group_idx;
         self.level = cached.clone();
@@ -563,7 +589,8 @@ impl ItemDiffWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked {
+        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+            // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
