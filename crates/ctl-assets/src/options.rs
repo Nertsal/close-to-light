@@ -187,6 +187,15 @@ impl Theme {
         }
     }
 
+    pub fn ice() -> Self {
+        Self {
+            dark: Color::try_from("#18284A").unwrap(),
+            light: Color::try_from("#EBF9FF").unwrap(),
+            danger: Color::try_from("#D55672").unwrap(),
+            highlight: Color::try_from("#52A5DE").unwrap(),
+        }
+    }
+
     /// Make `dark` color transparent black.
     pub fn transparent(self) -> Self {
         Self {
