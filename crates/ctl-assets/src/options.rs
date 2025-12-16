@@ -224,6 +224,6 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::classic()
+        Self::stargazer()
     }
 }
