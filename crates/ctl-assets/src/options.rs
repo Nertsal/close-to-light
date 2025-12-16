@@ -43,8 +43,11 @@ pub struct GraphicsOptions {
 #[serde(default)]
 pub struct GraphicsCrtOptions {
     pub enabled: bool,
+    #[serde(skip)]
     pub curvature: f32,
+    #[serde(skip)]
     pub vignette: f32,
+    #[serde(skip)]
     pub scanlines: f32,
 }
 

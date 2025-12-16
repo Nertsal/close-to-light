@@ -263,7 +263,6 @@ pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub crt: ToggleWidget,
-    pub crt_scanlines: SliderWidget,
     pub telegraph_color: ToggleWidget,
     pub perfect_color: ToggleWidget,
 }
@@ -274,7 +273,6 @@ impl GraphicsWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             crt: ToggleWidget::new("CRT Shader"),
-            crt_scanlines: SliderWidget::new("Scanlines").with_display_precision(0),
             telegraph_color: ToggleWidget::new("Telegraph highlight"),
             perfect_color: ToggleWidget::new("Perfect highlight"),
         }
@@ -318,15 +316,6 @@ impl StatefulWidget for GraphicsWidget {
         self.crt.update(next_row(), context);
         if self.crt.state.mouse_left.clicked {
             state.crt.enabled = !state.crt.enabled;
-        }
-
-        if state.crt.enabled {
-            self.crt_scanlines.state.show();
-            let mut value = Bounded::new(state.crt.scanlines * 100.0, 0.0..=100.0);
-            self.crt_scanlines.update(next_row(), context, &mut value);
-            state.crt.scanlines = value.value() / 100.0;
-        } else {
-            self.crt_scanlines.state.hide();
         }
 
         self.telegraph_color.update(next_row(), context);

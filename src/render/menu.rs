@@ -453,8 +453,6 @@ impl MenuRender {
                     self.ui
                         .draw_toggle_widget(&graphics.crt, theme, framebuffer);
                     self.ui
-                        .draw_slider(&graphics.crt_scanlines, theme, framebuffer);
-                    self.ui
                         .draw_toggle_widget(&graphics.telegraph_color, theme, framebuffer);
                     self.ui
                         .draw_toggle_widget(&graphics.perfect_color, theme, framebuffer);
