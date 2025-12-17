@@ -3,13 +3,15 @@ use ctl_ui::widget::WidgetState;
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::{
-    menu::{MenuState, MenuUI},
+    menu::{GameplayPreview, MenuState, MenuUI},
+    render::{dither::DitherRender, util::UtilRender},
     ui::layout::AreaOps,
 };
 
 pub struct MenuRender {
     context: Context,
-    // util: UtilRender,
+    dither: DitherRender,
+    util: UtilRender,
     masked: MaskedRender,
     masked2: MaskedRender, // TODO: have just one somehow maybe
     ui: UiRender,
@@ -19,7 +21,8 @@ pub struct MenuRender {
 impl MenuRender {
     pub fn new(context: Context) -> Self {
         Self {
-            // util: UtilRender::new(geng, assets),
+            dither: DitherRender::new(&context.geng, &context.assets),
+            util: UtilRender::new(context.clone()),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             ui: UiRender::new(context.clone()),
@@ -482,6 +485,89 @@ impl MenuRender {
                     theme.light,
                     framebuffer,
                 );
+            },
+        );
+
+        // Preview effect
+        let preview = if ui.options.graphics.telegraph_color.state.hovered {
+            Some(ui.options.graphics.telegraph_color.state.position)
+        } else if ui.options.graphics.perfect_color.state.hovered {
+            Some(ui.options.graphics.perfect_color.state.position)
+        } else {
+            None
+        };
+        if let Some(hovered) = preview {
+            let options = state.context.get_options();
+            self.draw_preview(&state.preview, options, hovered, framebuffer);
+        }
+    }
+
+    fn draw_preview(
+        &mut self,
+        preview: &GameplayPreview,
+        options: Options,
+        setting: Aabb2<f32>,
+        old_framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let mut framebuffer = self.dither.start();
+
+        let level_state = &preview.state;
+        let camera = &preview.camera;
+        let theme = options.theme;
+        let beat_time = preview
+            .level
+            .timing
+            .get_timing(preview.render_time)
+            .beat_time;
+
+        // Telegraphs
+        for tele in &level_state.telegraphs {
+            let color = if tele.light.danger {
+                THEME.danger
+            } else {
+                THEME.get_color(options.graphics.lights.telegraph_color)
+            };
+            self.util
+                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+        }
+
+        // Lights
+        for light in &level_state.lights {
+            let color = if light.danger {
+                THEME.danger
+            } else {
+                THEME.light
+            };
+            self.util.draw_light(
+                light,
+                color,
+                THEME.dark,
+                beat_time,
+                camera,
+                &mut framebuffer,
+            );
+        }
+
+        self.util
+            .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
+
+        self.dither.finish(preview.real_time, &theme);
+
+        let popup_size = vec2(10.0, 6.0) * self.font_size;
+        let popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * self.font_size)
+            .extend_positive(popup_size);
+        let width = 12.0;
+        self.ui.draw_window(
+            &mut self.masked,
+            popup,
+            None,
+            width,
+            options.theme,
+            old_framebuffer,
+            |framebuffer| {
+                geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+                    .fit(popup, vec2(0.5, 0.5))
+                    .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
             },
         );
     }

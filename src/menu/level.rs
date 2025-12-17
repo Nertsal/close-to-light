@@ -37,7 +37,6 @@ pub struct LevelMenu {
 
     framebuffer_size: vec2<usize>,
     last_delta_time: FloatTime,
-    time: FloatTime,
 
     ui: MenuUI,
     ui_focused: bool,
@@ -57,6 +56,9 @@ pub struct MenuState {
     /// Interpolated radius of the player collider used to preview cursor outline.
     pub player_size: SecondOrderState<R32>,
     pub config: LevelConfig,
+    pub real_time: FloatTime,
+    /// Preview of gameplay used to give context to some settings.
+    pub preview: GameplayPreview,
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
@@ -205,7 +207,6 @@ impl LevelMenu {
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: FloatTime::ONE,
-            time: FloatTime::ZERO,
 
             ui: MenuUI::new(context.clone()),
             ui_focused: false,
@@ -222,6 +223,8 @@ impl LevelMenu {
                 player,
                 player_size: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.1)),
                 config: LevelConfig::default(),
+                real_time: FloatTime::ZERO,
+                preview: GameplayPreview::new(),
 
                 confirm_popup: None,
 
@@ -516,7 +519,7 @@ impl geng::State for LevelMenu {
             }
         }
 
-        self.dither.finish(self.time, &theme);
+        self.dither.finish(self.state.real_time, &theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), buffer)
@@ -587,14 +590,15 @@ impl geng::State for LevelMenu {
                 &mut dither_buffer,
             );
         }
-        self.dither.finish(self.time, &theme.transparent());
+        self.dither
+            .finish(self.state.real_time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         self.post.post_process(
             crate::render::post::PostVfx {
-                time: self.time,
+                time: self.state.real_time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
                 colors: options.graphics.colors,
@@ -652,7 +656,7 @@ impl geng::State for LevelMenu {
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
         self.context.update(delta_time);
-        self.time += delta_time;
+        self.state.real_time += delta_time;
 
         self.context
             .geng
@@ -707,6 +711,8 @@ impl geng::State for LevelMenu {
                 self.transition_button = None;
             }
         }
+
+        self.state.preview.update(delta_time);
 
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
