@@ -371,10 +371,11 @@ impl MenuRender {
     ) {
         let ui = &ui.options;
         let camera = &geng::PixelPerfectCamera;
-        let theme = state.context.get_options().theme;
+        let options = state.context.get_options();
+        let theme = options.theme;
 
         let width = 12.0;
-        let options = ui
+        let options_pos = ui
             .options
             .state
             .position
@@ -382,7 +383,7 @@ impl MenuRender {
 
         self.ui.draw_window(
             &mut self.masked,
-            options,
+            options_pos,
             None,
             width,
             theme,
@@ -406,7 +407,7 @@ impl MenuRender {
                     self.ui.draw_text(&palette.title, framebuffer);
                     for palette in &palette.palettes {
                         let mut theme = theme;
-                        if palette.state.hovered {
+                        if palette.state.hovered || palette.palette == options.theme {
                             std::mem::swap(&mut theme.dark, &mut theme.light);
                             self.ui
                                 .fill_quad(palette.state.position, theme.dark, framebuffer);
