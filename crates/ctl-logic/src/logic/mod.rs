@@ -64,6 +64,20 @@ impl Model {
         self.real_time += delta_time;
         self.switch_time += delta_time;
 
+        if let State::Lost { .. } | State::Finished = self.state {
+            if self.buttons_active {
+                self.button_time += delta_time;
+            } else if !self.exit_button.base_collider.check(&self.player.collider)
+                && !self
+                    .restart_button
+                    .base_collider
+                    .check(&self.player.collider)
+            {
+                // Activate buttons once player is away from them
+                self.buttons_active = true;
+            }
+        }
+
         if let State::Lost { .. } = self.state {
             let t = 1.0 - self.switch_time.as_f32() / 2.0;
             let speed = (t - 0.1).max(0.5);
@@ -194,7 +208,7 @@ impl Model {
                     }
                 }
             }
-            _ if self.switch_time > FloatTime::ONE => {
+            _ if self.button_time > FloatTime::ONE => {
                 // 1 second before the UI is active
                 let hovering = self
                     .restart_button
