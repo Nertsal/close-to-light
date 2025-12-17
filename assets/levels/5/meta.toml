@@ -1,7 +1,7 @@
 version = "V3"
 id = 0
 featured = false
-hash = "6455364027ff3dbcd9d138f19e2bbf6ae1fbe44a4fcb535d41ee3f446062ee33"
+hash = "e90b5735a2fa0a585ad246ff71031d4831b858a364feed995d4913b27b709e59"
 
 [music]
 id = 0
@@ -28,7 +28,7 @@ hash = "a87797f854804ed9f0973c61fc06da882f52ab4f675e8decaa2ca675c9633fc9"
 [[levels]]
 id = 0
 name = "Hard"
-hash = "0fc7941a3aad1180ef36c2dcfc07590cf2a99ebeebd914a5297d476c10b14500"
+hash = "74b0f2d01a658f9db94c753cc0c643ef7d08840797ad68d035a13133f93495b9"
 
 [[levels.authors]]
 id = 1
