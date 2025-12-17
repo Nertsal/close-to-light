@@ -11,6 +11,7 @@ use crate::{
 
 use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
 use ctl_logic::PlayGroup;
+use ctl_util::SecondOrderState;
 
 const LEVEL_SWITCH_TIME: f32 = 0.5;
 const DIFF_SWITCH_TIME: f32 = 0.5;
@@ -53,6 +54,8 @@ pub struct MenuState {
     pub context: Context,
     pub leaderboard: Leaderboard,
     pub player: Player,
+    /// Interpolated radius of the player collider used to preview cursor outline.
+    pub player_size: SecondOrderState<R32>,
     pub config: LevelConfig,
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
@@ -217,6 +220,7 @@ impl LevelMenu {
                 context: context.clone(),
                 leaderboard,
                 player,
+                player_size: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.1)),
                 config: LevelConfig::default(),
 
                 confirm_popup: None,
@@ -712,6 +716,11 @@ impl geng::State for LevelMenu {
         let pos = self.ui_context.cursor.position - game_pos.bottom_left();
         let cursor_world = self.camera.screen_to_world(game_pos.size(), pos);
 
+        // Update player cursor size
+        self.state.player_size.update(delta_time.as_f32());
+        self.state.player.collider.shape = Shape::circle(self.state.player_size.current);
+
+        // Update player cursor
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
         if !self.ui_focused && self.state.selected_diff.is_some() {

@@ -201,6 +201,13 @@ impl StatefulWidget for OptionsWidget {
         self.cursor.update(cursor, context, &mut options.cursor);
         main.cut_top(self.graphics.state.position.height());
         main.cut_top(spacing);
+        let cursor_size =
+            if self.cursor.inner_radius.state.hovered || self.cursor.outer_radius.state.hovered {
+                r32(0.5)
+            } else {
+                r32(0.1)
+            };
+        state.player_size.target = cursor_size;
 
         state.context.set_options(options);
 

@@ -10,7 +10,7 @@ pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::UiContext;
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_util::SecondOrderState;
 
 pub struct EditorState {
     context: Context,
@@ -56,7 +56,7 @@ impl EditorState {
                 exit: false,
 
                 grid: Grid::new_with(config.grid.clone()),
-                view_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 1.0, 1.0)),
+                view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
                 visualize_beat: true,
                 show_only_selected: false,
                 snap_to_grid: true,

@@ -10,7 +10,13 @@ pub struct SecondOrderState<T> {
 }
 
 impl<T: Interpolatable + Copy> SecondOrderState<T> {
-    pub fn new(dynamics: SecondOrderDynamics<T>) -> Self {
+    pub fn new(frequency: f32, damping: f32, response: f32, value: T) -> Self {
+        Self::new_with(SecondOrderDynamics::new(
+            frequency, damping, response, value,
+        ))
+    }
+
+    pub fn new_with(dynamics: SecondOrderDynamics<T>) -> Self {
         Self {
             target: dynamics.xp,
             current: dynamics.xp,

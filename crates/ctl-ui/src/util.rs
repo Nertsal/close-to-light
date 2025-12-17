@@ -1,4 +1,4 @@
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_util::SecondOrderState;
 
 use super::*;
 
@@ -21,7 +21,7 @@ impl Default for ScrollState {
 impl ScrollState {
     pub fn new() -> Self {
         Self {
-            state: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
+            state: SecondOrderState::new(5.0, 2.0, 0.0, 0.0),
             drag_from: None,
             release_velocity: None,
             release_slowdown: 0.85,

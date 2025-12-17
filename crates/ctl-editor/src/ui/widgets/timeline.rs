@@ -5,7 +5,7 @@ use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightI
 use std::collections::BTreeMap;
 
 use ctl_render_core::SubTexture;
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_util::SecondOrderState;
 
 /// Pixels per unit
 const PPU: usize = 2;
@@ -59,7 +59,7 @@ impl TimelineWidget {
     pub fn new() -> Self {
         Self {
             cursor_pos: vec2::ZERO,
-            expansion: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 1.0, 0.0)),
+            expansion: SecondOrderState::new(3.0, 1.0, 1.0, 0.0),
             state: default(),
             ceiling: default(),
             extra_line: default(),

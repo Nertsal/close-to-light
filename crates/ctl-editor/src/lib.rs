@@ -21,7 +21,7 @@ pub use self::{
 
 use ctl_logic::*;
 use ctl_ui::widget::ConfirmPopup;
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_util::SecondOrderState;
 
 use itertools::Itertools;
 
@@ -61,12 +61,7 @@ impl TimeInterpolation {
     pub fn new() -> Self {
         let time = Time::ZERO;
         Self {
-            state: SecondOrderState::new(SecondOrderDynamics::new(
-                3.0,
-                1.0,
-                0.0,
-                time_to_seconds(time),
-            )),
+            state: SecondOrderState::new(3.0, 1.0, 0.0, time_to_seconds(time)),
             value: time,
             target: time,
         }
