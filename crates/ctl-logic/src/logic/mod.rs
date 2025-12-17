@@ -78,12 +78,13 @@ impl Model {
             }
         }
 
+        let switch_t = 1.0 - self.switch_time.as_f32() / 2.0;
         if let State::Lost { .. } = self.state {
-            let t = 1.0 - self.switch_time.as_f32() / 2.0;
-            let speed = (t - 0.1).max(0.5);
+            let speed = (switch_t - 0.1).max(0.5);
             self.context.music.set_speed(speed);
-
-            let volume = t * options.volume.music();
+        }
+        if let State::Lost { .. } | State::Finished = self.state {
+            let volume = switch_t * options.volume.music();
             if volume < 0.0 {
                 self.context.music.stop();
             } else {
@@ -269,7 +270,6 @@ impl Model {
 
     pub fn finish(&mut self) {
         self.state = State::Finished;
-        self.context.music.stop();
         self.switch_time = FloatTime::ZERO;
         self.get_leaderboard(true);
     }

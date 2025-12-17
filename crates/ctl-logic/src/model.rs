@@ -179,6 +179,7 @@ impl Model {
     }
 
     pub fn empty(context: Context, level: PlayLevel) -> Self {
+        context.music.stop();
         let options = context.get_options();
         Self {
             transition: None,
