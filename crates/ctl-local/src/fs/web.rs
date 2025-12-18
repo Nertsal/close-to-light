@@ -36,7 +36,7 @@ struct GroupItem {
 
 #[derive(Serialize, Deserialize)]
 struct ScoresItem {
-    level_hash: String,
+    level_id: String,
     scores: Vec<SavedScore>,
 }
 
@@ -169,7 +169,8 @@ pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<LocalLevelId
         let process = || -> Result<()> {
             let item: ScoresItem = serde_wasm_bindgen::from_value(scores)?;
             if let Some(score) = item.scores.into_iter().max_by_key(|score| score.score) {
-                result.insert(item.level_hash, score);
+                let id = LocalLevelId::convert_from_str(&item.level_id);
+                result.insert(id, score);
             }
             Ok(())
         };
@@ -181,18 +182,19 @@ pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<LocalLevelId
     Ok(result)
 }
 
-pub async fn load_local_scores(rexie: &Rexie, level_hash: &str) -> Result<Vec<SavedScore>> {
+pub async fn load_local_scores(rexie: &Rexie, level_id: &LocalLevelId) -> Result<Vec<SavedScore>> {
     log::debug!(
         "Loading local scores for level {:?} from browser storage",
-        level_hash
+        level_id
     );
+    let level_id = level_id.to_string();
 
     let serializer = Serializer::json_compatible();
-    let level_hash = level_hash.serialize(&serializer)?;
+    let level_id = level_id.serialize(&serializer)?;
 
     let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
     let store = transaction.store("scores")?;
-    let Some(scores) = store.get(level_hash).await? else {
+    let Some(scores) = store.get(level_id).await? else {
         return Ok(vec![]);
     };
     // transaction.done().await?;
@@ -203,25 +205,26 @@ pub async fn load_local_scores(rexie: &Rexie, level_hash: &str) -> Result<Vec<Sa
 
 pub async fn save_local_scores(
     rexie: &Rexie,
-    level_hash: &str,
+    level_id: &LocalLevelId,
     scores: &[SavedScore],
 ) -> Result<()> {
     log::debug!(
         "Saving local scores for level {:?} into browser storage",
-        level_hash
+        level_id
     );
+    let level_id = level_id.to_string();
 
     let serializer = Serializer::json_compatible();
     let scores = ScoresItem {
-        level_hash: level_hash.to_string(),
+        level_id: level_id.clone(),
         scores: scores.to_vec(),
     };
     let scores = scores.serialize(&serializer)?;
-    let level_hash = level_hash.serialize(&serializer)?;
+    let level_id = level_id.serialize(&serializer)?;
 
     let transaction = rexie.transaction(&["scores"], TransactionMode::ReadWrite)?;
     let store = transaction.store("scores")?;
-    store.put(&scores, Some(&level_hash)).await?;
+    store.put(&scores, Some(&level_id)).await?;
     // transaction.commit().await?;
 
     Ok(())

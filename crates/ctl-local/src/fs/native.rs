@@ -117,11 +117,7 @@ pub fn load_local_highscores() -> Result<HashMap<LocalLevelId, SavedScore>> {
                 let reader = std::io::BufReader::new(std::fs::File::open(entry.path())?);
                 let scores: Vec<SavedScore> = cbor4ii::serde::from_reader(reader)?;
                 if let Some(score) = scores.into_iter().max_by_key(|score| score.score) {
-                    let id: Option<u32> = filename.parse().ok();
-                    let id = match id {
-                        Some(id) => LocalLevelId::Id(id),
-                        None => LocalLevelId::Hash(filename),
-                    };
+                    let id = LocalLevelId::convert_from_str(&filename);
                     res.insert(id, score);
                 }
             }

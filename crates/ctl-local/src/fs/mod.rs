@@ -23,6 +23,22 @@ impl LocalLevelId {
     pub fn from_info(info: &LevelInfo) -> Self {
         Self::new(info.id, &info.hash)
     }
+
+    pub fn convert_from_str(s: &str) -> Self {
+        match s.parse::<u32>() {
+            Ok(id) => Self::Id(id),
+            Err(_) => Self::Hash(s.into()),
+        }
+    }
+}
+
+impl Display for LocalLevelId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LocalLevelId::Hash(hash) => write!(f, "{}", hash),
+            LocalLevelId::Id(id) => write!(f, "{}", id),
+        }
+    }
 }
 
 pub struct Controller {
