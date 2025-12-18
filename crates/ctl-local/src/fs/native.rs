@@ -103,21 +103,26 @@ pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn load_local_highscores() -> Result<HashMap<String, SavedScore>> {
+pub fn load_local_highscores() -> Result<HashMap<LocalLevelId, SavedScore>> {
     let dir_path = base_path().join("scores");
     let mut res = HashMap::new();
     for entry in std::fs::read_dir(dir_path)? {
         let process = || -> Result<()> {
             let entry = entry?;
             if entry.metadata()?.is_file() {
-                let hash = entry
+                let filename = entry
                     .file_name()
                     .into_string()
                     .map_err(|_| anyhow!("encountered non-unicode file name"))?;
                 let reader = std::io::BufReader::new(std::fs::File::open(entry.path())?);
                 let scores: Vec<SavedScore> = cbor4ii::serde::from_reader(reader)?;
                 if let Some(score) = scores.into_iter().max_by_key(|score| score.score) {
-                    res.insert(hash, score);
+                    let id: Option<u32> = filename.parse().ok();
+                    let id = match id {
+                        Some(id) => LocalLevelId::Id(id),
+                        None => LocalLevelId::Hash(filename),
+                    };
+                    res.insert(id, score);
                 }
             }
             Ok(())
@@ -129,15 +134,15 @@ pub fn load_local_highscores() -> Result<HashMap<String, SavedScore>> {
     Ok(res)
 }
 
-pub fn load_local_scores(level_hash: &str) -> Result<Vec<SavedScore>> {
-    let path = local_scores_path(level_hash);
+pub fn load_local_scores(level_id: &LocalLevelId) -> Result<Vec<SavedScore>> {
+    let path = local_scores_path(level_id);
     let reader = std::io::BufReader::new(std::fs::File::open(path)?);
     let scores = cbor4ii::serde::from_reader(reader)?;
     Ok(scores)
 }
 
-pub fn save_local_scores(level_hash: &str, scores: &[SavedScore]) -> Result<()> {
-    let path = local_scores_path(level_hash);
+pub fn save_local_scores(level_id: &LocalLevelId, scores: &[SavedScore]) -> Result<()> {
+    let path = local_scores_path(level_id);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -146,6 +151,10 @@ pub fn save_local_scores(level_hash: &str, scores: &[SavedScore]) -> Result<()> 
     Ok(())
 }
 
-fn local_scores_path(level_hash: &str) -> PathBuf {
-    base_path().join("scores").join(level_hash)
+fn local_scores_path(level_id: &LocalLevelId) -> PathBuf {
+    let scores = base_path().join("scores");
+    match &level_id {
+        LocalLevelId::Hash(hash) => scores.join(hash),
+        LocalLevelId::Id(id) => scores.join(format!("{}", id)),
+    }
 }

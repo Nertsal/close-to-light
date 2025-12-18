@@ -156,7 +156,7 @@ pub async fn remove_group(rexie: &Rexie, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<String, SavedScore>> {
+pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<LocalLevelId, SavedScore>> {
     log::debug!("Loading all local highscores from browser storage");
 
     let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;

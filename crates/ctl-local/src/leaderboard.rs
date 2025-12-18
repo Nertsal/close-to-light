@@ -8,6 +8,8 @@ use ctl_core::{
 use ctl_util::Task;
 use geng::prelude::*;
 
+use crate::fs::LocalLevelId;
+
 const SCORE_VERSION: u32 = 1;
 
 #[derive(Debug)]
@@ -36,7 +38,7 @@ pub struct LeaderboardImpl {
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
     fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
-    highscores_task: Option<Task<anyhow::Result<HashMap<String, SavedScore>>>>,
+    highscores_task: Option<Task<anyhow::Result<HashMap<LocalLevelId, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -49,7 +51,7 @@ pub struct SavedScore {
 }
 
 pub struct LoadedBoard {
-    pub all_highscores: HashMap<String, SavedScore>,
+    pub all_highscores: HashMap<LocalLevelId, SavedScore>,
     pub level: LevelInfo,
     pub player: Option<Id>,
     pub category: ScoreCategory,
@@ -362,7 +364,7 @@ impl LeaderboardImpl {
                             log::debug!("Adding to {:?} score {score:?}", self.loaded.level.hash);
                             self.loaded
                                 .all_highscores
-                                .insert(self.loaded.level.hash.clone(), score.clone());
+                                .insert(LocalLevelId::from_info(&self.loaded.level), score.clone());
                         }
                         self.loaded.local_high = update;
                     }
@@ -505,22 +507,22 @@ impl LeaderboardImpl {
     fn update_local(&mut self, score: Option<SavedScore>) {
         log::debug!("Updating local scores with a new score: {score:?}");
         let fs = self.fs.clone();
-        let hash = self.loaded.level.hash.clone();
+        let level_id = LocalLevelId::from_info(&self.loaded.level);
         let version = self.loaded.category.version;
         self.loaded.local_high = None;
         self.loaded.all_scores.clear();
         self.loaded.filtered.clear();
         let task = async move {
-            let mut scores = match fs.load_local_scores(&hash).await {
+            let mut scores = match fs.load_local_scores(&level_id).await {
                 Ok(scores) => scores,
                 Err(err) => {
-                    log::warn!("Loading local scores for level {hash} failed: {err:?}");
+                    log::warn!("Loading local scores for level ({level_id:?}) failed: {err:?}");
                     vec![]
                 }
             };
             if let Some(score) = score {
                 scores.push(score);
-                fs.save_local_scores(&hash, &scores)
+                fs.save_local_scores(&level_id, &scores)
                     .await
                     .with_context(|| "when saving local scores")?;
             }

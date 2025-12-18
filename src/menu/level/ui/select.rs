@@ -1,5 +1,5 @@
 use crate::ui::UiWindow;
-use ctl_local::{CachedGroup, SavedScore};
+use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
 
 use super::*;
 
@@ -188,9 +188,14 @@ impl LevelSelectUI {
         let loaded = state.leaderboard.get_loaded();
         for (widget, &(group_id, cached)) in self.levels.iter_mut().zip(&groups) {
             let scores: Vec<_> = cached
-                .level_hashes
+                .local
+                .meta
+                .levels
                 .iter()
-                .map(|hash| loaded.all_highscores.get(hash))
+                .map(|meta| {
+                    let id = LocalLevelId::from_info(meta);
+                    loaded.all_highscores.get(&id)
+                })
                 .collect();
             widget.sync(group_id, cached, &scores);
         }
@@ -290,9 +295,18 @@ impl LevelSelectUI {
                     .find(|level| level.id == cached.meta.id)
                     .map(|level| &level.hash)
             });
-            let edited =
-                origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
-            let local_score = loaded.all_highscores.get(&cached.meta.hash);
+            let edited = origin_hash.is_some_and(|hash| {
+                Some(hash)
+                    != group
+                        .local
+                        .meta
+                        .levels
+                        .get(level_id)
+                        .map(|level| &level.hash)
+            });
+            let local_score = loaded
+                .all_highscores
+                .get(&LocalLevelId::from_info(&cached.meta));
             widget.sync(
                 group_idx,
                 level_id,

@@ -238,18 +238,11 @@ impl LevelCache {
                 None
             };
 
-            let level_hashes = group
-                .data
-                .levels
-                .iter()
-                .map(|level| level.calculate_hash())
-                .collect();
-
-            let group = CachedGroup {
+            let mut group = CachedGroup {
                 local: group,
                 origin,
-                level_hashes,
             };
+            group.update_hashes();
 
             Ok(group)
         }
@@ -331,7 +324,6 @@ impl LevelCache {
         let data = LevelSet { levels: Vec::new() };
         let group = CachedGroup {
             origin: None,
-            level_hashes: vec![],
             local: LocalGroup {
                 path,
                 loaded_from_assets: false,
@@ -428,13 +420,7 @@ impl LevelCache {
                         Rc::new(music)
                     };
 
-                    let level_hashes = data
-                        .levels
-                        .iter()
-                        .map(|level| level.calculate_hash())
-                        .collect();
-
-                    let group = CachedGroup {
+                    let mut group = CachedGroup {
                         local: LocalGroup {
                             path: fs::generate_group_path(info.id),
                             loaded_from_assets: false,
@@ -443,8 +429,8 @@ impl LevelCache {
                             data,
                         },
                         origin: Some(info),
-                        level_hashes,
                     };
+                    group.update_hashes();
 
                     // Write to fs
                     if let Err(err) = fs.save_group(&group, true).await {
@@ -529,14 +515,8 @@ impl LevelCache {
         if let Some(info) = reset_origin {
             new_group.origin = Some(info);
         }
-        new_group.local.meta.hash = new_local.data.calculate_hash();
-        new_group.level_hashes = new_local
-            .data
-            .levels
-            .iter()
-            .map(|level| level.calculate_hash())
-            .collect();
         new_group.local = new_local;
+        new_group.update_hashes();
 
         // let move_from_assets = cached
         //     .local

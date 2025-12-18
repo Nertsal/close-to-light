@@ -55,7 +55,21 @@ pub struct CachedGroup {
     pub local: LocalGroup,
     /// The server version the group on the server, if uploaded.
     pub origin: Option<LevelSetInfo>,
-    pub level_hashes: Vec<String>,
+}
+
+impl CachedGroup {
+    pub fn update_hashes(&mut self) {
+        self.local.meta.hash = self.local.data.calculate_hash();
+        for (meta, level) in self
+            .local
+            .meta
+            .levels
+            .iter_mut()
+            .zip(self.local.data.levels.iter())
+        {
+            meta.hash = level.calculate_hash();
+        }
+    }
 }
 
 impl LocalMusic {

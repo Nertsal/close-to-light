@@ -5,6 +5,26 @@ mod web;
 
 use super::*;
 
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub enum LocalLevelId {
+    Hash(String),
+    Id(Id),
+}
+
+impl LocalLevelId {
+    pub fn new(id: Id, hash: &str) -> Self {
+        if id == 0 {
+            Self::Hash(hash.into())
+        } else {
+            Self::Id(id)
+        }
+    }
+
+    pub fn from_info(info: &LevelInfo) -> Self {
+        Self::new(info.id, &info.hash)
+    }
+}
+
 pub struct Controller {
     #[cfg(target_arch = "wasm32")]
     rexie: rexie::Rexie,
@@ -140,7 +160,7 @@ impl Controller {
         }
     }
 
-    pub async fn load_local_highscores(&self) -> Result<HashMap<String, SavedScore>> {
+    pub async fn load_local_highscores(&self) -> Result<HashMap<LocalLevelId, SavedScore>> {
         #[cfg(target_arch = "wasm32")]
         {
             match web::load_local_highscores(&self.rexie).await {
@@ -160,10 +180,10 @@ impl Controller {
         }
     }
 
-    pub async fn load_local_scores(&self, level_hash: &str) -> Result<Vec<SavedScore>> {
+    pub async fn load_local_scores(&self, level_id: &LocalLevelId) -> Result<Vec<SavedScore>> {
         #[cfg(target_arch = "wasm32")]
         {
-            match web::load_local_scores(&self.rexie, level_hash).await {
+            match web::load_local_scores(&self.rexie, level_id).await {
                 Ok(res) => Ok(res),
                 Err(err) => {
                     log::error!(
@@ -176,14 +196,18 @@ impl Controller {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            native::load_local_scores(level_hash)
+            native::load_local_scores(level_id)
         }
     }
 
-    pub async fn save_local_scores(&self, level_hash: &str, scores: &[SavedScore]) -> Result<()> {
+    pub async fn save_local_scores(
+        &self,
+        level_id: &LocalLevelId,
+        scores: &[SavedScore],
+    ) -> Result<()> {
         #[cfg(target_arch = "wasm32")]
         {
-            if let Err(err) = web::save_local_scores(&self.rexie, level_hash, scores).await {
+            if let Err(err) = web::save_local_scores(&self.rexie, level_id, scores).await {
                 log::error!(
                     "failed to save local scores to the web file system: {:?}",
                     err
@@ -194,7 +218,7 @@ impl Controller {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            native::save_local_scores(level_hash, scores)
+            native::save_local_scores(level_id, scores)
         }
     }
 }

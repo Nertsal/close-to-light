@@ -384,7 +384,6 @@ impl Command {
                                     data: level_set,
                                 },
                                 origin: None,
-                                level_hashes: vec![],
                             }),
                             music: Some(music),
                         },
