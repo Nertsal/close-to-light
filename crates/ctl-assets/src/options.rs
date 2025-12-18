@@ -228,6 +228,6 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::stargazer()
+        Self::frostlight()
     }
 }
