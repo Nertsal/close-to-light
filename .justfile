@@ -16,8 +16,47 @@ game *ARGS:
 web command *ARGS:
     cargo geng {{command}} --platform web --release -- {{ARGS}}
 
-itch command *ARGS:
-    cargo geng {{command}} --platform web --release -- -F itch {{ARGS}}
+
+# Build the Demo version of the game for all platforms
+build-demo:
+    just build-all-platforms ./target/release-demo -F demo
+
+# Build the Full version of the game for all platforms
+build-game:
+    just build-all-platforms ./target/release-game
+
+# Make builds for every target platform
+build-all-platforms TARGET_DIR *ARGS:
+    # Steam-Linux
+    LEADERBOARD_URL="https://ctl-server.nertsal.com" CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
+    cargo geng build --release --platform linux -- -F steam {{ARGS}}
+    cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
+    # Steam-Windows
+    docker run --rm -it -v `pwd`:/src --workdir /src \
+    --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
+    --env LEADERBOARD_URL="https://ctl-server.nertsal.com" \
+    ghcr.io/geng-engine/cargo-geng@sha256:ce60c252b0ac348e7dfbd6828d5473d3b6531d67502cf9efa9aece7cada6706c \
+    cargo geng build --release --platform windows -- -F steam {{ARGS}}
+    cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
+    # Itch-Web
+    LEADERBOARD_URL="https://ctl-server.nertsal.com" CARGO_TARGET_DIR={{TARGET_DIR}}/web \
+    just web build --release -F itch {{ARGS}}
+    # zip -r {{TARGET_DIR}}/web.zip {{TARGET_DIR}}/web/*
+
+
+build-windows *ARGS:
+    docker run --rm -it -v `pwd`:/src --workdir /src --env CARGO_TARGET_DIR=./target/windows ghcr.io/geng-engine/cargo-geng@sha256:ce60c252b0ac348e7dfbd6828d5473d3b6531d67502cf9efa9aece7cada6706c \
+    cargo geng build --release --platform windows -- {{ARGS}}
+
+proton *args:
+    STEAM_COMPAT_CLIENT_INSTALL_PATH=~/.local/share/Steam \
+    STEAM_COMPAT_DATA_PATH=~/.local/share/Steam/steamapps/compatdata \
+    steam-run '~/.local/share/Steam/steamapps/common/Proton - Experimental/proton' run {{args}}
+
+run-windows:
+    just build-windows
+    just proton run target/windows/geng/close-to-light.exe
+    
 
 server PORT *ARGS:
     cargo run --release --package ctl-server {{PORT}} -- {{ARGS}}
