@@ -2,7 +2,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     systems.url = "github:nix-systems/default";
-    geng.url = "github:geng-engine/cargo-geng/aa2c2242d7024734f3d5f6e5c9879a19c01b100a";
+    geng.url = "github:geng-engine/cargo-geng/e5ed1324056150c2768dfb239c0ee79244a11fc2";
     geng.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = { geng, nixpkgs, systems, self }:
