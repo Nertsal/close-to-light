@@ -44,7 +44,7 @@ hex = "0.4.3"
 
 # Game
 geng = "0.18"
-wasm-bindgen = { version = "=0.2.100", features = ["serde"] }
+wasm-bindgen = { version = "=0.2.106", features = ["serde"] }
 geng-utils = "0.4.0"
 parry2d = "0.13.5"
 async-executor = "1.8.0"
@@ -132,7 +132,7 @@ rfd.workspace = true
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = "=0.3.77"
+web-sys = "=0.3.83"
 
 [patch.crates-io]
 geng = { git = "https://github.com/geng-engine/geng", rev = "1e35585545463c919ff0da849af4fdad69ab02fa" }
