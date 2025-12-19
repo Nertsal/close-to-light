@@ -14,35 +14,41 @@ game *ARGS:
     cargo run -- {{ARGS}}
 
 web command *ARGS:
-    cargo geng {{command}} --platform web --release -- {{ARGS}}
+    cargo geng {{command}} --platform web --release {{ARGS}}
 
 
 # Build the Demo version of the game for all platforms
 build-demo:
-    just build-all-platforms ./target/release-demo -F demo
+    just build-all-platforms ./target/release-demo --features demo
 
 # Build the Full version of the game for all platforms
 build-game:
     just build-all-platforms ./target/release-game
 
 docker_image := "ghcr.io/geng-engine/cargo-geng@sha256:0e57d6ddd0b82f845fc254a553d2259d21f43ae7bc2068490db6659c8ed30fbe"
+steam_sdk := "./dev-assets/redistributable_bin"
+server_url := "https://ctl-server.nertsal.com"
+server := "ctl-server.nertsal.com"
+server_user := "nertsal"
 
 # Make builds for every target platform
 build-all-platforms TARGET_DIR *ARGS:
     # Steam-Linux
-    LEADERBOARD_URL="https://ctl-server.nertsal.com" CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
-    cargo geng build --release --platform linux -- -F steam {{ARGS}}
+    LEADERBOARD_URL={{server_url}} CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
+    cargo geng build --release --platform linux --features steam {{ARGS}}
+    cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
     cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
     # Steam-Windows
     docker run --rm -it -v `pwd`:/src --workdir /src \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
-    --env LEADERBOARD_URL="https://ctl-server.nertsal.com" \
+    --env LEADERBOARD_URL={{server_url}} \
     {{docker_image}} \
-    cargo geng build --release --platform windows -- -F steam {{ARGS}}
+    cargo geng build --release --platform windows --features steam {{ARGS}}
+    cp {{steam_sdk}}/win64/steam_api64.dll {{TARGET_DIR}}/windows/geng
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
-    LEADERBOARD_URL="https://ctl-server.nertsal.com" CARGO_TARGET_DIR={{TARGET_DIR}}/web \
-    just web build --release -F itch {{ARGS}}
+    LEADERBOARD_URL={{server_url}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
+    cargo geng build --release --platform web --features itch {{ARGS}}
     # zip -r {{TARGET_DIR}}/web.zip {{TARGET_DIR}}/web/*
 
 
@@ -66,9 +72,6 @@ server PORT *ARGS:
 build-server:
     docker build . --tag ctl-server
     docker run --name ctl-server --rm -it -e CARGO_TARGET_DIR=/target -v `pwd`/docker-target:/target -v `pwd`:/src -w /src ctl-server cargo build --release --package ctl-server
-
-server := "ctl-server.nertsal.com"
-server_user := "nertsal"
 
 deploy-server:
     just build-server
