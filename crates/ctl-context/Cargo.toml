@@ -14,3 +14,6 @@ ctl-client.workspace = true
 ctl-local.workspace = true
 geng.workspace = true
 steamworks = { workspace = true, optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+discord-presence.workspace = true

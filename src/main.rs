@@ -211,6 +211,13 @@ async fn load_everything(
     if let Some(steam) = steam {
         context.connect_steam(steam.clone());
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let discord = ctl_context::connect_discord();
+        if let Some(discord) = discord {
+            context.connect_discord(discord);
+        }
+    }
 
     Ok((context, secrets, client))
 }

@@ -1745,6 +1745,7 @@ dependencies = [
  "ctl-constants",
  "ctl-core",
  "ctl-local",
+ "discord-presence",
  "geng",
  "steamworks",
 ]
@@ -2048,6 +2049,28 @@ dependencies = [
  "option-ext",
  "redox_users",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "discord-presence"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d4aac90b61a33b08ad21c77625d53233afef5de87dd0a3032e1a85469d1aa33"
+dependencies = [
+ "byteorder",
+ "bytes 1.11.0",
+ "cfg-if 1.0.4",
+ "crossbeam-channel",
+ "log",
+ "num-derive",
+ "num-traits",
+ "parking_lot",
+ "paste",
+ "quork",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "uuid",
 ]
 
 [[package]]
@@ -4263,6 +4286,18 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nix"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
+dependencies = [
+ "bitflags 2.10.0",
+ "cfg-if 1.0.4",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
+name = "nix"
 version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
@@ -5130,6 +5165,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-error-attr2"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "proc-macro-error2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
+dependencies = [
+ "proc-macro-error-attr2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5257,6 +5314,32 @@ dependencies = [
  "socket2 0.6.1",
  "tracing",
  "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "quork"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7681987dab9e7839dc146829c97f184f1e20a5e00e21204874ff7be361a9387"
+dependencies = [
+ "cfg-if 1.0.4",
+ "nix 0.29.0",
+ "quork-proc",
+ "thiserror 2.0.17",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "quork-proc"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "860d36740d9412e39fff90f57010e9870b15c2b48e5325295a6f5a824a480439"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
 ]
 
 [[package]]
@@ -8556,7 +8639,7 @@ dependencies = [
  "futures-core",
  "futures-lite",
  "hex",
- "nix",
+ "nix 0.30.1",
  "ordered-stream",
  "serde",
  "serde_repr",

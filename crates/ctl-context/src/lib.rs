@@ -21,6 +21,9 @@ pub const OPTIONS_STORAGE: &str = "options";
 pub struct Context {
     #[cfg(feature = "steam")]
     pub steam: Option<steamworks::Client>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub discord: Option<Rc<RefCell<discord_presence::Client>>>,
+
     pub geng: Geng,
     pub assets: Rc<Assets>,
     pub music: Rc<MusicManager>,
@@ -28,7 +31,6 @@ pub struct Context {
     pub local: Rc<LevelCache>,
     options: Rc<RefCell<Options>>,
     /// Stack of status, that partially mimicks state transitions.
-    #[allow(dead_code)] // TODO: discord rich presence
     status: Rc<RefCell<Vec<String>>>,
 }
 
@@ -45,6 +47,9 @@ impl Context {
         Ok(Self {
             #[cfg(feature = "steam")]
             steam: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            discord: None,
+
             geng: geng.clone(),
             assets: assets.clone(),
             music: Rc::new(MusicManager::new(geng.clone())),
@@ -55,45 +60,49 @@ impl Context {
         })
     }
 
-    /// Set new active game status.
-    pub fn set_status(&self, status: impl Into<String>) {
-        #[cfg(not(feature = "steam"))]
-        let _ = status; // Noop
+    #[cfg(feature = "steam")]
+    pub fn connect_steam(&mut self, steam: steamworks::Client) {
+        self.steam = Some(steam);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn connect_discord(&mut self, discord: discord_presence::Client) {
+        self.discord = Some(Rc::new(RefCell::new(discord)));
+    }
+
+    fn set_status_impl(&self, status: Option<&str>) {
+        log::debug!("Setting game rich presence to {:?}", status);
 
         #[cfg(feature = "steam")]
         if let Some(steam) = &self.steam {
-            let status = status.into();
-            log::debug!("Setting steam status to {:?}", status);
-            if steam
+            steam
                 .friends()
-                .set_rich_presence("steam_display", Some("#StatusFull"))
-                && steam.friends().set_rich_presence("text", Some(&status))
-            {
-                self.status.borrow_mut().push(status);
-            } else {
-                log::error!("Failed to set steam status");
+                .set_rich_presence("steam_display", Some("#StatusFull"));
+            steam.friends().set_rich_presence("text", status);
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(discord) = &self.discord {
+            let status = status.unwrap_or("");
+            if let Err(err) = discord.borrow_mut().set_activity(|act| act.state(status)) {
+                log::error!("Failed to set discord rich presence: {:?}", err);
             }
         }
     }
 
-    /// Return to the previous game status.
-    pub fn pop_status(&self) {
-        #[cfg(feature = "steam")]
-        if let Some(steam) = &self.steam {
-            let mut status = self.status.borrow_mut();
-            status.pop();
-            let status = status.last().map(|x| x.as_str());
-            log::debug!("Setting steam status to {:?}", status);
-            steam
-                .friends()
-                .set_rich_presence("steam_display", status.map(|_| "#StatusFull"));
-            steam.friends().set_rich_presence("text", status);
-        }
+    /// Set new active game status.
+    pub fn set_status(&self, status: impl Into<String>) {
+        let status = status.into();
+        self.set_status_impl(Some(&status));
+        self.status.borrow_mut().push(status);
     }
 
-    #[cfg(feature = "steam")]
-    pub fn connect_steam(&mut self, steam: steamworks::Client) {
-        self.steam = Some(steam);
+    /// Return to the previous game status.
+    pub fn pop_status(&self) {
+        let mut status = self.status.borrow_mut();
+        status.pop();
+        let status = status.last().map(|x| x.as_str());
+        self.set_status_impl(status);
     }
 
     /// Expected to be called every frame to maintain relevant global state.
@@ -127,4 +136,11 @@ pub fn connect_steam() -> Option<steamworks::Client> {
             None
         }
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn connect_discord() -> Option<discord_presence::Client> {
+    let mut discord = discord_presence::Client::new(ctl_constants::DISCORD_APP_ID);
+    discord.start();
+    Some(discord)
 }

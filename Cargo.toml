@@ -40,6 +40,7 @@ cbor4ii = { version = "0.3.3", features = ["serde1", "use_std"] }
 toml = "0.9.8"
 time = { version = "0.3.31", features = ["serde", "wasm-bindgen"] }
 steamworks = "0.12.2"
+discord-presence = "3.0.0"
 hex = "0.4.3"
 
 # Game
