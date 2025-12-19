@@ -74,6 +74,9 @@ impl EditorState {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
         editor.editor.level_edit = Some(LevelEditor::new(context, level, true, false));
+
+        editor.context.set_status("In Editor");
+
         editor
     }
 
@@ -212,7 +215,14 @@ impl EditorState {
 
 impl geng::State for EditorState {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take()
+        let trans = self.transition.take();
+
+        if let Some(geng::state::Transition::Pop) | Some(geng::state::Transition::Switch(_)) = trans
+        {
+            self.context.pop_status();
+        }
+
+        trans
     }
 
     fn update(&mut self, delta_time: f64) {

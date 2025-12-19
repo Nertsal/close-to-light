@@ -27,6 +27,8 @@ pub struct Context {
     pub sfx: Rc<SfxManager>,
     pub local: Rc<LevelCache>,
     options: Rc<RefCell<Options>>,
+    /// Stack of status, that partially mimicks state transitions.
+    status: Rc<RefCell<Vec<String>>>,
 }
 
 impl Context {
@@ -48,7 +50,40 @@ impl Context {
             sfx: Rc::new(SfxManager::new(geng.clone(), options.clone())),
             local: Rc::new(LevelCache::load(client, fs, geng).await?),
             options,
+            status: Rc::new(RefCell::new(Vec::new())),
         })
+    }
+
+    /// Set new active game status.
+    pub fn set_status(&self, status: impl Into<String>) {
+        #[cfg(not(feature = "steam"))]
+        let _ = status; // Noop
+
+        #[cfg(feature = "steam")]
+        if let Some(steam) = &self.steam {
+            let status = status.into();
+            log::debug!("Setting steam status to {:?}", status);
+            if steam
+                .friends()
+                .set_rich_presence("steam_display", Some(&status))
+            {
+                self.status.borrow_mut().push(status);
+            } else {
+                log::error!("Failed to set steam status");
+            }
+        }
+    }
+
+    /// Return to the previous game status.
+    pub fn pop_status(&self) {
+        #[cfg(feature = "steam")]
+        if let Some(steam) = &self.steam {
+            let mut status = self.status.borrow_mut();
+            status.pop();
+            let status = status.last().map(|x| x.as_str());
+            log::debug!("Setting steam status to {:?}", status);
+            steam.friends().set_rich_presence("steam_display", status);
+        }
     }
 
     #[cfg(feature = "steam")]

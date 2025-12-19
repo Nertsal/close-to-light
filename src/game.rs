@@ -30,6 +30,13 @@ pub struct Game {
 
 impl Game {
     pub fn new(context: Context, level: PlayLevel, leaderboard: Leaderboard) -> Self {
+        if let Some(music) = &level.group.music {
+            context.set_status(format!(
+                "Playing {} - {}",
+                music.meta.name, level.level.meta.name
+            ));
+        }
+
         if level.group.music.is_none() {
             log::warn!(
                 "Starting level {:?} but no music got loaded.",
@@ -66,7 +73,13 @@ impl Game {
 
 impl geng::State for Game {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take()
+        let trans = self.transition.take();
+
+        if trans.is_some() {
+            self.context.pop_status();
+        }
+
+        trans
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
