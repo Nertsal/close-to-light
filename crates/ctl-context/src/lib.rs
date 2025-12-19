@@ -65,7 +65,8 @@ impl Context {
             log::debug!("Setting steam status to {:?}", status);
             if steam
                 .friends()
-                .set_rich_presence("steam_display", Some(&status))
+                .set_rich_presence("steam_display", Some("#StatusFull"))
+                && steam.friends().set_rich_presence("text", Some(&status))
             {
                 self.status.borrow_mut().push(status);
             } else {
@@ -82,7 +83,10 @@ impl Context {
             status.pop();
             let status = status.last().map(|x| x.as_str());
             log::debug!("Setting steam status to {:?}", status);
-            steam.friends().set_rich_presence("steam_display", status);
+            steam
+                .friends()
+                .set_rich_presence("steam_display", status.map(|_| "#StatusFull"));
+            steam.friends().set_rich_presence("text", status);
         }
     }
 
