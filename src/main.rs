@@ -1,3 +1,5 @@
+#![cfg_attr(not(any(debug_assertions)), windows_subsystem = "windows")]
+
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
 mod editor;
