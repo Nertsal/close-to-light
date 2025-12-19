@@ -1745,6 +1745,7 @@ dependencies = [
  "ctl-constants",
  "ctl-core",
  "ctl-local",
+ "ctl-util",
  "discord-presence",
  "geng",
  "steamworks",

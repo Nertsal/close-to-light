@@ -1,3 +1,5 @@
+#[cfg(not(target_arch = "wasm32"))]
+mod discord;
 mod music;
 mod sfx;
 
@@ -22,7 +24,7 @@ pub struct Context {
     #[cfg(feature = "steam")]
     pub steam: Option<steamworks::Client>,
     #[cfg(not(target_arch = "wasm32"))]
-    pub discord: Option<Rc<RefCell<discord_presence::Client>>>,
+    pub discord: Option<discord::Client>,
 
     pub geng: Geng,
     pub assets: Rc<Assets>,
@@ -66,8 +68,8 @@ impl Context {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn connect_discord(&mut self, discord: discord_presence::Client) {
-        self.discord = Some(Rc::new(RefCell::new(discord)));
+    pub fn connect_discord(&mut self, discord: discord::Client) {
+        self.discord = Some(discord);
     }
 
     fn set_status_impl(&self, status: Option<&str>) {
@@ -83,10 +85,7 @@ impl Context {
 
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(discord) = &self.discord {
-            let status = status.unwrap_or("");
-            if let Err(err) = discord.borrow_mut().set_activity(|act| act.state(status)) {
-                log::error!("Failed to set discord rich presence: {:?}", err);
-            }
+            discord.set_status(status);
         }
     }
 
@@ -139,8 +138,6 @@ pub fn connect_steam() -> Option<steamworks::Client> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn connect_discord() -> Option<discord_presence::Client> {
-    let mut discord = discord_presence::Client::new(ctl_constants::DISCORD_APP_ID);
-    discord.start();
-    Some(discord)
+pub fn connect_discord() -> Option<discord::Client> {
+    Some(discord::Client::new())
 }

@@ -9,6 +9,7 @@ steam = ["dep:steamworks"]
 [dependencies]
 ctl-constants.workspace = true
 ctl-core.workspace = true
+ctl-util.workspace = true
 ctl-assets.workspace = true
 ctl-client.workspace = true
 ctl-local.workspace = true
