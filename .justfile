@@ -25,6 +25,8 @@ build-demo:
 build-game:
     just build-all-platforms ./target/release-game
 
+docker_image := "ghcr.io/geng-engine/cargo-geng@sha256:0e57d6ddd0b82f845fc254a553d2259d21f43ae7bc2068490db6659c8ed30fbe"
+
 # Make builds for every target platform
 build-all-platforms TARGET_DIR *ARGS:
     # Steam-Linux
@@ -35,7 +37,7 @@ build-all-platforms TARGET_DIR *ARGS:
     docker run --rm -it -v `pwd`:/src --workdir /src \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
     --env LEADERBOARD_URL="https://ctl-server.nertsal.com" \
-    ghcr.io/geng-engine/cargo-geng@sha256:ce60c252b0ac348e7dfbd6828d5473d3b6531d67502cf9efa9aece7cada6706c \
+    {{docker_image}}\
     cargo geng build --release --platform windows -- -F steam {{ARGS}}
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
@@ -45,7 +47,7 @@ build-all-platforms TARGET_DIR *ARGS:
 
 
 build-windows *ARGS:
-    docker run --rm -it -v `pwd`:/src --workdir /src --env CARGO_TARGET_DIR=./target/windows ghcr.io/geng-engine/cargo-geng@sha256:ce60c252b0ac348e7dfbd6828d5473d3b6531d67502cf9efa9aece7cada6706c \
+    docker run --rm -it -v `pwd`:/src --workdir /src --env CARGO_TARGET_DIR=./target/windows {{docker_image}} \
     cargo geng build --release --platform windows -- {{ARGS}}
 
 proton *args:
