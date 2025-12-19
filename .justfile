@@ -39,7 +39,8 @@ build-all-platforms TARGET_DIR *ARGS:
     cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
     cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
     # Steam-Windows
-    docker run --rm -it -v `pwd`:/src --workdir /src \
+    docker run --user $(id -u):$(id -g) --rm -it -v `pwd`:/src --workdir /src \
+    --env CARGO_HOME=./target/windows/.cargo \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
     --env LEADERBOARD_URL={{server_url}} \
     {{docker_image}} \
@@ -53,8 +54,10 @@ build-all-platforms TARGET_DIR *ARGS:
 
 
 build-windows *ARGS:
-    docker run --rm -it -v `pwd`:/src --workdir /src --env CARGO_TARGET_DIR=./target/windows {{docker_image}} \
-    cargo geng build --release --platform windows -- {{ARGS}}
+    docker run --rm -it -v `pwd`:/src --workdir /src \
+    --env CARGO_HOME=./target/windows/.cargo \
+    --env CARGO_TARGET_DIR=./target/windows {{docker_image}} \
+    cargo geng build --release --platform windows {{ARGS}}
 
 proton *args:
     STEAM_COMPAT_CLIENT_INSTALL_PATH=~/.local/share/Steam \
