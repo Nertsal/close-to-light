@@ -28,6 +28,7 @@ pub struct Context {
     pub local: Rc<LevelCache>,
     options: Rc<RefCell<Options>>,
     /// Stack of status, that partially mimicks state transitions.
+    #[allow(dead_code)] // TODO: discord rich presence
     status: Rc<RefCell<Vec<String>>>,
 }
 

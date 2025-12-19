@@ -37,7 +37,7 @@ build-all-platforms TARGET_DIR *ARGS:
     docker run --rm -it -v `pwd`:/src --workdir /src \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
     --env LEADERBOARD_URL="https://ctl-server.nertsal.com" \
-    {{docker_image}}\
+    {{docker_image}} \
     cargo geng build --release --platform windows -- -F steam {{ARGS}}
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
