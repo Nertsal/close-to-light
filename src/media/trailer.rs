@@ -67,7 +67,7 @@ impl TrailerState {
             model: Model::new(
                 context.clone(),
                 level,
-                ctl_local::Leaderboard::new(&context.geng, None, &context.local.fs),
+                ctl_local::Leaderboard::new(&context.geng, None, &context.local.fs, false),
             ),
 
             theme: Theme::linksider(),

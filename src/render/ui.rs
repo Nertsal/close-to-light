@@ -735,6 +735,8 @@ impl UiRender {
             // self.draw_button(&register.register, framebuffer);
             self.draw_text(&register.login_with, framebuffer);
             self.draw_icon(&register.discord.icon, theme, framebuffer);
+            #[cfg(feature = "steam")]
+            self.draw_icon(&register.steam.icon, theme, framebuffer);
         }
 
         let logged = &ui.logged;

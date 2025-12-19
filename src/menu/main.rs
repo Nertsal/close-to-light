@@ -43,7 +43,12 @@ struct MainUI {
 
 impl MainMenu {
     pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
-        let leaderboard = Leaderboard::new(&context.geng, client, &context.local.fs);
+        let leaderboard = Leaderboard::new(
+            &context.geng,
+            client,
+            &context.local.fs,
+            context.get_options().account.auto_login,
+        );
 
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),

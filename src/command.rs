@@ -225,7 +225,7 @@ impl Command {
                 let state = crate::game::Game::new(
                     context.clone(),
                     level,
-                    ctl_local::Leaderboard::new(&context.geng, None, &context.local.fs),
+                    ctl_local::Leaderboard::new(&context.geng, None, &context.local.fs, true),
                 );
                 context.geng.run_state(state).await;
             }

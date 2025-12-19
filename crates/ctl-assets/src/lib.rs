@@ -112,6 +112,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     trash,
     settings,
     discord,
+    steam,
     star,
     local,
     dotdotdot,

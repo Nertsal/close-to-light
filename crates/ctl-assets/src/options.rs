@@ -21,6 +21,8 @@ where
 #[serde(default)]
 pub struct Options {
     #[serde(deserialize_with = "ok_or_default")]
+    pub account: AccountOptions,
+    #[serde(deserialize_with = "ok_or_default")]
     pub volume: VolumeOptions,
     #[serde(deserialize_with = "ok_or_default")]
     pub theme: Theme,
@@ -30,6 +32,12 @@ pub struct Options {
     pub cursor: CursorOptions,
     #[serde(deserialize_with = "ok_or_default")]
     pub gameplay: GameplayOptions,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct AccountOptions {
+    pub auto_login: bool,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]

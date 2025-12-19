@@ -20,6 +20,8 @@ pub struct RegisterWidget {
     // pub register: ButtonWidget,
     pub login_with: TextWidget,
     pub discord: IconButtonWidget,
+    #[cfg(feature = "steam")]
+    pub steam: IconButtonWidget,
 }
 
 pub struct LoggedWidget {
@@ -42,6 +44,8 @@ impl ProfileWidget {
                 // register: ButtonWidget::new("Register"),
                 login_with: TextWidget::new("Login with"),
                 discord: IconButtonWidget::new_normal(assets.atlas.discord()),
+                #[cfg(feature = "steam")]
+                steam: IconButtonWidget::new_normal(assets.atlas.steam()),
             },
             connecting: TextWidget::new("Connecting..."),
             logged: LoggedWidget {
@@ -152,7 +156,14 @@ impl StatefulWidget for RegisterWidget {
         let login_with = main.cut_top(context.font_size);
         self.login_with.update(login_with, context);
 
+        #[cfg(feature = "steam")]
+        let with_options = {
+            self.discord.hide();
+            [&mut self.steam]
+        };
+        #[cfg(not(feature = "steam"))]
         let with_options = [&mut self.discord];
+
         let size = vec2::splat(context.font_size * 1.2);
         let with = main.align_aabb(size, vec2(0.5, 0.5));
         let positions = with.stack_aligned(
@@ -164,8 +175,21 @@ impl StatefulWidget for RegisterWidget {
             with.update(pos, context);
         }
 
+        let mut login = false;
         if self.discord.icon.state.mouse_left.clicked {
             state.get_mut().login_discord();
+            login = true;
+        }
+        #[cfg(feature = "steam")]
+        if self.steam.icon.state.mouse_left.clicked {
+            state.get_mut().login_steam();
+            login = true;
+        }
+        if login {
+            // Set auto_login
+            let mut options = context.context.get_options();
+            options.account.auto_login = true;
+            context.context.set_options(options);
         }
     }
 }
@@ -194,14 +218,12 @@ impl StatefulWidget for LoggedWidget {
         let rows = main.split_rows(2);
         self.username.update(rows[0], context);
 
-        #[cfg(feature = "steam")]
-        self.logout.hide();
-        #[cfg(not(feature = "steam"))]
-        {
-            self.logout.update(rows[1], context);
-            if self.logout.text.state.mouse_left.clicked {
-                state.get_mut().logout();
-            }
+        self.logout.update(rows[1], context);
+        if self.logout.text.state.mouse_left.clicked {
+            state.get_mut().logout();
+            let mut options = context.context.get_options();
+            options.account.auto_login = false;
+            context.context.set_options(options);
         }
     }
 }

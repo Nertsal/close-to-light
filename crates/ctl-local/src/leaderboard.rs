@@ -131,9 +131,12 @@ impl Leaderboard {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        auto_login: bool,
     ) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(LeaderboardImpl::new(geng, client, fs))),
+            inner: Rc::new(RefCell::new(LeaderboardImpl::new(
+                geng, client, fs, auto_login,
+            ))),
         }
     }
 
@@ -176,12 +179,15 @@ impl LeaderboardImpl {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        auto_login: bool,
     ) -> Self {
         let mut leaderboard = Self {
             client: client.cloned(),
             ..Self::empty(geng, fs)
         };
-        leaderboard.relogin();
+        if auto_login {
+            leaderboard.relogin();
+        }
         leaderboard
     }
 
@@ -221,6 +227,16 @@ impl LeaderboardImpl {
             self.log_task = Some(Task::new(&self.geng, future));
             self.user = None;
         }
+    }
+
+    #[cfg(feature = "steam")]
+    /// Login directly via Steam
+    pub fn login_steam(&mut self) {
+        let Some(client) = &self.client else { return };
+        let client = Arc::clone(client);
+        let future = async move { client.login_steam().await };
+        self.log_task = Some(Task::new(&self.geng, future));
+        self.user = None;
     }
 
     /// Attempt to login back using the saved credentials.
