@@ -48,7 +48,7 @@ build-all-platforms TARGET_DIR *ARGS:
     cp {{steam_sdk}}/win64/steam_api64.dll {{TARGET_DIR}}/windows/geng
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
-    LEADERBOARD_URL={{server_url}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
+    LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
     cargo geng build --release --platform web --features itch {{ARGS}}
     # zip -r {{TARGET_DIR}}/web.zip {{TARGET_DIR}}/web/*
 
@@ -81,6 +81,6 @@ deploy-server:
     rsync -avz docker-target/release/ctl-server {{server_user}}@{{server}}:close-to-server/
     ssh {{server_user}}@{{server}} systemctl --user restart close-to-server
 
-publish-web:
-    CONNECT=wss://{{server}} cargo geng build --release --platform web --out-dir `pwd`/target/geng
-    butler -- push `pwd`/target/geng nertsal/close-to-light:html5
+publish-itch:
+    CONNECT=wss://{{server}} cargo geng build --release --platform web --out-dir `pwd`/target/release-demo/web --features itch --features demo
+    butler -- push `pwd`/target/release-demo/web nertsal/close-to-light:html5
