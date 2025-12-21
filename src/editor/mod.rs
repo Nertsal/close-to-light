@@ -206,7 +206,11 @@ impl EditorState {
             crate::game::Game::new(
                 self.context.clone(),
                 level,
-                Leaderboard::new(&self.context.geng, None, &self.context.local.fs, false),
+                Leaderboard::empty(
+                    &self.context.geng,
+                    &self.context.local.fs,
+                    &self.context.achievements,
+                ),
             ),
         )));
         self.stop_music_next_frame = true;

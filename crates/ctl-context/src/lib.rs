@@ -14,7 +14,7 @@ use ctl_core::{
     prelude::{Id, Time},
     types::FloatTime,
 };
-use ctl_local::{LevelCache, LocalMusic};
+use ctl_local::{Achievements, LevelCache, LocalMusic};
 use geng::prelude::{time::Duration, *};
 
 pub const OPTIONS_STORAGE: &str = "options";
@@ -31,6 +31,7 @@ pub struct Context {
     pub music: Rc<MusicManager>,
     pub sfx: Rc<SfxManager>,
     pub local: Rc<LevelCache>,
+    pub achievements: Achievements,
     options: Rc<RefCell<Options>>,
     /// Stack of status, that partially mimicks state transitions.
     status: Rc<RefCell<Vec<String>>>,
@@ -57,6 +58,7 @@ impl Context {
             music: Rc::new(MusicManager::new(geng.clone())),
             sfx: Rc::new(SfxManager::new(geng.clone(), options.clone())),
             local: Rc::new(LevelCache::load(client, fs, geng).await?),
+            achievements: Achievements::new(),
             options,
             status: Rc::new(RefCell::new(Vec::new())),
         })
@@ -64,6 +66,7 @@ impl Context {
 
     #[cfg(feature = "steam")]
     pub fn connect_steam(&mut self, steam: steamworks::Client) {
+        self.achievements.connect_steam(steam.clone());
         self.steam = Some(steam);
     }
 

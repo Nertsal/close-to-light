@@ -47,6 +47,7 @@ impl MainMenu {
             &context.geng,
             client,
             &context.local.fs,
+            &context.achievements,
             context.get_options().account.auto_login,
         );
 

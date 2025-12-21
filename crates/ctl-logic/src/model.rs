@@ -183,7 +183,11 @@ impl Model {
         let options = context.get_options();
         Self {
             transition: None,
-            leaderboard: Leaderboard::empty(&context.geng, &context.local.fs),
+            leaderboard: Leaderboard::empty(
+                &context.geng,
+                &context.local.fs,
+                &context.achievements,
+            ),
             context,
 
             camera: Camera2d {

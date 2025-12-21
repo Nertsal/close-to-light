@@ -5,7 +5,7 @@ mod web;
 
 use super::*;
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum LocalLevelId {
     Hash(String),
     Id(Id),

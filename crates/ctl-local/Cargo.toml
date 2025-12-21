@@ -4,9 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [features]
+demo = []
 steam = ["dep:steamworks"]
 
 [dependencies]
+ctl-constants.workspace = true
 ctl-core.workspace = true
 ctl-client.workspace = true
 ctl-util.workspace = true

@@ -2,13 +2,14 @@ use ctl_client::Nertboard;
 use ctl_core::{
     ScoreEntry, SubmitScore,
     auth::UserLogin,
+    model::ScoreGrade,
     prelude::{HealthConfig, LevelModifiers, Score, Uuid},
     types::{Id, LevelInfo, UserInfo},
 };
 use ctl_util::Task;
 use geng::prelude::*;
 
-use crate::fs::LocalLevelId;
+use crate::{achievements::Achievements, fs::LocalLevelId};
 
 const SCORE_VERSION: u32 = 1;
 
@@ -35,6 +36,7 @@ pub struct LeaderboardImpl {
     /// Logged in as user with a name.
     pub user: Option<UserLogin>,
     pub client: Option<Arc<Nertboard>>,
+    pub achievements: Achievements,
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
     fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
@@ -118,12 +120,16 @@ impl ScoreMeta {
             time: ::time::OffsetDateTime::now_utc(),
         }
     }
+
+    pub fn calculate_grade(&self) -> ScoreGrade {
+        self.score.calculate_grade(self.completion)
+    }
 }
 
 impl Leaderboard {
-    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>, achievements: &Achievements) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs))),
+            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs, achievements))),
         }
     }
 
@@ -131,11 +137,16 @@ impl Leaderboard {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        achievements: &Achievements,
         auto_login: bool,
     ) -> Self {
         Self {
             inner: Rc::new(RefCell::new(LeaderboardImpl::new(
-                geng, client, fs, auto_login,
+                geng,
+                client,
+                fs,
+                achievements,
+                auto_login,
             ))),
         }
     }
@@ -158,10 +169,11 @@ impl Leaderboard {
 }
 
 impl LeaderboardImpl {
-    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>, achievements: &Achievements) -> Self {
         let mut leaderboard = Self {
             geng: geng.clone(),
             fs: fs.clone(),
+            achievements: achievements.clone(),
             user: None,
             client: None,
             log_task: None,
@@ -179,11 +191,12 @@ impl LeaderboardImpl {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        achievements: &Achievements,
         auto_login: bool,
     ) -> Self {
         let mut leaderboard = Self {
             client: client.cloned(),
-            ..Self::empty(geng, fs)
+            ..Self::empty(geng, fs, achievements)
         };
         if auto_login {
             leaderboard.relogin();
@@ -378,9 +391,12 @@ impl LeaderboardImpl {
                         log::debug!("Updating local highscore: {update:?}");
                         if let Some(score) = &update {
                             log::debug!("Adding to {:?} score {score:?}", self.loaded.level.hash);
+                            let level_id = LocalLevelId::from_info(&self.loaded.level);
                             self.loaded
                                 .all_highscores
-                                .insert(LocalLevelId::from_info(&self.loaded.level), score.clone());
+                                .insert(level_id.clone(), score.clone());
+                            self.achievements
+                                .update_highscores(&self.loaded.all_highscores, (&level_id, score));
                         }
                         self.loaded.local_high = update;
                     }
@@ -398,6 +414,7 @@ impl LeaderboardImpl {
                     Ok(update) => {
                         log::debug!("Loaded all local highscores");
                         self.loaded.all_highscores = update;
+                        // TODO: update achievements?
                     }
                     Err(err) => {
                         log::error!("Loading local highscores failed: {err:?}");

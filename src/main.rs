@@ -131,6 +131,7 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
             &geng,
             client.as_ref(),
             &context.local.fs,
+            &context.achievements,
             context.get_options().account.auto_login,
         );
         let state = menu::LevelMenu::new(context, leaderboard, None);

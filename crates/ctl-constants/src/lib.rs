@@ -1,4 +1,5 @@
-// TODO: different id for demo
+// ----- Steam -----
+
 #[cfg(feature = "steam")]
 mod steam {
     /// App ID of the full game.
@@ -18,5 +19,7 @@ mod steam {
 
 #[cfg(feature = "steam")]
 pub use self::steam::*;
+
+// ----- General -----
 
 pub const DISCORD_APP_ID: u64 = 1242091884709417061;

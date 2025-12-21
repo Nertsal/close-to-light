@@ -1,8 +1,9 @@
+mod achievements;
 mod cache;
 pub mod fs;
 mod leaderboard;
 
-pub use self::{cache::*, leaderboard::*};
+pub use self::{achievements::*, cache::*, leaderboard::*};
 
 use std::path::{Path, PathBuf};
 
