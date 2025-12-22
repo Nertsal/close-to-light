@@ -102,19 +102,16 @@ impl Achievements {
         #[cfg(feature = "demo")]
         {
             // Check grade
-
             use ctl_core::types::Id;
             let new_grade = new_score.meta.calculate_grade();
-            match new_grade {
-                ScoreGrade::A => self.unlock_achievement(Achievement::AForEffort),
-                ScoreGrade::F => {
-                    if let LocalLevelId::Id(id) = new_score_level
-                        && HARD_LEVEL_IDS.contains(id)
-                    {
-                        self.unlock_achievement(Achievement::AtTheEndOfTheTunnel)
-                    }
-                }
-                _ => (),
+            if new_grade >= ScoreGrade::A {
+                self.unlock_achievement(Achievement::AForEffort);
+            }
+            if new_grade == ScoreGrade::F
+                && let LocalLevelId::Id(id) = new_score_level
+                && HARD_LEVEL_IDS.contains(id)
+            {
+                self.unlock_achievement(Achievement::AtTheEndOfTheTunnel)
             }
 
             // Any level completion
