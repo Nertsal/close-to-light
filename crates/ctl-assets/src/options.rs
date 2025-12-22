@@ -34,10 +34,16 @@ pub struct Options {
     pub gameplay: GameplayOptions,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct AccountOptions {
     pub auto_login: bool,
+}
+
+impl Default for AccountOptions {
+    fn default() -> Self {
+        Self { auto_login: true }
+    }
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
