@@ -70,7 +70,8 @@ fn main() {
                 log::LevelFilter::Info
             },
         )
-        .filter_module("calloop", log::LevelFilter::Debug);
+        .filter_module("calloop", log::LevelFilter::Debug)
+        .filter_module("discord_presence", log::LevelFilter::Off);
     logger::init_with(builder).expect("failed to init logger");
     geng::setup_panic_handler();
 
