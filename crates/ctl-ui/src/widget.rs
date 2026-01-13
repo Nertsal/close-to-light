@@ -24,7 +24,7 @@ use std::any::Any;
 use geng::prelude::*;
 
 /// Max distance that the cursor can travel for a click to register as a stationary one.
-const MAX_CLICK_DISTANCE: f32 = 1.0;
+const MAX_CLICK_DISTANCE: f32 = 10.0;
 
 #[macro_export]
 macro_rules! simple_widget_state {
