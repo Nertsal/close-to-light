@@ -143,6 +143,7 @@ impl Widget for IconButtonWidget {
 pub struct ToggleButtonWidget {
     pub state: WidgetState,
     pub text: TextWidget,
+    pub icon: Option<IconWidget>,
     pub selected: bool,
     pub can_deselect: bool,
 }
@@ -152,6 +153,7 @@ impl ToggleButtonWidget {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             text: TextWidget::new(text),
+            icon: None,
             selected: false,
             can_deselect: false,
         }
@@ -161,8 +163,21 @@ impl ToggleButtonWidget {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             text: TextWidget::new(text),
+            icon: None,
             selected: false,
             can_deselect: true,
+        }
+    }
+
+    pub fn with_icon(self, texture: SubTexture) -> Self {
+        let mut icon = IconWidget::new(texture);
+        icon.background = Some(IconBackground {
+            color: ThemeColor::Dark,
+            kind: IconBackgroundKind::NineSlice,
+        });
+        Self {
+            icon: Some(icon),
+            ..self
         }
     }
 
@@ -176,6 +191,20 @@ impl ToggleButtonWidget {
                 self.selected = true;
             }
         }
+        if let Some(icon) = &mut self.icon {
+            icon.update(position, context);
+
+            let mut light = ThemeColor::Light;
+            let mut dark = ThemeColor::Dark;
+            if self.selected || self.text.state.hovered {
+                std::mem::swap(&mut dark, &mut light);
+            }
+
+            icon.color = light;
+            if let Some(bg) = &mut icon.background {
+                bg.color = dark;
+            }
+        }
     }
 }
 
@@ -185,15 +214,7 @@ impl WidgetOld for ToggleButtonWidget {
     }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
-        self.state.update(position, context);
-        self.text.update(position, context);
-        if self.state.mouse_left.clicked {
-            if self.can_deselect {
-                self.selected = !self.selected;
-            } else {
-                self.selected = true;
-            }
-        }
+        self.update(position, context);
     }
 }
 

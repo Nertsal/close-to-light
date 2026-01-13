@@ -124,8 +124,9 @@ pub trait AreaOps {
             total.max.x = total.max.x.max(last.max.x);
             total.max.y = total.max.y.max(last.max.y);
         }
+        let offset = self.align_aabb(total.size(), align).center() - total.center();
         for pos in &mut cells {
-            *pos = pos.translate(self.get().size() * align - total.size() * align);
+            *pos = pos.translate(offset);
         }
         cells
     }

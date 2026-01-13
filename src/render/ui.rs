@@ -650,6 +650,28 @@ impl UiRender {
         self.draw_text_colored(&toggle.text, fg_color, framebuffer);
     }
 
+    pub fn draw_toggle_button(
+        &self,
+        toggle: &ToggleButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let width = toggle.text.options.size * 0.2;
+        let (bg_color, fg_color) = if toggle.selected {
+            (theme.light, theme.dark)
+        } else {
+            (theme.dark, theme.light)
+        };
+
+        let outline = toggle.text.state.position;
+        self.fill_quad_width(outline, width, bg_color, framebuffer);
+        self.draw_text_colored(&toggle.text, fg_color, framebuffer);
+        if let Some(icon) = &toggle.icon {
+            self.draw_icon(icon, theme, framebuffer);
+        }
+        self.draw_outline(outline, width, theme.light, framebuffer);
+    }
+
     // TODO: more general name
     pub fn draw_toggle(
         &self,

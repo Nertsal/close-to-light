@@ -5,13 +5,14 @@ use std::collections::HashMap;
 use ctl_core::model::ScoreGrade;
 use geng::prelude::*;
 
+/// ID's of the levels counted towards `LEVELS_COMPLETED`.
+pub const ALL_DEMO_SONGS: [[u32; 3]; 4] = [[1, 2, 3], [4, 5, 6], [11, 12, 13], [14, 15, 16]];
+
 #[cfg(feature = "demo")]
 mod constants {
     pub const STAT_SONGS_TRIED: &str = "SONGS_TRIED";
 
     pub const STAT_LEVELS_COMPLETED: &str = "LEVELS_COMPLETED";
-    /// ID's of the levels counted towards `LEVELS_COMPLETED`.
-    pub const ALL_SONGS: [[u32; 3]; 4] = [[1, 2, 3], [4, 5, 6], [11, 12, 13], [14, 15, 16]];
     pub const HARD_LEVEL_IDS: [u32; 4] = [3, 6, 13, 16];
 
     #[cfg(feature = "demo")]
@@ -119,7 +120,7 @@ impl Achievements {
                 self.unlock_achievement(Achievement::FirstLights);
 
                 if let LocalLevelId::Id(id) = new_score_level
-                    && !ALL_SONGS.iter().any(|levels| levels.contains(id))
+                    && !ALL_DEMO_SONGS.iter().any(|levels| levels.contains(id))
                 {
                     // Custom level
                     self.unlock_achievement(Achievement::ExploratoryNature);
@@ -132,7 +133,7 @@ impl Achievements {
                 .filter_map(|(id, score)| {
                     if let &LocalLevelId::Id(id) = id
                         && score.meta.calculate_grade() != ScoreGrade::F
-                        && ALL_SONGS.iter().any(|levels| levels.contains(&id))
+                        && ALL_DEMO_SONGS.iter().any(|levels| levels.contains(&id))
                     {
                         Some(id)
                     } else {
@@ -140,16 +141,16 @@ impl Achievements {
                     }
                 })
                 .collect();
-            if levels_completed.len() == ALL_SONGS.iter().flatten().count() {
+            if levels_completed.len() == ALL_DEMO_SONGS.iter().flatten().count() {
                 self.unlock_achievement(Achievement::TotalIllumination);
             }
 
             // Song progress
-            let songs_played = ALL_SONGS
+            let songs_played = ALL_DEMO_SONGS
                 .iter()
                 .filter(|levels| levels.iter().any(|id| levels_completed.contains(id)))
                 .count();
-            if songs_played == ALL_SONGS.len() {
+            if songs_played == ALL_DEMO_SONGS.len() {
                 self.unlock_achievement(Achievement::GettingStarted);
             }
 

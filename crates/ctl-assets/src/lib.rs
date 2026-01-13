@@ -131,6 +131,10 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     value_knob,
     dropdown,
 
+    light,
+    wrench,
+    all,
+
     grade_sss,
     grade_ss,
     grade_s,

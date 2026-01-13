@@ -3,10 +3,18 @@ use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
 
 use super::*;
 
+const ALL_DEMO_SETS: [Id; 4] = [1, 2, 4, 5];
+
 pub struct LevelSelectUI {
     // geng: Geng,
     assets: Rc<Assets>,
     pub state: WidgetState,
+
+    pub active_filter: LevelsFilter,
+    pub tab_filter_demo: ToggleButtonWidget,
+    pub tab_filter_custom: ToggleButtonWidget,
+    pub tab_filter_all: ToggleButtonWidget,
+
     pub tab_levels: TextWidget,
     pub light_level: SelectLightUi,
     pub tab_diffs: TextWidget,
@@ -18,6 +26,13 @@ pub struct LevelSelectUI {
     pub diffs: Vec<ItemDiffWidget>,
     pub no_diffs: TextWidget,
     pub no_level_selected: TextWidget,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LevelsFilter {
+    All,
+    Demo,
+    Custom,
 }
 
 pub struct SelectLightUi {
@@ -60,6 +75,12 @@ impl LevelSelectUI {
             // geng: geng.clone(),
             assets: assets.clone(),
             state: WidgetState::new(),
+
+            active_filter: LevelsFilter::Demo,
+            tab_filter_demo: ToggleButtonWidget::new("").with_icon(assets.atlas.light()),
+            tab_filter_custom: ToggleButtonWidget::new("").with_icon(assets.atlas.wrench()),
+            tab_filter_all: ToggleButtonWidget::new("").with_icon(assets.atlas.all()),
+
             tab_levels: TextWidget::new("Level"),
             light_level: SelectLightUi::default(),
             tab_diffs: TextWidget::new("Difficulty"),
@@ -83,6 +104,36 @@ impl LevelSelectUI {
         self.state.update(main, context);
         self.light_level.update(context.delta_time);
         self.light_diff.update(context.delta_time);
+
+        // Filter tabs on the side
+        let filter_size = vec2(1.0, 1.2) * context.font_size;
+        let filter_tabs = main
+            .clone()
+            .cut_left(filter_size.x)
+            .translate(vec2(-filter_size.x + context.font_size * 0.25, 0.0))
+            .extend_symmetric(-vec2(0.0, context.layout_size * 0.5));
+
+        let filter_tabs = Aabb2::point(filter_tabs.center())
+            .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2))
+            .stack_aligned(
+                vec2(0.0, -filter_size.y - context.font_size * 0.5),
+                3,
+                vec2(0.0, 0.5),
+            );
+        for ((tab, filter), pos) in [
+            (&mut self.tab_filter_demo, LevelsFilter::Demo),
+            (&mut self.tab_filter_custom, LevelsFilter::Custom),
+            (&mut self.tab_filter_all, LevelsFilter::All),
+        ]
+        .into_iter()
+        .zip(filter_tabs)
+        {
+            tab.selected = self.active_filter == filter;
+            tab.update(pos, context);
+            if tab.selected {
+                self.active_filter = filter;
+            }
+        }
 
         let mut main = main.extend_uniform(-context.font_size * 0.5);
         main.cut_top(context.layout_size * 1.5);
@@ -174,6 +225,11 @@ impl LevelSelectUI {
             .groups
             .iter()
             .sorted_by_key(|(_, group)| group.local.meta.id)
+            .filter(|(_, group)| match self.active_filter {
+                LevelsFilter::All => true,
+                LevelsFilter::Demo => ALL_DEMO_SETS.contains(&group.local.meta.id),
+                LevelsFilter::Custom => !ALL_DEMO_SETS.contains(&group.local.meta.id),
+            })
             .collect();
 
         // Synchronize vec length
