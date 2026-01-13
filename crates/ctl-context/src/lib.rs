@@ -82,7 +82,7 @@ impl Context {
         if let Some(steam) = &self.steam {
             steam
                 .friends()
-                .set_rich_presence("steam_display", Some("#StatusFull"));
+                .set_rich_presence("steam_display", status.map(|_| "#StatusFull"));
             steam.friends().set_rich_presence("text", status);
         }
 
