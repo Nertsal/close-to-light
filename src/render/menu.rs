@@ -8,9 +8,11 @@ use crate::{
     ui::layout::AreaOps,
 };
 
+const PREVIEW_RESOLUTION: vec2<usize> = vec2(640 / 3, 360 / 3);
+
 pub struct MenuRender {
     context: Context,
-    dither: DitherRender,
+    dither_preview: DitherRender,
     util: UtilRender,
     masked: MaskedRender,
     masked2: MaskedRender, // TODO: have just one somehow maybe
@@ -21,7 +23,11 @@ pub struct MenuRender {
 impl MenuRender {
     pub fn new(context: Context) -> Self {
         Self {
-            dither: DitherRender::new(&context.geng, &context.assets),
+            dither_preview: DitherRender::new_sized(
+                &context.geng,
+                &context.assets,
+                PREVIEW_RESOLUTION,
+            ),
             util: UtilRender::new(context.clone()),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
@@ -510,7 +516,7 @@ impl MenuRender {
         setting: Aabb2<f32>,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {
-        let mut framebuffer = self.dither.start();
+        let mut framebuffer = self.dither_preview.start();
 
         let level_state = &preview.state;
         let camera = &preview.camera;
@@ -546,9 +552,9 @@ impl MenuRender {
         self.util
             .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
 
-        self.dither.finish(preview.real_time, &theme);
+        self.dither_preview.finish(preview.real_time, &theme);
 
-        let popup_size = vec2(10.0, 6.0) * self.font_size;
+        let popup_size = vec2(PREVIEW_RESOLUTION.as_f32().aspect(), 1.0) * 6.0 * self.font_size;
         let popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * self.font_size)
             .extend_positive(popup_size);
         let width = 12.0;
@@ -560,7 +566,7 @@ impl MenuRender {
             options.theme,
             old_framebuffer,
             |framebuffer| {
-                geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+                geng_utils::texture::DrawTexture::new(self.dither_preview.get_buffer())
                     .fit(popup, vec2(0.5, 0.5))
                     .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
             },
