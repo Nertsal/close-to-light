@@ -280,16 +280,16 @@ async fn update_level_set(
             let old_level: Option<&LevelRow> = old_levels
                 .iter()
                 .find(|old_level| old_level.level_id == level_meta.id);
-            if let Some(old_level) = old_level {
+            if let Some(_old_level) = old_level {
                 // Update an existing level
-                if old_level.hash != level_meta.hash {
-                    // Reset the leaderboard
-                    // TODO: make a new endpoint to delete old scores maybe?
-                    sqlx::query("DELETE FROM scores WHERE level_id = ?")
-                        .bind(old_level.level_id)
-                        .execute(&mut **trans)
-                        .await?;
-                }
+                // if old_level.hash != level_meta.hash {
+                //     // Reset the leaderboard
+                //     // TODO: make a new endpoint to delete old scores maybe?
+                //     sqlx::query("DELETE FROM scores WHERE level_id = ?")
+                //         .bind(old_level.level_id)
+                //         .execute(&mut **trans)
+                //         .await?;
+                // }
 
                 // Update
                 sqlx::query(

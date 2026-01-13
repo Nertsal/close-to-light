@@ -120,7 +120,7 @@ impl GameRender {
                 if fading && !button.is_fading() {
                     continue;
                 }
-                let button = smooth_button(button, model.switch_time);
+                let button = smooth_button(button, model.button_time);
                 self.util
                     .draw_button(&button, text, &THEME, camera, &mut framebuffer);
             }

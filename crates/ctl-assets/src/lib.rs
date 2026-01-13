@@ -112,6 +112,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     trash,
     settings,
     discord,
+    steam,
     star,
     local,
     dotdotdot,
@@ -129,6 +130,10 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_hidden,
     value_knob,
     dropdown,
+
+    light,
+    wrench,
+    all,
 
     grade_sss,
     grade_ss,
@@ -174,6 +179,7 @@ pub struct Shaders {
     pub texture_ui: ugli::Program,
     pub crt: ugli::Program,
     pub rgb_split: ugli::Program,
+    pub color_correction: ugli::Program,
 }
 
 #[derive(geng::asset::Load)]

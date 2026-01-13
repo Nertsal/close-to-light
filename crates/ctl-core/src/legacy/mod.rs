@@ -2,12 +2,15 @@
 pub mod v1;
 /// Version as of October 24th, 2025 (Visual Update).
 pub mod v2;
+/// Version as of January 23rd, 2026 (Demo Release).
+pub mod v3;
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub enum VersionedLevelSet {
     V2(v2::LevelSet),
+    // V3(v3::LevelSet),
     V3(crate::LevelSet),
 }
 
@@ -15,6 +18,7 @@ pub enum VersionedLevelSet {
 #[serde(tag = "version")]
 pub enum VersionedLevelSetInfo {
     V2(v2::LevelSetInfo),
+    // V3(v3::LevelSetInfo),
     V3(crate::LevelSetInfo),
 }
 

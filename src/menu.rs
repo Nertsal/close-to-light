@@ -1,9 +1,10 @@
+mod game_preview;
 mod level;
 mod loading;
 mod main;
 mod splash;
 
-pub use self::{level::*, loading::*, main::*, splash::*};
+pub use self::{game_preview::*, level::*, loading::*, main::*, splash::*};
 
 use crate::{
     prelude::*,

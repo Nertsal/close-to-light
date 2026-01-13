@@ -21,6 +21,8 @@ where
 #[serde(default)]
 pub struct Options {
     #[serde(deserialize_with = "ok_or_default")]
+    pub account: AccountOptions,
+    #[serde(deserialize_with = "ok_or_default")]
     pub volume: VolumeOptions,
     #[serde(deserialize_with = "ok_or_default")]
     pub theme: Theme,
@@ -32,19 +34,35 @@ pub struct Options {
     pub gameplay: GameplayOptions,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct AccountOptions {
+    pub auto_login: bool,
+}
+
+impl Default for AccountOptions {
+    fn default() -> Self {
+        Self { auto_login: true }
+    }
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsOptions {
     pub crt: GraphicsCrtOptions,
     pub lights: GraphicsLightsOptions,
+    pub colors: GraphicsColorsOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsCrtOptions {
     pub enabled: bool,
+    #[serde(skip)]
     pub curvature: f32,
+    #[serde(skip)]
     pub vignette: f32,
+    #[serde(skip)]
     pub scanlines: f32,
 }
 
@@ -55,6 +73,22 @@ impl Default for GraphicsCrtOptions {
             curvature: 20.0,
             vignette: 0.2,
             scanlines: 0.5,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GraphicsColorsOptions {
+    pub blue: f32,
+    pub saturation: f32,
+}
+
+impl Default for GraphicsColorsOptions {
+    fn default() -> Self {
+        Self {
+            blue: 1.0,
+            saturation: 1.0,
         }
     }
 }
@@ -70,7 +104,7 @@ impl Default for GraphicsLightsOptions {
     fn default() -> Self {
         Self {
             telegraph_color: ThemeColor::Light,
-            perfect_color: ThemeColor::Light,
+            perfect_color: ThemeColor::Highlight,
         }
     }
 }
@@ -208,6 +242,6 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::stargazer()
+        Self::frostlight()
     }
 }

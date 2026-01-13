@@ -29,6 +29,7 @@ impl OptionsButtonWidget {
                 vec![
                     // TODO: custom palettes
                     PaletteWidget::new("Classic", Theme::classic()),
+                    PaletteWidget::new("Frostlight", Theme::frostlight()),
                     PaletteWidget::new("Stargazer", Theme::stargazer()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
                     PaletteWidget::new("Linksider", Theme::linksider()),
@@ -201,6 +202,13 @@ impl StatefulWidget for OptionsWidget {
         self.cursor.update(cursor, context, &mut options.cursor);
         main.cut_top(self.graphics.state.position.height());
         main.cut_top(spacing);
+        let cursor_size =
+            if self.cursor.inner_radius.state.hovered || self.cursor.outer_radius.state.hovered {
+                r32(0.5)
+            } else {
+                r32(0.1)
+            };
+        state.player_size.target = cursor_size;
 
         state.context.set_options(options);
 
@@ -263,7 +271,8 @@ pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub crt: ToggleWidget,
-    pub crt_scanlines: SliderWidget,
+    pub blue: SliderWidget,
+    pub saturation: SliderWidget,
     pub telegraph_color: ToggleWidget,
     pub perfect_color: ToggleWidget,
 }
@@ -274,7 +283,8 @@ impl GraphicsWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             crt: ToggleWidget::new("CRT Shader"),
-            crt_scanlines: SliderWidget::new("Scanlines").with_display_precision(0),
+            blue: SliderWidget::new("Blue light").with_display_precision(0),
+            saturation: SliderWidget::new("Saturation").with_display_precision(0),
             telegraph_color: ToggleWidget::new("Telegraph highlight"),
             perfect_color: ToggleWidget::new("Perfect highlight"),
         }
@@ -320,14 +330,17 @@ impl StatefulWidget for GraphicsWidget {
             state.crt.enabled = !state.crt.enabled;
         }
 
-        if state.crt.enabled {
-            self.crt_scanlines.state.show();
-            let mut value = Bounded::new(state.crt.scanlines * 100.0, 0.0..=100.0);
-            self.crt_scanlines.update(next_row(), context, &mut value);
-            state.crt.scanlines = value.value() / 100.0;
-        } else {
-            self.crt_scanlines.state.hide();
-        }
+        // TODO: fix dragging view while changing value (also for music offset)
+        let mut blue = state.colors.blue * 100.0;
+        self.blue
+            .update_value(next_row(), context, &mut blue, 0.0..=100.0);
+        state.colors.blue = blue / 100.0;
+
+        // TODO: fix dragging view while changing value (also for music offset)
+        let mut saturation = state.colors.saturation * 100.0;
+        self.saturation
+            .update_value(next_row(), context, &mut saturation, 0.0..=100.0);
+        state.colors.saturation = saturation / 100.0;
 
         self.telegraph_color.update(next_row(), context);
         if self.telegraph_color.state.mouse_left.clicked {

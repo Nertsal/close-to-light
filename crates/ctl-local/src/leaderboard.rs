@@ -1,11 +1,15 @@
 use ctl_client::Nertboard;
 use ctl_core::{
     ScoreEntry, SubmitScore,
+    auth::UserLogin,
+    model::ScoreGrade,
     prelude::{HealthConfig, LevelModifiers, Score, Uuid},
-    types::{Id, LevelInfo, UserInfo, UserLogin},
+    types::{Id, LevelInfo, UserInfo},
 };
 use ctl_util::Task;
 use geng::prelude::*;
+
+use crate::{achievements::Achievements, fs::LocalLevelId};
 
 const SCORE_VERSION: u32 = 1;
 
@@ -32,10 +36,11 @@ pub struct LeaderboardImpl {
     /// Logged in as user with a name.
     pub user: Option<UserLogin>,
     pub client: Option<Arc<Nertboard>>,
+    pub achievements: Achievements,
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
     fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
-    highscores_task: Option<Task<anyhow::Result<HashMap<String, SavedScore>>>>,
+    highscores_task: Option<Task<anyhow::Result<HashMap<LocalLevelId, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -48,7 +53,7 @@ pub struct SavedScore {
 }
 
 pub struct LoadedBoard {
-    pub all_highscores: HashMap<String, SavedScore>,
+    pub all_highscores: HashMap<LocalLevelId, SavedScore>,
     pub level: LevelInfo,
     pub player: Option<Id>,
     pub category: ScoreCategory,
@@ -115,12 +120,16 @@ impl ScoreMeta {
             time: ::time::OffsetDateTime::now_utc(),
         }
     }
+
+    pub fn calculate_grade(&self) -> ScoreGrade {
+        self.score.calculate_grade(self.completion)
+    }
 }
 
 impl Leaderboard {
-    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>, achievements: &Achievements) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs))),
+            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs, achievements))),
         }
     }
 
@@ -128,9 +137,17 @@ impl Leaderboard {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        achievements: &Achievements,
+        auto_login: bool,
     ) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(LeaderboardImpl::new(geng, client, fs))),
+            inner: Rc::new(RefCell::new(LeaderboardImpl::new(
+                geng,
+                client,
+                fs,
+                achievements,
+                auto_login,
+            ))),
         }
     }
 
@@ -152,10 +169,11 @@ impl Leaderboard {
 }
 
 impl LeaderboardImpl {
-    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>, achievements: &Achievements) -> Self {
         let mut leaderboard = Self {
             geng: geng.clone(),
             fs: fs.clone(),
+            achievements: achievements.clone(),
             user: None,
             client: None,
             log_task: None,
@@ -173,13 +191,22 @@ impl LeaderboardImpl {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        achievements: &Achievements,
+        auto_login: bool,
     ) -> Self {
         let mut leaderboard = Self {
             client: client.cloned(),
-            ..Self::empty(geng, fs)
+            ..Self::empty(geng, fs, achievements)
         };
-        leaderboard.relogin();
+        if auto_login {
+            leaderboard.relogin();
+        }
         leaderboard
+    }
+
+    /// Returns `true` if currently connecting to the server.
+    pub fn is_connecting(&self) -> bool {
+        self.log_task.is_some()
     }
 
     pub fn is_online(&self) -> bool {
@@ -215,6 +242,16 @@ impl LeaderboardImpl {
         }
     }
 
+    #[cfg(feature = "steam")]
+    /// Login directly via Steam
+    pub fn login_steam(&mut self) {
+        let Some(client) = &self.client else { return };
+        let client = Arc::clone(client);
+        let future = async move { client.login_steam().await };
+        self.log_task = Some(Task::new(&self.geng, future));
+        self.user = None;
+    }
+
     /// Attempt to login back using the saved credentials.
     pub fn relogin(&mut self) {
         if self.log_task.is_some() {
@@ -222,15 +259,28 @@ impl LeaderboardImpl {
         }
 
         if let Some(client) = &self.client {
-            let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
-            else {
-                return;
-            };
+            #[cfg(feature = "steam")]
+            {
+                // Login directly via Steam
+                let client = Arc::clone(client);
+                let future = async move { client.login_steam().await };
+                self.log_task = Some(Task::new(&self.geng, future));
+                self.user = None;
+            }
 
-            let client = Arc::clone(client);
-            let future = async move { client.login_token(user.id, &user.token).await };
-            self.log_task = Some(Task::new(&self.geng, future));
-            self.user = None;
+            #[cfg(not(feature = "steam"))]
+            {
+                // Retrieve token
+                let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
+                else {
+                    return;
+                };
+
+                let client = Arc::clone(client);
+                let future = async move { client.login_token(user.id, &user.token).await };
+                self.log_task = Some(Task::new(&self.geng, future));
+                self.user = None;
+            }
         }
     }
 
@@ -292,7 +342,10 @@ impl LeaderboardImpl {
                     match res {
                         Ok(Ok(user)) => {
                             log::debug!("Logged in as {}", &user.name);
+
+                            #[cfg(not(feature = "steam"))] // Steam requires full relogin each time
                             preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
+
                             self.loaded.player = Some(user.id);
                             self.user = Some(user);
                         }
@@ -338,9 +391,12 @@ impl LeaderboardImpl {
                         log::debug!("Updating local highscore: {update:?}");
                         if let Some(score) = &update {
                             log::debug!("Adding to {:?} score {score:?}", self.loaded.level.hash);
+                            let level_id = LocalLevelId::from_info(&self.loaded.level);
                             self.loaded
                                 .all_highscores
-                                .insert(self.loaded.level.hash.clone(), score.clone());
+                                .insert(level_id.clone(), score.clone());
+                            self.achievements
+                                .update_highscores(&self.loaded.all_highscores, (&level_id, score));
                         }
                         self.loaded.local_high = update;
                     }
@@ -358,6 +414,7 @@ impl LeaderboardImpl {
                     Ok(update) => {
                         log::debug!("Loaded all local highscores");
                         self.loaded.all_highscores = update;
+                        // TODO: update achievements?
                     }
                     Err(err) => {
                         log::error!("Loading local highscores failed: {err:?}");
@@ -483,22 +540,22 @@ impl LeaderboardImpl {
     fn update_local(&mut self, score: Option<SavedScore>) {
         log::debug!("Updating local scores with a new score: {score:?}");
         let fs = self.fs.clone();
-        let hash = self.loaded.level.hash.clone();
+        let level_id = LocalLevelId::from_info(&self.loaded.level);
         let version = self.loaded.category.version;
         self.loaded.local_high = None;
         self.loaded.all_scores.clear();
         self.loaded.filtered.clear();
         let task = async move {
-            let mut scores = match fs.load_local_scores(&hash).await {
+            let mut scores = match fs.load_local_scores(&level_id).await {
                 Ok(scores) => scores,
                 Err(err) => {
-                    log::warn!("Loading local scores for level {hash} failed: {err:?}");
+                    log::warn!("Loading local scores for level ({level_id:?}) failed: {err:?}");
                     vec![]
                 }
             };
             if let Some(score) = score {
                 scores.push(score);
-                fs.save_local_scores(&hash, &scores)
+                fs.save_local_scores(&level_id, &scores)
                     .await
                     .with_context(|| "when saving local scores")?;
             }

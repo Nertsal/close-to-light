@@ -144,7 +144,7 @@ impl LevelEditor {
 
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(),
-            timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(0.5))),
+            timeline_zoom: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.5)),
             real_time: FloatTime::ZERO,
             timeline_light_hover: None,
 

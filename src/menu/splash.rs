@@ -82,6 +82,7 @@ trigger seizures for people with photosensitive epilepsy
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
+                colors: options.graphics.colors,
             },
             framebuffer,
         );
@@ -89,6 +90,7 @@ trigger seizures for people with photosensitive epilepsy
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
+        self.context.update(delta_time);
         self.time += delta_time;
 
         if self.time.as_f32() > TRANSITION_TIME {

@@ -685,7 +685,16 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let options = self.context.get_options();
+        self.draw_player_with(&options, player, camera, framebuffer);
+    }
 
+    pub fn draw_player_with(
+        &self,
+        options: &Options,
+        player: &Player,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         // Player tail
         for tail in &player.tail {
             let radius = r32(options.cursor.inner_radius) * tail.lifetime.get_ratio();
@@ -709,8 +718,13 @@ impl UtilRender {
 
         // Player
         if options.cursor.show_perfect_radius {
+            let size = player.collider.compute_aabb().width() / r32(2.0);
+            let collider = Collider {
+                shape: Shape::circle(size.max(r32(options.cursor.inner_radius))),
+                ..player.collider.clone()
+            };
             self.draw_outline(
-                &player.collider,
+                &collider,
                 options.cursor.outer_radius,
                 THEME.light,
                 camera,

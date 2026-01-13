@@ -8,6 +8,7 @@ pub struct ProfileWidget {
     pub window: UiWindow<()>,
     pub offline: TextWidget,
     pub register: RegisterWidget,
+    pub connecting: TextWidget,
     pub logged: LoggedWidget,
 }
 
@@ -19,6 +20,8 @@ pub struct RegisterWidget {
     // pub register: ButtonWidget,
     pub login_with: TextWidget,
     pub discord: IconButtonWidget,
+    #[cfg(feature = "steam")]
+    pub steam: IconButtonWidget,
 }
 
 pub struct LoggedWidget {
@@ -41,7 +44,10 @@ impl ProfileWidget {
                 // register: ButtonWidget::new("Register"),
                 login_with: TextWidget::new("Login with"),
                 discord: IconButtonWidget::new_normal(assets.atlas.discord()),
+                #[cfg(feature = "steam")]
+                steam: IconButtonWidget::new_normal(assets.atlas.steam()),
             },
+            connecting: TextWidget::new("Connecting..."),
             logged: LoggedWidget {
                 state: WidgetState::new(),
                 username: TextWidget::new("<username>"),
@@ -70,24 +76,40 @@ impl StatefulWidget for ProfileWidget {
         let margin = context.layout_size * 0.5;
         let main = position.extend_uniform(-margin);
 
-        let (off, reg, log) = match (state.get().is_online(), state.get_user().is_some()) {
-            (false, _) => (true, false, false),
-            (true, false) => (false, true, false),
-            (true, true) => (false, false, true),
+        enum LogState {
+            Offline,
+            LoggedOut,
+            Connecting,
+            LoggedIn,
+        }
+        let log_state = if !state.get().is_online() {
+            LogState::Offline
+        } else if state.get().is_connecting() {
+            LogState::Connecting
+        } else if state.get_user().is_some() {
+            LogState::LoggedIn
+        } else {
+            LogState::LoggedOut
         };
-        if off {
+        if let LogState::Offline = log_state {
             self.offline.show();
             self.offline.update(main, context);
         } else {
             self.offline.hide();
         }
-        if reg {
+        if let LogState::LoggedOut = log_state {
             self.register.show();
             self.register.update(main, context, state);
         } else {
             self.register.hide();
         }
-        if log {
+        if let LogState::Connecting = log_state {
+            self.connecting.show();
+            self.connecting.update(main, context);
+        } else {
+            self.connecting.hide();
+        }
+        if let LogState::LoggedIn = log_state {
             self.logged.show();
             self.logged.update(main, context, state);
         } else {
@@ -134,7 +156,14 @@ impl StatefulWidget for RegisterWidget {
         let login_with = main.cut_top(context.font_size);
         self.login_with.update(login_with, context);
 
+        #[cfg(feature = "steam")]
+        let with_options = {
+            self.discord.hide();
+            [&mut self.steam]
+        };
+        #[cfg(not(feature = "steam"))]
         let with_options = [&mut self.discord];
+
         let size = vec2::splat(context.font_size * 1.2);
         let with = main.align_aabb(size, vec2(0.5, 0.5));
         let positions = with.stack_aligned(
@@ -146,8 +175,21 @@ impl StatefulWidget for RegisterWidget {
             with.update(pos, context);
         }
 
+        let mut login = false;
         if self.discord.icon.state.mouse_left.clicked {
             state.get_mut().login_discord();
+            login = true;
+        }
+        #[cfg(feature = "steam")]
+        if self.steam.icon.state.mouse_left.clicked {
+            state.get_mut().login_steam();
+            login = true;
+        }
+        if login {
+            // Set auto_login
+            let mut options = context.context.get_options();
+            options.account.auto_login = true;
+            context.context.set_options(options);
         }
     }
 }
@@ -175,10 +217,13 @@ impl StatefulWidget for LoggedWidget {
 
         let rows = main.split_rows(2);
         self.username.update(rows[0], context);
-        self.logout.update(rows[1], context);
 
+        self.logout.update(rows[1], context);
         if self.logout.text.state.mouse_left.clicked {
             state.get_mut().logout();
+            let mut options = context.context.get_options();
+            options.account.auto_login = false;
+            context.context.set_options(options);
         }
     }
 }

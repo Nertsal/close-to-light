@@ -2,7 +2,7 @@ use super::*;
 
 use crate::database::types::LevelRow;
 
-use ctl_core::{types::MapperInfo, ScoreEntry, SubmitScore};
+use ctl_core::{ScoreEntry, SubmitScore, types::MapperInfo};
 
 pub fn route(router: Router) -> Router {
     router.route("/level/:level_id", get(level_get)).route(
@@ -53,7 +53,7 @@ async fn fetch_scores(
         .bind(level_id)
         .fetch_optional(&app.database)
         .await?;
-    let Some(level) = level else {
+    let Some(_level) = level else {
         return Err(RequestError::NoSuchLevel(level_id));
     };
 
@@ -71,11 +71,10 @@ async fn fetch_scores(
 SELECT *
 FROM scores
 JOIN users ON scores.user_id = users.user_id
-WHERE level_id = ? AND level_hash = ?
+WHERE level_id = ?
         ",
     )
     .bind(level_id)
-    .bind(&level.hash)
     .fetch_all(&app.database)
     .await?;
 

@@ -2,7 +2,7 @@ use super::*;
 
 use axum_extra::TypedHeader;
 use ctl_core::auth::Credentials;
-use headers::{authorization::Basic, Authorization};
+use headers::{Authorization, authorization::Basic};
 
 pub fn router() -> Router {
     Router::new().route("/auth/token", post(auth_token_route))
@@ -15,12 +15,13 @@ pub async fn auth_header_required_middleware(
     next: axum::middleware::Next,
 ) -> impl IntoResponse {
     if session.user.is_none()
-        && let Some(auth_header) = auth_header {
-            // Attempt extracting token from header
-            if auth_token(&mut session, auth_header.0).await.is_ok() {
-                request.extensions_mut().insert(session);
-            }
+        && let Some(auth_header) = auth_header
+    {
+        // Attempt extracting token from header
+        if auth_token(&mut session, auth_header.0).await.is_ok() {
+            request.extensions_mut().insert(session);
         }
+    }
     next.run(request).await
 }
 
@@ -65,14 +66,39 @@ async fn auth_token(
     Ok(Json(user))
 }
 
-pub(super) async fn generate_login_token(app: &App, user_id: Id) -> Result<String> {
+pub(super) async fn generate_login_token(
+    app: &App,
+    user_id: Id,
+    expiration_date: Option<time::OffsetDateTime>,
+) -> Result<String> {
     let token = uuid::Uuid::new_v4().to_string();
 
-    sqlx::query("INSERT INTO user_auth_tokens (user_id, token) VALUES (?, ?)")
+    sqlx::query("INSERT INTO user_auth_tokens (user_id, token, expiration_date) VALUES (?, ?, ?)")
         .bind(user_id)
         .bind(&token)
+        .bind(expiration_date)
         .execute(&app.database)
         .await?;
 
     Ok(token)
+}
+
+pub async fn deletion_task(app: Arc<App>) {
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+    loop {
+        interval.tick().await;
+        if let Err(err) = delete_expired_tokens(&app).await {
+            tracing::error!("{:?}", err);
+        }
+    }
+}
+
+async fn delete_expired_tokens(app: &App) -> Result<()> {
+    let now = time::OffsetDateTime::now_utc();
+    sqlx::query("DELETE FROM user_auth_tokens WHERE expiration_date < ?")
+        .bind(now)
+        .execute(&app.database)
+        .await?;
+
+    Ok(())
 }

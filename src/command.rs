@@ -8,8 +8,9 @@ use anyhow::Result;
 use ctl_client::{
     Nertboard,
     core::{
+        auth::UserLogin,
         prelude::Uuid,
-        types::{Id, NewMusician, UserLogin},
+        types::{Id, NewMusician},
     },
 };
 use ctl_logic::FloatTime;
@@ -224,7 +225,13 @@ impl Command {
                 let state = crate::game::Game::new(
                     context.clone(),
                     level,
-                    ctl_local::Leaderboard::new(&context.geng, None, &context.local.fs),
+                    ctl_local::Leaderboard::new(
+                        &context.geng,
+                        None,
+                        &context.local.fs,
+                        &context.achievements,
+                        true,
+                    ),
                 );
                 context.geng.run_state(state).await;
             }
@@ -377,12 +384,12 @@ impl Command {
                             cached: Rc::new(ctl_local::CachedGroup {
                                 local: ctl_local::LocalGroup {
                                     path: "".into(),
+                                    loaded_from_assets: false,
                                     meta: info,
                                     music: Some(music.clone()),
                                     data: level_set,
                                 },
                                 origin: None,
-                                level_hashes: vec![],
                             }),
                             music: Some(music),
                         },

@@ -17,7 +17,7 @@ pub struct OptionWidget {
 impl ContextMenuWidget {
     pub fn empty() -> Self {
         Self {
-            extension: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, 0.0)),
+            extension: SecondOrderState::new(3.0, 1.0, 0.0, 0.0),
             state: WidgetState::new(),
             options: vec![],
         }
@@ -27,7 +27,7 @@ impl ContextMenuWidget {
         position: vec2<f32>,
         options: impl IntoIterator<Item = (impl Into<Name>, EditorStateAction)>,
     ) -> Self {
-        let mut extension = SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, 0.0));
+        let mut extension = SecondOrderState::new(3.0, 1.0, 0.0, 0.0);
         extension.target = 1.0;
 
         let mut state = WidgetState::new();

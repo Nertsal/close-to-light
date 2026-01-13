@@ -110,10 +110,10 @@ pub struct UiContext {
     /// Active key modifiers.
     pub mods: KeyModifiers,
     /// Whether the widget can use the cursor position to get focus.
-    pub can_focus: RefCell<bool>,
+    pub can_focus: Rc<RefCell<bool>>,
 
-    pub total_focus: RefCell<bool>,
-    pub cancel_focus: RefCell<bool>,
+    pub total_focus: Rc<RefCell<bool>>,
+    pub cancel_focus: Rc<RefCell<bool>>,
 
     pub real_time: f32,
     pub delta_time: f32,
@@ -212,10 +212,10 @@ impl UiContext {
 
             text_edit: TextEdit::new(&context.geng),
             mods: KeyModifiers::default(),
-            can_focus: true.into(),
+            can_focus: Rc::new(true.into()),
 
-            total_focus: false.into(),
-            cancel_focus: false.into(),
+            total_focus: Rc::new(false.into()),
+            cancel_focus: Rc::new(false.into()),
 
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,

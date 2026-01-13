@@ -43,7 +43,13 @@ struct MainUI {
 
 impl MainMenu {
     pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
-        let leaderboard = Leaderboard::new(&context.geng, client, &context.local.fs);
+        let leaderboard = Leaderboard::new(
+            &context.geng,
+            client,
+            &context.local.fs,
+            &context.achievements,
+            context.get_options().account.auto_login,
+        );
 
         Self {
             dither: DitherRender::new(&context.geng, &context.assets),
@@ -104,6 +110,7 @@ impl geng::State for MainMenu {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
+        self.context.update(delta_time);
         self.time += delta_time;
 
         self.context
@@ -250,6 +257,7 @@ impl geng::State for MainMenu {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
+                colors: options.graphics.colors,
             },
             screen_buffer,
         );
