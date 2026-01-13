@@ -36,6 +36,9 @@ pub struct MainMenu {
 
 struct MainUI {
     screen: WidgetState,
+    exit: ButtonWidget,
+    exit_queued: bool,
+    // options: OptionsButtonWidget,
     join_community: TextWidget,
     join_discord: IconButtonWidget,
     profile: ProfileWidget,
@@ -105,7 +108,16 @@ impl MainMenu {
 
 impl geng::State for MainMenu {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take()
+        let mut transition = self.transition.take();
+
+        if transition.is_none() && self.ui.exit_queued {
+            transition = Some(geng::state::Transition::Pop);
+        }
+
+        if transition.is_some() {
+            self.cursor_pos = vec2(0.0, 0.0);
+        }
+        transition
     }
 
     fn update(&mut self, delta_time: f64) {
@@ -238,6 +250,7 @@ impl geng::State for MainMenu {
             let theme = self.context.get_options().theme;
             let ui = &self.ui;
 
+            self.ui_render.draw_button(&ui.exit, theme, buffer);
             self.ui_render.draw_text(&ui.join_community, buffer);
             self.ui_render
                 .draw_icon_button(&ui.join_discord, theme, buffer);
@@ -269,7 +282,10 @@ impl geng::State for MainMenu {
 impl MainUI {
     pub fn new(context: Context) -> Self {
         Self {
+            exit_queued: false,
             screen: WidgetState::new(),
+            exit: ButtonWidget::new("Exit"),
+            // options: OptionsButtonWidget::new(&context.assets, 0.25),
             join_community: TextWidget::new("Join our community!"),
             join_discord: IconButtonWidget::new_normal(context.assets.atlas.discord()),
             profile: ProfileWidget::new(&context.assets),
@@ -293,6 +309,19 @@ impl MainUI {
         context.font_size = font_size;
 
         self.screen.update(screen, context);
+
+        let exit = screen
+            .align_aabb(vec2(2.2, 1.0) * context.font_size, vec2(0.0, 1.0))
+            .translate(vec2(1.0, -0.5) * context.layout_size);
+        // let options = screen.extend_positive(-vec2(2.0, 0.5) * layout_size);
+
+        self.exit.update(exit, &context.scale_font(0.8));
+        if self.exit.text.state.mouse_left.clicked {
+            self.exit_queued = true;
+        }
+
+        // self.options.update(options, context, state);
+        // context.update_focus(self.options.options.state.hovered);
 
         let join = vec2(6.0, 3.0) * font_size;
         let mut join = screen

@@ -49,6 +49,8 @@ impl MenuRender {
         // self.ui
         //     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
+        self.ui.draw_button(&ui.exit, theme, framebuffer);
+
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
 

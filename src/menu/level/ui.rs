@@ -13,8 +13,10 @@ use itertools::Itertools;
 pub struct MenuUI {
     context: Context,
     pub screen: WidgetState,
+
     // pub ctl_logo: IconWidget,
     // pub separator: WidgetState,
+    pub exit: ButtonWidget,
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
@@ -41,8 +43,10 @@ impl MenuUI {
 
         Self {
             screen: WidgetState::new(),
+
             // ctl_logo: IconWidget::new(assets.atlas.title()),
             // separator: WidgetState::new(),
+            exit: ButtonWidget::new("Back"),
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
@@ -89,6 +93,10 @@ impl MenuUI {
         context.font_size = font_size;
 
         self.screen.update(screen, context);
+
+        let exit = screen
+            .align_aabb(vec2(2.2, 1.0) * context.font_size, vec2(0.0, 1.0))
+            .translate(vec2(1.0, -0.5) * context.layout_size);
 
         let mut right = self.screen.position;
         let left = right.split_left(0.55);
@@ -245,7 +253,7 @@ impl MenuUI {
             }
         }
 
-        let options = right.extend_positive(-vec2(2.0, 2.0) * layout_size);
+        let options = right.extend_positive(-vec2(2.0, 0.5) * layout_size);
 
         right.cut_left(2.0 * layout_size);
         right.cut_right(5.0 * layout_size);
@@ -298,6 +306,11 @@ impl MenuUI {
             );
 
             context.update_focus(self.leaderboard.state.hovered);
+        }
+
+        self.exit.update(exit, &context.scale_font(0.8));
+        if self.exit.text.state.mouse_left.clicked {
+            state.exit = true;
         }
 
         self.options.update(options, context, state);

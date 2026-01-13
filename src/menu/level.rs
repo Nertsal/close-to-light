@@ -59,6 +59,8 @@ pub struct MenuState {
     pub real_time: FloatTime,
     /// Preview of gameplay used to give context to some settings.
     pub preview: GameplayPreview,
+    /// Exit (pop) state next frame if `true`.
+    pub exit: bool,
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
@@ -225,6 +227,7 @@ impl LevelMenu {
                 config: LevelConfig::default(),
                 real_time: FloatTime::ZERO,
                 preview: GameplayPreview::new(),
+                exit: false,
 
                 confirm_popup: None,
 
@@ -442,7 +445,12 @@ impl LevelMenu {
 
 impl geng::State for LevelMenu {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        let transition = self.transition.take();
+        let mut transition = self.transition.take();
+
+        if transition.is_none() && self.state.exit {
+            transition = Some(geng::state::Transition::Pop);
+        }
+
         if transition.is_some() {
             self.context.music.stop();
         }
@@ -611,12 +619,12 @@ impl geng::State for LevelMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
-            geng::Event::KeyPress {
-                key: geng::Key::F11,
-            } => self.context.geng.window().toggle_fullscreen(),
             geng::Event::EditText(text) => {
                 self.ui_context.text_edit.set_text(text);
             }
+            geng::Event::KeyPress {
+                key: geng::Key::F11,
+            } => self.context.geng.window().toggle_fullscreen(),
             geng::Event::KeyPress {
                 key: geng::Key::Escape,
             } => {
@@ -635,7 +643,7 @@ impl geng::State for LevelMenu {
                 {
                 } else {
                     // Go to main menu
-                    self.transition = Some(geng::state::Transition::Pop);
+                    self.state.exit = true;
                 }
             }
             geng::Event::Wheel { delta } => {
