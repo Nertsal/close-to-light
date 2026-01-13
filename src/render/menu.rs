@@ -3,17 +3,13 @@ use ctl_ui::widget::WidgetState;
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::{
-    menu::{GameplayPreview, MenuState, MenuUI},
-    render::{dither::DitherRender, util::UtilRender},
+    menu::{MenuState, MenuUI},
+    render::dither::DitherRender,
     ui::layout::AreaOps,
 };
 
-const PREVIEW_RESOLUTION: vec2<usize> = vec2(640 / 3, 360 / 3);
-
 pub struct MenuRender {
-    context: Context,
     dither_preview: DitherRender,
-    util: UtilRender,
     masked: MaskedRender,
     masked2: MaskedRender, // TODO: have just one somehow maybe
     ui: UiRender,
@@ -28,11 +24,9 @@ impl MenuRender {
                 &context.assets,
                 PREVIEW_RESOLUTION,
             ),
-            util: UtilRender::new(context.clone()),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
-            ui: UiRender::new(context.clone()),
-            context,
+            ui: UiRender::new(context),
             font_size: 1.0,
         }
     }
@@ -67,7 +61,13 @@ impl MenuRender {
         self.draw_modifiers(ui, state, framebuffer);
 
         if ui.options.open_time.is_above_min() {
-            self.draw_options(ui, state, framebuffer);
+            self.ui.draw_options(
+                &mut self.masked,
+                &mut self.dither_preview,
+                &ui.options,
+                &state.options,
+                framebuffer,
+            );
         }
 
         self.draw_explore(ui, state, framebuffer);
@@ -384,210 +384,6 @@ impl MenuRender {
             self.ui
                 .draw_text_colored(&ui.head, theme.danger, framebuffer);
         }
-    }
-
-    fn draw_options(
-        &mut self,
-        ui: &MenuUI,
-        state: &MenuState,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let ui = &ui.options;
-        let camera = &geng::PixelPerfectCamera;
-        let options = state.context.get_options();
-        let theme = options.theme;
-
-        let width = 12.0;
-        let options_pos = ui
-            .options
-            .state
-            .position
-            .extend_positive(vec2::splat(width));
-
-        self.ui.draw_window(
-            &mut self.masked,
-            options_pos,
-            None,
-            width,
-            theme,
-            framebuffer,
-            |framebuffer| {
-                self.ui.draw_profile(&ui.options.profile, framebuffer);
-
-                self.ui
-                    .draw_quad(ui.options.separator.position, theme.light, framebuffer);
-
-                {
-                    // Volume
-                    let volume = &ui.options.volume;
-                    self.ui.draw_text(&volume.title, framebuffer);
-                    self.ui.draw_slider(&volume.master, theme, framebuffer);
-                }
-
-                {
-                    // Palette
-                    let palette = &ui.options.palette;
-                    self.ui.draw_text(&palette.title, framebuffer);
-                    for palette in &palette.palettes {
-                        let mut theme = theme;
-                        if palette.state.hovered || palette.palette == options.theme {
-                            std::mem::swap(&mut theme.dark, &mut theme.light);
-                            self.ui
-                                .fill_quad(palette.state.position, theme.dark, framebuffer);
-                        }
-
-                        self.ui
-                            .draw_text_colored(&palette.name, theme.light, framebuffer);
-
-                        let mut quad = |i: f32, color: Color| {
-                            let pos = palette.visual.position;
-                            let pos = Aabb2::point(pos.bottom_left())
-                                .extend_positive(vec2::splat(pos.height()));
-                            let pos = pos.translate(vec2(i * pos.width(), 0.0));
-                            self.context.geng.draw2d().draw2d(
-                                framebuffer,
-                                camera,
-                                &draw2d::Quad::new(pos, color),
-                            );
-                        };
-                        quad(0.0, palette.palette.dark);
-                        quad(1.0, palette.palette.light);
-                        quad(2.0, palette.palette.danger);
-                        quad(3.0, palette.palette.highlight);
-
-                        let outline_width = self.font_size * 0.1;
-                        self.ui.draw_outline(
-                            palette.visual.position.extend_uniform(outline_width),
-                            outline_width,
-                            theme.light,
-                            framebuffer,
-                        );
-                    }
-                }
-
-                {
-                    // Gameplay
-                    let gameplay = &ui.options.gameplay;
-                    self.ui.draw_text(&gameplay.title, framebuffer);
-                    self.ui
-                        .draw_slider(&gameplay.music_offset, theme, framebuffer);
-                }
-
-                {
-                    // Graphics
-                    let graphics = &ui.options.graphics;
-                    self.ui.draw_text(&graphics.title, framebuffer);
-                    self.ui
-                        .draw_toggle_widget(&graphics.crt, theme, framebuffer);
-                    self.ui.draw_slider(&graphics.blue, theme, framebuffer);
-                    self.ui
-                        .draw_slider(&graphics.saturation, theme, framebuffer);
-                    self.ui
-                        .draw_toggle_widget(&graphics.telegraph_color, theme, framebuffer);
-                    self.ui
-                        .draw_toggle_widget(&graphics.perfect_color, theme, framebuffer);
-                }
-
-                {
-                    // Cursor
-                    let cursor = &ui.options.cursor;
-                    self.ui.draw_text(&cursor.title, framebuffer);
-                    self.ui
-                        .draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
-                    self.ui
-                        .draw_slider(&cursor.inner_radius, theme, framebuffer);
-                    self.ui
-                        .draw_slider(&cursor.outer_radius, theme, framebuffer);
-                }
-
-                // Scrollbar
-                self.ui
-                    .draw_outline(ui.options.scrollbar.position, 4.0, theme.light, framebuffer);
-                self.ui.fill_quad_width(
-                    ui.options.scrollbar_handle.position,
-                    4.0,
-                    theme.light,
-                    framebuffer,
-                );
-            },
-        );
-
-        // Preview effect
-        let preview = if ui.options.graphics.telegraph_color.state.hovered {
-            Some(ui.options.graphics.telegraph_color.state.position)
-        } else if ui.options.graphics.perfect_color.state.hovered {
-            Some(ui.options.graphics.perfect_color.state.position)
-        } else {
-            None
-        };
-        if let Some(hovered) = preview {
-            let options = state.context.get_options();
-            self.draw_preview(&state.preview, options, hovered, framebuffer);
-        }
-    }
-
-    fn draw_preview(
-        &mut self,
-        preview: &GameplayPreview,
-        options: Options,
-        setting: Aabb2<f32>,
-        old_framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let mut framebuffer = self.dither_preview.start();
-
-        let level_state = &preview.state;
-        let camera = &preview.camera;
-        let theme = options.theme;
-
-        // Telegraphs
-        for tele in &level_state.telegraphs {
-            let color = if tele.light.danger {
-                THEME.danger
-            } else {
-                THEME.get_color(options.graphics.lights.telegraph_color)
-            };
-            self.util
-                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
-        }
-
-        // Lights
-        for light in &level_state.lights {
-            let color = if light.danger {
-                THEME.danger
-            } else {
-                THEME.light
-            };
-            self.util.draw_light_gradient(
-                &light.collider,
-                light.hollow,
-                color,
-                camera,
-                &mut framebuffer,
-            );
-        }
-
-        self.util
-            .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
-
-        self.dither_preview.finish(preview.real_time, &theme);
-
-        let popup_size = vec2(PREVIEW_RESOLUTION.as_f32().aspect(), 1.0) * 6.0 * self.font_size;
-        let popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * self.font_size)
-            .extend_positive(popup_size);
-        let width = 12.0;
-        self.ui.draw_window(
-            &mut self.masked,
-            popup,
-            None,
-            width,
-            options.theme,
-            old_framebuffer,
-            |framebuffer| {
-                geng_utils::texture::DrawTexture::new(self.dither_preview.get_buffer())
-                    .fit(popup, vec2(0.5, 0.5))
-                    .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
-            },
-        );
     }
 
     fn draw_explore(

@@ -11,7 +11,6 @@ use crate::{
 
 use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
 use ctl_logic::PlayGroup;
-use ctl_util::SecondOrderState;
 
 const LEVEL_SWITCH_TIME: f32 = 0.5;
 const DIFF_SWITCH_TIME: f32 = 0.5;
@@ -52,13 +51,10 @@ pub struct LevelMenu {
 pub struct MenuState {
     pub context: Context,
     pub leaderboard: Leaderboard,
+    pub options: GameOptions,
     pub player: Player,
-    /// Interpolated radius of the player collider used to preview cursor outline.
-    pub player_size: SecondOrderState<R32>,
     pub config: LevelConfig,
     pub real_time: FloatTime,
-    /// Preview of gameplay used to give context to some settings.
-    pub preview: GameplayPreview,
     /// Exit (pop) state next frame if `true`.
     pub exit: bool,
 
@@ -220,13 +216,12 @@ impl LevelMenu {
                 fov: Camera2dFov::Vertical(10.0),
             },
             state: MenuState {
+                options: GameOptions::new(context.clone(), leaderboard.clone()),
                 context: context.clone(),
                 leaderboard,
                 player,
-                player_size: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.1)),
                 config: LevelConfig::default(),
                 real_time: FloatTime::ZERO,
-                preview: GameplayPreview::new(),
                 exit: false,
 
                 confirm_popup: None,
@@ -720,7 +715,7 @@ impl geng::State for LevelMenu {
             }
         }
 
-        self.state.preview.update(delta_time);
+        self.state.options.preview.update(delta_time);
 
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
@@ -731,8 +726,8 @@ impl geng::State for LevelMenu {
         let cursor_world = self.camera.screen_to_world(game_pos.size(), pos);
 
         // Update player cursor size
-        self.state.player_size.update(delta_time.as_f32());
-        self.state.player.collider.shape = Shape::circle(self.state.player_size.current);
+        self.state.options.player_size.update(delta_time.as_f32());
+        self.state.player.collider.shape = Shape::circle(self.state.options.player_size.current);
 
         // Update player cursor
         self.state.player.collider.position = cursor_world.as_r32();

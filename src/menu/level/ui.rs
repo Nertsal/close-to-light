@@ -313,7 +313,7 @@ impl MenuUI {
             state.exit = true;
         }
 
-        self.options.update(options, context, state);
+        self.options.update(options, context, &mut state.options);
         context.update_focus(self.options.options.state.hovered);
 
         !context.can_focus()

@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    menu::MenuState,
+    menu::GameOptions,
     prelude::{Assets, Theme, VolumeOptions},
     ui::layout::AreaOps,
 };
@@ -33,7 +33,6 @@ impl OptionsButtonWidget {
                     PaletteWidget::new("Stargazer", Theme::stargazer()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
                     PaletteWidget::new("Linksider", Theme::linksider()),
-                    PaletteWidget::new("Frostlight", Theme::frostlight()),
                 ],
             ),
         }
@@ -41,7 +40,7 @@ impl OptionsButtonWidget {
 }
 
 impl StatefulWidget for OptionsButtonWidget {
-    type State<'a> = MenuState;
+    type State<'a> = GameOptions;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -118,7 +117,7 @@ impl OptionsWidget {
 }
 
 impl StatefulWidget for OptionsWidget {
-    type State<'a> = MenuState;
+    type State<'a> = GameOptions;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state

@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    render::{THEME, post::PostRender, ui::UiRender},
+    render::{THEME, mask::MaskedRender, post::PostRender, ui::UiRender},
     ui::{UiContext, layout::AreaOps, widget::*},
 };
 
@@ -10,8 +10,11 @@ use ctl_local::Leaderboard;
 pub struct MainMenu {
     context: Context,
     leaderboard: Leaderboard,
+    options: GameOptions,
     transition: Option<geng::state::Transition>,
 
+    dither_preview: DitherRender,
+    masked: MaskedRender,
     dither: DitherRender,
     util_render: UtilRender,
     ui_render: UiRender,
@@ -38,7 +41,7 @@ struct MainUI {
     screen: WidgetState,
     exit: ButtonWidget,
     exit_queued: bool,
-    // options: OptionsButtonWidget,
+    options: OptionsButtonWidget,
     join_community: TextWidget,
     join_discord: IconButtonWidget,
     profile: ProfileWidget,
@@ -55,11 +58,16 @@ impl MainMenu {
         );
 
         Self {
+            dither_preview: DitherRender::new_sized(
+                &context.geng,
+                &context.assets,
+                crate::render::PREVIEW_RESOLUTION,
+            ),
+            masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             dither: DitherRender::new(&context.geng, &context.assets),
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
             post_render: PostRender::new(context.clone()),
-            leaderboard,
 
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
@@ -89,8 +97,10 @@ impl MainMenu {
             ui: MainUI::new(context.clone()),
             ui_context: UiContext::new(context.clone()),
 
-            context,
+            options: GameOptions::new(context.clone(), leaderboard.clone()),
             transition: None,
+            context,
+            leaderboard,
         }
     }
 
@@ -144,6 +154,12 @@ impl geng::State for MainMenu {
         );
         let pos = pos - game_pos.bottom_left();
         self.cursor_world_pos = self.camera.screen_to_world(game_pos.size(), pos).as_r32();
+
+        self.options.preview.update(delta_time);
+
+        // Update player cursor size
+        self.options.player_size.update(delta_time.as_f32());
+        self.player.collider.shape = Shape::circle(self.options.player_size.current);
 
         self.player.collider.position = self.cursor_world_pos;
         self.player.reset_distance();
@@ -201,6 +217,8 @@ impl geng::State for MainMenu {
         let theme = options.theme;
         ugli::clear(screen_buffer, Some(theme.dark), None, None);
 
+        self.masked.update_size(screen_buffer.size());
+
         let mut framebuffer = self.dither.start();
 
         let button = crate::render::smooth_button(&self.play_button, self.time + r32(0.5));
@@ -244,13 +262,34 @@ impl geng::State for MainMenu {
                 Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
                 &mut self.leaderboard,
+                &mut self.options,
             );
 
             // UI
             let theme = self.context.get_options().theme;
             let ui = &self.ui;
 
+            // Options
             self.ui_render.draw_button(&ui.exit, theme, buffer);
+            if ui.options.open_time.is_above_min() {
+                self.ui_render.draw_options(
+                    &mut self.masked,
+                    &mut self.dither_preview,
+                    &ui.options,
+                    &self.options,
+                    buffer,
+                );
+            } else {
+                // Options button
+                self.ui_render.draw_icon(&ui.options.button, theme, buffer);
+                self.ui_render.draw_outline(
+                    ui.options.button.state.position,
+                    self.ui_context.font_size * 0.1,
+                    theme.light,
+                    buffer,
+                );
+            }
+
             self.ui_render.draw_text(&ui.join_community, buffer);
             self.ui_render
                 .draw_icon_button(&ui.join_discord, theme, buffer);
@@ -285,7 +324,7 @@ impl MainUI {
             exit_queued: false,
             screen: WidgetState::new(),
             exit: ButtonWidget::new("Exit"),
-            // options: OptionsButtonWidget::new(&context.assets, 0.25),
+            options: OptionsButtonWidget::new(&context.assets, 0.25),
             join_community: TextWidget::new("Join our community!"),
             join_discord: IconButtonWidget::new_normal(context.assets.atlas.discord()),
             profile: ProfileWidget::new(&context.assets),
@@ -297,6 +336,7 @@ impl MainUI {
         screen: Aabb2<f32>,
         context: &mut UiContext,
         leaderboard: &mut Leaderboard,
+        state: &mut GameOptions,
     ) {
         // Fix aspect
         let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
@@ -313,15 +353,15 @@ impl MainUI {
         let exit = screen
             .align_aabb(vec2(2.2, 1.0) * context.font_size, vec2(0.0, 1.0))
             .translate(vec2(1.0, -0.5) * context.layout_size);
-        // let options = screen.extend_positive(-vec2(2.0, 0.5) * layout_size);
+        let options = screen.extend_positive(-vec2(2.0, 0.5) * layout_size);
 
         self.exit.update(exit, &context.scale_font(0.8));
         if self.exit.text.state.mouse_left.clicked {
             self.exit_queued = true;
         }
 
-        // self.options.update(options, context, state);
-        // context.update_focus(self.options.options.state.hovered);
+        self.options.update(options, context, state);
+        context.update_focus(self.options.options.state.hovered);
 
         let join = vec2(6.0, 3.0) * font_size;
         let mut join = screen

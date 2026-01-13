@@ -9,6 +9,9 @@ pub mod util;
 
 use crate::prelude::*;
 
+/// Gameplay preview in options.
+pub const PREVIEW_RESOLUTION: vec2<usize> = vec2(640 / 3, 360 / 3);
+
 pub const THEME: Theme = Theme {
     dark: Color::BLACK,
     light: Color::GREEN,
