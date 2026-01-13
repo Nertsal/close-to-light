@@ -515,11 +515,6 @@ impl MenuRender {
         let level_state = &preview.state;
         let camera = &preview.camera;
         let theme = options.theme;
-        let beat_time = preview
-            .level
-            .timing
-            .get_timing(preview.render_time)
-            .beat_time;
 
         // Telegraphs
         for tele in &level_state.telegraphs {
@@ -539,11 +534,10 @@ impl MenuRender {
             } else {
                 THEME.light
             };
-            self.util.draw_light(
-                light,
+            self.util.draw_light_gradient(
+                &light.collider,
+                light.hollow,
                 color,
-                THEME.dark,
-                beat_time,
                 camera,
                 &mut framebuffer,
             );
