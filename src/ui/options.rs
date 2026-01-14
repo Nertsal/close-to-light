@@ -269,6 +269,7 @@ impl StatefulWidget for VolumeWidget {
 pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
+    pub fullscreen: ToggleWidget,
     pub crt: ToggleWidget,
     pub blue: SliderWidget,
     pub saturation: SliderWidget,
@@ -281,6 +282,7 @@ impl GraphicsWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
+            fullscreen: ToggleWidget::new("Fullscreen"),
             crt: ToggleWidget::new("CRT Shader"),
             blue: SliderWidget::new("Blue light").with_display_precision(0),
             saturation: SliderWidget::new("Saturation").with_display_precision(0),
@@ -322,6 +324,13 @@ impl StatefulWidget for GraphicsWidget {
             min_y = row.min.y;
             row
         };
+
+        let window = context.context.geng.window();
+        self.fullscreen.checked = window.is_fullscreen();
+        self.fullscreen.update(next_row(), context);
+        if self.fullscreen.state.mouse_left.clicked {
+            window.toggle_fullscreen();
+        }
 
         self.crt.checked = state.crt.enabled;
         self.crt.update(next_row(), context);

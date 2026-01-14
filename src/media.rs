@@ -23,6 +23,8 @@ pub struct MediaState {
 
     text: String,
     picture: Option<ugli::Texture>,
+    /// Automatically scale the picture to fit the whole screen (respecting pixels).
+    auto_scale: bool,
 }
 
 impl MediaState {
@@ -42,6 +44,7 @@ impl MediaState {
 
             text: String::new(),
             picture: None,
+            auto_scale: false,
 
             context,
         }
@@ -77,9 +80,13 @@ impl geng::State for MediaState {
             .fit_screen(vec2(0.5, 0.5), buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         if let Some(picture) = &self.picture {
-            let pixel_scale =
-                (buffer.size().as_f32() / picture.size().as_f32()).map(|x| x.floor().max(1.0));
-            let pixel_scale = pixel_scale.x.min(pixel_scale.y);
+            let pixel_scale = if self.auto_scale {
+                let scale =
+                    (buffer.size().as_f32() / picture.size().as_f32()).map(|x| x.floor().max(1.0));
+                scale.x.min(scale.y)
+            } else {
+                1.0
+            };
             geng_utils::texture::DrawTexture::new(picture)
                 .pixel_perfect(
                     buffer.size().as_f32() / 2.0,
