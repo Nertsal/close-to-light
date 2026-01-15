@@ -15,6 +15,7 @@ pub struct LeaderboardWidget {
     pub show_title: bool,
     pub title: TextWidget,
     pub subtitle: TextWidget,
+    pub level_name: TextWidget,
     pub separator_title: WidgetState,
     pub status: TextWidget,
     pub scroll: ScrollState,
@@ -47,6 +48,7 @@ impl LeaderboardWidget {
             show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("login to submit scores"),
+            level_name: TextWidget::new("Level - Difficulty"),
             separator_title: WidgetState::new(),
             status: TextWidget::new(""),
             scroll: ScrollState::new(),
@@ -104,6 +106,7 @@ impl LeaderboardWidget {
     }
 
     pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {
+        self.level_name.text = format!("{} - {}", board.music.name, board.level.name).into();
         self.rows = board
             .filtered
             .iter()
@@ -179,8 +182,20 @@ impl WidgetOld for LeaderboardWidget {
             self.title.update(title, &context.scale_font(1.1));
         }
 
-        let subtitle = main.cut_top(context.font_size * 1.0);
-        self.subtitle.update(subtitle, context);
+        if self.subtitle.state.visible {
+            let subtitle = main.cut_top(context.font_size * 0.7);
+            self.subtitle.update(subtitle, context);
+
+            let level_name = main.cut_top(context.font_size * 1.0);
+            self.level_name.update(level_name, context);
+
+            main.cut_top(context.font_size * 0.3);
+        } else {
+            main.cut_top(context.font_size * 0.5);
+            let level_name = main.cut_top(context.font_size * 1.0);
+            main.cut_top(context.font_size * 0.5);
+            self.level_name.update(level_name, context);
+        }
 
         let separator = main.cut_top(context.font_size * 0.1);
         self.separator_title.update(separator, context);

@@ -4,7 +4,7 @@ use ctl_core::{
     auth::UserLogin,
     model::ScoreGrade,
     prelude::{HealthConfig, LevelModifiers, Score, Uuid},
-    types::{Id, LevelInfo, UserInfo},
+    types::{Id, LevelInfo, MusicInfo, UserInfo},
 };
 use ctl_util::Task;
 use geng::prelude::*;
@@ -54,6 +54,7 @@ pub struct SavedScore {
 
 pub struct LoadedBoard {
     pub all_highscores: HashMap<LocalLevelId, SavedScore>,
+    pub music: MusicInfo,
     pub level: LevelInfo,
     pub player: Option<Id>,
     pub category: ScoreCategory,
@@ -485,6 +486,7 @@ impl LeaderboardImpl {
         &mut self,
         score: Option<i32>,
         submit_score: bool,
+        music: MusicInfo,
         level: LevelInfo,
         meta: ScoreMeta,
     ) {
@@ -504,6 +506,7 @@ impl LeaderboardImpl {
             meta: meta.clone(),
         });
 
+        self.loaded.music = music;
         self.loaded.level = level.clone();
         self.loaded.category = meta.category.clone();
         self.update_local(score.clone());
@@ -574,6 +577,7 @@ impl LoadedBoard {
     fn new() -> Self {
         Self {
             all_highscores: HashMap::new(),
+            music: MusicInfo::default(),
             level: LevelInfo::default(),
             player: None,
             category: ScoreCategory::new(LevelModifiers::default(), HealthConfig::default()),

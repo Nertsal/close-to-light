@@ -196,6 +196,13 @@ impl geng::State for Game {
                     self.model.leaderboard.get_mut().reload_submit(
                         Some(raw_score),
                         submit_score,
+                        self.model
+                            .level
+                            .group
+                            .music
+                            .as_ref()
+                            .map(|music| music.meta.clone())
+                            .unwrap_or_default(),
                         self.model.level.level.meta.clone(),
                         meta,
                     );

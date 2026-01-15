@@ -581,6 +581,7 @@ impl UiRender {
         }
         self.draw_text(&leaderboard.title, framebuffer);
         self.draw_text(&leaderboard.subtitle, framebuffer);
+        self.draw_text(&leaderboard.level_name, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);
 
         // self.draw_quad(

@@ -416,13 +416,20 @@ impl LevelMenu {
 
     fn fetch_leaderboard(&mut self) {
         let category = self.state.get_category();
-        if let Some((_, _, level)) = self.get_active_level() {
+        if let Some((group, _, level)) = self.get_active_level() {
             let score = Score::new(category.mods.multiplier());
             let meta = ScoreMeta::new_category(category, score, R32::ZERO);
-            self.state
-                .leaderboard
-                .get_mut()
-                .reload_submit(None, false, level.meta.clone(), meta);
+            self.state.leaderboard.get_mut().reload_submit(
+                None,
+                false,
+                group
+                    .music
+                    .as_ref()
+                    .map(|music| music.meta.clone())
+                    .unwrap_or_default(),
+                level.meta.clone(),
+                meta,
+            );
         }
     }
 
