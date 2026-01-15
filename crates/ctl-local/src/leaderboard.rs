@@ -30,6 +30,12 @@ pub struct Leaderboard {
     inner: Rc<RefCell<LeaderboardImpl>>,
 }
 
+#[derive(Debug)]
+struct NewScore {
+    new_score: Option<SavedScore>,
+    new_highscore: Option<SavedScore>,
+}
+
 pub struct LeaderboardImpl {
     geng: Geng,
     fs: Rc<crate::fs::Controller>,
@@ -39,7 +45,7 @@ pub struct LeaderboardImpl {
     pub achievements: Achievements,
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
-    fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
+    new_score_task: Option<Task<anyhow::Result<NewScore>>>,
     highscores_task: Option<Task<anyhow::Result<HashMap<LocalLevelId, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
@@ -179,7 +185,7 @@ impl LeaderboardImpl {
             client: None,
             log_task: None,
             task: None,
-            fs_task: None,
+            new_score_task: None,
             highscores_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
@@ -384,22 +390,29 @@ impl LeaderboardImpl {
             }
         }
 
-        if let Some(task) = self.fs_task.take() {
+        if let Some(task) = self.new_score_task.take() {
             match task.poll() {
-                Err(task) => self.fs_task = Some(task),
+                Err(task) => self.new_score_task = Some(task),
                 Ok(res) => match res {
                     Ok(update) => {
-                        log::debug!("Updating local highscore: {update:?}");
-                        if let Some(score) = &update {
-                            log::debug!("Adding to {:?} score {score:?}", self.loaded.level.hash);
-                            let level_id = LocalLevelId::from_info(&self.loaded.level);
+                        log::debug!(
+                            "Updating local highscore of {:?}: {:?}",
+                            self.loaded.level.hash,
+                            update
+                        );
+                        let level_id = LocalLevelId::from_info(&self.loaded.level);
+                        if let Some(score) = &update.new_highscore {
                             self.loaded
                                 .all_highscores
                                 .insert(level_id.clone(), score.clone());
-                            self.achievements
-                                .update_highscores(&self.loaded.all_highscores, (&level_id, score));
                         }
-                        self.loaded.local_high = update;
+                        if let Some(score) = &update.new_score {
+                            self.achievements.update_highscores(
+                                &self.loaded.all_highscores,
+                                Some((&level_id, score)),
+                            );
+                        }
+                        self.loaded.local_high = update.new_highscore;
                     }
                     Err(err) => {
                         log::error!("Loading local scores failed: {err:?}");
@@ -414,8 +427,8 @@ impl LeaderboardImpl {
                 Ok(res) => match res {
                     Ok(update) => {
                         log::debug!("Loaded all local highscores");
+                        self.achievements.update_highscores(&update, None);
                         self.loaded.all_highscores = update;
-                        // TODO: update achievements?
                     }
                     Err(err) => {
                         log::error!("Loading local highscores failed: {err:?}");
@@ -540,8 +553,8 @@ impl LeaderboardImpl {
         }
     }
 
-    fn update_local(&mut self, score: Option<SavedScore>) {
-        log::debug!("Updating local scores with a new score: {score:?}");
+    fn update_local(&mut self, new_score: Option<SavedScore>) {
+        log::debug!("Updating local scores with a new score: {new_score:?}");
         let fs = self.fs.clone();
         let level_id = LocalLevelId::from_info(&self.loaded.level);
         let version = self.loaded.category.version;
@@ -556,20 +569,23 @@ impl LeaderboardImpl {
                     vec![]
                 }
             };
-            if let Some(score) = score {
+            if let Some(score) = new_score.clone() {
                 scores.push(score);
                 fs.save_local_scores(&level_id, &scores)
                     .await
                     .with_context(|| "when saving local scores")?;
             }
-            let highscore = scores
+            let new_highscore = scores
                 .iter()
                 .filter(|score| score.meta.category.version == version)
                 .max_by_key(|score| score.score)
                 .cloned();
-            Ok(highscore)
+            Ok(NewScore {
+                new_score,
+                new_highscore,
+            })
         };
-        self.fs_task = Some(Task::new(&self.geng, task));
+        self.new_score_task = Some(Task::new(&self.geng, task));
     }
 }
 

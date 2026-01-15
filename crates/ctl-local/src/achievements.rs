@@ -95,35 +95,39 @@ impl Achievements {
         self.steam = Some(steam);
     }
 
+    /// Check if any achievements should be granted for the current highscores
     pub fn update_highscores(
         &self,
         highscores: &HashMap<LocalLevelId, SavedScore>,
-        (new_score_level, new_score): (&LocalLevelId, &SavedScore),
+        new_score: Option<(&LocalLevelId, &SavedScore)>,
     ) {
         #[cfg(feature = "demo")]
         {
-            // Check grade
             use ctl_core::types::Id;
-            let new_grade = new_score.meta.calculate_grade();
-            if new_grade >= ScoreGrade::A {
-                self.unlock_achievement(Achievement::AForEffort);
-            }
-            if new_grade == ScoreGrade::F
-                && let LocalLevelId::Id(id) = new_score_level
-                && HARD_LEVEL_IDS.contains(id)
-            {
-                self.unlock_achievement(Achievement::AtTheEndOfTheTunnel)
-            }
 
-            // Any level completion
-            if new_grade != ScoreGrade::F {
-                self.unlock_achievement(Achievement::FirstLights);
-
-                if let LocalLevelId::Id(id) = new_score_level
-                    && !ALL_DEMO_SONGS.iter().any(|levels| levels.contains(id))
+            if let Some((new_score_level, new_score)) = new_score {
+                // Check grade
+                let new_grade = new_score.meta.calculate_grade();
+                if new_grade >= ScoreGrade::A {
+                    self.unlock_achievement(Achievement::AForEffort);
+                }
+                if new_grade == ScoreGrade::F
+                    && let LocalLevelId::Id(id) = new_score_level
+                    && HARD_LEVEL_IDS.contains(id)
                 {
-                    // Custom level
-                    self.unlock_achievement(Achievement::ExploratoryNature);
+                    self.unlock_achievement(Achievement::AtTheEndOfTheTunnel)
+                }
+
+                // Any level completion
+                if new_grade != ScoreGrade::F {
+                    self.unlock_achievement(Achievement::FirstLights);
+
+                    if let LocalLevelId::Id(id) = new_score_level
+                        && !ALL_DEMO_SONGS.iter().any(|levels| levels.contains(id))
+                    {
+                        // Custom level
+                        self.unlock_achievement(Achievement::ExploratoryNature);
+                    }
                 }
             }
 
