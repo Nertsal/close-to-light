@@ -173,7 +173,6 @@ impl Achievements {
         {
             // TODO
             let _ = highscores;
-            let _ = new_score_level;
             let _ = new_score;
         }
     }

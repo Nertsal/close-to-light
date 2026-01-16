@@ -87,7 +87,8 @@ impl Score {
     }
 
     pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
-        if completion.as_f32() < 0.999999 {
+        // TODO: remove
+        if completion.as_f32() < 0.999 {
             return ScoreGrade::F;
         }
         let acc = self.calculated.accuracy.as_f32();

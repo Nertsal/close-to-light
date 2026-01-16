@@ -288,7 +288,12 @@ impl Model {
 
     /// Calculates the current completion percentage (in range 0..=1).
     pub fn current_completion(&self) -> R32 {
-        let t = self.completion_time / time_to_seconds(self.level.level.data.last_time());
+        let t = if let State::Finished = self.state {
+            // Finished the level, avoid floating point imprecision
+            R32::ONE
+        } else {
+            self.completion_time / time_to_seconds(self.level.level.data.last_time())
+        };
         t.clamp(R32::ZERO, R32::ONE)
     }
 }
