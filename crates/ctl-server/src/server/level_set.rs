@@ -173,6 +173,8 @@ async fn level_set_create(
     Query(query): Query<LevelSetCreateQuery>,
     data: Bytes,
 ) -> Result<Json<Id>> {
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
+
     let mut trans = app.database.begin().await?;
     let user = check_user(&session).await?;
 
@@ -372,14 +374,15 @@ async fn new_level_set(
             .bind(user.user_id)
             .fetch_all(&mut **trans)
             .await?;
-    if user_groups.len() >= LEVEL_SETS_PER_USER {
+    if !is_admin && user_groups.len() >= LEVEL_SETS_PER_USER {
         return Err(RequestError::TooManyGroups);
     }
-    if user_groups
-        .iter()
-        .filter(|group| group.music_id == music_id)
-        .count()
-        >= LEVEL_SETS_PER_USER_PER_SONG
+    if !is_admin
+        && user_groups
+            .iter()
+            .filter(|group| group.music_id == music_id)
+            .count()
+            >= LEVEL_SETS_PER_USER_PER_SONG
     {
         return Err(RequestError::TooManyGroupsForSong);
     }

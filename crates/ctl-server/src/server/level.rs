@@ -125,7 +125,7 @@ async fn submit_score(
             .await?;
 
     if let Some(current) = current {
-        if score.score > current.score || current.level_hash != level.hash {
+        if score.score > current.score {
             sqlx::query(
                 "UPDATE scores SET score = ?, extra_info = ? WHERE level_id = ? AND user_id = ?",
             )

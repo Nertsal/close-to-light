@@ -118,8 +118,12 @@ async fn music_create(
     body: Body,
 ) -> Result<Json<Id>> {
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
-    let user = check_user(&session).await?;
+
     let mut trans = app.database.begin().await?;
+
+    let user = check_user(&session).await?;
+    let auth = get_user_auth(user, &mut trans).await?;
+    let is_admin = auth == AuthorityLevel::Admin;
 
     music.name = validate_name(&music.name)?;
     music.romanized_name = validate_romanized_name(&music.romanized_name)?;
@@ -137,7 +141,7 @@ async fn music_create(
             .bind(user.user_id)
             .fetch_one(&mut *trans)
             .await?;
-    if music_counts >= MAX_MUSIC_UPLOADS_PER_USER as i64 {
+    if !is_admin && music_counts >= MAX_MUSIC_UPLOADS_PER_USER as i64 {
         return Err(RequestError::TooManyMusic);
     }
 
@@ -311,9 +315,10 @@ async fn download_by_query(
         let music_id = get_music_id_for_level(&app, level_set_id).await?;
 
         if let Some(query_music) = query.music_id
-            && music_id != query_music {
-                return Err(RequestError::InvalidLevel); // TODO: better error
-            }
+            && music_id != query_music
+        {
+            return Err(RequestError::InvalidLevel); // TODO: better error
+        }
 
         music_id
     } else if let Some(music_id) = query.music_id {
