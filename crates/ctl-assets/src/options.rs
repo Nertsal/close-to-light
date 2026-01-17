@@ -242,6 +242,10 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::frostlight()
+        if cfg!(feature = "demo") {
+            Self::classic()
+        } else {
+            Self::frostlight()
+        }
     }
 }

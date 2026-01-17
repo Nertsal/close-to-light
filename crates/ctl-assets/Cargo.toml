@@ -3,6 +3,9 @@ name = "ctl-assets"
 version.workspace = true
 edition.workspace = true
 
+[features]
+demo = []
+
 [dependencies]
 ctl-core.workspace = true
 ctl-derive.workspace = true
