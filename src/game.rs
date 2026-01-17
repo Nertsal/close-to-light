@@ -138,6 +138,7 @@ impl geng::State for Game {
             geng::Event::KeyPress { key } => match key {
                 geng::Key::Escape => self.transition = Some(geng::state::Transition::Pop),
                 geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
+                #[cfg(debug_assertions)]
                 geng::Key::F1 => self.debug_mode = !self.debug_mode,
                 _ => {}
             },
