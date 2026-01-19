@@ -39,6 +39,7 @@ pub struct MainMenu {
 
 struct MainUI {
     screen: WidgetState,
+    version: TextWidget,
     exit: ButtonWidget,
     exit_queued: bool,
     options: OptionsButtonWidget,
@@ -269,8 +270,10 @@ impl geng::State for MainMenu {
             let theme = self.context.get_options().theme;
             let ui = &self.ui;
 
-            // Options
+            self.ui_render.draw_text(&ui.version, buffer);
             self.ui_render.draw_button(&ui.exit, theme, buffer);
+
+            // Options
             if ui.options.open_time.is_above_min() {
                 self.ui_render.draw_options(
                     &mut self.masked,
@@ -322,6 +325,8 @@ impl MainUI {
     pub fn new(context: Context) -> Self {
         Self {
             exit_queued: false,
+            version: TextWidget::new(ctl_constants::GAME_VERSION.to_string())
+                .aligned(vec2(0.5, 0.5)),
             screen: WidgetState::new(),
             exit: ButtonWidget::new("Exit"),
             options: OptionsButtonWidget::new(&context.assets, 0.25),
@@ -352,13 +357,18 @@ impl MainUI {
 
         let exit = screen
             .align_aabb(vec2(2.2, 1.0) * context.font_size, vec2(0.0, 1.0))
-            .translate(vec2(1.0, -0.5) * context.layout_size);
+            .translate(vec2(1.5, -0.5) * context.layout_size);
         let options = screen.extend_positive(-vec2(2.0, 0.5) * layout_size);
 
         self.exit.update(exit, &context.scale_font(0.8));
         if self.exit.text.state.mouse_left.clicked {
             self.exit_queued = true;
         }
+
+        let version = Aabb2::point(exit.align_pos(vec2(0.5, 0.0)))
+            .extend_symmetric(vec2(1.5 * font_size, 0.0))
+            .extend_down(font_size);
+        self.version.update(version, &context.scale_font(0.7));
 
         self.options.update(options, context, state);
         context.update_focus(self.options.options.state.hovered);

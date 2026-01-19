@@ -1,3 +1,30 @@
+// ----- Game Version -----
+
+pub const GAME_VERSION: GameVersion = GameVersion {
+    major: 0,
+    minor: 1,
+    patch: 1,
+};
+
+#[derive(Debug, Clone, Copy)]
+pub struct GameVersion {
+    pub major: usize,
+    pub minor: usize,
+    pub patch: usize,
+}
+
+impl std::fmt::Display for GameVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "v")?;
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)?;
+
+        #[cfg(feature = "demo")]
+        write!(f, "-demo")?;
+
+        Ok(())
+    }
+}
+
 // ----- Steam -----
 
 #[cfg(feature = "steam")]

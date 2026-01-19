@@ -75,6 +75,8 @@ fn main() {
     logger::init_with(builder).expect("failed to init logger");
     geng::setup_panic_handler();
 
+    log::info!("Running Close to Light {}", ctl_constants::GAME_VERSION);
+
     let mut options = geng::ContextOptions::default();
     options.window.title = "Close to Light".to_string();
     options.window.antialias = false;
