@@ -293,7 +293,8 @@ impl MenuUI {
                 .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
 
             self.leaderboard.update_state(&state.leaderboard);
-            self.leaderboard.update(leaderboard, context);
+            self.leaderboard
+                .update(leaderboard, &mut context.scale_font(0.84));
             self.leaderboard_head
                 .update(leaderboard_head, &context.scale_font(0.9));
             context.update_focus(self.leaderboard.state.hovered);
