@@ -12,6 +12,8 @@ use geng::prelude::*;
 use crate::{achievements::Achievements, fs::LocalLevelId};
 
 const SCORE_VERSION: u32 = 1;
+/// The maximum number of scores saved locally per level.
+const LOCAL_SCORES_LIMIT_PER_LEVEL: usize = 50;
 
 #[derive(Debug)]
 pub enum LeaderboardStatus {
@@ -571,6 +573,12 @@ impl LeaderboardImpl {
             };
             if let Some(score) = new_score.clone() {
                 scores.push(score);
+
+                // Limit the maximum number of scores
+                if scores.len() > LOCAL_SCORES_LIMIT_PER_LEVEL {
+                    scores.drain(..scores.len() - LOCAL_SCORES_LIMIT_PER_LEVEL);
+                }
+
                 fs.save_local_scores(&level_id, &scores)
                     .await
                     .with_context(|| "when saving local scores")?;
