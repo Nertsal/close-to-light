@@ -35,7 +35,7 @@ impl ScrollState {
             self.drag_from = Some(self.state.current);
         }
 
-        if state.hovered {
+        if state.hovered || self.drag_from.is_some() {
             if let Some(press) = &state.mouse_left.pressed
                 && let Some(drag_from) = self.drag_from
             {

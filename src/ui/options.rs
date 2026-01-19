@@ -57,7 +57,10 @@ impl StatefulWidget for OptionsButtonWidget {
         self.state.update(button, context);
         self.button.update(button, context);
 
-        if self.button.state.hovered || self.options.state.hovered {
+        if self.button.state.hovered
+            || self.options.state.hovered
+            || self.options.state.mouse_left.pressed.is_some()
+        {
             self.open_time.change(context.delta_time);
             self.options.show();
         } else {
