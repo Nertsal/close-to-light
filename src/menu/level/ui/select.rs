@@ -14,6 +14,7 @@ pub struct LevelSelectUI {
     pub tab_filter_demo: ToggleButtonWidget,
     pub tab_filter_custom: ToggleButtonWidget,
     pub tab_filter_all: ToggleButtonWidget,
+    pub tooltip: TextWidget,
 
     pub tab_levels: TextWidget,
     pub light_level: SelectLightUi,
@@ -80,6 +81,7 @@ impl LevelSelectUI {
             tab_filter_demo: ToggleButtonWidget::new("").with_icon(assets.atlas.light()),
             tab_filter_custom: ToggleButtonWidget::new("").with_icon(assets.atlas.wrench()),
             tab_filter_all: ToggleButtonWidget::new("").with_icon(assets.atlas.all()),
+            tooltip: TextWidget::new("<tooltip>"),
 
             tab_levels: TextWidget::new("Level"),
             light_level: SelectLightUi::default(),
@@ -113,6 +115,7 @@ impl LevelSelectUI {
             .translate(vec2(-filter_size.x + context.font_size * 0.25, 0.0))
             .extend_symmetric(-vec2(0.0, context.layout_size * 0.5));
 
+        let mut tooltip = None;
         let filter_tabs = Aabb2::point(filter_tabs.center())
             .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2))
             .stack_aligned(
@@ -133,6 +136,31 @@ impl LevelSelectUI {
             if tab.selected {
                 self.active_filter = filter;
             }
+
+            // Hover tooltip
+            if tab.state.hovered {
+                let msg = match filter {
+                    LevelsFilter::All => "All Levels",
+                    LevelsFilter::Demo => "Demo Levels",
+                    LevelsFilter::Custom => "Custom Levels",
+                };
+                tooltip = Some((tab.state.position, msg));
+            }
+        }
+
+        if let Some((hovered, message)) = tooltip {
+            self.tooltip.show();
+            let size = vec2(2.0, 0.75) * context.font_size;
+            let position = Aabb2::point(
+                vec2(hovered.center().x, hovered.max.y)
+                    + vec2(0.0, 0.25) * context.layout_size
+                    + vec2(0.0, size.y / 2.0),
+            )
+            .extend_symmetric(size / 2.0);
+            self.tooltip.update(position, &context.scale_font(0.5));
+            self.tooltip.text = message.into();
+        } else {
+            self.tooltip.hide();
         }
 
         let mut main = main.extend_uniform(-context.font_size * 0.5);

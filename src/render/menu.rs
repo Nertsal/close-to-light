@@ -260,6 +260,23 @@ impl MenuRender {
             theme.light,
             framebuffer,
         );
+
+        // Tooltip
+        if ui.tooltip.state.visible {
+            self.ui.fill_quad_width(
+                ui.tooltip.state.position,
+                self.font_size * 0.1,
+                theme.dark,
+                framebuffer,
+            );
+            self.ui.draw_text(&ui.tooltip, framebuffer);
+            self.ui.draw_outline(
+                ui.tooltip.state.position,
+                self.font_size * 0.1,
+                theme.light,
+                framebuffer,
+            );
+        }
     }
 
     fn draw_play_level(
