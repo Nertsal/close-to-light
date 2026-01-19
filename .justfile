@@ -5,10 +5,10 @@ list:
 test:
     cargo build --release # Native build
     cargo geng build --platform web --release # Web build
-    cargo test --all-features # Tests
-    cargo check -F steam
-    cargo check -F steam -F demo
-    cargo check -F itch -F demo
+    cargo test --workspace --all-features # Tests
+    cargo check --workspace -F steam
+    cargo check --workspace -F steam -F demo
+    cargo check --workspace -F itch -F demo
 
 game *ARGS:
     cargo run -- {{ARGS}}
