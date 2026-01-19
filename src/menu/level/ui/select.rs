@@ -151,12 +151,18 @@ impl LevelSelectUI {
         if let Some((hovered, message)) = tooltip {
             self.tooltip.show();
             let size = vec2(2.0, 0.75) * context.font_size;
-            let position = Aabb2::point(
+            let mut position = Aabb2::point(
                 vec2(hovered.center().x, hovered.max.y)
                     + vec2(0.0, 0.25) * context.layout_size
                     + vec2(0.0, size.y / 2.0),
             )
             .extend_symmetric(size / 2.0);
+
+            let offset = context.screen.min.x + context.layout_size * 0.25 - position.min.x;
+            if offset > 0.0 {
+                position = position.translate(vec2(offset, 0.0));
+            }
+
             self.tooltip.update(position, &context.scale_font(0.5));
             self.tooltip.text = message.into();
         } else {
