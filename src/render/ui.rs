@@ -493,6 +493,7 @@ impl UiRender {
             framebuffer,
         );
         self.draw_icon(&score.grade, theme, framebuffer);
+        self.draw_text(&score.completion, framebuffer);
 
         let mut draw_bar = |position: Aabb2<f32>,
                             light_color: Color,

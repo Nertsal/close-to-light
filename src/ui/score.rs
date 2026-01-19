@@ -18,6 +18,7 @@ pub struct ScoreWidget {
     pub grade_text: TextWidget,
     pub grade_back: WidgetState,
     pub grade: IconWidget,
+    pub completion: TextWidget,
     pub accuracy_bar: WidgetState,
     pub accuracy_value: TextWidget,
     pub accuracy_text: TextWidget,
@@ -42,6 +43,7 @@ impl ScoreWidget {
             grade_text: TextWidget::new("Grade").aligned(vec2(0.0, 0.5)),
             grade_back: WidgetState::new(),
             grade: IconWidget::new(assets.atlas.grade_f()).with_pixel_scale(2.0),
+            completion: TextWidget::new("Completion: 100%").aligned(vec2(0.5, 1.0)),
             accuracy_bar: WidgetState::new(),
             accuracy_value: TextWidget::new("100.00%"),
             accuracy_text: TextWidget::new("Rhythm"),
@@ -68,6 +70,15 @@ impl ScoreWidget {
         self.score_value.text = format!("{}", score.score.calculated.combined).into();
         self.score_grade = score.score.calculate_grade(score.completion);
         self.grade.texture = self.assets.get_grade(self.score_grade);
+
+        let completion = (score.completion.as_f32() * 100.0).floor() as isize;
+        if completion < 100 {
+            self.completion.show();
+            self.completion.text = format!("Completion: {}%", completion).into();
+        } else {
+            self.completion.hide();
+        }
+
         self.accuracy_value.text =
             format!("{:.2}%", score.score.calculated.accuracy.as_f32() * 100.0).into();
         self.precision_value.text =
@@ -129,7 +140,8 @@ impl WidgetOld for ScoreWidget {
             _ => ThemeColor::Highlight,
         };
 
-        main.cut_top(context.font_size * 1.0);
+        let completion = main.cut_top(context.font_size * 1.1);
+        self.completion.update(completion, &context.scale_font(0.8));
 
         let columns = main.split_columns(2);
         let mut acc_col = columns[0];
