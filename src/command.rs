@@ -32,6 +32,8 @@ pub enum Command {
     },
     /// Picture generation and similar.
     Media {
+        #[clap(long, default_value = "Some(true)")]
+        crt: Option<bool>,
         #[clap(long)]
         text: Option<String>,
         #[clap(long)]
@@ -275,8 +277,8 @@ impl Command {
                 };
                 context.geng.run_state(state).await;
             }
-            Command::Media { text, picture } => {
-                let mut state = media::MediaState::new(context.clone());
+            Command::Media { crt, text, picture } => {
+                let mut state = media::MediaState::new(context.clone(), crt.unwrap_or(true));
                 if let Some(text) = text {
                     state.set_text(text);
                 }

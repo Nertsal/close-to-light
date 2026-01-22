@@ -25,10 +25,12 @@ pub struct MediaState {
     picture: Option<ugli::Texture>,
     /// Automatically scale the picture to fit the whole screen (respecting pixels).
     auto_scale: bool,
+    /// Apply the CRT shader.
+    crt: bool,
 }
 
 impl MediaState {
-    pub fn new(context: Context) -> Self {
+    pub fn new(context: Context, crt: bool) -> Self {
         Self {
             util_render: UtilRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
@@ -45,6 +47,7 @@ impl MediaState {
             text: String::new(),
             picture: None,
             auto_scale: false,
+            crt,
 
             context,
         }
@@ -100,7 +103,7 @@ impl geng::State for MediaState {
         self.post.post_process(
             PostVfx {
                 time: self.time,
-                crt: true,
+                crt: self.crt,
                 rgb_split: 0.0,
                 colors: ctl_assets::GraphicsColorsOptions::default(),
             },
