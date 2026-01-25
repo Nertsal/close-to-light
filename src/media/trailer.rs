@@ -50,13 +50,14 @@ impl TrailerState {
         level: PlayLevel,
         custom: bool,
         duration: Option<FloatTime>,
+        start_time: Time,
     ) -> Self {
         context
             .geng
             .window()
             .set_cursor_type(geng::CursorType::None);
 
-        let start_time = level.start_time;
+        let start_time_level = level.start_time;
         let mut state = Self {
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
@@ -74,12 +75,8 @@ impl TrailerState {
                 ),
             ),
 
-            theme: Theme::linksider(),
-            time: if custom {
-                FloatTime::ZERO
-            } else {
-                time_to_seconds(start_time)
-            },
+            theme: Theme::frostlight(),
+            time: time_to_seconds(start_time),
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -94,7 +91,7 @@ impl TrailerState {
             custom,
             duration: duration.unwrap_or(r32(OUTRO)),
         };
-        state.model.start(start_time);
+        state.model.start(start_time_level);
         state
     }
 }
@@ -292,7 +289,7 @@ impl geng::State for TrailerState {
                         },
                         lifetime: 0,
                         danger: false,
-                        hollow: R32::ZERO,
+                        hollow: r32(-1.0),
                         event_id: None,
                         closest_waypoint: (100, WaypointId::Initial),
                     },
@@ -433,7 +430,7 @@ impl geng::State for TrailerState {
                     },
                     lifetime: 0,
                     danger: false,
-                    hollow: R32::ZERO,
+                    hollow: r32(-1.0),
                     event_id: None,
                     closest_waypoint: (100, WaypointId::Initial),
                 },

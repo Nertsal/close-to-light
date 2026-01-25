@@ -411,8 +411,13 @@ impl Command {
                         transition_button: None,
                     }
                 };
-                let state =
-                    crate::media::trailer::TrailerState::new(context.clone(), level, custom, outro);
+                let state = crate::media::trailer::TrailerState::new(
+                    context.clone(),
+                    level,
+                    custom,
+                    outro,
+                    start_time,
+                );
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {
