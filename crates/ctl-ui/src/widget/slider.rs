@@ -17,7 +17,7 @@ pub struct SliderWidget {
     pub head: WidgetState,
     pub value: TextWidget,
     pub options: TextRenderOptions,
-    pub display_precision: usize,
+    pub precision: usize,
 }
 
 impl SliderWidget {
@@ -32,15 +32,12 @@ impl SliderWidget {
             head: WidgetState::new(),
             value: TextWidget::new("").aligned(vec2(1.0, 0.5)),
             options: TextRenderOptions::default(),
-            display_precision: 2,
+            precision: 2,
         }
     }
 
-    pub fn with_display_precision(self, precision: usize) -> Self {
-        Self {
-            display_precision: precision,
-            ..self
-        }
+    pub fn with_precision(self, precision: usize) -> Self {
+        Self { precision, ..self }
     }
 
     pub fn update_value(
@@ -74,12 +71,8 @@ impl SliderWidget {
         }
 
         let value = main.cut_right(context.font_size * 1.0);
-        self.value.text = format!(
-            "{:.precision$}",
-            state.value(),
-            precision = self.display_precision
-        )
-        .into();
+        self.value.text =
+            format!("{:.precision$}", state.value(), precision = self.precision).into();
         self.value.update(value, context);
 
         main.cut_left(context.layout_size * 0.1);
@@ -95,16 +88,24 @@ impl SliderWidget {
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 
+        // Set value by ratio of the range and apply precision.
+        let mut set_ratio = |ratio: f32| {
+            let value = ratio.clamp_range(0.0..=1.0) * (state.max() - state.min()) + state.min();
+            let power = 10.0.powi(self.precision as i32);
+            let value = (value * power).round() / power;
+            state.set(value);
+        };
+
         if self.bar.position.width() > 0.0 {
             let cursor_t =
                 (context.cursor.position.x - self.bar.position.min.x) / self.bar.position.width();
             let cursor_t = cursor_t.clamp(0.0, 1.0);
             if self.bar_box.mouse_left.clicked {
-                state.set_ratio(cursor_t);
+                set_ratio(cursor_t);
             } else if self.bar_box.mouse_left.pressed.is_some() {
                 if self.is_dragging {
                     context.update_focus(true);
-                    state.set_ratio(cursor_t);
+                    set_ratio(cursor_t);
                 } else if !self.lock_drag {
                     let delta = context.cursor.position - context.cursor.last_position;
                     if delta != vec2::ZERO {

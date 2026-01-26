@@ -136,7 +136,7 @@ pub struct GameplayOptions {
 
 impl Default for GameplayOptions {
     fn default() -> Self {
-        Self { music_offset: 20.0 }
+        Self { music_offset: 0.0 }
     }
 }
 

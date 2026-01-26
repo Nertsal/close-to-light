@@ -11,6 +11,13 @@ use ctl_core::types::Name;
 use ctl_ui::util::ScrollState;
 use geng_utils::bounded::Bounded;
 
+const RANGE_VOLUME: RangeInclusive<f32> = 0.0..=100.0;
+const RANGE_MUSIC_OFFSET: RangeInclusive<f32> = -100.0..=100.0;
+const RANGE_BLUE: RangeInclusive<f32> = 50.0..=100.0;
+const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=100.0;
+const RANGE_INNER_RADIUS: RangeInclusive<f32> = 0.1..=0.5;
+const RANGE_OUTER_RADIUS: RangeInclusive<f32> = 0.05..=0.5;
+
 pub struct OptionsButtonWidget {
     pub state: WidgetState,
     pub open_time: Bounded<f32>,
@@ -234,7 +241,7 @@ impl VolumeWidget {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             title: TextWidget::new("Volume"),
-            master: SliderWidget::new("").with_display_precision(0),
+            master: SliderWidget::new("").with_precision(0),
         }
     }
 }
@@ -265,7 +272,7 @@ impl StatefulWidget for VolumeWidget {
         let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 1);
 
         self.master
-            .update_value(rows[0], context, &mut state.master, 0.0..=100.0);
+            .update_value(rows[0], context, &mut state.master, RANGE_VOLUME);
     }
 }
 
@@ -287,8 +294,8 @@ impl GraphicsWidget {
             title: TextWidget::new("Graphics"),
             fullscreen: ToggleWidget::new("Fullscreen"),
             crt: ToggleWidget::new("CRT Shader"),
-            blue: SliderWidget::new("Blue light").with_display_precision(0),
-            saturation: SliderWidget::new("Saturation").with_display_precision(0),
+            blue: SliderWidget::new("Blue light").with_precision(0),
+            saturation: SliderWidget::new("Saturation").with_precision(0),
             telegraph_color: ToggleWidget::new("Telegraph highlight"),
             perfect_color: ToggleWidget::new("Perfect highlight"),
         }
@@ -344,13 +351,13 @@ impl StatefulWidget for GraphicsWidget {
         // TODO: fix dragging view while changing value (also for music offset)
         let mut blue = state.colors.blue * 100.0;
         self.blue
-            .update_value(next_row(), context, &mut blue, 0.0..=100.0);
+            .update_value(next_row(), context, &mut blue, RANGE_BLUE);
         state.colors.blue = blue / 100.0;
 
         // TODO: fix dragging view while changing value (also for music offset)
         let mut saturation = state.colors.saturation * 100.0;
         self.saturation
-            .update_value(next_row(), context, &mut saturation, 0.0..=100.0);
+            .update_value(next_row(), context, &mut saturation, RANGE_SATURATION);
         state.colors.saturation = saturation / 100.0;
 
         self.telegraph_color.update(next_row(), context);
@@ -393,8 +400,8 @@ impl CursorWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Cursor"),
             show_perfect_radius: ToggleWidget::new("Show Outline"),
-            inner_radius: SliderWidget::new("Size").with_display_precision(2),
-            outer_radius: SliderWidget::new("Outline width").with_display_precision(2),
+            inner_radius: SliderWidget::new("Size").with_precision(2),
+            outer_radius: SliderWidget::new("Outline width").with_precision(2),
         }
     }
 }
@@ -438,15 +445,19 @@ impl StatefulWidget for CursorWidget {
         }
         self.show_perfect_radius.checked = state.show_perfect_radius;
 
-        self.inner_radius
-            .update_value(next_row(), context, &mut state.inner_radius, 0.1..=0.5);
+        self.inner_radius.update_value(
+            next_row(),
+            context,
+            &mut state.inner_radius,
+            RANGE_INNER_RADIUS,
+        );
         if state.show_perfect_radius {
             self.outer_radius.state.show();
             self.outer_radius.update_value(
                 next_row(),
                 context,
                 &mut state.outer_radius,
-                0.05..=0.5,
+                RANGE_OUTER_RADIUS,
             );
         } else {
             self.outer_radius.state.hide();
@@ -469,7 +480,7 @@ impl GameplayWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Gameplay"),
-            music_offset: SliderWidget::new("Music offset").with_display_precision(0),
+            music_offset: SliderWidget::new("Music offset").with_precision(0),
         }
     }
 }
@@ -507,8 +518,12 @@ impl StatefulWidget for GameplayWidget {
             row
         };
 
-        self.music_offset
-            .update_value(next_row(), context, &mut state.music_offset, -50.0..=50.0);
+        self.music_offset.update_value(
+            next_row(),
+            context,
+            &mut state.music_offset,
+            RANGE_MUSIC_OFFSET,
+        );
 
         let mut position = position;
         position.min.y = min_y;
