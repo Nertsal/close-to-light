@@ -17,6 +17,9 @@ const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=100.0;
 const RANGE_INNER_RADIUS: RangeInclusive<f32> = 0.1..=0.5;
 const RANGE_OUTER_RADIUS: RangeInclusive<f32> = 0.05..=0.5;
 
+const FONT_SCALE: f32 = 0.8;
+const FONT_FIT_SCALE: f32 = 0.8;
+
 pub struct OptionsButtonWidget {
     pub state: WidgetState,
     pub open_time: Bounded<f32>,
@@ -326,7 +329,7 @@ impl StatefulWidget for GraphicsWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let context = &mut context.scale_font(0.8);
+        let context = &mut context.scale_font(FONT_SCALE);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
@@ -339,6 +342,8 @@ impl StatefulWidget for GraphicsWidget {
             min_y = row.min.y;
             row
         };
+
+        let context = &mut context.scale_font(FONT_FIT_SCALE);
 
         let window = context.context.geng.window();
         self.fullscreen.checked = window.is_fullscreen();
@@ -429,7 +434,7 @@ impl StatefulWidget for CursorWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let context = &mut context.scale_font(0.8);
+        let context = &mut context.scale_font(FONT_SCALE);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
@@ -442,6 +447,8 @@ impl StatefulWidget for CursorWidget {
             min_y = row.min.y;
             row
         };
+
+        let context = &mut context.scale_font(FONT_FIT_SCALE);
 
         self.show_trail
             .update_state(next_row(), context, &mut state.show_trail);
@@ -526,19 +533,21 @@ impl StatefulWidget for GameplayWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let context = &mut context.scale_font(0.8);
+        let context = &mut context.scale_font(FONT_SCALE);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
         let mut min_y = current_row.min.y;
+        let layout_size = context.layout_size;
         let mut next_row = || -> Aabb2<f32> {
             let row = current_row;
-            current_row =
-                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            current_row = current_row.translate(vec2(0.0, -row.height() - layout_size * 0.1));
             min_y = row.min.y;
             row
         };
+
+        let context = &mut context.scale_font(FONT_FIT_SCALE);
 
         self.music_offset.update_value(
             next_row(),

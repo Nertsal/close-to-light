@@ -155,7 +155,7 @@ impl StatefulWidget for ColorSelectWidget {
     ) {
         let mut main = position;
 
-        let title = main.cut_left(context.font_size * 3.5);
+        let title = main.cut_left(context.font_size * 4.0);
         self.title.update(title, context);
 
         let alignment = 1.0;

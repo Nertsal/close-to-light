@@ -54,7 +54,7 @@ impl SliderWidget {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Bounded<f32>) {
         self.state.update(
-            position.with_width(position.width() + context.font_size * 0.3, 0.5),
+            position.with_width(position.width() + context.font_size * 0.5, 0.5),
             context,
         );
 
