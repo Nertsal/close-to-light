@@ -28,10 +28,10 @@ pub struct GameOptions {
 impl GameOptions {
     pub fn new(context: Context, leaderboard: Leaderboard) -> Self {
         Self {
+            player_size: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.1)),
+            preview: GameplayPreview::new(context.clone()),
             context,
             leaderboard,
-            player_size: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.1)),
-            preview: GameplayPreview::new(),
         }
     }
 }

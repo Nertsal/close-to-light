@@ -723,7 +723,17 @@ impl geng::State for LevelMenu {
             }
         }
 
-        self.state.options.preview.update(delta_time);
+        self.state.options.preview.update(
+            delta_time,
+            self.ui
+                .options
+                .options
+                .gameplay
+                .music_offset
+                .state
+                .hovered
+                .then_some(options.gameplay.music_offset),
+        );
 
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),

@@ -1,6 +1,7 @@
 use super::*;
 
 pub struct GameplayPreview {
+    pub context: Context,
     pub camera: Camera2d,
     pub level: Level,
     pub state: LevelState,
@@ -10,9 +11,10 @@ pub struct GameplayPreview {
 }
 
 impl GameplayPreview {
-    pub fn new() -> Self {
+    pub fn new(context: Context) -> Self {
         let level = infinity_level();
         Self {
+            context,
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
@@ -30,8 +32,19 @@ impl GameplayPreview {
         }
     }
 
-    pub fn update(&mut self, delta_time: FloatTime) {
+    /// If `tick_offset` is `Some`, then also plays a sound effect at 120 bpm for offset calibration.
+    pub fn update(&mut self, delta_time: FloatTime, tick_offset: Option<f32>) {
+        if let Some(offset) = tick_offset {
+            let time = self.real_time.as_f32() - offset * 1e-3;
+            let tick_t_last = ((time) * 2.0).fract();
+            let tick_t = ((time + delta_time.as_f32()) * 2.0).fract();
+            if tick_t_last > 0.5 && tick_t < 0.5 {
+                self.context.sfx.play(&self.context.assets.sounds.tick);
+            }
+        }
+
         self.real_time += delta_time;
+
         if let Some(event) = self.level.events.first()
             && let Event::Light(light) = &event.event
         {

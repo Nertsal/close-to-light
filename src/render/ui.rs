@@ -881,13 +881,20 @@ impl UiRender {
             None
         };
         if let Some(hovered) = preview {
-            let options = state.context.get_options();
             self.draw_preview(
                 masked,
                 dither,
                 &state.preview,
                 options,
                 hovered,
+                framebuffer,
+            );
+        } else if ui.options.gameplay.music_offset.state.hovered {
+            self.draw_music_offset_calibration(
+                masked,
+                options,
+                state.preview.real_time,
+                ui.options.gameplay.music_offset.state.position,
                 framebuffer,
             );
         }
@@ -1028,6 +1035,63 @@ impl UiRender {
                 geng_utils::texture::DrawTexture::new(dither.get_buffer())
                     .fit(popup, vec2(0.5, 0.5))
                     .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+            },
+        );
+    }
+
+    fn draw_music_offset_calibration(
+        &self,
+        masked: &mut MaskedRender,
+        options: Options,
+        time: FloatTime,
+        setting: Aabb2<f32>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+
+        let popup_size = vec2(7.0, 2.0) * font_size;
+        let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)
+            .extend_positive(popup_size);
+        if popup.max.y > framebuffer.size().y as f32 {
+            popup = popup.translate(vec2(0.0, -popup.height() - 3.0 * font_size));
+        }
+        let overflow_x = popup.max.x - framebuffer.size().x as f32 + 3.0 * font_size;
+        if overflow_x > 0.0 {
+            popup = popup.translate(vec2(-overflow_x, 0.0));
+        }
+
+        let width = 12.0;
+        self.draw_window(
+            masked,
+            popup,
+            None,
+            width,
+            options.theme,
+            framebuffer,
+            |framebuffer| {
+                // TODO
+                let camera = &geng::PixelPerfectCamera;
+                let theme = options.theme;
+                let popup = popup.extend_uniform(-width);
+
+                // Timeline
+                self.context.geng.draw2d().quad(
+                    framebuffer,
+                    camera,
+                    popup.with_height(font_size * 0.1, 0.5),
+                    theme.light,
+                );
+
+                // Tick
+                let t = (time.as_f32().fract() - 0.5).abs() * 2.0;
+                let tick = popup.align_aabb(vec2(0.2, 0.75) * popup.height(), vec2(t, 0.5));
+                self.draw_subtexture(
+                    tick,
+                    &self.context.assets.atlas.timeline_tick_big(),
+                    theme.highlight,
+                    1.0,
+                    framebuffer,
+                );
             },
         );
     }

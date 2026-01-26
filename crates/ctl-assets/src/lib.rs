@@ -73,6 +73,7 @@ pub struct Fonts {
 pub struct Sounds {
     pub ui_hover: Rc<geng::Sound>,
     pub ui_click: Rc<geng::Sound>,
+    pub tick: Rc<geng::Sound>,
 }
 
 #[derive(geng::asset::Load)]

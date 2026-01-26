@@ -135,6 +135,7 @@ impl geng::State for MainMenu {
         let delta_time = FloatTime::new(delta_time as f32);
         self.context.update(delta_time);
         self.time += delta_time;
+        let options = self.context.get_options();
 
         self.context
             .geng
@@ -156,7 +157,17 @@ impl geng::State for MainMenu {
         let pos = pos - game_pos.bottom_left();
         self.cursor_world_pos = self.camera.screen_to_world(game_pos.size(), pos).as_r32();
 
-        self.options.preview.update(delta_time);
+        self.options.preview.update(
+            delta_time,
+            self.ui
+                .options
+                .options
+                .gameplay
+                .music_offset
+                .state
+                .hovered
+                .then_some(options.gameplay.music_offset),
+        );
 
         // Update player cursor size
         self.options.player_size.update(delta_time.as_f32());
