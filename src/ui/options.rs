@@ -7,7 +7,6 @@ use crate::{
 };
 
 use ctl_assets::{CursorOptions, GameplayOptions, GraphicsOptions};
-use ctl_core::types::Name;
 use ctl_ui::util::ScrollState;
 use geng_utils::bounded::Bounded;
 
@@ -283,8 +282,8 @@ pub struct GraphicsWidget {
     pub crt: ToggleWidget,
     pub blue: SliderWidget,
     pub saturation: SliderWidget,
-    pub telegraph_color: ToggleWidget,
-    pub perfect_color: ToggleWidget,
+    pub telegraph_color: ColorSelectWidget,
+    pub perfect_color: ColorSelectWidget,
 }
 
 impl GraphicsWidget {
@@ -296,8 +295,14 @@ impl GraphicsWidget {
             crt: ToggleWidget::new("CRT Shader"),
             blue: SliderWidget::new("Blue light").with_precision(0),
             saturation: SliderWidget::new("Saturation").with_precision(0),
-            telegraph_color: ToggleWidget::new("Telegraph highlight"),
-            perfect_color: ToggleWidget::new("Perfect highlight"),
+            telegraph_color: ColorSelectWidget::new(
+                "Telegraph color",
+                [ThemeColor::Light, ThemeColor::Highlight],
+            ),
+            perfect_color: ColorSelectWidget::new(
+                "Perfect color",
+                [ThemeColor::Light, ThemeColor::Highlight],
+            ),
         }
     }
 }
@@ -327,10 +332,10 @@ impl StatefulWidget for GraphicsWidget {
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
         let mut min_y = current_row.min.y;
+        let layout_size = context.layout_size;
         let mut next_row = || -> Aabb2<f32> {
             let row = current_row;
-            current_row =
-                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            current_row = current_row.translate(vec2(0.0, -row.height() - layout_size * 0.1));
             min_y = row.min.y;
             row
         };
@@ -360,25 +365,10 @@ impl StatefulWidget for GraphicsWidget {
             .update_value(next_row(), context, &mut saturation, RANGE_SATURATION);
         state.colors.saturation = saturation / 100.0;
 
-        self.telegraph_color.update(next_row(), context);
-        if self.telegraph_color.state.mouse_left.clicked {
-            state.lights.telegraph_color = if state.lights.telegraph_color == ThemeColor::Light {
-                ThemeColor::Highlight
-            } else {
-                ThemeColor::Light
-            };
-        }
-        self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Highlight;
-
-        self.perfect_color.update(next_row(), context);
-        if self.perfect_color.state.mouse_left.clicked {
-            state.lights.perfect_color = if state.lights.perfect_color == ThemeColor::Light {
-                ThemeColor::Highlight
-            } else {
-                ThemeColor::Light
-            };
-        }
-        self.perfect_color.checked = state.lights.perfect_color == ThemeColor::Highlight;
+        self.telegraph_color
+            .update(next_row(), context, &mut state.lights.telegraph_color);
+        self.perfect_color
+            .update(next_row(), context, &mut state.lights.perfect_color);
 
         let mut position = position;
         position.min.y = min_y;
@@ -528,112 +518,5 @@ impl StatefulWidget for GameplayWidget {
         let mut position = position;
         position.min.y = min_y;
         self.state.update(position, context);
-    }
-}
-
-pub struct PaletteChooseWidget {
-    pub state: WidgetState,
-    pub title: TextWidget,
-    pub palettes: Vec<PaletteWidget>,
-}
-
-impl PaletteChooseWidget {
-    pub fn new(options: Vec<PaletteWidget>) -> Self {
-        Self {
-            state: WidgetState::new(),
-            title: TextWidget::new("Palette"),
-            palettes: options,
-        }
-    }
-}
-
-impl StatefulWidget for PaletteChooseWidget {
-    type State<'a> = Theme;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
-        let mut main = position;
-
-        let title = main.cut_top(context.font_size * 1.5);
-        self.title.update(title, context);
-
-        let row = Aabb2::point(main.top_left())
-            .extend_right(main.width())
-            .extend_down(context.font_size * 1.2);
-        let rows = row.stack(
-            vec2(0.0, -row.height() - context.layout_size * 0.1),
-            self.palettes.len(),
-        );
-        let min_y = rows.last().unwrap().min.y;
-        for (palette, pos) in self.palettes.iter_mut().zip(rows) {
-            palette.update(pos, context, state);
-            if palette.state.mouse_left.clicked {
-                *state = palette.palette;
-            }
-        }
-
-        let mut position = position;
-        position.min.y = min_y;
-        self.state.update(position, context);
-    }
-}
-
-pub struct PaletteWidget {
-    pub state: WidgetState,
-    pub visual: WidgetState,
-    pub name: TextWidget,
-    pub palette: Theme,
-}
-
-impl PaletteWidget {
-    pub fn new(name: impl Into<Name>, palette: Theme) -> Self {
-        Self {
-            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
-            visual: WidgetState::new(),
-            name: TextWidget::new(name),
-            palette,
-        }
-    }
-}
-
-impl StatefulWidget for PaletteWidget {
-    type State<'a> = Theme;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
-        self.state.update(position, context);
-        if self.state.mouse_left.clicked {
-            *state = self.palette;
-        }
-
-        let main = position;
-
-        let mut name = main;
-        let visual = name.split_left(0.5);
-
-        let height = main.height() * 0.5;
-        let visual = visual.extend_left(height * 4.0 - visual.width());
-        let visual = visual.extend_symmetric(vec2(0.0, height - visual.height()) / 2.0);
-        self.visual.update(visual, context);
-
-        let name = name.extend_left(-context.font_size * 0.2);
-        self.name.align(vec2(0.0, 0.5));
-        self.name.update(name, context);
     }
 }

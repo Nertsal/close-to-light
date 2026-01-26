@@ -787,10 +787,8 @@ impl UiRender {
         state: &GameOptions,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let camera = &geng::PixelPerfectCamera;
         let options = state.context.get_options();
         let theme = options.theme;
-        let font_size = framebuffer.size().y as f32 * 0.04;
 
         let width = 12.0;
         let options_pos = ui
@@ -823,37 +821,7 @@ impl UiRender {
                     let palette = &ui.options.palette;
                     self.draw_text(&palette.title, framebuffer);
                     for palette in &palette.palettes {
-                        let mut theme = theme;
-                        if palette.state.hovered || palette.palette == options.theme {
-                            std::mem::swap(&mut theme.dark, &mut theme.light);
-                            self.fill_quad(palette.state.position, theme.dark, framebuffer);
-                        }
-
-                        self.draw_text_colored(&palette.name, theme.light, framebuffer);
-
-                        let mut quad = |i: f32, color: Color| {
-                            let pos = palette.visual.position;
-                            let pos = Aabb2::point(pos.bottom_left())
-                                .extend_positive(vec2::splat(pos.height()));
-                            let pos = pos.translate(vec2(i * pos.width(), 0.0));
-                            self.context.geng.draw2d().draw2d(
-                                framebuffer,
-                                camera,
-                                &draw2d::Quad::new(pos, color),
-                            );
-                        };
-                        quad(0.0, palette.palette.dark);
-                        quad(1.0, palette.palette.light);
-                        quad(2.0, palette.palette.danger);
-                        quad(3.0, palette.palette.highlight);
-
-                        let outline_width = font_size * 0.1;
-                        self.draw_outline(
-                            palette.visual.position.extend_uniform(outline_width),
-                            outline_width,
-                            theme.light,
-                            framebuffer,
-                        );
+                        self.draw_palette_widget(palette, theme, framebuffer);
                     }
                 }
 
@@ -872,8 +840,8 @@ impl UiRender {
                     self.draw_toggle_widget(&graphics.crt, theme, framebuffer);
                     self.draw_slider(&graphics.blue, theme, framebuffer);
                     self.draw_slider(&graphics.saturation, theme, framebuffer);
-                    self.draw_toggle_widget(&graphics.telegraph_color, theme, framebuffer);
-                    self.draw_toggle_widget(&graphics.perfect_color, theme, framebuffer);
+                    self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
+                    self.draw_color_select(&graphics.perfect_color, theme, framebuffer);
                 }
 
                 {
@@ -914,6 +882,70 @@ impl UiRender {
                 hovered,
                 framebuffer,
             );
+        }
+    }
+
+    fn draw_palette_widget(
+        &self,
+        palette: &PaletteWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+
+        let mut theme = theme;
+        if palette.state.hovered || palette.palette == theme {
+            std::mem::swap(&mut theme.dark, &mut theme.light);
+            self.fill_quad(palette.state.position, theme.dark, framebuffer);
+        }
+
+        self.draw_text_colored(&palette.name, theme.light, framebuffer);
+
+        let mut quad = |i: f32, color: Color| {
+            let pos = palette.visual.position;
+            let pos = Aabb2::point(pos.bottom_left()).extend_positive(vec2::splat(pos.height()));
+            let pos = pos.translate(vec2(i * pos.width(), 0.0));
+            self.context.geng.draw2d().draw2d(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                &draw2d::Quad::new(pos, color),
+            );
+        };
+        quad(0.0, palette.palette.dark);
+        quad(1.0, palette.palette.light);
+        quad(2.0, palette.palette.danger);
+        quad(3.0, palette.palette.highlight);
+
+        let outline_width = font_size * 0.1;
+        self.draw_outline(
+            palette.visual.position.extend_uniform(outline_width),
+            outline_width,
+            theme.light,
+            framebuffer,
+        );
+    }
+
+    fn draw_color_select(
+        &self,
+        widget: &ColorSelectWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+        let outline_width = font_size * 0.1;
+
+        self.draw_text(&widget.title, framebuffer);
+        for (w, color) in &widget.colors {
+            let pos = w.position;
+            let fill_color = theme.get_color(*color);
+            self.fill_quad_width(pos, outline_width, fill_color, framebuffer);
+            if w.hovered || widget.selected_color == *color {
+                let mut outline_color = theme.light;
+                if outline_color == fill_color {
+                    outline_color = theme.highlight;
+                };
+                self.draw_outline(pos, outline_width, outline_color, framebuffer);
+            }
         }
     }
 

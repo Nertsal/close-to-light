@@ -1,5 +1,6 @@
 mod beat_time;
 mod button;
+mod color;
 mod confirm;
 mod dropdown;
 mod explore;
@@ -11,7 +12,7 @@ mod text;
 mod value;
 
 pub use self::{
-    beat_time::*, button::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
+    beat_time::*, button::*, color::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
     notification::*, slider::*, text::*, value::*,
 };
 
