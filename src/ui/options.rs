@@ -347,11 +347,8 @@ impl StatefulWidget for GraphicsWidget {
             window.toggle_fullscreen();
         }
 
-        self.crt.checked = state.crt.enabled;
-        self.crt.update(next_row(), context);
-        if self.crt.state.mouse_left.clicked {
-            state.crt.enabled = !state.crt.enabled;
-        }
+        self.crt
+            .update_state(next_row(), context, &mut state.crt.enabled);
 
         // TODO: fix dragging view while changing value (also for music offset)
         let mut blue = state.colors.blue * 100.0;
@@ -383,6 +380,8 @@ pub struct CursorWidget {
     pub inner_radius: SliderWidget,
     pub outer_radius: SliderWidget,
     pub outer_color: ColorSelectWidget,
+    pub show_rhythm_circles: ToggleWidget,
+    pub show_rhythm_only_miss: ToggleWidget,
 }
 
 impl CursorWidget {
@@ -403,6 +402,8 @@ impl CursorWidget {
                     ThemeColor::Danger,
                 ],
             ),
+            show_rhythm_circles: ToggleWidget::new("Rhythm circles"),
+            show_rhythm_only_miss: ToggleWidget::new("Show only misses"),
         }
     }
 }
@@ -432,19 +433,16 @@ impl StatefulWidget for CursorWidget {
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
         let mut min_y = current_row.min.y;
+        let layout_size = context.layout_size;
         let mut next_row = || -> Aabb2<f32> {
             let row = current_row;
-            current_row =
-                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            current_row = current_row.translate(vec2(0.0, -row.height() - layout_size * 0.1));
             min_y = row.min.y;
             row
         };
 
-        self.show_perfect_radius.update(next_row(), context);
-        if self.show_perfect_radius.state.mouse_left.clicked {
-            state.show_perfect_radius = !state.show_perfect_radius;
-        }
-        self.show_perfect_radius.checked = state.show_perfect_radius;
+        self.show_perfect_radius
+            .update_state(next_row(), context, &mut state.show_perfect_radius);
 
         self.inner_radius.update_value(
             next_row(),
@@ -467,6 +465,19 @@ impl StatefulWidget for CursorWidget {
         } else {
             self.outer_radius.state.hide();
             self.outer_color.state.hide();
+        }
+
+        self.show_rhythm_circles
+            .update_state(next_row(), context, &mut state.show_rhythm_circles);
+        if state.show_rhythm_circles {
+            self.show_rhythm_only_miss.state.show();
+            self.show_rhythm_only_miss.update_state(
+                next_row(),
+                context,
+                &mut state.show_rhythm_only_miss,
+            );
+        } else {
+            self.show_rhythm_only_miss.state.hide();
         }
 
         let mut position = position;

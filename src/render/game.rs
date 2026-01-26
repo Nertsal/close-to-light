@@ -136,23 +136,28 @@ impl GameRender {
             );
         }
 
-        // Rhythm feedback
-        for rhythm in &model.rhythms {
-            let color = if rhythm.perfect {
-                THEME.highlight
-            } else {
-                THEME.danger
-            };
-            let t = rhythm.time.clone().map(|t| t as f32).get_ratio();
+        if options.cursor.show_rhythm_circles {
+            // Rhythm feedback
+            for rhythm in &model.rhythms {
+                let color = if rhythm.perfect {
+                    if options.cursor.show_rhythm_only_miss {
+                        continue;
+                    }
+                    THEME.highlight
+                } else {
+                    THEME.danger
+                };
+                let t = rhythm.time.clone().map(|t| t as f32).get_ratio();
 
-            let scale = r32(crate::util::smoothstep(1.0 - t));
-            let mut visual = model
-                .player
-                .collider
-                .transformed(TransformLight { scale, ..default() });
-            visual.position = rhythm.position;
-            self.util
-                .draw_outline(&visual, 0.05, color, camera, &mut framebuffer);
+                let scale = r32(crate::util::smoothstep(1.0 - t));
+                let mut visual = model
+                    .player
+                    .collider
+                    .transformed(TransformLight { scale, ..default() });
+                visual.position = rhythm.position;
+                self.util
+                    .draw_outline(&visual, 0.05, color, camera, &mut framebuffer);
+            }
         }
 
         if !model.level.config.modifiers.clean_auto {

@@ -112,10 +112,18 @@ impl Default for GraphicsLightsOptions {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct CursorOptions {
+    /// Render the radius of the player's collider where it's counted as perfectly inside of the light.
     pub show_perfect_radius: bool,
+    /// Radius of the inner trail.
     pub inner_radius: f32,
+    /// Size of the *perfect radius*.
     pub outer_radius: f32,
+    /// Color of the *perfect radius*.
     pub outer_color: ThemeColor,
+    /// Display rhythm feedback circles during gameplay.
+    pub show_rhythm_circles: bool,
+    /// Display only missed rhythm circles.
+    pub show_rhythm_only_miss: bool,
 }
 
 impl Default for CursorOptions {
@@ -125,6 +133,8 @@ impl Default for CursorOptions {
             inner_radius: 0.15,
             outer_radius: 0.05,
             outer_color: ThemeColor::Light,
+            show_rhythm_circles: true,
+            show_rhythm_only_miss: false,
         }
     }
 }

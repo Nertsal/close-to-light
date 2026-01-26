@@ -266,6 +266,14 @@ impl ToggleWidget {
         self
     }
 
+    pub fn update_state(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut bool) {
+        self.update(position, context);
+        if self.state.mouse_left.clicked {
+            *state = !*state;
+        }
+        self.checked = *state;
+    }
+
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         let mut main = position;
         self.state.update(main, context);

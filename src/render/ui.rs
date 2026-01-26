@@ -638,6 +638,10 @@ impl UiRender {
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !toggle.state.visible {
+            return;
+        }
+
         let width = toggle.text.options.size * 0.1;
 
         let mut fg_color = theme.light;
@@ -852,6 +856,8 @@ impl UiRender {
                     self.draw_slider(&cursor.inner_radius, theme, framebuffer);
                     self.draw_slider(&cursor.outer_radius, theme, framebuffer);
                     self.draw_color_select(&cursor.outer_color, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_rhythm_circles, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_rhythm_only_miss, theme, framebuffer);
                 }
 
                 // Scrollbar
