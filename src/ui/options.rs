@@ -376,8 +376,9 @@ impl StatefulWidget for GraphicsWidget {
 pub struct CursorWidget {
     pub state: WidgetState,
     pub title: TextWidget,
-    pub show_perfect_radius: ToggleWidget,
+    pub show_trail: ToggleWidget,
     pub inner_radius: SliderWidget,
+    pub show_perfect_radius: ToggleWidget,
     pub outer_radius: SliderWidget,
     pub outer_color: ColorSelectWidget,
     pub show_rhythm_circles: ToggleWidget,
@@ -389,8 +390,9 @@ impl CursorWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Cursor"),
-            show_perfect_radius: ToggleWidget::new("Show Outline"),
-            inner_radius: SliderWidget::new("Size").with_precision(2),
+            show_trail: ToggleWidget::new("Show trail"),
+            inner_radius: SliderWidget::new("Trail size").with_precision(2),
+            show_perfect_radius: ToggleWidget::new("Show outline"),
             outer_radius: SliderWidget::new("Outline width").with_precision(2),
             outer_color: ColorSelectWidget::new(
                 "Outline color",
@@ -441,8 +443,8 @@ impl StatefulWidget for CursorWidget {
             row
         };
 
-        self.show_perfect_radius
-            .update_state(next_row(), context, &mut state.show_perfect_radius);
+        self.show_trail
+            .update_state(next_row(), context, &mut state.show_trail);
 
         self.inner_radius.update_value(
             next_row(),
@@ -450,6 +452,9 @@ impl StatefulWidget for CursorWidget {
             &mut state.inner_radius,
             RANGE_INNER_RADIUS,
         );
+
+        self.show_perfect_radius
+            .update_state(next_row(), context, &mut state.show_perfect_radius);
         if state.show_perfect_radius {
             self.outer_radius.state.show();
             self.outer_radius.update_value(

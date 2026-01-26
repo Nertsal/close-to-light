@@ -696,7 +696,7 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         // Player tail
-        for tail in &player.tail {
+        let mut trail_point = |tail: &PlayerTail| {
             let radius = r32(options.cursor.inner_radius) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
@@ -714,6 +714,13 @@ impl UtilRender {
                 &draw2d::Ellipse::circle(tail.pos.as_f32(), radius.as_f32(), in_color),
             );
             self.draw_outline(&collider, 0.05, out_color, camera, framebuffer);
+        };
+        if options.cursor.show_trail {
+            for tail in &player.tail {
+                trail_point(tail);
+            }
+        } else if let Some(tail) = player.tail.last() {
+            trail_point(tail);
         }
 
         // Player

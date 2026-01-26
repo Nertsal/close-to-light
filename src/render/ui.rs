@@ -852,8 +852,9 @@ impl UiRender {
                     // Cursor
                     let cursor = &ui.options.cursor;
                     self.draw_text(&cursor.title, framebuffer);
-                    self.draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_trail, theme, framebuffer);
                     self.draw_slider(&cursor.inner_radius, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
                     self.draw_slider(&cursor.outer_radius, theme, framebuffer);
                     self.draw_color_select(&cursor.outer_color, theme, framebuffer);
                     self.draw_toggle_widget(&cursor.show_rhythm_circles, theme, framebuffer);
@@ -938,6 +939,10 @@ impl UiRender {
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !widget.state.visible {
+            return;
+        }
+
         let font_size = framebuffer.size().y as f32 * 0.04;
         let outline_width = font_size * 0.1;
 

@@ -112,10 +112,12 @@ impl Default for GraphicsLightsOptions {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct CursorOptions {
+    /// Render the trail.
+    pub show_trail: bool,
+    /// Radius of the trail.
+    pub inner_radius: f32,
     /// Render the radius of the player's collider where it's counted as perfectly inside of the light.
     pub show_perfect_radius: bool,
-    /// Radius of the inner trail.
-    pub inner_radius: f32,
     /// Size of the *perfect radius*.
     pub outer_radius: f32,
     /// Color of the *perfect radius*.
@@ -129,8 +131,9 @@ pub struct CursorOptions {
 impl Default for CursorOptions {
     fn default() -> Self {
         Self {
-            show_perfect_radius: true,
+            show_trail: true,
             inner_radius: 0.15,
+            show_perfect_radius: true,
             outer_radius: 0.05,
             outer_color: ThemeColor::Light,
             show_rhythm_circles: true,
