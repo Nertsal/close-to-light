@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::ui::layout::AreaOps;
+use crate::{render::post::PostRender, ui::layout::AreaOps};
 
 use ctl_assets::LoadingAssets;
 use ctl_util::Task;
@@ -8,9 +8,9 @@ use ctl_util::Task;
 pub struct LoadingScreen<T> {
     geng: Geng,
     assets: Rc<LoadingAssets>,
+    post_render: PostRender,
     unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     gif_texture: ugli::Texture,
-    crt_texture: ugli::Texture,
     options: Options,
     future: Option<Task<T>>,
     result: Option<T>,
@@ -32,13 +32,19 @@ impl<T: 'static> LoadingScreen<T> {
     ) -> Self {
         // let height = 360;
         // let size = vec2(height * 16 / 9, height);
+        let options = preferences::load(ctl_context::OPTIONS_STORAGE).unwrap_or_default();
         Self {
             geng: geng.clone(),
+            post_render: PostRender::new_with(crate::render::post::PostContext {
+                geng: geng.clone(),
+                shader_crt: assets.shader_crt.clone(),
+                shader_rgb_split: assets.shader_rgb_split.clone(),
+                shader_color_correction: assets.shader_color_correction.clone(),
+            }),
             assets,
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             gif_texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
-            crt_texture: geng_utils::texture::new_texture(geng.ugli(), vec2(1, 1)),
-            options: preferences::load(ctl_context::OPTIONS_STORAGE).unwrap_or_default(),
+            options,
             future: Some(Task::new(geng, future)),
             result: None,
 
@@ -127,11 +133,6 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
             framebuffer.size(),
             self.geng.ugli(),
         );
-        geng_utils::texture::update_texture_size(
-            &mut self.crt_texture,
-            framebuffer.size(),
-            self.geng.ugli(),
-        );
 
         let framebuffer_size = framebuffer.size().as_f32();
         let font_size = framebuffer_size.y * 0.08;
@@ -162,13 +163,11 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
             }
         }
 
-        let buffer =
-            &mut geng_utils::texture::attach_texture(&mut self.crt_texture, self.geng.ugli());
-        ugli::clear(buffer, Some(self.options.theme.dark), None, None);
+        let buffer = &mut self.post_render.begin(framebuffer.size(), theme.dark);
 
         ugli::draw(
             buffer,
-            &self.assets.background_shader,
+            &self.assets.shader_background,
             ugli::DrawMode::TriangleFan,
             &self.unit_quad,
             ugli::uniforms! {
@@ -231,29 +230,15 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
         //     TextRenderOptions::new(font_size * 0.4).color(theme.light),
         // );
 
-        if self.options.graphics.crt.enabled {
-            ugli::draw(
-                framebuffer,
-                &self.assets.crt_shader,
-                ugli::DrawMode::TriangleFan,
-                &self.unit_quad,
-                ugli::uniforms! {
-                    u_time: self.real_time as f32,
-                    u_texture: &self.crt_texture,
-                    u_curvature: self.options.graphics.crt.curvature,
-                    u_vignette_multiplier: self.options.graphics.crt.vignette,
-                    u_scanlines_multiplier: self.options.graphics.crt.scanlines,
-                },
-                ugli::DrawParameters::default(),
-            );
-        } else {
-            self.geng.draw2d().textured_quad(
-                framebuffer,
-                &geng::PixelPerfectCamera,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                &self.crt_texture,
-                Color::WHITE,
-            );
-        }
+        self.post_render.post_process(
+            &self.options,
+            crate::render::post::PostVfx {
+                time: r32(self.real_time as f32),
+                crt: self.options.graphics.crt.enabled,
+                rgb_split: 0.0,
+                colors: self.options.graphics.colors,
+            },
+            framebuffer,
+        );
     }
 }

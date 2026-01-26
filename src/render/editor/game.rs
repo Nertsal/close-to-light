@@ -160,7 +160,8 @@ impl EditorRender {
             &mut self.game_texture,
             self.context.geng.ugli(),
         );
-        self.post_render.post_process(post_vfx, game_buffer);
+        self.post_render
+            .post_process(&self.context.get_options(), post_vfx, game_buffer);
 
         {
             // Current action

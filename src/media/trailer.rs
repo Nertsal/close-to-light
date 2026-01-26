@@ -62,7 +62,7 @@ impl TrailerState {
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
             framebuffer_size: vec2(1, 1),
 
             model: Model::new(
@@ -456,6 +456,7 @@ impl geng::State for TrailerState {
 
         // Post processing effects
         self.post.post_process(
+            &options,
             PostVfx {
                 time: self.time,
                 crt: true,

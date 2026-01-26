@@ -34,7 +34,7 @@ impl MediaState {
         Self {
             util_render: UtilRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
 
             theme: Theme::default(),
             time: FloatTime::ZERO,
@@ -101,6 +101,7 @@ impl geng::State for MediaState {
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         }
         self.post.post_process(
+            &Options::default(),
             PostVfx {
                 time: self.time,
                 crt: self.crt,

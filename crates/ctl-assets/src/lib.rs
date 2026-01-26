@@ -22,9 +22,13 @@ pub struct LoadingAssets {
     #[load(load_with = "load_gif(&manager, &base_path.join(\"sprites/loading_background.gif\"))")]
     pub background: Vec<GifFrame>,
     #[load(path = "shaders/replace_colors.glsl")]
-    pub background_shader: ugli::Program,
+    pub shader_background: ugli::Program,
     #[load(path = "shaders/crt.glsl")]
-    pub crt_shader: ugli::Program,
+    pub shader_crt: Rc<ugli::Program>,
+    #[load(path = "shaders/rgb_split.glsl")]
+    pub shader_rgb_split: Rc<ugli::Program>,
+    #[load(path = "shaders/color_correction.glsl")]
+    pub shader_color_correction: Rc<ugli::Program>,
 }
 
 fn load_gif(
@@ -171,15 +175,15 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
 
 #[derive(geng::asset::Load)]
 pub struct Shaders {
-    pub solid: ugli::Program,
-    pub light: ugli::Program,
-    pub masked: ugli::Program,
-    pub texture: ugli::Program,
-    pub ellipse: ugli::Program,
-    pub texture_ui: ugli::Program,
-    pub crt: ugli::Program,
-    pub rgb_split: ugli::Program,
-    pub color_correction: ugli::Program,
+    pub solid: Rc<ugli::Program>,
+    pub light: Rc<ugli::Program>,
+    pub masked: Rc<ugli::Program>,
+    pub texture: Rc<ugli::Program>,
+    pub ellipse: Rc<ugli::Program>,
+    pub texture_ui: Rc<ugli::Program>,
+    pub crt: Rc<ugli::Program>,
+    pub rgb_split: Rc<ugli::Program>,
+    pub color_correction: Rc<ugli::Program>,
 }
 
 #[derive(geng::asset::Load)]

@@ -19,7 +19,7 @@ impl SplashScreen {
     pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
         Self {
             util: UtilRender::new(context.clone()),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
 
             time: FloatTime::ZERO,
 
@@ -78,6 +78,7 @@ trigger seizures for people with photosensitive epilepsy
         );
 
         self.post.post_process(
+            &options,
             crate::render::post::PostVfx {
                 time: self.time,
                 crt: options.graphics.crt.enabled,

@@ -65,7 +65,7 @@ impl Game {
 
             transition: None,
             render: GameRender::new(context.clone()),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
             context,
         }
     }
@@ -123,6 +123,7 @@ impl geng::State for Game {
         }
 
         self.post.post_process(
+            &options,
             crate::render::post::PostVfx {
                 time: self.model.real_time,
                 crt: options.graphics.crt.enabled,

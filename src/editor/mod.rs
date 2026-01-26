@@ -33,7 +33,7 @@ impl EditorState {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(context.clone()),
-            post_render: PostRender::new(context.clone()),
+            post_render: PostRender::new(&context),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
             ui: EditorUi::new(context.clone()),
@@ -324,6 +324,7 @@ impl geng::State for EditorState {
             rgb_split: 0.0,
             ..game_post_vfx
         };
-        self.post_render.post_process(editor_post_vfx, framebuffer);
+        self.post_render
+            .post_process(&options, editor_post_vfx, framebuffer);
     }
 }

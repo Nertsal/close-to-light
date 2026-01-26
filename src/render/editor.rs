@@ -46,7 +46,7 @@ impl EditorRender {
             ui: UiRender::new(context.clone()),
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             mask_stack: MaskedStack::new(&context.geng, &context.assets),
-            post_render: PostRender::new(context.clone()),
+            post_render: PostRender::new(&context),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
             game_texture,
             ui_texture,

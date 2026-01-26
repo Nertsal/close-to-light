@@ -201,7 +201,7 @@ impl LevelMenu {
             util: UtilRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: FloatTime::ONE,
@@ -607,6 +607,7 @@ impl geng::State for LevelMenu {
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         self.post.post_process(
+            &options,
             crate::render::post::PostVfx {
                 time: self.state.real_time,
                 crt: options.graphics.crt.enabled,

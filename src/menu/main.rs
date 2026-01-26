@@ -68,7 +68,7 @@ impl MainMenu {
             dither: DitherRender::new(&context.geng, &context.assets),
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
-            post_render: PostRender::new(context.clone()),
+            post_render: PostRender::new(&context),
 
             framebuffer_size: vec2(1, 1),
             cursor_pos: vec2::ZERO,
@@ -308,6 +308,7 @@ impl geng::State for MainMenu {
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         self.post_render.post_process(
+            &options,
             crate::render::post::PostVfx {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
