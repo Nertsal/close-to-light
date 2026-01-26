@@ -355,13 +355,11 @@ impl StatefulWidget for GraphicsWidget {
         self.crt
             .update_state(next_row(), context, &mut state.crt.enabled);
 
-        // TODO: fix dragging view while changing value (also for music offset)
         let mut blue = state.colors.blue * 100.0;
         self.blue
             .update_value(next_row(), context, &mut blue, RANGE_BLUE);
         state.colors.blue = blue / 100.0;
 
-        // TODO: fix dragging view while changing value (also for music offset)
         let mut saturation = state.colors.saturation * 100.0;
         self.saturation
             .update_value(next_row(), context, &mut saturation, RANGE_SATURATION);
