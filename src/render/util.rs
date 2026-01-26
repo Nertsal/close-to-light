@@ -726,7 +726,7 @@ impl UtilRender {
             self.draw_outline(
                 &collider,
                 options.cursor.outer_radius,
-                THEME.light,
+                THEME.get_color(options.cursor.outer_color),
                 camera,
                 framebuffer,
             );

@@ -161,7 +161,7 @@ impl StatefulWidget for ColorSelectWidget {
         let alignment = 1.0;
         let color = main.align_aabb(vec2::splat(main.height() * 0.8), vec2(alignment, 0.5));
         let colors = color.stack_aligned(
-            vec2(color.width() + context.layout_size * 0.25, 0.0),
+            vec2(color.width() + context.layout_size * 0.2, 0.0),
             self.colors.len(),
             vec2(alignment, 0.5),
         );

@@ -851,6 +851,7 @@ impl UiRender {
                     self.draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
                     self.draw_slider(&cursor.inner_radius, theme, framebuffer);
                     self.draw_slider(&cursor.outer_radius, theme, framebuffer);
+                    self.draw_color_select(&cursor.outer_color, theme, framebuffer);
                 }
 
                 // Scrollbar

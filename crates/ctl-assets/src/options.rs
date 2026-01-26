@@ -115,6 +115,7 @@ pub struct CursorOptions {
     pub show_perfect_radius: bool,
     pub inner_radius: f32,
     pub outer_radius: f32,
+    pub outer_color: ThemeColor,
 }
 
 impl Default for CursorOptions {
@@ -123,6 +124,7 @@ impl Default for CursorOptions {
             show_perfect_radius: true,
             inner_radius: 0.15,
             outer_radius: 0.05,
+            outer_color: ThemeColor::Light,
         }
     }
 }

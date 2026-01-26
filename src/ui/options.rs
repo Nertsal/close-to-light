@@ -382,6 +382,7 @@ pub struct CursorWidget {
     pub show_perfect_radius: ToggleWidget,
     pub inner_radius: SliderWidget,
     pub outer_radius: SliderWidget,
+    pub outer_color: ColorSelectWidget,
 }
 
 impl CursorWidget {
@@ -392,6 +393,16 @@ impl CursorWidget {
             show_perfect_radius: ToggleWidget::new("Show Outline"),
             inner_radius: SliderWidget::new("Size").with_precision(2),
             outer_radius: SliderWidget::new("Outline width").with_precision(2),
+            outer_color: ColorSelectWidget::new(
+                "Outline color",
+                [
+                    // TODO: currently does not render properly in the menu because of transparency
+                    // ThemeColor::Dark,
+                    ThemeColor::Light,
+                    ThemeColor::Highlight,
+                    ThemeColor::Danger,
+                ],
+            ),
         }
     }
 }
@@ -449,8 +460,13 @@ impl StatefulWidget for CursorWidget {
                 &mut state.outer_radius,
                 RANGE_OUTER_RADIUS,
             );
+
+            self.outer_color.state.show();
+            self.outer_color
+                .update(next_row(), context, &mut state.outer_color);
         } else {
             self.outer_radius.state.hide();
+            self.outer_color.state.hide();
         }
 
         let mut position = position;
