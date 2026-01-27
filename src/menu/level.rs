@@ -709,7 +709,7 @@ impl geng::State for LevelMenu {
 
             // Playing music
             if let Some(active) = target_music() {
-                self.context.music.switch(&active); // TODO: rng start
+                self.context.music.switch(&active, true); // TODO: rng start
             } else {
                 self.context.music.stop();
             }

@@ -338,8 +338,7 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
             let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
             let music = match music_bytes {
                 Ok(bytes) => {
-                    let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
-                    music.looped = true;
+                    let music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
                     Some((music, bytes))
                 }
                 Err(_) => None,

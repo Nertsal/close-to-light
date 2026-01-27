@@ -74,8 +74,7 @@ impl CachedGroup {
 }
 
 impl LocalMusic {
-    pub fn new(meta: MusicInfo, mut sound: geng::Sound, bytes: Rc<[u8]>) -> Self {
-        sound.looped = true;
+    pub fn new(meta: MusicInfo, sound: geng::Sound, bytes: Rc<[u8]>) -> Self {
         Self {
             meta,
             sound: Rc::new(sound),

@@ -658,8 +658,7 @@ impl LevelCache {
                     let music_bytes = file::load_bytes(&path).await;
                     match music_bytes {
                         Ok(bytes) => {
-                            let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
-                            music.looped = true;
+                            let music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
                             Ok((music, bytes))
                         }
                         Err(err) => Err(err),

@@ -174,7 +174,7 @@ impl MenuUI {
                         if let Some((_index, group)) = self.context.local.get_group_id(group_id)
                             && let Some(music) = &group.local.music
                         {
-                            self.context.music.switch(music);
+                            self.context.music.switch(music, true);
                         }
                     }
                     ExploreAction::PauseMusic => {

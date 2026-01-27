@@ -334,7 +334,7 @@ impl Editor {
         {
             self.context
                 .music
-                .play_from_time(music, level_editor.current_time.target);
+                .play_from_time(music, level_editor.current_time.target, false);
             self.music_timer = self.config.playback_duration;
         }
     }

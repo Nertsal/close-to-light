@@ -88,14 +88,14 @@ impl Editor {
                         playing_time: _,
                         old_state,
                     } = &level_editor.state
-                    {
-                        level_editor.current_time.snap_to(*start_time);
-                        level_editor
-                            .current_time
-                            .scroll_time(Change::Set(*start_target_time));
-                        level_editor.state = *old_state.clone();
-                        level_editor.context.music.stop();
-                    }
+                {
+                    level_editor.current_time.snap_to(*start_time);
+                    level_editor
+                        .current_time
+                        .scroll_time(Change::Set(*start_target_time));
+                    level_editor.state = *old_state.clone();
+                    level_editor.context.music.stop();
+                }
             }
             EditorAction::StartPlaying => {
                 if let Some(level_editor) = &mut self.level_edit {
@@ -107,9 +107,11 @@ impl Editor {
                     };
                     if let Some(music) = &level_editor.static_level.group.music {
                         let time = time_to_seconds(level_editor.current_time.target);
-                        self.context
-                            .music
-                            .play_from(music, time::Duration::from_secs_f64(time.as_f32().into()));
+                        self.context.music.play_from(
+                            music,
+                            time::Duration::from_secs_f64(time.as_f32().into()),
+                            false,
+                        );
                         self.music_timer = FloatTime::ZERO;
                     }
                 }
