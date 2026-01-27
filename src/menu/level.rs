@@ -628,25 +628,31 @@ impl geng::State for LevelMenu {
             geng::Event::KeyPress {
                 key: geng::Key::F11,
             } => self.context.geng.window().toggle_fullscreen(),
-            geng::Event::KeyPress {
-                key: geng::Key::Escape,
-            } => {
-                if self.state.confirm_popup.take().is_some() {
-                    if let Some(confirm) = &mut self.ui.confirm {
-                        confirm.window.request = Some(WidgetRequest::Close);
-                    }
-                } else if let Some(sync) = &mut self.ui.sync {
-                    sync.window.request = Some(WidgetRequest::Close);
-                } else if self.ui.explore.window.show.time.is_max() {
-                    self.ui.explore.window.request = Some(WidgetRequest::Close);
-                } else if self.ui.leaderboard.window.show.time.is_max() {
-                    self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
-                } else if self.state.switch_diff.take().is_some()
-                    || self.state.switch_level.take().is_some()
+            geng::Event::KeyPress { key } => {
+                if self.ui_context.text_edit.any_active()
+                    && let geng::Key::Escape | geng::Key::Enter = key
                 {
-                } else {
-                    // Go to main menu
-                    self.state.exit = true;
+                    self.ui_context.text_edit.stop();
+                    return;
+                }
+                if let geng::Key::Escape = key {
+                    if self.state.confirm_popup.take().is_some() {
+                        if let Some(confirm) = &mut self.ui.confirm {
+                            confirm.window.request = Some(WidgetRequest::Close);
+                        }
+                    } else if let Some(sync) = &mut self.ui.sync {
+                        sync.window.request = Some(WidgetRequest::Close);
+                    } else if self.ui.explore.window.show.time.is_max() {
+                        self.ui.explore.window.request = Some(WidgetRequest::Close);
+                    } else if self.ui.leaderboard.window.show.time.is_max() {
+                        self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
+                    } else if self.state.switch_diff.take().is_some()
+                        || self.state.switch_level.take().is_some()
+                    {
+                    } else {
+                        // Go to main menu
+                        self.state.exit = true;
+                    }
                 }
             }
             geng::Event::Wheel { delta } => {

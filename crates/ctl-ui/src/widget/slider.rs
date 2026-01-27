@@ -15,7 +15,7 @@ pub struct SliderWidget {
     pub is_dragging: bool,
     pub lock_drag: bool,
     pub head: WidgetState,
-    pub value: TextWidget,
+    pub value: InputWidget,
     pub options: TextRenderOptions,
     pub precision: usize,
 }
@@ -30,7 +30,7 @@ impl SliderWidget {
             is_dragging: false,
             lock_drag: false,
             head: WidgetState::new(),
-            value: TextWidget::new("").aligned(vec2(1.0, 0.5)),
+            value: InputWidget::new(""),
             options: TextRenderOptions::default(),
             precision: 2,
         }
@@ -71,9 +71,21 @@ impl SliderWidget {
         }
 
         let value = main.cut_right(context.font_size * 1.0);
-        self.value.text =
-            format!("{:.precision$}", state.value(), precision = self.precision).into();
+        self.value.format = InputFormat::Float {
+            precision: self.precision,
+        };
+        // self.value.text =
+        //     format!("{:.precision$}", state.value(), precision = self.precision).into();
+        if !self.value.editing {
+            self.value.sync(&state.value().to_string(), context);
+        }
         self.value.update(value, context);
+        if !self.value.editing
+            && let Ok(value) = self.value.raw.parse::<f32>()
+            && value != state.value()
+        {
+            state.set(value);
+        }
 
         main.cut_left(context.layout_size * 0.1);
         let bar = Aabb2::point(main.align_pos(vec2(0.0, 0.5)))

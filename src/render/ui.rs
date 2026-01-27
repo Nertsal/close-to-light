@@ -374,7 +374,7 @@ impl UiRender {
         }
 
         self.draw_text_colored(&slider.text, theme.light, framebuffer);
-        self.draw_text_colored(&slider.value, theme.light, framebuffer);
+        self.draw_input_widget(&slider.value, theme, framebuffer);
 
         if slider.bar.visible {
             self.context.geng.draw2d().quad(
@@ -392,6 +392,30 @@ impl UiRender {
                 &geng::PixelPerfectCamera,
                 slider.head.position,
                 color,
+            );
+        }
+    }
+
+    pub fn draw_input_widget(
+        &self,
+        widget: &InputWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+        let color = theme.light;
+
+        self.draw_text_colored(&widget.name, color, framebuffer);
+        self.draw_text_colored(&widget.text, color, framebuffer);
+        if widget.editing {
+            let pos = widget.text.state.position;
+            let underline = Aabb2::point(pos.center() - vec2(0.0, font_size * 0.5))
+                .extend_symmetric(vec2(pos.width(), font_size * 0.1) / 2.0);
+            self.context.geng.draw2d().quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                underline,
+                theme.highlight,
             );
         }
     }

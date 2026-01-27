@@ -25,7 +25,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
     pub fn new(text: impl Into<Name>, value: T, control: ValueControl<T>, scroll_by: T) -> Self {
         Self {
             state: WidgetState::new(),
-            value_text: InputWidget::new(text).format(InputFormat::Float),
+            value_text: InputWidget::new(text).format(InputFormat::Float { precision: 5 }),
             control_state: WidgetState::new(),
             value,
             control,
@@ -127,10 +127,11 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
 
         self.value_text.update(main, context);
         if self.value_text.editing
-            && let Ok(typed_value) = self.value_text.raw.parse::<f32>() {
-                controlling = true;
-                target = T::from_f32(typed_value);
-            } // TODO: check error
+            && let Ok(typed_value) = self.value_text.raw.parse::<f32>()
+        {
+            controlling = true;
+            target = T::from_f32(typed_value);
+        } // TODO: check error
 
         // Check bounds
         match self.control {

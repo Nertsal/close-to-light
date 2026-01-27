@@ -20,24 +20,43 @@ pub struct InputWidget {
 #[derive(Debug, Clone, Copy)]
 pub enum InputFormat {
     Any,
-    Integer,
-    Float,
+    Integer { signed: bool },
+    Float { precision: usize },
     Ratio,
 }
 
 impl InputFormat {
     pub fn fix(&self, s: &str) -> String {
-        match self {
+        match *self {
             InputFormat::Any => s.to_owned(),
-            InputFormat::Integer => s.replace(|c: char| !c.is_ascii_digit(), ""),
-            InputFormat::Float => {
+            InputFormat::Integer { signed } => {
+                let (s, negative) = if signed {
+                    match s.strip_prefix("-") {
+                        Some(s) => (s, true),
+                        None => (s, false),
+                    }
+                } else {
+                    (s, false)
+                };
+                let mut s = s.replace(|c: char| !c.is_ascii_digit(), "");
+                if negative {
+                    s = "-".to_string() + &s;
+                }
+                s
+            }
+            InputFormat::Float { precision } => {
+                if precision == 0 {
+                    return InputFormat::Integer { signed: true }.fix(s);
+                }
                 let (s, negative) = match s.strip_prefix("-") {
                     Some(s) => (s, true),
                     None => (s, false),
                 };
                 let mut s = s.replace(|c: char| c != '.' && !c.is_ascii_digit(), "");
                 if let Some((a, b)) = s.split_once('.') {
-                    s = a.to_owned() + "." + &b.replace('.', "");
+                    let fraction = b.replace('.', "");
+                    let precision = precision.max(fraction.len());
+                    s = a.to_owned() + "." + &fraction[..precision];
                 }
                 if negative {
                     s = "-".to_string() + &s;
@@ -45,7 +64,7 @@ impl InputFormat {
                 s
             }
             InputFormat::Ratio => {
-                let fix_num = |s| InputFormat::Integer.fix(s);
+                let fix_num = |s| InputFormat::Integer { signed: false }.fix(s);
 
                 if let Some((num, den)) = s.split_once('/') {
                     let mut s = fix_num(num);
