@@ -7,6 +7,7 @@ use super::{
 };
 
 use crate::game::GameUI;
+use ctl_core::model::ScoreGrade;
 
 pub struct GameRender {
     context: Context,
@@ -259,24 +260,57 @@ impl GameRender {
         if let State::Lost { .. } | State::Finished = model.state {
         } else if !model.level.config.modifiers.clean_auto {
             self.util.draw_text(
-                format!("SCORE: {}", model.score.calculated.combined),
-                vec2(-8.5, 4.5).as_r32(),
-                TextRenderOptions::new(0.7)
+                "SCORE",
+                vec2(-8.5, 4.85).as_r32(),
+                TextRenderOptions::new(0.85)
                     .color(theme.light)
-                    .align(vec2(0.0, 0.5)),
+                    .align(vec2(0.0, 1.0)),
                 &model.camera,
                 framebuffer,
             );
 
+            // Score value
             self.util.draw_text(
-                format!("{accuracy:3.2}%"),
-                vec2(-8.5, 3.9).as_r32(),
-                TextRenderOptions::new(0.7)
+                format!("{}", model.score.calculated.combined),
+                vec2(-8.5, 4.3).as_r32(),
+                TextRenderOptions::new(0.8)
                     .color(theme.light)
-                    .align(vec2(0.0, 0.5)),
+                    .align(vec2(0.0, 1.0)),
                 &model.camera,
                 framebuffer,
             );
+
+            // Accuracy percentage
+            self.util.draw_text(
+                format!("{:.2}%", accuracy),
+                vec2(-8.5, 3.7).as_r32(),
+                TextRenderOptions::new(0.4)
+                    .color(theme.light)
+                    .align(vec2(0.0, 1.0)),
+                &model.camera,
+                framebuffer,
+            );
+
+            // Rank letter
+            let completion = model.current_completion();
+            let grade = model.score.calculate_grade_during_game(completion);
+            let grade_texture = self.context.assets.get_grade(grade);
+
+            let rank_world_pos = vec2(-6.0, 4.0);
+
+            if let Ok(rank_screen_pos) = model
+                .camera
+                .world_to_screen(framebuffer.size().as_f32(), rank_world_pos.as_f32())
+            {
+                let rank_quad = Aabb2::point(rank_screen_pos);
+                let grade_color = match grade {
+                    ScoreGrade::F => theme.danger,
+                    _ => theme.highlight,
+                };
+
+                self.ui
+                    .draw_subtexture(rank_quad, &grade_texture, grade_color, 3.5, framebuffer);
+            }
 
             // self.util.draw_text(
             //     format!("{:3.2}%", precision),
@@ -288,9 +322,9 @@ impl GameRender {
             //     framebuffer,
             // );
 
-            let position = Aabb2::point(vec2(-8.3, 3.2)).extend_uniform(0.3);
+            let position = Aabb2::point(vec2(7.3, 4.5)).extend_uniform(0.3);
             for (i, modifier) in model.level.config.modifiers.iter().enumerate() {
-                let position = position.translate(vec2(i as f32, 0.0) * position.size());
+                let position = position.translate(vec2(-(i as f32), 0.0) * position.size());
                 if let Ok(position) = model
                     .camera
                     .world_to_screen(framebuffer.size().as_f32(), position.center())

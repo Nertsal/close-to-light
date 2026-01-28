@@ -86,14 +86,12 @@ impl Score {
         }
     }
 
-    pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
-        // TODO: remove
-        if completion.as_f32() < 0.999 {
-            return ScoreGrade::F;
-        }
+    pub fn calculate_grade_during_game(&self, completion: R32) -> ScoreGrade {
         let acc = self.calculated.accuracy.as_f32();
-        if acc >= 1.0 {
-            if self.calculated.precision.as_f32() > 1.0 {
+        let comp = completion.as_f32();
+
+        let accuracy_grade = if acc >= 1.0 {
+            if self.calculated.precision.as_f32() >= 0.85 {
                 ScoreGrade::SSS
             } else {
                 ScoreGrade::SS
@@ -108,7 +106,33 @@ impl Score {
             ScoreGrade::C
         } else {
             ScoreGrade::D
+        };
+
+        // Maximum achievable grade based on completion
+        let max_grade = if comp >= 1.0 {
+            ScoreGrade::SSS
+        } else if comp >= 0.95 {
+            ScoreGrade::SS
+        } else if comp >= 0.90 {
+            ScoreGrade::S
+        } else if comp >= 0.75 {
+            ScoreGrade::A
+        } else if comp >= 0.50 {
+            ScoreGrade::B
+        } else if comp >= 0.25 {
+            ScoreGrade::C
+        } else {
+            ScoreGrade::D
+        };
+
+        accuracy_grade.min(max_grade)
+    }
+
+    pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
+        if completion.as_f32() < 0.999 {
+            return ScoreGrade::F;
         }
+        self.calculate_grade_during_game(completion)
     }
 
     /// Update the score given current player state.

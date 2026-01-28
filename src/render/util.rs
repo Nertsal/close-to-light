@@ -753,11 +753,14 @@ impl UtilRender {
         let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
         let font_size = screen.height() * 0.05;
 
+        let height = font_size * 0.6;
+        let y_offset = font_size * 1.5;
+
         let aabb = Aabb2::point(
-            geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) - vec2(0.0, 1.0) * font_size,
+            geng_utils::layout::aabb_pos(screen, vec2(0.5, 1.0)) - vec2(0.0, y_offset),
         )
         .extend_symmetric(vec2(14.0, 0.0) * font_size / 2.0)
-        .extend_up(font_size);
+        .extend_up(height);
 
         // Outline
         // self.draw_outline(
@@ -770,7 +773,7 @@ impl UtilRender {
         self.context.geng.draw2d().draw2d(
             framebuffer,
             camera,
-            &draw2d::Quad::new(aabb.extend_uniform(font_size * 0.1), theme.light),
+            &draw2d::Quad::new(aabb.extend_uniform(font_size * 0.06), theme.light),
         );
 
         // Dark fill
