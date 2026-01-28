@@ -12,7 +12,6 @@ serde.workspace = true
 parry2d.workspace = true
 uuid.workspace = true
 cbor4ii.workspace = true
-enum-iterator.workspace = true
 time.workspace = true
 thiserror.workspace = true
 

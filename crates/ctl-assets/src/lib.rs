@@ -130,11 +130,13 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     confirm,
     discard,
     loading,
+    value_knob,
+    dropdown,
+
     mod_nofail,
     mod_sudden,
     mod_hidden,
-    value_knob,
-    dropdown,
+    mod_touch,
 
     light,
     wrench,
@@ -263,6 +265,7 @@ impl Assets {
             Modifier::NoFail => self.atlas.mod_nofail(),
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
+            Modifier::Touch => self.atlas.mod_touch(),
         }
     }
 

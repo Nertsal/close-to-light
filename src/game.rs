@@ -69,6 +69,10 @@ impl Game {
             context,
         }
     }
+
+    fn enable_touch_mod(&mut self) {
+        self.model.level.config.modifiers.touch = true;
+    }
 }
 
 impl geng::State for Game {
@@ -153,9 +157,11 @@ impl geng::State for Game {
                 button: geng::MouseButton::Left,
             } => self.model.cursor_clicked = true,
             geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
+                self.enable_touch_mod();
                 self.active_touch = Some(touch.id);
             }
             geng::Event::TouchMove(touch) if Some(touch.id) == self.active_touch => {
+                self.enable_touch_mod();
                 self.ui_context.cursor.cursor_move(touch.position.as_f32());
             }
             geng::Event::TouchEnd(touch) if Some(touch.id) == self.active_touch => {

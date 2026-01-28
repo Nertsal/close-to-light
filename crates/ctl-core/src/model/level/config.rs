@@ -37,6 +37,8 @@ pub struct LevelModifiers {
     pub sudden: bool,
     /// Don't render lights.
     pub hidden: bool,
+    /// Whether touchscreen was used during gameplay.
+    pub touch: bool,
 }
 
 impl LevelModifiers {
@@ -46,6 +48,7 @@ impl LevelModifiers {
             self.nofail.then_some(Modifier::NoFail),
             self.sudden.then_some(Modifier::Sudden),
             self.hidden.then_some(Modifier::Hidden),
+            self.touch.then_some(Modifier::Touch),
         ]
         .into_iter()
         .flatten()
@@ -59,11 +62,12 @@ impl LevelModifiers {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, enum_iterator::Sequence)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Modifier {
     NoFail,
     Sudden,
     Hidden,
+    Touch,
 }
 
 impl Modifier {
@@ -72,6 +76,7 @@ impl Modifier {
             Modifier::NoFail => r32(0.8),
             Modifier::Sudden => r32(1.15),
             Modifier::Hidden => r32(1.1),
+            Modifier::Touch => r32(1.0),
         }
     }
 
@@ -80,6 +85,7 @@ impl Modifier {
             Modifier::NoFail => "failure is impossible",
             Modifier::Sudden => "the lights are less predictable",
             Modifier::Hidden => "the lights are hidden in the dark",
+            Modifier::Touch => "played with touchscreen",
         }
     }
 }
@@ -90,6 +96,7 @@ impl Display for Modifier {
             Modifier::NoFail => write!(f, "Nofail"),
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
+            Modifier::Touch => write!(f, "Touch"),
         }
     }
 }
@@ -100,6 +107,7 @@ impl LevelModifiers {
             Modifier::NoFail => &mut self.nofail,
             Modifier::Sudden => &mut self.sudden,
             Modifier::Hidden => &mut self.hidden,
+            Modifier::Touch => &mut self.touch,
         }
     }
 }
@@ -112,6 +120,7 @@ impl Default for LevelModifiers {
             nofail: false,
             sudden: false,
             hidden: false,
+            touch: false,
         }
     }
 }

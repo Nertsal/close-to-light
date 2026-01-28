@@ -1358,7 +1358,6 @@ dependencies = [
  "ctl-ui",
  "ctl-util",
  "data-encoding",
- "enum-iterator",
  "generational-arena",
  "geng",
  "geng-utils",
@@ -1757,7 +1756,6 @@ version = "0.1.0"
 dependencies = [
  "cbor4ii",
  "data-encoding",
- "enum-iterator",
  "geng",
  "geng-utils",
  "parry2d",
@@ -2166,26 +2164,6 @@ name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
-
-[[package]]
-name = "enum-iterator"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fd242f399be1da0a5354aa462d57b4ab2b4ee0683cc552f7c007d2d12d36e94"
-dependencies = [
- "enum-iterator-derive",
-]
-
-[[package]]
-name = "enum-iterator-derive"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "685adfa4d6f3d765a26bc5dbc936577de9abf756c1feeb3089b01dd395034842"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.111",
-]
 
 [[package]]
 name = "enumflags2"
