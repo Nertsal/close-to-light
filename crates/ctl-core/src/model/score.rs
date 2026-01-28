@@ -87,13 +87,13 @@ impl Score {
     }
 
     pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
-        // TODO: remove
+        // TODO: change 0.999 to 1.0 (only affects old clients)
         if completion.as_f32() < 0.999 {
             return ScoreGrade::F;
         }
         let acc = self.calculated.accuracy.as_f32();
         if acc >= 1.0 {
-            if self.calculated.precision.as_f32() > 1.0 {
+            if self.calculated.precision.as_f32() >= 0.95 {
                 ScoreGrade::SSS
             } else {
                 ScoreGrade::SS
