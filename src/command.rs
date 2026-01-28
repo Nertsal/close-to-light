@@ -32,7 +32,7 @@ pub enum Command {
     },
     /// Picture generation and similar.
     Media {
-        #[clap(long, default_value = "Some(true)")]
+        #[clap(long, default_value = "true")]
         crt: Option<bool>,
         #[clap(long)]
         text: Option<String>,
