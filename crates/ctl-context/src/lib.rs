@@ -108,11 +108,13 @@ impl Context {
     }
 
     /// Expected to be called every frame to maintain relevant global state.
-    pub fn update(&self, _delta_time: FloatTime) {
+    pub fn update(&self, delta_time: FloatTime) {
         #[cfg(feature = "steam")]
         if let Some(steam) = &self.steam {
             steam.run_callbacks();
         }
+
+        self.music.update(delta_time.as_f32());
     }
 
     pub fn get_options(&self) -> Options {

@@ -710,8 +710,17 @@ impl geng::State for LevelMenu {
         } else {
             // Music volume
             let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
-                .min(show_ratio(&self.state.selected_level).unwrap_or(0.0));
-            self.context.music.set_volume(options.volume.music() * t);
+                .min(show_ratio(&self.state.selected_level).unwrap_or(0.0))
+                .min(
+                    if self.ui.options.options.gameplay.music_offset.state.hovered {
+                        0.0
+                    } else {
+                        1.0
+                    },
+                );
+            self.context
+                .music
+                .fade_to_volume(options.volume.music() * t);
 
             // Playing music
             if let Some(active) = target_music() {
