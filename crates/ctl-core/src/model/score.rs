@@ -92,14 +92,16 @@ impl Score {
             return ScoreGrade::F;
         }
         let acc = self.calculated.accuracy.as_f32();
-        if acc >= 1.0 {
-            if self.calculated.precision.as_f32() >= 0.95 {
+        if acc >= 0.95 {
+            let high_acc = acc >= 1.0;
+            let high_prec = self.calculated.precision.as_f32() >= 0.95;
+            if high_acc && high_prec {
                 ScoreGrade::SSS
-            } else {
+            } else if high_acc || high_prec {
                 ScoreGrade::SS
+            } else {
+                ScoreGrade::S
             }
-        } else if acc >= 0.95 {
-            ScoreGrade::S
         } else if acc >= 0.9 {
             ScoreGrade::A
         } else if acc >= 0.75 {
