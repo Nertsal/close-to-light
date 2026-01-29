@@ -555,14 +555,13 @@ impl LeaderboardImpl {
         }
     }
 
+    /// Update local highscore for the loaded leaderboard.
     fn update_local(&mut self, new_score: Option<SavedScore>) {
         log::debug!("Updating local scores with a new score: {new_score:?}");
         let fs = self.fs.clone();
         let level_id = LocalLevelId::from_info(&self.loaded.level);
         let version = self.loaded.category.version;
         self.loaded.local_high = None;
-        self.loaded.all_scores.clear();
-        self.loaded.filtered.clear();
         let task = async move {
             let mut scores = match fs.load_local_scores(&level_id).await {
                 Ok(scores) => scores,
