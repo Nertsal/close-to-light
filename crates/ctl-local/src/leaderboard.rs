@@ -415,6 +415,7 @@ impl LeaderboardImpl {
                             );
                         }
                         self.loaded.local_high = update.new_highscore;
+                        self.loaded.refresh();
                     }
                     Err(err) => {
                         log::error!("Loading local scores failed: {err:?}");
