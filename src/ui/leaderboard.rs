@@ -10,7 +10,7 @@ pub struct LeaderboardWidget {
     pub state: WidgetState,
     pub assets: Rc<Assets>,
     pub window: UiWindow<()>,
-    // pub close: IconButtonWidget,
+    pub pin: ToggleButtonWidget,
     pub reload: IconButtonWidget,
     pub show_title: bool,
     pub title: TextWidget,
@@ -43,7 +43,7 @@ impl LeaderboardWidget {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             assets: assets.clone(),
             window: UiWindow::new((), 0.3).reload_skip(),
-            // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
+            pin: ToggleButtonWidget::new_deselectable("").with_icon(assets.atlas.pin()),
             reload: IconButtonWidget::new_normal(assets.atlas.reset()),
             show_title,
             title: TextWidget::new("LEADERBOARD"),
@@ -152,18 +152,20 @@ impl WidgetOld for LeaderboardWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        if self.pin.selected {
+            // Nullifying a request will prevent the window from getting closed.
+            self.window.request = None;
+        }
         self.window.update(context.delta_time);
 
         let main = position;
 
         self.scroll.drag(context, &self.state);
 
-        // let close = layout::align_aabb(
-        //     vec2::splat(1.0) * context.font_size,
-        //     main.extend_uniform(-0.5 * context.layout_size),
-        //     vec2(0.0, 1.0),
-        // );
-        // self.close.update(close, context);
+        let pin = main
+            .extend_uniform(-0.5 * context.layout_size)
+            .align_aabb(vec2::splat(1.0) * context.font_size, vec2(0.0, 1.0));
+        self.pin.update(pin, context);
 
         let reload = main
             .extend_uniform(-0.5 * context.layout_size)

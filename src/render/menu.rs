@@ -154,7 +154,7 @@ impl MenuRender {
             &ui.tab_filter_custom,
             &ui.tab_filter_all,
         ] {
-            self.ui.draw_toggle_button(tab, theme, framebuffer);
+            self.ui.draw_radio_button(tab, theme, framebuffer);
             // self.ui.draw_outline(
             //     tab.state.position,
             //     self.font_size * 0.1,

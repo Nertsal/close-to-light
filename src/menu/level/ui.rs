@@ -271,14 +271,14 @@ impl MenuUI {
             let head_size = vec2(font_size, layout_size * 8.0);
             let pos = main.align_pos(vec2(1.0, 0.5));
 
+            let hover_t = self.leaderboard.window.show.time.get_ratio();
+            let hover_t = crate::util::smoothstep(hover_t);
+
             let base_t = state
                 .selected_diff
                 .as_ref()
                 .map_or(0.0, |show| show.time.get_ratio());
-            let base_t = crate::util::smoothstep(base_t);
-
-            let hover_t = self.leaderboard.window.show.time.get_ratio();
-            let hover_t = crate::util::smoothstep(hover_t);
+            let base_t = crate::util::smoothstep(base_t).min(1.0 - hover_t);
 
             let slide =
                 vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + base_t * head_size.x);

@@ -182,6 +182,9 @@ impl ToggleButtonWidget {
     }
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+        if !self.state.visible {
+            return;
+        }
         self.state.update(position, context);
         self.text.update(position, context);
         if self.text.state.mouse_left.clicked {

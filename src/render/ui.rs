@@ -600,7 +600,7 @@ impl UiRender {
             camera,
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
-        // self.draw_icon(&leaderboard.close.icon, framebuffer);
+        self.draw_toggle_button(&leaderboard.pin, theme, framebuffer);
         if leaderboard.reload.icon.state.visible {
             self.draw_icon(&leaderboard.reload.icon, theme, framebuffer);
         }
@@ -685,6 +685,43 @@ impl UiRender {
     }
 
     pub fn draw_toggle_button(
+        &self,
+        toggle: &ToggleButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let state = &toggle.state;
+        if !state.visible {
+            return;
+        }
+
+        // TODO: move logic to the widget
+        let (bg_color, fg_color) = if toggle.selected {
+            (theme.light, theme.dark)
+        } else {
+            (theme.dark, theme.light)
+        };
+
+        let width = toggle.text.options.size * 0.2;
+        let shrink = if state.hovered && toggle.selected {
+            width
+        } else {
+            0.0
+        };
+        let pos = state.position.extend_uniform(-shrink);
+        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
+        if state.hovered || toggle.selected {
+            self.draw_outline(pos, width, theme.light, framebuffer);
+        }
+        self.draw_text_colored(&toggle.text, fg_color, framebuffer);
+
+        // NOTE: Icon's coloring is set in the widget
+        if let Some(icon) = &toggle.icon {
+            self.draw_icon(icon, theme, framebuffer);
+        }
+    }
+
+    pub fn draw_radio_button(
         &self,
         toggle: &ToggleButtonWidget,
         theme: Theme,

@@ -12,6 +12,7 @@ pub struct GameUI {
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
         let mut leaderboard = LeaderboardWidget::new(assets, true);
+        leaderboard.pin.hide();
         leaderboard.reload.hide();
         Self {
             leaderboard_head: TextWidget::new("Leaderboard").rotated(Angle::from_degrees(90.0)),

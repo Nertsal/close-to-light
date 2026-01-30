@@ -132,6 +132,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     loading,
     value_knob,
     dropdown,
+    pin,
 
     mod_nofail,
     mod_sudden,

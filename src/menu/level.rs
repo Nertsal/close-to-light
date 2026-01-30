@@ -267,14 +267,12 @@ impl LevelMenu {
     fn get_active_level(&self) -> Option<(PlayGroup, usize, LevelFull)> {
         let local = self.context.local.inner.borrow();
 
-        let group = self.state.selected_level.as_ref()?;
-        let group_index = group.data;
+        let group_index = self.state.switch_level?;
         let group = local.groups.get(group_index)?;
 
         let music = group.local.music.clone();
 
-        let level = self.state.selected_diff.as_ref()?;
-        let level_index = level.data;
+        let level_index = self.state.switch_diff?;
         let level = group.local.data.levels.get(level_index)?;
         let meta = group.local.meta.levels.get(level_index)?;
 
