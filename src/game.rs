@@ -18,6 +18,7 @@ pub struct Game {
 
     model: Model,
     debug_mode: bool,
+    pause_player: Player,
 
     framebuffer_size: vec2<usize>,
     delta_time: FloatTime,
@@ -60,6 +61,11 @@ impl Game {
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
 
+            pause_player: {
+                let mut player = model.player.clone();
+                player.collider = Collider::new(player.collider.position, Shape::circle(r32(0.1)));
+                player
+            },
             model,
             debug_mode: false,
 
@@ -72,6 +78,26 @@ impl Game {
 
     fn enable_touch_mod(&mut self) {
         self.model.level.config.modifiers.touch = true;
+    }
+
+    fn is_paused(&self) -> bool {
+        self.ui.pause.window.show.time.is_above_min()
+    }
+
+    fn toggle_pause(&mut self) {
+        if self.is_paused() {
+            self.unpause();
+        } else {
+            self.pause();
+        }
+    }
+
+    fn pause(&mut self) {
+        self.ui.pause.window.request = Some(ctl_ui::WidgetRequest::Open);
+    }
+
+    fn unpause(&mut self) {
+        self.ui.pause.window.request = Some(ctl_ui::WidgetRequest::Close);
     }
 }
 
@@ -93,6 +119,7 @@ impl geng::State for Game {
             .theme
             .swap(self.model.vfx.palette_swap.current.as_f32());
         ugli::clear(framebuffer, Some(theme.dark), None, None);
+        let is_paused = self.is_paused();
 
         let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
@@ -126,6 +153,45 @@ impl geng::State for Game {
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
         }
 
+        if is_paused {
+            self.render.ui.draw_quad(
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                crate::util::with_alpha(Rgba::BLACK, 0.25),
+                framebuffer,
+            );
+
+            // Pause menu
+            let ui = &self.ui.pause;
+            let width = self.ui_context.font_size * 0.2;
+            self.render.ui.fill_quad_width(
+                ui.state.position,
+                width,
+                crate::util::with_alpha(theme.dark, 0.9),
+                buffer,
+            );
+            self.render.ui.draw_text(&ui.title, buffer);
+            self.render.ui.draw_button(&ui.resume, theme, buffer);
+            self.render.ui.draw_button(&ui.retry, theme, buffer);
+            self.render.ui.draw_button(&ui.quit, theme, buffer);
+            self.render
+                .ui
+                .draw_outline(ui.state.position, width, theme.light, buffer);
+
+            // Pause cursor
+            let mut dither_buffer = self.render.dither.start();
+            self.render.util.draw_player(
+                &self.pause_player,
+                &self.model.camera,
+                &mut dither_buffer,
+            );
+            self.render
+                .dither
+                .finish(self.model.real_time, &theme.transparent());
+            geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
+                .fit_screen(vec2(0.5, 0.5), buffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+        }
+
         self.post.post_process(
             &options,
             crate::render::post::PostVfx {
@@ -141,7 +207,9 @@ impl geng::State for Game {
     fn handle_event(&mut self, event: geng::Event) {
         match event {
             geng::Event::KeyPress { key } => match key {
-                geng::Key::Escape => self.transition = Some(geng::state::Transition::Pop),
+                geng::Key::Escape => {
+                    self.toggle_pause();
+                }
                 geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
                 #[cfg(debug_assertions)]
                 geng::Key::F1 => self.debug_mode = !self.debug_mode,
@@ -235,7 +303,10 @@ impl geng::State for Game {
             .camera
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
-        self.model.update(target_pos, delta_time);
+        self.model.update(target_pos, delta_time, self.is_paused());
         self.model.cursor_clicked = false;
+
+        self.pause_player.collider.position = target_pos;
+        self.pause_player.update_tail(delta_time);
     }
 }

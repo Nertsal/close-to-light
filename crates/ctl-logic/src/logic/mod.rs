@@ -20,9 +20,16 @@ impl Model {
         };
     }
 
-    pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime) {
+    pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime, is_paused: bool) {
         let options = self.context.get_options();
         self.context.music.set_volume(options.volume.music());
+
+        self.real_time += delta_time;
+
+        if is_paused {
+            return;
+        }
+
         self.vfx.update(delta_time);
 
         // Camera shake
@@ -61,7 +68,6 @@ impl Model {
             self.completion_time += delta_time;
         }
 
-        self.real_time += delta_time;
         self.switch_time += delta_time;
 
         if let State::Lost { .. } | State::Finished = self.state {

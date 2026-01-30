@@ -14,7 +14,7 @@ pub struct GameRender {
     masked: MaskedRender,
     masked2: MaskedRender,
     pub util: UtilRender,
-    ui: UiRender,
+    pub ui: UiRender,
 
     font_size: f32,
 }

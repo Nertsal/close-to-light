@@ -119,7 +119,7 @@ impl geng::State for TrailerState {
             .camera
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
-        self.model.update(target_pos, delta_time);
+        self.model.update(target_pos, delta_time, false);
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
