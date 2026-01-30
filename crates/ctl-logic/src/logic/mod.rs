@@ -228,7 +228,7 @@ impl Model {
                 self.player
                     .update_distance_simple(&self.restart_button.base_collider);
                 if self.restart_button.is_fading() {
-                    self.restart();
+                    self.restart(true);
                 }
 
                 // 1 second before the UI is active
@@ -254,12 +254,12 @@ impl Model {
         self.rhythms.retain(|rhythm| !rhythm.time.is_max());
     }
 
-    fn restart(&mut self) {
+    pub fn restart(&mut self, transition: bool) {
         log::info!("Restarting...");
         *self = Self::new(
             self.context.clone(),
             PlayLevel {
-                transition_button: Some(self.restart_button.clone()),
+                transition_button: transition.then_some(self.restart_button.clone()),
                 ..self.level.clone()
             },
             self.leaderboard.clone(),

@@ -13,6 +13,13 @@ use ctl_local::Leaderboard;
 /// Max world distance within which the cursor is considered aligned with the paused state.
 const CURSOR_ALIGNMENT_RANGE: f32 = 0.1;
 
+enum PauseState {
+    Normal {
+        /// Set to `true` when the cursor is aligned with the paused state.
+        cursor_aligned: bool,
+    },
+}
+
 pub struct Game {
     context: Context,
     transition: Option<geng::state::Transition>,
@@ -23,8 +30,7 @@ pub struct Game {
     debug_mode: bool,
 
     pause_player: Player,
-    /// If currently paused, gets set to `true` when the cursor is aligned with the paused state.
-    paused_waiting_cursor_alignment: bool,
+    pause_state: Option<PauseState>,
     was_paused: bool,
 
     framebuffer_size: vec2<usize>,
@@ -73,7 +79,7 @@ impl Game {
                 player.collider = Collider::new(player.collider.position, Shape::circle(r32(0.1)));
                 player
             },
-            paused_waiting_cursor_alignment: false,
+            pause_state: None,
             was_paused: false,
 
             model,
@@ -91,7 +97,11 @@ impl Game {
     }
 
     fn is_paused(&self) -> bool {
-        self.ui.pause.window.show.time.is_above_min() || self.paused_waiting_cursor_alignment
+        self.ui.pause.window.show.time.is_above_min()
+            || match self.pause_state {
+                None => false,
+                Some(PauseState::Normal { cursor_aligned }) => !cursor_aligned,
+            }
     }
 
     fn toggle_pause(&mut self) {
@@ -104,12 +114,20 @@ impl Game {
 
     fn pause(&mut self) {
         self.ui.pause.window.request = Some(ctl_ui::WidgetRequest::Open);
-        self.paused_waiting_cursor_alignment = true;
+        self.pause_state = Some(PauseState::Normal {
+            cursor_aligned: false,
+        });
         self.context.music.stop();
     }
 
     fn unpause(&mut self) {
         self.ui.pause.window.request = Some(ctl_ui::WidgetRequest::Close);
+    }
+
+    fn retry(&mut self) {
+        self.unpause();
+        self.pause_state = None;
+        self.model.restart(false);
     }
 }
 
@@ -272,11 +290,22 @@ impl geng::State for Game {
         self.ui_context.update(delta_time.as_f32());
 
         if self.is_paused() {
-            self.paused_waiting_cursor_alignment = (self.model.player.collider.position
-                - self.pause_player.collider.position)
-                .len()
-                .as_f32()
-                > CURSOR_ALIGNMENT_RANGE;
+            if let Some(PauseState::Normal { cursor_aligned }) = &mut self.pause_state {
+                *cursor_aligned = (self.model.player.collider.position
+                    - self.pause_player.collider.position)
+                    .len()
+                    .as_f32()
+                    <= CURSOR_ALIGNMENT_RANGE;
+            }
+
+            let ui = &self.ui.pause;
+            if ui.resume.text.state.mouse_left.clicked {
+                self.unpause();
+            } else if ui.retry.text.state.mouse_left.clicked {
+                self.retry();
+            } else if ui.quit.text.state.mouse_left.clicked {
+                self.transition = Some(geng::state::Transition::Pop);
+            }
         }
 
         if let Some(transition) = self.model.transition.take() {
@@ -317,6 +346,7 @@ impl geng::State for Game {
 
         if self.was_paused
             && !is_paused
+            && let State::Playing = self.model.state
             && let Some(music) = &self.model.level.group.music
         {
             // Resume from pause
