@@ -412,6 +412,14 @@ impl LevelMenu {
                 going_up: true,
             });
         }
+
+        // Immediately leaderboard if it's open and on a different level
+        if self.ui.leaderboard.window.show.time.is_above_min()
+            && let Some((_, _, level)) = self.get_active_level()
+            && self.state.leaderboard.get_loaded().level.id != level.meta.id
+        {
+            self.fetch_leaderboard();
+        }
     }
 
     fn fetch_leaderboard(&mut self) {
