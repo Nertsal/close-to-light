@@ -561,7 +561,6 @@ impl LeaderboardImpl {
         let fs = self.fs.clone();
         let level_id = LocalLevelId::from_info(&self.loaded.level);
         let version = self.loaded.category.version;
-        self.loaded.local_high = None;
         let task = async move {
             let mut scores = match fs.load_local_scores(&level_id).await {
                 Ok(scores) => scores,
