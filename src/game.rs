@@ -10,6 +10,9 @@ use crate::{
 
 use ctl_local::Leaderboard;
 
+/// Max world distance within which the cursor is considered aligned with the paused state.
+const CURSOR_ALIGNMENT_RANGE: f32 = 0.1;
+
 pub struct Game {
     context: Context,
     transition: Option<geng::state::Transition>,
@@ -18,7 +21,11 @@ pub struct Game {
 
     model: Model,
     debug_mode: bool,
+
     pause_player: Player,
+    /// If currently paused, gets set to `true` when the cursor is aligned with the paused state.
+    paused_waiting_cursor_alignment: bool,
+    was_paused: bool,
 
     framebuffer_size: vec2<usize>,
     delta_time: FloatTime,
@@ -66,6 +73,9 @@ impl Game {
                 player.collider = Collider::new(player.collider.position, Shape::circle(r32(0.1)));
                 player
             },
+            paused_waiting_cursor_alignment: false,
+            was_paused: false,
+
             model,
             debug_mode: false,
 
@@ -81,7 +91,7 @@ impl Game {
     }
 
     fn is_paused(&self) -> bool {
-        self.ui.pause.window.show.time.is_above_min()
+        self.ui.pause.window.show.time.is_above_min() || self.paused_waiting_cursor_alignment
     }
 
     fn toggle_pause(&mut self) {
@@ -94,6 +104,8 @@ impl Game {
 
     fn pause(&mut self) {
         self.ui.pause.window.request = Some(ctl_ui::WidgetRequest::Open);
+        self.paused_waiting_cursor_alignment = true;
+        self.context.music.stop();
     }
 
     fn unpause(&mut self) {
@@ -154,14 +166,17 @@ impl geng::State for Game {
         }
 
         if is_paused {
-            self.render.ui.draw_quad(
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                crate::util::with_alpha(Rgba::BLACK, 0.25),
-                framebuffer,
-            );
+            let ui = &self.ui.pause;
+
+            if ui.window.show.time.is_above_min() {
+                self.render.ui.draw_quad(
+                    Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                    crate::util::with_alpha(Rgba::BLACK, 0.25),
+                    buffer,
+                );
+            }
 
             // Pause menu
-            let ui = &self.ui.pause;
             let width = self.ui_context.font_size * 0.2;
             self.render.ui.fill_quad_width(
                 ui.state.position,
@@ -256,6 +271,14 @@ impl geng::State for Game {
 
         self.ui_context.update(delta_time.as_f32());
 
+        if self.is_paused() {
+            self.paused_waiting_cursor_alignment = (self.model.player.collider.position
+                - self.pause_player.collider.position)
+                .len()
+                .as_f32()
+                > CURSOR_ALIGNMENT_RANGE;
+        }
+
         if let Some(transition) = self.model.transition.take() {
             match transition {
                 Transition::LoadLeaderboard { submit_score } => {
@@ -290,6 +313,17 @@ impl geng::State for Game {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as _);
+        let is_paused = self.is_paused();
+
+        if self.was_paused
+            && !is_paused
+            && let Some(music) = &self.model.level.group.music
+        {
+            // Resume from pause
+            self.context
+                .music
+                .play_from_time(music, self.model.play_time_ms, false);
+        }
 
         let pos = self.ui_context.cursor.position;
         let game_pos = geng_utils::layout::fit_aabb(
@@ -303,10 +337,12 @@ impl geng::State for Game {
             .camera
             .screen_to_world(game_pos.size(), pos)
             .as_r32();
-        self.model.update(target_pos, delta_time, self.is_paused());
+        self.model.update(target_pos, delta_time, is_paused);
         self.model.cursor_clicked = false;
 
         self.pause_player.collider.position = target_pos;
         self.pause_player.update_tail(delta_time);
+
+        self.was_paused = is_paused;
     }
 }
