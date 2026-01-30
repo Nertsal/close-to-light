@@ -186,13 +186,11 @@ impl geng::State for Game {
         if is_paused {
             let ui = &self.ui.pause;
 
-            if ui.window.show.time.is_above_min() {
-                self.render.ui.draw_quad(
-                    Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                    crate::util::with_alpha(Rgba::BLACK, 0.25),
-                    buffer,
-                );
-            }
+            self.render.ui.draw_quad(
+                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
+                crate::util::with_alpha(Rgba::BLACK, 0.25),
+                buffer,
+            );
 
             // Pause menu
             let width = self.ui_context.font_size * 0.2;
@@ -223,6 +221,20 @@ impl geng::State for Game {
             geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
                 .fit_screen(vec2(0.5, 0.5), buffer)
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+
+            if let Some(PauseState::Normal {
+                cursor_aligned: false,
+            }) = self.pause_state
+                && ui.window.show.time.is_min()
+            {
+                self.render.util.draw_text(
+                    "Align cursors to resume",
+                    vec2(0.0, -3.0).as_r32(),
+                    ctl_render_core::TextRenderOptions::new(0.9).color(theme.light),
+                    &self.model.camera,
+                    buffer,
+                );
+            }
         }
 
         self.post.post_process(
