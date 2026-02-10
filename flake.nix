@@ -23,6 +23,7 @@
             target.web.enable = true;
             packages = with pkgs; [
               just
+              bacon
               butler
               sqlite
               rlwrap
