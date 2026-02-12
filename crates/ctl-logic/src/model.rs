@@ -1,5 +1,6 @@
 use super::*;
 
+use ctl_core::score::PauseIndicator;
 use ctl_local::{CachedGroup, Leaderboard, LocalMusic};
 use generational_arena::Index;
 
@@ -141,6 +142,8 @@ pub struct Model {
     pub recent_rhythm: HashMap<(usize, WaypointId), Time>,
     /// Waypoint rhythms tracking player accuracy.
     pub rhythms: Vec<Rhythm>,
+    /// Times when the game was paused.
+    pub pauses: Vec<PauseIndicator>,
 
     /// Real time that has passed since the level was opened.
     pub real_time: FloatTime,
@@ -221,6 +224,7 @@ impl Model {
 
             recent_rhythm: HashMap::new(),
             rhythms: Vec::new(),
+            pauses: Vec::new(),
 
             real_time: FloatTime::ZERO,
             switch_time: FloatTime::ZERO,

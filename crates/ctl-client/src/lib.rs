@@ -7,8 +7,8 @@ pub use self::error::*;
 
 pub use ctl_core as core;
 use ctl_core::{
-    ScoreEntry, SubmitScore,
     prelude::{DeserializeOwned, Id, MusicInfo, MusicUpdate, log, serde_json},
+    score::{ServerScore, SubmitScore},
     types::{LevelInfo, LevelSetFull, LevelSetInfo, NewMusician},
 };
 
@@ -87,7 +87,7 @@ impl Nertboard {
         Ok(())
     }
 
-    pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
+    pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ServerScore>> {
         let url = self.url.join(&format!("level/{level}/scores")).unwrap();
         let req = self.client.get(url);
 

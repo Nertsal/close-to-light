@@ -2,7 +2,7 @@ use super::*;
 
 use crate::{prelude::Assets, ui::layout::AreaOps};
 
-use ctl_local::ScoreMeta;
+use ctl_core::score::ScoreMeta;
 
 pub struct ScoreWidget {
     pub state: WidgetState,

@@ -110,7 +110,7 @@ impl GameUI {
 
                 let score = score.translate(vec2(-layout_size * 7.0, offset));
                 self.score.update_state(
-                    &ctl_local::ScoreMeta::new(
+                    &ctl_core::score::ScoreMeta::new(
                         model.level.config.modifiers.clone(),
                         model.level.config.health.clone(),
                         model.score.clone(),

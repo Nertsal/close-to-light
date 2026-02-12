@@ -1,5 +1,7 @@
 mod event;
 
+use ctl_core::score::PauseIndicator;
+
 use super::*;
 
 impl Model {
@@ -27,6 +29,20 @@ impl Model {
         self.real_time += delta_time;
 
         if is_paused {
+            // Update pause indicator
+            if self
+                .pauses
+                .last_mut()
+                .is_none_or(|ind| ind.time != self.play_time_ms)
+            {
+                self.pauses.push(PauseIndicator {
+                    time: self.play_time_ms,
+                    duration: FloatTime::ZERO,
+                });
+            };
+            let indicator = self.pauses.last_mut().unwrap();
+            indicator.duration += delta_time;
+
             return;
         }
 

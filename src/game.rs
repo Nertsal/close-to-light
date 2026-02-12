@@ -326,12 +326,13 @@ impl geng::State for Game {
                     let score = &self.model.score;
                     let raw_score = score.calculated.combined;
 
-                    let meta = ctl_local::ScoreMeta::new(
+                    let mut meta = ctl_core::score::ScoreMeta::new(
                         self.model.level.config.modifiers.clone(),
                         self.model.level.config.health.clone(),
                         score.clone(),
                         self.model.current_completion(),
                     );
+                    meta.pauses = self.model.pauses.clone();
 
                     self.model.leaderboard.get_mut().reload_submit(
                         Some(raw_score),

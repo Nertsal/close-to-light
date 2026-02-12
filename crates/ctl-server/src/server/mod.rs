@@ -67,6 +67,9 @@ pub async fn run(
     let addr = format!("0.0.0.0:{port}");
     info!("Starting the server on {}", addr);
 
+    // TODO
+    // migrate_scores().await;
+
     let app = Arc::new(App {
         database,
         config,

@@ -9,7 +9,8 @@ use crate::{
     ui::{ShowTime, UiContext, WidgetRequest, widget::ConfirmPopup},
 };
 
-use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
+use ctl_core::score::{ScoreCategory, ScoreMeta};
+use ctl_local::{Leaderboard, LeaderboardStatus};
 use ctl_logic::PlayGroup;
 
 const LEVEL_SWITCH_TIME: f32 = 0.5;

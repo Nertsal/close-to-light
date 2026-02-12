@@ -1,9 +1,8 @@
 use ctl_client::Nertboard;
 use ctl_core::{
-    ScoreEntry, SubmitScore,
     auth::UserLogin,
-    model::ScoreGrade,
-    prelude::{HealthConfig, LevelModifiers, Score, Uuid},
+    prelude::{HealthConfig, LevelModifiers, Uuid},
+    score::{ScoreCategory, ScoreEntry, ScoreMeta, ServerScore, SubmitScore},
     types::{Id, LevelInfo, MusicInfo, UserInfo},
 };
 use ctl_util::Task;
@@ -11,7 +10,6 @@ use geng::prelude::*;
 
 use crate::{achievements::Achievements, fs::LocalLevelId};
 
-const SCORE_VERSION: u32 = 1;
 /// The maximum number of scores saved locally per level.
 const LOCAL_SCORES_LIMIT_PER_LEVEL: usize = 50;
 
@@ -70,69 +68,6 @@ pub struct LoadedBoard {
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
     pub local_high: Option<SavedScore>,
-}
-
-/// Meta information saved together with the score.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScoreMeta {
-    pub category: ScoreCategory,
-    pub score: Score,
-    /// Number in range 0..=1 indicating level completion percentage.
-    pub completion: R32,
-    pub time: ::time::OffsetDateTime,
-}
-
-impl Default for ScoreMeta {
-    fn default() -> Self {
-        Self {
-            category: ScoreCategory::default(),
-            score: Score::default(),
-            completion: R32::ZERO,
-            time: ::time::OffsetDateTime::now_utc(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ScoreCategory {
-    version: u32,
-    pub mods: LevelModifiers,
-    pub health: HealthConfig,
-}
-
-impl Default for ScoreCategory {
-    fn default() -> Self {
-        Self::new(LevelModifiers::default(), HealthConfig::default())
-    }
-}
-
-impl ScoreCategory {
-    pub fn new(mods: LevelModifiers, health: HealthConfig) -> Self {
-        Self {
-            version: SCORE_VERSION,
-            mods,
-            health,
-        }
-    }
-}
-
-impl ScoreMeta {
-    pub fn new(mods: LevelModifiers, health: HealthConfig, score: Score, completion: R32) -> Self {
-        Self::new_category(ScoreCategory::new(mods, health), score, completion)
-    }
-
-    pub fn new_category(category: ScoreCategory, score: Score, completion: R32) -> Self {
-        Self {
-            category,
-            score,
-            completion,
-            time: ::time::OffsetDateTime::now_utc(),
-        }
-    }
-
-    pub fn calculate_grade(&self) -> ScoreGrade {
-        self.score.calculate_grade(self.completion)
-    }
 }
 
 impl Leaderboard {
@@ -452,7 +387,7 @@ impl LeaderboardImpl {
     }
 
     fn load_scores(&mut self, mut scores: Vec<ScoreEntry>) {
-        scores.sort_by_key(|entry| -entry.score);
+        scores.sort_by_key(|entry| -entry.score.score());
         self.loaded.all_scores = scores;
         self.loaded.refresh();
     }
@@ -488,10 +423,9 @@ impl LeaderboardImpl {
             let level = self.loaded.level.id;
             let future = async move {
                 log::debug!("Fetching scores for level {level}...");
-                board
-                    .fetch_scores(level)
-                    .await
-                    .map(|scores| BoardUpdate { scores })
+                board.fetch_scores(level).await.map(|scores| BoardUpdate {
+                    scores: load_server_scores(scores),
+                })
             };
             self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
@@ -535,11 +469,12 @@ impl LeaderboardImpl {
             let board = Arc::clone(board);
             let level_hash = self.loaded.level.hash.clone();
             let future = async move {
-                let meta_str = meta_str(&meta);
-                let score = score.map(|score| SubmitScore {
-                    score: score.score,
-                    level_hash,
-                    extra_info: Some(meta_str),
+                let score = score.and_then(|score| {
+                    meta_to_string(&score.meta).ok().map(|meta| SubmitScore {
+                        score: score.score,
+                        meta,
+                        level_hash,
+                    })
                 });
 
                 if let Some(score) = &score {
@@ -549,6 +484,7 @@ impl LeaderboardImpl {
 
                 log::debug!("Fetching scores...");
                 let scores = board.fetch_scores(level.id).await?;
+                let scores = load_server_scores(scores);
                 Ok(BoardUpdate { scores })
             };
             self.task = Some(Task::new(&self.geng, future));
@@ -619,12 +555,7 @@ impl LoadedBoard {
 
         // Filter for the same meta
         scores.retain(|entry| {
-            !entry.user.name.is_empty()
-                && entry.extra_info.as_ref().is_some_and(|info| {
-                    serde_json::from_str::<ScoreMeta>(info).is_ok_and(|entry_meta| {
-                        entry_meta.category.version == self.category.version
-                    })
-                })
+            !entry.user.name.is_empty() && entry.score.category.version == self.category.version
         });
 
         {
@@ -646,11 +577,27 @@ impl LoadedBoard {
         self.my_position = self.local_high.as_ref().and_then(|score| {
             self.filtered
                 .iter()
-                .position(|this| this.score == score.score)
+                .position(|this| this.score.score.calculated.combined == score.score)
         });
     }
 }
 
-fn meta_str(meta: &ScoreMeta) -> String {
-    serde_json::to_string(meta).unwrap() // TODO: more compact?
+fn meta_to_string(meta: &ScoreMeta) -> anyhow::Result<String> {
+    Ok(ron::ser::to_string(meta)?)
+}
+
+fn meta_from_str(s: &str) -> anyhow::Result<ScoreMeta> {
+    Ok(ron::de::from_str(s)?)
+}
+
+fn load_server_scores(scores: Vec<ServerScore>) -> Vec<ScoreEntry> {
+    scores
+        .into_iter()
+        .filter_map(|score| {
+            Some(ScoreEntry {
+                user: score.user,
+                score: meta_from_str(&score.meta?).ok()?,
+            })
+        })
+        .collect()
 }

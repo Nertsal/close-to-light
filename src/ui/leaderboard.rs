@@ -64,7 +64,7 @@ impl LeaderboardWidget {
                         name: "player".into(),
                     },
                     score: 0,
-                    meta: ctl_local::ScoreMeta::default(),
+                    meta: ctl_core::score::ScoreMeta::default(),
                 },
                 false,
             ),
@@ -111,22 +111,18 @@ impl LeaderboardWidget {
             .filtered
             .iter()
             .enumerate()
-            .filter_map(|(rank, entry)| {
-                let meta = entry
-                    .extra_info
-                    .as_ref()
-                    .and_then(|meta| serde_json::from_str(meta).ok())?;
+            .map(|(rank, entry)| {
                 let score = SavedScore {
                     user: entry.user.clone(),
-                    score: entry.score,
-                    meta,
+                    score: entry.score.score(),
+                    meta: entry.score.clone(),
                 };
-                Some(LeaderboardEntryWidget::new(
+                LeaderboardEntryWidget::new(
                     &self.assets,
                     (rank + 1).to_string(),
                     score,
                     entry.user.id == user.id,
-                ))
+                )
             })
             .collect();
         match &board.local_high {
