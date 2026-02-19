@@ -25,16 +25,27 @@ build-demo:
 build-game:
     just build-all-platforms ./target/release-game
 
-docker_image := "ghcr.io/geng-engine/cargo-geng@sha256:0e57d6ddd0b82f845fc254a553d2259d21f43ae7bc2068490db6659c8ed30fbe"
+docker_image := "ctl-build-docker"
 steam_sdk := "./dev-assets/redistributable_bin"
 server_url := "https://ctl-server.nertsal.com"
 server := "ctl-server.nertsal.com"
 server_user := "nertsal"
 
+build-docker:
+    docker build -t {{docker_image}} .
+
 # Make builds for every target platform
 build-all-platforms TARGET_DIR *ARGS:
     # Steam-Linux
-    LEADERBOARD_URL={{server_url}} CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
+    # LEADERBOARD_URL={{server_url}} CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
+    # cargo geng build --release --platform linux --features steam {{ARGS}}
+    # cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
+    # cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
+    docker run --user $(id -u):$(id -g) --rm -it -v `pwd`:/src --workdir /src \
+    --env CARGO_HOME=./target/linux/.cargo \
+    --env CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
+    --env LEADERBOARD_URL={{server_url}} \
+    {{docker_image}} \
     cargo geng build --release --platform linux --features steam {{ARGS}}
     cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
     cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
