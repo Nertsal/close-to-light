@@ -32,7 +32,9 @@ pub struct Nertboard {
 
 impl Nertboard {
     pub fn new(url: impl reqwest::IntoUrl) -> Result<Self> {
-        let client = Client::builder().timeout(std::time::Duration::from_secs(5));
+        let client = Client::builder();
+        #[cfg(not(target_arch = "wasm32"))]
+        let client = client.timeout(std::time::Duration::from_secs(5));
         let client = client.build()?;
 
         Ok(Self {
