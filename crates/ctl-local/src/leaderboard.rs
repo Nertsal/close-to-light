@@ -387,6 +387,7 @@ impl LeaderboardImpl {
     }
 
     fn load_scores(&mut self, mut scores: Vec<ScoreEntry>) {
+        log::debug!("Loaded scores: {:?}", scores);
         scores.sort_by_key(|entry| -entry.score.score());
         self.loaded.all_scores = scores;
         self.loaded.refresh();

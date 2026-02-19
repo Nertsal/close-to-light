@@ -770,7 +770,7 @@ dependencies = [
  "pin-utils",
  "rand 0.8.5",
  "reqwest 0.12.26",
- "ron",
+ "ron 0.8.1",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -889,7 +889,7 @@ dependencies = [
  "js-sys",
  "log",
  "reqwest 0.12.26",
- "ron",
+ "ron 0.8.1",
  "serde",
  "serde_json",
  "toml 0.8.23",
@@ -993,7 +993,7 @@ dependencies = [
  "cfg-if 1.0.4",
  "directories",
  "log",
- "ron",
+ "ron 0.8.1",
  "serde",
  "web-sys",
 ]
@@ -1867,6 +1867,7 @@ dependencies = [
  "password-auth",
  "rand 0.8.5",
  "reqwest 0.11.27",
+ "ron 0.12.0",
  "serde",
  "serde_json",
  "sha2",
@@ -5775,6 +5776,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ron"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd490c5b18261893f14449cbd28cb9c0b637aebf161cd77900bfdedaff21ec32"
+dependencies = [
+ "bitflags 2.10.0",
+ "once_cell",
+ "serde",
+ "serde_derive",
+ "typeid",
+ "unicode-ident",
+]
+
+[[package]]
 name = "rsa"
 version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7489,6 +7504,12 @@ name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+
+[[package]]
+name = "typeid"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "typenum"

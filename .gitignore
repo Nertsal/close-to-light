@@ -4,3 +4,4 @@
 /secrets*
 /.direnv
 /server-data
+/server-backup

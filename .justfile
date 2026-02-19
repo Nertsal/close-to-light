@@ -81,6 +81,9 @@ deploy-server:
     rsync -avz docker-target/release/ctl-server {{server_user}}@{{server}}:close-to-server/
     ssh {{server_user}}@{{server}} systemctl --user restart close-to-server
 
+backup-server:
+    rsync -r --delete {{server_user}}@{{server}}:close-to-server/server-data/ server-backup
+
 publish-itch:
     CONNECT=wss://{{server}} cargo geng build --release --platform web --out-dir `pwd`/target/release-demo/web --features itch --features demo
     butler -- push `pwd`/target/release-demo/web nertsal/close-to-light:html5

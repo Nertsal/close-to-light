@@ -67,9 +67,6 @@ pub async fn run(
     let addr = format!("0.0.0.0:{port}");
     info!("Starting the server on {}", addr);
 
-    // TODO
-    // migrate_scores().await;
-
     let app = Arc::new(App {
         database,
         config,
@@ -139,6 +136,32 @@ pub async fn run(
 
     Ok(())
 }
+
+// async fn migrate_scores(trans: &mut Transaction) -> Result<()> {
+//     let scores: Vec<ScoreRow> = sqlx::query_as("SELECT * FROM scores")
+//         .fetch_all(&mut **trans)
+//         .await?;
+
+//     for mut score in scores {
+//         if let Some(meta_str) = &mut score.extra_info
+//             && let Ok(meta) = serde_json::from_str::<ctl_core::score::ScoreMeta>(meta_str)
+//         {
+//             let meta: ctl_core::score::ScoreMeta = meta;
+//             *meta_str = ron::ser::to_string(&meta).unwrap()
+//         } else {
+//             warn!("Failed to parse score: {:?}", score.extra_info);
+//         }
+
+//         sqlx::query("UPDATE scores SET extra_info = ? WHERE level_id = ? AND user_id = ?")
+//             .bind(score.extra_info)
+//             .bind(score.level_id)
+//             .bind(score.user_id)
+//             .execute(&mut **trans)
+//             .await?;
+//     }
+
+//     Ok(())
+// }
 
 async fn get_root() -> &'static str {
     "Hello, world"
