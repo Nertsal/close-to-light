@@ -185,9 +185,8 @@ async fn load_everything(
         .as_ref()
         .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
         .transpose()?;
-    if let Some(client) = &client {
-        let _ = client.ping().await; // Ping the server to check if we are online
-    }
+
+    // TODO: parallel client.ping
 
     #[cfg(feature = "steam")]
     let steam = {

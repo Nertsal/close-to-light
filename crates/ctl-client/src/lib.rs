@@ -32,7 +32,7 @@ pub struct Nertboard {
 
 impl Nertboard {
     pub fn new(url: impl reqwest::IntoUrl) -> Result<Self> {
-        let client = Client::builder();
+        let client = Client::builder().timeout(std::time::Duration::from_secs(5));
         let client = client.build()?;
 
         Ok(Self {
@@ -79,6 +79,7 @@ impl Nertboard {
         Ok(res)
     }
 
+    // TODO: somehow set it as a parallel process at startup
     pub async fn ping(&self) -> Result<()> {
         let url = self.url.clone();
         let req = self.client.get(url);
