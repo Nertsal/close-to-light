@@ -28,7 +28,7 @@ impl Model {
 
         self.real_time += delta_time;
 
-        if is_paused {
+        if is_paused && let State::Playing = self.state {
             // Update pause indicator
             if self
                 .pauses
