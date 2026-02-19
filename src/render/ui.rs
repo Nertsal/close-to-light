@@ -1110,7 +1110,7 @@ impl UiRender {
     ) {
         let font_size = framebuffer.size().y as f32 * 0.04;
 
-        let popup_size = vec2(7.0, 2.0) * font_size;
+        let popup_size = vec2(7.0, 4.5) * font_size;
         let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)
             .extend_positive(popup_size);
         if popup.max.y > framebuffer.size().y as f32 {
@@ -1133,19 +1133,28 @@ impl UiRender {
                 // TODO
                 let camera = &geng::PixelPerfectCamera;
                 let theme = options.theme;
-                let popup = popup.extend_uniform(-width);
+
+                let mut popup = popup.extend_uniform(-width);
+                let timeline = popup.cut_bottom(font_size * 2.0);
+
+                // Text
+                let mut text = TextWidget::new("Adjust offset until audio matches visual")
+                    .aligned(vec2(0.0, 1.0));
+                text.options.size = font_size;
+                text.state.position = popup.extend_uniform(-width);
+                self.draw_text_wrapped(&text, framebuffer);
 
                 // Timeline
                 self.context.geng.draw2d().quad(
                     framebuffer,
                     camera,
-                    popup.with_height(font_size * 0.1, 0.5),
+                    timeline.with_height(font_size * 0.1, 0.5),
                     theme.light,
                 );
 
                 // Tick
                 let t = (time.as_f32().fract() - 0.5).abs() * 2.0;
-                let tick = popup.align_aabb(vec2(0.2, 0.75) * popup.height(), vec2(t, 0.5));
+                let tick = timeline.align_aabb(vec2(0.2, 0.75) * timeline.height(), vec2(t, 0.5));
                 self.draw_subtexture(
                     tick,
                     &self.context.assets.atlas.timeline_tick_big(),
