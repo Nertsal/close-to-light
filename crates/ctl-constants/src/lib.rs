@@ -3,7 +3,7 @@
 pub const GAME_VERSION: GameVersion = GameVersion {
     major: 0,
     minor: 1,
-    patch: 1,
+    patch: 2,
 };
 
 #[derive(Debug, Clone, Copy)]
