@@ -3,7 +3,7 @@ use super::*;
 use crate::util::Lerp;
 
 pub struct ModifiersWidget {
-    t: f32,
+    pub t: f32,
     pub active_mods: Vec<IconWidget>,
     pub body_slide: Bounded<f32>,
     pub head: TextWidget,

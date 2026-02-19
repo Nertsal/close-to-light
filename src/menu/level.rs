@@ -545,6 +545,24 @@ impl geng::State for LevelMenu {
         if !fading {
             let mut masked = self.masked.start();
 
+            if let Some(show_level) = &self.state.selected_level {
+                let mut t = show_level.time.get_ratio();
+                // if let Some(show_diff) = &self.state.selected_diff {
+                //     t = t.min(1.0 - show_diff.time.get_ratio());
+                // }
+                t = t.min(1.0 - self.ui.modifiers.t);
+                t = crate::util::smoothstep(t);
+                let discretization = 5.0;
+                t = (t * discretization).round() / discretization;
+                self.util.draw_text(
+                    "Select a difficulty\n<-",
+                    self.play_button.base_collider.position,
+                    TextRenderOptions::new(0.4).color(crate::util::with_alpha(theme.light, t)),
+                    &self.camera,
+                    &mut masked.color,
+                );
+            }
+
             self.ui_focused = self.ui.layout(
                 &mut self.state,
                 Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
