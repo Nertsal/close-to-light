@@ -1,7 +1,7 @@
-version = "V2"
+version = "V3"
 id = 2
 featured = false
-hash = "e8942415f68087415cadc769671d29f6e4c0901c183b4316608fb4bbf01a9d30"
+hash = "825cd025af1b365645eb06a395d0d493a2bfe0083e4b853cf69834bad08ece85"
 
 [music]
 id = 2
@@ -22,7 +22,7 @@ name = "Nertsal"
 [[levels]]
 id = 4
 name = "Easy"
-hash = "359cc5647938d36c1aa6d32e0e1f0a78de133b1ed0b268d1ff5349e95e3ac14b"
+hash = "43b2ee0d7bb504d21333a599ba7760042f0302dc319308ff3ae569cb333dd795"
 
 [[levels.authors]]
 id = 1
@@ -32,7 +32,7 @@ romanized = "Nertsal"
 [[levels]]
 id = 5
 name = "Normal"
-hash = "5ca1a4e89e7d16184dfd856817ba744c5e6f693981ee98a8eb0a16605e22d3c0"
+hash = "13a2234cb4dd853d5ebdfd53315718c6eeb17d657e3be9ea9d984d9ec6c246ec"
 
 [[levels.authors]]
 id = 1
@@ -42,7 +42,7 @@ romanized = "Nertsal"
 [[levels]]
 id = 6
 name = "Hard"
-hash = "ae276afa0c50646c65e656323ded51ab58954eed6c36e53cea7ed2ca66421fc0"
+hash = "82c01e9c4c1da3985718ee8213a7ee1ed7fd456198bf56644c5387586d1b0840"
 
 [[levels.authors]]
 id = 1
