@@ -214,7 +214,11 @@ impl LevelMenu {
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: Camera2dFov::Vertical(10.0),
+                fov: Camera2dFov::Cover {
+                    width: 17.778,
+                    height: 10.0,
+                    scale: 1.0,
+                },
             },
             state: MenuState {
                 options: GameOptions::new(context.clone(), leaderboard.clone()),
