@@ -61,7 +61,7 @@ build-all-platforms TARGET_DIR *ARGS:
     # Itch-Web
     LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
     cargo geng build --release --platform web --features itch {{ARGS}}
-    # zip -r {{TARGET_DIR}}/web.zip {{TARGET_DIR}}/web/*
+    cd {{TARGET_DIR}}/web && zip -FS -r ../web.zip ./*
 
 
 build-windows *ARGS:
