@@ -16,7 +16,6 @@ jobs:
       - run: cargo geng build --release --platform web --features itch --features demo
         env:
           LEADERBOARD_URL: ${{ secrets.LEADERBOARD_URL }}
-          LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v4
         with:
@@ -115,7 +114,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
       - name: Upload itch.io (Web)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        # NOTE: changed from 'josephbmanley' to fork due to <https://github.com/yeslayla/butler-publish-itchio-action/pull/17>
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: html5
@@ -123,7 +123,7 @@ jobs:
           ITCH_USER: nertsal
           PACKAGE: web
       - name: Upload itch.io (Windows)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: windows
@@ -131,7 +131,7 @@ jobs:
           ITCH_USER: nertsal
           PACKAGE: windows
       - name: Upload itch.io (Linux)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: linux
@@ -139,7 +139,7 @@ jobs:
           ITCH_USER: nertsal
           PACKAGE: linux
       - name: Upload itch.io (MacOS)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: mac
