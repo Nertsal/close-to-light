@@ -2,7 +2,7 @@
 pub mod v1;
 /// Version as of October 24th, 2025 (Visual Update).
 pub mod v2;
-/// Version as of January 23rd, 2026 (Demo Release).
+/// Version as of February 20th, 2026 (Demo Release).
 pub mod v3;
 
 use serde::{Deserialize, Serialize};
