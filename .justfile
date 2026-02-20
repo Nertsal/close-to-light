@@ -61,7 +61,7 @@ build-all-platforms TARGET_DIR *ARGS:
     # Itch-Web
     LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
     cargo geng build --release --platform web --features itch {{ARGS}}
-    cd {{TARGET_DIR}}/web && zip -FS -r ../web.zip ./*
+    cd {{TARGET_DIR}}/web/geng && zip -FS -r ../../web.zip ./*
 
 
 build-windows *ARGS:
@@ -95,6 +95,6 @@ deploy-server:
 backup-server:
     rsync -r --delete {{server_user}}@{{server}}:close-to-server/server-data/ server-backup
 
-publish-itch:
-    CONNECT=wss://{{server}} cargo geng build --release --platform web --out-dir `pwd`/target/release-demo/web --features itch --features demo
-    butler -- push `pwd`/target/release-demo/web nertsal/close-to-light:html5
+# publish-itch:
+#     LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR=`pwd`/target/release-demo/web cargo geng build --release --platform web --out-dir `pwd`/target/release-demo/web --features itch --features demo
+#     butler -- push `pwd`/target/release-demo/web nertsal/close-to-light:html5
