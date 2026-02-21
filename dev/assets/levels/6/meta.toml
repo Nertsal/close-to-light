@@ -1,0 +1,30 @@
+version = "V3"
+id = 6
+featured = false
+hash = "4eb61c6150e8b9bcaed8b837588492a67e6c954f05c11b9a4b3f577699f73721"
+
+[music]
+id = 6
+original = false
+featured = false
+name = "Close to Collapse"
+romanized = "Close to Collapse"
+
+[[music.authors]]
+id = 0
+name = "ves"
+romanized = "ves"
+
+[owner]
+id = 1
+name = "Nertsal"
+
+[[levels]]
+id = 17
+name = "666"
+hash = "f55c02ce303730e47378bf347efcea0a7951bea16cf0b9d2dd0a069195dad42b"
+
+[[levels.authors]]
+id = 0
+name = "ves"
+romanized = "ves"
