@@ -1,7 +1,7 @@
 version = "V3"
 id = 3
 featured = false
-hash = "23d04f25cdf460bf6d074e85500839b7c7cb719d8899b00dd337531a9cb0e387"
+hash = "02a0b020a7380ced4726157a62f46c97db49a9a4e7c5e6eb0903232ca706aacb"
 
 [music]
 id = 3
@@ -22,7 +22,7 @@ name = "Nertsal"
 [[levels]]
 id = 7
 name = "Easy"
-hash = "c93b469bef1472b36a295aea3ba4abf194c4aac44ea18ac0969a168c6f059b31"
+hash = "fda0567190c319bcc303433ab6c417b9d5b01fe7cb22e27d405710e9a062c06c"
 
 [[levels.authors]]
 id = 0
@@ -52,7 +52,7 @@ romanized = "ricky-lee"
 [[levels]]
 id = 10
 name = "Insane"
-hash = "aead27f9566b5889c2dd24dbbbfbb5b5bd9b083804f069a88929c185ed564d0d"
+hash = "368e51d072185cbb7c6c0ddc03320425e96e927b72230e6cdc46b0eac42a43f1"
 
 [[levels.authors]]
 id = 0
