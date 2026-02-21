@@ -35,6 +35,11 @@ struct Opts {
     clean_auto: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
+
+    /// Version argument passed by itch or smth.
+    #[cfg(feature = "itch")]
+    #[clap(long)]
+    v: Option<String>,
 }
 
 #[derive(geng::asset::Load, Deserialize, Clone)]
@@ -48,8 +53,22 @@ pub struct LeaderboardSecrets {
     url: String,
 }
 
+fn parse_args<T: clap::Parser>() -> T {
+    match clap::Parser::try_parse_from(batbox::cli::get()) {
+        Ok(opts) => opts,
+        Err(err) => {
+            #[cfg(target_arch = "wasm32")]
+            panic!("Failed to parse launch arguments: {}", err);
+            #[cfg(not(target_arch = "wasm32"))]
+            err.exit();
+        }
+    }
+}
+
 fn main() {
-    let opts: Opts = batbox::cli::parse();
+    geng::setup_panic_handler();
+
+    let opts: Opts = parse_args();
 
     let mut builder = logger::builder();
     builder
@@ -73,7 +92,6 @@ fn main() {
         .filter_module("calloop", log::LevelFilter::Debug)
         .filter_module("discord_presence", log::LevelFilter::Off);
     logger::init_with(builder).expect("failed to init logger");
-    geng::setup_panic_handler();
 
     log::info!("Running Close to Light {}", ctl_constants::GAME_VERSION);
 

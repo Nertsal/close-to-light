@@ -16,6 +16,9 @@ game *ARGS:
 web command *ARGS:
     cargo geng {{command}} --platform web --release {{ARGS}}
 
+web-itch command *ARGS:
+    cargo geng {{command}} --platform web --release --features itch --features demo {{ARGS}}
+
 
 # Build the Demo version of the game for all platforms
 build-demo:
