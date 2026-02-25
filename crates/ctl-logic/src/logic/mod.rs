@@ -69,7 +69,7 @@ impl Model {
         self.update_timers(delta_time);
         self.render_level();
         self.update_player(delta_time);
-        self.update_state(delta_time);
+        self.update_state(delta_time, is_paused);
     }
 
     fn update_timers(&mut self, delta_time: FloatTime) {
@@ -187,7 +187,7 @@ impl Model {
         }
     }
 
-    fn update_state(&mut self, delta_time: FloatTime) {
+    fn update_state(&mut self, delta_time: FloatTime, is_paused: bool) {
         match &mut self.state {
             State::Starting {
                 start_timer,
@@ -195,7 +195,7 @@ impl Model {
             } => {
                 let music_start_time = *music_start_time;
                 *start_timer -= delta_time;
-                if *start_timer <= FloatTime::ZERO && self.player.is_perfect {
+                if !is_paused && *start_timer <= FloatTime::ZERO && self.player.is_perfect {
                     self.start(music_start_time);
                 }
             }
