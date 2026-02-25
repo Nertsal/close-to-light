@@ -59,9 +59,7 @@ impl LevelState {
 
         if let Some(vfx) = &mut vfx {
             // Reset accumulative fields
-            vfx.palette_swap.target = R32::ZERO;
-            vfx.rgb_split.time_left = FloatTime::ZERO;
-            vfx.camera_shake = R32::ZERO;
+            vfx.reset();
         }
 
         for (i, e) in level.events.iter().enumerate() {
@@ -72,7 +70,7 @@ impl LevelState {
             && let Some(vfx) = vfx
         {
             // Reset persistent vfx
-            vfx.palette_swap.target = R32::ZERO;
+            vfx.reset();
         }
 
         state

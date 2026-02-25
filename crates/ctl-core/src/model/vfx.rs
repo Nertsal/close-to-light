@@ -43,6 +43,12 @@ impl Vfx {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.palette_swap.target = R32::ZERO;
+        self.rgb_split.time_left = FloatTime::ZERO;
+        self.camera_shake = R32::ZERO;
+    }
+
     pub fn update(&mut self, delta_time: FloatTime) {
         self.palette_swap.update(delta_time.as_f32());
         self.rgb_split.update(delta_time);
