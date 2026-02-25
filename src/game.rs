@@ -200,7 +200,9 @@ impl geng::State for Game {
                 crate::util::with_alpha(theme.dark, 0.9),
                 buffer,
             );
-            self.render.ui.draw_text(&ui.title, buffer);
+            self.render
+                .ui
+                .draw_text_colored(&ui.title, theme.light, buffer);
             self.render.ui.draw_button(&ui.resume, theme, buffer);
             self.render.ui.draw_button(&ui.retry, theme, buffer);
             self.render.ui.draw_button(&ui.quit, theme, buffer);

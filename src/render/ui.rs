@@ -222,7 +222,7 @@ impl UiRender {
         } else {
             self.fill_quad(position, bg_color, framebuffer)
         }
-        self.draw_text(&button.text, framebuffer);
+        self.draw_text_colored(&button.text, theme.dark, framebuffer);
     }
 
     pub fn draw_icon_button(
