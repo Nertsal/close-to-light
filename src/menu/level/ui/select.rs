@@ -1,7 +1,9 @@
-use crate::ui::UiWindow;
-use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
-
 use super::*;
+
+use crate::ui::UiWindow;
+
+use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
+use ctl_ui::util::ScrollState;
 
 const ALL_DEMO_SETS: [Id; 4] = [1, 2, 4, 5];
 
@@ -23,8 +25,14 @@ pub struct LevelSelectUI {
     pub separator_level: WidgetState,
     pub separator_diff: WidgetState,
 
+    pub levels_area: WidgetState,
+    pub levels_scroll: ScrollState,
     pub levels: Vec<ItemLevelWidget>,
+
+    pub diffs_area: WidgetState,
+    pub diffs_scroll: ScrollState,
     pub diffs: Vec<ItemDiffWidget>,
+
     pub no_diffs: TextWidget,
     pub no_level_selected: TextWidget,
 }
@@ -90,8 +98,14 @@ impl LevelSelectUI {
             separator_level: WidgetState::new(),
             separator_diff: WidgetState::new(),
 
+            levels_area: WidgetState::new(),
+            levels_scroll: ScrollState::new(),
             levels: Vec::new(),
+
+            diffs_area: WidgetState::new(),
+            diffs_scroll: ScrollState::new(),
             diffs: Vec::new(),
+
             no_diffs: TextWidget::new("Create a Difficulty in the editor"),
             no_level_selected: TextWidget::new("Select a level\n<-"),
         }
@@ -254,6 +268,9 @@ impl LevelSelectUI {
         state: &mut MenuState,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
+        self.levels_area.update(main, context);
+        self.levels_scroll.drag(context, &self.levels_area);
+
         let local = state.context.local.inner.borrow();
         let groups: Vec<_> = local
             .groups
@@ -295,10 +312,13 @@ impl LevelSelectUI {
 
         // Layout
         let spacing = vec2(1.0, 0.75) * context.layout_size;
+        let main = main.translate(vec2(0.0, -self.levels_scroll.state.current));
         let item_size = vec2(main.width() - spacing.x, 1.3 * context.font_size);
-        let rows = Aabb2::point(main.top_left() + vec2(spacing.x * 0.5, -item_size.y - spacing.y))
+        let rows = Aabb2::point(main.top_left() + vec2(spacing.x * 0.5, -item_size.y))
             .extend_positive(item_size)
             .stack(vec2(0.0, -item_size.y - spacing.y), self.levels.len());
+        let content_size =
+            rows.first().map_or(0.0, |row| row.max.y) - rows.last().map_or(0.0, |row| row.min.y);
 
         let mut action = None;
         for (widget, pos) in self.levels.iter_mut().zip(rows) {
@@ -313,6 +333,12 @@ impl LevelSelectUI {
             // }
         }
 
+        self.levels_scroll.overflow(
+            context.delta_time,
+            content_size,
+            self.levels_area.position.height(),
+        );
+
         action
     }
 
@@ -322,6 +348,9 @@ impl LevelSelectUI {
         state: &mut MenuState,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
+        self.diffs_area.update(main, context);
+        self.diffs_scroll.drag(context, &self.diffs_area);
+
         let local = state.context.local.inner.borrow();
         let group_idx = state.switch_level;
 
@@ -424,12 +453,13 @@ impl LevelSelectUI {
 
         // Layout
         let spacing = vec2(1.0, 0.75) * context.layout_size;
+        let main = main.translate(vec2(0.0, -self.diffs_scroll.state.current));
         let item_size = vec2(main.width() - spacing.x * 4.0, 1.15 * context.font_size);
-        let rows = Aabb2::point(
-            main.top_right() + vec2(-main.width() / 2.0, -item_size.y * 0.5 - spacing.y),
-        )
-        .extend_symmetric(item_size / 2.0)
-        .stack(vec2(0.0, -item_size.y - spacing.y), self.diffs.len());
+        let rows = Aabb2::point(main.top_right() + vec2(-main.width() / 2.0, -item_size.y * 0.5))
+            .extend_symmetric(item_size / 2.0)
+            .stack(vec2(0.0, -item_size.y - spacing.y), self.diffs.len());
+        let content_size =
+            rows.first().map_or(0.0, |row| row.max.y) - rows.last().map_or(0.0, |row| row.min.y);
 
         let mut action = None;
         for (widget, pos) in self.diffs.iter_mut().zip(rows) {
@@ -443,6 +473,12 @@ impl LevelSelectUI {
             //     self.light_diff.telegraph_y.change_target(pos.center().y);
             // }
         }
+
+        self.diffs_scroll.overflow(
+            context.delta_time,
+            content_size,
+            self.diffs_area.position.height(),
+        );
 
         action
     }

@@ -172,6 +172,10 @@ impl MenuRender {
                 self.ui.draw_text(&ui.tab_levels, framebuffer);
                 self.ui.draw_text(&ui.tab_diffs, framebuffer);
 
+                let mut masking = self.masked2.start();
+                masking.mask_quad(ui.levels_area.position);
+                masking.mask_quad(ui.diffs_area.position);
+
                 // Levels
                 for level in &ui.levels {
                     let selected = state.switch_level == Some(level.index);
@@ -182,10 +186,10 @@ impl MenuRender {
                         selected,
                         self.font_size * 0.1,
                         theme,
-                        framebuffer,
+                        &mut masking.color,
                     );
-                    self.ui.draw_icon(&level.edited, theme, framebuffer);
-                    self.ui.draw_icon(&level.local, theme, framebuffer);
+                    self.ui.draw_icon(&level.edited, theme, &mut masking.color);
+                    self.ui.draw_icon(&level.local, theme, &mut masking.color);
                     for (diff, color) in &level.diffs {
                         let mut pp_quad = |pos: Aabb2<f32>, color| {
                             let size = pos.size().map(|x| {
@@ -202,7 +206,7 @@ impl MenuRender {
                                 &geng::PixelPerfectCamera,
                                 framebuffer.size().as_f32(),
                             );
-                            self.ui.draw_quad(pos, color, framebuffer);
+                            self.ui.draw_quad(pos, color, &mut masking.color);
                         };
                         pp_quad(diff.position, theme.light);
                         pp_quad(
@@ -214,18 +218,14 @@ impl MenuRender {
                         level.state.position,
                         self.font_size * 0.1,
                         theme.light,
-                        framebuffer,
+                        &mut masking.color,
                     );
                 }
 
-                // Difficulty status/hint text
-                self.ui.draw_text(&ui.no_level_selected, framebuffer);
-                self.ui.draw_text(&ui.no_diffs, framebuffer);
-
                 // Difficulties
                 for diff in &ui.diffs {
-                    self.ui.draw_icon(&diff.edited, theme, framebuffer);
-                    self.ui.draw_icon(&diff.local, theme, framebuffer);
+                    self.ui.draw_icon(&diff.edited, theme, &mut masking.color);
+                    self.ui.draw_icon(&diff.local, theme, &mut masking.color);
                     let selected = state.switch_diff == Some(diff.index);
                     self.ui.draw_item_widget(
                         &diff.state,
@@ -234,17 +234,24 @@ impl MenuRender {
                         selected,
                         self.font_size * 0.1,
                         theme,
-                        framebuffer,
+                        &mut masking.color,
                     );
                     self.ui.draw_outline(
                         diff.state.position,
                         self.font_size * 0.1,
                         theme.light,
-                        framebuffer,
+                        &mut masking.color,
                     );
 
-                    self.ui.draw_icon(&diff.grade, theme, framebuffer);
+                    self.ui.draw_icon(&diff.grade, theme, &mut masking.color);
                 }
+
+                self.masked2
+                    .draw(ugli::DrawParameters::default(), framebuffer);
+
+                // Difficulty status/hint text
+                self.ui.draw_text(&ui.no_level_selected, framebuffer);
+                self.ui.draw_text(&ui.no_diffs, framebuffer);
 
                 self.ui
                     .draw_quad(ui.separator_level.position, theme.light, framebuffer);
