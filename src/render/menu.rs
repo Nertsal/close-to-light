@@ -1,5 +1,3 @@
-use ctl_ui::widget::WidgetState;
-
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::{
@@ -73,12 +71,12 @@ impl MenuRender {
         self.draw_explore(ui, state, framebuffer);
         self.draw_sync(ui, state, framebuffer);
 
-        self.draw_item_widget(
+        self.ui.draw_item_widget(
             &ui.notifications.discard_all.state,
             &ui.notifications.discard_all.state,
             &ui.notifications.discard_all,
             false,
-            1.0,
+            self.font_size * 0.1,
             theme,
             framebuffer,
         );
@@ -163,103 +161,107 @@ impl MenuRender {
             // );
         }
 
-        self.ui.draw_text(&ui.tab_levels, framebuffer);
-        self.ui.draw_text(&ui.tab_diffs, framebuffer);
+        self.ui.draw_window(
+            &mut self.masked,
+            ui.state.position,
+            None,
+            self.font_size * 0.5,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.ui.draw_text(&ui.tab_levels, framebuffer);
+                self.ui.draw_text(&ui.tab_diffs, framebuffer);
 
-        // Levels
-        for level in &ui.levels {
-            let selected = state.switch_level == Some(level.index);
-            self.draw_item_widget(
-                &level.state,
-                &level.iconless_state,
-                &level.text,
-                selected,
-                1.0,
-                theme,
-                framebuffer,
-            );
-            self.ui.draw_icon(&level.edited, theme, framebuffer);
-            self.ui.draw_icon(&level.local, theme, framebuffer);
-            for (diff, color) in &level.diffs {
-                let mut pp_quad = |pos: Aabb2<f32>, color| {
-                    let size = pos.size().map(|x| {
-                        let mut x = x as usize;
-                        if x % 2 == 1 {
-                            x += 1;
-                        }
-                        x
-                    });
-                    let pos = geng_utils::pixel::pixel_perfect_aabb(
-                        pos.center(),
-                        vec2(0.5, 0.5),
-                        size,
-                        &geng::PixelPerfectCamera,
-                        framebuffer.size().as_f32(),
+                // Levels
+                for level in &ui.levels {
+                    let selected = state.switch_level == Some(level.index);
+                    self.ui.draw_item_widget(
+                        &level.state,
+                        &level.iconless_state,
+                        &level.text,
+                        selected,
+                        self.font_size * 0.1,
+                        theme,
+                        framebuffer,
                     );
-                    self.ui.draw_quad(pos, color, framebuffer);
-                };
-                pp_quad(diff.position, theme.light);
-                pp_quad(
-                    diff.position.extend_uniform(-diff.position.height() * 0.2),
-                    theme.get_color(*color),
-                );
-            }
-            self.ui.draw_outline(
-                level.state.position,
-                self.font_size * 0.1,
-                theme.light,
-                framebuffer,
-            );
-        }
+                    self.ui.draw_icon(&level.edited, theme, framebuffer);
+                    self.ui.draw_icon(&level.local, theme, framebuffer);
+                    for (diff, color) in &level.diffs {
+                        let mut pp_quad = |pos: Aabb2<f32>, color| {
+                            let size = pos.size().map(|x| {
+                                let mut x = x as usize;
+                                if x % 2 == 1 {
+                                    x += 1;
+                                }
+                                x
+                            });
+                            let pos = geng_utils::pixel::pixel_perfect_aabb(
+                                pos.center(),
+                                vec2(0.5, 0.5),
+                                size,
+                                &geng::PixelPerfectCamera,
+                                framebuffer.size().as_f32(),
+                            );
+                            self.ui.draw_quad(pos, color, framebuffer);
+                        };
+                        pp_quad(diff.position, theme.light);
+                        pp_quad(
+                            diff.position.extend_uniform(-diff.position.height() * 0.2),
+                            theme.get_color(*color),
+                        );
+                    }
+                    self.ui.draw_outline(
+                        level.state.position,
+                        self.font_size * 0.1,
+                        theme.light,
+                        framebuffer,
+                    );
+                }
 
-        // Context menu
+                // Difficulty status/hint text
+                self.ui.draw_text(&ui.no_level_selected, framebuffer);
+                self.ui.draw_text(&ui.no_diffs, framebuffer);
+
+                // Difficulties
+                for diff in &ui.diffs {
+                    self.ui.draw_icon(&diff.edited, theme, framebuffer);
+                    self.ui.draw_icon(&diff.local, theme, framebuffer);
+                    let selected = state.switch_diff == Some(diff.index);
+                    self.ui.draw_item_widget(
+                        &diff.state,
+                        &diff.iconless_state,
+                        &diff.text,
+                        selected,
+                        self.font_size * 0.1,
+                        theme,
+                        framebuffer,
+                    );
+                    self.ui.draw_outline(
+                        diff.state.position,
+                        self.font_size * 0.1,
+                        theme.light,
+                        framebuffer,
+                    );
+
+                    self.ui.draw_icon(&diff.grade, theme, framebuffer);
+                }
+
+                self.ui
+                    .draw_quad(ui.separator_level.position, theme.light, framebuffer);
+                self.ui
+                    .draw_quad(ui.separator_diff.position, theme.light, framebuffer);
+            },
+        );
+
+        // Level context menu
         for level in &ui.levels {
             self.draw_item_menu(&level.menu, theme, framebuffer);
         }
 
-        // Difficulty status/hint text
-        self.ui.draw_text(&ui.no_level_selected, framebuffer);
-        self.ui.draw_text(&ui.no_diffs, framebuffer);
-
-        // Difficulties
-        for diff in &ui.diffs {
-            self.ui.draw_icon(&diff.edited, theme, framebuffer);
-            self.ui.draw_icon(&diff.local, theme, framebuffer);
-            let selected = state.switch_diff == Some(diff.index);
-            self.draw_item_widget(
-                &diff.state,
-                &diff.iconless_state,
-                &diff.text,
-                selected,
-                1.0,
-                theme,
-                framebuffer,
-            );
-            self.ui.draw_outline(
-                diff.state.position,
-                self.font_size * 0.1,
-                theme.light,
-                framebuffer,
-            );
-
-            self.ui.draw_icon(&diff.grade, theme, framebuffer);
-        }
-
-        // Context menu
+        // Diff context menu
         for diff in &ui.diffs {
             self.draw_item_menu(&diff.menu, theme, framebuffer);
         }
-
-        self.ui
-            .draw_quad(ui.separator_level.position, theme.light, framebuffer);
-        self.ui
-            .draw_quad(ui.separator_diff.position, theme.light, framebuffer);
-        self.ui.draw_outline(
-            ui.state.position,
-            self.font_size * 0.5,
-            theme.light,
-            framebuffer,
-        );
 
         // Tooltip
         if ui.tooltip.state.visible {
@@ -491,40 +493,6 @@ impl MenuRender {
             },
         );
         self.ui.draw_text(&ui.leaderboard_head, framebuffer);
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn draw_item_widget(
-        &mut self,
-        state: &WidgetState,
-        iconless_state: &WidgetState,
-        text: &crate::ui::widget::TextWidget,
-        selected: bool,
-        width: f32,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let (bg_color, fg_color, out_color) = if selected {
-            (theme.light, theme.dark, theme.light)
-        } else if state.hovered {
-            (theme.light, theme.dark, theme.dark)
-        } else {
-            (theme.dark, theme.light, theme.light)
-        };
-        let outline_width = self.font_size * 0.1 * width;
-        self.ui.fill_quad_width(
-            iconless_state.position,
-            outline_width,
-            bg_color,
-            framebuffer,
-        );
-        self.ui.draw_text_colored(text, fg_color, framebuffer);
-        self.ui.draw_outline(
-            iconless_state.position,
-            outline_width,
-            out_color,
-            framebuffer,
-        );
     }
 
     fn draw_item_menu(

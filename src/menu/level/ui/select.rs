@@ -172,7 +172,7 @@ impl LevelSelectUI {
         let mut main = main.extend_uniform(-context.font_size * 0.5);
         main.cut_top(context.layout_size * 1.5);
         let bar = main.cut_top(context.font_size * 1.2);
-        main.cut_top(context.layout_size * 1.0);
+        main.cut_top(context.layout_size * 0.5);
 
         let light_size = context.font_size;
         self.tabs(bar.extend_symmetric(-vec2(light_size, 0.0)), context);

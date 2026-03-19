@@ -504,42 +504,6 @@ impl geng::State for LevelMenu {
             );
         }
 
-        if !fading {
-            // UI lights
-            let mut draw_light = |light: &SelectLightUi| {
-                let light_pos = (vec2(light.pos_x, light.light_y.current())
-                    - self.ui.screen.position.bottom_left())
-                    / self.ui.screen.position.size()
-                    * dither_buffer.size().as_f32();
-                let light_pos = self
-                    .camera
-                    .screen_to_world(dither_buffer.size().as_f32(), light_pos)
-                    .as_r32();
-
-                let radius = (self
-                    .camera
-                    .screen_to_world(self.framebuffer_size.as_f32(), vec2(0.0, 0.0))
-                    - self
-                        .camera
-                        .screen_to_world(self.framebuffer_size.as_f32(), vec2(light.radius, 0.0)))
-                .len()
-                .as_r32();
-
-                self.util.draw_light_gradient(
-                    &Collider::new(light_pos, Shape::Circle { radius }),
-                    r32(-1.0),
-                    crate::render::THEME.light,
-                    &self.camera,
-                    &mut dither_buffer,
-                );
-            };
-
-            draw_light(&self.ui.level_select.light_level);
-            if self.ui.level_select.tab_diffs.state.visible {
-                draw_light(&self.ui.level_select.light_diff);
-            }
-        }
-
         self.dither.finish(self.state.real_time, &theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
@@ -614,6 +578,43 @@ impl geng::State for LevelMenu {
         }
 
         let mut dither_buffer = self.dither.start();
+
+        if !fading {
+            // UI lights
+            let mut draw_light = |light: &SelectLightUi| {
+                let light_pos = (vec2(light.pos_x, light.light_y.current())
+                    - self.ui.screen.position.bottom_left())
+                    / self.ui.screen.position.size()
+                    * dither_buffer.size().as_f32();
+                let light_pos = self
+                    .camera
+                    .screen_to_world(dither_buffer.size().as_f32(), light_pos)
+                    .as_r32();
+
+                let radius = (self
+                    .camera
+                    .screen_to_world(self.framebuffer_size.as_f32(), vec2(0.0, 0.0))
+                    - self
+                        .camera
+                        .screen_to_world(self.framebuffer_size.as_f32(), vec2(light.radius, 0.0)))
+                .len()
+                .as_r32();
+
+                self.util.draw_light_gradient(
+                    &Collider::new(light_pos, Shape::Circle { radius }),
+                    r32(-1.0),
+                    crate::render::THEME.light,
+                    &self.camera,
+                    &mut dither_buffer,
+                );
+            };
+
+            draw_light(&self.ui.level_select.light_level);
+            if self.ui.level_select.tab_diffs.state.visible {
+                draw_light(&self.ui.level_select.light_diff);
+            }
+        }
+
         self.util
             .draw_player(&self.state.player, &self.camera, &mut dither_buffer);
         if let Some(button) = &self.transition_button {

@@ -52,7 +52,7 @@ impl UiRender {
             self.draw_quad(head, theme.dark, framebuffer);
             mask.mask_quad(head);
         }
-        mask.mask_quad(main.extend_uniform(-outline_width / 2.0));
+        mask.mask_quad(main.extend_uniform(-outline_width));
         self.draw_quad(main.extend_uniform(-outline_width), theme.dark, framebuffer);
 
         inner(&mut mask.color);
@@ -1163,6 +1163,41 @@ impl UiRender {
                     framebuffer,
                 );
             },
+        );
+    }
+
+    /// For levels and diffs select.
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_item_widget(
+        &self,
+        state: &WidgetState,
+        iconless_state: &WidgetState,
+        text: &crate::ui::widget::TextWidget,
+        selected: bool,
+        width: f32,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let (bg_color, fg_color, out_color) = if selected {
+            (theme.light, theme.dark, theme.light)
+        } else if state.hovered {
+            (theme.light, theme.dark, theme.dark)
+        } else {
+            (theme.dark, theme.light, theme.light)
+        };
+        let outline_width = width;
+        self.fill_quad_width(
+            iconless_state.position,
+            outline_width,
+            bg_color,
+            framebuffer,
+        );
+        self.draw_text_colored(text, fg_color, framebuffer);
+        self.draw_outline(
+            iconless_state.position,
+            outline_width,
+            out_color,
+            framebuffer,
         );
     }
 }
