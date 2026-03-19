@@ -413,8 +413,10 @@ impl LevelSelectUI {
 
         if self.diffs.is_empty() {
             self.no_diffs.show();
-            let size = vec2(10.0, 1.2) * context.font_size;
-            let pos = main.align_aabb(size, vec2(0.5, 0.5));
+            let size = vec2(main.width().min(6.0), 1.2) * context.font_size;
+            let pos = main
+                .align_aabb(size, vec2(0.5, 1.0))
+                .translate(vec2(0.0, -1.0) * context.font_size);
             self.no_diffs.update(pos, context);
         } else {
             self.no_diffs.hide();
