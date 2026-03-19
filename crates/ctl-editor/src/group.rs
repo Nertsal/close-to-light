@@ -284,16 +284,19 @@ impl Editor {
         confirm_text: impl Into<Name>,
         discard_text: impl Into<Name>,
     ) {
-        let title = match action {
-            ConfirmAction::ExitUnsaved => "Exit the editor?",
-            ConfirmAction::ChangeLevelUnsaved(_) => "Switch to another difficulty?",
-            ConfirmAction::DeleteLevel(_) => "Delete this difficulty?",
+        let (confirm_color, title) = match action {
+            ConfirmAction::ExitUnsaved => (ThemeColor::Danger, "Exit the editor?"),
+            ConfirmAction::ChangeLevelUnsaved(_) => {
+                (ThemeColor::Danger, "Switch to another difficulty?")
+            }
+            ConfirmAction::DeleteLevel(_) => (ThemeColor::Danger, "Delete this difficulty?"),
         };
         self.confirm_popup = Some(ConfirmPopup {
             action,
             title: title.into(),
             message: message.into(),
             confirm_text: confirm_text.into(),
+            confirm_color,
             discard_text: discard_text.into(),
         });
     }

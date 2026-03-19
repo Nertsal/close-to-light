@@ -95,6 +95,7 @@ impl EditorUi {
                 popup.title.clone(),
                 popup.message.clone(),
                 popup.confirm_text.clone(),
+                popup.confirm_color,
                 popup.discard_text.clone(),
             );
             confirm.window.show.going_up = true;

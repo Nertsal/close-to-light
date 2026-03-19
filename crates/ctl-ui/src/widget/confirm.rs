@@ -2,7 +2,7 @@ use super::*;
 
 use crate::layout::AreaOps;
 
-use ctl_assets::Assets;
+use ctl_assets::{Assets, ThemeColor};
 use ctl_core::types::Name;
 
 #[derive(Debug)]
@@ -11,6 +11,7 @@ pub struct ConfirmPopup<T> {
     pub title: Name,
     pub message: Name,
     pub confirm_text: Name,
+    pub confirm_color: ThemeColor,
     pub discard_text: Name,
 }
 
@@ -32,6 +33,7 @@ impl ConfirmWidget {
         title: impl Into<Name>,
         message: impl Into<Name>,
         confirm_text: impl Into<Name>,
+        confirm_color: ThemeColor,
         discard_text: impl Into<Name>,
     ) -> Self {
         Self {
@@ -40,9 +42,13 @@ impl ConfirmWidget {
             state: WidgetState::new(),
             title: TextWidget::new(title),
             message: TextWidget::new(message),
-            confirm_icon: IconButtonWidget::new_normal(assets.atlas.confirm()),
+            confirm_icon: IconButtonWidget::new(
+                assets.atlas.confirm(),
+                confirm_color,
+                IconBackgroundKind::NineSlice,
+            ),
             discard_icon: IconButtonWidget::new_normal(assets.atlas.discard()),
-            confirm_text: ButtonWidget::new(confirm_text.into()),
+            confirm_text: ButtonWidget::new(confirm_text.into()).color(confirm_color),
             discard_text: ButtonWidget::new(discard_text.into()),
         }
     }

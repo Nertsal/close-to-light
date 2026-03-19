@@ -124,6 +124,7 @@ impl MenuState {
         action: ConfirmAction,
         message: impl Into<Name>,
         confirm: impl Into<Name>,
+        confirm_color: ThemeColor,
         discard: impl Into<Name>,
     ) {
         self.confirm_popup = Some(ConfirmPopup {
@@ -131,6 +132,7 @@ impl MenuState {
             title: "Are you sure?".into(),
             message: message.into(),
             confirm_text: confirm.into(),
+            confirm_color,
             discard_text: discard.into(),
         });
     }
@@ -142,6 +144,7 @@ impl MenuState {
         title: impl Into<Name>,
         message: impl Into<Name>,
         confirm: impl Into<Name>,
+        confirm_color: ThemeColor,
         discard: impl Into<Name>,
     ) {
         self.confirm_popup = Some(ConfirmPopup {
@@ -149,6 +152,7 @@ impl MenuState {
             title: title.into(),
             message: message.into(),
             confirm_text: confirm.into(),
+            confirm_color,
             discard_text: discard.into(),
         });
     }
@@ -262,6 +266,7 @@ impl LevelMenu {
                 "Download recommended levels?",
                 "",
                 "",
+                ThemeColor::Light,
                 "",
             );
         }

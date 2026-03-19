@@ -315,6 +315,7 @@ impl StatefulWidget for SyncWidget {
                         ConfirmAction::SyncUpload,
                         "You cannot undo this action",
                         "upload",
+                        ThemeColor::Light,
                         "cancel",
                     );
                 } else {
@@ -322,6 +323,7 @@ impl StatefulWidget for SyncWidget {
                         ConfirmAction::SyncUpload,
                         "Uploading a new version will reset leaderboards of the changed difficulties",
                         "upload",
+                        ThemeColor::Light,
                         "cancel",
                     );
                 }
@@ -346,6 +348,7 @@ impl StatefulWidget for SyncWidget {
                         self.cached_group.local.meta.owner.name
                     ),
                     "delete group",
+                    ThemeColor::Danger,
                     "cancel",
                 );
                 self.window.request = Some(WidgetRequest::Close);
@@ -354,6 +357,7 @@ impl StatefulWidget for SyncWidget {
                     ConfirmAction::SyncDiscard,
                     "discard local changes and download the new version",
                     "discard",
+                    ThemeColor::Danger,
                     "cancel",
                 );
             }

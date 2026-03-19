@@ -135,6 +135,7 @@ impl MenuUI {
                 popup.title.clone(),
                 popup.message.clone(),
                 popup.confirm_text.clone(),
+                popup.confirm_color,
                 popup.discard_text.clone(),
             );
             confirm.window.show.going_up = true;
@@ -236,6 +237,7 @@ impl MenuUI {
                         ConfirmAction::DeleteLevel(group, level),
                         "delete difficulty",
                         "delete",
+                        ThemeColor::Danger,
                         "cancel",
                     );
                 }
@@ -247,6 +249,7 @@ impl MenuUI {
                         ConfirmAction::DeleteGroup(group),
                         "delete group",
                         "delete",
+                        ThemeColor::Danger,
                         "cancel",
                     );
                 }
