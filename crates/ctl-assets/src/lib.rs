@@ -142,6 +142,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     light,
     wrench,
     all,
+    plus,
 
     grade_sss,
     grade_ss,

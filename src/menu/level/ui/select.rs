@@ -16,6 +16,7 @@ pub struct LevelSelectUI {
     pub tab_filter_demo: ToggleButtonWidget,
     pub tab_filter_custom: ToggleButtonWidget,
     pub tab_filter_all: ToggleButtonWidget,
+    pub tab_new: IconButtonWidget,
     pub tooltip: TextWidget,
 
     pub tab_levels: TextWidget,
@@ -89,6 +90,7 @@ impl LevelSelectUI {
             tab_filter_demo: ToggleButtonWidget::new("").with_icon(assets.atlas.light()),
             tab_filter_custom: ToggleButtonWidget::new("").with_icon(assets.atlas.wrench()),
             tab_filter_all: ToggleButtonWidget::new("").with_icon(assets.atlas.all()),
+            tab_new: IconButtonWidget::new_normal(assets.atlas.plus()),
             tooltip: TextWidget::new("<tooltip>"),
 
             tab_levels: TextWidget::new("Level"),
@@ -123,20 +125,23 @@ impl LevelSelectUI {
 
         // Filter tabs on the side
         let filter_size = vec2(1.0, 1.2) * context.font_size;
-        let filter_tabs = main
+        let filter_tabs_area = main
             .clone()
             .cut_left(filter_size.x)
             .translate(vec2(-filter_size.x + context.font_size * 0.25, 0.0))
             .extend_symmetric(-vec2(0.0, context.layout_size * 0.5));
 
         let mut tooltip = None;
-        let filter_tabs = Aabb2::point(filter_tabs.center())
+        let filter_tabs = Aabb2::point(filter_tabs_area.center())
             .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2))
             .stack_aligned(
                 vec2(0.0, -filter_size.y - context.font_size * 0.5),
                 3,
                 vec2(0.0, 0.5),
             );
+        let bottom_tab = filter_tabs.last().map_or(filter_tabs_area.center(), |pos| {
+            pos.align_pos(vec2(0.5, 0.5))
+        });
         for ((tab, filter), pos) in [
             (&mut self.tab_filter_demo, LevelsFilter::Demo),
             (&mut self.tab_filter_custom, LevelsFilter::Custom),
@@ -160,6 +165,23 @@ impl LevelSelectUI {
                 };
                 tooltip = Some((tab.state.position, msg));
             }
+        }
+
+        // Plus
+        let plus = Aabb2::point(bottom_tab - vec2(0.0, 2.0) * context.font_size)
+            .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2));
+        self.tab_new.update(plus, context);
+        if self.tab_new.icon.state.hovered {
+            tooltip = Some((self.tab_new.icon.state.position, "Create Level"));
+        }
+        if self.tab_new.icon.state.mouse_left.clicked {
+            state.popup_confirm(
+                ConfirmAction::CreateLevel,
+                "Create a new Custom Level",
+                "Create",
+                ThemeColor::Highlight,
+                "Cancel",
+            );
         }
 
         if let Some((hovered, message)) = tooltip {

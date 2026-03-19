@@ -23,6 +23,7 @@ pub enum ConfirmAction {
     SyncDiscard,
     DownloadRecommended,
     SyncUpload,
+    CreateLevel,
 }
 
 pub struct LevelMenu {
@@ -185,6 +186,13 @@ impl MenuState {
                 self.context.local.download_recommended();
                 self.notifications
                     .push("Please wait while the levels are being downloaded".into());
+            }
+            ConfirmAction::CreateLevel => {
+                // Switch to custom view so the new level is visible
+                if let LevelsFilter::Demo = ui.level_select.active_filter {
+                    ui.level_select.active_filter = LevelsFilter::Custom;
+                }
+                self.new_group();
             }
         }
     }

@@ -161,6 +161,19 @@ impl MenuRender {
             // );
         }
 
+        // New level button
+        self.ui.draw_icon_button(&ui.tab_new, theme, framebuffer);
+        self.ui.draw_outline(
+            ui.tab_new
+                .icon
+                .state
+                .position
+                .extend_uniform(-self.font_size * 0.1),
+            self.font_size * 0.2,
+            theme.light,
+            framebuffer,
+        );
+
         self.ui.draw_window(
             &mut self.masked,
             ui.state.position,
