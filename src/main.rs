@@ -27,6 +27,9 @@ struct Opts {
     #[cfg(not(target_arch = "wasm32"))]
     #[command(subcommand)]
     command: Option<command::Command>,
+    /// Faster loading screen.
+    #[clap(long)]
+    fast_load: bool,
     /// Skip intro screen.
     #[clap(long)]
     skip_intro: bool,
@@ -122,7 +125,7 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
     let load_everything = load_everything(geng.clone());
 
     #[allow(unused_mut)]
-    let mut insta_load = opts.skip_intro;
+    let mut insta_load = opts.fast_load || opts.skip_intro;
     #[cfg(not(target_arch = "wasm32"))]
     {
         insta_load = insta_load || opts.command.is_some();
