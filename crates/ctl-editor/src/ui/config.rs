@@ -36,28 +36,29 @@ impl EditorConfigUi {
         // TODO: bpm editor
         let bpm_pos = bar.cut_top(context.font_size);
         if let Some(level_editor) = &editor.level_edit
-            && let Some(timing) = level_editor.level.timing.points.first() {
-                let mut bpm = 60.0 / timing.beat_time.as_f32();
-                let slider = context.state.get_root_or(|| {
-                    ValueWidget::new(
-                        "BPM",
-                        bpm,
-                        ValueControl::Slider {
-                            min: 1.0,
-                            max: 500.0,
-                        },
-                        1.0,
-                    )
-                });
-                slider.update(bpm_pos, context, &mut bpm);
-                actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
-            }
+            && let Some(timing) = level_editor.level.timing.points.first()
+        {
+            let mut bpm = 60.0 / timing.beat_time.as_f32();
+            let slider = context.state.get_root_or(|| {
+                ValueWidget::new(
+                    "BPM",
+                    bpm,
+                    ValueControl::Slider {
+                        min: 1.0,
+                        max: 500.0,
+                    },
+                    1.0,
+                )
+            });
+            slider.update(bpm_pos, context, &mut bpm);
+            actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
+        }
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
 
         let mut bar = columns[1];
-        let button_pos = bar.cut_top(context.font_size * 1.2);
+        let button_pos = bar.cut_top(context.font_size * 1.4);
         let button = context
             .state
             .get_root_or(|| ButtonWidget::new("Select Music"));
@@ -74,9 +75,9 @@ impl EditorConfigUi {
                 .add_filter("music", &["mp3"])
                 .set_can_create_directories(false)
                 .pick_file()
-            {
-                actions.push(EditorStateAction::SelectMusicFile(path));
-            }
+        {
+            actions.push(EditorStateAction::SelectMusicFile(path));
+        }
 
         let music_pos = bar.cut_top(context.font_size);
         if let Some(music) = &editor.group.music {
@@ -92,12 +93,14 @@ impl EditorConfigUi {
 
         bar.cut_top(context.layout_size);
 
-        let level = bar.cut_top(context.font_size);
+        let level = bar.cut_top(context.font_size * 1.4);
         let text = context.state.get_root_or(|| TextWidget::new("Difficulty"));
         text.update(level, context);
 
         let name = bar.cut_top(context.font_size);
-        let delete = bar.cut_top(context.font_size);
+        let delete = bar
+            .cut_top(context.font_size * 1.2)
+            .with_width(bar.width() * 0.8, 0.5);
         if let Some(level_editor) = &editor.level_edit {
             let input = context.state.get_root_or(|| InputWidget::new(""));
             input.sync(&level_editor.name, context);
@@ -114,7 +117,9 @@ impl EditorConfigUi {
             }
         }
 
-        let create = bar.cut_top(context.font_size);
+        let create = bar
+            .cut_top(context.font_size * 1.2)
+            .with_width(bar.width() * 0.8, 0.5);
         let button = context.state.get_root_or(|| ButtonWidget::new("Create"));
         button.update(create, context);
         if button.text.state.mouse_left.clicked {
@@ -122,7 +127,7 @@ impl EditorConfigUi {
         }
 
         bar.cut_top(context.layout_size);
-        let all = bar.cut_top(context.font_size);
+        let all = bar.cut_top(context.font_size * 1.2);
         let text = context
             .state
             .get_root_or(|| TextWidget::new("All Difficulties"));
@@ -140,18 +145,23 @@ impl EditorConfigUi {
 
         let max = names.len().saturating_sub(1);
         for (i, mut level_name) in names.into_iter().enumerate() {
-            let level = context.state.get_root_or_default::<TextWidget>();
+            let level = context
+                .state
+                .get_root_or(|| ButtonWidget::new("<diff name>"));
 
-            let name = bar.cut_top(context.font_size);
+            let name = bar
+                .cut_top(context.font_size * 1.2)
+                .with_width(bar.width() * 0.8, 0.5);
             level.update(name, context);
 
             if let Some(level_editor) = &editor.level_edit
-                && level_editor.static_level.level_index == i {
-                    level_name = level_editor.name.clone().into();
-                }
-            level.text = level_name;
+                && level_editor.static_level.level_index == i
+            {
+                level_name = level_editor.name.clone().into();
+            }
+            level.text.text = level_name;
 
-            if level.state.mouse_left.clicked {
+            if level.text.state.mouse_left.clicked {
                 if editor.is_changed() {
                     actions.push(
                         EditorAction::PopupConfirm(
@@ -171,7 +181,8 @@ impl EditorConfigUi {
             let mut icons = name;
             let icons = icons.cut_left(width).translate(vec2(-width, 0.0));
 
-            if level.state.hovered || context.can_focus() && icons.contains(context.cursor.position)
+            if level.text.state.hovered
+                || context.can_focus() && icons.contains(context.cursor.position)
             {
                 let icons = icons.split_rows(2);
                 let up = icons[0];
