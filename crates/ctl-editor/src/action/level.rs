@@ -73,6 +73,7 @@ pub enum LevelAction {
 pub enum SelectMode {
     Add,
     Remove,
+    Toggle,
     Set,
 }
 
@@ -155,7 +156,10 @@ impl LevelAction {
             LevelAction::PlaceLight(_) => false,
             LevelAction::DeleteLight(..) => false,
             LevelAction::SelectLight(mode, lights) => {
-                matches!(mode, SelectMode::Add | SelectMode::Remove) && lights.is_empty()
+                matches!(
+                    mode,
+                    SelectMode::Add | SelectMode::Remove | SelectMode::Toggle
+                ) && lights.is_empty()
             }
             LevelAction::Deselect => false,
             LevelAction::ChangeShape(_, _) => false,
@@ -728,6 +732,15 @@ impl LevelEditor {
             SelectMode::Remove => {
                 for id in ids {
                     self.selection.remove_light(id);
+                }
+            }
+            SelectMode::Toggle => {
+                for id in ids {
+                    if self.selection.is_light_selected(id) {
+                        self.selection.remove_light(id);
+                    } else {
+                        self.selection.add_light(id);
+                    }
                 }
             }
             SelectMode::Set => {
