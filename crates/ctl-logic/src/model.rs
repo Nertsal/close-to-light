@@ -121,6 +121,7 @@ pub struct Rhythm {
 #[derive(Debug, Clone)]
 pub struct FireParticle {
     pub position: vec2<Coord>,
+    pub velocity: vec2<Coord>,
     pub size: Coord,
     pub danger: bool,
 }

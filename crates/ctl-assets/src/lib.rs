@@ -184,6 +184,8 @@ pub struct Shaders {
     pub rgb_split: ugli::Program,
     /// Particles for fire effect.
     pub fire_particles: ugli::Program,
+    /// Flow field for fire effect.
+    pub fire_flow_field: ugli::Program,
     /// Fire screen shader (masked).
     pub fire: ugli::Program,
 }

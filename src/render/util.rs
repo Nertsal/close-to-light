@@ -10,6 +10,7 @@ pub struct UtilRender {
     context: Context,
     pub unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     fire_texture: ugli::Texture,
+    fire_flow_field_texture: ugli::Texture,
 }
 
 impl UtilRender {
@@ -17,6 +18,12 @@ impl UtilRender {
         Self {
             unit_quad: geng_utils::geometry::unit_quad_geometry(context.geng.ugli()),
             fire_texture: {
+                let mut texture =
+                    geng_utils::texture::new_texture(context.geng.ugli(), dither::DITHER_SIZE);
+                texture.set_filter(ugli::Filter::Nearest);
+                texture
+            },
+            fire_flow_field_texture: {
                 let mut texture =
                     geng_utils::texture::new_texture(context.geng.ugli(), dither::DITHER_SIZE);
                 texture.set_filter(ugli::Filter::Nearest);
@@ -242,6 +249,7 @@ impl UtilRender {
         struct FireVertex {
             i_model_matrix: mat3<f32>,
             i_color: Rgba<f32>,
+            i_direction: vec2<f32>,
         }
         let fire = fire
             .iter()
@@ -253,6 +261,7 @@ impl UtilRender {
                 } else {
                     THEME.light
                 },
+                i_direction: particle.velocity.normalize_or_zero().as_f32(),
             })
             .collect();
         let fire = ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), fire);
@@ -284,6 +293,29 @@ impl UtilRender {
             },
         );
 
+        // Flow field
+        let mut fire_buffer = geng_utils::texture::attach_texture(
+            &mut self.fire_flow_field_texture,
+            self.context.geng.ugli(),
+        );
+        ugli::clear(&mut fire_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
+        let framebuffer_size = fire_buffer.size().as_f32();
+        ugli::draw(
+            &mut fire_buffer,
+            &self.context.assets.shaders.fire_flow_field,
+            ugli::DrawMode::TriangleFan,
+            ugli::instanced(&self.unit_quad, &fire),
+            camera.uniforms(framebuffer_size),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::combined(ugli::ChannelBlendMode {
+                    src_factor: ugli::BlendFactor::One,
+                    dst_factor: ugli::BlendFactor::Zero,
+                    equation: ugli::BlendEquation::Add,
+                })),
+                ..Default::default()
+            },
+        );
+
         // Render
         let t = time.as_f32();
         ugli::draw(
@@ -294,6 +326,7 @@ impl UtilRender {
             ugli::uniforms! {
                 u_time: t,
                 u_texture: &self.fire_texture,
+                u_flow_texture: &self.fire_flow_field_texture,
             },
             ugli::DrawParameters {
                 blend_mode: Some(ugli::BlendMode::combined(ugli::ChannelBlendMode {

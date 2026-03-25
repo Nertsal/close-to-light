@@ -56,14 +56,14 @@ impl Model {
     pub fn update_fire(&mut self, delta_time: FloatTime) {
         // Move fire
         for particle in &mut self.fire {
-            particle.position += vec2(0.0, 2.0).as_r32() * delta_time;
+            particle.position += particle.velocity * delta_time;
             particle.size -= r32(0.5) * delta_time;
         }
         self.fire.retain(|particle| particle.size.as_f32() > 0.0);
 
         // Spawn more fire
         let mut rng = thread_rng();
-        for light in &self.level_state.lights {
+        for (i, light) in self.level_state.lights.iter().enumerate() {
             if !light.fire {
                 continue;
             }
@@ -99,6 +99,7 @@ impl Model {
             self.fire
                 .extend(pos.into_iter().map(|position| FireParticle {
                     position,
+                    velocity: vec2(0.0, -2.0 * (((i + 1) % 2) as f32 * 2.0 - 1.0)).as_r32(),
                     size,
                     danger: light.danger,
                 }));

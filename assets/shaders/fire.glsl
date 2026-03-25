@@ -13,6 +13,7 @@ void main() {
 #ifdef FRAGMENT_SHADER
 uniform float u_time;
 uniform sampler2D u_texture;
+uniform sampler2D u_flow_texture;
 
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
 
@@ -55,10 +56,9 @@ float fire_noise(vec2 p) {
 }
 
 /// Based on <https://github.com/xxidbr9/balatro-effect-recreate/blob/master/fire-number.gdshader>
-float fire_effect(float density) {
-    vec2 fire_speed = vec2(0.0, 1.0);
+float fire_effect(float density, vec2 fire_speed) {
     float fire_aperture = 0.22;
-    vec2 uv = vec2(v_vt.x, 1.0 - max(v_vt.y, 0.0));
+    vec2 uv = 1.0 - v_vt;
 
     // Scale UVs to make the noise more visible
     vec2 base_uv = uv * 5.0;
@@ -75,18 +75,20 @@ float fire_effect(float density) {
     float combined_noise = (fire_noise1 + fire_noise2) * 0.5;
     
     // Calculate fire shape
-    float noise_value = uv.y * (((uv.y + fire_aperture) * combined_noise - fire_aperture) * 25.0);
+    float noise_value = ((0.25 + fire_aperture) * combined_noise - fire_aperture) * 25.0;
     
-    // Add horizontal movement
-    noise_value += sin(uv.y * 10.0 + u_time * 2.0) * 0.1;
+    // Add sideways movement
+    float uv_dir = dot(uv, fire_speed);
+    noise_value += sin(uv_dir * 10.0 + u_time * 2.0) * 0.1;
 
     return noise_value;
 }
 
 void main() {
     vec4 m_color = texture2D(u_texture, v_vt);
+    vec2 direction = texture2D(u_flow_texture, v_vt).rg * 2.0 - 1.0;
 
-    float fire = fire_effect(m_color.a) * 0.5;
+    float fire = fire_effect(m_color.a, direction) * 0.5;
     vec4 fire_color = vec4(m_color.rgb * clamp(fire * 0.08, 0.3, 1.0), clamp(fire, 0.0, 1.0));
 
     // m_color *= u_color * v_color;
@@ -96,6 +98,7 @@ void main() {
     // color = vec4(fire_noise(v_vt * 1.5 + u_time * vec2(0.0, 1.0)), 0.0, 0.0, 1.0);
 
     gl_FragColor = color;
+    // gl_FragColor = vec4(vec3(0.0, 0.5 + fire * 0.08, 0.0), clamp(fire, 0.0, 1.0));
 }
 #endif
 
