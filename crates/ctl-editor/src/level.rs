@@ -462,13 +462,36 @@ impl LevelEditor {
             && let EditingState::Idle = self.state
             && let Some(level) = &static_level
         {
+            // Look for lights under the cursor
             hovered_light = cursor_world_pos.and_then(|cursor| {
-                level
-                    .lights
-                    .iter()
-                    .find(|light| light.contains_point(cursor))
-                    .and_then(|light| light.event_id)
-                    .map(|event| LightId { event })
+                // Check if the selected light is under the cursor to give it action priority
+                let selected = match &self.selection {
+                    Selection::Lights(ids) => {
+                        // Priority to selected lights
+                        ids.iter()
+                            .find(|id| {
+                                level
+                                    .lights
+                                    .get(id.event)
+                                    .is_some_and(|light| light.contains_point(cursor))
+                            })
+                            .copied()
+                    }
+                    Selection::Empty | Selection::Event(_) => None,
+                };
+                selected.or_else(||
+                        // Prioritise the light closest to the cursor
+                        level
+                            .lights
+                            .iter()
+                            .filter_map(|light| {
+                                light
+                                    .event_id
+                                    .map(|i| (LightId { event: i }, light.distance_to(cursor)))
+                            })
+                            .filter(|(_, d)| d.is_inside())
+                            .min_by_key(|(_, d)| d.raw)
+                            .map(|(i, _)| i))
             });
         }
 

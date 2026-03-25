@@ -36,7 +36,11 @@ impl Light {
 
     pub fn contains_point(&self, position: vec2<Coord>) -> bool {
         let distance = get_light_distance(position, &self.collider, self.hollow);
-        (distance.min..=distance.max).contains(&distance.raw)
+        distance.is_inside()
+    }
+
+    pub fn distance_to(&self, position: vec2<Coord>) -> LightDistance {
+        get_light_distance(position, &self.collider, self.hollow)
     }
 }
 
@@ -45,6 +49,12 @@ pub struct LightDistance {
     pub raw: Coord,
     pub min: Coord,
     pub max: Coord,
+}
+
+impl LightDistance {
+    pub fn is_inside(&self) -> bool {
+        (self.min..=self.max).contains(&self.raw)
+    }
 }
 
 pub fn get_light_distance(position: vec2<Coord>, light: &Collider, hollow: R32) -> LightDistance {
