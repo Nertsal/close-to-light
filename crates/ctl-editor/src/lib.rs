@@ -4,6 +4,7 @@ mod config;
 mod grid;
 mod group;
 mod history;
+mod interpolation_cache;
 mod level;
 mod state;
 pub mod ui;
@@ -15,6 +16,7 @@ pub use self::{
     grid::*,
     group::*,
     history::*,
+    interpolation_cache::*,
     level::*,
     state::{EditingState, *},
 };

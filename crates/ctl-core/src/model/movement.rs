@@ -334,10 +334,16 @@ impl Movement {
     }
 
     /// Get the transform at the given time.
-    pub fn get(&self, mut time: Time) -> TransformLight {
-        // TODO: bake only once before starting the level, then cache
-        let curve_interpolation = self.bake();
+    pub fn get(&self, time: Time) -> TransformLight {
+        self.get_baked(time, &self.bake())
+    }
 
+    /// Get the transform at the given time using the already baked interpolation curve.
+    pub fn get_baked(
+        &self,
+        mut time: Time,
+        curve_interpolation: &Interpolation<TransformLight>,
+    ) -> TransformLight {
         // Find the target frame
         let mut from = self.initial.transform;
         let mut lerp_time = self.initial.lerp_time;

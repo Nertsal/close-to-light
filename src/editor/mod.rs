@@ -25,6 +25,7 @@ pub struct EditorState {
     ui: EditorUi,
     ui_focused: bool,
     ui_context: UiContext,
+    interpolation_cache: InterpolationCache,
 }
 
 impl EditorState {
@@ -66,6 +67,7 @@ impl EditorState {
                 level_edit: None,
                 config,
             },
+            interpolation_cache: InterpolationCache::new(),
             context,
         }
     }
@@ -234,6 +236,7 @@ impl geng::State for EditorState {
         self.context.update(delta_time);
         self.delta_time = delta_time;
         self.editor.real_time += delta_time;
+        self.interpolation_cache.update();
 
         let options = self.context.get_options();
         self.context.music.set_volume(options.volume.music());
@@ -260,6 +263,8 @@ impl geng::State for EditorState {
         if std::mem::take(&mut self.editor.exit) {
             self.execute(EditorStateAction::Exit);
         }
+
+        self.interpolation_cache.clear_irrelevant();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -313,6 +318,7 @@ impl geng::State for EditorState {
             .begin(framebuffer.size(), options.theme.dark);
         self.render.draw_editor(
             &self.editor,
+            &mut self.interpolation_cache,
             &self.ui,
             &self.ui_context,
             game_post_vfx.clone(),

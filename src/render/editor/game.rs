@@ -1,7 +1,13 @@
 use super::*;
 
 impl EditorRender {
-    pub(super) fn draw_game(&mut self, editor: &Editor, visible: bool, post_vfx: PostVfx) {
+    pub(super) fn draw_game(
+        &mut self,
+        editor: &Editor,
+        interpolation_cache: &mut InterpolationCache,
+        visible: bool,
+        post_vfx: PostVfx,
+    ) {
         let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
 
@@ -233,6 +239,7 @@ impl EditorRender {
                         let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
                             .round() as usize;
                         if !event.movement.waypoints.is_empty() && num_points > 0 {
+                            let baked = interpolation_cache.get_or_bake(&event.movement);
                             let period = time_to_seconds(event.movement.duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
                             let speed = r32(1.0 / 8.0); // game time per real time
                             let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
@@ -243,7 +250,11 @@ impl EditorRender {
                                     let t = seconds_to_time(t) + event.movement.get_fade_in();
                                     let alpha = visibility(t);
                                     draw2d::ColoredVertex {
-                                        a_pos: event.movement.get(t).translation.as_f32(), // TODO: check performance
+                                        a_pos: event
+                                            .movement
+                                            .get_baked(t, baked)
+                                            .translation
+                                            .as_f32(),
                                         a_color: crate::util::with_alpha(color, alpha),
                                     }
                                 })

@@ -1,7 +1,8 @@
 use super::*;
 
 impl EditorState {
-    pub fn process_event(&self, event: geng::Event) -> Vec<EditorStateAction> {
+    // NOTE: `&mut self` to use the cache
+    pub fn process_event(&mut self, event: geng::Event) -> Vec<EditorStateAction> {
         let mut actions = vec![];
 
         let window = self.context.geng.window();
@@ -320,7 +321,8 @@ impl EditorState {
                     if let Event::Light(light) = &event.event {
                         let time = level_editor.current_time.target - event.time;
                         if time >= Time::ZERO && time <= light.movement.duration() {
-                            let transform = light.movement.get(time);
+                            let baked = self.interpolation_cache.get_or_bake(&light.movement);
+                            let transform = light.movement.get_baked(time, baked);
                             if area.contains(transform.translation) {
                                 let id = LightId { event: i };
                                 extra.add_light(id);
@@ -705,7 +707,8 @@ impl EditorState {
         }
     }
 
-    fn rotate(&self, actions: &mut Vec<EditorStateAction>, rotate_by: Angle<Coord>) {
+    // NOTE: `&mut self` to use the cache
+    fn rotate(&mut self, actions: &mut Vec<EditorStateAction>, rotate_by: Angle<Coord>) {
         let Some(level_editor) = &self.editor.level_edit else {
             return;
         };
@@ -743,8 +746,9 @@ impl EditorState {
                             let Event::Light(light) = &event.event else {
                                 return None;
                             };
+                            let baked = self.interpolation_cache.get_or_bake(&light.movement);
                             let time = level_editor.current_time.target - event.time;
-                            Some(light.movement.get(time).translation * scale)
+                            Some(light.movement.get_baked(time, baked).translation * scale)
                         })
                 })
                 .fold(vec2::ZERO, Add::add);

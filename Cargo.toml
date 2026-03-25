@@ -42,6 +42,7 @@ time = { version = "0.3.31", features = ["serde", "wasm-bindgen"] }
 steamworks = "0.12.2"
 discord-presence = "3.0.0"
 hex = "0.4.3"
+linear-map = { version = "1.2.0", features = ["serde", "serde_impl"] }
 
 # Game
 geng = "0.18"

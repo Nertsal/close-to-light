@@ -59,6 +59,7 @@ impl EditorRender {
     pub fn draw_editor(
         &mut self,
         editor: &Editor,
+        interpolation_cache: &mut InterpolationCache,
         ui: &EditorUi,
         context: &UiContext,
         post_vfx: PostVfx,
@@ -81,7 +82,7 @@ impl EditorRender {
         }
 
         let edit_tab = matches!(editor.tab, EditorTab::Edit);
-        self.draw_game(editor, edit_tab, post_vfx);
+        self.draw_game(editor, interpolation_cache, edit_tab, post_vfx);
         if !editor.render_options.hide_ui {
             self.draw_ui(ui, context);
         }

@@ -13,3 +13,4 @@ geng.workspace = true
 geng-utils.workspace = true
 serde.workspace = true
 rfd.workspace = true
+linear-map.workspace = true
