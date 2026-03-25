@@ -7,6 +7,8 @@ use ctl_render_core::TextRenderOptions;
 pub struct TextWidget {
     pub state: WidgetState,
     pub text: Name,
+    /// When `true`, ignores the context font_size and takes all available space.
+    pub max_size: bool,
     pub options: TextRenderOptions,
 }
 
@@ -15,6 +17,7 @@ impl Default for TextWidget {
         Self {
             state: default(),
             text: "<text>".into(),
+            max_size: false,
             options: default(),
         }
     }
@@ -38,6 +41,11 @@ impl TextWidget {
         self
     }
 
+    pub fn max_sized(mut self) -> Self {
+        self.max_size = true;
+        self
+    }
+
     pub fn align(&mut self, align: vec2<f32>) {
         self.options.align = align;
     }
@@ -45,6 +53,9 @@ impl TextWidget {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.state.update(position, context);
         crate::update_text_options(&mut self.options, context);
+        if self.max_size {
+            self.options.size = 100.0;
+        }
     }
 }
 

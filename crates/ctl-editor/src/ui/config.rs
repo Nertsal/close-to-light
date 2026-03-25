@@ -94,7 +94,9 @@ impl EditorConfigUi {
         bar.cut_top(context.layout_size);
 
         let level = bar.cut_top(context.font_size * 1.4);
-        let text = context.state.get_root_or(|| TextWidget::new("Difficulty"));
+        let text = context
+            .state
+            .get_root_or(|| TextWidget::new("Difficulty").max_sized());
         text.update(level, context);
 
         let name = bar.cut_top(context.font_size);
@@ -127,10 +129,10 @@ impl EditorConfigUi {
         }
 
         bar.cut_top(context.layout_size);
-        let all = bar.cut_top(context.font_size * 1.2);
+        let all = bar.cut_top(context.font_size * 1.4);
         let text = context
             .state
-            .get_root_or(|| TextWidget::new("All Difficulties"));
+            .get_root_or(|| TextWidget::new("All Difficulties").max_sized());
         text.update(all, context);
 
         let names: Vec<_> = editor
