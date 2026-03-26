@@ -127,6 +127,16 @@ impl EditorUi {
             }
         }
 
+        top_bar.cut_right(layout_size * 7.0);
+        let playtest = top_bar.cut_right(layout_size * 5.0);
+        let button = context
+            .state
+            .get_root_or(|| ButtonWidget::new("Playtest").color(ThemeColor::Highlight));
+        button.update(playtest, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(EditorStateAction::StartPlaytest);
+        }
+
         let save = top_bar.cut_left(layout_size * 4.0);
         let button = context
             .state
