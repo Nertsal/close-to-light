@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 
 use ctl_render_core::SubTexture;
 use ctl_util::SecondOrderState;
+use num_rational::Ratio;
 
 /// Pixels per unit
 const PPU: usize = 2;
@@ -19,6 +20,9 @@ const MAX_CLICK_DURATION: f32 = 0.5;
 pub struct TimelineWidget {
     cursor_pos: vec2<f32>,
     expansion: SecondOrderState<f32>,
+    /// The whole allocated position including the side panels.
+    pub allocated_position: WidgetState,
+    /// Interactive position of the moving timeline itself.
     pub state: WidgetState,
     pub ceiling: WidgetState,
     pub extra_line: WidgetState,
@@ -37,6 +41,7 @@ pub struct TimelineWidget {
     /// The scrolloff in exact time.
     scroll: Time,
     raw_current_time: Time,
+    raw_target_time: Time,
     level: Level, // TODO: reuse existing
     selection: Selection,
     selected_waypoint: Option<WaypointId>,
@@ -60,6 +65,7 @@ impl TimelineWidget {
         Self {
             cursor_pos: vec2::ZERO,
             expansion: SecondOrderState::new(3.0, 1.0, 1.0, 0.0),
+            allocated_position: default(),
             state: default(),
             ceiling: default(),
             extra_line: default(),
@@ -76,6 +82,7 @@ impl TimelineWidget {
             scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
+            raw_target_time: Time::ZERO,
             level: Level::new(r32(150.0)),
             selection: Selection::Empty,
             selected_waypoint: None,
@@ -99,8 +106,9 @@ impl TimelineWidget {
         (self.state.position.width() / self.scale) as Time
     }
 
-    pub fn update_time(&mut self, current_beat: Time) {
+    pub fn update_time(&mut self, current_beat: Time, target_beat: Time) {
         self.raw_current_time = current_beat;
+        self.raw_target_time = target_beat;
         self.scroll = -current_beat;
     }
 
@@ -783,8 +791,14 @@ impl TimelineWidget {
 
         let pixel = PPU as f32;
 
+        let allocated_position = position;
+        let panel_width = 5.0 * context.layout_size;
+
+        // Expand the timeline view up
         let expansion = self.expansion.current * pixel * (LIGHT_LINE_WIDTH + LIGHT_LINE_SPACE);
-        let mut position = position.extend_up(expansion);
+        let mut position = position
+            .extend_up(expansion)
+            .extend_symmetric(vec2(-panel_width, 0.0));
         let state_top = position.max.y;
 
         let ceiling = position.cut_top(pixel * 3.0);
@@ -814,6 +828,62 @@ impl TimelineWidget {
             ScrollSpeed::Normal
         };
 
+        // Calculate allocated state for side panels
+        let mut allocated_position =
+            allocated_position.with_height(allocated_position.max.y - position.max.y, 1.0);
+        self.allocated_position.update(allocated_position, context);
+
+        // Cut panels on the sides for extra info
+        let mut left_panel = allocated_position.cut_left(panel_width);
+        let right_panel = allocated_position.cut_right(panel_width);
+
+        {
+            // Left panel - Current time
+            let mut current_time = left_panel.split_top(0.5);
+            current_time.cut_left(current_time.width() * 0.1);
+            let time = context.state.get_or(self.state.id, || {
+                TextWidget::new("Time: XX:XX.XXX").aligned(vec2(0.0, 0.5))
+            });
+
+            let mut ms = self.raw_current_time;
+            let mut secs = ms / 1000;
+            ms -= secs * 1000;
+            let mins = secs / 60;
+            secs -= mins * 60;
+
+            time.text = format!("Time: {:02}:{:02}.{:03}", mins, secs, ms).into();
+            time.update(current_time, context);
+            time.options.size = current_time.height() * 0.4;
+
+            // Current beat
+            let mut current_beat = left_panel;
+            current_beat.cut_left(current_beat.width() * 0.1);
+            let beat = context.state.get_or(self.state.id, || {
+                TextWidget::new("Beat: XX X/X").aligned(vec2(0.0, 1.0))
+            });
+
+            let beat_time = self
+                .level
+                .timing
+                .get_relative_beat_time(self.raw_target_time);
+            let ratio = Ratio::new_raw(beat_time.units(), BeatTime::UNITS_PER_BEAT).reduced();
+            let sub_division = *ratio.denom();
+            let mut sub_beat = *ratio.numer();
+            let beat_whole = sub_beat / sub_division;
+            sub_beat -= beat_whole * sub_division;
+
+            beat.text = if sub_beat > 0 {
+                format!("Beat: {}  {}/{}", beat_whole, sub_beat, sub_division).into()
+            } else {
+                format!("Beat: {}", beat_whole).into()
+            };
+            beat.update(current_beat, context);
+            beat.options.size = current_beat.height() * 0.4;
+        }
+
+        // Right panel - Timing subdivision
+
+        // Update state
         let state_full = Aabb2 {
             min: vec2(position.min.x, position.max.y),
             max: vec2(position.max.x, state_top),
@@ -976,6 +1046,14 @@ impl Widget for TimelineWidget {
                 .geometry
                 .quad_fill(bounds.extend_uniform(width), width, theme.dark),
         );
+
+        // Side panels
+
+        geometry.merge(context.geometry.quad_outline(
+            self.allocated_position.position.extend_uniform(width),
+            width,
+            theme.light,
+        ));
 
         geometry
     }

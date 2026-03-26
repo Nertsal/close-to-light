@@ -57,8 +57,7 @@ impl EditorEditUi {
         let font_size = context.font_size;
         let layout_size = context.layout_size;
 
-        let bottom_bar = main.cut_bottom(game_position.min.y - 6.0 - main.min.y);
-        let mut bottom_bar = bottom_bar.extend_symmetric(-vec2(5.0, 0.0) * layout_size);
+        let mut bottom_bar = main.cut_bottom(game_position.min.y - 6.0 - main.min.y);
 
         let mut main = main
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
@@ -82,7 +81,10 @@ impl EditorEditUi {
         {
             let timeline = bottom_bar.cut_top(font_size * 1.0);
             let linetime = context.state.get_root_or(TimelineWidget::new);
-            linetime.update_time(level_editor.current_time.value);
+            linetime.update_time(
+                level_editor.current_time.value,
+                level_editor.current_time.target,
+            );
             linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 
             {

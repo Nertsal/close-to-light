@@ -127,6 +127,13 @@ impl Timing {
         let delta = seconds_to_time(delta);
         timing.time + delta
     }
+
+    /// Calculates the beat time relative to the most recent timing point.
+    pub fn get_relative_beat_time(&self, time: Time) -> BeatTime {
+        let timing = self.get_timing(time);
+        let delta = time_to_seconds(time - timing.time);
+        BeatTime::from_beats_float(delta / timing.beat_time)
+    }
 }
 
 impl TimedEvent {

@@ -14,3 +14,4 @@ geng-utils.workspace = true
 serde.workspace = true
 rfd.workspace = true
 linear-map.workspace = true
+num-rational.workspace = true
