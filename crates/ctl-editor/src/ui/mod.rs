@@ -127,7 +127,15 @@ impl EditorUi {
             }
         }
 
-        top_bar.cut_right(layout_size * 7.0);
+        let unsaved = top_bar.cut_right(font_size * 7.0);
+        if editor.is_changed() {
+            let text = context
+                .state
+                .get_root_or(|| TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)));
+            text.update(unsaved, context);
+        }
+
+        top_bar.cut_right(layout_size * 1.0);
         let playtest = top_bar.cut_right(layout_size * 5.0);
         let button = context
             .state
@@ -185,14 +193,6 @@ impl EditorUi {
             actions.push(EditorAction::SwitchTab(EditorTab::Edit).into())
         } else if tab_config.text.state.mouse_left.clicked {
             actions.push(EditorAction::SwitchTab(EditorTab::Config).into());
-        }
-
-        let unsaved = top_bar.cut_right(font_size * 10.0);
-        if editor.is_changed() {
-            let text = context
-                .state
-                .get_root_or(|| TextWidget::new("Save to apply changes").aligned(vec2(1.0, 0.5)));
-            text.update(unsaved, context);
         }
 
         let main = main.extend_down(-layout_size);
