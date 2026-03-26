@@ -1,12 +1,33 @@
 use super::*;
 
-pub struct EditorEditUi {}
+pub struct EditorEditUi {
+    event_mode: NewEventMode,
+}
+
+enum NewEventMode {
+    Idle,
+    Light,
+    Vfx,
+}
 
 impl EditorEditUi {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self {}
+        Self {
+            event_mode: NewEventMode::Idle,
+        }
     }
+}
+
+struct LayoutHelper<'a> {
+    editor: &'a Editor,
+    level_editor: &'a LevelEditor,
+
+    spacing: f32,
+    title_size: f32,
+    button_height: f32,
+    delete_width: f32,
+    value_height: f32,
 }
 
 impl EditorEditUi {
@@ -72,84 +93,19 @@ impl EditorEditUi {
             // self.timeline.auto_scale(level_editor.level.last_beat());
         }
 
-        // Event
-        {
-            let mut bar = left_bar;
+        let helper = LayoutHelper {
+            editor,
+            level_editor,
+            spacing,
+            title_size,
+            button_height,
+            delete_width,
+            value_height,
+        };
 
-            let event = bar.cut_top(title_size);
-            let text = context
-                .state
-                .get_root_or(|| TextWidget::new("Event").aligned(vec2(0.0, 0.5)));
-            text.update(event, context);
-            text.options.size = title_size;
-
-            if level_editor.level_state.waypoints.is_some() {
-                let waypoint = bar.cut_top(button_height);
-                bar.cut_top(spacing);
-                let button = context
-                    .state
-                    .get_root_or(|| ButtonWidget::new("Add waypoint"));
-                button.update(waypoint, context);
-                if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::NewWaypoint.into());
-                }
-
-                tooltip.update(&button.text.state, "1", context);
-
-                bar.cut_top(button_height);
-                bar.cut_top(spacing);
-            } else {
-                let new_light_width = font_size * 3.0;
-
-                for (i, shape) in editor.config.shapes.iter().enumerate() {
-                    let new_shape = bar.cut_top(button_height).cut_left(new_light_width);
-                    bar.cut_top(spacing);
-                    let button = context.state.get_root_or(|| {
-                        ButtonWidget::new(match shape {
-                            Shape::Circle { .. } => "Circle",
-                            Shape::Line { .. } => "Line",
-                            Shape::Rectangle { .. } => "Rectangle",
-                        })
-                    });
-                    button.update(new_shape, context);
-                    if button.text.state.mouse_left.clicked {
-                        actions.push(LevelAction::Shape(*shape).into());
-                    }
-                    tooltip.update(&button.text.state, format!("{}", i + 1), context);
-                }
-
-                let new_rgb = bar.cut_top(button_height).cut_left(font_size * 2.5);
-                bar.cut_top(spacing);
-                let button = context.state.get_root_or(|| ButtonWidget::new("RGB Split"));
-                button.update(new_rgb, context);
-                if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::NewRgbSplit(TIME_IN_FLOAT_TIME).into());
-                }
-
-                let new_palette = bar.cut_top(button_height).cut_left(font_size * 2.5);
-                bar.cut_top(spacing);
-                let button = context
-                    .state
-                    .get_root_or(|| ButtonWidget::new("Palette swap"));
-                button.update(new_palette, context);
-                if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::NewPaletteSwap(TIME_IN_FLOAT_TIME / 2).into());
-                }
-
-                let new_palette = bar.cut_top(button_height).cut_left(font_size * 2.5);
-                bar.cut_top(spacing);
-                let button = context
-                    .state
-                    .get_root_or(|| ButtonWidget::new("Camera shake"));
-                button.update(new_palette, context);
-                if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::NewCameraShake(TIME_IN_FLOAT_TIME / 8).into());
-                }
-            }
-
-            bar.cut_top(layout_size * 1.5);
-            left_bar = bar;
-        }
+        // New Event
+        let remaining = helper.layout_event(self, tooltip, left_bar, actions, context);
+        left_bar.max.y = (left_bar.max.y - context.font_size * 7.0).min(remaining.max.y);
 
         // View
         {
@@ -815,5 +771,169 @@ impl EditorEditUi {
 
         let _ = left_bar;
         let _ = right_bar;
+    }
+}
+
+impl LayoutHelper<'_> {
+    /// New event - lights, vfx
+    fn layout_event(
+        &self,
+        ui: &mut EditorEditUi,
+        tooltip: &mut TooltipWidget,
+        mut bar: Aabb2<f32>,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) -> Aabb2<f32> {
+        let event = bar
+            .cut_top(self.title_size)
+            .with_width(bar.width() / 2.0, 0.0);
+        let text = context
+            .state
+            .get_root_or(|| TextWidget::new("Event").aligned(vec2(0.0, 0.5)));
+        text.update(event, context);
+        text.options.size = self.title_size;
+
+        if !matches!(ui.event_mode, NewEventMode::Idle) {
+            // Button to return to idle mode
+            let back = event
+                .with_width(event.height(), 1.0)
+                .translate(vec2(event.height(), 0.0));
+            let button = context.state.get_root_or(|| {
+                IconButtonWidget::new_normal(context.context.assets.atlas.button_close())
+            });
+            button.update(back, context);
+            if button.icon.state.mouse_left.clicked {
+                ui.event_mode = NewEventMode::Idle;
+            }
+        }
+
+        if self.level_editor.level_state.waypoints.is_some() {
+            // Waypoints mode
+            let waypoint = bar.cut_top(self.button_height);
+            bar.cut_top(self.spacing);
+            let button = context
+                .state
+                .get_root_or(|| ButtonWidget::new("Add waypoint"));
+            button.update(waypoint, context);
+            if button.text.state.mouse_left.clicked {
+                actions.push(LevelAction::NewWaypoint.into());
+            }
+
+            tooltip.update(&button.text.state, "1", context);
+
+            bar.cut_top(self.button_height);
+            bar.cut_top(self.spacing);
+        } else {
+            match ui.event_mode {
+                NewEventMode::Idle => {
+                    self.layout_event_idle(ui, tooltip, &mut bar, actions, context)
+                }
+                NewEventMode::Light => {
+                    self.layout_event_light(ui, tooltip, &mut bar, actions, context)
+                }
+                NewEventMode::Vfx => self.layout_event_vfx(ui, tooltip, &mut bar, actions, context),
+            }
+        }
+
+        bar.cut_top(context.layout_size * 0.5);
+        bar
+    }
+
+    /// Regular mode - new lights and effects
+    fn layout_event_idle(
+        &self,
+        ui: &mut EditorEditUi,
+        _tooltip: &mut TooltipWidget,
+        bar: &mut Aabb2<f32>,
+        _actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        let button_width = context.font_size * 4.5;
+
+        let new_light = bar
+            .cut_top(self.button_height)
+            .with_width(button_width, 0.0);
+        let button = context.state.get_root_or(|| ButtonWidget::new("Light"));
+        button.update(new_light, context);
+        if button.text.state.mouse_left.clicked {
+            ui.event_mode = NewEventMode::Light;
+        }
+
+        let new_vfx = bar
+            .cut_top(self.button_height)
+            .with_width(button_width, 0.0);
+        let button = context.state.get_root_or(|| ButtonWidget::new("VFX"));
+        button.update(new_vfx, context);
+        if button.text.state.mouse_left.clicked {
+            ui.event_mode = NewEventMode::Vfx;
+        }
+    }
+
+    /// Light mode - select light shape
+    fn layout_event_light(
+        &self,
+        _ui: &mut EditorEditUi,
+        tooltip: &mut TooltipWidget,
+        bar: &mut Aabb2<f32>,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        let new_light_width = context.font_size * 4.0;
+        for (i, shape) in self.editor.config.shapes.iter().enumerate() {
+            let new_shape = bar.cut_top(self.button_height).cut_left(new_light_width);
+            bar.cut_top(self.spacing);
+            let button = context.state.get_root_or(|| {
+                ButtonWidget::new(match shape {
+                    Shape::Circle { .. } => "Circle",
+                    Shape::Line { .. } => "Line",
+                    Shape::Rectangle { .. } => "Rectangle",
+                })
+            });
+            button.update(new_shape, context);
+            if button.text.state.mouse_left.clicked {
+                actions.push(LevelAction::Shape(*shape).into());
+            }
+            tooltip.update(&button.text.state, format!("{}", i + 1), context);
+        }
+    }
+
+    /// VFX mode - select vfx
+    fn layout_event_vfx(
+        &self,
+        _ui: &mut EditorEditUi,
+        _tooltip: &mut TooltipWidget,
+        bar: &mut Aabb2<f32>,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        let button_width = context.font_size * 4.0;
+
+        let new_rgb = bar.cut_top(self.button_height).cut_left(button_width);
+        bar.cut_top(self.spacing);
+        let button = context.state.get_root_or(|| ButtonWidget::new("RGB Split"));
+        button.update(new_rgb, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::NewRgbSplit(TIME_IN_FLOAT_TIME).into());
+        }
+
+        let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
+        bar.cut_top(self.spacing);
+        let button = context
+            .state
+            .get_root_or(|| ButtonWidget::new("Palette swap"));
+        button.update(new_palette, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::NewPaletteSwap(TIME_IN_FLOAT_TIME / 2).into());
+        }
+
+        let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
+        bar.cut_top(self.spacing);
+        let button = context
+            .state
+            .get_root_or(|| ButtonWidget::new("Camera shake"));
+        button.update(new_palette, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::NewCameraShake(TIME_IN_FLOAT_TIME / 8).into());
+        }
     }
 }
