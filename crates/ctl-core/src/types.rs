@@ -47,31 +47,47 @@ impl From<BeatTimeSerde> for BeatTime {
 }
 
 impl BeatTime {
-    pub const UNITS_PER_BEAT: Time = 120;
+    pub const UNITS_PER_BEAT: Time = 240;
 
-    /// A whole beat (typically a 1/4th note).
+    /// A whole of a beat (typically a 1/4th note).
     pub const WHOLE: Self = Self {
         units: Self::UNITS_PER_BEAT,
     };
-    /// A half beat (typically a 1/8th note).
+    /// A half of a beat (typically a 1/8th note).
     pub const HALF: Self = Self {
         units: Self::UNITS_PER_BEAT / 2,
     };
-    /// A third beat (typically a 1/12th note).
+    /// A third of a beat (typically a 1/12th note).
     pub const THIRD: Self = Self {
         units: Self::UNITS_PER_BEAT / 3,
     };
-    /// A quarter beat (typically a 1/16th note).
+    /// A quarter of a beat (typically a 1/16th note).
     pub const QUARTER: Self = Self {
         units: Self::UNITS_PER_BEAT / 4,
     };
-    /// A fifth beat (typically a 1/20th note).
+    /// A fifth of a beat.
     pub const FIFTH: Self = Self {
         units: Self::UNITS_PER_BEAT / 5,
     };
-    /// An eighth beat (typically a 1/32th note).
+    /// A sixth of a beat.
+    pub const SIXTH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 6,
+    };
+    /// An eighth of a beat (typically a 1/32th note).
     pub const EIGHTH: Self = Self {
         units: Self::UNITS_PER_BEAT / 8,
+    };
+    /// A sixth of a beat.
+    pub const TENTH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 10,
+    };
+    /// A twelveth of a beat.
+    pub const TWELFTH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 12,
+    };
+    /// A sixteenth of a beat.
+    pub const SIXTEENTH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 16,
     };
     pub const ZERO: Self = Self { units: 0 };
 

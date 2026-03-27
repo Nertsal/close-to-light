@@ -70,18 +70,19 @@ impl BeatValueWidget {
             // TODO: handle errors
             if let Some((num, den)) = self.value_text.raw.split_once('/')
                 && let Ok(num) = num.parse::<Time>()
-                    && let Ok(den) = den.parse::<Time>()
-                        && 16 % den == 0 {
-                            let units = num * (16 / den);
-                            target = BeatTime::from_units(units);
-                        }
+                && let Ok(den) = den.parse::<Time>()
+                && 16 % den == 0
+            {
+                let units = num * (16 / den);
+                target = BeatTime::from_units(units);
+            }
         }
 
         // Check bounds
         target = target.clamp_range(min..=max);
 
         if !self.value_text.editing {
-            let value = Ratio::new_raw(target.units(), BeatTime::UNITS_PER_BEAT).reduced();
+            let value = Ratio::new(target.units(), BeatTime::UNITS_PER_BEAT);
             self.value_text
                 .sync(&format!("{}/{}", value.numer(), value.denom()), context);
         }

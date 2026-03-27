@@ -32,7 +32,8 @@ pub struct TimelineWidget {
     highlight_bar: Option<HighlightBar>,
     dots: Vec<vec2<f32>>,
     marks: Vec<(vec2<f32>, Color)>,
-    ticks: Vec<(vec2<f32>, BeatTime)>,
+    /// Ticks with position and subdivision indicator used to select color and texture.
+    ticks: Vec<(vec2<f32>, i64)>,
     dragging_event: Option<(usize, vec2<f32>, f32)>,
     dragging_waypoint: Option<WaypointId>,
 
@@ -719,18 +720,23 @@ impl TimelineWidget {
                     continue;
                 }
 
-                let mut tick = |offset: BeatTime, marker: BeatTime| {
+                let mut tick = |offset: BeatTime, subdivision: i64| {
                     let offset = (r32(i as f32) + offset.as_beats()) * timing.beat_time;
                     let time = from + seconds_to_time(offset);
                     if until.is_none_or(|limit| time < limit) {
                         self.ticks
-                            .push((render_time(&self.main_line, time).center(), marker));
+                            .push((render_time(&self.main_line, time).center(), subdivision));
                     }
                 };
 
-                tick(BeatTime::HALF, BeatTime::HALF);
-                tick(BeatTime::QUARTER, BeatTime::QUARTER);
-                tick(BeatTime::QUARTER * 3, BeatTime::QUARTER);
+                let ticks_per_beat = BeatTime::WHOLE.units() / snap.units();
+                for i in 1..ticks_per_beat {
+                    let ratio = Ratio::new(snap.units() * i, BeatTime::WHOLE.units());
+                    tick(snap * i, *ratio.denom());
+                }
+                // tick(BeatTime::HALF, 2);
+                // tick(BeatTime::QUARTER, 4);
+                // tick(BeatTime::QUARTER * 3, 4);
 
                 if until.is_some_and(|limit| time >= limit)
                     || time + self.scroll > self.visible_scroll() / 2
@@ -739,11 +745,11 @@ impl TimelineWidget {
                 }
 
                 self.ticks
-                    .push((render_time(&self.main_line, time).center(), BeatTime::WHOLE));
+                    .push((render_time(&self.main_line, time).center(), 1));
             }
         }
-        self.ticks
-            .sort_by_key(|(_, t)| t.units() % BeatTime::UNITS_PER_BEAT);
+        // Sort by descending subdivision: whole beats first, then half, quarter, etc.
+        self.ticks.sort_by_key(|(_, subdivision)| -*subdivision);
 
         // Time marks
         self.marks.clear();
@@ -866,7 +872,7 @@ impl TimelineWidget {
                 .level
                 .timing
                 .get_relative_beat_time(self.raw_target_time);
-            let ratio = Ratio::new_raw(beat_time.units(), BeatTime::UNITS_PER_BEAT).reduced();
+            let ratio = Ratio::new(beat_time.units(), BeatTime::UNITS_PER_BEAT);
             let sub_division = *ratio.denom();
             let mut sub_beat = *ratio.numer();
             let beat_whole = sub_beat / sub_division;
@@ -949,21 +955,26 @@ impl Widget for TimelineWidget {
         }
 
         // Main line ticks
-        for &(pos, beat) in &self.ticks {
-            let (color, texture) = if beat == BeatTime::WHOLE {
-                (theme.light, &atlas.timeline_tick_big())
-            } else if beat == BeatTime::HALF {
-                (theme.danger, &atlas.timeline_tick_mid())
-            } else if beat == BeatTime::QUARTER {
-                (theme.highlight, &atlas.timeline_tick_smol())
-            } else if beat == BeatTime::EIGHTH {
-                (
-                    Color::lerp(theme.highlight, theme.danger, 0.5),
-                    &atlas.timeline_tick_tiny(),
-                )
-            } else {
-                // Unknown beat separation
-                (theme.danger, &atlas.timeline_tick_smol())
+        for &(pos, subdivision) in &self.ticks {
+            let white = theme.light;
+            let red = theme.danger;
+            let cyan = theme.highlight;
+            let mut yellow =
+                Color::from_vec4(Color::WHITE.to_vec4() - cyan.to_vec4()).map_rgb(|x| x.max(0.0));
+            yellow.a = 1.0;
+            let (color, texture) = match subdivision {
+                1 => (white, &atlas.timeline_tick_big()),
+                2 => (red, &atlas.timeline_tick_mid()),
+                3 => (yellow, &atlas.timeline_tick_mid()),
+                4 => (cyan, &atlas.timeline_tick_smol()),
+                6 => (Color::lerp(yellow, red, 0.5), &atlas.timeline_tick_smol()),
+                8 => (Color::lerp(yellow, cyan, 0.25), &atlas.timeline_tick_tiny()),
+                12 => (Color::lerp(yellow, red, 0.8), &atlas.timeline_tick_tiny()),
+                16 => (Color::lerp(cyan, red, 0.5), &atlas.timeline_tick_tiny()),
+                _ => {
+                    // Unknown beat separation
+                    (red, &atlas.timeline_tick_smol())
+                }
             };
             geometry.merge(
                 context
