@@ -284,9 +284,15 @@ impl TimelineWidget {
                     };
                     IconButtonWidget::new(texture)
                 });
-                icon.color = ThemeColor::Light;
                 icon.update(position, context);
                 is_hovered = is_hovered || icon.state.hovered;
+                if is_selected && !is_hovered {
+                    icon.color = ThemeColor::Light;
+                    icon.bg_color = ThemeColor::Highlight;
+                } else {
+                    icon.color = ThemeColor::Light;
+                    icon.bg_color = ThemeColor::Dark;
+                }
                 if icon.state.mouse_left.just_pressed {
                     actions.push(LevelAction::SelectEvent(event_i).into());
                     *dragging_event = Some((event_i, context.cursor.position, context.real_time));
@@ -1186,6 +1192,7 @@ struct IconButtonWidget {
     state: WidgetState,
     texture: SubTexture,
     color: ThemeColor,
+    bg_color: ThemeColor,
     highlight: HighlightMode,
 }
 
@@ -1195,6 +1202,7 @@ impl IconButtonWidget {
             state: WidgetState::new(),
             texture,
             color: ThemeColor::Light,
+            bg_color: ThemeColor::Dark,
             highlight: HighlightMode::SwapColors,
         }
     }
@@ -1219,7 +1227,7 @@ impl Widget for IconButtonWidget {
         let mut geometry = Geometry::new();
 
         let mut fg_color = theme.get_color(self.color);
-        let mut bg_color = theme.dark;
+        let mut bg_color = theme.get_color(self.bg_color);
 
         match self.highlight {
             HighlightMode::SwapColors => {
