@@ -278,12 +278,12 @@ impl TimelineWidget {
                 let position = render_light(event_time, overlapped).center();
                 let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
                 let icon = context.state.get_or(self.state.id, || {
-                    let texture = match event_i {
-                        EditorEventIdx::Event(_) => atlas.timeline_rgb_split(), // TODO: icons
-                        EditorEventIdx::Timing(_) => atlas.timeline_metronome(),
-                    };
-                    IconButtonWidget::new(texture)
+                    IconButtonWidget::new(atlas.timeline_metronome())
                 });
+                icon.texture = match event_i {
+                    EditorEventIdx::Event(_) => atlas.timeline_rgb_split(), // TODO: icons
+                    EditorEventIdx::Timing(_) => atlas.timeline_metronome(),
+                };
                 icon.update(position, context);
                 is_hovered = is_hovered || icon.state.hovered;
                 if is_selected && !is_hovered {
