@@ -24,6 +24,8 @@ pub struct LevelEditor {
     pub place_rotation: Angle<Coord>,
     /// The scale at which the objects should be placed.
     pub place_scale: Coord,
+    /// The beat subdivision to snap to.
+    pub beat_snap: BeatTime,
 
     pub state: EditingState,
     /// Whether the last frame was scrolled through time.
@@ -154,6 +156,7 @@ impl LevelEditor {
 
             place_rotation: Angle::ZERO,
             place_scale: Coord::ONE,
+            beat_snap: BeatTime::QUARTER,
 
             state: EditingState::Idle,
             was_scrolling_time: false,
@@ -400,8 +403,7 @@ impl LevelEditor {
         let max = margin + self.level.last_time();
         let target = (self.current_time.target + delta).clamp(min, max);
 
-        // TODO: customize snap
-        let target_time = self.level.timing.snap_to_beat(target, BeatTime::QUARTER);
+        let target_time = self.level.timing.snap_to_beat(target, self.beat_snap);
         self.current_time.scroll_time(Change::Set(target_time));
 
         self.scrolling_time = true;

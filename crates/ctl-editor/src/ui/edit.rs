@@ -22,7 +22,6 @@ impl EditorEditUi {
 struct LayoutHelper<'a> {
     editor: &'a Editor,
     level_editor: &'a LevelEditor,
-    snap: BeatTime,
 
     spacing: f32,
     title_size: f32,
@@ -74,9 +73,6 @@ impl EditorEditUi {
         let tooltip = context.state.get_root_or(TooltipWidget::new);
         tooltip.visible = false;
 
-        // TODO: customize snap
-        let snap = BeatTime::QUARTER;
-
         // Timeline
         {
             let timeline = bottom_bar.cut_top(font_size * 1.0);
@@ -99,7 +95,6 @@ impl EditorEditUi {
         let helper = LayoutHelper {
             editor,
             level_editor,
-            snap,
 
             spacing,
             title_size,
@@ -499,10 +494,10 @@ impl LayoutHelper<'_> {
                                 "Fade in",
                                 fade,
                                 BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                                self.snap,
+                                self.level_editor.beat_snap,
                             )
                         });
-                        slider.scroll_by = self.snap;
+                        slider.scroll_by = self.level_editor.beat_snap;
                         if slider.update(fade_in, context, &mut fade) {
                             actions.push(
                                 LevelAction::ChangeFadeIn(
@@ -536,10 +531,10 @@ impl LayoutHelper<'_> {
                                 "Fade out",
                                 fade,
                                 BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                                self.snap,
+                                self.level_editor.beat_snap,
                             )
                         });
-                        slider.scroll_by = self.snap;
+                        slider.scroll_by = self.level_editor.beat_snap;
                         if slider.update(fade_out, context, &mut fade) {
                             actions.push(
                                 LevelAction::ChangeFadeOut(
@@ -854,10 +849,10 @@ impl LayoutHelper<'_> {
                             "Duration",
                             duration,
                             BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                            self.snap,
+                            self.level_editor.beat_snap,
                         )
                     });
-                    slider.scroll_by = self.snap;
+                    slider.scroll_by = self.level_editor.beat_snap;
                     if slider.update(duration_pos, context, &mut duration) {
                         actions.push(
                             LevelAction::ChangeEffectDuration(
@@ -886,10 +881,10 @@ impl LayoutHelper<'_> {
                             "Duration",
                             duration,
                             BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                            self.snap,
+                            self.level_editor.beat_snap,
                         )
                     });
-                    slider.scroll_by = self.snap;
+                    slider.scroll_by = self.level_editor.beat_snap;
                     if slider.update(duration_pos, context, &mut duration) {
                         actions.push(
                             LevelAction::ChangeEffectDuration(
@@ -918,10 +913,10 @@ impl LayoutHelper<'_> {
                             "Duration",
                             duration,
                             BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                            self.snap,
+                            self.level_editor.beat_snap,
                         )
                     });
-                    slider.scroll_by = self.snap;
+                    slider.scroll_by = self.level_editor.beat_snap;
                     if slider.update(duration_pos, context, &mut duration) {
                         actions.push(
                             LevelAction::ChangeEffectDuration(

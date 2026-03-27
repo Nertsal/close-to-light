@@ -19,6 +19,7 @@ pub enum LevelAction {
     ScalePlacement(Change<Coord>),
     RotatePlacement(Angle<Coord>),
     ScrollTime(Time),
+    SetBeatSnap(BeatTime),
     TimelineZoom(Change<f32>),
     CameraPan(Change<vec2<f32>>),
     TimingUpdate(usize, FloatTime),
@@ -136,6 +137,7 @@ impl LevelAction {
             LevelAction::ScalePlacement(delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
             LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
+            LevelAction::SetBeatSnap(_) => false,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
             LevelAction::TimingUpdate(..) => false,
@@ -255,6 +257,7 @@ impl LevelEditor {
             LevelAction::ScrollTime(delta) => {
                 self.scroll_time(delta);
             }
+            LevelAction::SetBeatSnap(beat_snap) => self.beat_snap = beat_snap,
             LevelAction::TimelineZoom(change) => {
                 let mut zoom = self.timeline_zoom.target.as_f32();
                 zoom = match change {

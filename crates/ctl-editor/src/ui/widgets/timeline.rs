@@ -158,8 +158,7 @@ impl TimelineWidget {
             ((pos - self.main_line.position.center().x) / self.scale).round() as Time - self.scroll
         };
 
-        // TODO: customize snap
-        let snap = BeatTime::QUARTER;
+        let beat_snap = editor.beat_snap;
 
         // Check highlight bounds
         let light_selection = self
@@ -227,7 +226,7 @@ impl TimelineWidget {
                 tick.update(position, context);
                 if tick.state.mouse_left.pressed.is_some() {
                     let target = unrender_time(context.cursor.position.x);
-                    let target = editor.level.timing.snap_to_beat(target, snap);
+                    let target = editor.level.timing.snap_to_beat(target, beat_snap);
                     while_pressed(actions, target);
                 }
                 if tick.state.mouse_left.just_released {
@@ -333,7 +332,8 @@ impl TimelineWidget {
                         && *i == event_i
                     {
                         let time = unrender_time(context.cursor.position.x);
-                        let time = editor.level.timing.snap_to_beat(time, snap) - preevent_time;
+                        let time =
+                            editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time;
                         actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
                     }
                 };
@@ -467,7 +467,7 @@ impl TimelineWidget {
                             }
                             if self.dragging_waypoint == Some(waypoint_id) && is_waypoint_selected {
                                 let time = unrender_time(context.cursor.position.x);
-                                let time = editor.level.timing.snap_to_beat(time, snap);
+                                let time = editor.level.timing.snap_to_beat(time, beat_snap);
                                 actions.push(
                                     LevelAction::MoveWaypoint(
                                         light_id,
@@ -729,10 +729,10 @@ impl TimelineWidget {
                     }
                 };
 
-                let ticks_per_beat = BeatTime::WHOLE.units() / snap.units();
+                let ticks_per_beat = BeatTime::WHOLE.units() / beat_snap.units();
                 for i in 1..ticks_per_beat {
-                    let ratio = Ratio::new(snap.units() * i, BeatTime::WHOLE.units());
-                    tick(snap * i, *ratio.denom());
+                    let ratio = Ratio::new(beat_snap.units() * i, BeatTime::WHOLE.units());
+                    tick(beat_snap * i, *ratio.denom());
                 }
                 // tick(BeatTime::HALF, 2);
                 // tick(BeatTime::QUARTER, 4);
@@ -887,7 +887,58 @@ impl TimelineWidget {
             beat.options.size = current_beat.height() * 0.4;
         }
 
-        // Right panel - Timing subdivision
+        {
+            // Right panel - Timing subdivision
+            let allowed_subdivisions = [1, 2, 3, 4, 6, 8, 12, 16];
+            let current_subdivision = BeatTime::WHOLE.units() / state.beat_snap.units();
+            let current_i = allowed_subdivisions
+                .iter()
+                .position(|d| *d == current_subdivision)
+                .unwrap_or(0);
+            let mut new_i = current_i;
+
+            let mut panel = right_panel;
+
+            let text_pos = panel.split_top(0.5);
+            let text = context.state.get_or(self.state.id, || {
+                TextWidget::new("1 / X").aligned(vec2(0.5, 0.0))
+            });
+            text.update(text_pos, context);
+            text.text = format!("1 / {}", current_subdivision).into();
+
+            let button_left = panel.split_left(0.5);
+            let button = context.state.get_or(self.state.id, || {
+                IconButtonWidget::new(context.context.assets.atlas.button_prev())
+            });
+            button.update(button_left, context);
+            if button.state.mouse_left.clicked {
+                new_i = new_i
+                    .checked_sub(1)
+                    .unwrap_or(allowed_subdivisions.len() - 1);
+            }
+
+            let button = context.state.get_or(self.state.id, || {
+                IconButtonWidget::new(context.context.assets.atlas.button_next())
+            });
+            button.update(panel, context);
+            if button.state.mouse_left.clicked {
+                new_i += 1;
+                if new_i >= allowed_subdivisions.len() {
+                    new_i = 0;
+                }
+            }
+
+            if current_i != new_i
+                && let Some(&subdivision) = allowed_subdivisions.get(new_i)
+            {
+                actions.push(
+                    LevelAction::SetBeatSnap(BeatTime::from_units(
+                        BeatTime::WHOLE.units() / subdivision,
+                    ))
+                    .into(),
+                );
+            }
+        }
 
         // Update state
         let state_full = Aabb2 {
