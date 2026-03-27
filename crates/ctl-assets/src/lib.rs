@@ -22,9 +22,13 @@ pub struct LoadingAssets {
     #[load(load_with = "load_gif(&manager, &base_path.join(\"sprites/loading_background.gif\"))")]
     pub background: Vec<GifFrame>,
     #[load(path = "shaders/replace_colors.glsl")]
-    pub background_shader: ugli::Program,
+    pub shader_background: ugli::Program,
     #[load(path = "shaders/crt.glsl")]
-    pub crt_shader: ugli::Program,
+    pub shader_crt: Rc<ugli::Program>,
+    #[load(path = "shaders/rgb_split.glsl")]
+    pub shader_rgb_split: Rc<ugli::Program>,
+    #[load(path = "shaders/color_correction.glsl")]
+    pub shader_color_correction: Rc<ugli::Program>,
 }
 
 fn load_gif(
@@ -69,6 +73,7 @@ pub struct Fonts {
 pub struct Sounds {
     pub ui_hover: Rc<geng::Sound>,
     pub ui_click: Rc<geng::Sound>,
+    pub tick: Rc<geng::Sound>,
 }
 
 #[derive(geng::asset::Load)]
@@ -112,6 +117,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     trash,
     settings,
     discord,
+    steam,
     star,
     local,
     dotdotdot,
@@ -124,11 +130,18 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     confirm,
     discard,
     loading,
+    value_knob,
+    dropdown,
+    pin,
+
     mod_nofail,
     mod_sudden,
     mod_hidden,
-    value_knob,
-    dropdown,
+    mod_touch,
+
+    light,
+    wrench,
+    all,
 
     grade_sss,
     grade_ss,
@@ -167,27 +180,29 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
 #[derive(geng::asset::Load)]
 pub struct Shaders {
     /// A solid color.
-    pub solid: ugli::Program,
+    pub solid: Rc<ugli::Program>,
     /// Light gradient based on the texture.
-    pub light: ugli::Program,
+    pub light: Rc<ugli::Program>,
     /// Mask parts of the texture.
-    pub masked: ugli::Program,
+    pub masked: Rc<ugli::Program>,
     /// Textured rendering.
-    pub texture: ugli::Program,
+    pub texture: Rc<ugli::Program>,
     /// Ellipse.
-    pub ellipse: ugli::Program,
+    pub ellipse: Rc<ugli::Program>,
     /// Textured rendering with z_index.
-    pub texture_ui: ugli::Program,
+    pub texture_ui: Rc<ugli::Program>,
     /// CRT screen shader.
-    pub crt: ugli::Program,
+    pub crt: Rc<ugli::Program>,
     /// RGB splitting screen shader.
-    pub rgb_split: ugli::Program,
+    pub rgb_split: Rc<ugli::Program>,
+    /// Post processing color correction stuff.
+    pub color_correction: Rc<ugli::Program>,
     /// Particles for fire effect.
-    pub fire_particles: ugli::Program,
+    pub fire_particles: Rc<ugli::Program>,
     /// Flow field for fire effect.
-    pub fire_flow_field: ugli::Program,
+    pub fire_flow_field: Rc<ugli::Program>,
     /// Fire screen shader (masked).
-    pub fire: ugli::Program,
+    pub fire: Rc<ugli::Program>,
 }
 
 #[derive(geng::asset::Load)]
@@ -266,6 +281,7 @@ impl Assets {
             Modifier::NoFail => self.atlas.mod_nofail(),
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
+            Modifier::Touch => self.atlas.mod_touch(),
         }
     }
 

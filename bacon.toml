@@ -9,7 +9,7 @@ default_job = "clippy-work"
 env.CARGO_TERM_COLOR = "always"
 
 [jobs.clippy-work]
-command = ["cargo", "clippy", "--workspace", "--all-targets", "--all-features"]
+command = ["cargo", "clippy", "--workspace", "--all-targets", "-F", "steam", "-F", "demo"]
 
 [jobs.web]
 command = ["cargo", "geng", "build", "--platform", "web", "--release"]

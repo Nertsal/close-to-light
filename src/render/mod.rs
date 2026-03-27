@@ -9,6 +9,9 @@ pub mod util;
 
 use crate::prelude::*;
 
+/// Gameplay preview in options.
+pub const PREVIEW_RESOLUTION: vec2<usize> = vec2(640 / 3, 360 / 3);
+
 pub const THEME: Theme = Theme {
     dark: Color::BLACK,
     light: Color::GREEN,
@@ -23,7 +26,7 @@ pub fn smooth_button(button: &HoverButton, time: FloatTime) -> HoverButton {
     let t = crate::util::smoothstep(t);
 
     let mut button = button.clone();
-    button.base_collider = button.base_collider.transformed(Transform {
+    button.base_collider = button.base_collider.transformed(TransformLight {
         scale: t,
         ..default()
     });

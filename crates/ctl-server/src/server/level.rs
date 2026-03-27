@@ -2,7 +2,10 @@ use super::*;
 
 use crate::database::types::LevelRow;
 
-use ctl_core::{types::MapperInfo, ScoreEntry, SubmitScore};
+use ctl_core::{
+    score::{ServerScore, SubmitScore},
+    types::MapperInfo,
+};
 
 pub fn route(router: Router) -> Router {
     router.route("/level/:level_id", get(level_get)).route(
@@ -47,13 +50,13 @@ WHERE level_id = ?
 async fn fetch_scores(
     State(app): State<Arc<App>>,
     Path(level_id): Path<Id>,
-) -> Result<Json<Vec<ScoreEntry>>> {
+) -> Result<Json<Vec<ServerScore>>> {
     // Check that the level exists
     let level: Option<LevelRow> = sqlx::query_as("SELECT * FROM levels WHERE level_id = ?")
         .bind(level_id)
         .fetch_optional(&app.database)
         .await?;
-    let Some(level) = level else {
+    let Some(_level) = level else {
         return Err(RequestError::NoSuchLevel(level_id));
     };
 
@@ -71,24 +74,23 @@ async fn fetch_scores(
 SELECT *
 FROM scores
 JOIN users ON scores.user_id = users.user_id
-WHERE level_id = ? AND level_hash = ?
+WHERE level_id = ?
         ",
     )
     .bind(level_id)
-    .bind(&level.hash)
     .fetch_all(&app.database)
     .await?;
 
     let scores = scores
         .into_iter()
-        .map(|score| ScoreEntry {
+        .map(|score| ServerScore {
             user: UserInfo {
                 id: score.user.user_id,
                 name: score.user.username.into(),
             },
             score: score.score.score,
             submitted_at: score.score.submitted_at,
-            extra_info: score.score.extra_info,
+            meta: score.score.extra_info,
         })
         .collect();
 
@@ -126,12 +128,12 @@ async fn submit_score(
             .await?;
 
     if let Some(current) = current {
-        if score.score > current.score || current.level_hash != level.hash {
+        if score.score > current.score {
             sqlx::query(
                 "UPDATE scores SET score = ?, extra_info = ? WHERE level_id = ? AND user_id = ?",
             )
             .bind(score.score)
-            .bind(&score.extra_info)
+            .bind(&score.meta)
             .bind(level_id)
             .bind(user.user_id)
             .execute(&mut *trans)
@@ -145,7 +147,7 @@ async fn submit_score(
         .bind(&level.hash)
         .bind(user.user_id)
         .bind(score.score)
-        .bind(&score.extra_info)
+        .bind(&score.meta)
         .bind(OffsetDateTime::now_utc())
         .execute(&mut *trans)
         .await?;

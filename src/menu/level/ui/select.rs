@@ -1,12 +1,21 @@
 use crate::ui::UiWindow;
-use ctl_local::{CachedGroup, SavedScore};
+use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
 
 use super::*;
+
+const ALL_DEMO_SETS: [Id; 4] = [1, 2, 4, 5];
 
 pub struct LevelSelectUI {
     // geng: Geng,
     assets: Rc<Assets>,
     pub state: WidgetState,
+
+    pub active_filter: LevelsFilter,
+    pub tab_filter_demo: ToggleButtonWidget,
+    pub tab_filter_custom: ToggleButtonWidget,
+    pub tab_filter_all: ToggleButtonWidget,
+    pub tooltip: TextWidget,
+
     pub tab_levels: TextWidget,
     pub light_level: SelectLightUi,
     pub tab_diffs: TextWidget,
@@ -18,6 +27,13 @@ pub struct LevelSelectUI {
     pub diffs: Vec<ItemDiffWidget>,
     pub no_diffs: TextWidget,
     pub no_level_selected: TextWidget,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LevelsFilter {
+    All,
+    Demo,
+    Custom,
 }
 
 pub struct SelectLightUi {
@@ -60,6 +76,13 @@ impl LevelSelectUI {
             // geng: geng.clone(),
             assets: assets.clone(),
             state: WidgetState::new(),
+
+            active_filter: LevelsFilter::Demo,
+            tab_filter_demo: ToggleButtonWidget::new("").with_icon(assets.atlas.light()),
+            tab_filter_custom: ToggleButtonWidget::new("").with_icon(assets.atlas.wrench()),
+            tab_filter_all: ToggleButtonWidget::new("").with_icon(assets.atlas.all()),
+            tooltip: TextWidget::new("<tooltip>"),
+
             tab_levels: TextWidget::new("Level"),
             light_level: SelectLightUi::default(),
             tab_diffs: TextWidget::new("Difficulty"),
@@ -83,6 +106,68 @@ impl LevelSelectUI {
         self.state.update(main, context);
         self.light_level.update(context.delta_time);
         self.light_diff.update(context.delta_time);
+
+        // Filter tabs on the side
+        let filter_size = vec2(1.0, 1.2) * context.font_size;
+        let filter_tabs = main
+            .clone()
+            .cut_left(filter_size.x)
+            .translate(vec2(-filter_size.x + context.font_size * 0.25, 0.0))
+            .extend_symmetric(-vec2(0.0, context.layout_size * 0.5));
+
+        let mut tooltip = None;
+        let filter_tabs = Aabb2::point(filter_tabs.center())
+            .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2))
+            .stack_aligned(
+                vec2(0.0, -filter_size.y - context.font_size * 0.5),
+                3,
+                vec2(0.0, 0.5),
+            );
+        for ((tab, filter), pos) in [
+            (&mut self.tab_filter_demo, LevelsFilter::Demo),
+            (&mut self.tab_filter_custom, LevelsFilter::Custom),
+            (&mut self.tab_filter_all, LevelsFilter::All),
+        ]
+        .into_iter()
+        .zip(filter_tabs)
+        {
+            tab.selected = self.active_filter == filter;
+            tab.update(pos, context);
+            if tab.selected {
+                self.active_filter = filter;
+            }
+
+            // Hover tooltip
+            if tab.state.hovered {
+                let msg = match filter {
+                    LevelsFilter::All => "All Levels",
+                    LevelsFilter::Demo => "Demo Levels",
+                    LevelsFilter::Custom => "Custom Levels",
+                };
+                tooltip = Some((tab.state.position, msg));
+            }
+        }
+
+        if let Some((hovered, message)) = tooltip {
+            self.tooltip.show();
+            let size = vec2(2.0, 0.75) * context.font_size;
+            let mut position = Aabb2::point(
+                vec2(hovered.center().x, hovered.max.y)
+                    + vec2(0.0, 0.25) * context.layout_size
+                    + vec2(0.0, size.y / 2.0),
+            )
+            .extend_symmetric(size / 2.0);
+
+            let offset = context.screen.min.x + context.layout_size * 0.25 - position.min.x;
+            if offset > 0.0 {
+                position = position.translate(vec2(offset, 0.0));
+            }
+
+            self.tooltip.update(position, &context.scale_font(0.5));
+            self.tooltip.text = message.into();
+        } else {
+            self.tooltip.hide();
+        }
 
         let mut main = main.extend_uniform(-context.font_size * 0.5);
         main.cut_top(context.layout_size * 1.5);
@@ -174,6 +259,11 @@ impl LevelSelectUI {
             .groups
             .iter()
             .sorted_by_key(|(_, group)| group.local.meta.id)
+            .filter(|(_, group)| match self.active_filter {
+                LevelsFilter::All => true,
+                LevelsFilter::Demo => ALL_DEMO_SETS.contains(&group.local.meta.id),
+                LevelsFilter::Custom => !ALL_DEMO_SETS.contains(&group.local.meta.id),
+            })
             .collect();
 
         // Synchronize vec length
@@ -188,9 +278,14 @@ impl LevelSelectUI {
         let loaded = state.leaderboard.get_loaded();
         for (widget, &(group_id, cached)) in self.levels.iter_mut().zip(&groups) {
             let scores: Vec<_> = cached
-                .level_hashes
+                .local
+                .meta
+                .levels
                 .iter()
-                .map(|hash| loaded.all_highscores.get(hash))
+                .map(|meta| {
+                    let id = LocalLevelId::from_info(meta);
+                    loaded.all_highscores.get(&id)
+                })
                 .collect();
             widget.sync(group_id, cached, &scores);
         }
@@ -290,10 +385,27 @@ impl LevelSelectUI {
                     .find(|level| level.id == cached.meta.id)
                     .map(|level| &level.hash)
             });
-            let edited =
-                origin_hash.is_some_and(|hash| Some(hash) != group.level_hashes.get(level_id));
-            let local_score = loaded.all_highscores.get(&cached.meta.hash);
-            widget.sync(group_idx, level_id, cached, local_score, edited, context);
+            let edited = origin_hash.is_some_and(|hash| {
+                Some(hash)
+                    != group
+                        .local
+                        .meta
+                        .levels
+                        .get(level_id)
+                        .map(|level| &level.hash)
+            });
+            let local_score = loaded
+                .all_highscores
+                .get(&LocalLevelId::from_info(&cached.meta));
+            widget.sync(
+                group_idx,
+                level_id,
+                &group,
+                cached,
+                local_score,
+                edited,
+                context,
+            );
         }
 
         drop(loaded);
@@ -337,6 +449,7 @@ impl LevelSelectUI {
 #[derive(Clone)]
 pub struct ItemLevelWidget {
     pub state: WidgetState,
+    pub iconless_state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
     pub menu: ItemMenuWidget,
@@ -347,11 +460,18 @@ pub struct ItemLevelWidget {
 
 impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
+        let mut menu = ItemMenuWidget::new(assets);
+
+        if cfg!(feature = "demo") {
+            menu.sync.hide(); // NOTE: Disabled in demo
+        }
+
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
+            iconless_state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
-            menu: ItemMenuWidget::new(assets),
+            menu,
             text: TextWidget::new(text).aligned(vec2(0.5, 0.0)),
             index,
             diffs: Vec::new(),
@@ -364,6 +484,13 @@ impl ItemLevelWidget {
         cached: &CachedGroup,
         local_highscores: &[Option<&SavedScore>],
     ) {
+        if cached.local.loaded_from_assets {
+            // Cannot delete built-in levels
+            self.menu.delete.hide();
+        } else {
+            self.menu.delete.show();
+        }
+
         self.index = group_id;
         self.text.text = cached
             .local
@@ -410,7 +537,8 @@ impl ItemLevelWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked {
+        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+            // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -434,6 +562,8 @@ impl ItemLevelWidget {
                 widget.update(pos, context);
             }
         }
+
+        self.iconless_state.update(position, context);
 
         if !self.diffs.is_empty() {
             position.cut_bottom(context.font_size * 0.15);
@@ -468,6 +598,7 @@ impl ItemLevelWidget {
 #[derive(Clone)]
 pub struct ItemDiffWidget {
     pub state: WidgetState,
+    pub iconless_state: WidgetState,
     pub edited: IconWidget,
     pub local: IconWidget,
     pub text: TextWidget,
@@ -488,8 +619,10 @@ impl ItemDiffWidget {
     ) -> Self {
         let mut menu = ItemMenuWidget::new(assets);
         menu.sync.hide();
+
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
+            iconless_state: WidgetState::new(),
             edited: IconWidget::new(assets.atlas.star()),
             local: IconWidget::new(assets.atlas.local()),
             text: TextWidget::new(text).aligned(vec2(0.5, 0.5)),
@@ -501,15 +634,25 @@ impl ItemDiffWidget {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn sync(
         &mut self,
         group_idx: Index,
         level_index: usize,
+        group: &CachedGroup,
         cached: &LevelFull,
         local_highscore: Option<&SavedScore>,
         edited: bool,
         context: &UiContext,
     ) {
+        if (cfg!(feature = "steam") || cfg!(feature = "itch")) && group.local.loaded_from_assets {
+            // Cannot delete diffs of built-in levels
+            // Unless in a local build
+            self.menu.delete.hide();
+        } else {
+            self.menu.delete.show();
+        }
+
         self.index = level_index;
         self.group = group_idx;
         self.level = cached.clone();
@@ -550,7 +693,8 @@ impl ItemDiffWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked {
+        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+            // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
         } else if !self.state.hovered && !self.menu.state.hovered {
@@ -584,6 +728,7 @@ impl ItemDiffWidget {
             }
         }
 
+        self.iconless_state.update(position, context);
         self.text.update(position, &context.scale_font(0.9));
 
         let mut action = None;

@@ -1,3 +1,5 @@
+#![cfg_attr(not(any(debug_assertions)), windows_subsystem = "windows")]
+
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
 mod editor;
@@ -33,6 +35,11 @@ struct Opts {
     clean_auto: bool,
     #[clap(flatten)]
     geng: geng::CliArgs,
+
+    /// Version argument passed by itch or smth.
+    #[cfg(feature = "itch")]
+    #[clap(long)]
+    v: Option<String>,
 }
 
 #[derive(geng::asset::Load, Deserialize, Clone)]
@@ -46,8 +53,22 @@ pub struct LeaderboardSecrets {
     url: String,
 }
 
+fn parse_args<T: clap::Parser>() -> T {
+    match clap::Parser::try_parse_from(batbox::cli::get()) {
+        Ok(opts) => opts,
+        Err(err) => {
+            #[cfg(target_arch = "wasm32")]
+            panic!("Failed to parse launch arguments: {}", err);
+            #[cfg(not(target_arch = "wasm32"))]
+            err.exit();
+        }
+    }
+}
+
 fn main() {
-    let opts: Opts = batbox::cli::parse();
+    geng::setup_panic_handler();
+
+    let opts: Opts = parse_args();
 
     let mut builder = logger::builder();
     builder
@@ -68,9 +89,11 @@ fn main() {
                 log::LevelFilter::Info
             },
         )
-        .filter_module("calloop", log::LevelFilter::Debug);
+        .filter_module("calloop", log::LevelFilter::Debug)
+        .filter_module("discord_presence", log::LevelFilter::Off);
     logger::init_with(builder).expect("failed to init logger");
-    geng::setup_panic_handler();
+
+    log::info!("Running Close to Light {}", ctl_constants::GAME_VERSION);
 
     let mut options = geng::ContextOptions::default();
     options.window.title = "Close to Light".to_string();
@@ -97,8 +120,16 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
             .context("when loading assets")?;
 
     let load_everything = load_everything(geng.clone());
+
+    #[allow(unused_mut)]
+    let mut insta_load = opts.skip_intro;
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        insta_load = insta_load || opts.command.is_some();
+    }
+
     let loading_screen =
-        menu::LoadingScreen::new(&geng, loading_assets, load_everything, opts.skip_intro).run();
+        menu::LoadingScreen::new(&geng, loading_assets, load_everything, insta_load).run();
 
     let (context, secrets, client) = loading_screen
         .await
@@ -117,7 +148,13 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
 
     // Main menu
     if opts.skip_intro {
-        let leaderboard = ctl_local::Leaderboard::new(&geng, client.as_ref(), &context.local.fs);
+        let leaderboard = ctl_local::Leaderboard::new(
+            &geng,
+            client.as_ref(),
+            &context.local.fs,
+            &context.achievements,
+            context.get_options().account.auto_login,
+        );
         let state = menu::LevelMenu::new(context, leaderboard, None);
         geng.run_state(state).await;
     } else {
@@ -160,14 +197,27 @@ async fn load_everything(
             },
         })
     });
-    let client = secrets
+
+    #[allow(unused_mut)] // used with only some features
+    let mut client = secrets
         .as_ref()
         .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
-        .transpose()?
-        .map(Arc::new);
-    if let Some(client) = &client {
-        let _ = client.ping().await; // Ping the server to check if we are online
-    }
+        .transpose()?;
+
+    // TODO: parallel client.ping
+
+    #[cfg(feature = "steam")]
+    let steam = {
+        let steam = ctl_context::connect_steam();
+        if let Some(steam) = &steam
+            && let Some(client) = &mut client
+        {
+            client.connect_steam(steam.clone());
+        }
+        steam
+    };
+
+    let client = client.map(Arc::new);
 
     let fs = Rc::new(
         ctl_local::fs::Controller::new(&geng)
@@ -175,9 +225,22 @@ async fn load_everything(
             .expect("failed to initialize file system"),
     );
 
-    let context = Context::new(&geng, &assets, client.as_ref(), fs)
+    #[allow(unused_mut)] // used with only some features
+    let mut context = Context::new(&geng, &assets, client.as_ref(), fs)
         .await
         .expect("failed to initialize context");
+
+    #[cfg(feature = "steam")]
+    if let Some(steam) = steam {
+        context.connect_steam(steam.clone());
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let discord = ctl_context::connect_discord();
+        if let Some(discord) = discord {
+            context.connect_discord(discord);
+        }
+    }
 
     Ok((context, secrets, client))
 }

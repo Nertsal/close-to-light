@@ -12,10 +12,12 @@ pub struct SliderWidget {
     pub bar: WidgetState,
     /// Hitbox
     pub bar_box: WidgetState,
+    pub is_dragging: bool,
+    pub lock_drag: bool,
     pub head: WidgetState,
-    pub value: TextWidget,
+    pub value: InputWidget,
     pub options: TextRenderOptions,
-    pub display_precision: usize,
+    pub precision: usize,
 }
 
 impl SliderWidget {
@@ -25,18 +27,17 @@ impl SliderWidget {
             text: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
             bar: WidgetState::new(),
             bar_box: WidgetState::new(),
+            is_dragging: false,
+            lock_drag: false,
             head: WidgetState::new(),
-            value: TextWidget::new("").aligned(vec2(1.0, 0.5)),
+            value: InputWidget::new(""),
             options: TextRenderOptions::default(),
-            display_precision: 2,
+            precision: 2,
         }
     }
 
-    pub fn with_display_precision(self, precision: usize) -> Self {
-        Self {
-            display_precision: precision,
-            ..self
-        }
+    pub fn with_precision(self, precision: usize) -> Self {
+        Self { precision, ..self }
     }
 
     pub fn update_value(
@@ -53,7 +54,7 @@ impl SliderWidget {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Bounded<f32>) {
         self.state.update(
-            position.with_width(position.width() + context.font_size * 0.3, 0.5),
+            position.with_width(position.width() + context.font_size * 0.5, 0.5),
             context,
         );
 
@@ -70,13 +71,21 @@ impl SliderWidget {
         }
 
         let value = main.cut_right(context.font_size * 1.0);
-        self.value.text = format!(
-            "{:.precision$}",
-            state.value(),
-            precision = self.display_precision
-        )
-        .into();
+        self.value.format = InputFormat::Float {
+            precision: self.precision,
+        };
+        // self.value.text =
+        //     format!("{:.precision$}", state.value(), precision = self.precision).into();
+        if !self.value.editing {
+            self.value.sync(&state.value().to_string(), context);
+        }
         self.value.update(value, context);
+        if !self.value.editing
+            && let Ok(value) = self.value.raw.parse::<f32>()
+            && value != state.value()
+        {
+            state.set(value);
+        }
 
         main.cut_left(context.layout_size * 0.1);
         let bar = Aabb2::point(main.align_pos(vec2(0.0, 0.5)))
@@ -91,11 +100,39 @@ impl SliderWidget {
             .extend_symmetric(vec2(0.1, 0.6) * context.font_size / 2.0);
         self.head.update(head, context);
 
-        if self.bar_box.mouse_left.pressed.is_some() && self.bar.position.width() > 0.0 {
-            let t =
+        // Set value by ratio of the range and apply precision.
+        let mut set_ratio = |ratio: f32| {
+            let value = ratio.clamp_range(0.0..=1.0) * (state.max() - state.min()) + state.min();
+            let power = 10.0.powi(self.precision as i32);
+            let value = (value * power).round() / power;
+            state.set(value);
+        };
+
+        if self.bar.position.width() > 0.0 {
+            let cursor_t =
                 (context.cursor.position.x - self.bar.position.min.x) / self.bar.position.width();
-            let t = t.clamp(0.0, 1.0);
-            state.set_ratio(t);
+            let cursor_t = cursor_t.clamp(0.0, 1.0);
+            if self.bar_box.mouse_left.clicked {
+                set_ratio(cursor_t);
+            } else if self.bar_box.mouse_left.pressed.is_some() {
+                if self.is_dragging {
+                    context.update_focus(true);
+                    set_ratio(cursor_t);
+                } else if !self.lock_drag {
+                    let delta = context.cursor.position - context.cursor.last_position;
+                    if delta != vec2::ZERO {
+                        if (delta.arg().as_degrees() / 90.0 + 0.5).floor() as i32 % 2 == 0 {
+                            // Only horizontal drag counts
+                            self.is_dragging = true;
+                        } else {
+                            self.lock_drag = true;
+                        }
+                    }
+                }
+            } else {
+                self.is_dragging = false;
+                self.lock_drag = false;
+            }
         }
     }
 }

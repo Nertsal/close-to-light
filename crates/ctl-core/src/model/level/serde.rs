@@ -136,7 +136,7 @@ impl TimedEvent {
     /// Returns the duration of the event.
     pub fn duration(&self) -> Time {
         match &self.event {
-            Event::Light(event) => event.movement.total_duration(),
+            Event::Light(event) => event.movement.duration(),
             Event::Effect(_) => Time::ZERO,
         }
     }
@@ -151,6 +151,7 @@ impl LightEvent {
             lifetime: Time::ZERO,
             danger: self.danger,
             fire: self.fire,
+            hollow: r32(-1.0),
             event_id,
             closest_waypoint: (Time::ZERO, WaypointId::Initial),
         }

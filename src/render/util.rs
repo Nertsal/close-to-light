@@ -348,7 +348,7 @@ impl UtilRender {
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        self.draw_light_gradient(&light.collider, color, camera, framebuffer);
+        self.draw_light_gradient(&light.collider, light.hollow, color, camera, framebuffer);
 
         // Waypoint visual
         let radius_max = 0.2;
@@ -380,10 +380,12 @@ impl UtilRender {
     pub fn draw_light_gradient(
         &self,
         collider: &Collider,
+        hollow_cut: R32,
         color: Color,
         camera: &impl geng::AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let hollow_cut = hollow_cut.as_f32().clamp(-1.0, 1.0);
         let (texture, transform) = match collider.shape {
             Shape::Circle { radius } => (
                 &self.context.assets.sprites.radial_gradient,
@@ -417,6 +419,7 @@ impl UtilRender {
                     u_model_matrix: transform,
                     u_color: color,
                     u_texture: texture,
+                    u_hollow_cut: hollow_cut,
                 },
                 camera.uniforms(framebuffer_size.as_f32()),
             ),
@@ -592,7 +595,7 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let collider = button.get_relevant_collider();
-        self.draw_light_gradient(&collider, theme.light, camera, framebuffer);
+        self.draw_light_gradient(&collider, r32(-1.0), theme.light, camera, framebuffer);
 
         if !button.is_fading() {
             self.draw_text(
@@ -798,14 +801,27 @@ impl UtilRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let options = self.context.get_options();
+        self.draw_player_with(&options, player, camera, framebuffer);
+    }
 
+    pub fn draw_player_with(
+        &self,
+        options: &Options,
+        player: &Player,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         // Player tail
-        for tail in &player.tail {
+        let mut trail_point = |tail: &PlayerTail| {
             let radius = r32(options.cursor.inner_radius) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
             let (in_color, out_color) = match tail.state {
                 LitState::Dark => (THEME.danger, THEME.dark),
-                LitState::Light => (THEME.dark, THEME.light),
+                LitState::Light { perfect: false } => (THEME.dark, THEME.light),
+                LitState::Light { perfect: true } => (
+                    THEME.dark,
+                    THEME.get_color(options.graphics.lights.perfect_color),
+                ),
                 LitState::Danger => (THEME.light, THEME.danger),
             };
             self.context.geng.draw2d().draw2d(
@@ -814,14 +830,26 @@ impl UtilRender {
                 &draw2d::Ellipse::circle(tail.pos.as_f32(), radius.as_f32(), in_color),
             );
             self.draw_outline(&collider, 0.05, out_color, camera, framebuffer);
+        };
+        if options.cursor.show_trail {
+            for tail in &player.tail {
+                trail_point(tail);
+            }
+        } else if let Some(tail) = player.tail.last() {
+            trail_point(tail);
         }
 
         // Player
         if options.cursor.show_perfect_radius {
+            let size = player.collider.compute_aabb().width() / r32(2.0);
+            let collider = Collider {
+                shape: Shape::circle(size.max(r32(options.cursor.inner_radius))),
+                ..player.collider.clone()
+            };
             self.draw_outline(
-                &player.collider,
+                &collider,
                 options.cursor.outer_radius,
-                THEME.light,
+                THEME.get_color(options.cursor.outer_color),
                 camera,
                 framebuffer,
             );
@@ -870,7 +898,7 @@ impl UtilRender {
 
         // Health fill
         let color = match state {
-            LitState::Light => crate::util::with_alpha(theme.light, 1.0),
+            LitState::Light { .. } => crate::util::with_alpha(theme.light, 1.0),
             LitState::Dark => crate::util::with_alpha(theme.light, 0.7),
             LitState::Danger => crate::util::with_alpha(theme.danger, 0.7),
         };

@@ -2,7 +2,7 @@ use super::*;
 
 /// Extra distance within which the player is still counted as in-light
 /// to give some leeway on fading lights.
-const LEEWAY: f32 = 0.01;
+const LEEWAY: f32 = 0.025;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -10,11 +10,12 @@ pub struct Player {
     pub collider: Collider,
     pub health: Bounded<FloatTime>,
 
-    /// Whether currently perfectly inside the center of the light.
+    /// Whether currently perfectly inside of any light.
     /// Controlled by the collider.
     pub is_perfect: bool,
-    /// Whether currently closest light is in a keyframe.
-    pub is_keyframe: bool,
+    /// Lights which are at their waypoint and the player is perfectly inside.
+    /// Controlled by the collider.
+    pub perfect_waypoints: Vec<usize>,
 
     /// Event id of the closest friendly light.
     pub closest_light: Option<usize>,
@@ -36,7 +37,7 @@ pub struct PlayerTail {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LitState {
     Dark,
-    Light,
+    Light { perfect: bool },
     Danger,
 }
 
@@ -51,7 +52,7 @@ impl Player {
             health: Bounded::new_max(health),
 
             is_perfect: false,
-            is_keyframe: false,
+            perfect_waypoints: Vec::new(),
 
             closest_light: None,
             light_distance: None,
@@ -65,7 +66,9 @@ impl Player {
         if self.danger_distance.is_some() {
             LitState::Danger
         } else if self.light_distance.is_some() {
-            LitState::Light
+            LitState::Light {
+                perfect: self.is_perfect,
+            }
         } else {
             LitState::Dark
         }
@@ -93,21 +96,45 @@ impl Player {
 
     pub fn reset_distance(&mut self) {
         self.is_perfect = false;
-        self.is_keyframe = false;
+        self.perfect_waypoints.clear();
         self.closest_light = None;
         self.light_distance = None;
         self.danger_distance = None;
     }
 
     pub fn update_distance_simple(&mut self, light: &Collider) {
-        self.update_distance(light, None, false, false)
+        self.update_distance(light, None, false, r32(-1.0), false)
     }
 
-    pub fn update_distance(
+    /// Update player's light distance, perfect measurement, and waypoint detection.
+    /// Uses `last_rhythm` to account for completed rhythms to avoid double counting.
+    pub fn update_light_distance(
+        &mut self,
+        light: &Light,
+        last_rhythm: &HashMap<(usize, WaypointId), Time>,
+    ) {
+        let (time, waypoint) = light.closest_waypoint;
+        let at_waypoint = matches!(waypoint, WaypointId::Frame(_))
+            && time > -COYOTE_TIME
+            && time < BUFFER_TIME
+            && light
+                .event_id
+                .is_some_and(|event| !last_rhythm.contains_key(&(event, waypoint)));
+        self.update_distance(
+            &light.collider,
+            light.event_id,
+            light.danger,
+            light.hollow,
+            at_waypoint,
+        )
+    }
+
+    fn update_distance(
         &mut self,
         light: &Collider,
         light_id: Option<usize>,
         danger: bool,
+        hollow: R32,
         at_waypoint: bool,
     ) {
         let leeway = if danger {
@@ -118,52 +145,29 @@ impl Player {
         };
         let with_leeway = |distance: Coord| (distance - leeway).max(Coord::ZERO);
 
-        let delta_pos = self.collider.position - light.position;
-        let (raw_distance, max_distance) = match light.shape {
-            Shape::Circle { radius } => (with_leeway(delta_pos.len()), radius),
-            Shape::Line { width } => {
-                let dir = light.rotation.unit_vec();
-                let dir = vec2(-dir.y, dir.x); // perpendicular
-                let dot = dir.x * delta_pos.x + dir.y * delta_pos.y;
-                (with_leeway(dot.abs()), width / r32(2.0))
-            }
-            Shape::Rectangle { width, height } => {
-                let delta_pos = delta_pos.rotate(-light.rotation);
-                let size = vec2(width, height);
+        let raw_distance = get_light_distance(self.collider.position, light, hollow);
+        let min_distance = raw_distance.min;
+        let max_distance = raw_distance.max;
+        let raw_distance = with_leeway(raw_distance.raw);
 
-                let mut angle = delta_pos.arg().normalized_pi() - Angle::from_degrees(r32(45.0));
-                if angle.abs() > Angle::from_degrees(r32(90.0)) {
-                    angle -= Angle::from_degrees(r32(180.0) * angle.as_radians().signum());
-                }
-                let angle = angle + Angle::from_degrees(r32(45.0));
-
-                let radius = if angle < size.arg().normalized_pi() {
-                    // On the right (vertical) side
-                    let h = vec2::dot(delta_pos, vec2::UNIT_Y);
-                    vec2(width / r32(2.0), h).len()
-                } else {
-                    // On the top (horizontal) side
-                    let w = vec2::dot(delta_pos, vec2::UNIT_X);
-                    vec2(w, height / r32(2.0)).len()
-                };
-                (with_leeway(delta_pos.len()).max(Coord::ZERO), radius)
-            }
-        };
-
-        if raw_distance > max_distance {
+        if !(min_distance..=max_distance).contains(&raw_distance) {
+            // Outside of the light or inside of the hollow light
             return;
         }
 
+        // Account for hollow lights
+        let zero_distance = max_distance * (hollow + r32(1.0)) / r32(2.0);
+        let distance = (raw_distance - zero_distance).abs();
+
         let update = |value: &mut Option<Coord>| {
-            *value = Some(value.map_or(raw_distance, |value| value.min(raw_distance)));
+            *value = Some(value.map_or(distance, |value| value.min(distance)));
         };
         if danger {
             update(&mut self.danger_distance);
         } else {
-            if self.light_distance.is_none_or(|old| raw_distance < old) {
-                self.light_distance = Some(raw_distance);
+            if self.light_distance.is_none_or(|old| distance < old) {
+                self.light_distance = Some(distance);
                 self.closest_light = light_id;
-                self.is_keyframe = at_waypoint;
             }
 
             let radius = match self.collider.shape {
@@ -171,17 +175,12 @@ impl Player {
                 Shape::Line { .. } => unimplemented!(),
                 Shape::Rectangle { .. } => unimplemented!(),
             };
-            self.is_perfect = raw_distance < radius;
+            if distance < radius {
+                self.is_perfect = true;
+                if at_waypoint {
+                    self.perfect_waypoints.extend(light_id);
+                }
+            }
         }
-    }
-
-    pub fn update_light_distance(&mut self, light: &Light, last_rhythm: (usize, WaypointId)) {
-        let (time, waypoint) = light.closest_waypoint;
-        let at_waypoint = time > -COYOTE_TIME
-            && time < BUFFER_TIME
-            && light
-                .event_id
-                .is_some_and(|event| last_rhythm != (event, waypoint));
-        self.update_distance(&light.collider, light.event_id, light.danger, at_waypoint)
     }
 }

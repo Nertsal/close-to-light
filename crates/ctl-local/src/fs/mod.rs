@@ -5,6 +5,42 @@ mod web;
 
 use super::*;
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum LocalLevelId {
+    Hash(String),
+    Id(Id),
+}
+
+impl LocalLevelId {
+    pub fn new(id: Id, hash: &str) -> Self {
+        if id == 0 {
+            Self::Hash(hash.into())
+        } else {
+            Self::Id(id)
+        }
+    }
+
+    pub fn from_info(info: &LevelInfo) -> Self {
+        Self::new(info.id, &info.hash)
+    }
+
+    pub fn convert_from_str(s: &str) -> Self {
+        match s.parse::<u32>() {
+            Ok(id) => Self::Id(id),
+            Err(_) => Self::Hash(s.into()),
+        }
+    }
+}
+
+impl Display for LocalLevelId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LocalLevelId::Hash(hash) => write!(f, "{}", hash),
+            LocalLevelId::Id(id) => write!(f, "{}", id),
+        }
+    }
+}
+
 pub struct Controller {
     #[cfg(target_arch = "wasm32")]
     rexie: rexie::Rexie,
@@ -140,13 +176,16 @@ impl Controller {
         }
     }
 
-    pub async fn load_local_highscores(&self) -> Result<HashMap<String, SavedScore>> {
+    pub async fn load_local_highscores(&self) -> Result<HashMap<LocalLevelId, SavedScore>> {
         #[cfg(target_arch = "wasm32")]
         {
             match web::load_local_highscores(&self.rexie).await {
                 Ok(res) => Ok(res),
                 Err(err) => {
-                    log::error!("failed to load local scores the web file system: {:?}", err);
+                    log::error!(
+                        "failed to load local highscores from the web file system: {:?}",
+                        err
+                    );
                     anyhow::bail!("check logs");
                 }
             }
@@ -157,27 +196,34 @@ impl Controller {
         }
     }
 
-    pub async fn load_local_scores(&self, level_hash: &str) -> Result<Vec<SavedScore>> {
+    pub async fn load_local_scores(&self, level_id: &LocalLevelId) -> Result<Vec<SavedScore>> {
         #[cfg(target_arch = "wasm32")]
         {
-            match web::load_local_scores(&self.rexie, level_hash).await {
+            match web::load_local_scores(&self.rexie, level_id).await {
                 Ok(res) => Ok(res),
                 Err(err) => {
-                    log::error!("failed to load local scores the web file system: {:?}", err);
+                    log::error!(
+                        "failed to load local scores from the web file system: {:?}",
+                        err
+                    );
                     anyhow::bail!("check logs");
                 }
             }
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            native::load_local_scores(level_hash)
+            native::load_local_scores(level_id)
         }
     }
 
-    pub async fn save_local_scores(&self, level_hash: &str, scores: &[SavedScore]) -> Result<()> {
+    pub async fn save_local_scores(
+        &self,
+        level_id: &LocalLevelId,
+        scores: &[SavedScore],
+    ) -> Result<()> {
         #[cfg(target_arch = "wasm32")]
         {
-            if let Err(err) = web::save_local_scores(&self.rexie, level_hash, scores).await {
+            if let Err(err) = web::save_local_scores(&self.rexie, level_id, scores).await {
                 log::error!(
                     "failed to save local scores to the web file system: {:?}",
                     err
@@ -188,7 +234,7 @@ impl Controller {
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            native::save_local_scores(level_hash, scores)
+            native::save_local_scores(level_id, scores)
         }
     }
 }
@@ -238,7 +284,7 @@ pub fn generate_group_path(group: Id) -> PathBuf {
     }
 }
 
-fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
+pub fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInfo)> {
     let versioned: (
         Result<ctl_core::legacy::VersionedLevelSet>,
         Result<ctl_core::legacy::VersionedLevelSetInfo>,
@@ -247,40 +293,19 @@ fn decode_group(level_bytes: &[u8], meta: &str) -> Result<(LevelSet, LevelSetInf
         toml::from_str(meta).with_context(|| "when parsing meta file"),
     );
     match versioned {
-        (Ok(set), Ok(info)) => Ok(ctl_core::legacy::migrate(set, info)),
+        (Ok(set), Ok(info)) => {
+            let group = ctl_core::legacy::migrate(set, info)?;
+            Ok(group)
+        }
         (Ok(_), Err(err)) | (Err(err), _) => {
             // Try legacy versions, for backwards compatibility
-
-            // v2
-            let (set, info) = (
-                cbor4ii::serde::from_slice::<ctl_core::legacy::v2::LevelSet>(level_bytes)
-                    .with_context(|| "when parsing levels data"),
-                toml::from_str::<ctl_core::legacy::v2::LevelSetInfo>(meta)
-                    .with_context(|| "when parsing level set metadata"),
-            );
-            match (set, info) {
-                (Ok(set), Ok(info)) => {
-                    log::info!("Migrating level {:?} from v2", info.id);
-                    let (set, info) = ctl_core::legacy::v2::convert_group(set, info);
-                    return Ok((set, info));
-                }
-                (set, info) => {
-                    if let Err(err) = set {
-                        log::error!("v2 data parse failed: {err:?}");
-                    }
-                    if let Err(err) = info {
-                        log::error!("v2 meta parse failed: {err:?}");
-                    }
-                }
-            }
-
             // v1
             match bincode::deserialize::<ctl_core::legacy::v1::LevelSet>(level_bytes)
                 .with_context(|| "when parsing levels data")
             {
                 Ok(value) => {
                     let beat_time = r32(60.0) / r32(150.0);
-                    let (set, info) = ctl_core::legacy::v1::convert_group(beat_time, value);
+                    let (set, info) = ctl_core::legacy::v1::migrate(beat_time, value);
                     log::info!("Migrating level {:?} from v1", info.id);
                     return Ok((set, info));
                 }
@@ -313,8 +338,7 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
             let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
             let music = match music_bytes {
                 Ok(bytes) => {
-                    let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
-                    music.looped = true;
+                    let music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
                     Some((music, bytes))
                 }
                 Err(_) => None,
@@ -326,6 +350,7 @@ async fn load_groups_all_assets(geng: &Geng) -> Result<Vec<LocalGroup>> {
 
             let local = LocalGroup {
                 path,
+                loaded_from_assets: true,
                 meta,
                 music,
                 data: group,

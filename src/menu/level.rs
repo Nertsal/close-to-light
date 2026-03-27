@@ -9,7 +9,8 @@ use crate::{
     ui::{ShowTime, UiContext, WidgetRequest, widget::ConfirmPopup},
 };
 
-use ctl_local::{Leaderboard, LeaderboardStatus, ScoreCategory, ScoreMeta};
+use ctl_core::score::{ScoreCategory, ScoreMeta};
+use ctl_local::{Leaderboard, LeaderboardStatus};
 use ctl_logic::PlayGroup;
 
 const LEVEL_SWITCH_TIME: f32 = 0.5;
@@ -36,7 +37,6 @@ pub struct LevelMenu {
 
     framebuffer_size: vec2<usize>,
     last_delta_time: FloatTime,
-    time: FloatTime,
 
     ui: MenuUI,
     ui_focused: bool,
@@ -52,8 +52,12 @@ pub struct LevelMenu {
 pub struct MenuState {
     pub context: Context,
     pub leaderboard: Leaderboard,
+    pub options: GameOptions,
     pub player: Player,
     pub config: LevelConfig,
+    pub real_time: FloatTime,
+    /// Exit (pop) state next frame if `true`.
+    pub exit: bool,
 
     pub confirm_popup: Option<ConfirmPopup<ConfirmAction>>,
 
@@ -198,11 +202,10 @@ impl LevelMenu {
             util: UtilRender::new(context.clone()),
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: FloatTime::ONE,
-            time: FloatTime::ZERO,
 
             ui: MenuUI::new(context.clone()),
             ui_focused: false,
@@ -211,13 +214,20 @@ impl LevelMenu {
             camera: Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: Camera2dFov::Vertical(10.0),
+                fov: Camera2dFov::Cover {
+                    width: 17.778,
+                    height: 10.0,
+                    scale: 1.0,
+                },
             },
             state: MenuState {
+                options: GameOptions::new(context.clone(), leaderboard.clone()),
                 context: context.clone(),
                 leaderboard,
                 player,
                 config: LevelConfig::default(),
+                real_time: FloatTime::ZERO,
+                exit: false,
 
                 confirm_popup: None,
 
@@ -262,14 +272,12 @@ impl LevelMenu {
     fn get_active_level(&self) -> Option<(PlayGroup, usize, LevelFull)> {
         let local = self.context.local.inner.borrow();
 
-        let group = self.state.selected_level.as_ref()?;
-        let group_index = group.data;
+        let group_index = self.state.switch_level?;
         let group = local.groups.get(group_index)?;
 
         let music = group.local.music.clone();
 
-        let level = self.state.selected_diff.as_ref()?;
-        let level_index = level.data;
+        let level_index = self.state.switch_diff?;
         let level = group.local.data.levels.get(level_index)?;
         let meta = group.local.meta.levels.get(level_index)?;
 
@@ -407,17 +415,32 @@ impl LevelMenu {
                 going_up: true,
             });
         }
+
+        // Immediately leaderboard if it's open and on a different level
+        if self.ui.leaderboard.window.show.time.is_above_min()
+            && let Some((_, _, level)) = self.get_active_level()
+            && self.state.leaderboard.get_loaded().level.id != level.meta.id
+        {
+            self.fetch_leaderboard();
+        }
     }
 
     fn fetch_leaderboard(&mut self) {
         let category = self.state.get_category();
-        if let Some((_, _, level)) = self.get_active_level() {
+        if let Some((group, _, level)) = self.get_active_level() {
             let score = Score::new(category.mods.multiplier());
             let meta = ScoreMeta::new_category(category, score, R32::ZERO);
-            self.state
-                .leaderboard
-                .get_mut()
-                .reload_submit(None, false, level.meta.clone(), meta);
+            self.state.leaderboard.get_mut().reload_submit(
+                None,
+                false,
+                group
+                    .music
+                    .as_ref()
+                    .map(|music| music.meta.clone())
+                    .unwrap_or_default(),
+                level.meta.clone(),
+                meta,
+            );
         }
     }
 
@@ -435,7 +458,12 @@ impl LevelMenu {
 
 impl geng::State for LevelMenu {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        let transition = self.transition.take();
+        let mut transition = self.transition.take();
+
+        if transition.is_none() && self.state.exit {
+            transition = Some(geng::state::Transition::Pop);
+        }
+
         if transition.is_some() {
             self.context.music.stop();
         }
@@ -464,7 +492,9 @@ impl geng::State for LevelMenu {
                 .map_or(0.0, |show| show.time.get_ratio()));
             let scale = crate::util::smoothstep(play_time);
             let mut button = self.play_button.clone();
-            button.base_collider = button.base_collider.transformed(Transform::scale(scale));
+            button.base_collider = button
+                .base_collider
+                .transformed(TransformLight::scale(scale));
             self.util.draw_button(
                 &button,
                 "PLAY",
@@ -497,6 +527,7 @@ impl geng::State for LevelMenu {
 
                 self.util.draw_light_gradient(
                     &Collider::new(light_pos, Shape::Circle { radius }),
+                    r32(-1.0),
                     crate::render::THEME.light,
                     &self.camera,
                     &mut dither_buffer,
@@ -509,7 +540,7 @@ impl geng::State for LevelMenu {
             }
         }
 
-        self.dither.finish(self.time, &theme);
+        self.dither.finish(self.state.real_time, &theme);
 
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), buffer)
@@ -517,6 +548,24 @@ impl geng::State for LevelMenu {
 
         if !fading {
             let mut masked = self.masked.start();
+
+            if let Some(show_level) = &self.state.selected_level {
+                let mut t = show_level.time.get_ratio();
+                // if let Some(show_diff) = &self.state.selected_diff {
+                //     t = t.min(1.0 - show_diff.time.get_ratio());
+                // }
+                t = t.min(1.0 - self.ui.modifiers.t);
+                t = crate::util::smoothstep(t);
+                let discretization = 5.0;
+                t = (t * discretization).round() / discretization;
+                self.util.draw_text(
+                    "Select a difficulty\n<-",
+                    self.play_button.base_collider.position,
+                    TextRenderOptions::new(0.4).color(crate::util::with_alpha(theme.light, t)),
+                    &self.camera,
+                    &mut masked.color,
+                );
+            }
 
             self.ui_focused = self.ui.layout(
                 &mut self.state,
@@ -580,16 +629,19 @@ impl geng::State for LevelMenu {
                 &mut dither_buffer,
             );
         }
-        self.dither.finish(self.time, &theme.transparent());
+        self.dither
+            .finish(self.state.real_time, &theme.transparent());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
 
         self.post.post_process(
+            &options,
             crate::render::post::PostVfx {
-                time: self.time,
+                time: self.state.real_time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
+                colors: options.graphics.colors,
             },
             framebuffer,
         );
@@ -599,31 +651,37 @@ impl geng::State for LevelMenu {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
-            geng::Event::KeyPress {
-                key: geng::Key::F11,
-            } => self.context.geng.window().toggle_fullscreen(),
             geng::Event::EditText(text) => {
                 self.ui_context.text_edit.set_text(text);
             }
             geng::Event::KeyPress {
-                key: geng::Key::Escape,
-            } => {
-                if self.state.confirm_popup.take().is_some() {
-                    if let Some(confirm) = &mut self.ui.confirm {
-                        confirm.window.request = Some(WidgetRequest::Close);
-                    }
-                } else if let Some(sync) = &mut self.ui.sync {
-                    sync.window.request = Some(WidgetRequest::Close);
-                } else if self.ui.explore.window.show.time.is_max() {
-                    self.ui.explore.window.request = Some(WidgetRequest::Close);
-                } else if self.ui.leaderboard.window.show.time.is_max() {
-                    self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
-                } else if self.state.switch_diff.take().is_some()
-                    || self.state.switch_level.take().is_some()
+                key: geng::Key::F11,
+            } => self.context.geng.window().toggle_fullscreen(),
+            geng::Event::KeyPress { key } => {
+                if self.ui_context.text_edit.any_active()
+                    && let geng::Key::Escape | geng::Key::Enter = key
                 {
-                } else {
-                    // Go to main menu
-                    self.transition = Some(geng::state::Transition::Pop);
+                    self.ui_context.text_edit.stop();
+                    return;
+                }
+                if let geng::Key::Escape = key {
+                    if self.state.confirm_popup.take().is_some() {
+                        if let Some(confirm) = &mut self.ui.confirm {
+                            confirm.window.request = Some(WidgetRequest::Close);
+                        }
+                    } else if let Some(sync) = &mut self.ui.sync {
+                        sync.window.request = Some(WidgetRequest::Close);
+                    } else if self.ui.explore.window.show.time.is_max() {
+                        self.ui.explore.window.request = Some(WidgetRequest::Close);
+                    } else if self.ui.leaderboard.window.show.time.is_max() {
+                        self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
+                    } else if self.state.switch_diff.take().is_some()
+                        || self.state.switch_level.take().is_some()
+                    {
+                    } else {
+                        // Go to main menu
+                        self.state.exit = true;
+                    }
                 }
             }
             geng::Event::Wheel { delta } => {
@@ -643,7 +701,8 @@ impl geng::State for LevelMenu {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
-        self.time += delta_time;
+        self.context.update(delta_time);
+        self.state.real_time += delta_time;
 
         self.context
             .geng
@@ -680,12 +739,21 @@ impl geng::State for LevelMenu {
         } else {
             // Music volume
             let t = (1.0 - self.play_button.hover_time.get_ratio().as_f32())
-                .min(show_ratio(&self.state.selected_level).unwrap_or(0.0));
-            self.context.music.set_volume(options.volume.music() * t);
+                .min(show_ratio(&self.state.selected_level).unwrap_or(0.0))
+                .min(
+                    if self.ui.options.options.gameplay.music_offset.state.hovered {
+                        0.0
+                    } else {
+                        1.0
+                    },
+                );
+            self.context
+                .music
+                .fade_to_volume(options.volume.music() * t);
 
             // Playing music
             if let Some(active) = target_music() {
-                self.context.music.switch(&active); // TODO: rng start
+                self.context.music.switch(&active, true); // TODO: rng start
             } else {
                 self.context.music.stop();
             }
@@ -699,6 +767,18 @@ impl geng::State for LevelMenu {
             }
         }
 
+        self.state.options.preview.update(
+            delta_time,
+            self.ui
+                .options
+                .options
+                .gameplay
+                .music_offset
+                .state
+                .hovered
+                .then_some(options.gameplay.music_offset),
+        );
+
         let game_pos = geng_utils::layout::fit_aabb(
             self.dither.get_render_size().as_f32(),
             Aabb2::ZERO.extend_positive(self.framebuffer_size.as_f32()),
@@ -707,6 +787,11 @@ impl geng::State for LevelMenu {
         let pos = self.ui_context.cursor.position - game_pos.bottom_left();
         let cursor_world = self.camera.screen_to_world(game_pos.size(), pos);
 
+        // Update player cursor size
+        self.state.options.player_size.update(delta_time.as_f32());
+        self.state.player.collider.shape = Shape::circle(self.state.options.player_size.current);
+
+        // Update player cursor
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
         if !self.ui_focused && self.state.selected_diff.is_some() {

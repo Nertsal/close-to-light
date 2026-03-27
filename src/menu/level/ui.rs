@@ -13,8 +13,10 @@ use itertools::Itertools;
 pub struct MenuUI {
     context: Context,
     pub screen: WidgetState,
+
     // pub ctl_logo: IconWidget,
     // pub separator: WidgetState,
+    pub exit: ButtonWidget,
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
@@ -41,8 +43,10 @@ impl MenuUI {
 
         Self {
             screen: WidgetState::new(),
+
             // ctl_logo: IconWidget::new(assets.atlas.title()),
             // separator: WidgetState::new(),
+            exit: ButtonWidget::new("Back"),
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
@@ -89,6 +93,10 @@ impl MenuUI {
         context.font_size = font_size;
 
         self.screen.update(screen, context);
+
+        let exit = screen
+            .align_aabb(vec2(2.2, 1.0) * context.font_size, vec2(0.0, 1.0))
+            .translate(vec2(1.0, -0.5) * context.layout_size);
 
         let mut right = self.screen.position;
         let left = right.split_left(0.55);
@@ -166,7 +174,7 @@ impl MenuUI {
                         if let Some((_index, group)) = self.context.local.get_group_id(group_id)
                             && let Some(music) = &group.local.music
                         {
-                            self.context.music.switch(music);
+                            self.context.music.switch(music, true);
                         }
                     }
                     ExploreAction::PauseMusic => {
@@ -245,7 +253,7 @@ impl MenuUI {
             }
         }
 
-        let options = right.extend_positive(-vec2(2.0, 2.0) * layout_size);
+        let options = right.extend_positive(-vec2(2.0, 0.5) * layout_size);
 
         right.cut_left(2.0 * layout_size);
         right.cut_right(5.0 * layout_size);
@@ -263,14 +271,14 @@ impl MenuUI {
             let head_size = vec2(font_size, layout_size * 8.0);
             let pos = main.align_pos(vec2(1.0, 0.5));
 
+            let hover_t = self.leaderboard.window.show.time.get_ratio();
+            let hover_t = crate::util::smoothstep(hover_t);
+
             let base_t = state
                 .selected_diff
                 .as_ref()
                 .map_or(0.0, |show| show.time.get_ratio());
-            let base_t = crate::util::smoothstep(base_t);
-
-            let hover_t = self.leaderboard.window.show.time.get_ratio();
-            let hover_t = crate::util::smoothstep(hover_t);
+            let base_t = crate::util::smoothstep(base_t).min(1.0 - hover_t);
 
             let slide =
                 vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + base_t * head_size.x);
@@ -285,7 +293,8 @@ impl MenuUI {
                 .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
 
             self.leaderboard.update_state(&state.leaderboard);
-            self.leaderboard.update(leaderboard, context);
+            self.leaderboard
+                .update(leaderboard, &mut context.scale_font(0.84));
             self.leaderboard_head
                 .update(leaderboard_head, &context.scale_font(0.9));
             context.update_focus(self.leaderboard.state.hovered);
@@ -300,7 +309,12 @@ impl MenuUI {
             context.update_focus(self.leaderboard.state.hovered);
         }
 
-        self.options.update(options, context, state);
+        self.exit.update(exit, &context.scale_font(0.8));
+        if self.exit.text.state.mouse_left.clicked {
+            state.exit = true;
+        }
+
+        self.options.update(options, context, &mut state.options);
         context.update_focus(self.options.options.state.hovered);
 
         !context.can_focus()

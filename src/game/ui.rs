@@ -7,16 +7,19 @@ pub struct GameUI {
     pub leaderboard_head: TextWidget,
     pub leaderboard: LeaderboardWidget,
     pub score: ScoreWidget,
+    pub pause: PauseWidget,
 }
 
 impl GameUI {
     pub fn new(assets: &Rc<Assets>) -> Self {
         let mut leaderboard = LeaderboardWidget::new(assets, true);
+        leaderboard.pin.hide();
         leaderboard.reload.hide();
         Self {
             leaderboard_head: TextWidget::new("Leaderboard").rotated(Angle::from_degrees(90.0)),
             leaderboard,
             score: ScoreWidget::new(assets),
+            pause: PauseWidget::new(),
         }
     }
 
@@ -33,6 +36,17 @@ impl GameUI {
 
         context.layout_size = layout_size;
         context.font_size = screen.height() * 0.05;
+
+        {
+            // Pause menu
+            let size = vec2(6.0, 7.0) * context.font_size;
+            let slide = (size.y + screen.size().y) / 2.0 + context.font_size;
+            let t = crate::util::smoothstep(self.pause.window.show.time.get_ratio());
+            let pos = screen
+                .align_aabb(size, vec2(0.5, 0.5))
+                .translate(vec2(0.0, slide * (1.0 - t)));
+            self.pause.update(pos, context);
+        }
 
         // Margin
         let mut main = screen.extend_uniform(-layout_size * 2.0);
@@ -96,7 +110,7 @@ impl GameUI {
 
                 let score = score.translate(vec2(-layout_size * 7.0, offset));
                 self.score.update_state(
-                    &ctl_local::ScoreMeta::new(
+                    &ctl_core::score::ScoreMeta::new(
                         model.level.config.modifiers.clone(),
                         model.level.config.health.clone(),
                         model.score.clone(),

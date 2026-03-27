@@ -1,4 +1,4 @@
-use geng::prelude::{Angle, R32, r32, vec2};
+use geng::prelude::{Angle, R32, UNum, r32, vec2};
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, rc::Rc, sync::Arc};
 
@@ -11,11 +11,13 @@ type Name = Arc<str>;
 const TIME_IN_FLOAT_TIME: Time = 1000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct LevelSet<L = Level> {
     pub levels: Vec<L>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct LevelSetInfo {
     /// Id `0` for local groups.
     #[serde(default)]
@@ -29,6 +31,7 @@ pub struct LevelSetInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct MusicInfo {
     /// Id `0` for local music.
     #[serde(default)]
@@ -57,7 +60,7 @@ impl Default for MusicInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default)]
+#[serde(deny_unknown_fields, default)]
 pub struct LevelInfo {
     /// Id `0` for local levels.
     pub id: Id,
@@ -78,12 +81,14 @@ impl Default for LevelInfo {
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct UserInfo {
     pub id: Id,
     pub name: Name,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct MapperInfo {
     /// User id `0` for non-registered mapper.
     pub id: Id,
@@ -92,6 +97,7 @@ pub struct MapperInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct MusicianInfo {
     /// Id `0` for non-registered musicians.
     pub id: Id,
@@ -100,13 +106,14 @@ pub struct MusicianInfo {
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(default)]
+#[serde(deny_unknown_fields, default)]
 pub struct Level {
     pub events: Vec<TimedEvent>,
     pub timing: Timing,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct Timing {
     /// Points are assumed to be sorted by time.
     pub points: Vec<TimingPoint>,
@@ -114,6 +121,7 @@ pub struct Timing {
 
 /// A timing point.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct TimingPoint {
     /// The time from which this timing applies.
     pub time: Time,
@@ -122,6 +130,7 @@ pub struct TimingPoint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct TimedEvent {
     /// The time on which the event should happen.
     pub time: Time,
@@ -135,6 +144,7 @@ pub enum Event {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub enum EffectEvent {
     /// Swap light and dark colors.
     /// Time specifies the duration of the **transition**.
@@ -149,6 +159,7 @@ pub enum EffectEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct LightEvent {
     /// Whether the light is dangerous.
     #[serde(default)]
@@ -160,6 +171,7 @@ pub struct LightEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Telegraph {
     /// How long (in beats) before the event should the telegraph occur.
     pub precede_time: Time,
@@ -175,6 +187,7 @@ pub enum Shape {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Movement {
     /// Time (in milliseconds) to spend fading into the initial position.
     pub fade_in: Time,
@@ -189,6 +202,7 @@ pub struct Movement {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct MoveFrame {
     /// How long (in beats) should the interpolation from the last frame to this frame last.
     pub lerp_time: Time,
@@ -232,7 +246,7 @@ pub enum WaypointId {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default)]
+#[serde(deny_unknown_fields, default)]
 pub struct Transform {
     pub translation: vec2<Coord>,
     pub rotation: Angle<Coord>,
@@ -268,10 +282,7 @@ impl Movement {
     }
 }
 
-pub fn convert_group(
-    value: LevelSet,
-    info: LevelSetInfo,
-) -> (crate::LevelSet, crate::LevelSetInfo) {
+pub fn migrate(value: LevelSet, info: LevelSetInfo) -> (crate::LevelSet, crate::LevelSetInfo) {
     let levels_info = info
         .levels
         .iter()
@@ -351,17 +362,61 @@ fn convert_level(value: Level) -> crate::Level {
                             }
                         },
                         movement: crate::Movement {
-                            fade_in: light.movement.fade_in,
-                            fade_out: light.movement.fade_out,
-                            initial: light.movement.initial.into(),
-                            interpolation: light.movement.interpolation.into(),
-                            curve: light.movement.curve.into(),
-                            key_frames: light
-                                .movement
-                                .key_frames
-                                .into_iter()
-                                .map(Into::into)
-                                .collect(),
+                            // Fade in
+                            initial: crate::WaypointInitial {
+                                lerp_time: light.movement.fade_in,
+                                interpolation: light.movement.interpolation.into(),
+                                curve: light.movement.curve.into(),
+                                transform: crate::TransformLight {
+                                    scale: R32::ZERO,
+                                    ..light.movement.initial.into()
+                                },
+                            },
+                            // Fade out
+                            last: crate::TransformLight {
+                                scale: R32::ZERO,
+                                ..light
+                                    .movement
+                                    .key_frames
+                                    .back()
+                                    .map(|frame| frame.transform)
+                                    .unwrap_or(light.movement.initial)
+                                    .into()
+                            },
+                            waypoints: {
+                                let mut waypoints: VecDeque<crate::Waypoint> = light
+                                    .movement
+                                    .key_frames
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .collect();
+                                waypoints.push_front(crate::Waypoint {
+                                    lerp_time: waypoints.front().map_or_else(
+                                        || light.movement.fade_out,
+                                        |frame| frame.lerp_time,
+                                    ),
+                                    interpolation: light.movement.interpolation.into(),
+                                    change_curve: Some(crate::TrajectoryInterpolation::from(
+                                        light.movement.curve,
+                                    ))
+                                    .filter(|curve| {
+                                        *curve != crate::TrajectoryInterpolation::default()
+                                    }),
+                                    transform: light.movement.initial.into(),
+                                });
+                                for i in 1..waypoints.len() {
+                                    let time = waypoints.get(i + 1).map_or_else(
+                                        || light.movement.fade_out,
+                                        |frame| frame.lerp_time,
+                                    );
+                                    waypoints.get_mut(i).unwrap().lerp_time = time;
+                                }
+                                if let Some(last) = waypoints.back_mut() {
+                                    last.change_curve =
+                                        Some(crate::TrajectoryInterpolation::default());
+                                }
+                                waypoints
+                            },
                         },
                     }),
                     Event::Effect(effect) => crate::Event::Effect(match effect {
@@ -382,17 +437,18 @@ fn convert_level(value: Level) -> crate::Level {
     }
 }
 
-impl From<Transform> for crate::Transform {
+impl From<Transform> for crate::TransformLight {
     fn from(value: Transform) -> Self {
         Self {
             translation: value.translation,
             rotation: value.rotation,
             scale: value.scale,
+            hollow: r32(-1.0),
         }
     }
 }
 
-impl From<MoveFrame> for crate::MoveFrame {
+impl From<MoveFrame> for crate::Waypoint {
     fn from(value: MoveFrame) -> Self {
         Self {
             lerp_time: value.lerp_time,

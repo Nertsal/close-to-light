@@ -1,6 +1,10 @@
 use super::{mask::MaskedRender, util::UtilRender, *};
 
-use crate::ui::{layout::AreaOps, widget::*};
+use crate::{
+    menu::{GameOptions, GameplayPreview},
+    render::dither::DitherRender,
+    ui::{layout::AreaOps, widget::*},
+};
 use ctl_render_core::{SubTexture, get_pixel_scale};
 
 pub struct UiRender {
@@ -98,8 +102,14 @@ impl UiRender {
         pixel_scale: f32,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let size = texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size());
-        let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+        let pos = geng_utils::pixel::pixel_perfect_aabb(
+            quad.center(),
+            vec2(0.5, 0.5),
+            (texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size()))
+                .map(|x| x as usize),
+            &geng::PixelPerfectCamera,
+            framebuffer.size().as_f32(),
+        );
         self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,
@@ -212,7 +222,7 @@ impl UiRender {
         } else {
             self.fill_quad(position, bg_color, framebuffer)
         }
-        self.draw_text(&button.text, framebuffer);
+        self.draw_text_colored(&button.text, theme.dark, framebuffer);
     }
 
     pub fn draw_icon_button(
@@ -324,7 +334,7 @@ impl UiRender {
             left.abs().max(right.abs())
         };
 
-        let max_height = size.y;
+        let max_height = size.y * 0.9;
         let max_width = width * 0.85; // Leave some space TODO: move into a parameter or smth
         let max_size = (max_width / measure.width()).min(max_height / measure.height());
         let size = widget.options.size.min(max_size).min(max_height);
@@ -364,7 +374,7 @@ impl UiRender {
         }
 
         self.draw_text_colored(&slider.text, theme.light, framebuffer);
-        self.draw_text_colored(&slider.value, theme.light, framebuffer);
+        self.draw_input_widget(&slider.value, theme, framebuffer);
 
         if slider.bar.visible {
             self.context.geng.draw2d().quad(
@@ -382,6 +392,30 @@ impl UiRender {
                 &geng::PixelPerfectCamera,
                 slider.head.position,
                 color,
+            );
+        }
+    }
+
+    pub fn draw_input_widget(
+        &self,
+        widget: &InputWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+        let color = theme.light;
+
+        self.draw_text_colored(&widget.name, color, framebuffer);
+        self.draw_text_colored(&widget.text, color, framebuffer);
+        if widget.editing {
+            let pos = widget.text.state.position;
+            let underline = Aabb2::point(pos.center() - vec2(0.0, font_size * 0.5))
+                .extend_symmetric(vec2(pos.width(), font_size * 0.1) / 2.0);
+            self.context.geng.draw2d().quad(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                underline,
+                theme.highlight,
             );
         }
     }
@@ -483,6 +517,7 @@ impl UiRender {
             framebuffer,
         );
         self.draw_icon(&score.grade, theme, framebuffer);
+        self.draw_text(&score.completion, framebuffer);
 
         let mut draw_bar = |position: Aabb2<f32>,
                             light_color: Color,
@@ -565,12 +600,13 @@ impl UiRender {
             camera,
             &draw2d::Quad::new(leaderboard.state.position, theme.dark),
         );
-        // self.draw_icon(&leaderboard.close.icon, framebuffer);
+        self.draw_toggle_button(&leaderboard.pin, theme, framebuffer);
         if leaderboard.reload.icon.state.visible {
             self.draw_icon(&leaderboard.reload.icon, theme, framebuffer);
         }
         self.draw_text(&leaderboard.title, framebuffer);
         self.draw_text(&leaderboard.subtitle, framebuffer);
+        self.draw_text(&leaderboard.level_name, framebuffer);
         self.draw_text(&leaderboard.status, framebuffer);
 
         // self.draw_quad(
@@ -620,51 +656,16 @@ impl UiRender {
         }
     }
 
-    pub fn draw_toggle_button(
-        &self,
-        text: &TextWidget,
-        selected: bool,
-        can_deselect: bool,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
-        let state = &text.state;
-        if !state.visible {
-            return;
-        }
-
-        let (bg_color, fg_color) = if selected {
-            (theme.light, theme.dark)
-        } else {
-            (theme.dark, theme.light)
-        };
-
-        let width = text.options.size * 0.2;
-        let shrink = if can_deselect && state.hovered && selected {
-            width
-        } else {
-            0.0
-        };
-        let pos = state.position.extend_uniform(-shrink);
-        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
-        if state.hovered || selected {
-            self.draw_outline(pos, width, theme.light, framebuffer);
-        }
-        self.util.draw_text(
-            &text.text,
-            geng_utils::layout::aabb_pos(state.position, text.options.align),
-            text.options.color(fg_color),
-            &geng::PixelPerfectCamera,
-            framebuffer,
-        );
-    }
-
     pub fn draw_toggle_widget(
         &self,
         toggle: &ToggleWidget,
         theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        if !toggle.state.visible {
+            return;
+        }
+
         let width = toggle.text.options.size * 0.1;
 
         let mut fg_color = theme.light;
@@ -681,6 +682,65 @@ impl UiRender {
         }
         self.draw_outline(toggle.tick.position, width, fg_color, framebuffer);
         self.draw_text_colored(&toggle.text, fg_color, framebuffer);
+    }
+
+    pub fn draw_toggle_button(
+        &self,
+        toggle: &ToggleButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let state = &toggle.state;
+        if !state.visible {
+            return;
+        }
+
+        // TODO: move logic to the widget
+        let (bg_color, fg_color) = if toggle.selected {
+            (theme.light, theme.dark)
+        } else {
+            (theme.dark, theme.light)
+        };
+
+        let width = toggle.text.options.size * 0.2;
+        let shrink = if state.hovered && toggle.selected {
+            width
+        } else {
+            0.0
+        };
+        let pos = state.position.extend_uniform(-shrink);
+        self.draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
+        if state.hovered || toggle.selected {
+            self.draw_outline(pos, width, theme.light, framebuffer);
+        }
+        self.draw_text_colored(&toggle.text, fg_color, framebuffer);
+
+        // NOTE: Icon's coloring is set in the widget
+        if let Some(icon) = &toggle.icon {
+            self.draw_icon(icon, theme, framebuffer);
+        }
+    }
+
+    pub fn draw_radio_button(
+        &self,
+        toggle: &ToggleButtonWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let width = toggle.text.options.size * 0.2;
+        let (bg_color, fg_color) = if toggle.selected {
+            (theme.light, theme.dark)
+        } else {
+            (theme.dark, theme.light)
+        };
+
+        let outline = toggle.text.state.position;
+        self.fill_quad_width(outline, width, bg_color, framebuffer);
+        self.draw_text_colored(&toggle.text, fg_color, framebuffer);
+        if let Some(icon) = &toggle.icon {
+            self.draw_icon(icon, theme, framebuffer);
+        }
+        self.draw_outline(outline, width, theme.light, framebuffer);
     }
 
     // TODO: more general name
@@ -768,6 +828,8 @@ impl UiRender {
             // self.draw_button(&register.register, framebuffer);
             self.draw_text(&register.login_with, framebuffer);
             self.draw_icon(&register.discord.icon, theme, framebuffer);
+            #[cfg(feature = "steam")]
+            self.draw_icon(&register.steam.icon, theme, framebuffer);
         }
 
         let logged = &ui.logged;
@@ -775,5 +837,332 @@ impl UiRender {
             self.draw_text(&logged.username, framebuffer);
             self.draw_button(&logged.logout, theme, framebuffer);
         }
+
+        let connecting = &ui.connecting;
+        if connecting.state.visible {
+            self.draw_text(connecting, framebuffer);
+        }
+    }
+
+    pub fn draw_options(
+        &mut self,
+        masked: &mut MaskedRender,
+        dither: &mut DitherRender,
+        ui: &OptionsButtonWidget,
+        state: &GameOptions,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let options = state.context.get_options();
+        let theme = options.theme;
+
+        let width = 12.0;
+        let options_pos = ui
+            .options
+            .state
+            .position
+            .extend_positive(vec2::splat(width));
+
+        self.draw_window(
+            masked,
+            options_pos,
+            None,
+            width,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                self.draw_profile(&ui.options.profile, framebuffer);
+
+                self.draw_quad(ui.options.separator.position, theme.light, framebuffer);
+
+                {
+                    // Volume
+                    let volume = &ui.options.volume;
+                    self.draw_text(&volume.title, framebuffer);
+                    self.draw_slider(&volume.master, theme, framebuffer);
+                }
+
+                {
+                    // Palette
+                    let palette = &ui.options.palette;
+                    self.draw_text(&palette.title, framebuffer);
+                    for palette in &palette.palettes {
+                        self.draw_palette_widget(palette, theme, framebuffer);
+                    }
+                }
+
+                {
+                    // Gameplay
+                    let gameplay = &ui.options.gameplay;
+                    self.draw_text(&gameplay.title, framebuffer);
+                    self.draw_slider(&gameplay.music_offset, theme, framebuffer);
+                }
+
+                {
+                    // Graphics
+                    let graphics = &ui.options.graphics;
+                    self.draw_text(&graphics.title, framebuffer);
+                    self.draw_toggle_widget(&graphics.fullscreen, theme, framebuffer);
+                    self.draw_toggle_widget(&graphics.crt, theme, framebuffer);
+                    self.draw_slider(&graphics.blue, theme, framebuffer);
+                    self.draw_slider(&graphics.saturation, theme, framebuffer);
+                    self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
+                    self.draw_color_select(&graphics.perfect_color, theme, framebuffer);
+                }
+
+                {
+                    // Cursor
+                    let cursor = &ui.options.cursor;
+                    self.draw_text(&cursor.title, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_trail, theme, framebuffer);
+                    self.draw_slider(&cursor.inner_radius, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
+                    self.draw_slider(&cursor.outer_radius, theme, framebuffer);
+                    self.draw_color_select(&cursor.outer_color, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_rhythm_circles, theme, framebuffer);
+                    self.draw_toggle_widget(&cursor.show_rhythm_only_miss, theme, framebuffer);
+                }
+
+                // Scrollbar
+                self.draw_outline(ui.options.scrollbar.position, 4.0, theme.light, framebuffer);
+                self.fill_quad_width(
+                    ui.options.scrollbar_handle.position,
+                    4.0,
+                    theme.light,
+                    framebuffer,
+                );
+            },
+        );
+
+        // Preview effect
+        let preview = if ui.options.graphics.telegraph_color.state.hovered {
+            Some(ui.options.graphics.telegraph_color.state.position)
+        } else if ui.options.graphics.perfect_color.state.hovered {
+            Some(ui.options.graphics.perfect_color.state.position)
+        } else {
+            None
+        };
+        if let Some(hovered) = preview {
+            self.draw_preview(
+                masked,
+                dither,
+                &state.preview,
+                options,
+                hovered,
+                framebuffer,
+            );
+        } else if ui.options.gameplay.music_offset.state.hovered {
+            self.draw_music_offset_calibration(
+                masked,
+                options,
+                state.preview.real_time,
+                ui.options.gameplay.music_offset.state.position,
+                framebuffer,
+            );
+        }
+    }
+
+    fn draw_palette_widget(
+        &self,
+        palette: &PaletteWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+
+        let mut theme = theme;
+        if palette.state.hovered || palette.palette == theme {
+            std::mem::swap(&mut theme.dark, &mut theme.light);
+            self.fill_quad(palette.state.position, theme.dark, framebuffer);
+        }
+
+        self.draw_text_colored(&palette.name, theme.light, framebuffer);
+
+        let mut quad = |i: f32, color: Color| {
+            let pos = palette.visual.position;
+            let pos = Aabb2::point(pos.bottom_left()).extend_positive(vec2::splat(pos.height()));
+            let pos = pos.translate(vec2(i * pos.width(), 0.0));
+            self.context.geng.draw2d().draw2d(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                &draw2d::Quad::new(pos, color),
+            );
+        };
+        quad(0.0, palette.palette.dark);
+        quad(1.0, palette.palette.light);
+        quad(2.0, palette.palette.danger);
+        quad(3.0, palette.palette.highlight);
+
+        let outline_width = font_size * 0.1;
+        self.draw_outline(
+            palette.visual.position.extend_uniform(outline_width),
+            outline_width,
+            theme.light,
+            framebuffer,
+        );
+    }
+
+    fn draw_color_select(
+        &self,
+        widget: &ColorSelectWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        if !widget.state.visible {
+            return;
+        }
+
+        let font_size = framebuffer.size().y as f32 * 0.04;
+        let outline_width = font_size * 0.1;
+
+        self.draw_text(&widget.title, framebuffer);
+        for (w, color) in &widget.colors {
+            let pos = w.position;
+            let fill_color = theme.get_color(*color);
+            self.fill_quad_width(pos, outline_width, fill_color, framebuffer);
+            if w.hovered || widget.selected_color == *color {
+                let mut outline_color = theme.light;
+                if outline_color == fill_color {
+                    outline_color = theme.highlight;
+                };
+                self.draw_outline(pos, outline_width, outline_color, framebuffer);
+            }
+        }
+    }
+
+    fn draw_preview(
+        &mut self,
+        masked: &mut MaskedRender,
+        dither: &mut DitherRender,
+        preview: &GameplayPreview,
+        options: Options,
+        setting: Aabb2<f32>,
+        old_framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = old_framebuffer.size().y as f32 * 0.04;
+
+        let mut framebuffer = dither.start();
+
+        let level_state = &preview.state;
+        let camera = &preview.camera;
+        let theme = options.theme;
+
+        // Telegraphs
+        for tele in &level_state.telegraphs {
+            let color = if tele.light.danger {
+                THEME.danger
+            } else {
+                THEME.get_color(options.graphics.lights.telegraph_color)
+            };
+            self.util
+                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+        }
+
+        // Lights
+        for light in &level_state.lights {
+            let color = if light.danger {
+                THEME.danger
+            } else {
+                THEME.light
+            };
+            self.util.draw_light_gradient(
+                &light.collider,
+                light.hollow,
+                color,
+                camera,
+                &mut framebuffer,
+            );
+        }
+
+        self.util
+            .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
+
+        dither.finish(preview.real_time, &theme);
+
+        let popup_size = vec2(PREVIEW_RESOLUTION.as_f32().aspect(), 1.0) * 6.0 * font_size;
+        let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)
+            .extend_positive(popup_size);
+        if popup.max.y > old_framebuffer.size().y as f32 {
+            popup = popup.translate(vec2(0.0, -popup.height() - 3.0 * font_size));
+        }
+        let width = 12.0;
+        self.draw_window(
+            masked,
+            popup,
+            None,
+            width,
+            options.theme,
+            old_framebuffer,
+            |framebuffer| {
+                geng_utils::texture::DrawTexture::new(dither.get_buffer())
+                    .fit(popup, vec2(0.5, 0.5))
+                    .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+            },
+        );
+    }
+
+    fn draw_music_offset_calibration(
+        &self,
+        masked: &mut MaskedRender,
+        options: Options,
+        time: FloatTime,
+        setting: Aabb2<f32>,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = framebuffer.size().y as f32 * 0.04;
+
+        let popup_size = vec2(7.0, 4.5) * font_size;
+        let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)
+            .extend_positive(popup_size);
+        if popup.max.y > framebuffer.size().y as f32 {
+            popup = popup.translate(vec2(0.0, -popup.height() - 3.0 * font_size));
+        }
+        let overflow_x = popup.max.x - framebuffer.size().x as f32 + 3.0 * font_size;
+        if overflow_x > 0.0 {
+            popup = popup.translate(vec2(-overflow_x, 0.0));
+        }
+
+        let width = 12.0;
+        self.draw_window(
+            masked,
+            popup,
+            None,
+            width,
+            options.theme,
+            framebuffer,
+            |framebuffer| {
+                // TODO
+                let camera = &geng::PixelPerfectCamera;
+                let theme = options.theme;
+
+                let mut popup = popup.extend_uniform(-width);
+                let timeline = popup.cut_bottom(font_size * 2.0);
+
+                // Text
+                let mut text = TextWidget::new("Adjust offset until audio matches visual")
+                    .aligned(vec2(0.0, 1.0));
+                text.options.size = font_size;
+                text.state.position = popup.extend_uniform(-width);
+                self.draw_text_wrapped(&text, framebuffer);
+
+                // Timeline
+                self.context.geng.draw2d().quad(
+                    framebuffer,
+                    camera,
+                    timeline.with_height(font_size * 0.1, 0.5),
+                    theme.light,
+                );
+
+                // Tick
+                let t = (time.as_f32().fract() - 0.5).abs() * 2.0;
+                let tick = timeline.align_aabb(vec2(0.2, 0.75) * timeline.height(), vec2(t, 0.5));
+                self.draw_subtexture(
+                    tick,
+                    &self.context.assets.atlas.timeline_tick_big(),
+                    theme.highlight,
+                    1.0,
+                    framebuffer,
+                );
+            },
+        );
     }
 }

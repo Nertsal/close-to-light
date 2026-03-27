@@ -69,7 +69,7 @@ impl Selection {
     pub fn is_event_single(&self, id: usize) -> bool {
         match self {
             Selection::Empty => false,
-            Selection::Lights(_) => false,
+            Selection::Lights(lights) => lights.len() == 1 && lights.first().unwrap().event == id,
             Selection::Event(idx) => id == *idx,
         }
     }
@@ -134,19 +134,17 @@ impl Selection {
 impl LevelEditor {
     pub fn new(
         context: Context,
-        model: Model,
         level: PlayLevel,
         visualize_beat: bool,
         show_only_selected: bool,
     ) -> Self {
         let mut editor = Self {
-            context,
             level: (*level.level.data).clone(),
             name: level.level.meta.name.to_string(),
 
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(),
-            timeline_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 0.0, r32(0.5))),
+            timeline_zoom: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.5)),
             real_time: FloatTime::ZERO,
             timeline_light_hover: None,
 
@@ -161,10 +159,35 @@ impl LevelEditor {
             was_scrolling_time: false,
             scrolling_time: false,
 
+            model: Model::empty(context.clone(), level.clone()),
             static_level: level,
-            model,
+
+            context,
         };
         editor.render_lights(None, None, visualize_beat, show_only_selected);
+        editor
+    }
+
+    pub fn change_level(
+        self,
+        level: PlayLevel,
+        visualize_beat: bool,
+        show_only_selected: bool,
+    ) -> Self {
+        let mut editor = Self::new(
+            self.context.clone(),
+            level,
+            visualize_beat,
+            show_only_selected,
+        );
+
+        // Transfer some editor data across difficulties
+        editor.clipboard = self.clipboard;
+        editor.timeline_zoom = self.timeline_zoom;
+        editor.current_time = self.current_time;
+        editor.place_rotation = self.place_rotation;
+        editor.place_scale = self.place_scale;
+
         editor
     }
 
@@ -186,7 +209,7 @@ impl LevelEditor {
         };
         match waypoint {
             WaypointId::Initial => {
-                match event.movement.key_frames.pop_front() {
+                match event.movement.waypoints.pop_front() {
                     None => {
                         // No waypoints -> delete the whole event
                         if light.event < self.level.events.len() {
@@ -197,16 +220,39 @@ impl LevelEditor {
                     }
                     Some(frame) => {
                         // Make the first frame the initial position
-                        event.movement.initial = frame.transform;
-                        timed_event.time += frame.lerp_time;
+                        timed_event.time += event.movement.initial.lerp_time;
+                        event.movement.initial = WaypointInitial {
+                            lerp_time: frame.lerp_time,
+                            interpolation: frame.interpolation,
+                            curve: frame.change_curve.unwrap_or_default(),
+                            transform: frame.transform,
+                        };
                     }
                 }
             }
             WaypointId::Frame(i) => {
-                if let Some(frame) = event.movement.key_frames.remove(i) {
-                    // Offset the next one
-                    if let Some(next) = event.movement.key_frames.get_mut(i) {
-                        next.lerp_time += frame.lerp_time;
+                if let Some(frame) = event.movement.waypoints.remove(i) {
+                    // Offset the previous one
+                    if i == 0 {
+                        event.movement.initial.lerp_time += frame.lerp_time;
+                    } else if let Some(prev) = event.movement.waypoints.get_mut(i - 1) {
+                        prev.lerp_time += frame.lerp_time;
+                    }
+                }
+            }
+            WaypointId::Last => {
+                match event.movement.waypoints.pop_back() {
+                    None => {
+                        // No waypoints -> delete the whole event
+                        if light.event < self.level.events.len() {
+                            self.level.events.swap_remove(light.event);
+                            self.level_state.waypoints = None;
+                            self.state = EditingState::Idle;
+                        }
+                    }
+                    Some(frame) => {
+                        // Make the last frame the last position
+                        event.movement.last = frame.transform;
                     }
                 }
             }
@@ -404,18 +450,11 @@ impl LevelEditor {
             .flatten();
         let level = selected_level.as_ref().unwrap_or(&self.level);
 
-        let static_level = static_time.map(|time| {
-            LevelState::render(
-                level,
-                &self.model.level.config,
-                time,
-                None,
-                Some(&mut self.model.vfx),
-            )
-        });
+        let static_level = static_time
+            .map(|time| LevelState::render(level, time, None, Some(&mut self.model.vfx)));
         let dynamic_level = dynamic_time.map(|time| {
             let vfx = static_time.is_none().then_some(&mut self.model.vfx);
-            LevelState::render(level, &self.model.level.config, time, None, vfx)
+            LevelState::render(level, time, None, vfx)
         });
 
         let mut hovered_light = self.timeline_light_hover.take();
@@ -427,7 +466,7 @@ impl LevelEditor {
                 level
                     .lights
                     .iter()
-                    .find(|light| light.collider.contains(cursor))
+                    .find(|light| light.contains_point(cursor))
                     .and_then(|light| light.event_id)
                     .map(|event| LightId { event })
             });
@@ -454,15 +493,18 @@ impl LevelEditor {
                 let curve = light_event.movement.bake();
                 let mut points: Vec<_> = light_event
                     .movement
-                    .timed_positions()
+                    .timed_transforms()
                     .map(|(i, trans_control, time)| {
                         let trans_actual = match i {
                             WaypointId::Initial => curve.get(0, FloatTime::ZERO),
                             WaypointId::Frame(i) => curve.get(i, FloatTime::ONE),
+                            WaypointId::Last => {
+                                curve.get(light_event.movement.waypoints.len(), FloatTime::ONE)
+                            }
                         }
                         .unwrap_or(trans_control); // Should be unreachable, but just in case
                         (
-                            Waypoint {
+                            WaypointEdit {
                                 visible: visible(time),
                                 original: Some(i),
                                 control: base_collider.transformed(trans_control),
@@ -504,15 +546,16 @@ impl LevelEditor {
                     let i = match points.binary_search_by_key(&new_time, |(_, time)| *time) {
                         Ok(i) | Err(i) => i,
                     };
-                    let control = base_collider.transformed(Transform {
+                    let control = base_collider.transformed(TransformLight {
                         translation: cursor_world_pos_snapped,
                         rotation: self.place_rotation,
                         scale: self.place_scale,
+                        hollow: r32(-1.0),
                     });
                     points.insert(
                         i,
                         (
-                            Waypoint {
+                            WaypointEdit {
                                 visible: true,
                                 original: None,
                                 actual: control.clone(),

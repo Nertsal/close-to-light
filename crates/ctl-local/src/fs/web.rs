@@ -28,9 +28,16 @@ type Result<T> = std::result::Result<T, WebError>;
 
 #[derive(Serialize, Deserialize)]
 struct GroupItem {
+    id: String,
     meta: String,
     data: String,
     music: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ScoresItem {
+    level_id: String,
+    scores: Vec<SavedScore>,
 }
 
 pub async fn build_database() -> rexie::Result<Rexie> {
@@ -45,18 +52,24 @@ pub async fn build_database() -> rexie::Result<Rexie> {
     Ok(rexie)
 }
 
+//
+// NOTE
+// Transactions cannot be held across an await point
+// (because it returns the control to the browser which then commits the transaction)
+// so all database operations must be done in a single call.
+//
+
 pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGroup>> {
     let transaction = rexie.transaction(&["groups"], TransactionMode::ReadOnly)?;
-
     let groups = transaction.store("groups")?;
+    let raw_items = groups.get_all(None, None).await?;
+    // transaction.done().await?;
 
-    let raw_items = groups.scan(None, None, None, None).await?;
     let mut items = Vec::with_capacity(raw_items.len());
-    for (key, item) in raw_items {
-        let process_item = async |key, item| -> Result<LocalGroup> {
-            let key: String = serde_wasm_bindgen::from_value(key)?;
-            let path = super::all_groups_path().join(key);
+    for item in raw_items {
+        let process_item = async |item| -> Result<LocalGroup> {
             let item: GroupItem = serde_wasm_bindgen::from_value(item)?;
+            let path = super::all_groups_path().join(item.id);
 
             let data = BASE64_STANDARD.decode(&item.data)?;
             let meta_bytes = BASE64_STANDARD.decode(&item.meta)?;
@@ -78,14 +91,16 @@ pub async fn load_groups_all(geng: &Geng, rexie: &Rexie) -> Result<Vec<LocalGrou
 
             Ok(LocalGroup {
                 path,
+                loaded_from_assets: true,
                 meta,
                 music,
                 data: group,
             })
         };
 
-        if let Ok(group) = process_item(key, item).await {
-            items.push(group);
+        match process_item(item).await {
+            Ok(group) => items.push(group),
+            Err(err) => log::error!("failed to load level item: {:?}", err),
         }
     }
 
@@ -100,10 +115,6 @@ pub async fn save_group(
 ) -> Result<()> {
     log::debug!("Storing group {:?} into browser storage", id);
 
-    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
-
-    let store = transaction.store("groups")?;
-
     let data = cbor4ii::serde::to_vec(Vec::new(), &group.local.data)?;
     let data = BASE64_STANDARD.encode(&data);
 
@@ -112,15 +123,21 @@ pub async fn save_group(
     let meta = ron::ser::to_string(&group.local.meta)?;
     let meta = BASE64_STANDARD.encode(&meta);
 
-    let item = GroupItem { data, music, meta };
+    let item = GroupItem {
+        id: id.to_string(),
+        data,
+        music,
+        meta,
+    };
 
     let serializer = Serializer::json_compatible();
     let item = item.serialize(&serializer)?;
     let id = id.serialize(&serializer)?;
 
+    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
+    let store = transaction.store("groups")?;
     store.put(&item, Some(&id)).await?;
-
-    transaction.done().await?;
+    // transaction.commit().await?;
 
     Ok(())
 }
@@ -128,76 +145,87 @@ pub async fn save_group(
 pub async fn remove_group(rexie: &Rexie, id: &str) -> Result<()> {
     log::debug!("Deleting group {:?} from browser storage", id);
 
-    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
-
-    let store = transaction.store("groups")?;
-
     let serializer = Serializer::json_compatible();
     let id = id.serialize(&serializer)?;
 
+    let transaction = rexie.transaction(&["groups"], TransactionMode::ReadWrite)?;
+    let store = transaction.store("groups")?;
     store.delete(id).await?;
-
-    transaction.done().await?;
+    // transaction.commit().await?;
 
     Ok(())
 }
 
-pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<String, SavedScore>> {
+pub async fn load_local_highscores(rexie: &Rexie) -> Result<HashMap<LocalLevelId, SavedScore>> {
+    log::debug!("Loading all local highscores from browser storage");
+
     let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
-
     let store = transaction.store("scores")?;
+    let all_scores = store.get_all(None, None).await?;
+    // transaction.done().await?;
 
-    let all_scores = store.scan(None, None, None, None).await?;
     let mut result = HashMap::new();
-    for (hash, scores) in all_scores {
+    for scores in all_scores {
         let process = || -> Result<()> {
-            let scores: Vec<SavedScore> = serde_wasm_bindgen::from_value(scores)?;
-            if let Some(score) = scores.into_iter().max_by_key(|score| score.score) {
-                let hash: String = serde_wasm_bindgen::from_value(hash)?;
-                result.insert(hash, score);
+            let item: ScoresItem = serde_wasm_bindgen::from_value(scores)?;
+            if let Some(score) = item.scores.into_iter().max_by_key(|score| score.score) {
+                let id = LocalLevelId::convert_from_str(&item.level_id);
+                result.insert(id, score);
             }
             Ok(())
         };
         if let Err(err) = process() {
-            log::error!("score file error: {err:?}");
+            log::error!("score file error: {err}");
         }
     }
 
-    transaction.done().await?;
     Ok(result)
 }
 
-pub async fn load_local_scores(rexie: &Rexie, level_hash: &str) -> Result<Vec<SavedScore>> {
-    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
-
-    let store = transaction.store("scores")?;
+pub async fn load_local_scores(rexie: &Rexie, level_id: &LocalLevelId) -> Result<Vec<SavedScore>> {
+    log::debug!(
+        "Loading local scores for level {:?} from browser storage",
+        level_id
+    );
+    let level_id = level_id.to_string();
 
     let serializer = Serializer::json_compatible();
-    let level_hash = level_hash.serialize(&serializer)?;
+    let level_id = level_id.serialize(&serializer)?;
 
-    let Some(scores) = store.get(level_hash).await? else {
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadOnly)?;
+    let store = transaction.store("scores")?;
+    let Some(scores) = store.get(level_id).await? else {
         return Ok(vec![]);
     };
-    let scores: Vec<SavedScore> = serde_wasm_bindgen::from_value(scores)?;
+    // transaction.done().await?;
+    let scores: ScoresItem = serde_wasm_bindgen::from_value(scores)?;
 
-    transaction.done().await?;
-    Ok(scores)
+    Ok(scores.scores)
 }
 
 pub async fn save_local_scores(
     rexie: &Rexie,
-    level_hash: &str,
+    level_id: &LocalLevelId,
     scores: &[SavedScore],
 ) -> Result<()> {
-    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadWrite)?;
-
-    let store = transaction.store("scores")?;
+    log::debug!(
+        "Saving local scores for level {:?} into browser storage",
+        level_id
+    );
+    let level_id = level_id.to_string();
 
     let serializer = Serializer::json_compatible();
-    let level_hash = level_hash.serialize(&serializer)?;
+    let scores = ScoresItem {
+        level_id: level_id.clone(),
+        scores: scores.to_vec(),
+    };
     let scores = scores.serialize(&serializer)?;
-    store.put(&scores, Some(&level_hash)).await?;
+    let level_id = level_id.serialize(&serializer)?;
 
-    transaction.done().await?;
+    let transaction = rexie.transaction(&["scores"], TransactionMode::ReadWrite)?;
+    let store = transaction.store("scores")?;
+    store.put(&scores, Some(&level_id)).await?;
+    // transaction.commit().await?;
+
     Ok(())
 }

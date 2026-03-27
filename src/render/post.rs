@@ -1,8 +1,17 @@
 use super::*;
 
+use ctl_assets::GraphicsColorsOptions;
+
+pub struct PostContext {
+    pub geng: Geng,
+    pub shader_crt: Rc<ugli::Program>,
+    pub shader_rgb_split: Rc<ugli::Program>,
+    pub shader_color_correction: Rc<ugli::Program>,
+}
+
 /// Renderer responsible for common post-processing effects, such as crt.
 pub struct PostRender {
-    context: Context,
+    context: PostContext,
     unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
     swap_buffer: (ugli::Texture, ugli::Texture),
 }
@@ -12,6 +21,7 @@ pub struct PostVfx {
     pub time: FloatTime,
     pub crt: bool,
     pub rgb_split: f32,
+    pub colors: GraphicsColorsOptions,
 }
 
 fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
@@ -23,7 +33,16 @@ fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture
 }
 
 impl PostRender {
-    pub fn new(context: Context) -> Self {
+    pub fn new(context: &Context) -> Self {
+        Self::new_with(PostContext {
+            geng: context.geng.clone(),
+            shader_crt: context.assets.shaders.crt.clone(),
+            shader_rgb_split: context.assets.shaders.rgb_split.clone(),
+            shader_color_correction: context.assets.shaders.color_correction.clone(),
+        })
+    }
+
+    pub fn new_with(context: PostContext) -> Self {
         Self {
             unit_quad: geng_utils::geometry::unit_quad_geometry(context.geng.ugli()),
             swap_buffer: init_buffers(context.geng.ugli(), vec2(1, 1)),
@@ -59,9 +78,12 @@ impl PostRender {
         buffer
     }
 
-    pub fn post_process(&mut self, vfx: PostVfx, framebuffer: &mut ugli::Framebuffer) {
-        let options = self.context.get_options();
-
+    pub fn post_process(
+        &mut self,
+        options: &Options,
+        vfx: PostVfx,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         macro_rules! swap {
             () => {{
                 std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
@@ -78,7 +100,7 @@ impl PostRender {
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,
-                &self.context.assets.shaders.crt,
+                &self.context.shader_crt,
                 ugli::DrawMode::TriangleFan,
                 &self.unit_quad,
                 ugli::uniforms! {
@@ -97,13 +119,30 @@ impl PostRender {
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,
-                &self.context.assets.shaders.rgb_split,
+                &self.context.shader_rgb_split,
                 ugli::DrawMode::TriangleFan,
                 &self.unit_quad,
                 ugli::uniforms! {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
                     u_offset: 0.01 * vfx.rgb_split,
+                },
+                ugli::DrawParameters::default(),
+            );
+        }
+
+        // Color correction
+        {
+            let (texture, mut buffer) = swap!();
+            ugli::draw(
+                &mut buffer,
+                &self.context.shader_color_correction,
+                ugli::DrawMode::TriangleFan,
+                &self.unit_quad,
+                ugli::uniforms! {
+                    u_texture: texture,
+                    u_saturation: vfx.colors.saturation,
+                    u_blue: vfx.colors.blue,
                 },
                 ugli::DrawParameters::default(),
             );

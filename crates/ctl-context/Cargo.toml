@@ -3,9 +3,18 @@ name = "ctl-context"
 version.workspace = true
 edition.workspace = true
 
+[features]
+steam = ["dep:steamworks"]
+
 [dependencies]
+ctl-constants.workspace = true
 ctl-core.workspace = true
+ctl-util.workspace = true
 ctl-assets.workspace = true
 ctl-client.workspace = true
 ctl-local.workspace = true
 geng.workspace = true
+steamworks = { workspace = true, optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+discord-presence.workspace = true

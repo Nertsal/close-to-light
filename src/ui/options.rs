@@ -1,15 +1,24 @@
 use super::*;
 
 use crate::{
-    menu::MenuState,
+    menu::GameOptions,
     prelude::{Assets, Theme, VolumeOptions},
     ui::layout::AreaOps,
 };
 
 use ctl_assets::{CursorOptions, GameplayOptions, GraphicsOptions};
-use ctl_core::types::Name;
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_ui::util::ScrollState;
 use geng_utils::bounded::Bounded;
+
+const RANGE_VOLUME: RangeInclusive<f32> = 0.0..=100.0;
+const RANGE_MUSIC_OFFSET: RangeInclusive<f32> = -100.0..=100.0;
+const RANGE_BLUE: RangeInclusive<f32> = 50.0..=100.0;
+const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=100.0;
+const RANGE_INNER_RADIUS: RangeInclusive<f32> = 0.1..=0.5;
+const RANGE_OUTER_RADIUS: RangeInclusive<f32> = 0.05..=0.5;
+
+const FONT_SCALE: f32 = 0.8;
+const FONT_FIT_SCALE: f32 = 0.8;
 
 pub struct OptionsButtonWidget {
     pub state: WidgetState,
@@ -29,7 +38,8 @@ impl OptionsButtonWidget {
                 vec![
                     // TODO: custom palettes
                     PaletteWidget::new("Classic", Theme::classic()),
-                    PaletteWidget::new("Stargazer", Theme::peach_mint()),
+                    PaletteWidget::new("Frostlight", Theme::frostlight()),
+                    PaletteWidget::new("Stargazer", Theme::stargazer()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
                     PaletteWidget::new("Linksider", Theme::linksider()),
                 ],
@@ -39,7 +49,7 @@ impl OptionsButtonWidget {
 }
 
 impl StatefulWidget for OptionsButtonWidget {
-    type State<'a> = MenuState;
+    type State<'a> = GameOptions;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -56,7 +66,10 @@ impl StatefulWidget for OptionsButtonWidget {
         self.state.update(button, context);
         self.button.update(button, context);
 
-        if self.button.state.hovered || self.options.state.hovered {
+        if self.button.state.hovered
+            || self.options.state.hovered
+            || self.options.state.mouse_left.pressed.is_some()
+        {
             self.open_time.change(context.delta_time);
             self.options.show();
         } else {
@@ -78,10 +91,13 @@ impl StatefulWidget for OptionsButtonWidget {
 
 pub struct OptionsWidget {
     pub state: WidgetState,
+    pub drag_state: WidgetState,
     pub window: UiWindow<()>,
+    content_size: f32,
     /// Downward scroll.
-    pub scroll: SecondOrderState<f32>,
-    scroll_drag_from: f32,
+    pub scroll: ScrollState,
+    pub scrollbar: WidgetState,
+    pub scrollbar_handle: WidgetState,
     pub profile: ProfileWidget,
     pub separator: WidgetState,
     pub volume: VolumeWidget,
@@ -95,9 +111,12 @@ impl OptionsWidget {
     pub fn new(assets: &Rc<Assets>, palettes: Vec<PaletteWidget>) -> Self {
         Self {
             state: WidgetState::new(),
+            drag_state: WidgetState::new(),
             window: UiWindow::new((), 0.3),
-            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
-            scroll_drag_from: 0.0,
+            content_size: 1.0,
+            scroll: ScrollState::new(),
+            scrollbar: WidgetState::new(),
+            scrollbar_handle: WidgetState::new(),
             profile: ProfileWidget::new(assets),
             separator: WidgetState::new(),
             volume: VolumeWidget::new(),
@@ -110,7 +129,7 @@ impl OptionsWidget {
 }
 
 impl StatefulWidget for OptionsWidget {
-    type State<'a> = MenuState;
+    type State<'a> = GameOptions;
 
     fn state_mut(&mut self) -> &mut WidgetState {
         &mut self.state
@@ -118,25 +137,41 @@ impl StatefulWidget for OptionsWidget {
 
     fn update(
         &mut self,
-        position: Aabb2<f32>,
+        mut position: Aabb2<f32>,
         context: &mut UiContext,
         state: &mut Self::State<'_>,
     ) {
-        self.state.update(position, context);
         self.window.update(context.delta_time);
+        self.state.update(position, context);
 
-        // Scroll
-        ctl_ui::util::scroll_drag(
-            context,
-            &self.state,
-            &mut self.scroll,
-            &mut self.scroll_drag_from,
-        );
+        position.cut_right(context.layout_size * 0.25);
+        let scrollbar = position
+            .cut_right(context.layout_size * 0.75)
+            .extend_symmetric(vec2(0.0, -context.layout_size));
+        let handle_height = context.layout_size * 2.5;
+        self.scrollbar.update(scrollbar, context);
+
+        if self.scrollbar.mouse_left.pressed.is_some() {
+            // Scroll bar
+            let t = (context.cursor.position.y - self.scrollbar.position.min.y)
+                / self.scrollbar.position.height();
+            let max_scroll = self.content_size - position.height();
+            let scroll = -max_scroll * (1.0 - t);
+            self.scroll.state.target = scroll;
+            self.scroll.state.update(context.delta_time);
+        } else {
+            // Scroll drag
+            self.scroll.drag(context, &self.drag_state);
+        }
+
+        let handle_t = -self.scroll.state.current / (self.content_size - position.height());
+        let handle = scrollbar.with_height(handle_height, 1.0 - handle_t.clamp(0.0, 1.0));
+        self.scrollbar_handle.update(handle, context);
 
         let mut main = position
             .extend_symmetric(vec2(-1.5, -1.0) * context.layout_size)
             .extend_down(100.0 * context.layout_size) // Technically infinite because we can scroll
-            .translate(vec2(0.0, -self.scroll.current));
+            .translate(vec2(0.0, -self.scroll.state.current));
         let main_top = main.max.y;
 
         let profile = main.cut_top(3.0 * context.font_size);
@@ -178,16 +213,22 @@ impl StatefulWidget for OptionsWidget {
         self.cursor.update(cursor, context, &mut options.cursor);
         main.cut_top(self.graphics.state.position.height());
         main.cut_top(spacing);
+        let cursor_size =
+            if self.cursor.inner_radius.state.hovered || self.cursor.outer_radius.state.hovered {
+                r32(0.5)
+            } else {
+                r32(0.1)
+            };
+        state.player_size.target = cursor_size;
 
         state.context.set_options(options);
 
         // Limit scroll to the contents
-        ctl_ui::util::overflow_scroll(
-            context.delta_time,
-            &mut self.scroll.target,
-            main_top - main.max.y + context.font_size * 2.0,
-            position.height(),
-        );
+        self.content_size = main_top - main.max.y + context.font_size * 2.0;
+        self.scroll
+            .overflow(context.delta_time, self.content_size, position.height());
+
+        self.drag_state.update(position, context);
     }
 }
 
@@ -202,7 +243,7 @@ impl VolumeWidget {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             title: TextWidget::new("Volume"),
-            master: SliderWidget::new("").with_display_precision(0),
+            master: SliderWidget::new("").with_precision(0),
         }
     }
 }
@@ -233,16 +274,19 @@ impl StatefulWidget for VolumeWidget {
         let rows = row.stack(vec2(0.0, -row.height() - context.layout_size * 0.1), 1);
 
         self.master
-            .update_value(rows[0], context, &mut state.master, 0.0..=100.0);
+            .update_value(rows[0], context, &mut state.master, RANGE_VOLUME);
     }
 }
 
 pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
+    pub fullscreen: ToggleWidget,
     pub crt: ToggleWidget,
-    pub crt_scanlines: SliderWidget,
-    pub telegraph_color: ToggleWidget,
+    pub blue: SliderWidget,
+    pub saturation: SliderWidget,
+    pub telegraph_color: ColorSelectWidget,
+    pub perfect_color: ColorSelectWidget,
 }
 
 impl GraphicsWidget {
@@ -250,9 +294,18 @@ impl GraphicsWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
+            fullscreen: ToggleWidget::new("Fullscreen"),
             crt: ToggleWidget::new("CRT Shader"),
-            crt_scanlines: SliderWidget::new("Scanlines").with_display_precision(0),
-            telegraph_color: ToggleWidget::new("Telegraph highlight"),
+            blue: SliderWidget::new("Blue light").with_precision(0),
+            saturation: SliderWidget::new("Saturation").with_precision(0),
+            telegraph_color: ColorSelectWidget::new(
+                "Telegraph color",
+                [ThemeColor::Light, ThemeColor::Highlight],
+            ),
+            perfect_color: ColorSelectWidget::new(
+                "Perfect color",
+                [ThemeColor::Light, ThemeColor::Highlight],
+            ),
         }
     }
 }
@@ -276,44 +329,46 @@ impl StatefulWidget for GraphicsWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let context = &mut context.scale_font(0.8);
+        let context = &mut context.scale_font(FONT_SCALE);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
         let mut min_y = current_row.min.y;
+        let layout_size = context.layout_size;
         let mut next_row = || -> Aabb2<f32> {
             let row = current_row;
-            current_row =
-                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            current_row = current_row.translate(vec2(0.0, -row.height() - layout_size * 0.1));
             min_y = row.min.y;
             row
         };
 
-        self.crt.checked = state.crt.enabled;
-        self.crt.update(next_row(), context);
-        if self.crt.state.mouse_left.clicked {
-            state.crt.enabled = !state.crt.enabled;
+        let context = &mut context.scale_font(FONT_FIT_SCALE);
+
+        let window = context.context.geng.window();
+        self.fullscreen.checked = window.is_fullscreen();
+        self.fullscreen.update(next_row(), context);
+        if self.fullscreen.state.mouse_left.clicked {
+            window.toggle_fullscreen();
         }
 
-        if state.crt.enabled {
-            self.crt_scanlines.state.show();
-            let mut value = Bounded::new(state.crt.scanlines * 100.0, 0.0..=100.0);
-            self.crt_scanlines.update(next_row(), context, &mut value);
-            state.crt.scanlines = value.value() / 100.0;
-        } else {
-            self.crt_scanlines.state.hide();
-        }
+        self.crt
+            .update_state(next_row(), context, &mut state.crt.enabled);
 
-        self.telegraph_color.update(next_row(), context);
-        if self.telegraph_color.state.mouse_left.clicked {
-            state.lights.telegraph_color = if state.lights.telegraph_color == ThemeColor::Light {
-                ThemeColor::Highlight
-            } else {
-                ThemeColor::Light
-            };
-        }
-        self.telegraph_color.checked = state.lights.telegraph_color == ThemeColor::Highlight;
+        let mut blue = state.colors.blue * 100.0;
+        self.blue
+            .update_value(next_row(), context, &mut blue, RANGE_BLUE);
+        state.colors.blue = blue / 100.0;
+
+        let mut saturation = state.colors.saturation * 100.0;
+        self.saturation
+            .update_value(next_row(), context, &mut saturation, RANGE_SATURATION);
+        state.colors.saturation = saturation / 100.0;
+
+        self.telegraph_color
+            .update(next_row(), context, &mut state.lights.telegraph_color);
+        self.perfect_color
+            .update(next_row(), context, &mut state.lights.perfect_color);
 
         let mut position = position;
         position.min.y = min_y;
@@ -324,9 +379,13 @@ impl StatefulWidget for GraphicsWidget {
 pub struct CursorWidget {
     pub state: WidgetState,
     pub title: TextWidget,
-    pub show_perfect_radius: ToggleWidget,
+    pub show_trail: ToggleWidget,
     pub inner_radius: SliderWidget,
+    pub show_perfect_radius: ToggleWidget,
     pub outer_radius: SliderWidget,
+    pub outer_color: ColorSelectWidget,
+    pub show_rhythm_circles: ToggleWidget,
+    pub show_rhythm_only_miss: ToggleWidget,
 }
 
 impl CursorWidget {
@@ -334,9 +393,22 @@ impl CursorWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Cursor"),
-            show_perfect_radius: ToggleWidget::new("Show Outline"),
-            inner_radius: SliderWidget::new("Size").with_display_precision(2),
-            outer_radius: SliderWidget::new("Outline width").with_display_precision(2),
+            show_trail: ToggleWidget::new("Show trail"),
+            inner_radius: SliderWidget::new("Trail size").with_precision(2),
+            show_perfect_radius: ToggleWidget::new("Show outline"),
+            outer_radius: SliderWidget::new("Outline width").with_precision(2),
+            outer_color: ColorSelectWidget::new(
+                "Outline color",
+                [
+                    // TODO: currently does not render properly in the menu because of transparency
+                    // ThemeColor::Dark,
+                    ThemeColor::Light,
+                    ThemeColor::Highlight,
+                    ThemeColor::Danger,
+                ],
+            ),
+            show_rhythm_circles: ToggleWidget::new("Rhythm circles"),
+            show_rhythm_only_miss: ToggleWidget::new("Show only misses"),
         }
     }
 }
@@ -360,35 +432,62 @@ impl StatefulWidget for CursorWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let context = &mut context.scale_font(0.8);
+        let context = &mut context.scale_font(FONT_SCALE);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
         let mut min_y = current_row.min.y;
+        let layout_size = context.layout_size;
         let mut next_row = || -> Aabb2<f32> {
             let row = current_row;
-            current_row =
-                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            current_row = current_row.translate(vec2(0.0, -row.height() - layout_size * 0.1));
             min_y = row.min.y;
             row
         };
 
-        self.show_perfect_radius.update(next_row(), context);
-        if self.show_perfect_radius.state.mouse_left.clicked {
-            state.show_perfect_radius = !state.show_perfect_radius;
-        }
-        self.show_perfect_radius.checked = state.show_perfect_radius;
+        let context = &mut context.scale_font(FONT_FIT_SCALE);
 
-        self.inner_radius
-            .update_value(next_row(), context, &mut state.inner_radius, 0.1..=0.5);
+        self.show_trail
+            .update_state(next_row(), context, &mut state.show_trail);
+
+        self.inner_radius.update_value(
+            next_row(),
+            context,
+            &mut state.inner_radius,
+            RANGE_INNER_RADIUS,
+        );
+
+        self.show_perfect_radius
+            .update_state(next_row(), context, &mut state.show_perfect_radius);
         if state.show_perfect_radius {
+            self.outer_radius.state.show();
             self.outer_radius.update_value(
                 next_row(),
                 context,
                 &mut state.outer_radius,
-                0.05..=0.5,
+                RANGE_OUTER_RADIUS,
             );
+
+            self.outer_color.state.show();
+            self.outer_color
+                .update(next_row(), context, &mut state.outer_color);
+        } else {
+            self.outer_radius.state.hide();
+            self.outer_color.state.hide();
+        }
+
+        self.show_rhythm_circles
+            .update_state(next_row(), context, &mut state.show_rhythm_circles);
+        if state.show_rhythm_circles {
+            self.show_rhythm_only_miss.state.show();
+            self.show_rhythm_only_miss.update_state(
+                next_row(),
+                context,
+                &mut state.show_rhythm_only_miss,
+            );
+        } else {
+            self.show_rhythm_only_miss.state.hide();
         }
 
         let mut position = position;
@@ -408,7 +507,7 @@ impl GameplayWidget {
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Gameplay"),
-            music_offset: SliderWidget::new("Music offset").with_display_precision(0),
+            music_offset: SliderWidget::new("Music offset").with_precision(0),
         }
     }
 }
@@ -432,132 +531,31 @@ impl StatefulWidget for GameplayWidget {
         self.title.align(vec2(0.5, 0.5));
         self.title.update(title, context);
 
-        let context = &mut context.scale_font(0.8);
+        let context = &mut context.scale_font(FONT_SCALE);
 
         let mut current_row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 1.1);
         let mut min_y = current_row.min.y;
+        let layout_size = context.layout_size;
         let mut next_row = || -> Aabb2<f32> {
             let row = current_row;
-            current_row =
-                current_row.translate(vec2(0.0, -row.height() - context.layout_size * 0.1));
+            current_row = current_row.translate(vec2(0.0, -row.height() - layout_size * 0.1));
             min_y = row.min.y;
             row
         };
 
-        self.music_offset
-            .update_value(next_row(), context, &mut state.music_offset, -50.0..=50.0);
+        let context = &mut context.scale_font(FONT_FIT_SCALE);
 
-        let mut position = position;
-        position.min.y = min_y;
-        self.state.update(position, context);
-    }
-}
-
-pub struct PaletteChooseWidget {
-    pub state: WidgetState,
-    pub title: TextWidget,
-    pub palettes: Vec<PaletteWidget>,
-}
-
-impl PaletteChooseWidget {
-    pub fn new(options: Vec<PaletteWidget>) -> Self {
-        Self {
-            state: WidgetState::new(),
-            title: TextWidget::new("Palette"),
-            palettes: options,
-        }
-    }
-}
-
-impl StatefulWidget for PaletteChooseWidget {
-    type State<'a> = Theme;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
-        let mut main = position;
-
-        let title = main.cut_top(context.font_size * 1.5);
-        self.title.update(title, context);
-
-        let row = Aabb2::point(main.top_left())
-            .extend_right(main.width())
-            .extend_down(context.font_size * 1.2);
-        let rows = row.stack(
-            vec2(0.0, -row.height() - context.layout_size * 0.1),
-            self.palettes.len(),
+        self.music_offset.update_value(
+            next_row(),
+            context,
+            &mut state.music_offset,
+            RANGE_MUSIC_OFFSET,
         );
-        let min_y = rows.last().unwrap().min.y;
-        for (palette, pos) in self.palettes.iter_mut().zip(rows) {
-            palette.update(pos, context, state);
-            if palette.state.mouse_left.clicked {
-                *state = palette.palette;
-            }
-        }
 
         let mut position = position;
         position.min.y = min_y;
         self.state.update(position, context);
-    }
-}
-
-pub struct PaletteWidget {
-    pub state: WidgetState,
-    pub visual: WidgetState,
-    pub name: TextWidget,
-    pub palette: Theme,
-}
-
-impl PaletteWidget {
-    pub fn new(name: impl Into<Name>, palette: Theme) -> Self {
-        Self {
-            state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
-            visual: WidgetState::new(),
-            name: TextWidget::new(name),
-            palette,
-        }
-    }
-}
-
-impl StatefulWidget for PaletteWidget {
-    type State<'a> = Theme;
-
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
-    fn update(
-        &mut self,
-        position: Aabb2<f32>,
-        context: &mut UiContext,
-        state: &mut Self::State<'_>,
-    ) {
-        self.state.update(position, context);
-        if self.state.mouse_left.clicked {
-            *state = self.palette;
-        }
-
-        let main = position;
-
-        let mut name = main;
-        let visual = name.split_left(0.5);
-
-        let height = main.height() * 0.5;
-        let visual = visual.extend_left(height * 4.0 - visual.width());
-        let visual = visual.extend_symmetric(vec2(0.0, height - visual.height()) / 2.0);
-        self.visual.update(visual, context);
-
-        let name = name.extend_left(-context.font_size * 0.2);
-        self.name.align(vec2(0.0, 0.5));
-        self.name.update(name, context);
     }
 }

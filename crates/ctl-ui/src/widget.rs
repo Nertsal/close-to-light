@@ -1,5 +1,6 @@
 mod beat_time;
 mod button;
+mod color;
 mod confirm;
 mod dropdown;
 mod explore;
@@ -11,7 +12,7 @@ mod text;
 mod value;
 
 pub use self::{
-    beat_time::*, button::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
+    beat_time::*, button::*, color::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
     notification::*, slider::*, text::*, value::*,
 };
 
@@ -24,7 +25,7 @@ use std::any::Any;
 use geng::prelude::*;
 
 /// Max distance that the cursor can travel for a click to register as a stationary one.
-const MAX_CLICK_DISTANCE: f32 = 1.0;
+const MAX_CLICK_DISTANCE: f32 = 10.0;
 
 #[macro_export]
 macro_rules! simple_widget_state {

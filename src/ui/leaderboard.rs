@@ -4,21 +4,21 @@ use crate::{prelude::Assets, ui::layout::AreaOps};
 
 use ctl_core::types::{Name, UserInfo};
 use ctl_local::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore};
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_ui::util::ScrollState;
 
 pub struct LeaderboardWidget {
     pub state: WidgetState,
     pub assets: Rc<Assets>,
     pub window: UiWindow<()>,
-    // pub close: IconButtonWidget,
+    pub pin: ToggleButtonWidget,
     pub reload: IconButtonWidget,
     pub show_title: bool,
     pub title: TextWidget,
     pub subtitle: TextWidget,
+    pub level_name: TextWidget,
     pub separator_title: WidgetState,
     pub status: TextWidget,
-    pub scroll: SecondOrderState<f32>,
-    scroll_drag_from: f32,
+    pub scroll: ScrollState,
     pub rows_state: WidgetState,
     pub rows: Vec<LeaderboardEntryWidget>,
     pub separator_highscore: WidgetState,
@@ -43,15 +43,15 @@ impl LeaderboardWidget {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             assets: assets.clone(),
             window: UiWindow::new((), 0.3).reload_skip(),
-            // close: IconButtonWidget::new_close_button(&assets.sprites.button_close),
+            pin: ToggleButtonWidget::new_deselectable("").with_icon(assets.atlas.pin()),
             reload: IconButtonWidget::new_normal(assets.atlas.reset()),
             show_title,
             title: TextWidget::new("LEADERBOARD"),
             subtitle: TextWidget::new("login to submit scores"),
+            level_name: TextWidget::new("Level - Difficulty"),
             separator_title: WidgetState::new(),
             status: TextWidget::new(""),
-            scroll: SecondOrderState::new(SecondOrderDynamics::new(5.0, 2.0, 0.0, 0.0)),
-            scroll_drag_from: 0.0,
+            scroll: ScrollState::new(),
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator_highscore: WidgetState::new(),
@@ -64,7 +64,7 @@ impl LeaderboardWidget {
                         name: "player".into(),
                     },
                     score: 0,
-                    meta: ctl_local::ScoreMeta::default(),
+                    meta: ctl_core::score::ScoreMeta::default(),
                 },
                 false,
             ),
@@ -106,26 +106,23 @@ impl LeaderboardWidget {
     }
 
     pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {
+        self.level_name.text = format!("{} - {}", board.music.name, board.level.name).into();
         self.rows = board
             .filtered
             .iter()
             .enumerate()
-            .filter_map(|(rank, entry)| {
-                let meta = entry
-                    .extra_info
-                    .as_ref()
-                    .and_then(|meta| serde_json::from_str(meta).ok())?;
+            .map(|(rank, entry)| {
                 let score = SavedScore {
                     user: entry.user.clone(),
-                    score: entry.score,
-                    meta,
+                    score: entry.score.score(),
+                    meta: entry.score.clone(),
                 };
-                Some(LeaderboardEntryWidget::new(
+                LeaderboardEntryWidget::new(
                     &self.assets,
                     (rank + 1).to_string(),
                     score,
                     entry.user.id == user.id,
-                ))
+                )
             })
             .collect();
         match &board.local_high {
@@ -151,23 +148,20 @@ impl WidgetOld for LeaderboardWidget {
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.state.update(position, context);
+        if self.pin.selected {
+            // Nullifying a request will prevent the window from getting closed.
+            self.window.request = None;
+        }
         self.window.update(context.delta_time);
 
         let main = position;
 
-        ctl_ui::util::scroll_drag(
-            context,
-            &self.state,
-            &mut self.scroll,
-            &mut self.scroll_drag_from,
-        );
+        self.scroll.drag(context, &self.state);
 
-        // let close = layout::align_aabb(
-        //     vec2::splat(1.0) * context.font_size,
-        //     main.extend_uniform(-0.5 * context.layout_size),
-        //     vec2(0.0, 1.0),
-        // );
-        // self.close.update(close, context);
+        let pin = main
+            .extend_uniform(-0.5 * context.layout_size)
+            .align_aabb(vec2::splat(1.0) * context.font_size, vec2(0.0, 1.0));
+        self.pin.update(pin, context);
 
         let reload = main
             .extend_uniform(-0.5 * context.layout_size)
@@ -186,8 +180,20 @@ impl WidgetOld for LeaderboardWidget {
             self.title.update(title, &context.scale_font(1.1));
         }
 
-        let subtitle = main.cut_top(context.font_size * 1.0);
-        self.subtitle.update(subtitle, context);
+        if self.subtitle.state.visible {
+            let subtitle = main.cut_top(context.font_size * 0.7);
+            self.subtitle.update(subtitle, context);
+
+            let level_name = main.cut_top(context.font_size * 1.0);
+            self.level_name.update(level_name, context);
+
+            main.cut_top(context.font_size * 0.3);
+        } else {
+            main.cut_top(context.font_size * 0.5);
+            let level_name = main.cut_top(context.font_size * 1.0);
+            main.cut_top(context.font_size * 0.5);
+            self.level_name.update(level_name, context);
+        }
 
         let separator = main.cut_top(context.font_size * 0.1);
         self.separator_title.update(separator, context);
@@ -208,7 +214,7 @@ impl WidgetOld for LeaderboardWidget {
         main.cut_bottom(0.2 * context.font_size);
 
         self.rows_state.update(main, context);
-        let main = main.translate(vec2(0.0, -self.scroll.current));
+        let main = main.translate(vec2(0.0, -self.scroll.state.current));
         let row = Aabb2::point(main.top_left())
             .extend_right(main.width())
             .extend_down(context.font_size * 2.0);
@@ -219,12 +225,8 @@ impl WidgetOld for LeaderboardWidget {
             row.update(position, context);
         }
 
-        ctl_ui::util::overflow_scroll(
-            context.delta_time,
-            &mut self.scroll.target,
-            height,
-            main.height(),
-        );
+        self.scroll
+            .overflow(context.delta_time, height, main.height());
     }
 }
 
@@ -254,7 +256,7 @@ impl LeaderboardEntryWidget {
         let grade = IconWidget::new(assets.get_grade(score_grade));
 
         let accuracy = TextWidget::new(format!(
-            "accuracy: {}%",
+            "rhythm: {}%",
             (score.meta.score.calculated.accuracy.as_f32() * 100.0).floor() as i32,
         ))
         .aligned(vec2(1.0, 1.0));

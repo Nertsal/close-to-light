@@ -7,8 +7,8 @@ pub use self::error::*;
 
 pub use ctl_core as core;
 use ctl_core::{
-    ScoreEntry, SubmitScore,
     prelude::{DeserializeOwned, Id, MusicInfo, MusicUpdate, log, serde_json},
+    score::{ServerScore, SubmitScore},
     types::{LevelInfo, LevelSetFull, LevelSetInfo, NewMusician},
 };
 
@@ -22,6 +22,8 @@ use tokio_util::bytes::Bytes;
 pub type Result<T, E = ClientError> = std::result::Result<T, E>;
 
 pub struct Nertboard {
+    #[cfg(feature = "steam")]
+    steam: Option<steamworks::Client>,
     pub url: Url,
     client: Client,
     online: AtomicBool,
@@ -31,14 +33,23 @@ pub struct Nertboard {
 impl Nertboard {
     pub fn new(url: impl reqwest::IntoUrl) -> Result<Self> {
         let client = Client::builder();
+        #[cfg(not(target_arch = "wasm32"))]
+        let client = client.timeout(std::time::Duration::from_secs(5));
         let client = client.build()?;
 
         Ok(Self {
+            #[cfg(feature = "steam")]
+            steam: None,
             url: url.into_url()?,
             client,
             online: AtomicBool::new(false),
             auth: RwLock::new(None),
         })
+    }
+
+    #[cfg(feature = "steam")]
+    pub fn connect_steam(&mut self, steam: steamworks::Client) {
+        self.steam = Some(steam);
     }
 
     /// Whether the server is currently online.
@@ -70,6 +81,7 @@ impl Nertboard {
         Ok(res)
     }
 
+    // TODO: somehow set it as a parallel process at startup
     pub async fn ping(&self) -> Result<()> {
         let url = self.url.clone();
         let req = self.client.get(url);
@@ -78,7 +90,7 @@ impl Nertboard {
         Ok(())
     }
 
-    pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ScoreEntry>> {
+    pub async fn fetch_scores(&self, level: Id) -> Result<Vec<ServerScore>> {
         let url = self.url.join(&format!("level/{level}/scores")).unwrap();
         let req = self.client.get(url);
 

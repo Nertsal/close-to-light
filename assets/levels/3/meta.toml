@@ -1,7 +1,7 @@
 version = "V3"
 id = 3
 featured = false
-hash = "b82dd258e1f9317fef1e74a8a160bcaf548c7fa03e812ededbd262b72276f6ec"
+hash = "02a0b020a7380ced4726157a62f46c97db49a9a4e7c5e6eb0903232ca706aacb"
 
 [music]
 id = 3
@@ -22,7 +22,7 @@ name = "Nertsal"
 [[levels]]
 id = 7
 name = "Easy"
-hash = "c11d85623a4cc473f012fd2db7e15f4647607e731422f8b821d70f222786438d"
+hash = "fda0567190c319bcc303433ab6c417b9d5b01fe7cb22e27d405710e9a062c06c"
 
 [[levels.authors]]
 id = 0
@@ -32,7 +32,7 @@ romanized = "ricky-lee"
 [[levels]]
 id = 8
 name = "Normal"
-hash = "feb475a7828ebe3c8f21c72a4947711c8b606cbf556053fec74fa29417d8d0d5"
+hash = "1b37dea0b04b82ffae89e7f02eeb9dbfaf290ccd90b869cda663770193f428b7"
 
 [[levels.authors]]
 id = 0
@@ -42,7 +42,7 @@ romanized = "ricky-lee"
 [[levels]]
 id = 9
 name = "Hard"
-hash = "480430b8404b55b33c53aee1e730811be207fc30a46c79d899d7331f08f2c894"
+hash = "1da661086511c08665bbdba663e335a6de192d6d578108f3f11b8acb86414f09"
 
 [[levels.authors]]
 id = 0
@@ -52,7 +52,7 @@ romanized = "ricky-lee"
 [[levels]]
 id = 10
 name = "Insane"
-hash = "e2f0840ea8c8d4e3387dc11a14cd3a5aa543f091ada75d08ffb09a8d7872fa20"
+hash = "368e51d072185cbb7c6c0ddc03320425e96e927b72230e6cdc46b0eac42a43f1"
 
 [[levels.authors]]
 id = 0

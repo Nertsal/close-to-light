@@ -333,7 +333,7 @@ impl EditorEditUi {
                                 let fade_in = bar.cut_top(value_height);
                                 bar.cut_top(spacing);
                                 let mut fade = BeatTime::from_beats_float(
-                                    time_to_seconds(light.movement.fade_in)
+                                    time_to_seconds(light.movement.get_fade_in())
                                         / timing_point.beat_time,
                                 );
                                 let slider = context.state.get_root_or(|| {
@@ -367,13 +367,14 @@ impl EditorEditUi {
 
                             {
                                 let to_time = event.time
-                                    + light.movement.fade_in
-                                    + light.movement.movement_duration();
+                                    + light.movement.get_fade_in()
+                                    + light.movement.duration()
+                                    - light.movement.get_fade_out();
                                 let timing_point = timing.get_timing(to_time);
                                 let fade_out = bar.cut_top(value_height);
                                 bar.cut_top(spacing);
                                 let mut fade = BeatTime::from_beats_float(
-                                    time_to_seconds(light.movement.fade_out)
+                                    time_to_seconds(light.movement.get_fade_out())
                                         / timing_point.beat_time,
                                 );
                                 let slider = context.state.get_root_or(|| {
@@ -438,7 +439,8 @@ impl EditorEditUi {
                             let light_pos = bar.cut_top(title_size);
                             let text = context
                                 .state
-                                .get_root_or(|| TextWidget::new(title).aligned(vec2(0.0, 0.5)));
+                                .get_root_or(|| TextWidget::new("").aligned(vec2(0.0, 0.5)));
+                            text.text = title.into();
                             text.update(light_pos, context);
                             text.options.size = title_size;
 
@@ -459,7 +461,7 @@ impl EditorEditUi {
                             EffectEvent::PaletteSwap(duration) => {
                                 let mut bar = right_bar;
 
-                                event_title_delete(&mut bar, "Palette Flip", tooltip, actions);
+                                event_title_delete(&mut bar, "Palette Swap", tooltip, actions);
 
                                 let duration_pos = bar.cut_top(value_height);
                                 let mut duration = BeatTime::from_beats_float(
@@ -607,7 +609,7 @@ impl EditorEditUi {
             && let Some(event) = level_editor.level.events.get(waypoints.light.event)
             && let Event::Light(light) = &event.event
         {
-            let frames = light.movement.key_frames.len();
+            let frames = light.movement.waypoints.len();
             if let Some(frame) = light.movement.get_frame(selected) {
                 // Waypoint
                 let mut bar = right_bar;
@@ -631,7 +633,7 @@ impl EditorEditUi {
                     });
                     button.update(prev, context);
                     if button.icon.state.mouse_left.clicked
-                        && let Some(id) = selected.prev()
+                        && let Some(id) = selected.prev(frames)
                     {
                         actions.push(LevelAction::SelectWaypoint(id, true).into());
                     }
@@ -640,6 +642,7 @@ impl EditorEditUi {
                 let i = match selected {
                     WaypointId::Initial => 0,
                     WaypointId::Frame(i) => i + 1,
+                    WaypointId::Last => frames + 1,
                 };
 
                 // Next waypoint
@@ -647,7 +650,7 @@ impl EditorEditUi {
                     .cut_right(current.height() * 0.6)
                     .zero_size(vec2(0.5, 0.5))
                     .extend_uniform(font_size * 0.7);
-                if i >= frames {
+                if i > frames {
                     let button = context.state.get_root_or(|| {
                         IconWidget::new(context.context.assets.atlas.button_next_hollow())
                     });
@@ -657,8 +660,10 @@ impl EditorEditUi {
                         IconButtonWidget::new_normal(context.context.assets.atlas.button_next())
                     });
                     button.update(next, context);
-                    if button.icon.state.mouse_left.clicked {
-                        actions.push(LevelAction::SelectWaypoint(selected.next(), true).into());
+                    if button.icon.state.mouse_left.clicked
+                        && let Some(next) = selected.next(frames)
+                    {
+                        actions.push(LevelAction::SelectWaypoint(next, true).into());
                     }
                 }
 
@@ -678,12 +683,32 @@ impl EditorEditUi {
                 }
                 tooltip.update(&button.text.state, "X", context);
 
+                let hollow_pos = bar.cut_top(value_height);
+                bar.cut_top(spacing);
+                let mut hollow = frame.hollow;
+                let value = context.state.get_root_or(|| {
+                    ValueWidget::new(
+                        "Hollow",
+                        hollow,
+                        ValueControl::Slider {
+                            min: r32(-1.0),
+                            max: r32(1.0),
+                        },
+                        r32(0.05),
+                    )
+                });
+                value.update(hollow_pos, context, &mut hollow);
+                actions.push(
+                    LevelAction::ChangeHollow(waypoints.light, selected, Change::Set(hollow))
+                        .into(),
+                );
+
                 let scale = bar.cut_top(value_height);
                 bar.cut_top(spacing);
                 let mut value = frame.scale.as_f32();
                 let slider = context
                     .state
-                    .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=10.0, 0.25));
+                    .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=20.0, 0.25));
                 if slider.update(scale, context, &mut value) {
                     actions.push(
                         LevelAction::ScaleWaypoint(

@@ -1,4 +1,4 @@
-use geng::prelude::{Angle, R32, r32, vec2};
+use geng::prelude::{Angle, R32, UNum, r32, vec2};
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, rc::Rc, sync::Arc};
 
@@ -12,6 +12,7 @@ pub struct LevelSet<L = LevelFull> {
     pub id: Id,
     pub music: Id,
     pub owner: UserInfo,
+    #[serde(default = "Vec::new")]
     pub levels: Vec<L>,
 }
 
@@ -146,7 +147,7 @@ impl Default for Movement {
     }
 }
 
-pub fn convert_group(
+pub fn migrate(
     beat_time: crate::FloatTime,
     value: LevelSet,
 ) -> (crate::LevelSet, crate::LevelSetInfo) {
@@ -221,18 +222,51 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
                             }
                         },
                         movement: crate::Movement {
-                            fade_in: convert_time(beat_time, light.light.movement.fade_in),
-                            fade_out: convert_time(beat_time, light.light.movement.fade_out),
-                            initial: light.light.movement.initial.into(),
-                            interpolation: crate::MoveInterpolation::default(),
-                            curve: crate::TrajectoryInterpolation::default(),
-                            key_frames: light
-                                .light
-                                .movement
-                                .key_frames
-                                .into_iter()
-                                .map(|frame| convert_frame(beat_time, frame))
-                                .collect(),
+                            initial: crate::WaypointInitial {
+                                lerp_time: convert_time(beat_time, light.light.movement.fade_in),
+                                interpolation: crate::MoveInterpolation::default(),
+                                curve: crate::TrajectoryInterpolation::default(),
+                                transform: crate::TransformLight {
+                                    scale: R32::ZERO,
+                                    ..light.light.movement.initial.into()
+                                },
+                            },
+                            last: crate::TransformLight {
+                                scale: R32::ZERO,
+                                ..light
+                                    .light
+                                    .movement
+                                    .key_frames
+                                    .back()
+                                    .map(|frame| frame.transform)
+                                    .unwrap_or(light.light.movement.initial)
+                                    .into()
+                            },
+                            waypoints: {
+                                let movement = light.light.movement;
+                                let mut waypoints: VecDeque<crate::Waypoint> = movement
+                                    .key_frames
+                                    .into_iter()
+                                    .map(|frame| convert_frame(beat_time, frame))
+                                    .collect();
+                                waypoints.push_front(crate::Waypoint {
+                                    lerp_time: waypoints.front().map_or_else(
+                                        || convert_time(beat_time, movement.fade_out),
+                                        |frame| frame.lerp_time,
+                                    ),
+                                    interpolation: crate::MoveInterpolation::default(),
+                                    change_curve: None,
+                                    transform: movement.initial.into(),
+                                });
+                                for i in 1..waypoints.len() {
+                                    let time = waypoints.get(i + 1).map_or_else(
+                                        || convert_time(beat_time, movement.fade_out),
+                                        |frame| frame.lerp_time,
+                                    );
+                                    waypoints.get_mut(i).unwrap().lerp_time = time;
+                                }
+                                waypoints
+                            },
                         },
                     }),
                     Event::PaletteSwap => {
@@ -249,18 +283,19 @@ fn convert_level(beat_time: crate::FloatTime, value: Level) -> crate::Level {
     }
 }
 
-impl From<Transform> for crate::Transform {
+impl From<Transform> for crate::TransformLight {
     fn from(value: Transform) -> Self {
         Self {
             translation: value.translation,
             rotation: value.rotation,
             scale: value.scale,
+            hollow: r32(-1.0),
         }
     }
 }
 
-fn convert_frame(beat_time: crate::FloatTime, value: MoveFrame) -> crate::MoveFrame {
-    crate::MoveFrame {
+fn convert_frame(beat_time: crate::FloatTime, value: MoveFrame) -> crate::Waypoint {
+    crate::Waypoint {
         lerp_time: convert_time(beat_time, value.lerp_time),
         interpolation: crate::MoveInterpolation::default(),
         change_curve: None, // Linear

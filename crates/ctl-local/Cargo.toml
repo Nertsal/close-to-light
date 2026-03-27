@@ -3,7 +3,12 @@ name = "ctl-local"
 version.workspace = true
 edition.workspace = true
 
+[features]
+demo = []
+steam = ["dep:steamworks"]
+
 [dependencies]
+ctl-constants.workspace = true
 ctl-core.workspace = true
 ctl-client.workspace = true
 ctl-util.workspace = true
@@ -16,6 +21,7 @@ base64.workspace = true
 directories.workspace = true
 webbrowser.workspace = true
 time.workspace = true
+steamworks = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 rexie = "0.6.2"

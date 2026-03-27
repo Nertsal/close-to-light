@@ -28,12 +28,18 @@ struct AppConfig {
 struct AppSecrets {
     server_addr: String,
     discord: DiscordSecrets,
+    steam: SteamSecrets,
 }
 
 #[derive(Deserialize)]
 struct DiscordSecrets {
     client_id: Box<str>,
     client_secret: Box<str>,
+}
+
+#[derive(Deserialize)]
+struct SteamSecrets {
+    web_api_key: Box<str>,
 }
 
 #[tokio::main]

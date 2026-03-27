@@ -10,7 +10,7 @@ pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::UiContext;
-use ctl_util::{SecondOrderDynamics, SecondOrderState};
+use ctl_util::SecondOrderState;
 
 pub struct EditorState {
     context: Context,
@@ -33,7 +33,7 @@ impl EditorState {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(context.clone()),
-            post_render: PostRender::new(context.clone()),
+            post_render: PostRender::new(&context),
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
             ui: EditorUi::new(context.clone()),
@@ -56,7 +56,7 @@ impl EditorState {
                 exit: false,
 
                 grid: Grid::new_with(config.grid.clone()),
-                view_zoom: SecondOrderState::new(SecondOrderDynamics::new(3.0, 1.0, 1.0, 1.0)),
+                view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
                 visualize_beat: true,
                 show_only_selected: false,
                 snap_to_grid: true,
@@ -73,8 +73,10 @@ impl EditorState {
     pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
-        let model = Model::empty(context.clone(), level.clone());
-        editor.editor.level_edit = Some(LevelEditor::new(context, model, level, true, false));
+        editor.editor.level_edit = Some(LevelEditor::new(context, level, true, false));
+
+        editor.context.set_status("In Editor");
+
         editor
     }
 
@@ -217,7 +219,11 @@ impl EditorState {
             crate::game::Game::new(
                 self.context.clone(),
                 level,
-                Leaderboard::new(&self.context.geng, None, &self.context.local.fs),
+                Leaderboard::empty(
+                    &self.context.geng,
+                    &self.context.local.fs,
+                    &self.context.achievements,
+                ),
             ),
         )));
         self.stop_music_next_frame = true;
@@ -226,11 +232,19 @@ impl EditorState {
 
 impl geng::State for EditorState {
     fn transition(&mut self) -> Option<geng::state::Transition> {
-        self.transition.take()
+        let trans = self.transition.take();
+
+        if let Some(geng::state::Transition::Pop) | Some(geng::state::Transition::Switch(_)) = trans
+        {
+            self.context.pop_status();
+        }
+
+        trans
     }
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
+        self.context.update(delta_time);
         self.delta_time = delta_time;
         self.editor.real_time += delta_time;
 
@@ -282,6 +296,7 @@ impl geng::State for EditorState {
             time: self.editor.real_time,
             crt: false,
             rgb_split: vfx.rgb_split.value.current.as_f32(),
+            colors: options.graphics.colors,
         };
 
         self.ui_context.state.frame_start();
@@ -322,6 +337,7 @@ impl geng::State for EditorState {
             rgb_split: 0.0,
             ..game_post_vfx
         };
-        self.post_render.post_process(editor_post_vfx, framebuffer);
+        self.post_render
+            .post_process(&options, editor_post_vfx, framebuffer);
     }
 }

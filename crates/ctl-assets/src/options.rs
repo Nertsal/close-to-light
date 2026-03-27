@@ -7,8 +7,7 @@ where
     T: DeserializeOwned + Default,
     D: Deserializer<'de>,
 {
-    let v: ron::Value = Deserialize::deserialize(deserializer)?;
-    Ok(T::deserialize(v).unwrap_or_else(|err| {
+    Ok(T::deserialize(deserializer).unwrap_or_else(|err| {
         log::error!(
             "failed to deserialize type {}, using default, error: {:?}",
             std::any::type_name::<T>(),
@@ -22,6 +21,8 @@ where
 #[serde(default)]
 pub struct Options {
     #[serde(deserialize_with = "ok_or_default")]
+    pub account: AccountOptions,
+    #[serde(deserialize_with = "ok_or_default")]
     pub volume: VolumeOptions,
     #[serde(deserialize_with = "ok_or_default")]
     pub theme: Theme,
@@ -33,19 +34,35 @@ pub struct Options {
     pub gameplay: GameplayOptions,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct AccountOptions {
+    pub auto_login: bool,
+}
+
+impl Default for AccountOptions {
+    fn default() -> Self {
+        Self { auto_login: true }
+    }
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsOptions {
     pub crt: GraphicsCrtOptions,
     pub lights: GraphicsLightsOptions,
+    pub colors: GraphicsColorsOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsCrtOptions {
     pub enabled: bool,
+    #[serde(skip)]
     pub curvature: f32,
+    #[serde(skip)]
     pub vignette: f32,
+    #[serde(skip)]
     pub scanlines: f32,
 }
 
@@ -60,16 +77,34 @@ impl Default for GraphicsCrtOptions {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GraphicsColorsOptions {
+    pub blue: f32,
+    pub saturation: f32,
+}
+
+impl Default for GraphicsColorsOptions {
+    fn default() -> Self {
+        Self {
+            blue: 1.0,
+            saturation: 1.0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsLightsOptions {
     pub telegraph_color: ThemeColor,
+    pub perfect_color: ThemeColor,
 }
 
 impl Default for GraphicsLightsOptions {
     fn default() -> Self {
         Self {
             telegraph_color: ThemeColor::Light,
+            perfect_color: ThemeColor::Highlight,
         }
     }
 }
@@ -77,17 +112,32 @@ impl Default for GraphicsLightsOptions {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct CursorOptions {
-    pub show_perfect_radius: bool,
+    /// Render the trail.
+    pub show_trail: bool,
+    /// Radius of the trail.
     pub inner_radius: f32,
+    /// Render the radius of the player's collider where it's counted as perfectly inside of the light.
+    pub show_perfect_radius: bool,
+    /// Size of the *perfect radius*.
     pub outer_radius: f32,
+    /// Color of the *perfect radius*.
+    pub outer_color: ThemeColor,
+    /// Display rhythm feedback circles during gameplay.
+    pub show_rhythm_circles: bool,
+    /// Display only missed rhythm circles.
+    pub show_rhythm_only_miss: bool,
 }
 
 impl Default for CursorOptions {
     fn default() -> Self {
         Self {
-            show_perfect_radius: true,
+            show_trail: true,
             inner_radius: 0.15,
+            show_perfect_radius: true,
             outer_radius: 0.05,
+            outer_color: ThemeColor::Light,
+            show_rhythm_circles: true,
+            show_rhythm_only_miss: false,
         }
     }
 }
@@ -101,7 +151,7 @@ pub struct GameplayOptions {
 
 impl Default for GameplayOptions {
     fn default() -> Self {
-        Self { music_offset: 20.0 }
+        Self { music_offset: 0.0 }
     }
 }
 
@@ -150,40 +200,33 @@ impl Default for VolumeOptions {
 }
 
 impl Theme {
-    pub fn classic() -> Self {
-        Self {
-            dark: Color::BLACK,
-            light: Color::WHITE,
-            danger: Color::RED,
-            highlight: Color::CYAN,
-        }
+    pub fn new(dark: &str, light: &str, danger: &str, highlight: &str) -> anyhow::Result<Self> {
+        Ok(Self {
+            dark: Color::try_from(dark)?,
+            light: Color::try_from(light)?,
+            danger: Color::try_from(danger)?,
+            highlight: Color::try_from(highlight)?,
+        })
     }
 
-    pub fn peach_mint() -> Self {
-        Self {
-            dark: Color::try_from("#2B3A67").unwrap(),
-            light: Color::try_from("#FFC482").unwrap(),
-            danger: Color::try_from("#D34F73").unwrap(),
-            highlight: Color::try_from("#61C9A8").unwrap(),
-        }
+    pub fn classic() -> Self {
+        Self::new("#000000", "#ffffff", "#ff0000", "#00ffff").unwrap()
+    }
+
+    pub fn stargazer() -> Self {
+        Self::new("#162246", "#f9bc76", "#ad3454", "#1e8294").unwrap()
     }
 
     pub fn corruption() -> Self {
-        Self {
-            dark: Color::try_from("#382637").unwrap(),
-            light: Color::try_from("#DEA257").unwrap(),
-            danger: Color::try_from("#A23F6D").unwrap(),
-            highlight: Color::try_from("#43BCCD").unwrap(),
-        }
+        Self::new("#2b172a", "#db9d51", "#a23f6d", "#30aabb").unwrap()
     }
 
     pub fn linksider() -> Self {
-        Self {
-            dark: Color::try_from("#46425E").unwrap(),
-            light: Color::try_from("#FFEECC").unwrap(),
-            danger: Color::try_from("#FF6973").unwrap(),
-            highlight: Color::try_from("#00B9BE").unwrap(),
-        }
+        Self::new("#46425E", "#FFEECC", "#FF6973", "#00B9BE").unwrap()
+    }
+
+    pub fn frostlight() -> Self {
+        Self::new("#18284A", "#EBF9FF", "#D75672", "#369ADD").unwrap()
     }
 
     /// Make `dark` color transparent black.
@@ -214,6 +257,10 @@ impl Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Self::classic()
+        if cfg!(feature = "demo") {
+            Self::classic()
+        } else {
+            Self::frostlight()
+        }
     }
 }

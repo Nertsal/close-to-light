@@ -1,0 +1,2 @@
+[target.'cfg(unix)']
+rustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN"]

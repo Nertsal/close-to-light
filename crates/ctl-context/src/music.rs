@@ -1,6 +1,7 @@
 use super::*;
 
 use ctl_core::types::time_to_seconds;
+use ctl_util::SecondOrderState;
 
 pub struct MusicManager {
     inner: RefCell<MusicManagerImpl>,
@@ -8,7 +9,7 @@ pub struct MusicManager {
 
 struct MusicManagerImpl {
     geng: Geng,
-    volume: f32,
+    volume: SecondOrderState<f32>,
     playing: Option<Music>,
 }
 
@@ -17,7 +18,7 @@ impl MusicManager {
         Self {
             inner: RefCell::new(MusicManagerImpl {
                 geng,
-                volume: 0.5,
+                volume: SecondOrderState::new(3.0, 1.0, 0.0, 0.5),
                 playing: None,
             }),
         }
@@ -33,18 +34,33 @@ impl MusicManager {
 
     pub fn set_volume(&self, volume: f32) {
         let mut inner = self.inner.borrow_mut();
-        inner.volume = volume;
+        inner.volume.snap_to(volume, 1.0 / 60.0);
         if let Some(music) = &mut inner.playing {
             music.set_volume(volume);
         }
     }
 
+    pub fn fade_to_volume(&self, volume: f32) {
+        let mut inner = self.inner.borrow_mut();
+        inner.volume.target = volume;
+    }
+
     pub fn set_speed(&self, speed: f32) {
         let mut inner = self.inner.borrow_mut();
         if let Some(music) = &mut inner.playing
-            && let Some(effect) = &mut music.effect {
-                effect.set_speed(speed);
-            }
+            && let Some(effect) = &mut music.effect
+        {
+            effect.set_speed(speed);
+        }
+    }
+
+    pub fn update(&self, delta_time: f32) {
+        let mut inner = self.inner.borrow_mut();
+        inner.volume.update(delta_time);
+        let volume = inner.volume.current;
+        if let Some(music) = &mut inner.playing {
+            music.set_volume(volume);
+        }
     }
 
     pub fn stop(&self) {
@@ -63,11 +79,11 @@ impl MusicManager {
             .map(|music| music.local.meta.id)
     }
 
-    pub fn switch(&self, music: &Rc<LocalMusic>) {
+    pub fn switch(&self, music: &Rc<LocalMusic>, looped: bool) {
         if self.inner.borrow().playing.as_ref().is_none_or(|playing| {
             playing.effect.is_none() || !Rc::ptr_eq(&playing.local.sound, &music.sound)
         }) {
-            self.play(music);
+            self.play(music, looped);
         }
     }
 
@@ -78,22 +94,22 @@ impl MusicManager {
     //     }
     // }
 
-    pub fn play(&self, music: &Rc<LocalMusic>) {
-        self.play_from(music, Duration::from_secs_f64(0.0))
+    pub fn play(&self, music: &Rc<LocalMusic>, looped: bool) {
+        self.play_from(music, Duration::from_secs_f64(0.0), looped)
     }
 
-    pub fn play_from(&self, music: &Rc<LocalMusic>, time: Duration) {
+    pub fn play_from(&self, music: &Rc<LocalMusic>, time: Duration, looped: bool) {
         let mut inner = self.inner.borrow_mut();
         let mut music = Music::new(inner.geng.clone(), music.clone());
-        music.set_volume(inner.volume);
-        music.play_from(time);
+        music.set_volume(inner.volume.current);
+        music.play_from(time, looped);
         inner.playing = Some(music);
     }
 
-    pub fn play_from_time(&self, music: &Rc<LocalMusic>, time: Time) {
+    pub fn play_from_time(&self, music: &Rc<LocalMusic>, time: Time, looped: bool) {
         let time = time_to_seconds(time);
         let time = Duration::from_secs_f64(time.as_f32().into());
-        self.play_from(music, time)
+        self.play_from(music, time, looped)
     }
 }
 
@@ -152,11 +168,12 @@ impl Music {
         }
     }
 
-    pub fn play_from(&mut self, time: time::Duration) {
+    pub fn play_from(&mut self, time: time::Duration, looped: bool) {
         self.stop();
         let mut effect = self.local.sound.effect(self.geng.audio().default_type());
         effect.set_volume(self.volume);
         effect.play_from(time);
+        effect.set_looped(looped);
         self.effect = Some(effect);
     }
 }

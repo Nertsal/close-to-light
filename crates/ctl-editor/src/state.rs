@@ -47,7 +47,7 @@ pub struct EditorLevelState {
 pub struct Waypoints {
     /// Index of the light event.
     pub light: LightId,
-    pub points: Vec<Waypoint>,
+    pub points: Vec<WaypointEdit>,
     /// Index of the hovered *rendered* waypoint.
     pub hovered: Option<usize>,
     /// Index of the selected *original* keyframe.
@@ -55,7 +55,7 @@ pub struct Waypoints {
 }
 
 #[derive(Debug)]
-pub struct Waypoint {
+pub struct WaypointEdit {
     /// Whether the waypoint is rendered. Used when several waypoints overlap.
     pub visible: bool,
     /// Index of the original keyframe.

@@ -1,5 +1,6 @@
 use super::*;
 
+use ctl_core::score::PauseIndicator;
 use ctl_local::{CachedGroup, Leaderboard, LocalMusic};
 use generational_arena::Index;
 
@@ -39,12 +40,9 @@ impl HoverButton {
             base_collider: collider,
             hover_time: Lifetime::new_zero(hover_time.as_r32()),
             animation: Movement {
-                fade_in: seconds_to_time(r32(0.0)),
-                initial: Transform::scale(2.25),
-                key_frames: vec![MoveFrame::scale(0.5, 5.0), MoveFrame::scale(0.25, 75.0)].into(),
-                interpolation: MoveInterpolation::Smoothstep,
-                curve: TrajectoryInterpolation::Linear,
-                fade_out: seconds_to_time(r32(0.2)),
+                initial: WaypointInitial::new(seconds_to_time(0.5), TransformLight::scale(2.25)),
+                waypoints: vec![Waypoint::scale(seconds_to_time(0.25), 5.0)].into(),
+                last: TransformLight::scale(75.0),
             },
             clicked: false,
         }
@@ -56,7 +54,7 @@ impl HoverButton {
         let t = self.hover_time.get_ratio();
         let scale = self.animation.get(seconds_to_time(t)).scale;
         self.base_collider
-            .transformed(Transform { scale, ..default() })
+            .transformed(TransformLight { scale, ..default() })
     }
 
     /// Whether is button is now fading, i.e. going to finish its animation regardless of input.
@@ -148,10 +146,13 @@ pub struct Model {
     /// Button that was used to transition into the game.
     pub transition_button: Option<HoverButton>,
 
-    /// List collected rhythm (event_id, waypoint_id).
-    pub last_rhythm: (usize, WaypointId),
-    /// Waypoint rhythms.
+    /// List collected rhythm (event_id, waypoint_id)
+    /// with times of their collection.
+    pub recent_rhythm: HashMap<(usize, WaypointId), Time>,
+    /// Waypoint rhythms tracking player accuracy.
     pub rhythms: Vec<Rhythm>,
+    /// Times when the game was paused.
+    pub pauses: Vec<PauseIndicator>,
 
     /// Real time that has passed since the level was opened.
     pub real_time: FloatTime,
@@ -163,6 +164,10 @@ pub struct Model {
     pub play_time_ms: Time,
     /// Time since the level started playing, counting towards level completion.
     pub completion_time: FloatTime,
+    /// Restart and Exit buttons timer.
+    pub button_time: FloatTime,
+    /// Whether Restart and Exit buttons are activated.
+    pub buttons_active: bool,
 
     // for Lost/Finished state
     pub restart_button: HoverButton,
@@ -186,10 +191,15 @@ impl Model {
     }
 
     pub fn empty(context: Context, level: PlayLevel) -> Self {
+        context.music.stop();
         let options = context.get_options();
         Self {
             transition: None,
-            leaderboard: Leaderboard::empty(&context.geng, &context.local.fs),
+            leaderboard: Leaderboard::empty(
+                &context.geng,
+                &context.local.fs,
+                &context.achievements,
+            ),
             context,
 
             camera: Camera2d {
@@ -222,14 +232,17 @@ impl Model {
             },
             score: Score::new(level.config.modifiers.multiplier()),
 
-            last_rhythm: (999, WaypointId::Frame(999)), // Should be never the first one
+            recent_rhythm: HashMap::new(),
             rhythms: Vec::new(),
+            pauses: Vec::new(),
 
             real_time: FloatTime::ZERO,
             switch_time: FloatTime::ZERO,
             play_time: FloatTime::ZERO,
             play_time_ms: Time::ZERO,
             completion_time: FloatTime::ZERO,
+            button_time: FloatTime::ZERO,
+            buttons_active: false,
 
             restart_button: HoverButton::new(
                 Collider::new(vec2(-3.0, 0.0).as_r32(), Shape::Circle { radius: r32(1.0) }),

@@ -8,15 +8,14 @@ jobs:
   build-web:
     name: Build (Web)
     runs-on: ubuntu-latest
-    container: ghcr.io/geng-engine/cargo-geng@sha256:ce60c252b0ac348e7dfbd6828d5473d3b6531d67502cf9efa9aece7cada6706c
+    container: ghcr.io/geng-engine/cargo-geng@sha256:0e57d6ddd0b82f845fc254a553d2259d21f43ae7bc2068490db6659c8ed30fbe
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - run: cargo geng build --release --platform web
+      - run: cargo geng build --release --platform web --features itch --features demo
         env:
           LEADERBOARD_URL: ${{ secrets.LEADERBOARD_URL }}
-          LEADERBOARD_KEY: ${{ secrets.LEADERBOARD_KEY }}
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v4
         with:
@@ -115,7 +114,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
       - name: Upload itch.io (Web)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        # NOTE: changed from 'josephbmanley' to fork due to <https://github.com/yeslayla/butler-publish-itchio-action/pull/17>
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: html5
@@ -123,7 +123,7 @@ jobs:
           ITCH_USER: nertsal
           PACKAGE: web
       - name: Upload itch.io (Windows)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: windows
@@ -131,7 +131,7 @@ jobs:
           ITCH_USER: nertsal
           PACKAGE: windows
       - name: Upload itch.io (Linux)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: linux
@@ -139,7 +139,7 @@ jobs:
           ITCH_USER: nertsal
           PACKAGE: linux
       - name: Upload itch.io (MacOS)
-        uses: josephbmanley/butler-publish-itchio-action@master
+        uses: XanatosX/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: mac

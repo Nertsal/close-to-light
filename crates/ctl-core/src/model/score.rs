@@ -19,22 +19,6 @@ pub enum ScoreGrade {
     SSS,
 }
 
-impl Display for ScoreGrade {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            ScoreGrade::F => "F",
-            ScoreGrade::D => "D",
-            ScoreGrade::C => "C",
-            ScoreGrade::B => "B",
-            ScoreGrade::A => "A",
-            ScoreGrade::S => "S",
-            ScoreGrade::SS => "SS",
-            ScoreGrade::SSS => "SSS",
-        };
-        f.write_str(s)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Score {
@@ -103,18 +87,21 @@ impl Score {
     }
 
     pub fn calculate_grade(&self, completion: R32) -> ScoreGrade {
-        if completion.as_f32() < 0.999999 {
+        // TODO: change 0.999 to 1.0 (only affects old clients)
+        if completion.as_f32() < 0.999 {
             return ScoreGrade::F;
         }
         let acc = self.calculated.accuracy.as_f32();
-        if acc >= 1.0 {
-            if self.calculated.precision.as_f32() > 1.0 {
+        if acc >= 0.95 {
+            let high_acc = acc >= 1.0;
+            let high_prec = self.calculated.precision.as_f32() >= 0.95;
+            if high_acc && high_prec {
                 ScoreGrade::SSS
-            } else {
+            } else if high_acc || high_prec {
                 ScoreGrade::SS
+            } else {
+                ScoreGrade::S
             }
-        } else if acc >= 0.95 {
-            ScoreGrade::S
         } else if acc >= 0.9 {
             ScoreGrade::A
         } else if acc >= 0.75 {
@@ -186,10 +173,7 @@ impl ScoreMetrics {
 
     /// Update the metrics given the new player state.
     pub fn update(&mut self, player: &Player, delta_time: FloatTime) -> bool {
-        let mut rhythm = false;
-        if player.is_keyframe {
-            rhythm = rhythm || self.discrete.update(player);
-        }
+        let rhythm = self.discrete.update(player);
         self.dynamic.update(player, delta_time);
         rhythm
     }
@@ -212,11 +196,10 @@ impl DiscreteMetrics {
 
     /// Update the metrics given the new player state.
     pub fn update(&mut self, player: &Player) -> bool {
-        if player.danger_distance.is_none() && player.light_distance.is_some() && player.is_perfect
-        {
-            self.perfect += 1;
-            self.total += 1;
-            self.score += DISCRETE_PERFECT;
+        if player.danger_distance.is_none() && !player.perfect_waypoints.is_empty() {
+            self.perfect += player.perfect_waypoints.len();
+            self.total += player.perfect_waypoints.len();
+            self.score += DISCRETE_PERFECT * player.perfect_waypoints.len() as i32;
             true
         } else {
             false

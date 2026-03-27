@@ -1,13 +1,17 @@
 use ctl_client::Nertboard;
 use ctl_core::{
-    ScoreEntry, SubmitScore,
-    prelude::{HealthConfig, LevelModifiers, Score, Uuid},
-    types::{Id, LevelInfo, UserInfo, UserLogin},
+    auth::UserLogin,
+    prelude::{HealthConfig, LevelModifiers, Uuid},
+    score::{ScoreCategory, ScoreEntry, ScoreMeta, ServerScore, SubmitScore},
+    types::{Id, LevelInfo, MusicInfo, UserInfo},
 };
 use ctl_util::Task;
 use geng::prelude::*;
 
-const SCORE_VERSION: u32 = 1;
+use crate::{achievements::Achievements, fs::LocalLevelId};
+
+/// The maximum number of scores saved locally per level.
+const LOCAL_SCORES_LIMIT_PER_LEVEL: usize = 50;
 
 #[derive(Debug)]
 pub enum LeaderboardStatus {
@@ -26,16 +30,23 @@ pub struct Leaderboard {
     inner: Rc<RefCell<LeaderboardImpl>>,
 }
 
+#[derive(Debug)]
+struct NewScore {
+    new_score: Option<SavedScore>,
+    new_highscore: Option<SavedScore>,
+}
+
 pub struct LeaderboardImpl {
     geng: Geng,
     fs: Rc<crate::fs::Controller>,
     /// Logged in as user with a name.
     pub user: Option<UserLogin>,
     pub client: Option<Arc<Nertboard>>,
+    pub achievements: Achievements,
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
-    fs_task: Option<Task<anyhow::Result<Option<SavedScore>>>>,
-    highscores_task: Option<Task<anyhow::Result<HashMap<String, SavedScore>>>>,
+    new_score_task: Option<Task<anyhow::Result<NewScore>>>,
+    highscores_task: Option<Task<anyhow::Result<HashMap<LocalLevelId, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
 }
@@ -48,7 +59,8 @@ pub struct SavedScore {
 }
 
 pub struct LoadedBoard {
-    pub all_highscores: HashMap<String, SavedScore>,
+    pub all_highscores: HashMap<LocalLevelId, SavedScore>,
+    pub music: MusicInfo,
     pub level: LevelInfo,
     pub player: Option<Id>,
     pub category: ScoreCategory,
@@ -58,69 +70,10 @@ pub struct LoadedBoard {
     pub local_high: Option<SavedScore>,
 }
 
-/// Meta information saved together with the score.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScoreMeta {
-    pub category: ScoreCategory,
-    pub score: Score,
-    /// Number in range 0..=1 indicating level completion percentage.
-    pub completion: R32,
-    pub time: ::time::OffsetDateTime,
-}
-
-impl Default for ScoreMeta {
-    fn default() -> Self {
-        Self {
-            category: ScoreCategory::default(),
-            score: Score::default(),
-            completion: R32::ZERO,
-            time: ::time::OffsetDateTime::now_utc(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ScoreCategory {
-    version: u32,
-    pub mods: LevelModifiers,
-    pub health: HealthConfig,
-}
-
-impl Default for ScoreCategory {
-    fn default() -> Self {
-        Self::new(LevelModifiers::default(), HealthConfig::default())
-    }
-}
-
-impl ScoreCategory {
-    pub fn new(mods: LevelModifiers, health: HealthConfig) -> Self {
-        Self {
-            version: SCORE_VERSION,
-            mods,
-            health,
-        }
-    }
-}
-
-impl ScoreMeta {
-    pub fn new(mods: LevelModifiers, health: HealthConfig, score: Score, completion: R32) -> Self {
-        Self::new_category(ScoreCategory::new(mods, health), score, completion)
-    }
-
-    pub fn new_category(category: ScoreCategory, score: Score, completion: R32) -> Self {
-        Self {
-            category,
-            score,
-            completion,
-            time: ::time::OffsetDateTime::now_utc(),
-        }
-    }
-}
-
 impl Leaderboard {
-    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>, achievements: &Achievements) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs))),
+            inner: Rc::new(RefCell::new(LeaderboardImpl::empty(geng, fs, achievements))),
         }
     }
 
@@ -128,9 +81,17 @@ impl Leaderboard {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        achievements: &Achievements,
+        auto_login: bool,
     ) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(LeaderboardImpl::new(geng, client, fs))),
+            inner: Rc::new(RefCell::new(LeaderboardImpl::new(
+                geng,
+                client,
+                fs,
+                achievements,
+                auto_login,
+            ))),
         }
     }
 
@@ -152,15 +113,16 @@ impl Leaderboard {
 }
 
 impl LeaderboardImpl {
-    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>) -> Self {
+    pub fn empty(geng: &Geng, fs: &Rc<crate::fs::Controller>, achievements: &Achievements) -> Self {
         let mut leaderboard = Self {
             geng: geng.clone(),
             fs: fs.clone(),
+            achievements: achievements.clone(),
             user: None,
             client: None,
             log_task: None,
             task: None,
-            fs_task: None,
+            new_score_task: None,
             highscores_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
@@ -173,13 +135,22 @@ impl LeaderboardImpl {
         geng: &Geng,
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
+        achievements: &Achievements,
+        auto_login: bool,
     ) -> Self {
         let mut leaderboard = Self {
             client: client.cloned(),
-            ..Self::empty(geng, fs)
+            ..Self::empty(geng, fs, achievements)
         };
-        leaderboard.relogin();
+        if auto_login {
+            leaderboard.relogin();
+        }
         leaderboard
+    }
+
+    /// Returns `true` if currently connecting to the server.
+    pub fn is_connecting(&self) -> bool {
+        self.log_task.is_some()
     }
 
     pub fn is_online(&self) -> bool {
@@ -215,6 +186,16 @@ impl LeaderboardImpl {
         }
     }
 
+    #[cfg(feature = "steam")]
+    /// Login directly via Steam
+    pub fn login_steam(&mut self) {
+        let Some(client) = &self.client else { return };
+        let client = Arc::clone(client);
+        let future = async move { client.login_steam().await };
+        self.log_task = Some(Task::new(&self.geng, future));
+        self.user = None;
+    }
+
     /// Attempt to login back using the saved credentials.
     pub fn relogin(&mut self) {
         if self.log_task.is_some() {
@@ -222,15 +203,28 @@ impl LeaderboardImpl {
         }
 
         if let Some(client) = &self.client {
-            let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
-            else {
-                return;
-            };
+            #[cfg(feature = "steam")]
+            {
+                // Login directly via Steam
+                let client = Arc::clone(client);
+                let future = async move { client.login_steam().await };
+                self.log_task = Some(Task::new(&self.geng, future));
+                self.user = None;
+            }
 
-            let client = Arc::clone(client);
-            let future = async move { client.login_token(user.id, &user.token).await };
-            self.log_task = Some(Task::new(&self.geng, future));
-            self.user = None;
+            #[cfg(not(feature = "steam"))]
+            {
+                // Retrieve token
+                let Some(user): Option<UserLogin> = preferences::load(crate::PLAYER_LOGIN_STORAGE)
+                else {
+                    return;
+                };
+
+                let client = Arc::clone(client);
+                let future = async move { client.login_token(user.id, &user.token).await };
+                self.log_task = Some(Task::new(&self.geng, future));
+                self.user = None;
+            }
         }
     }
 
@@ -292,7 +286,10 @@ impl LeaderboardImpl {
                     match res {
                         Ok(Ok(user)) => {
                             log::debug!("Logged in as {}", &user.name);
+
+                            #[cfg(not(feature = "steam"))] // Steam requires full relogin each time
                             preferences::save(crate::PLAYER_LOGIN_STORAGE, &user);
+
                             self.loaded.player = Some(user.id);
                             self.user = Some(user);
                         }
@@ -330,19 +327,30 @@ impl LeaderboardImpl {
             }
         }
 
-        if let Some(task) = self.fs_task.take() {
+        if let Some(task) = self.new_score_task.take() {
             match task.poll() {
-                Err(task) => self.fs_task = Some(task),
+                Err(task) => self.new_score_task = Some(task),
                 Ok(res) => match res {
                     Ok(update) => {
-                        log::debug!("Updating local highscore: {update:?}");
-                        if let Some(score) = &update {
-                            log::debug!("Adding to {:?} score {score:?}", self.loaded.level.hash);
+                        log::debug!(
+                            "Updating local highscore of {:?}: {:?}",
+                            self.loaded.level.hash,
+                            update
+                        );
+                        let level_id = LocalLevelId::from_info(&self.loaded.level);
+                        if let Some(score) = &update.new_highscore {
                             self.loaded
                                 .all_highscores
-                                .insert(self.loaded.level.hash.clone(), score.clone());
+                                .insert(level_id.clone(), score.clone());
                         }
-                        self.loaded.local_high = update;
+                        if let Some(score) = &update.new_score {
+                            self.achievements.update_highscores(
+                                &self.loaded.all_highscores,
+                                Some((&level_id, score)),
+                            );
+                        }
+                        self.loaded.local_high = update.new_highscore;
+                        self.loaded.refresh();
                     }
                     Err(err) => {
                         log::error!("Loading local scores failed: {err:?}");
@@ -357,6 +365,7 @@ impl LeaderboardImpl {
                 Ok(res) => match res {
                     Ok(update) => {
                         log::debug!("Loaded all local highscores");
+                        self.achievements.update_highscores(&update, None);
                         self.loaded.all_highscores = update;
                     }
                     Err(err) => {
@@ -378,7 +387,8 @@ impl LeaderboardImpl {
     }
 
     fn load_scores(&mut self, mut scores: Vec<ScoreEntry>) {
-        scores.sort_by_key(|entry| -entry.score);
+        log::debug!("Loaded scores: {:?}", scores);
+        scores.sort_by_key(|entry| -entry.score.score());
         self.loaded.all_scores = scores;
         self.loaded.refresh();
     }
@@ -414,10 +424,9 @@ impl LeaderboardImpl {
             let level = self.loaded.level.id;
             let future = async move {
                 log::debug!("Fetching scores for level {level}...");
-                board
-                    .fetch_scores(level)
-                    .await
-                    .map(|scores| BoardUpdate { scores })
+                board.fetch_scores(level).await.map(|scores| BoardUpdate {
+                    scores: load_server_scores(scores),
+                })
             };
             self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
@@ -428,6 +437,7 @@ impl LeaderboardImpl {
         &mut self,
         score: Option<i32>,
         submit_score: bool,
+        music: MusicInfo,
         level: LevelInfo,
         meta: ScoreMeta,
     ) {
@@ -447,6 +457,7 @@ impl LeaderboardImpl {
             meta: meta.clone(),
         });
 
+        self.loaded.music = music;
         self.loaded.level = level.clone();
         self.loaded.category = meta.category.clone();
         self.update_local(score.clone());
@@ -459,11 +470,12 @@ impl LeaderboardImpl {
             let board = Arc::clone(board);
             let level_hash = self.loaded.level.hash.clone();
             let future = async move {
-                let meta_str = meta_str(&meta);
-                let score = score.map(|score| SubmitScore {
-                    score: score.score,
-                    level_hash,
-                    extra_info: Some(meta_str),
+                let score = score.and_then(|score| {
+                    meta_to_string(&score.meta).ok().map(|meta| SubmitScore {
+                        score: score.score,
+                        meta,
+                        level_hash,
+                    })
                 });
 
                 if let Some(score) = &score {
@@ -473,6 +485,7 @@ impl LeaderboardImpl {
 
                 log::debug!("Fetching scores...");
                 let scores = board.fetch_scores(level.id).await?;
+                let scores = load_server_scores(scores);
                 Ok(BoardUpdate { scores })
             };
             self.task = Some(Task::new(&self.geng, future));
@@ -480,36 +493,43 @@ impl LeaderboardImpl {
         }
     }
 
-    fn update_local(&mut self, score: Option<SavedScore>) {
-        log::debug!("Updating local scores with a new score: {score:?}");
+    /// Update local highscore for the loaded leaderboard.
+    fn update_local(&mut self, new_score: Option<SavedScore>) {
+        log::debug!("Updating local scores with a new score: {new_score:?}");
         let fs = self.fs.clone();
-        let hash = self.loaded.level.hash.clone();
+        let level_id = LocalLevelId::from_info(&self.loaded.level);
         let version = self.loaded.category.version;
-        self.loaded.local_high = None;
-        self.loaded.all_scores.clear();
-        self.loaded.filtered.clear();
         let task = async move {
-            let mut scores = match fs.load_local_scores(&hash).await {
+            let mut scores = match fs.load_local_scores(&level_id).await {
                 Ok(scores) => scores,
                 Err(err) => {
-                    log::warn!("Loading local scores for level {hash} failed: {err:?}");
+                    log::warn!("Loading local scores for level ({level_id:?}) failed: {err:?}");
                     vec![]
                 }
             };
-            if let Some(score) = score {
+            if let Some(score) = new_score.clone() {
                 scores.push(score);
-                fs.save_local_scores(&hash, &scores)
+
+                // Limit the maximum number of scores
+                if scores.len() > LOCAL_SCORES_LIMIT_PER_LEVEL {
+                    scores.drain(..scores.len() - LOCAL_SCORES_LIMIT_PER_LEVEL);
+                }
+
+                fs.save_local_scores(&level_id, &scores)
                     .await
                     .with_context(|| "when saving local scores")?;
             }
-            let highscore = scores
+            let new_highscore = scores
                 .iter()
                 .filter(|score| score.meta.category.version == version)
                 .max_by_key(|score| score.score)
                 .cloned();
-            Ok(highscore)
+            Ok(NewScore {
+                new_score,
+                new_highscore,
+            })
         };
-        self.fs_task = Some(Task::new(&self.geng, task));
+        self.new_score_task = Some(Task::new(&self.geng, task));
     }
 }
 
@@ -517,6 +537,7 @@ impl LoadedBoard {
     fn new() -> Self {
         Self {
             all_highscores: HashMap::new(),
+            music: MusicInfo::default(),
             level: LevelInfo::default(),
             player: None,
             category: ScoreCategory::new(LevelModifiers::default(), HealthConfig::default()),
@@ -535,12 +556,7 @@ impl LoadedBoard {
 
         // Filter for the same meta
         scores.retain(|entry| {
-            !entry.user.name.is_empty()
-                && entry.extra_info.as_ref().is_some_and(|info| {
-                    serde_json::from_str::<ScoreMeta>(info).is_ok_and(|entry_meta| {
-                        entry_meta.category.version == self.category.version
-                    })
-                })
+            !entry.user.name.is_empty() && entry.score.category.version == self.category.version
         });
 
         {
@@ -562,11 +578,27 @@ impl LoadedBoard {
         self.my_position = self.local_high.as_ref().and_then(|score| {
             self.filtered
                 .iter()
-                .position(|this| this.score == score.score)
+                .position(|this| this.score.score.calculated.combined == score.score)
         });
     }
 }
 
-fn meta_str(meta: &ScoreMeta) -> String {
-    serde_json::to_string(meta).unwrap() // TODO: more compact?
+fn meta_to_string(meta: &ScoreMeta) -> anyhow::Result<String> {
+    Ok(ron::ser::to_string(meta)?)
+}
+
+fn meta_from_str(s: &str) -> anyhow::Result<ScoreMeta> {
+    Ok(ron::de::from_str(s)?)
+}
+
+fn load_server_scores(scores: Vec<ServerScore>) -> Vec<ScoreEntry> {
+    scores
+        .into_iter()
+        .filter_map(|score| {
+            Some(ScoreEntry {
+                user: score.user,
+                score: meta_from_str(&score.meta?).ok()?,
+            })
+        })
+        .collect()
 }

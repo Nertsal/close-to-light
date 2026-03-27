@@ -19,7 +19,7 @@ impl SplashScreen {
     pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
         Self {
             util: UtilRender::new(context.clone()),
-            post: PostRender::new(context.clone()),
+            post: PostRender::new(&context),
 
             time: FloatTime::ZERO,
 
@@ -78,10 +78,12 @@ trigger seizures for people with photosensitive epilepsy
         );
 
         self.post.post_process(
+            &options,
             crate::render::post::PostVfx {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,
+                colors: options.graphics.colors,
             },
             framebuffer,
         );
@@ -89,6 +91,7 @@ trigger seizures for people with photosensitive epilepsy
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as f32);
+        self.context.update(delta_time);
         self.time += delta_time;
 
         if self.time.as_f32() > TRANSITION_TIME {

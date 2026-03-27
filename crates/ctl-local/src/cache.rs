@@ -63,6 +63,14 @@ impl CacheTasks {
         }
     }
 
+    /// Checks if there are currently any pending tasks.
+    fn any(&self) -> bool {
+        !self.fs.is_empty()
+            || self.fetch_groups.is_some()
+            || !self.download_group.is_empty()
+            || self.get_recommended.is_some()
+    }
+
     fn poll(&mut self) -> Option<CacheAction> {
         macro_rules! error {
             ($pat:literal, $($arg:expr),*) => {{
@@ -139,6 +147,11 @@ impl LevelCache {
     pub fn client(&self) -> Option<Arc<Nertboard>> {
         let inner = self.inner.borrow();
         inner.tasks.client.as_ref().cloned()
+    }
+
+    /// Checks if there are any pending tasks.
+    pub fn tasks_any(&self) -> bool {
+        self.inner.borrow().tasks.any()
     }
 
     /// Load from the local storage.
@@ -225,18 +238,11 @@ impl LevelCache {
                 None
             };
 
-            let level_hashes = group
-                .data
-                .levels
-                .iter()
-                .map(|level| level.calculate_hash())
-                .collect();
-
-            let group = CachedGroup {
+            let mut group = CachedGroup {
                 local: group,
                 origin,
-                level_hashes,
             };
+            group.update_hashes();
 
             Ok(group)
         }
@@ -318,9 +324,9 @@ impl LevelCache {
         let data = LevelSet { levels: Vec::new() };
         let group = CachedGroup {
             origin: None,
-            level_hashes: vec![],
             local: LocalGroup {
                 path,
+                loaded_from_assets: false,
                 meta: LevelSetInfo {
                     id: 0,
                     owner: UserInfo {
@@ -414,22 +420,17 @@ impl LevelCache {
                         Rc::new(music)
                     };
 
-                    let level_hashes = data
-                        .levels
-                        .iter()
-                        .map(|level| level.calculate_hash())
-                        .collect();
-
-                    let group = CachedGroup {
+                    let mut group = CachedGroup {
                         local: LocalGroup {
                             path: fs::generate_group_path(info.id),
+                            loaded_from_assets: false,
                             meta: info.clone(),
                             music: Some(music),
                             data,
                         },
                         origin: Some(info),
-                        level_hashes,
                     };
+                    group.update_hashes();
 
                     // Write to fs
                     if let Err(err) = fs.save_group(&group, true).await {
@@ -474,6 +475,7 @@ impl LevelCache {
         }
     }
 
+    /// Update levelset info based on the downloaded data.
     pub fn synchronize_meta(
         &self,
         group_index: Index,
@@ -491,7 +493,7 @@ impl LevelCache {
 
         drop(inner);
 
-        self.update_group_meta(group_index, info)
+        self.update_group_meta(group_index, info, true)
     }
 
     fn update_group_local(
@@ -513,14 +515,8 @@ impl LevelCache {
         if let Some(info) = reset_origin {
             new_group.origin = Some(info);
         }
-        new_group.local.meta.hash = new_local.data.calculate_hash();
-        new_group.level_hashes = new_local
-            .data
-            .levels
-            .iter()
-            .map(|level| level.calculate_hash())
-            .collect();
         new_group.local = new_local;
+        new_group.update_hashes();
 
         // let move_from_assets = cached
         //     .local
@@ -548,6 +544,7 @@ impl LevelCache {
         &self,
         group_index: Index,
         group_meta: LevelSetInfo,
+        set_origin: bool,
     ) -> Option<Rc<CachedGroup>> {
         let mut inner = self.inner.borrow_mut();
         let cached = inner.groups.get_mut(group_index)?;
@@ -558,10 +555,11 @@ impl LevelCache {
             new_music.meta = group_meta.music.clone();
             new_group.music = Some(Rc::new(new_music));
         }
-        new_group.meta = group_meta;
+        new_group.meta = group_meta.clone();
 
         drop(inner);
-        self.update_group_local(group_index, new_group, None).ok()
+        self.update_group_local(group_index, new_group, set_origin.then_some(group_meta))
+            .ok()
     }
 
     pub fn update_group(
@@ -660,8 +658,7 @@ impl LevelCache {
                     let music_bytes = file::load_bytes(&path).await;
                     match music_bytes {
                         Ok(bytes) => {
-                            let mut music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
-                            music.looped = true;
+                            let music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
                             Ok((music, bytes))
                         }
                         Err(err) => Err(err),

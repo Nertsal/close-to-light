@@ -3,7 +3,7 @@ use super::*;
 use crate::util::Lerp;
 
 pub struct ModifiersWidget {
-    t: f32,
+    pub t: f32,
     pub active_mods: Vec<IconWidget>,
     pub body_slide: Bounded<f32>,
     pub head: TextWidget,
@@ -72,7 +72,8 @@ impl ModifiersWidget {
             body: WidgetState::new(),
             description: Vec::new(),
             description_lerp: Lerp::new_smooth(0.25, 0.0, 0.0),
-            mods: enum_iterator::all::<Modifier>()
+            mods: [Modifier::NoFail, Modifier::Sudden, Modifier::Hidden]
+                .into_iter()
                 .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
                 .collect(),
             score_multiplier: TextWidget::new(""),

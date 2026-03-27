@@ -173,6 +173,8 @@ async fn level_set_create(
     Query(query): Query<LevelSetCreateQuery>,
     data: Bytes,
 ) -> Result<Json<Id>> {
+    check_auth(&session, &app, AuthorityLevel::Admin).await?;
+
     let mut trans = app.database.begin().await?;
     let user = check_user(&session).await?;
 
@@ -280,16 +282,16 @@ async fn update_level_set(
             let old_level: Option<&LevelRow> = old_levels
                 .iter()
                 .find(|old_level| old_level.level_id == level_meta.id);
-            if let Some(old_level) = old_level {
+            if let Some(_old_level) = old_level {
                 // Update an existing level
-                if old_level.hash != level_meta.hash {
-                    // Reset the leaderboard
-                    // TODO: make a new endpoint to delete old scores maybe?
-                    sqlx::query("DELETE FROM scores WHERE level_id = ?")
-                        .bind(old_level.level_id)
-                        .execute(&mut **trans)
-                        .await?;
-                }
+                // if old_level.hash != level_meta.hash {
+                //     // Reset the leaderboard
+                //     // TODO: make a new endpoint to delete old scores maybe?
+                //     sqlx::query("DELETE FROM scores WHERE level_id = ?")
+                //         .bind(old_level.level_id)
+                //         .execute(&mut **trans)
+                //         .await?;
+                // }
 
                 // Update
                 sqlx::query(
@@ -372,14 +374,15 @@ async fn new_level_set(
             .bind(user.user_id)
             .fetch_all(&mut **trans)
             .await?;
-    if user_groups.len() >= LEVEL_SETS_PER_USER {
+    if !is_admin && user_groups.len() >= LEVEL_SETS_PER_USER {
         return Err(RequestError::TooManyGroups);
     }
-    if user_groups
-        .iter()
-        .filter(|group| group.music_id == music_id)
-        .count()
-        >= LEVEL_SETS_PER_USER_PER_SONG
+    if !is_admin
+        && user_groups
+            .iter()
+            .filter(|group| group.music_id == music_id)
+            .count()
+            >= LEVEL_SETS_PER_USER_PER_SONG
     {
         return Err(RequestError::TooManyGroupsForSong);
     }
