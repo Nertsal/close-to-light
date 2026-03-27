@@ -63,7 +63,7 @@ impl Model {
 
         // Spawn more fire
         let mut rng = thread_rng();
-        for (i, light) in self.level_state.lights.iter().enumerate() {
+        for light in &self.level_state.lights {
             if !light.fire {
                 continue;
             }
@@ -96,10 +96,15 @@ impl Model {
             };
             let pos = shape.sample(&mut rng, r32(1.0));
             let size = size * r32(0.3);
+            let angle_offset = match light.collider.shape {
+                Shape::Circle { .. } => Angle::ZERO,
+                Shape::Line { .. } => Angle::from_degrees(r32(90.0)),
+                Shape::Rectangle { .. } => Angle::from_degrees(r32(45.0)),
+            };
             self.fire
                 .extend(pos.into_iter().map(|position| FireParticle {
                     position,
-                    velocity: vec2(0.0, -2.0 * (((i + 1) % 2) as f32 * 2.0 - 1.0)).as_r32(),
+                    velocity: (light.collider.rotation + angle_offset).unit_vec() * r32(2.0),
                     size,
                     danger: light.danger,
                 }));
