@@ -162,8 +162,10 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
         waypoint,
         time_mark,
 
-        rgb_split,
         metronome,
+        rgb_split,
+        palette_swap,
+        shake,
 
         circle,
         circle_fill,

@@ -258,6 +258,7 @@ impl TimelineWidget {
         let regular_event = |event_i: EditorEventIdx,
                              event_time: Time,
                              event_duration: Time,
+                             texture: SubTexture,
                              actions: &mut Vec<EditorAction>,
                              occupied: &mut BTreeMap<i64, usize>,
                              dragging_event: &mut Option<(EditorEventIdx, vec2<f32>, f32)>,
@@ -282,10 +283,7 @@ impl TimelineWidget {
                 let icon = context.state.get_or(self.state.id, || {
                     IconButtonWidget::new(atlas.timeline_metronome())
                 });
-                icon.texture = match event_i {
-                    EditorEventIdx::Event(_) => atlas.timeline_rgb_split(), // TODO: icons
-                    EditorEventIdx::Timing(_) => atlas.timeline_metronome(),
-                };
+                icon.texture = texture;
                 icon.update(position, context);
                 is_hovered = is_hovered || icon.state.hovered;
                 if is_selected && !is_hovered {
@@ -370,6 +368,7 @@ impl TimelineWidget {
                 idx,
                 point.time,
                 0,
+                atlas.timeline_metronome(),
                 actions,
                 &mut occupied,
                 &mut self.dragging_event,
@@ -708,10 +707,17 @@ impl TimelineWidget {
                         );
                     }
 
+                    let texture = match effect {
+                        EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
+                        EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
+                        EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                    };
+
                     regular_event(
                         EditorEventIdx::Event(event_i),
                         event.time,
                         duration,
+                        texture,
                         actions,
                         &mut occupied,
                         &mut self.dragging_event,
