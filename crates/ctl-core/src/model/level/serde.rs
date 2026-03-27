@@ -135,6 +135,29 @@ impl Timing {
         timing.time + delta
     }
 
+    /// Snaps to beat while ignoring a specified timing point.
+    pub fn snap_to_beat_without(&self, ignored: usize, time: Time, snap: BeatTime) -> Time {
+        let mut timing_i = self.get_timing_index(time);
+        if timing_i == ignored {
+            if timing_i == 0 {
+                timing_i = 1;
+            } else {
+                timing_i -= 1;
+            }
+        }
+        let timing = self
+            .points
+            .get(timing_i)
+            .cloned()
+            .unwrap_or_else(|| self.get_timing(time));
+
+        let delta = time_to_seconds(time - timing.time);
+        let snap_time = snap.as_secs(timing.beat_time);
+        let delta = (delta / snap_time).round() * snap_time;
+        let delta = seconds_to_time(delta);
+        timing.time + delta
+    }
+
     /// Calculates the beat time relative to the most recent timing point.
     pub fn get_relative_beat_time(&self, time: Time) -> BeatTime {
         let timing = self.get_timing(time);

@@ -345,8 +345,14 @@ impl TimelineWidget {
                 && *i == event_i
             {
                 let time = unrender_time(context.cursor.position.x);
-                // TODO: dont snap timing points to their own timing
-                let time = editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time;
+                let time = match event_i {
+                    EditorEventIdx::Event(_) => {
+                        editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time
+                    }
+                    EditorEventIdx::Timing(i) => {
+                        editor.level.timing.snap_to_beat_without(i, time, beat_snap) - preevent_time
+                    }
+                };
                 actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
             }
         };
