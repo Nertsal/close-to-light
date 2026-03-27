@@ -873,9 +873,9 @@ impl TimelineWidget {
             sub_beat -= beat_whole * sub_division;
 
             beat.text = if sub_beat > 0 {
-                format!("Beat: {}  {}/{}", beat_whole, sub_beat, sub_division).into()
+                format!("Beat: {}  {}/{}", beat_whole + 1, sub_beat, sub_division).into()
             } else {
-                format!("Beat: {}", beat_whole).into()
+                format!("Beat: {}", beat_whole + 1).into()
             };
             beat.update(current_beat, context);
             beat.options.size = current_beat.height() * 0.4;
