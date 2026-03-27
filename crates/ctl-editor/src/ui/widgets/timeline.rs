@@ -130,6 +130,9 @@ impl TimelineWidget {
         };
         let multi_select_mode = context.mods.shift;
 
+        let enable_beat_snap = !context.mods.shift;
+        let beat_snap = editor.beat_snap;
+
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
             let size = vec2::splat(18) * PPU;
@@ -158,8 +161,6 @@ impl TimelineWidget {
         let unrender_time = |pos: f32| {
             ((pos - self.main_line.position.center().x) / self.scale).round() as Time - self.scroll
         };
-
-        let beat_snap = editor.beat_snap;
 
         // Check highlight bounds
         let light_selection = self
@@ -232,8 +233,8 @@ impl TimelineWidget {
                 });
                 tick.update(position, context);
                 if tick.state.mouse_left.pressed.is_some() {
-                    let target = unrender_time(context.cursor.position.x);
-                    let target = editor.level.timing.snap_to_beat(target, beat_snap);
+                    let mut target = unrender_time(context.cursor.position.x);
+                    target = editor.level.timing.snap_to_beat(target, beat_snap);
                     while_pressed(actions, target);
                 }
                 if tick.state.mouse_left.just_released {
@@ -344,15 +345,18 @@ impl TimelineWidget {
             if let Some((i, _, _)) = dragging_event
                 && *i == event_i
             {
-                let time = unrender_time(context.cursor.position.x);
-                let time = match event_i {
-                    EditorEventIdx::Event(_) => {
-                        editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time
-                    }
-                    EditorEventIdx::Timing(i) => {
-                        editor.level.timing.snap_to_beat_without(i, time, beat_snap) - preevent_time
-                    }
-                };
+                let mut time = unrender_time(context.cursor.position.x);
+                if enable_beat_snap {
+                    time = match event_i {
+                        EditorEventIdx::Event(_) => {
+                            editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time
+                        }
+                        EditorEventIdx::Timing(i) => {
+                            editor.level.timing.snap_to_beat_without(i, time, beat_snap)
+                                - preevent_time
+                        }
+                    };
+                }
                 actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
             }
         };
@@ -505,8 +509,10 @@ impl TimelineWidget {
                                 self.dragging_waypoint = None;
                             }
                             if self.dragging_waypoint == Some(waypoint_id) && is_waypoint_selected {
-                                let time = unrender_time(context.cursor.position.x);
-                                let time = editor.level.timing.snap_to_beat(time, beat_snap);
+                                let mut time = unrender_time(context.cursor.position.x);
+                                if enable_beat_snap {
+                                    time = editor.level.timing.snap_to_beat(time, beat_snap);
+                                }
                                 actions.push(
                                     LevelAction::MoveWaypoint(
                                         light_id,
