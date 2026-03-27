@@ -49,12 +49,17 @@ impl EditorState {
             return actions;
         };
 
+        let mut shift_speed = ScrollSpeed::Slow;
+        let mut normal_speed = ScrollSpeed::Normal;
+        if !self.editor.config.timeline.hold_to_scroll_slow {
+            std::mem::swap(&mut shift_speed, &mut normal_speed);
+        }
         let scroll_speed = if shift {
-            ScrollSpeed::Slow
+            shift_speed
         } else if alt {
             ScrollSpeed::Fast
         } else {
-            ScrollSpeed::Normal
+            normal_speed
         };
 
         let rotate_by = Angle::from_degrees(r32(15.0));

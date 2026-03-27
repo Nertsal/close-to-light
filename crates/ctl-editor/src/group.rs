@@ -319,9 +319,9 @@ impl Editor {
         };
 
         let scroll_speed = match scroll_speed {
-            ScrollSpeed::Slow => self.config.scroll_slow,
-            ScrollSpeed::Normal => self.config.scroll_normal,
-            ScrollSpeed::Fast => self.config.scroll_fast,
+            ScrollSpeed::Slow => level_editor.beat_snap,
+            ScrollSpeed::Normal => BeatTime::WHOLE,
+            ScrollSpeed::Fast => self.config.timeline.fast_speed,
         };
         let mut scroll = scroll_speed * scroll;
 

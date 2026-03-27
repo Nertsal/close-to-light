@@ -225,41 +225,28 @@ impl EditorConfigUi {
             let value_height = context.font_size * 1.2;
             let spacing = context.font_size * 0.3;
 
-            let scroll_by = bar.cut_top(value_height);
-            bar.cut_top(spacing);
-            let value = context.state.get_root_or(|| {
-                BeatValueWidget::new(
-                    "Scroll by",
-                    BeatTime::WHOLE,
-                    BeatTime::QUARTER..=BeatTime::WHOLE * 4,
-                    BeatTime::QUARTER,
-                )
-            });
-            value.update(scroll_by, context, &mut config.scroll_normal);
-
             let shift_scroll = bar.cut_top(value_height);
             bar.cut_top(spacing);
-            let value = context.state.get_root_or(|| {
-                BeatValueWidget::new(
-                    "Shift scroll",
-                    BeatTime::QUARTER,
-                    BeatTime::EIGHTH..=BeatTime::WHOLE,
-                    BeatTime::EIGHTH,
-                )
-            });
-            value.update(shift_scroll, context, &mut config.scroll_slow);
+            let value = context
+                .state
+                .get_root_or(|| ToggleWidget::new("Shift Precision"));
+            value.update_state(
+                shift_scroll,
+                context,
+                &mut config.timeline.hold_to_scroll_slow,
+            );
 
             let alt_scroll = bar.cut_top(value_height);
             bar.cut_top(spacing);
             let value = context.state.get_root_or(|| {
                 BeatValueWidget::new(
                     "Alt scroll",
-                    BeatTime::WHOLE * 10,
-                    BeatTime::WHOLE..=BeatTime::WHOLE * 20,
-                    BeatTime::HALF,
+                    BeatTime::WHOLE * 16,
+                    BeatTime::WHOLE * 4..=BeatTime::WHOLE * 64,
+                    BeatTime::WHOLE,
                 )
             });
-            value.update(alt_scroll, context, &mut config.scroll_fast);
+            value.update(alt_scroll, context, &mut config.timeline.fast_speed);
 
             actions.push(EditorAction::SetConfig(config).into());
         }

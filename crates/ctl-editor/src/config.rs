@@ -11,9 +11,7 @@ pub struct EditorConfig {
     pub grid: GridConfig,
     /// How much of the music to playback when scrolling (in seconds).
     pub playback_duration: FloatTime,
-    pub scroll_slow: BeatTime,
-    pub scroll_normal: BeatTime,
-    pub scroll_fast: BeatTime,
+    pub timeline: TimelineConfig,
     pub theme: EditorTheme,
     pub shapes: Vec<Shape>,
 }
@@ -31,4 +29,15 @@ pub struct GridConfig {
 pub struct EditorTheme {
     pub hover: Color,
     pub select: Color,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimelineConfig {
+    /// Whether you need to hold a button (Shift) to scroll at the slow speed
+    /// (set by the timeline subdivision).
+    /// When `false`, inverts the two modes, so the default is scrolling slowly,
+    /// and holding the button makes it scroll by whole beats (like in osu!).
+    pub hold_to_scroll_slow: bool,
+    /// How many beat to scroll when using fast scroll mode (Alt).
+    pub fast_speed: BeatTime,
 }
