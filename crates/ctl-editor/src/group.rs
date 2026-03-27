@@ -323,15 +323,50 @@ impl Editor {
             ScrollSpeed::Normal => self.config.scroll_normal,
             ScrollSpeed::Fast => self.config.scroll_fast,
         };
-        let scroll = scroll_speed * scroll;
-        let beat_time = level_editor
-            .level
-            .timing
-            .get_timing(level_editor.current_time.target)
-            .beat_time;
-        let scroll = scroll.as_time(beat_time); // TODO: well beat time may change as we scroll
+        let mut scroll = scroll_speed * scroll;
 
-        level_editor.scroll_time(scroll);
+        // Scroll a fixed beat time while respecting timing points
+        let mut target = level_editor.current_time.target;
+        while scroll.units() != 0 {
+            let timing_index = level_editor.level.timing.get_timing_index(target);
+            match level_editor.level.timing.points.get(timing_index) {
+                Some(mut point) => {
+                    // When on top of the timing point and scrolling backwards
+                    // consider the beat time of the previous timing point
+                    if target == point.time
+                        && scroll.units() < 0
+                        && let Some(p) = level_editor
+                            .level
+                            .timing
+                            .points
+                            .get(timing_index.saturating_sub(1))
+                    {
+                        point = p;
+                    }
+
+                    let mut delta = scroll.as_time(point.beat_time);
+                    let t = target + delta;
+                    if target > point.time && t < point.time {
+                        // Scrolling to time before this timing point
+                        delta = point.time - target;
+                    } else if let Some(next) =
+                        level_editor.level.timing.points.get(timing_index + 1)
+                        && t > next.time
+                    {
+                        // Scrolling to the next timing point
+                        delta = next.time - target;
+                    }
+                    target += delta;
+                    scroll -= BeatTime::from_beats_float(time_to_seconds(delta) / point.beat_time)
+                }
+                None => {
+                    target += scroll.as_time(r32(60.0 / 150.0));
+                    scroll -= scroll;
+                }
+            }
+        }
+
+        level_editor.scroll_time(target - level_editor.current_time.target);
         if let Some(music) = &level_editor.static_level.group.music
             && self.config.playback_duration > FloatTime::ZERO
         {

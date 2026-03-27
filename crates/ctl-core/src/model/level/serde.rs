@@ -119,6 +119,13 @@ impl Timing {
             .clone()
     }
 
+    pub fn get_timing_index(&self, time: Time) -> usize {
+        match self.points.binary_search_by_key(&time, |point| point.time) {
+            Ok(i) => i,
+            Err(i) => i.saturating_sub(1),
+        }
+    }
+
     pub fn snap_to_beat(&self, time: Time, snap: BeatTime) -> Time {
         let timing = self.get_timing(time);
         let delta = time_to_seconds(time - timing.time);
