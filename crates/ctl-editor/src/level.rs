@@ -41,6 +41,13 @@ pub enum Selection {
     Empty,
     Lights(Vec<LightId>),
     Event(usize),
+    Timing(usize),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditorEventIdx {
+    Event(usize),
+    Timing(usize),
 }
 
 impl Selection {
@@ -53,6 +60,7 @@ impl Selection {
             Selection::Empty => true,
             Selection::Lights(light_ids) => light_ids.is_empty(),
             Selection::Event(_) => false,
+            Selection::Timing(_) => false,
         }
     }
 
@@ -60,19 +68,39 @@ impl Selection {
         *self = Self::Empty;
     }
 
-    pub fn event_single(&self) -> Option<usize> {
+    // pub fn event_single(&self) -> Option<usize> {
+    //     match self {
+    //         Selection::Empty => None,
+    //         Selection::Lights(_) => None,
+    //         Selection::Event(idx) => Some(*idx),
+    //         Selection::Timing(_) => None,
+    //     }
+    // }
+
+    pub fn single(&self) -> Option<EditorEventIdx> {
         match self {
             Selection::Empty => None,
             Selection::Lights(_) => None,
-            Selection::Event(idx) => Some(*idx),
+            Selection::Event(idx) => Some(EditorEventIdx::Event(*idx)),
+            Selection::Timing(idx) => Some(EditorEventIdx::Timing(*idx)),
         }
     }
 
-    pub fn is_event_single(&self, id: usize) -> bool {
+    pub fn is_single(&self, id: EditorEventIdx) -> bool {
         match self {
             Selection::Empty => false,
-            Selection::Lights(lights) => lights.len() == 1 && lights.first().unwrap().event == id,
-            Selection::Event(idx) => id == *idx,
+            Selection::Lights(lights) => {
+                if let EditorEventIdx::Event(id) = id
+                    && lights.len() == 1
+                    && lights.first().unwrap().event == id
+                {
+                    true
+                } else {
+                    false
+                }
+            }
+            Selection::Event(idx) => id == EditorEventIdx::Event(*idx),
+            Selection::Timing(idx) => id == EditorEventIdx::Timing(*idx),
         }
     }
 
@@ -81,6 +109,7 @@ impl Selection {
             Selection::Empty => None,
             Selection::Lights(lights) => (lights.len() == 1).then(|| *lights.first().unwrap()),
             Selection::Event(_) => None,
+            Selection::Timing(_) => None,
         }
     }
 
@@ -93,6 +122,7 @@ impl Selection {
             Selection::Empty => false,
             Selection::Lights(lights) => lights.contains(&id),
             Selection::Event(_) => false,
+            Selection::Timing(_) => false,
         }
     }
 
@@ -105,6 +135,7 @@ impl Selection {
                 }
             }
             Selection::Event(_) => *self = Self::Lights(vec![id]),
+            Selection::Timing(_) => *self = Self::Lights(vec![id]),
         }
     }
 
@@ -117,6 +148,7 @@ impl Selection {
                 }
             }
             Selection::Event(_) => {}
+            Selection::Timing(_) => {}
         }
     }
 
@@ -129,6 +161,7 @@ impl Selection {
                 }
             }
             Selection::Event(_) => *self = other,
+            Selection::Timing(_) => *self = other,
         }
     }
 }
@@ -479,7 +512,7 @@ impl LevelEditor {
                             })
                             .copied()
                     }
-                    Selection::Empty | Selection::Event(_) => None,
+                    Selection::Empty | Selection::Event(_) | Selection::Timing(_) => None,
                 };
                 selected.or_else(||
                         // Prioritise the light closest to the cursor

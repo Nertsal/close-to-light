@@ -121,7 +121,16 @@ impl EditorState {
                                     );
                                 }
                                 Selection::Event(index) => {
-                                    actions.push(LevelAction::DeleteEvent(*index).into());
+                                    actions.push(
+                                        LevelAction::DeleteEvent(EditorEventIdx::Event(*index))
+                                            .into(),
+                                    );
+                                }
+                                Selection::Timing(index) => {
+                                    actions.push(
+                                        LevelAction::DeleteEvent(EditorEventIdx::Timing(*index))
+                                            .into(),
+                                    );
                                 }
                             }
                         }
@@ -464,6 +473,7 @@ impl EditorState {
                                     Selection::Empty => vec![],
                                     Selection::Lights(light_ids) => light_ids,
                                     Selection::Event(_) => vec![],
+                                    Selection::Timing(_) => vec![],
                                 };
                                 actions.push(
                                     LevelAction::SelectLight(SelectMode::Set, lights.clone())
@@ -502,6 +512,7 @@ impl EditorState {
                                         Selection::Empty => vec![],
                                         Selection::Lights(vec) => vec.clone(),
                                         Selection::Event(_) => vec![],
+                                        Selection::Timing(_) => vec![],
                                     }
                                 } else {
                                     actions.push(

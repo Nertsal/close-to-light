@@ -34,7 +34,7 @@ pub struct TimelineWidget {
     marks: Vec<(vec2<f32>, Color)>,
     /// Ticks with position and subdivision indicator used to select color and texture.
     ticks: Vec<(vec2<f32>, i64)>,
-    dragging_event: Option<(usize, vec2<f32>, f32)>,
+    dragging_event: Option<(EditorEventIdx, vec2<f32>, f32)>,
     dragging_waypoint: Option<WaypointId>,
 
     /// Render scale in pixels per beat.
@@ -184,8 +184,14 @@ impl TimelineWidget {
             });
         self.highlight_bar = light_selection.or_else(|| {
             self.selection
-                .event_single()
-                .and_then(|id| self.level.events.get(id))
+                .single()
+                .and_then(|id| {
+                    if let EditorEventIdx::Event(id) = id {
+                        self.level.events.get(id)
+                    } else {
+                        None
+                    }
+                })
                 .and_then(|event| {
                     let duration = match &event.event {
                         Event::Light(_) => return None,
@@ -246,98 +252,117 @@ impl TimelineWidget {
         };
         let can_focus = context.can_focus();
         let visible_scroll = self.visible_scroll();
-        for (event_i, event) in self.level.events.iter().enumerate() {
-            let is_selected = self.selection.is_event_single(event_i);
 
-            let regular_event = |event_i: usize,
-                                 event_time: Time,
-                                 event_duration: Time,
-                                 actions: &mut Vec<EditorAction>,
-                                 occupied: &mut BTreeMap<i64, usize>,
-                                 dragging_event: &mut Option<(usize, vec2<f32>, f32)>,
-                                 dots: &mut Vec<vec2<f32>>| {
-                let overlapped = if self
+        let regular_event = |event_i: EditorEventIdx,
+                             event_time: Time,
+                             event_duration: Time,
+                             actions: &mut Vec<EditorAction>,
+                             occupied: &mut BTreeMap<i64, usize>,
+                             dragging_event: &mut Option<(EditorEventIdx, vec2<f32>, f32)>,
+                             dots: &mut Vec<vec2<f32>>| {
+            let is_selected = self.selection.is_single(event_i);
+
+            let on_top_of_highlight = !is_selected
+                && self
                     .highlight_bar
                     .as_ref()
-                    .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time))
-                {
-                    0
-                } else {
-                    *occupied
-                        .entry(event.time)
-                        .and_modify(|x| *x += 1)
-                        .or_insert(0)
-                };
+                    .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time));
+            let overlapped = *occupied
+                .entry(event_time)
+                .and_modify(|x| *x += 1)
+                .or_insert(if on_top_of_highlight { 1 } else { 0 });
 
-                let mut is_hovered = false;
-                let visible = (event.time + self.scroll).abs() < visible_scroll / 2;
-                if visible && overlapped as f32 <= self.expansion.current + 0.9 {
-                    let position = render_light(event.time, overlapped).center();
-                    let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
-                    let icon = context.state.get_or(self.state.id, || {
-                        IconButtonWidget::new(atlas.timeline_rgb_split()) // TODO: icons
-                    });
-                    icon.color = ThemeColor::Light;
-                    icon.update(position, context);
-                    is_hovered = is_hovered || icon.state.hovered;
-                    if icon.state.mouse_left.just_pressed {
-                        actions.push(LevelAction::SelectEvent(event_i).into());
-                        *dragging_event =
-                            Some((event_i, context.cursor.position, context.real_time));
-                    }
+            let mut is_hovered = false;
+            let visible = (event_time + self.scroll).abs() < visible_scroll / 2;
+            if visible && overlapped as f32 <= self.expansion.current + 0.9 {
+                let position = render_light(event_time, overlapped).center();
+                let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                let icon = context.state.get_or(self.state.id, || {
+                    let texture = match event_i {
+                        EditorEventIdx::Event(_) => atlas.timeline_rgb_split(), // TODO: icons
+                        EditorEventIdx::Timing(_) => atlas.timeline_metronome(),
+                    };
+                    IconButtonWidget::new(texture)
+                });
+                icon.color = ThemeColor::Light;
+                icon.update(position, context);
+                is_hovered = is_hovered || icon.state.hovered;
+                if icon.state.mouse_left.just_pressed {
+                    actions.push(LevelAction::SelectEvent(event_i).into());
+                    *dragging_event = Some((event_i, context.cursor.position, context.real_time));
                 }
+            }
 
-                if is_selected || is_hovered {
-                    // Dots
-                    let last_dot_time = event.time;
-                    let time = event_time + event_duration;
+            if is_selected || is_hovered {
+                // Dots
+                let last_dot_time = event_time;
+                let time = event_time + event_duration;
 
-                    // TODO: variable timing within this segment
-                    let timing = self.level.timing.get_timing(event.time);
+                // TODO: variable timing within this segment
+                let timing = self.level.timing.get_timing(event_time);
 
-                    let resolution = 4.0; // Ticks per beat
-                    let step = timing.beat_time / r32(resolution);
-                    let ds = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1).floor()
-                        as usize;
-                    let overlapped = if is_selected { 0 } else { overlapped };
-                    let ds = (0..=ds)
-                        .map(|i| {
-                            let time = last_dot_time + seconds_to_time(step * r32(i as f32));
-                            render_light(time, overlapped).center()
-                        })
-                        .filter(|&pos| self.state.position.contains(pos));
+                let resolution = 4.0; // Ticks per beat
+                let step = timing.beat_time / r32(resolution);
+                let ds = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1).floor()
+                    as usize;
+                let overlapped = if is_selected { 0 } else { overlapped };
+                let ds = (0..=ds)
+                    .map(|i| {
+                        let time = last_dot_time + seconds_to_time(step * r32(i as f32));
+                        render_light(time, overlapped).center()
+                    })
+                    .filter(|&pos| self.state.position.contains(pos));
 
-                    dots.extend(ds);
-                }
-            };
+                dots.extend(ds);
+            }
+        };
 
-            let mut drag_event =
-                |preevent_time: Time, dragging_event: &mut Option<(usize, vec2<f32>, f32)>| {
-                    // Release drag
-                    if !can_focus || !context.cursor.left.down {
-                        match dragging_event.take() {
-                            Some((_, from, from_time))
-                                if (context.cursor.position - from).len_sqr()
-                                    < MAX_CLICK_DISTANCE
-                                    && (context.real_time - from_time).abs()
-                                        < MAX_CLICK_DURATION => {}
-                            Some(_) => {
-                                if is_selected {
-                                    actions.push(LevelAction::Deselect.into());
-                                }
-                            }
-                            None => {}
+        let drag_event = |event_i: EditorEventIdx,
+                          preevent_time: Time,
+                          dragging_event: &mut Option<(EditorEventIdx, vec2<f32>, f32)>,
+                          actions: &mut Vec<EditorAction>| {
+            // Release drag
+            if !can_focus || !context.cursor.left.down {
+                match dragging_event.take() {
+                    Some((_, from, from_time))
+                        if (context.cursor.position - from).len_sqr() < MAX_CLICK_DISTANCE
+                            && (context.real_time - from_time).abs() < MAX_CLICK_DURATION => {}
+                    Some(_) => {
+                        if self.selection.is_single(event_i) {
+                            actions.push(LevelAction::Deselect.into());
                         }
                     }
-                    if let Some((i, _, _)) = dragging_event
-                        && *i == event_i
-                    {
-                        let time = unrender_time(context.cursor.position.x);
-                        let time =
-                            editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time;
-                        actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
-                    }
-                };
+                    None => {}
+                }
+            }
+            if let Some((i, _, _)) = dragging_event
+                && *i == event_i
+            {
+                let time = unrender_time(context.cursor.position.x);
+                let time = editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time;
+                actions.push(LevelAction::MoveEvent(event_i, Change::Set(time)).into());
+            }
+        };
+
+        // Timing points
+        for (idx, point) in self.level.timing.points.iter().enumerate() {
+            let idx = EditorEventIdx::Timing(idx);
+            drag_event(idx, 0, &mut self.dragging_event, actions);
+            regular_event(
+                idx,
+                point.time,
+                0,
+                actions,
+                &mut occupied,
+                &mut self.dragging_event,
+                &mut self.dots,
+            );
+        }
+
+        // Events
+        for (event_i, event) in self.level.events.iter().enumerate() {
+            let event_idx = EditorEventIdx::Event(event_i);
+            let is_selected = self.selection.is_single(event_idx);
 
             match &event.event {
                 Event::Light(light_event) => {
@@ -345,7 +370,7 @@ impl TimelineWidget {
                     let is_selected = self.selection.is_light_single(light_id);
                     let fade_in = light_event.movement.get_fade_in();
                     if is_selected {
-                        drag_event(fade_in, &mut self.dragging_event);
+                        drag_event(event_idx, fade_in, &mut self.dragging_event, actions);
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + light_event.movement.duration();
@@ -528,8 +553,11 @@ impl TimelineWidget {
                                     LevelAction::SelectLight(selection_mode, vec![light_id]).into(),
                                 );
                                 if !context.mods.shift {
-                                    self.dragging_event =
-                                        Some((event_i, context.cursor.position, context.real_time));
+                                    self.dragging_event = Some((
+                                        event_idx,
+                                        context.cursor.position,
+                                        context.real_time,
+                                    ));
                                 }
                             }
                         } else {
@@ -594,7 +622,7 @@ impl TimelineWidget {
                         | EffectEvent::CameraShake(duration, _) => duration,
                     };
                     if is_selected {
-                        drag_event(0, &mut self.dragging_event);
+                        drag_event(event_idx, 0, &mut self.dragging_event, actions);
                         // Start time
                         timeline_tick(
                             vec2(4.0, 16.0) * PPU as f32,
@@ -606,9 +634,9 @@ impl TimelineWidget {
                                 let duration = (duration + event.time - target).max(1);
                                 actions.push(
                                     LevelAction::list_with(
-                                        HistoryLabel::MoveEvent(event_i),
+                                        HistoryLabel::MoveEvent(event_idx),
                                         [
-                                            LevelAction::MoveEvent(event_i, Change::Set(target)),
+                                            LevelAction::MoveEvent(event_idx, Change::Set(target)),
                                             LevelAction::ChangeEffectDuration(
                                                 event_i,
                                                 Change::Set(duration),
@@ -621,7 +649,7 @@ impl TimelineWidget {
                             &mut |actions| {
                                 actions.push(
                                     LevelAction::FlushChanges(Some(HistoryLabel::MoveEvent(
-                                        event_i,
+                                        event_idx,
                                     )))
                                     .into(),
                                 );
@@ -657,7 +685,7 @@ impl TimelineWidget {
                     }
 
                     regular_event(
-                        event_i,
+                        EditorEventIdx::Event(event_i),
                         event.time,
                         duration,
                         actions,

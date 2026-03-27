@@ -7,7 +7,7 @@ pub enum HistoryLabel {
     Merge,
 
     // General events
-    MoveEvent(usize),
+    MoveEvent(EditorEventIdx),
     EventDuration(usize),
 
     // Vfx

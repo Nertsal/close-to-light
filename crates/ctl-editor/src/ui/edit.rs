@@ -416,6 +416,10 @@ impl LayoutHelper<'_> {
             &Selection::Event(event_i) => {
                 self.layout_selected_event(event_i, tooltip, &mut bar, actions, context);
             }
+            &Selection::Timing(idx) => {
+                // TODO: timing
+                // self.layout_selected_timing(idx, tooltip, &mut bar, actions, context);
+            }
         }
         self.layout_selected_waypoint(tooltip, &mut bar, actions, context);
     }
@@ -830,7 +834,7 @@ impl LayoutHelper<'_> {
                 button.update(delete, context);
                 tooltip.update(&button.text.state, "X", context);
                 if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::DeleteEvent(event_i).into());
+                    actions.push(LevelAction::DeleteEvent(EditorEventIdx::Event(event_i)).into());
                 }
             };
 

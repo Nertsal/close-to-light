@@ -29,9 +29,9 @@ pub enum LevelAction {
     Deselect,
 
     // General event
-    SelectEvent(usize),
-    DeleteEvent(usize),
-    MoveEvent(usize, Change<Time>),
+    SelectEvent(EditorEventIdx),
+    DeleteEvent(EditorEventIdx),
+    MoveEvent(EditorEventIdx, Change<Time>),
 
     // Vfx
     NewRgbSplit(Time),
@@ -234,6 +234,9 @@ impl LevelEditor {
                     self.clipboard
                         .copy(ClipboardItem::Events(self.current_time.target, events));
                 }
+                Selection::Timing(_) => {
+                    // TODO: maybe?
+                }
             },
             LevelAction::SetSelection(selection) => {
                 self.selection = selection;
@@ -294,23 +297,47 @@ impl LevelEditor {
                 }
             }
 
-            LevelAction::SelectEvent(index) => {
-                if self.level.events.get(index).is_some() {
-                    self.selection = Selection::Event(index);
+            LevelAction::SelectEvent(index) => match index {
+                EditorEventIdx::Event(index) => {
+                    if self.level.events.get(index).is_some() {
+                        self.selection = Selection::Event(index);
+                    }
                 }
-            }
-            LevelAction::DeleteEvent(index) => {
-                if self.level.events.get(index).is_some() {
-                    self.execute(LevelAction::Deselect, drag);
-                    self.level.events.swap_remove(index);
+                EditorEventIdx::Timing(index) => {
+                    if self.level.timing.points.get(index).is_some() {
+                        self.selection = Selection::Timing(index);
+                    }
                 }
-            }
-            LevelAction::MoveEvent(index, change) => {
-                if let Some(event) = self.level.events.get_mut(index) {
-                    change.apply(&mut event.time);
-                    self.save_state(HistoryLabel::MoveEvent(index));
+            },
+            LevelAction::DeleteEvent(index) => match index {
+                EditorEventIdx::Event(index) => {
+                    if self.level.events.get(index).is_some() {
+                        self.execute(LevelAction::Deselect, drag);
+                        self.level.events.swap_remove(index);
+                    }
                 }
-            }
+                EditorEventIdx::Timing(index) => {
+                    if self.level.timing.points.get(index).is_some() {
+                        self.execute(LevelAction::Deselect, drag);
+                        self.level.timing.points.remove(index);
+                    }
+                }
+            },
+            LevelAction::MoveEvent(idx, change) => match idx {
+                EditorEventIdx::Event(index) => {
+                    if let Some(event) = self.level.events.get_mut(index) {
+                        change.apply(&mut event.time);
+                        self.save_state(HistoryLabel::MoveEvent(idx));
+                    }
+                }
+                EditorEventIdx::Timing(index) => {
+                    if let Some(event) = self.level.timing.points.get_mut(index) {
+                        change.apply(&mut event.time);
+                        self.level.timing.points.sort_by_key(|point| point.time);
+                        self.save_state(HistoryLabel::MoveEvent(idx));
+                    }
+                }
+            },
 
             LevelAction::NewRgbSplit(duration) => {
                 self.execute(LevelAction::Deselect, drag);

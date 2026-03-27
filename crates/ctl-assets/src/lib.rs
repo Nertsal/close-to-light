@@ -163,6 +163,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
         time_mark,
 
         rgb_split,
+        metronome,
 
         circle,
         circle_fill,
