@@ -33,6 +33,7 @@ pub enum LevelAction {
     MoveEvent(EditorEventIdx, Change<Time>),
 
     // Timing
+    TimingNew(Time, FloatTime),
     TimingUpdate(usize, FloatTime),
 
     // Vfx
@@ -148,6 +149,7 @@ impl LevelAction {
             LevelAction::DeleteEvent(_) => false,
             LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
 
+            LevelAction::TimingNew(..) => false,
             LevelAction::TimingUpdate(..) => false,
 
             LevelAction::NewRgbSplit(_) => false,
@@ -337,6 +339,23 @@ impl LevelEditor {
                 }
             },
 
+            LevelAction::TimingNew(time, beat_time) => {
+                match self
+                    .level
+                    .timing
+                    .points
+                    .binary_search_by_key(&time, |point| point.time)
+                {
+                    Ok(_) => {
+                        // Point already exists at this time
+                    }
+                    Err(i) => self
+                        .level
+                        .timing
+                        .points
+                        .insert(i, TimingPoint { time, beat_time }),
+                }
+            }
             LevelAction::TimingUpdate(point, beat_time) => {
                 if let Some(point) = self.level.timing.points.get_mut(point) {
                     point.beat_time = beat_time;

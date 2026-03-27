@@ -192,10 +192,23 @@ impl LayoutHelper<'_> {
         ui: &mut EditorEditUi,
         _tooltip: &mut TooltipWidget,
         bar: &mut Aabb2<f32>,
-        _actions: &mut Vec<EditorStateAction>,
+        actions: &mut Vec<EditorStateAction>,
         context: &UiContext,
     ) {
         let button_width = context.font_size * 4.5;
+
+        let new_timing = bar
+            .cut_top(self.button_height)
+            .with_width(button_width, 0.0);
+        let button = context
+            .state
+            .get_root_or(|| ButtonWidget::new("Timing (BPM)"));
+        button.update(new_timing, context);
+        if button.text.state.mouse_left.clicked {
+            let time = self.level_editor.current_time.target;
+            let beat_time = self.level_editor.level.timing.get_timing(time).beat_time;
+            actions.push(LevelAction::TimingNew(time, beat_time).into());
+        }
 
         let new_light = bar
             .cut_top(self.button_height)
