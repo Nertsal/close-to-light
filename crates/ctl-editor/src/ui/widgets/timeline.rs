@@ -128,6 +128,7 @@ impl TimelineWidget {
         } else {
             SelectMode::Set
         };
+        let multi_select_mode = context.mods.shift;
 
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
@@ -488,26 +489,14 @@ impl TimelineWidget {
                         && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                     // Idle light icon
                     if visible {
-                        // NOTE: overlapping events
-                        // Normally, events stack on top of each other on the timeline.
-                        // However, when one light is selected, the timeline view squishes down
-                        // so it is easier to edit the waypoints of that light.
-                        // Unless SHIFT is pressed, in which case we're in *multi-select mode*:
-                        // timeline view grows to fit all lights allowing us to select them.
                         let on_top_of_highlight = self
                             .highlight_bar
                             .as_ref()
                             .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&light_time));
-                        let multi_select_mode = context.mods.shift;
-                        overlapped = if !multi_select_mode && on_top_of_highlight {
-                            1
-                        } else {
-                            *occupied
-                                .entry(light_time)
-                                .and_modify(|x| *x += 1)
-                                .or_insert(0)
-                                + if on_top_of_highlight { 1 } else { 0 }
-                        };
+                        overlapped = *occupied
+                            .entry(light_time)
+                            .and_modify(|x| *x += 1)
+                            .or_insert(if on_top_of_highlight { 1 } else { 0 });
 
                         // Check if there is enough visual space to render the event that high
                         if overlapped as f32 <= self.expansion.current + 0.9 {
@@ -680,22 +669,18 @@ impl TimelineWidget {
             }
         }
 
-        self.expansion.target = if self.state.hovered {
-            // occupied.into_values().max().unwrap_or(0) as f32
-            let stack = match occupied.iter().max_by_key(|(_, v)| **v) {
-                Some((&time, &stack)) => {
-                    let on_highlight = self
-                        .highlight_bar
-                        .as_ref()
-                        .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&time));
-                    stack + if on_highlight { 1 } else { 0 }
-                }
-                None => 0,
+        // NOTE: overlapping events
+        // Normally, events stack on top of each other on the timeline.
+        // However, when one light is selected, the timeline view squishes down
+        // so it is easier to edit the waypoints of that light.
+        // Unless SHIFT is pressed, in which case we're in *multi-select mode*:
+        // timeline view grows to fit all lights allowing us to select them.
+        self.expansion.target =
+            if self.state.hovered && (self.highlight_bar.is_none() || multi_select_mode) {
+                occupied.into_values().max().unwrap_or(0) as f32
+            } else {
+                0.0
             };
-            stack as f32
-        } else {
-            0.0
-        };
 
         // Main line ticks
         self.ticks.clear();
