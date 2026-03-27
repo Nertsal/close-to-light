@@ -34,6 +34,7 @@ pub struct TimelineWidget {
     marks: Vec<(vec2<f32>, Color)>,
     /// Ticks with position and subdivision indicator used to select color and texture.
     ticks: Vec<(vec2<f32>, i64)>,
+    /// (event idx, from_screen_pos, from_real_time)
     dragging_event: Option<(EditorEventIdx, vec2<f32>, f32)>,
     dragging_waypoint: Option<WaypointId>,
 
@@ -385,9 +386,13 @@ impl TimelineWidget {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
                     let is_selected = self.selection.is_light_single(light_id);
-                    let fade_in = light_event.movement.get_fade_in();
                     if is_selected {
-                        drag_event(event_idx, fade_in, &mut self.dragging_event, actions);
+                        drag_event(
+                            event_idx,
+                            pre_event_time(&event.event),
+                            &mut self.dragging_event,
+                            actions,
+                        );
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + light_event.movement.duration();
@@ -883,7 +888,40 @@ impl TimelineWidget {
                 TextWidget::new("Time: XX:XX.XXX").aligned(vec2(0.0, 0.5))
             });
 
-            let mut ms = self.raw_current_time;
+            let focus_time = self
+                .dragging_event
+                .and_then(|(id, ..)| match id {
+                    EditorEventIdx::Event(i) => self
+                        .level
+                        .events
+                        .get(i)
+                        .map(|event| event.time + pre_event_time(&event.event)),
+                    EditorEventIdx::Timing(i) => {
+                        self.level.timing.points.get(i).map(|point| point.time)
+                    }
+                })
+                .or_else(|| {
+                    self.dragging_waypoint.and_then(|id| {
+                        self.selection
+                            .light_single()
+                            .and_then(|light| self.level.events.get(light.event))
+                            .and_then(|event| {
+                                if let Event::Light(light) = &event.event {
+                                    light.movement.get_time(id).map(|time| time + event.time)
+                                } else {
+                                    None
+                                }
+                            })
+                    })
+                });
+            let color = if focus_time.is_some() {
+                context.theme().highlight
+            } else {
+                context.theme().light
+            };
+
+            let display_time = focus_time.unwrap_or(self.raw_current_time);
+            let mut ms = display_time;
             let mut secs = ms / 1000;
             ms -= secs * 1000;
             let mins = secs / 60;
@@ -892,6 +930,7 @@ impl TimelineWidget {
             time.text = format!("Time: {:02}:{:02}.{:03}", mins, secs, ms).into();
             time.update(current_time, context);
             time.options.size = current_time.height() * 0.4;
+            time.options.color = color;
 
             // Current beat
             let mut current_beat = left_panel;
@@ -900,10 +939,8 @@ impl TimelineWidget {
                 TextWidget::new("Beat: XX X/X").aligned(vec2(0.0, 1.0))
             });
 
-            let beat_time = self
-                .level
-                .timing
-                .get_relative_beat_time(self.raw_target_time);
+            let beat_time = focus_time.unwrap_or(self.raw_target_time);
+            let beat_time = self.level.timing.get_relative_beat_time(beat_time);
             let ratio = Ratio::new(beat_time.units(), BeatTime::UNITS_PER_BEAT);
             let sub_division = *ratio.denom();
             let mut sub_beat = *ratio.numer();
@@ -917,6 +954,7 @@ impl TimelineWidget {
             };
             beat.update(current_beat, context);
             beat.options.size = current_beat.height() * 0.4;
+            beat.options.color = color;
         }
 
         {
@@ -1004,6 +1042,14 @@ impl TimelineWidget {
         self.reload(context, state, actions);
 
         context.update_focus(self.state.hovered); // Take focus
+    }
+}
+
+/// The time at the start of the event that exists but is not visualized.
+fn pre_event_time(event: &Event) -> Time {
+    match event {
+        Event::Light(light) => light.movement.get_fade_in(),
+        _ => 0,
     }
 }
 
