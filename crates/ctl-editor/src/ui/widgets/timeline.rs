@@ -380,6 +380,9 @@ impl TimelineWidget {
         for (event_i, event) in self.level.events.iter().enumerate() {
             let event_idx = EditorEventIdx::Event(event_i);
             let is_selected = self.selection.is_single(event_idx);
+            let visible = !is_selected
+                && (event.time + pre_event_time(&event.event) + self.scroll).abs()
+                    < self.visible_scroll() / 2;
 
             match &event.event {
                 Event::Light(light_event) => {
@@ -533,8 +536,6 @@ impl TimelineWidget {
                     let mut is_hovered = false;
                     let mut overlapped = 0;
                     let light_time = event.time + light_event.movement.get_fade_in();
-                    let visible = !is_selected
-                        && (light_time + self.scroll).abs() < self.visible_scroll() / 2;
                     // Idle light icon
                     if visible {
                         let on_top_of_highlight = self
@@ -547,7 +548,7 @@ impl TimelineWidget {
                             .or_insert(if on_top_of_highlight { 1 } else { 0 });
 
                         // Check if there is enough visual space to render the event that high
-                        if overlapped as f32 <= self.expansion.current + 0.9 {
+                        if overlapped as f32 <= self.expansion.current + 0.5 {
                             let light = render_light(light_time, overlapped);
                             let texture = match light_event.shape {
                                 Shape::Circle { .. } => atlas.timeline_circle(),
@@ -707,22 +708,24 @@ impl TimelineWidget {
                         );
                     }
 
-                    let texture = match effect {
-                        EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
-                        EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
-                        EffectEvent::CameraShake(..) => atlas.timeline_shake(),
-                    };
+                    if visible {
+                        let texture = match effect {
+                            EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
+                            EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
+                            EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                        };
 
-                    regular_event(
-                        EditorEventIdx::Event(event_i),
-                        event.time,
-                        duration,
-                        texture,
-                        actions,
-                        &mut occupied,
-                        &mut self.dragging_event,
-                        &mut self.dots,
-                    );
+                        regular_event(
+                            EditorEventIdx::Event(event_i),
+                            event.time,
+                            duration,
+                            texture,
+                            actions,
+                            &mut occupied,
+                            &mut self.dragging_event,
+                            &mut self.dots,
+                        );
+                    }
                 }
             }
         }
