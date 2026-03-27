@@ -55,7 +55,7 @@ impl InputFormat {
                 let mut s = s.replace(|c: char| c != '.' && !c.is_ascii_digit(), "");
                 if let Some((a, b)) = s.split_once('.') {
                     let fraction = b.replace('.', "");
-                    let precision = precision.max(fraction.len());
+                    let precision = precision.min(fraction.len());
                     s = a.to_owned() + "." + &fraction[..precision];
                 }
                 if negative {

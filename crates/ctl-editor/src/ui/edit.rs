@@ -417,8 +417,7 @@ impl LayoutHelper<'_> {
                 self.layout_selected_event(event_i, tooltip, &mut bar, actions, context);
             }
             &Selection::Timing(idx) => {
-                // TODO: timing
-                // self.layout_selected_timing(idx, tooltip, &mut bar, actions, context);
+                self.layout_selected_timing(idx, tooltip, &mut bar, actions, context);
             }
         }
         self.layout_selected_waypoint(tooltip, &mut bar, actions, context);
@@ -799,6 +798,34 @@ impl LayoutHelper<'_> {
         }
     }
 
+    fn event_title_delete(
+        &self,
+        event_idx: EditorEventIdx,
+        bar: &mut Aabb2<f32>,
+        title: &str,
+        tooltip: &mut TooltipWidget,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        let light_pos = bar.cut_top(self.title_size);
+        let text = context
+            .state
+            .get_root_or(|| TextWidget::new("").aligned(vec2(0.0, 0.5)));
+        text.text = title.into();
+        text.update(light_pos, context);
+        text.options.size = self.title_size;
+
+        let delete = bar.cut_top(self.button_height).cut_left(self.delete_width);
+        let button = context
+            .state
+            .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
+        button.update(delete, context);
+        tooltip.update(&button.text.state, "X", context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::DeleteEvent(event_idx).into());
+        }
+    }
+
     fn layout_selected_event(
         &self,
         event_i: usize,
@@ -814,35 +841,18 @@ impl LayoutHelper<'_> {
         let timing = &self.level_editor.level.timing;
         let timing_point = timing.get_timing(event.time);
 
-        let event_title_delete =
-            |bar: &mut Aabb2<f32>,
-             title: &str,
-             tooltip: &mut TooltipWidget,
-             actions: &mut Vec<EditorStateAction>| {
-                let light_pos = bar.cut_top(self.title_size);
-                let text = context
-                    .state
-                    .get_root_or(|| TextWidget::new("").aligned(vec2(0.0, 0.5)));
-                text.text = title.into();
-                text.update(light_pos, context);
-                text.options.size = self.title_size;
-
-                let delete = bar.cut_top(self.button_height).cut_left(self.delete_width);
-                let button = context
-                    .state
-                    .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
-                button.update(delete, context);
-                tooltip.update(&button.text.state, "X", context);
-                if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::DeleteEvent(EditorEventIdx::Event(event_i)).into());
-                }
-            };
-
         match &event.event {
             Event::Light(_) => {}
             Event::Effect(effect) => match *effect {
                 EffectEvent::PaletteSwap(duration) => {
-                    event_title_delete(bar, "Palette Swap", tooltip, actions);
+                    self.event_title_delete(
+                        EditorEventIdx::Event(event_i),
+                        bar,
+                        "Palette Swap",
+                        tooltip,
+                        actions,
+                        context,
+                    );
 
                     let duration_pos = bar.cut_top(self.value_height);
                     let mut duration = BeatTime::from_beats_float(
@@ -874,7 +884,14 @@ impl LayoutHelper<'_> {
                     }
                 }
                 EffectEvent::RgbSplit(duration) => {
-                    event_title_delete(bar, "RGB Split", tooltip, actions);
+                    self.event_title_delete(
+                        EditorEventIdx::Event(event_i),
+                        bar,
+                        "RGB Split",
+                        tooltip,
+                        actions,
+                        context,
+                    );
 
                     let duration_pos = bar.cut_top(self.value_height);
                     let mut duration = BeatTime::from_beats_float(
@@ -906,7 +923,14 @@ impl LayoutHelper<'_> {
                     }
                 }
                 EffectEvent::CameraShake(duration, intensity) => {
-                    event_title_delete(bar, "Camera Shake", tooltip, actions);
+                    self.event_title_delete(
+                        EditorEventIdx::Event(event_i),
+                        bar,
+                        "Camera Shake",
+                        tooltip,
+                        actions,
+                        context,
+                    );
 
                     let duration_pos = bar.cut_top(self.value_height);
                     let mut duration = BeatTime::from_beats_float(
@@ -971,5 +995,44 @@ impl LayoutHelper<'_> {
                 }
             },
         }
+    }
+
+    fn layout_selected_timing(
+        &self,
+        timing_i: usize,
+        tooltip: &mut TooltipWidget,
+        bar: &mut Aabb2<f32>,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        let Some(timing) = self.level_editor.level.timing.points.get(timing_i) else {
+            return;
+        };
+
+        self.event_title_delete(
+            EditorEventIdx::Timing(timing_i),
+            bar,
+            "Timing Point",
+            tooltip,
+            actions,
+            context,
+        );
+
+        let mut bpm_value = r32(60.0) / timing.beat_time;
+
+        let bpm_pos = bar.cut_top(self.value_height);
+        let bpm = context.state.get_root_or(|| {
+            ValueWidget::new(
+                "BPM",
+                bpm_value,
+                ValueControl::Slider {
+                    min: r32(20.0),
+                    max: r32(500.0),
+                },
+                r32(1.0),
+            )
+        });
+        bpm.update(bpm_pos, context, &mut bpm_value);
+        actions.push(LevelAction::TimingUpdate(timing_i, r32(60.0) / bpm_value).into());
     }
 }

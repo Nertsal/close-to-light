@@ -22,7 +22,6 @@ pub enum LevelAction {
     SetBeatSnap(BeatTime),
     TimelineZoom(Change<f32>),
     CameraPan(Change<vec2<f32>>),
-    TimingUpdate(usize, FloatTime),
     /// Selected a shape, but the specific action is up to interpretation.
     /// If there is a light selected, changes its shape; otherwise creates a new light.
     Shape(Shape),
@@ -32,6 +31,9 @@ pub enum LevelAction {
     SelectEvent(EditorEventIdx),
     DeleteEvent(EditorEventIdx),
     MoveEvent(EditorEventIdx, Change<Time>),
+
+    // Timing
+    TimingUpdate(usize, FloatTime),
 
     // Vfx
     NewRgbSplit(Time),
@@ -140,12 +142,13 @@ impl LevelAction {
             LevelAction::SetBeatSnap(_) => false,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
-            LevelAction::TimingUpdate(..) => false,
             LevelAction::Shape(..) => false,
 
             LevelAction::SelectEvent(_) => false,
             LevelAction::DeleteEvent(_) => false,
             LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
+
+            LevelAction::TimingUpdate(..) => false,
 
             LevelAction::NewRgbSplit(_) => false,
             LevelAction::NewPaletteSwap(_) => false,
@@ -273,11 +276,6 @@ impl LevelEditor {
             LevelAction::CameraPan(delta) => {
                 delta.apply(&mut self.model.camera.center);
             }
-            LevelAction::TimingUpdate(point, beat_time) => {
-                if let Some(point) = self.level.timing.points.get_mut(point) {
-                    point.beat_time = beat_time;
-                }
-            }
             LevelAction::Shape(shape) => {
                 if !self.selection.is_empty() {
                     // Change shape of the selected light
@@ -338,6 +336,12 @@ impl LevelEditor {
                     }
                 }
             },
+
+            LevelAction::TimingUpdate(point, beat_time) => {
+                if let Some(point) = self.level.timing.points.get_mut(point) {
+                    point.beat_time = beat_time;
+                }
+            }
 
             LevelAction::NewRgbSplit(duration) => {
                 self.execute(LevelAction::Deselect, drag);
