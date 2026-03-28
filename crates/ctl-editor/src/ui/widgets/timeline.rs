@@ -121,7 +121,7 @@ impl TimelineWidget {
         };
         let multi_select_mode = context.mods.shift;
 
-        let enable_beat_snap = !context.mods.shift;
+        let enable_beat_snap = !context.mods.ctrl;
         let beat_snap = level_editor.beat_snap;
 
         // from time to screen position
