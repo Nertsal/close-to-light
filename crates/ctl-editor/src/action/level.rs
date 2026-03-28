@@ -656,24 +656,33 @@ impl LevelEditor {
             })
             .collect();
 
-        // Edge (fade in/out) waypoints keep their relative timings unless moved directly
-        if !waypoint_ids
+        // NOTE: Edge (fade in/out) waypoints keep their relative timings unless moved directly
+        let moved_initial = waypoint_ids
             .iter()
-            .any(|(id, _, _)| matches!(id, WaypointId::Initial))
-        {
+            .any(|(id, _, _)| matches!(id, WaypointId::Initial));
+        let moved_last = waypoint_ids
+            .iter()
+            .any(|(id, _, _)| matches!(id, WaypointId::Last));
+
+        // Sort frames by absolute time
+        let fix_from_i = if moved_initial { 0 } else { 1 };
+        let fix_to_i = if moved_last {
+            frames.len()
+        } else {
+            frames.len() - 1
+        };
+        let to_fix = &mut frames[fix_from_i..fix_to_i];
+        to_fix.sort_by_key(|(_, _, time)| *time);
+
+        // Fix fade in/out timings
+        if !moved_initial {
             frames[0].2 = frames[1].2 - fade_in;
         }
-        if !waypoint_ids
-            .iter()
-            .any(|(id, _, _)| matches!(id, WaypointId::Last))
-        {
+        if !moved_last {
             let len = frames.len();
             assert!(len >= 2);
             frames[len - 1].2 = frames[len - 2].2 + fade_out;
         }
-
-        // Sort frames by absolute time
-        frames.sort_by_key(|(_, _, time)| *time);
 
         // Check if some frames have same time - invalid reorder
         if frames.iter().tuple_windows().any(|(a, b)| a.2 == b.2) {
