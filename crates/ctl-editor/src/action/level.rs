@@ -621,6 +621,7 @@ impl LevelEditor {
         let Event::Light(event) = &mut timed_event.event else {
             return;
         };
+        let original_event = event.clone();
 
         // Change position
         for &(waypoint_id, _, change_pos) in waypoint_ids {
@@ -676,7 +677,8 @@ impl LevelEditor {
 
         // Check if some frames have same time - invalid reorder
         if frames.iter().tuple_windows().any(|(a, b)| a.2 == b.2) {
-            // Invalid reorder
+            // Invalid reorder - restore state
+            *event = original_event;
             return;
         }
 
