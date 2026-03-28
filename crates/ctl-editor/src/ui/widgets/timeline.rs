@@ -44,8 +44,6 @@ pub struct TimelineWidget {
     scroll: Time,
     raw_current_time: Time,
     raw_target_time: Time,
-    level: Level, // TODO: reuse existing
-    selection: Selection,
 }
 
 struct HighlightBar {
@@ -84,8 +82,6 @@ impl TimelineWidget {
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
             raw_target_time: Time::ZERO,
-            level: Level::new(r32(150.0)),
-            selection: Selection::Empty,
         }
     }
 
@@ -162,10 +158,10 @@ impl TimelineWidget {
         };
 
         // Check highlight bounds
-        let light_selection = self
+        let light_selection = editor
             .selection
             .light_single()
-            .and_then(|id| self.level.events.get(id.event))
+            .and_then(|id| editor.level.events.get(id.event))
             .and_then(|event| {
                 if let Event::Light(light) = &event.event {
                     let from_time = event.time;
@@ -183,11 +179,12 @@ impl TimelineWidget {
                 }
             });
         self.highlight_bar = light_selection.or_else(|| {
-            self.selection
+            editor
+                .selection
                 .single()
                 .and_then(|id| {
                     if let EditorEventIdx::Event(id) = id {
-                        self.level.events.get(id)
+                        editor.level.events.get(id)
                     } else {
                         None
                     }
@@ -261,7 +258,7 @@ impl TimelineWidget {
                              occupied: &mut BTreeMap<i64, usize>,
                              dragging_event: &mut Option<(EditorEventIdx, vec2<f32>, f32)>,
                              dots: &mut Vec<vec2<f32>>| {
-            let is_selected = self.selection.is_single(event_i);
+            let is_selected = editor.selection.is_single(event_i);
 
             let on_top_of_highlight = !is_selected
                 && self
@@ -303,7 +300,7 @@ impl TimelineWidget {
                 let time = event_time + event_duration;
 
                 // TODO: variable timing within this segment
-                let timing = self.level.timing.get_timing(event_time);
+                let timing = editor.level.timing.get_timing(event_time);
 
                 let resolution = 4.0; // Ticks per beat
                 let step = timing.beat_time / r32(resolution);
@@ -332,7 +329,7 @@ impl TimelineWidget {
                         if (context.cursor.position - from).len_sqr() < MAX_CLICK_DISTANCE
                             && (context.real_time - from_time).abs() < MAX_CLICK_DURATION => {}
                     Some(_) => {
-                        if self.selection.is_single(event_i) {
+                        if editor.selection.is_single(event_i) {
                             actions.push(LevelAction::Deselect.into());
                         }
                     }
@@ -362,7 +359,7 @@ impl TimelineWidget {
         };
 
         // Timing points
-        for (idx, point) in self.level.timing.points.iter().enumerate() {
+        for (idx, point) in editor.level.timing.points.iter().enumerate() {
             let idx = EditorEventIdx::Timing(idx);
             drag_event(idx, 0, &mut self.dragging_event, actions);
             regular_event(
@@ -378,9 +375,9 @@ impl TimelineWidget {
         }
 
         // Events
-        for (event_i, event) in self.level.events.iter().enumerate() {
+        for (event_i, event) in editor.level.events.iter().enumerate() {
             let event_idx = EditorEventIdx::Event(event_i);
-            let is_selected = self.selection.is_single(event_idx);
+            let is_selected = editor.selection.is_single(event_idx);
             let visible = !is_selected
                 && (event.time + pre_event_time(&event.event) + self.scroll).abs()
                     < self.visible_scroll() / 2;
@@ -388,7 +385,7 @@ impl TimelineWidget {
             match &event.event {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
-                    let is_selected = self.selection.is_light_single(light_id);
+                    let is_selected = editor.selection.is_light_single(light_id);
                     if is_selected {
                         drag_event(
                             event_idx,
@@ -575,7 +572,7 @@ impl TimelineWidget {
                                 .state
                                 .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
                             icon.update(light, context);
-                            icon.color = if self.selection.is_light_selected(light_id) {
+                            icon.color = if editor.selection.is_light_selected(light_id) {
                                 ThemeColor::Highlight
                             } else if light_event.danger {
                                 ThemeColor::Danger
@@ -637,7 +634,7 @@ impl TimelineWidget {
                         let time = event.time + light_event.movement.duration();
 
                         // TODO: variable timing within this segment
-                        let timing = self.level.timing.get_timing(event.time);
+                        let timing = editor.level.timing.get_timing(event.time);
 
                         let resolution = 4.0; // Ticks per beat
                         let step = timing.beat_time / r32(resolution);
@@ -760,7 +757,7 @@ impl TimelineWidget {
 
         // Main line ticks
         self.ticks.clear();
-        let points = &self.level.timing.points;
+        let points = &editor.level.timing.points;
         for (timing, next) in points
             .iter()
             .zip(points.iter().skip(1).map(Some).chain([None]))
@@ -843,13 +840,11 @@ impl TimelineWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &UiContext,
-        state: &LevelEditor,
+        editor: &LevelEditor,
         actions: &mut Vec<EditorAction>,
     ) {
         self.cursor_pos = context.cursor.position;
         self.expansion.update(context.delta_time);
-        self.level = state.level.clone();
-        self.selection = state.selection.clone();
 
         let pixel = PPU as f32;
 
@@ -910,13 +905,13 @@ impl TimelineWidget {
             let focus_time = self
                 .dragging_event
                 .and_then(|(id, ..)| match id {
-                    EditorEventIdx::Event(i) => self
+                    EditorEventIdx::Event(i) => editor
                         .level
                         .events
                         .get(i)
                         .map(|event| event.time + pre_event_time(&event.event)),
                     EditorEventIdx::Waypoint(light_id, waypoint_id) => {
-                        self.level.events.get(light_id.event).and_then(|event| {
+                        editor.level.events.get(light_id.event).and_then(|event| {
                             if let Event::Light(light) = &event.event
                                 && let Some(waypoint_time) = light.movement.get_time(waypoint_id)
                             {
@@ -927,14 +922,15 @@ impl TimelineWidget {
                         })
                     }
                     EditorEventIdx::Timing(i) => {
-                        self.level.timing.points.get(i).map(|point| point.time)
+                        editor.level.timing.points.get(i).map(|point| point.time)
                     }
                 })
                 .or_else(|| {
                     self.dragging_waypoint.and_then(|id| {
-                        self.selection
+                        editor
+                            .selection
                             .light_single()
-                            .and_then(|light| self.level.events.get(light.event))
+                            .and_then(|light| editor.level.events.get(light.event))
                             .and_then(|event| {
                                 if let Event::Light(light) = &event.event {
                                     light.movement.get_time(id).map(|time| time + event.time)
@@ -970,7 +966,7 @@ impl TimelineWidget {
             });
 
             let beat_time = focus_time.unwrap_or(self.raw_target_time);
-            let beat_time = self.level.timing.get_relative_beat_time(beat_time);
+            let beat_time = editor.level.timing.get_relative_beat_time(beat_time);
             let ratio = Ratio::new(beat_time.units(), BeatTime::UNITS_PER_BEAT);
             let sub_division = *ratio.denom();
             let mut sub_beat = *ratio.numer();
@@ -990,7 +986,7 @@ impl TimelineWidget {
         {
             // Right panel - Timing subdivision
             let allowed_subdivisions = [1, 2, 3, 4, 6, 8, 12, 16];
-            let current_subdivision = BeatTime::WHOLE.units() / state.beat_snap.units();
+            let current_subdivision = BeatTime::WHOLE.units() / editor.beat_snap.units();
             let current_i = allowed_subdivisions
                 .iter()
                 .position(|d| *d == current_subdivision)
@@ -1066,10 +1062,10 @@ impl TimelineWidget {
 
         if self.main_line.mouse_left.clicked {
             let time = self.get_cursor_time();
-            actions.push(LevelAction::ScrollTime(time - state.current_time.target).into());
+            actions.push(LevelAction::ScrollTime(time - editor.current_time.target).into());
         }
 
-        self.reload(context, state, actions);
+        self.reload(context, editor, actions);
 
         context.update_focus(self.state.hovered); // Take focus
     }
