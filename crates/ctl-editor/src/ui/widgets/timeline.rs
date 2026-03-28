@@ -397,8 +397,8 @@ impl TimelineWidget {
             match &event.event {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
-                    let is_light_selected = level_editor.selection.is_light_single(light_id);
-                    if is_light_selected {
+                    let is_light_selected_single = level_editor.selection.is_light_single(light_id);
+                    if is_light_selected_single {
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + light_event.movement.duration();
@@ -529,11 +529,10 @@ impl TimelineWidget {
                                         },
                                     )]);
                                 } else {
-                                    // TODO: check selection coherence
                                     let id = EditorEventIdx::Waypoint(light_id, waypoint_id);
                                     actions.extend([
                                         LevelAction::SelectWaypoint(
-                                            selection_mode,
+                                            SelectMode::Set,
                                             light_id,
                                             vec![waypoint_id],
                                             false,
@@ -585,7 +584,7 @@ impl TimelineWidget {
                     let mut overlapped = 0;
                     let light_time = event.time + light_event.movement.get_fade_in();
                     // Idle light icon
-                    if visible && !is_light_selected {
+                    if visible && !is_light_selected_single {
                         let on_top_of_highlight = self
                             .highlight_bar
                             .as_ref()
@@ -621,44 +620,37 @@ impl TimelineWidget {
                                 actions.push(LevelAction::HoverLight(light_id).into());
                             }
                             if icon.state.mouse_left.just_pressed {
-                                if !multi_select_mode {
-                                    if is_light_selected {
-                                        actions.push(EditorStateAction::StartDrag(
-                                            DragTarget::TimelineEvent {
-                                                initial_time: light_time,
-                                                targets: level_editor
-                                                    .selection
-                                                    .to_editor_events()
-                                                    .into_iter()
-                                                    .filter_map(|id| {
-                                                        Some((
-                                                            id,
-                                                            editor_event_time(id, level_editor)?,
-                                                        ))
-                                                    })
-                                                    .collect(),
-                                            },
-                                        ));
-                                    } else {
-                                        actions.extend([
-                                            LevelAction::SelectLight(
-                                                SelectMode::Set,
-                                                vec![light_id],
-                                            )
-                                            .into(),
-                                            EditorStateAction::StartDrag(
-                                                DragTarget::TimelineEvent {
-                                                    initial_time: light_time,
-                                                    targets: vec![(event_idx, event.time)],
-                                                },
-                                            ),
-                                        ]);
-                                    }
-                                } else {
+                                if multi_select_mode {
+                                    // Toggle selection
                                     actions.push(
                                         LevelAction::SelectLight(selection_mode, vec![light_id])
                                             .into(),
                                     );
+                                } else if level_editor.selection.is_light_selected(light_id) {
+                                    // Drag whole selection
+                                    actions.push(EditorStateAction::StartDrag(
+                                        DragTarget::TimelineEvent {
+                                            initial_time: light_time,
+                                            targets: level_editor
+                                                .selection
+                                                .to_editor_events()
+                                                .into_iter()
+                                                .filter_map(|id| {
+                                                    Some((id, editor_event_time(id, level_editor)?))
+                                                })
+                                                .collect(),
+                                        },
+                                    ));
+                                } else {
+                                    // Drag single light
+                                    actions.extend([
+                                        LevelAction::SelectLight(SelectMode::Set, vec![light_id])
+                                            .into(),
+                                        EditorStateAction::StartDrag(DragTarget::TimelineEvent {
+                                            initial_time: light_time,
+                                            targets: vec![(event_idx, event.time)],
+                                        }),
+                                    ]);
                                 }
                             }
                         } else {
@@ -674,7 +666,7 @@ impl TimelineWidget {
                     }
                     let is_hovered =
                         is_hovered || level_editor.level_state.hovered_light == Some(light_id);
-                    if !is_light_selected && is_hovered {
+                    if !is_light_selected_single && is_hovered {
                         // Hover preview waypoints
                         for (_, _, offset) in light_event.movement.timed_transforms() {
                             // Icon
@@ -693,7 +685,7 @@ impl TimelineWidget {
                             icon.update(position, context);
                         }
                     }
-                    if is_light_selected || is_hovered {
+                    if is_light_selected_single || is_hovered {
                         // Dots
                         let last_dot_time = event.time;
                         let time = event.time + light_event.movement.duration();
@@ -705,7 +697,11 @@ impl TimelineWidget {
                         let step = timing.beat_time / r32(resolution);
                         let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
                             .floor() as usize;
-                        let overlapped = if is_light_selected { 0 } else { overlapped };
+                        let overlapped = if is_light_selected_single {
+                            0
+                        } else {
+                            overlapped
+                        };
                         let dots = (0..=dots)
                             .map(|i| {
                                 let time = last_dot_time + seconds_to_time(step * r32(i as f32));
