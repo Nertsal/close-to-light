@@ -32,19 +32,16 @@ impl EditorUi {
     pub fn layout(
         &mut self,
         editor: &Editor,
-        screen: Aabb2<f32>,
         context: &mut UiContext,
     ) -> (bool, Vec<EditorStateAction>) {
-        let screen = screen.fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
-
         let mut actions = vec![];
 
+        let screen = context.screen;
         let font_size = screen.height() * 0.035;
         let layout_size = screen.height() * 0.03;
 
         context.font_size = font_size;
         context.layout_size = layout_size;
-        context.screen = screen;
 
         // self.screen.update(screen, context);
 

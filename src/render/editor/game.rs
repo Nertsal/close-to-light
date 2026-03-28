@@ -4,6 +4,7 @@ impl EditorRender {
     pub(super) fn draw_game(
         &mut self,
         editor: &Editor,
+        screen_aabb: Aabb2<f32>,
         interpolation_cache: &mut InterpolationCache,
         visible: bool,
         post_vfx: PostVfx,
@@ -21,7 +22,6 @@ impl EditorRender {
         let game_buffer = &mut self.post_render.begin(self.game_texture.size(), theme.dark);
 
         ugli::clear(game_buffer, Some(theme.dark), None, None);
-        let screen_aabb = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
 
         let Some(level_editor) = &editor.level_edit else {
             return;
@@ -30,6 +30,7 @@ impl EditorRender {
             return;
         }
 
+        let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
         macro_rules! draw_game {
             ($alpha:expr, $buffer:expr) => {{
                 self.dither
@@ -37,7 +38,7 @@ impl EditorRender {
                 self.context.geng.draw2d().textured_quad(
                     $buffer,
                     &geng::PixelPerfectCamera,
-                    screen_aabb,
+                    game_screen,
                     self.dither.get_buffer(),
                     crate::util::with_alpha(Color::WHITE, $alpha),
                 );
@@ -430,6 +431,10 @@ impl EditorRender {
                 geng_utils::texture::attach_texture(&mut self.ui_texture, self.context.geng.ugli());
             ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
 
+            let world_to_screen = |pos| {
+                crate::util::world_to_screen(&level_editor.model.camera, screen_aabb.size(), pos)
+            };
+
             let grid_thick = 5.0; // in pixels
             let grid_thin = 3.0; // in pixels
 
@@ -450,10 +455,8 @@ impl EditorRender {
                 let view = view.size() / 2.0 / grid_size;
                 let view = view.map(|x| x.ceil() as i64);
 
-                let buffer_size = ui_buffer.size().as_f32();
                 let ppp = |pos| {
-                    let camera = &level_editor.model.camera;
-                    let pos = camera_world_to_screen(pos, camera, buffer_size);
+                    let pos = world_to_screen(pos);
                     pos.map(f32::floor)
                 };
 
@@ -524,13 +527,7 @@ impl EditorRender {
             {
                 let color = Color::lerp(theme.dark, theme.highlight, 0.5);
                 let selection = Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)
-                    .map_bounds(|p| {
-                        crate::util::world_to_screen(
-                            &level_editor.model.camera,
-                            game_buffer.size().as_f32(),
-                            p.as_f32(),
-                        )
-                    });
+                    .map_bounds(|p| world_to_screen(p.as_f32()));
                 let pixel = ctl_render_core::get_pixel_scale(ui_buffer.size());
                 let width = 2.0 * pixel;
                 self.ui.fill_quad(
@@ -543,24 +540,8 @@ impl EditorRender {
             }
 
             geng_utils::texture::DrawTexture::new(&self.ui_texture)
-                .fit(screen_aabb, vec2(0.5, 0.5))
+                // .fit(screen_aabb, vec2(0.5, 0.5))
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, game_buffer);
         }
     }
-}
-
-fn camera_world_to_screen(
-    pos: vec2<f32>,
-    camera: &impl geng::AbstractCamera2d,
-    framebuffer_size: vec2<f32>,
-) -> vec2<f32> {
-    let pos = (camera.projection_matrix(framebuffer_size) * camera.view_matrix()) * pos.extend(1.0);
-    let pos = pos.xy() / pos.z;
-    // if pos.x.abs() > 1.0 || pos.y.abs() > 1.0 {
-    //     return None;
-    // }
-    vec2(
-        (pos.x + 1.0) / 2.0 * framebuffer_size.x,
-        (pos.y + 1.0) / 2.0 * framebuffer_size.y,
-    )
 }

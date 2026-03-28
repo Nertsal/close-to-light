@@ -9,7 +9,7 @@ use crate::{
 pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
-use ctl_ui::UiContext;
+use ctl_ui::{UiContext, layout::AreaOps};
 use ctl_util::SecondOrderState;
 
 pub struct EditorState {
@@ -293,12 +293,11 @@ impl geng::State for EditorState {
 
         self.ui_context.state.frame_start();
         self.ui_context.geometry.update(framebuffer.size());
+        self.ui_context.screen = Aabb2::ZERO
+            .extend_positive(framebuffer.size().as_f32())
+            .fit_aabb(vec2(16.0, 9.0), vec2::splat(0.5));
         let (can_focus, actions) = if !self.editor.render_options.hide_ui {
-            self.ui.layout(
-                &self.editor,
-                Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
-                &mut self.ui_context,
-            )
+            self.ui.layout(&self.editor, &mut self.ui_context)
         } else {
             (true, vec![])
         };

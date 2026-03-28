@@ -10,7 +10,6 @@ impl EditorRender {
             ugli::DepthAttachment::Renderbuffer(&mut self.ui_depth),
         );
         // let theme = editor.context.get_options().theme;
-        self.font_size = framebuffer.size().y as f32 * 0.04;
 
         let camera = &geng::PixelPerfectCamera;
         ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), Some(1.0), None);
