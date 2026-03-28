@@ -180,9 +180,10 @@ impl Selection {
                 if *light == light_id {
                     if !waypoints.contains(&id) {
                         waypoints.push(id)
-                    } else {
-                        *waypoints = vec![id];
                     }
+                } else {
+                    *light = light_id;
+                    *waypoints = vec![id];
                 }
             }
             Selection::Event(_) => *self = Self::Waypoints(light_id, vec![id]),

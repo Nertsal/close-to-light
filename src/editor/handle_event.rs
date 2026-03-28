@@ -693,7 +693,7 @@ impl EditorState {
         &self,
         waypoints: &Waypoints,
         event: &TimedEvent,
-        waypoint: WaypointId,
+        waypoint_id: WaypointId,
         button: geng::MouseButton,
         actions: &mut Vec<EditorStateAction>,
     ) {
@@ -703,23 +703,34 @@ impl EditorState {
         let Event::Light(light_event) = &event.event else {
             return;
         };
-        let Some(_frame) = light_event.movement.get_frame(waypoint) else {
+        let Some(_frame) = light_event.movement.get_frame(waypoint_id) else {
             return;
-        };
-
-        let selection_mode = if self.ui_context.mods.shift {
-            SelectMode::Toggle
-        } else {
-            SelectMode::Set
         };
 
         match button {
             geng::MouseButton::Left => {
+                let mut selection = if level_editor
+                    .selection
+                    .is_waypoint_selected(waypoints.light, waypoint_id)
+                {
+                    // Drag all selected
+                    level_editor.selection.clone()
+                } else {
+                    // Select single light
+                    Selection::Empty
+                };
+                selection.add_waypoint(waypoints.light, waypoint_id);
+                let selected = match &selection {
+                    Selection::Waypoints(light_id, selected) if *light_id == waypoints.light => {
+                        selected.clone()
+                    }
+                    _ => vec![],
+                };
                 actions.push(
                     LevelAction::SelectWaypoint(
-                        selection_mode,
+                        SelectMode::Set,
                         waypoints.light,
-                        vec![waypoint],
+                        selected.clone(),
                         false,
                     )
                     .into(),
@@ -766,16 +777,7 @@ impl EditorState {
                 //     }));
                 // } else
                 {
-                    let drag_waypoints = if let Selection::Waypoints(light_id, ids) =
-                        &level_editor.selection
-                        && *light_id == waypoints.light
-                        && ids.contains(&waypoint)
-                    {
-                        ids.clone()
-                    } else {
-                        vec![waypoint]
-                    };
-                    let drag_waypoints = drag_waypoints
+                    let drag_waypoints = selected
                         .into_iter()
                         .map(|id| DragWaypoint {
                             id,
