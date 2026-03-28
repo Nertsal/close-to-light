@@ -631,20 +631,6 @@ impl LevelEditor {
             return;
         };
 
-        // let mut fix_drag_waypoint_id = self
-        //     .level_state
-        //     .waypoints
-        //     .as_ref()
-        //     .and_then(|waypoints| waypoints.selected)
-        //     .and_then(|selected_waypoint| {
-        //         drag.and_then(|drag| match &mut drag.target {
-        //             DragTarget::WaypointMove { waypoint, .. } if *waypoint == selected_waypoint => {
-        //                 Some(waypoint)
-        //             }
-        //             _ => None,
-        //         })
-        //     });
-
         // Update time
         let fade_in = event.movement.get_fade_in();
         let fade_out = event.movement.get_fade_out();
@@ -748,11 +734,16 @@ impl LevelEditor {
         {
             ids.iter_mut().for_each(fix_id);
         }
-        if let Some(drag) = drag
-            && let DragTarget::WaypointMove { light, waypoints } = &mut drag.target
-            && *light == light_id
-        {
-            waypoints.iter_mut().for_each(|drag| fix_id(&mut drag.id));
+        if let Some(drag) = drag {
+            match &mut drag.target {
+                DragTarget::WaypointMove { light, waypoints } if *light == light_id => {
+                    waypoints.iter_mut().for_each(|drag| fix_id(&mut drag.id));
+                }
+                DragTarget::TimelineEvent {
+                    id: EditorEventIdx::Waypoint(light, waypoint),
+                } if *light == light_id => fix_id(waypoint),
+                _ => {}
+            }
         }
 
         self.save_state(HistoryLabel::MoveWaypointTime(

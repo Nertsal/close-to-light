@@ -48,8 +48,15 @@ pub enum DragTarget {
         original: Selection,
         extra: Selection,
     },
+    // SelectionAreaTimeline {
+    //     original: Selection,
+    //     extra: Selection,
+    // },
     Camera {
         initial_center: vec2<Coord>,
+    },
+    TimelineEvent {
+        id: EditorEventIdx,
     },
     /// Move the whole light event through time and space.
     Light {

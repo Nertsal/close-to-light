@@ -83,11 +83,7 @@ impl EditorEditUi {
             );
             linetime.rescale(level_editor.timeline_zoom.current.as_f32());
 
-            {
-                let mut timeline_actions = vec![];
-                linetime.update(timeline, context, level_editor, &mut timeline_actions);
-                actions.extend(timeline_actions.into_iter().map(Into::into));
-            }
+            linetime.update(timeline, context, editor, level_editor, actions);
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
         }
