@@ -210,63 +210,62 @@ impl EditorRender {
             (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
         };
 
-        if let Selection::Lights(lights) = &level_editor.selection {
-            for light_id in lights {
-                if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
-                    let visibility = |beat| visibility(timed_event, beat);
+        let lights_movement_preview = match &level_editor.selection {
+            Selection::Lights(lights) => lights.clone(),
+            Selection::Waypoints(light_id, _) => vec![*light_id],
+            _ => vec![],
+        };
+        for light_id in lights_movement_preview {
+            if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
+                let visibility = |beat| visibility(timed_event, beat);
 
-                    if let Event::Light(event) = &timed_event.event {
-                        let color = if event.danger {
-                            danger_color
-                        } else {
-                            light_color
-                        };
-                        let alpha = if let EditingState::Waypoints { .. } = level_editor.state {
-                            1.0
-                        } else {
-                            0.5
-                        };
-                        let color = crate::util::with_alpha(color, alpha);
+                if let Event::Light(event) = &timed_event.event {
+                    let color = if event.danger {
+                        danger_color
+                    } else {
+                        light_color
+                    };
+                    let alpha = if let EditingState::Waypoints { .. } = level_editor.state {
+                        1.0
+                    } else {
+                        0.5
+                    };
+                    let color = crate::util::with_alpha(color, alpha);
 
-                        let options = util::DashRenderOptions {
-                            width: 0.15,
-                            dash_length: 0.1,
-                            space_length: 0.2,
-                        };
+                    let options = util::DashRenderOptions {
+                        width: 0.15,
+                        dash_length: 0.1,
+                        space_length: 0.2,
+                    };
 
-                        // A dashed line moving through the waypoints to show general direction
-                        const POINTS_DENSITY: f32 = 5.0;
-                        let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
-                            .round() as usize;
-                        if !event.movement.waypoints.is_empty() && num_points > 0 {
-                            let baked = interpolation_cache.get_or_bake(&event.movement);
-                            let period = time_to_seconds(event.movement.duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
-                            let speed = r32(1.0 / 8.0); // game time per real time
-                            let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
-                                .map(|i| {
-                                    let t = r32(i as f32 / num_points as f32);
-                                    let t = (level_editor.real_time / period * speed + t).fract()
-                                        * period;
-                                    let t = seconds_to_time(t) + event.movement.get_fade_in();
-                                    let alpha = visibility(t);
-                                    draw2d::ColoredVertex {
-                                        a_pos: event
-                                            .movement
-                                            .get_baked(t, baked)
-                                            .translation
-                                            .as_f32(),
-                                        a_color: crate::util::with_alpha(color, alpha),
-                                    }
-                                })
-                                .collect();
+                    // A dashed line moving through the waypoints to show general direction
+                    const POINTS_DENSITY: f32 = 5.0;
+                    let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
+                        .round() as usize;
+                    if !event.movement.waypoints.is_empty() && num_points > 0 {
+                        let baked = interpolation_cache.get_or_bake(&event.movement);
+                        let period = time_to_seconds(event.movement.duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
+                        let speed = r32(1.0 / 8.0); // game time per real time
+                        let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
+                            .map(|i| {
+                                let t = r32(i as f32 / num_points as f32);
+                                let t =
+                                    (level_editor.real_time / period * speed + t).fract() * period;
+                                let t = seconds_to_time(t) + event.movement.get_fade_in();
+                                let alpha = visibility(t);
+                                draw2d::ColoredVertex {
+                                    a_pos: event.movement.get_baked(t, baked).translation.as_f32(),
+                                    a_color: crate::util::with_alpha(color, alpha),
+                                }
+                            })
+                            .collect();
 
-                            self.util.draw_dashed_movement(
-                                &positions,
-                                &options,
-                                &level_editor.model.camera,
-                                &mut pixel_buffer,
-                            );
-                        }
+                        self.util.draw_dashed_movement(
+                            &positions,
+                            &options,
+                            &level_editor.model.camera,
+                            &mut pixel_buffer,
+                        );
                     }
                 }
             }
@@ -296,9 +295,13 @@ impl EditorRender {
                             if !point.visible {
                                 continue;
                             }
-                            let color = if point.original == waypoints.selected {
+                            let color = if let Some(id) = point.original
+                                && level_editor
+                                    .selection
+                                    .is_waypoint_selected(waypoints.light, id)
+                            {
                                 select_color
-                            } else if Some(i) == waypoints.hovered {
+                            } else if !selecting_area && Some(i) == waypoints.hovered {
                                 hover_color
                             } else {
                                 color

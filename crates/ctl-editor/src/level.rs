@@ -40,6 +40,7 @@ pub enum Selection {
     #[default]
     Empty,
     Lights(Vec<LightId>),
+    Waypoints(LightId, Vec<WaypointId>),
     Event(usize),
     Timing(usize),
 }
@@ -47,6 +48,7 @@ pub enum Selection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditorEventIdx {
     Event(usize),
+    Waypoint(LightId, WaypointId),
     Timing(usize),
 }
 
@@ -59,6 +61,7 @@ impl Selection {
         match self {
             Selection::Empty => true,
             Selection::Lights(light_ids) => light_ids.is_empty(),
+            Selection::Waypoints(_, ids) => ids.is_empty(),
             Selection::Event(_) => false,
             Selection::Timing(_) => false,
         }
@@ -68,46 +71,30 @@ impl Selection {
         *self = Self::Empty;
     }
 
-    // pub fn event_single(&self) -> Option<usize> {
-    //     match self {
-    //         Selection::Empty => None,
-    //         Selection::Lights(_) => None,
-    //         Selection::Event(idx) => Some(*idx),
-    //         Selection::Timing(_) => None,
-    //     }
-    // }
-
     pub fn single(&self) -> Option<EditorEventIdx> {
         match self {
             Selection::Empty => None,
-            Selection::Lights(_) => None,
+            Selection::Lights(ids) => (ids.len() == 1)
+                .then(|| ids.first().map(|&id| EditorEventIdx::Event(id.event)))
+                .flatten(),
+            Selection::Waypoints(light_id, ids) => (ids.len() == 1).then(|| {
+                let id = *ids.first().unwrap();
+                EditorEventIdx::Waypoint(*light_id, id)
+            }),
             Selection::Event(idx) => Some(EditorEventIdx::Event(*idx)),
             Selection::Timing(idx) => Some(EditorEventIdx::Timing(*idx)),
         }
     }
 
     pub fn is_single(&self, id: EditorEventIdx) -> bool {
-        match self {
-            Selection::Empty => false,
-            Selection::Lights(lights) => {
-                if let EditorEventIdx::Event(id) = id
-                    && lights.len() == 1
-                    && lights.first().unwrap().event == id
-                {
-                    true
-                } else {
-                    false
-                }
-            }
-            Selection::Event(idx) => id == EditorEventIdx::Event(*idx),
-            Selection::Timing(idx) => id == EditorEventIdx::Timing(*idx),
-        }
+        self.single() == Some(id)
     }
 
     pub fn light_single(&self) -> Option<LightId> {
         match self {
             Selection::Empty => None,
             Selection::Lights(lights) => (lights.len() == 1).then(|| *lights.first().unwrap()),
+            Selection::Waypoints(light, _) => Some(*light),
             Selection::Event(_) => None,
             Selection::Timing(_) => None,
         }
@@ -121,6 +108,7 @@ impl Selection {
         match self {
             Selection::Empty => false,
             Selection::Lights(lights) => lights.contains(&id),
+            Selection::Waypoints(light_id, _) => *light_id == id,
             Selection::Event(_) => false,
             Selection::Timing(_) => false,
         }
@@ -134,6 +122,7 @@ impl Selection {
                     lights.push(id)
                 }
             }
+            Selection::Waypoints(light_id, _) => *self = Self::Lights(vec![*light_id, id]),
             Selection::Event(_) => *self = Self::Lights(vec![id]),
             Selection::Timing(_) => *self = Self::Lights(vec![id]),
         }
@@ -147,6 +136,74 @@ impl Selection {
                     lights.swap_remove(i);
                 }
             }
+            Selection::Waypoints(light_id, _) => {
+                if *light_id == id {
+                    *self = Selection::Empty;
+                }
+            }
+            Selection::Event(_) => {}
+            Selection::Timing(_) => {}
+        }
+    }
+
+    pub fn waypoint_single(&self) -> Option<(LightId, WaypointId)> {
+        match self {
+            Selection::Empty => None,
+            Selection::Lights(_) => None,
+            Selection::Waypoints(light_id, waypoints) => {
+                (waypoints.len() == 1).then(|| (*light_id, *waypoints.first().unwrap()))
+            }
+            Selection::Event(_) => None,
+            Selection::Timing(_) => None,
+        }
+    }
+
+    pub fn is_waypoint_single(&self, light_id: LightId, id: WaypointId) -> bool {
+        self.waypoint_single() == Some((light_id, id))
+    }
+
+    pub fn is_waypoint_selected(&self, light_id: LightId, id: WaypointId) -> bool {
+        match self {
+            Selection::Empty => false,
+            Selection::Lights(_) => false,
+            Selection::Waypoints(light, waypoints) => *light == light_id && waypoints.contains(&id),
+            Selection::Event(_) => false,
+            Selection::Timing(_) => false,
+        }
+    }
+
+    pub fn add_waypoint(&mut self, light_id: LightId, id: WaypointId) {
+        match self {
+            Selection::Empty => *self = Self::Waypoints(light_id, vec![id]),
+            Selection::Lights(_) => *self = Self::Waypoints(light_id, vec![id]),
+            Selection::Waypoints(light, waypoints) => {
+                if *light == light_id {
+                    if !waypoints.contains(&id) {
+                        waypoints.push(id)
+                    } else {
+                        *waypoints = vec![id];
+                    }
+                }
+            }
+            Selection::Event(_) => *self = Self::Waypoints(light_id, vec![id]),
+            Selection::Timing(_) => *self = Self::Waypoints(light_id, vec![id]),
+        }
+    }
+
+    pub fn remove_waypoint(&mut self, light_id: LightId, id: WaypointId) {
+        match self {
+            Selection::Empty => {}
+            Selection::Lights(_) => {}
+            Selection::Waypoints(light, waypoints) => {
+                if *light == light_id
+                    && let Some(i) = waypoints.iter().position(|l| *l == id)
+                {
+                    waypoints.swap_remove(i);
+                    if waypoints.is_empty() {
+                        *self = Selection::Lights(vec![light_id]);
+                    }
+                }
+            }
             Selection::Event(_) => {}
             Selection::Timing(_) => {}
         }
@@ -158,6 +215,18 @@ impl Selection {
             Selection::Lights(light_ids) => {
                 for id in light_ids {
                     self.add_light(id);
+                }
+            }
+            Selection::Waypoints(light_id, waypoints) => {
+                if let Selection::Waypoints(id, ids) = self
+                    && *id == light_id
+                {
+                    ids.extend(waypoints);
+                    ids.sort();
+                    ids.dedup();
+                } else {
+                    // Waypoints take priority
+                    *self = Selection::Waypoints(light_id, waypoints);
                 }
             }
             Selection::Event(_) => *self = other,
@@ -236,20 +305,20 @@ impl LevelEditor {
         self.save_state(default());
     }
 
-    pub fn delete_waypoint(&mut self, light: LightId, waypoint: WaypointId) {
-        let Some(timed_event) = self.level.events.get_mut(light.event) else {
+    pub fn delete_waypoint(&mut self, light_id: LightId, waypoint_id: WaypointId) {
+        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
             return;
         };
         let Event::Light(event) = &mut timed_event.event else {
             return;
         };
-        match waypoint {
+        match waypoint_id {
             WaypointId::Initial => {
                 match event.movement.waypoints.pop_front() {
                     None => {
                         // No waypoints -> delete the whole event
-                        if light.event < self.level.events.len() {
-                            self.level.events.swap_remove(light.event);
+                        if light_id.event < self.level.events.len() {
+                            self.level.events.swap_remove(light_id.event);
                             self.level_state.waypoints = None;
                             self.state = EditingState::Idle;
                         }
@@ -280,8 +349,8 @@ impl LevelEditor {
                 match event.movement.waypoints.pop_back() {
                     None => {
                         // No waypoints -> delete the whole event
-                        if light.event < self.level.events.len() {
-                            self.level.events.swap_remove(light.event);
+                        if light_id.event < self.level.events.len() {
+                            self.level.events.swap_remove(light_id.event);
                             self.level_state.waypoints = None;
                             self.state = EditingState::Idle;
                         }
@@ -294,9 +363,7 @@ impl LevelEditor {
             }
         }
 
-        if let Some(waypoints) = &mut self.level_state.waypoints {
-            waypoints.selected = None;
-        }
+        self.selection.remove_waypoint(light_id, waypoint_id);
         self.save_state(default());
     }
 
@@ -402,7 +469,9 @@ impl LevelEditor {
     // }
 
     pub fn new_waypoint(&mut self) {
-        self.execute(LevelAction::DeselectWaypoint, None);
+        if let Selection::Waypoints(..) = self.selection {
+            self.execute(LevelAction::Deselect, None);
+        }
 
         if let EditingState::Waypoints { state, .. } = &mut self.state {
             *state = WaypointsState::New;
@@ -512,6 +581,11 @@ impl LevelEditor {
                             })
                             .copied()
                     }
+                    Selection::Waypoints(id, _) => level
+                        .lights
+                        .get(id.event)
+                        .is_some_and(|light| light.contains_point(cursor))
+                        .then_some(*id),
                     Selection::Empty | Selection::Event(_) | Selection::Timing(_) => None,
                 };
                 selected.or_else(||
@@ -644,11 +718,6 @@ impl LevelEditor {
                     light: light_id,
                     points,
                     hovered,
-                    selected: self
-                        .level_state
-                        .waypoints
-                        .as_ref()
-                        .and_then(|waypoints| waypoints.selected),
                 });
             }
         }

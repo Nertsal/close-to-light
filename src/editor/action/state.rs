@@ -80,7 +80,29 @@ impl EditorState {
                 } => {
                     if drag.from_screen == self.ui_context.cursor.position {
                         // Click - select hovered light
-                        if let Some(hovered_light) = level_editor.level_state.hovered_light {
+                        if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            // Hovered waypoint
+                            if let Some(i) = waypoints.hovered
+                                && let Some(point) = waypoints.points.get(i)
+                                && let Some(i) = point.original
+                            {
+                                let mode = if original.is_waypoint_selected(waypoints.light, i) {
+                                    SelectMode::Remove
+                                } else {
+                                    SelectMode::Add
+                                };
+                                level_editor.execute(
+                                    LevelAction::SelectWaypoint(
+                                        mode,
+                                        waypoints.light,
+                                        vec![i],
+                                        false,
+                                    ),
+                                    None,
+                                );
+                            }
+                        } else if let Some(hovered_light) = level_editor.level_state.hovered_light {
+                            // Hovered light
                             let mode = if original.is_light_selected(hovered_light) {
                                 SelectMode::Remove
                             } else {

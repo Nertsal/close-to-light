@@ -26,6 +26,7 @@ pub enum LevelAction {
     /// If there is a light selected, changes its shape; otherwise creates a new light.
     Shape(Shape),
     Deselect,
+    DeselectWaypoint,
 
     // General event
     SelectEvent(EditorEventIdx),
@@ -63,13 +64,12 @@ pub enum LevelAction {
     NewWaypoint,
     PlaceWaypoint(vec2<Coord>),
     DeleteWaypoint(LightId, WaypointId),
-    SelectWaypoint(WaypointId, bool),
-    DeselectWaypoint,
-    RotateWaypoint(LightId, WaypointId, Change<Angle<Coord>>),
+    SelectWaypoint(SelectMode, LightId, Vec<WaypointId>, bool),
+    RotateWaypointAround(LightId, WaypointId, vec2<Coord>, Change<Angle<Coord>>),
     ScaleWaypoint(LightId, WaypointId, Change<Coord>),
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
-    MoveWaypoint(LightId, WaypointId, Change<Time>, Change<vec2<Coord>>),
+    MoveWaypoint(LightId, Vec<WaypointId>, Change<Time>, Change<vec2<Coord>>),
     ChangeHollow(LightId, WaypointId, Change<R32>),
 }
 
@@ -144,6 +144,8 @@ impl LevelAction {
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
             LevelAction::Shape(..) => false,
+            LevelAction::Deselect => false,
+            LevelAction::DeselectWaypoint => false,
 
             LevelAction::SelectEvent(_) => false,
             LevelAction::DeleteEvent(_) => false,
@@ -168,7 +170,6 @@ impl LevelAction {
                     SelectMode::Add | SelectMode::Remove | SelectMode::Toggle
                 ) && lights.is_empty()
             }
-            LevelAction::Deselect => false,
             LevelAction::ChangeShape(_, _) => false,
             LevelAction::RotateLightAround(_, _, delta) => *delta == Angle::ZERO,
             LevelAction::FlipHorizontal(_, _) => false,
@@ -184,14 +185,18 @@ impl LevelAction {
             LevelAction::NewWaypoint => false,
             LevelAction::PlaceWaypoint(_) => false,
             LevelAction::DeleteWaypoint(..) => false,
-            LevelAction::SelectWaypoint(_, _) => false,
-            LevelAction::DeselectWaypoint => false,
-            LevelAction::RotateWaypoint(_, _, delta) => delta.is_noop(&Angle::ZERO),
+            LevelAction::SelectWaypoint(mode, _, ids, _) => {
+                matches!(
+                    mode,
+                    SelectMode::Add | SelectMode::Remove | SelectMode::Toggle
+                ) && ids.is_empty()
+            }
+            LevelAction::RotateWaypointAround(_, _, _, delta) => delta.is_noop(&Angle::ZERO),
             LevelAction::ScaleWaypoint(_, _, delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::SetWaypointInterpolation(..) => false,
             LevelAction::SetWaypointCurve(..) => false,
-            LevelAction::MoveWaypoint(_, _, time, position) => {
-                time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
+            LevelAction::MoveWaypoint(_, ids, time, position) => {
+                ids.is_empty() || time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
             }
             LevelAction::ChangeHollow(_, _, delta) => delta.is_noop(&R32::ZERO),
         }
@@ -234,13 +239,16 @@ impl LevelEditor {
                     self.clipboard
                         .copy(ClipboardItem::Events(self.current_time.target, lights));
                 }
+                Selection::Waypoints(..) => {
+                    // TODO: copy waypoints maybe?
+                }
                 Selection::Event(index) => {
                     let events = self.level.events.get(index).cloned().into_iter().collect();
                     self.clipboard
                         .copy(ClipboardItem::Events(self.current_time.target, events));
                 }
                 Selection::Timing(_) => {
-                    // TODO: maybe?
+                    // TODO: copy timing maybe?
                 }
             },
             LevelAction::SetSelection(selection) => {
@@ -296,11 +304,25 @@ impl LevelEditor {
                     self.execute(LevelAction::NewLight(shape), drag);
                 }
             }
+            LevelAction::Deselect => self.deselect(),
+            LevelAction::DeselectWaypoint => {
+                if let Selection::Waypoints(light_id, _) = self.selection {
+                    self.selection = Selection::Lights(vec![light_id]);
+                }
+            }
 
             LevelAction::SelectEvent(index) => match index {
                 EditorEventIdx::Event(index) => {
                     if self.level.events.get(index).is_some() {
                         self.selection = Selection::Event(index);
+                    }
+                }
+                EditorEventIdx::Waypoint(light_id, waypoint_id) => {
+                    if let Some(event) = self.level.events.get(light_id.event)
+                        && let Event::Light(light) = &event.event
+                        && light.movement.get_frame(waypoint_id).is_some()
+                    {
+                        self.selection = Selection::Waypoints(light_id, vec![waypoint_id]);
                     }
                 }
                 EditorEventIdx::Timing(index) => {
@@ -316,6 +338,9 @@ impl LevelEditor {
                         self.level.events.swap_remove(index);
                     }
                 }
+                EditorEventIdx::Waypoint(light_id, waypoint_id) => {
+                    self.execute(LevelAction::DeleteWaypoint(light_id, waypoint_id), drag);
+                }
                 EditorEventIdx::Timing(index) => {
                     if self.level.timing.points.get(index).is_some() {
                         self.execute(LevelAction::Deselect, drag);
@@ -329,6 +354,17 @@ impl LevelEditor {
                         change.apply(&mut event.time);
                         self.save_state(HistoryLabel::MoveEvent(idx));
                     }
+                }
+                EditorEventIdx::Waypoint(light_id, waypoint_id) => {
+                    self.execute(
+                        LevelAction::MoveWaypoint(
+                            light_id,
+                            vec![waypoint_id],
+                            change,
+                            Change::Add(vec2::ZERO),
+                        ),
+                        drag,
+                    );
                 }
                 EditorEventIdx::Timing(index) => {
                     if let Some(event) = self.level.timing.points.get_mut(index) {
@@ -420,10 +456,6 @@ impl LevelEditor {
             LevelAction::PlaceLight(position) => self.place_light(position),
             LevelAction::DeleteLight(light) => self.delete_light(light),
             LevelAction::SelectLight(mode, ids) => self.select_light(mode, ids),
-            LevelAction::Deselect => {
-                self.execute(LevelAction::DeselectWaypoint, drag);
-                self.selection.clear();
-            }
             LevelAction::ChangeShape(id, shape) => {
                 if let Some(event) = self.level.events.get_mut(id.event)
                     && let Event::Light(light) = &mut event.event
@@ -473,14 +505,11 @@ impl LevelEditor {
             LevelAction::NewWaypoint => self.new_waypoint(),
             LevelAction::PlaceWaypoint(position) => self.place_waypoint(position),
             LevelAction::DeleteWaypoint(light, waypoint) => self.delete_waypoint(light, waypoint),
-            LevelAction::SelectWaypoint(id, move_time) => self.select_waypoint(id, move_time),
-            LevelAction::DeselectWaypoint => {
-                if let Some(waypoints) = &mut self.level_state.waypoints {
-                    waypoints.selected = None;
-                }
+            LevelAction::SelectWaypoint(mode, light_id, ids, move_time) => {
+                self.select_waypoint(mode, light_id, ids, move_time)
             }
-            LevelAction::RotateWaypoint(light, waypoint, change) => {
-                self.rotate(light, waypoint, change)
+            LevelAction::RotateWaypointAround(light, waypoint, anchor, change) => {
+                self.rotate_around(light, waypoint, anchor, change)
             }
             LevelAction::ScaleWaypoint(light_id, waypoint_id, change) => {
                 if let Some(event) = self.level.events.get_mut(light_id.event)
@@ -498,9 +527,9 @@ impl LevelEditor {
             LevelAction::SetWaypointCurve(light, waypoint, curve) => {
                 self.set_waypoint_curve(light, waypoint, curve)
             }
-            LevelAction::MoveWaypoint(light, waypoint, time, pos) => {
-                self.move_waypoint(light, waypoint, pos);
-                self.move_waypoint_time(light, waypoint, time, drag);
+            LevelAction::MoveWaypoint(light, waypoints, time, pos) => {
+                self.move_waypoint(light, &waypoints, pos);
+                self.move_waypoint_time(light, &waypoints, time, drag);
             }
             LevelAction::ChangeHollow(light, waypoint, change) => {
                 self.change_hollow(light, waypoint, change)
@@ -510,6 +539,13 @@ impl LevelEditor {
         // In case some action forgot to save the state,
         // we save it with the default label
         self.save_state(default());
+    }
+
+    fn deselect(&mut self) {
+        match self.selection {
+            Selection::Waypoints(light_id, _) => self.selection = Selection::Lights(vec![light_id]),
+            _ => self.selection.clear(),
+        }
     }
 
     fn move_light(
@@ -540,9 +576,12 @@ impl LevelEditor {
     fn move_waypoint(
         &mut self,
         light_id: LightId,
-        waypoint_id: WaypointId,
+        waypoint_ids: &[WaypointId],
         change_pos: Change<vec2<Coord>>,
     ) {
+        if waypoint_ids.is_empty() {
+            return;
+        };
         let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
             return;
         };
@@ -551,31 +590,39 @@ impl LevelEditor {
             return;
         };
 
-        let Some(frame) = event.movement.get_frame_mut(waypoint_id) else {
-            return;
-        };
+        for &waypoint_id in waypoint_ids {
+            let Some(frame) = event.movement.get_frame_mut(waypoint_id) else {
+                continue;
+            };
 
-        change_pos.apply(&mut frame.translation);
-        if let WaypointId::Frame(i) = waypoint_id {
-            // Move fade as well
-            if i == 0 {
-                change_pos.apply(&mut event.movement.initial.transform.translation);
-            }
-            if i + 1 == event.movement.waypoints.len() {
-                change_pos.apply(&mut event.movement.last.translation);
+            change_pos.apply(&mut frame.translation);
+            if let WaypointId::Frame(i) = waypoint_id {
+                // Move fade as well
+                if i == 0 {
+                    change_pos.apply(&mut event.movement.initial.transform.translation);
+                }
+                if i + 1 == event.movement.waypoints.len() {
+                    change_pos.apply(&mut event.movement.last.translation);
+                }
             }
         }
 
-        self.save_state(HistoryLabel::MoveWaypoint(light_id, waypoint_id));
+        self.save_state(HistoryLabel::MoveWaypoint(
+            light_id,
+            *waypoint_ids.first().unwrap(),
+        ));
     }
 
     fn move_waypoint_time(
         &mut self,
         light_id: LightId,
-        waypoint_id: WaypointId,
+        waypoint_ids: &[WaypointId],
         change_time: Change<Time>,
         drag: Option<&mut Drag>,
     ) {
+        if waypoint_ids.is_empty() {
+            return;
+        }
         let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
             return;
         };
@@ -584,19 +631,19 @@ impl LevelEditor {
             return;
         };
 
-        let mut fix_drag_waypoint_id = self
-            .level_state
-            .waypoints
-            .as_ref()
-            .and_then(|waypoints| waypoints.selected)
-            .and_then(|selected_waypoint| {
-                drag.and_then(|drag| match &mut drag.target {
-                    DragTarget::WaypointMove { waypoint, .. } if *waypoint == selected_waypoint => {
-                        Some(waypoint)
-                    }
-                    _ => None,
-                })
-            });
+        // let mut fix_drag_waypoint_id = self
+        //     .level_state
+        //     .waypoints
+        //     .as_ref()
+        //     .and_then(|waypoints| waypoints.selected)
+        //     .and_then(|selected_waypoint| {
+        //         drag.and_then(|drag| match &mut drag.target {
+        //             DragTarget::WaypointMove { waypoint, .. } if *waypoint == selected_waypoint => {
+        //                 Some(waypoint)
+        //             }
+        //             _ => None,
+        //         })
+        //     });
 
         // Update time
         let fade_in = event.movement.get_fade_in();
@@ -606,7 +653,7 @@ impl LevelEditor {
             .timed_transforms()
             .map(|(id, transform, mut time)| {
                 time += timed_event.time;
-                if id == waypoint_id {
+                if waypoint_ids.contains(&id) {
                     change_time.apply(&mut time);
                 }
                 (id, transform, time)
@@ -614,10 +661,15 @@ impl LevelEditor {
             .collect();
 
         // Edge (fade in/out) waypoints keep their relative timings unless moved directly
-        if matches!(waypoint_id, WaypointId::Frame(_)) {
+        if !waypoint_ids
+            .iter()
+            .any(|id| matches!(id, WaypointId::Initial))
+        {
+            frames[0].2 = frames[1].2 - fade_in;
+        }
+        if !waypoint_ids.iter().any(|id| matches!(id, WaypointId::Last)) {
             let len = frames.len();
             assert!(len >= 2);
-            frames[0].2 = frames[1].2 - fade_in;
             frames[len - 1].2 = frames[len - 2].2 + fade_out;
         }
 
@@ -634,26 +686,13 @@ impl LevelEditor {
         let mut frames = frames.into_iter().rev(); // NOTE: iterate in reverse because lerp_time has to be calculated based on future frame times
         let mut fixed_movement = event.movement.clone();
         let mut future_time = Time::ZERO; // Time of the next (time-wise) frame
-        let mut fix_selection = true;
+
+        let mut fixed_ids: HashMap<WaypointId, WaypointId> = HashMap::new();
 
         // Last frame is treated specially
         if let Some((original_id, transform, time)) = frames.next() {
             let fixed_id = WaypointId::Last;
-            if let Some(waypoints) = &mut self.level_state.waypoints
-                && fix_selection
-                && self.selection.is_light_single(light_id)
-                && waypoints.selected == Some(original_id)
-            {
-                waypoints.selected = Some(fixed_id);
-                fix_selection = false;
-            }
-            if let Some(waypoint) = &mut fix_drag_waypoint_id
-                && original_id == **waypoint
-            {
-                **waypoint = fixed_id;
-                fix_drag_waypoint_id = None;
-            }
-
+            fixed_ids.insert(original_id, fixed_id);
             fixed_movement.last = transform;
             future_time = time;
         }
@@ -665,21 +704,7 @@ impl LevelEditor {
                 Some(i) => WaypointId::Frame(i),
                 None => WaypointId::Initial,
             };
-
-            if let Some(waypoints) = &mut self.level_state.waypoints
-                && fix_selection
-                && self.selection.is_light_single(light_id)
-                && waypoints.selected == Some(original_id)
-            {
-                waypoints.selected = Some(id);
-                fix_selection = false;
-            }
-            if let Some(waypoint) = &mut fix_drag_waypoint_id
-                && original_id == **waypoint
-            {
-                **waypoint = id;
-                fix_drag_waypoint_id = None;
-            }
+            fixed_ids.insert(original_id, id);
 
             // TODO: config option to keep curves at waypoints
             // let (interpolation, curve) = event
@@ -712,7 +737,28 @@ impl LevelEditor {
 
         event.movement = fixed_movement;
 
-        self.save_state(HistoryLabel::MoveWaypointTime(light_id, waypoint_id));
+        // Fix ids
+        let fix_id = |id: &mut WaypointId| {
+            if let Some(fixed_id) = fixed_ids.get(id) {
+                *id = *fixed_id;
+            }
+        };
+        if let Selection::Waypoints(light, ids) = &mut self.selection
+            && *light == light_id
+        {
+            ids.iter_mut().for_each(fix_id);
+        }
+        if let Some(drag) = drag
+            && let DragTarget::WaypointMove { light, waypoints } = &mut drag.target
+            && *light == light_id
+        {
+            waypoints.iter_mut().for_each(|drag| fix_id(&mut drag.id));
+        }
+
+        self.save_state(HistoryLabel::MoveWaypointTime(
+            light_id,
+            *waypoint_ids.first().unwrap(),
+        ));
     }
 
     fn set_waypoint_curve(
@@ -817,52 +863,86 @@ impl LevelEditor {
         f(&mut light.movement);
     }
 
-    fn select_waypoint(&mut self, waypoint_id: WaypointId, move_time: bool) {
-        let Some(light_id) = self.selection.light_single() else {
-            return;
-        };
-
-        let Some(waypoint_time) =
-            self.level
-                .events
-                .get(light_id.event)
-                .and_then(|event| match &event.event {
-                    Event::Light(light) => light
-                        .movement
-                        .get_time(waypoint_id)
-                        .map(|time| event.time + time),
-                    _ => None,
-                })
-        else {
-            // Invalid waypoint id
-            return;
-        };
-
-        // TODO: validation check
-        if let Some(waypoints) = &mut self.level_state.waypoints {
-            waypoints.selected = Some(waypoint_id);
-        } else {
-            self.state = EditingState::Waypoints {
-                light_id,
-                state: WaypointsState::Idle,
-            };
-            self.level_state.waypoints = Some(Waypoints {
-                light: light_id,
-                points: Vec::new(),
-                hovered: None,
-                selected: Some(waypoint_id),
-            });
+    fn select_waypoint(
+        &mut self,
+        mode: SelectMode,
+        light_id: LightId,
+        ids: Vec<WaypointId>,
+        move_time: bool,
+    ) {
+        // Update selection
+        match mode {
+            SelectMode::Add => {
+                for &id in &ids {
+                    self.selection.add_waypoint(light_id, id);
+                }
+            }
+            SelectMode::Remove => {
+                for &id in &ids {
+                    self.selection.remove_waypoint(light_id, id);
+                }
+            }
+            SelectMode::Toggle => {
+                for &id in &ids {
+                    if self.selection.is_waypoint_selected(light_id, id) {
+                        self.selection.remove_waypoint(light_id, id);
+                    } else {
+                        self.selection.add_waypoint(light_id, id);
+                    }
+                }
+            }
+            SelectMode::Set => {
+                self.selection.clear();
+                for &id in &ids {
+                    self.selection.add_waypoint(light_id, id);
+                }
+            }
         }
 
+        // Update state
+        self.state = EditingState::Waypoints {
+            light_id,
+            state: WaypointsState::Idle,
+        };
+        self.level_state.waypoints = Some(Waypoints {
+            light: light_id,
+            points: Vec::new(),
+            hovered: None,
+        });
+
+        // Move to waypoint if it's a single one
         if move_time {
-            self.execute(
-                LevelAction::ScrollTime(waypoint_time - self.current_time.target),
-                None,
-            );
+            let waypoint_time = (ids.len() == 1)
+                .then(|| {
+                    let waypoint_id = *ids.first().unwrap();
+                    self.level
+                        .events
+                        .get(light_id.event)
+                        .and_then(|event| match &event.event {
+                            Event::Light(light) => light
+                                .movement
+                                .get_time(waypoint_id)
+                                .map(|time| event.time + time),
+                            _ => None,
+                        })
+                })
+                .flatten();
+            if let Some(waypoint_time) = waypoint_time {
+                self.execute(
+                    LevelAction::ScrollTime(waypoint_time - self.current_time.target),
+                    None,
+                );
+            }
         }
     }
 
-    fn rotate(&mut self, light_id: LightId, waypoint_id: WaypointId, change: Change<Angle<Coord>>) {
+    fn rotate_around(
+        &mut self,
+        light_id: LightId,
+        waypoint_id: WaypointId,
+        anchor: vec2<Coord>,
+        change: Change<Angle<Coord>>,
+    ) {
         change.apply(&mut self.place_rotation);
 
         let Some(event) = self.level.events.get_mut(light_id.event) else {
@@ -875,14 +955,27 @@ impl LevelEditor {
             return;
         };
 
-        change.apply(&mut frame.rotation);
+        let rotate = |rotation: &mut Angle<Coord>, position: &mut vec2<Coord>| {
+            let delta = *rotation;
+            change.apply(rotation);
+            let delta = *rotation - delta;
+            *position = anchor + (*position - anchor).rotate(delta);
+        };
+
+        rotate(&mut frame.rotation, &mut frame.translation);
         if let WaypointId::Frame(i) = waypoint_id {
             // Move fade as well
             if i == 0 {
-                change.apply(&mut event.movement.initial.transform.rotation);
+                rotate(
+                    &mut event.movement.initial.transform.rotation,
+                    &mut event.movement.initial.transform.translation,
+                );
             }
             if i + 1 == event.movement.waypoints.len() {
-                change.apply(&mut event.movement.last.rotation);
+                rotate(
+                    &mut event.movement.last.rotation,
+                    &mut event.movement.last.translation,
+                );
             }
         }
         self.save_state(HistoryLabel::Rotate(light_id, waypoint_id));
@@ -922,9 +1015,8 @@ impl LevelEditor {
                 // Cancel selection
                 match state {
                     WaypointsState::Idle => {
-                        if let Some(waypoints) = &mut self.level_state.waypoints
-                            && waypoints.selected.take().is_some()
-                        {
+                        if let Selection::Waypoints(..) = self.selection {
+                            self.execute(LevelAction::DeselectWaypoint, None);
                             return;
                         }
                         self.state = EditingState::Idle

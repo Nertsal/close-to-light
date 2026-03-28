@@ -426,6 +426,12 @@ impl LayoutHelper<'_> {
             Selection::Lights(selected) => {
                 self.layout_selected_lights(selected, tooltip, &mut bar, actions, context);
             }
+            Selection::Waypoints(light_id, selected) => {
+                self.layout_selected_lights(&[*light_id], tooltip, &mut bar, actions, context);
+                self.layout_selected_waypoints(
+                    *light_id, selected, tooltip, &mut bar, actions, context,
+                );
+            }
             &Selection::Event(event_i) => {
                 self.layout_selected_event(event_i, tooltip, &mut bar, actions, context);
             }
@@ -433,7 +439,6 @@ impl LayoutHelper<'_> {
                 self.layout_selected_timing(idx, tooltip, &mut bar, actions, context);
             }
         }
-        self.layout_selected_waypoint(tooltip, &mut bar, actions, context);
     }
 
     fn layout_selected_lights(
@@ -588,20 +593,34 @@ impl LayoutHelper<'_> {
         }
     }
 
-    fn layout_selected_waypoint(
+    fn layout_selected_waypoints(
         &self,
+        light_id: LightId,
+        selected: &[WaypointId],
         tooltip: &mut TooltipWidget,
         bar: &mut Aabb2<f32>,
         actions: &mut Vec<EditorStateAction>,
         context: &UiContext,
     ) {
-        if let Some(waypoints) = &self.level_editor.level_state.waypoints
-            && let Some(selected) = waypoints.selected
-            && let Some(event) = self.level_editor.level.events.get(waypoints.light.event)
-            && let Event::Light(light) = &event.event
-        {
-            let frames = light.movement.waypoints.len();
-            if let Some(frame) = light.movement.get_frame(selected) {
+        let Some(event) = self.level_editor.level.events.get(light_id.event) else {
+            return;
+        };
+        let Event::Light(light) = &event.event else {
+            return;
+        };
+
+        match selected.len().cmp(&1) {
+            std::cmp::Ordering::Greater => {
+                // More than 1 selected waypoint
+                // TODO
+            }
+            std::cmp::Ordering::Equal => {
+                // Exactly 1 waypoint selected
+                let selected = *selected.first().unwrap();
+                let frames = light.movement.waypoints.len();
+                let Some(frame) = light.movement.get_frame(selected) else {
+                    return;
+                };
                 // Waypoint
                 let mut current = bar.cut_top(context.font_size);
                 let mut current = current.cut_left(context.font_size * 3.0);
@@ -624,7 +643,10 @@ impl LayoutHelper<'_> {
                     if button.icon.state.mouse_left.clicked
                         && let Some(id) = selected.prev(frames)
                     {
-                        actions.push(LevelAction::SelectWaypoint(id, true).into());
+                        actions.push(
+                            LevelAction::SelectWaypoint(SelectMode::Set, light_id, vec![id], true)
+                                .into(),
+                        );
                     }
                 };
 
@@ -652,7 +674,15 @@ impl LayoutHelper<'_> {
                     if button.icon.state.mouse_left.clicked
                         && let Some(next) = selected.next(frames)
                     {
-                        actions.push(LevelAction::SelectWaypoint(next, true).into());
+                        actions.push(
+                            LevelAction::SelectWaypoint(
+                                SelectMode::Set,
+                                light_id,
+                                vec![next],
+                                true,
+                            )
+                            .into(),
+                        );
                     }
                 }
 
@@ -668,7 +698,7 @@ impl LayoutHelper<'_> {
                     .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
                 button.update(delete, context);
                 if button.text.state.mouse_left.clicked {
-                    actions.push(LevelAction::DeleteWaypoint(waypoints.light, selected).into());
+                    actions.push(LevelAction::DeleteWaypoint(light_id, selected).into());
                 }
                 tooltip.update(&button.text.state, "X", context);
 
@@ -688,8 +718,7 @@ impl LayoutHelper<'_> {
                 });
                 value.update(hollow_pos, context, &mut hollow);
                 actions.push(
-                    LevelAction::ChangeHollow(waypoints.light, selected, Change::Set(hollow))
-                        .into(),
+                    LevelAction::ChangeHollow(light_id, selected, Change::Set(hollow)).into(),
                 );
 
                 let scale = bar.cut_top(self.value_height);
@@ -700,21 +729,14 @@ impl LayoutHelper<'_> {
                     .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=20.0, 0.25));
                 if slider.update(scale, context, &mut value) {
                     actions.push(
-                        LevelAction::ScaleWaypoint(
-                            waypoints.light,
-                            selected,
-                            Change::Set(r32(value)),
-                        )
-                        .into(),
+                        LevelAction::ScaleWaypoint(light_id, selected, Change::Set(r32(value)))
+                            .into(),
                     );
                 }
                 if slider.control_state.mouse_left.just_released {
                     actions.push(
-                        LevelAction::FlushChanges(Some(HistoryLabel::Scale(
-                            waypoints.light,
-                            selected,
-                        )))
-                        .into(),
+                        LevelAction::FlushChanges(Some(HistoryLabel::Scale(light_id, selected)))
+                            .into(),
                     );
                 }
                 context.update_focus(slider.state.hovered);
@@ -727,9 +749,10 @@ impl LayoutHelper<'_> {
                     .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0));
                 if slider.update(angle, context, &mut value) {
                     actions.push(
-                        LevelAction::RotateWaypoint(
-                            waypoints.light,
+                        LevelAction::RotateWaypointAround(
+                            light_id,
                             selected,
+                            frame.translation,
                             Change::Set(Angle::from_degrees(r32(value.round()))),
                         )
                         .into(),
@@ -737,11 +760,8 @@ impl LayoutHelper<'_> {
                 }
                 if slider.control_state.mouse_left.just_released {
                     actions.push(
-                        LevelAction::FlushChanges(Some(HistoryLabel::Rotate(
-                            waypoints.light,
-                            selected,
-                        )))
-                        .into(),
+                        LevelAction::FlushChanges(Some(HistoryLabel::Rotate(light_id, selected)))
+                            .into(),
                     );
                 }
                 context.update_focus(slider.state.hovered);
@@ -787,18 +807,14 @@ impl LayoutHelper<'_> {
 
                     waypoint_curve.update(curve, context, &mut curve_interpolation);
                     actions.push(
-                        LevelAction::SetWaypointCurve(
-                            waypoints.light,
-                            selected,
-                            curve_interpolation,
-                        )
-                        .into(),
+                        LevelAction::SetWaypointCurve(light_id, selected, curve_interpolation)
+                            .into(),
                     );
 
                     waypoint_interpolation.update(interpolation, context, &mut move_interpolation);
                     actions.push(
                         LevelAction::SetWaypointInterpolation(
-                            waypoints.light,
+                            light_id,
                             selected,
                             move_interpolation,
                         )
@@ -808,6 +824,7 @@ impl LayoutHelper<'_> {
 
                 bar.cut_top(self.spacing);
             }
+            std::cmp::Ordering::Less => {}
         }
     }
 

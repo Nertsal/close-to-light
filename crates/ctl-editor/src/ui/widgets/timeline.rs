@@ -46,7 +46,6 @@ pub struct TimelineWidget {
     raw_target_time: Time,
     level: Level, // TODO: reuse existing
     selection: Selection,
-    selected_waypoint: Option<WaypointId>,
 }
 
 struct HighlightBar {
@@ -87,7 +86,6 @@ impl TimelineWidget {
             raw_target_time: Time::ZERO,
             level: Level::new(r32(150.0)),
             selection: Selection::Empty,
-            selected_waypoint: None,
         }
     }
 
@@ -350,6 +348,9 @@ impl TimelineWidget {
                         EditorEventIdx::Event(_) => {
                             editor.level.timing.snap_to_beat(time, beat_snap) - preevent_time
                         }
+                        EditorEventIdx::Waypoint(_, _) => {
+                            editor.level.timing.snap_to_beat(time, beat_snap)
+                        }
                         EditorEventIdx::Timing(i) => {
                             editor.level.timing.snap_to_beat_without(i, time, beat_snap)
                                 - preevent_time
@@ -454,7 +455,8 @@ impl TimelineWidget {
                             light_event.movement.waypoints.len().saturating_sub(1),
                         );
                         for (waypoint_id, _, offset) in light_event.movement.timed_transforms() {
-                            let is_waypoint_selected = Some(waypoint_id) == self.selected_waypoint;
+                            let is_waypoint_selected =
+                                editor.selection.is_waypoint_selected(light_id, waypoint_id);
 
                             let position = render_light(event.time + offset, 0).center();
                             if !self.state.position.contains(position) {
@@ -498,11 +500,15 @@ impl TimelineWidget {
                             if icon.state.mouse_left.just_pressed
                                 || tick.state.mouse_left.just_pressed
                             {
-                                actions.extend([
-                                    LevelAction::SelectLight(SelectMode::Set, vec![light_id])
-                                        .into(),
-                                    LevelAction::SelectWaypoint(waypoint_id, false).into(),
-                                ]);
+                                actions.push(
+                                    LevelAction::SelectWaypoint(
+                                        selection_mode,
+                                        light_id,
+                                        vec![waypoint_id],
+                                        false,
+                                    )
+                                    .into(),
+                                );
                                 self.dragging_waypoint = Some(waypoint_id);
                             } else if !context.cursor.left.down {
                                 if self.dragging_waypoint == Some(waypoint_id) {
@@ -520,10 +526,19 @@ impl TimelineWidget {
                                 if enable_beat_snap {
                                     time = editor.level.timing.snap_to_beat(time, beat_snap);
                                 }
+                                let selected = if let Selection::Waypoints(light, ids) =
+                                    &editor.selection
+                                    && *light == light_id
+                                    && ids.contains(&waypoint_id)
+                                {
+                                    ids.clone()
+                                } else {
+                                    vec![waypoint_id]
+                                };
                                 actions.push(
                                     LevelAction::MoveWaypoint(
                                         light_id,
-                                        waypoint_id,
+                                        selected,
                                         Change::Set(time),
                                         Change::Add(vec2::ZERO),
                                     )
@@ -835,11 +850,6 @@ impl TimelineWidget {
         self.expansion.update(context.delta_time);
         self.level = state.level.clone();
         self.selection = state.selection.clone();
-        self.selected_waypoint = state
-            .level_state
-            .waypoints
-            .as_ref()
-            .and_then(|waypoints| waypoints.selected);
 
         let pixel = PPU as f32;
 
@@ -905,6 +915,17 @@ impl TimelineWidget {
                         .events
                         .get(i)
                         .map(|event| event.time + pre_event_time(&event.event)),
+                    EditorEventIdx::Waypoint(light_id, waypoint_id) => {
+                        self.level.events.get(light_id.event).and_then(|event| {
+                            if let Event::Light(light) = &event.event
+                                && let Some(waypoint_time) = light.movement.get_time(waypoint_id)
+                            {
+                                Some(event.time + waypoint_time)
+                            } else {
+                                None
+                            }
+                        })
+                    }
                     EditorEventIdx::Timing(i) => {
                         self.level.timing.points.get(i).map(|point| point.time)
                     }

@@ -107,36 +107,37 @@ impl EditorState {
                 }
                 geng::Key::X => {
                     if let Some(level_editor) = &self.editor.level_edit {
-                        if let Some(waypoints) = &level_editor.level_state.waypoints {
-                            if let Some(waypoint) = waypoints.selected {
+                        // Delete selection
+                        match &level_editor.selection {
+                            Selection::Empty => {}
+                            Selection::Lights(lights) => {
                                 actions.push(
-                                    LevelAction::DeleteWaypoint(waypoints.light, waypoint).into(),
+                                    LevelAction::list(
+                                        lights.iter().copied().map(LevelAction::DeleteLight),
+                                    )
+                                    .into(),
                                 );
                             }
-                        } else {
-                            // Delete selection
-                            match &level_editor.selection {
-                                Selection::Empty => {}
-                                Selection::Lights(lights) => {
-                                    actions.push(
-                                        LevelAction::list(
-                                            lights.iter().copied().map(LevelAction::DeleteLight),
-                                        )
-                                        .into(),
-                                    );
-                                }
-                                Selection::Event(index) => {
-                                    actions.push(
-                                        LevelAction::DeleteEvent(EditorEventIdx::Event(*index))
-                                            .into(),
-                                    );
-                                }
-                                Selection::Timing(index) => {
-                                    actions.push(
-                                        LevelAction::DeleteEvent(EditorEventIdx::Timing(*index))
-                                            .into(),
-                                    );
-                                }
+                            Selection::Waypoints(light_id, waypoints) => {
+                                actions.push(
+                                    LevelAction::list(
+                                        waypoints
+                                            .iter()
+                                            .copied()
+                                            .map(|id| LevelAction::DeleteWaypoint(*light_id, id)),
+                                    )
+                                    .into(),
+                                );
+                            }
+                            Selection::Event(index) => {
+                                actions.push(
+                                    LevelAction::DeleteEvent(EditorEventIdx::Event(*index)).into(),
+                                );
+                            }
+                            Selection::Timing(index) => {
+                                actions.push(
+                                    LevelAction::DeleteEvent(EditorEventIdx::Timing(*index)).into(),
+                                );
                             }
                         }
                     }
@@ -218,29 +219,30 @@ impl EditorState {
                         if shift {
                             // Scale light or waypoint
                             let delta = r32(delta.signum() * 0.25);
-                            if let Some(waypoints) = &level_editor.level_state.waypoints {
-                                let light_id = waypoints.light;
-                                if let Some(waypoint_id) = waypoints.selected {
-                                    actions.push(
-                                        LevelAction::ScaleWaypoint(
-                                            light_id,
-                                            waypoint_id,
-                                            Change::Add(delta),
-                                        )
-                                        .into(),
-                                    );
-                                    scale = true;
-                                } else if let EditingState::Waypoints {
-                                    state: WaypointsState::New,
-                                    ..
-                                } = level_editor.state
-                                {
-                                    actions.push(
-                                        LevelAction::ScalePlacement(Change::Add(delta)).into(),
-                                    );
-                                    scale = true;
-                                }
+                            if let EditingState::Waypoints {
+                                state: WaypointsState::New,
+                                ..
+                            } = level_editor.state
+                            {
+                                // Waypoint placement
+                                actions
+                                    .push(LevelAction::ScalePlacement(Change::Add(delta)).into());
+                                scale = true;
+                            } else if let Some((light_id, waypoint_id)) =
+                                level_editor.selection.waypoint_single()
+                            {
+                                // Selected waypoint
+                                actions.push(
+                                    LevelAction::ScaleWaypoint(
+                                        light_id,
+                                        waypoint_id,
+                                        Change::Add(delta),
+                                    )
+                                    .into(),
+                                );
+                                scale = true;
                             } else if let EditingState::Place { .. } = level_editor.state {
+                                // Light placement
                                 actions
                                     .push(LevelAction::ScalePlacement(Change::Add(delta)).into());
                                 scale = true;
@@ -331,15 +333,29 @@ impl EditorState {
                 let area = Aabb2::from_corners(drag.from_world_raw, self.editor.cursor_world_pos);
                 let area = Collider::aabb(area);
                 extra.clear();
-                for (i, event) in level_editor.level.events.iter().enumerate() {
-                    if let Event::Light(light) = &event.event {
-                        let time = level_editor.current_time.target - event.time;
-                        if time >= Time::ZERO && time <= light.movement.duration() {
-                            let baked = self.interpolation_cache.get_or_bake(&light.movement);
-                            let transform = light.movement.get_baked(time, baked);
-                            if area.contains(transform.translation) {
-                                let id = LightId { event: i };
-                                extra.add_light(id);
+
+                if let Some(waypoints) = &level_editor.level_state.waypoints {
+                    // Look for waypoints to select
+                    for waypoint in &waypoints.points {
+                        if waypoint.visible
+                            && let Some(id) = waypoint.original
+                            && area.contains(waypoint.control.position)
+                        {
+                            extra.add_waypoint(waypoints.light, id);
+                        }
+                    }
+                } else {
+                    // Look for lights to select
+                    for (i, event) in level_editor.level.events.iter().enumerate() {
+                        if let Event::Light(light) = &event.event {
+                            let time = level_editor.current_time.target - event.time;
+                            if time >= Time::ZERO && time <= light.movement.duration() {
+                                let baked = self.interpolation_cache.get_or_bake(&light.movement);
+                                let transform = light.movement.get_baked(time, baked);
+                                if area.contains(transform.translation) {
+                                    let id = LightId { event: i };
+                                    extra.add_light(id);
+                                }
                             }
                         }
                     }
@@ -392,23 +408,25 @@ impl EditorState {
                     .into(),
                 );
             }
-            &mut DragTarget::WaypointMove {
-                light,
-                waypoint,
-                initial_translation,
-                initial_time,
-            } => {
+            DragTarget::WaypointMove { light, waypoints } => {
                 actions.push(
-                    LevelAction::MoveWaypoint(
-                        light,
-                        waypoint,
-                        Change::Set(
-                            initial_time + level_editor.current_time.target - drag.from_beat,
-                        ),
-                        Change::Set(
-                            initial_translation + self.editor.cursor_world_pos_snapped
-                                - drag.from_world,
-                        ),
+                    LevelAction::list_with(
+                        HistoryLabel::Drag,
+                        waypoints.iter().map(|waypoint| {
+                            LevelAction::MoveWaypoint(
+                                *light,
+                                vec![waypoint.id],
+                                Change::Set(
+                                    waypoint.initial_time + level_editor.current_time.target
+                                        - drag.from_beat,
+                                ),
+                                Change::Set(
+                                    waypoint.initial_translation
+                                        + self.editor.cursor_world_pos_snapped
+                                        - drag.from_world,
+                                ),
+                            )
+                        }),
                     )
                     .into(),
                 );
@@ -477,6 +495,7 @@ impl EditorState {
                                 let lights = match selection {
                                     Selection::Empty => vec![],
                                     Selection::Lights(light_ids) => light_ids,
+                                    Selection::Waypoints(light_id, _) => vec![light_id],
                                     Selection::Event(_) => vec![],
                                     Selection::Timing(_) => vec![],
                                 };
@@ -516,6 +535,7 @@ impl EditorState {
                                     match &level_editor.selection {
                                         Selection::Empty => vec![],
                                         Selection::Lights(vec) => vec.clone(),
+                                        Selection::Waypoints(light_id, _) => vec![*light_id],
                                         Selection::Event(_) => vec![],
                                         Selection::Timing(_) => vec![],
                                     }
@@ -612,26 +632,45 @@ impl EditorState {
             EditingState::Playing { .. } => {}
             EditingState::Waypoints { state, .. } => match state {
                 WaypointsState::Idle => {
-                    if let Some(waypoints) = &level_editor.level_state.waypoints {
-                        if let Some(hovered) =
-                            waypoints.hovered.and_then(|i| waypoints.points.get(i))
-                        {
-                            // Clicked on a waypoint
-                            if let Some(waypoint) = hovered.original
-                                && let Some(event) =
-                                    level_editor.level.events.get(waypoints.light.event)
+                    if button == geng::MouseButton::Left {
+                        if self.ui_context.mods.shift {
+                            // Shift+LMB is always a selection
+                            actions.push(EditorStateAction::StartDrag(DragTarget::SelectionArea {
+                                original: level_editor.selection.clone(),
+                                extra: Selection::Empty,
+                            }));
+                        } else if let Some(waypoints) = &level_editor.level_state.waypoints {
+                            if let Some(hovered) =
+                                waypoints.hovered.and_then(|i| waypoints.points.get(i))
                             {
-                                self.click_waypoint(
-                                    waypoints,
-                                    event,
-                                    waypoint,
-                                    button,
-                                    &mut actions,
-                                );
+                                // Clicked on a waypoint
+                                if let Some(waypoint) = hovered.original
+                                    && let Some(event) =
+                                        level_editor.level.events.get(waypoints.light.event)
+                                {
+                                    self.click_waypoint(
+                                        waypoints,
+                                        event,
+                                        waypoint,
+                                        button,
+                                        &mut actions,
+                                    );
+                                }
+                            } else {
+                                // Clicked on empty space - deselect
+                                let original = if self.ui_context.mods.shift {
+                                    level_editor.selection.clone()
+                                } else {
+                                    actions.push(LevelAction::DeselectWaypoint.into());
+                                    Selection::Lights(vec![waypoints.light])
+                                };
+                                actions.push(EditorStateAction::StartDrag(
+                                    DragTarget::SelectionArea {
+                                        original,
+                                        extra: Selection::Empty,
+                                    },
+                                ));
                             }
-                        } else {
-                            // Clicked on empty space - deselect
-                            actions.push(LevelAction::DeselectWaypoint.into());
                         }
                     }
                 }
@@ -655,64 +694,100 @@ impl EditorState {
         button: geng::MouseButton,
         actions: &mut Vec<EditorStateAction>,
     ) {
+        let Some(level_editor) = &self.editor.level_edit else {
+            return;
+        };
         let Event::Light(light_event) = &event.event else {
             return;
         };
-        let Some(frame) = light_event.movement.get_frame(waypoint) else {
+        let Some(_frame) = light_event.movement.get_frame(waypoint) else {
             return;
+        };
+
+        let selection_mode = if self.ui_context.mods.shift {
+            SelectMode::Toggle
+        } else {
+            SelectMode::Set
         };
 
         match button {
             geng::MouseButton::Left => {
-                actions.push(LevelAction::SelectWaypoint(waypoint, false).into());
-                if self.ui_context.mods.shift {
-                    let delta = self.editor.cursor_world_pos - frame.translation;
-                    let scale_direction = match light_event.shape {
-                        Shape::Circle { .. } => delta,
-                        Shape::Line { .. } => {
-                            let dir = frame.rotation.unit_vec();
-                            let normal = vec2(dir.y, -dir.x);
-                            let side = vec2::dot(normal, delta).signum();
-                            normal * side
-                        }
-                        Shape::Rectangle { width, height } => {
-                            let delta_pos = delta.rotate(-frame.rotation);
-                            let size = vec2(width, height);
+                actions.push(
+                    LevelAction::SelectWaypoint(
+                        selection_mode,
+                        waypoints.light,
+                        vec![waypoint],
+                        false,
+                    )
+                    .into(),
+                );
+                // TODO: drag scaling
+                // if self.ui_context.mods.shift {
+                //     let delta = self.editor.cursor_world_pos - frame.translation;
+                //     let scale_direction = match light_event.shape {
+                //         Shape::Circle { .. } => delta,
+                //         Shape::Line { .. } => {
+                //             let dir = frame.rotation.unit_vec();
+                //             let normal = vec2(dir.y, -dir.x);
+                //             let side = vec2::dot(normal, delta).signum();
+                //             normal * side
+                //         }
+                //         Shape::Rectangle { width, height } => {
+                //             let delta_pos = delta.rotate(-frame.rotation);
+                //             let size = vec2(width, height);
 
-                            let mut angle =
-                                delta_pos.arg().normalized_pi() - Angle::from_degrees(r32(45.0));
-                            if angle.abs() > Angle::from_degrees(r32(90.0)) {
-                                angle -=
-                                    Angle::from_degrees(r32(180.0) * angle.as_radians().signum());
-                            }
-                            let angle = angle + Angle::from_degrees(r32(45.0));
+                //             let mut angle =
+                //                 delta_pos.arg().normalized_pi() - Angle::from_degrees(r32(45.0));
+                //             if angle.abs() > Angle::from_degrees(r32(90.0)) {
+                //                 angle -=
+                //                     Angle::from_degrees(r32(180.0) * angle.as_radians().signum());
+                //             }
+                //             let angle = angle + Angle::from_degrees(r32(45.0));
 
-                            let dir = if angle < size.arg().normalized_pi() {
-                                // On the right (vertical) side
-                                frame.rotation.unit_vec()
-                            } else {
-                                // On the top (horizontal) side
-                                frame.rotation.unit_vec().rotate_90()
-                            };
-                            let side = vec2::dot(dir, delta).signum();
-                            dir * side
-                        }
+                //             let dir = if angle < size.arg().normalized_pi() {
+                //                 // On the right (vertical) side
+                //                 frame.rotation.unit_vec()
+                //             } else {
+                //                 // On the top (horizontal) side
+                //                 frame.rotation.unit_vec().rotate_90()
+                //             };
+                //             let side = vec2::dot(dir, delta).signum();
+                //             dir * side
+                //         }
+                //     };
+                //     actions.push(EditorStateAction::StartDrag(DragTarget::WaypointScale {
+                //         light: waypoints.light,
+                //         waypoint,
+                //         initial_scale: frame.scale,
+                //         scale_direction,
+                //     }));
+                // } else
+                {
+                    let drag_waypoints = if let Selection::Waypoints(light_id, ids) =
+                        &level_editor.selection
+                        && *light_id == waypoints.light
+                        && ids.contains(&waypoint)
+                    {
+                        ids.clone()
+                    } else {
+                        vec![waypoint]
                     };
-                    actions.push(EditorStateAction::StartDrag(DragTarget::WaypointScale {
-                        light: waypoints.light,
-                        waypoint,
-                        initial_scale: frame.scale,
-                        scale_direction,
-                    }));
-                } else {
-                    let initial_translation = frame.translation;
-                    let initial_time =
-                        event.time + light_event.movement.get_time(waypoint).unwrap_or(0);
+                    let drag_waypoints = drag_waypoints
+                        .into_iter()
+                        .map(|id| DragWaypoint {
+                            id,
+                            initial_time: event.time
+                                + light_event.movement.get_time(id).unwrap_or(0),
+                            initial_translation: light_event
+                                .movement
+                                .get_frame(id)
+                                .map(|frame| frame.translation)
+                                .unwrap_or(vec2::ZERO),
+                        })
+                        .collect();
                     actions.push(EditorStateAction::StartDrag(DragTarget::WaypointMove {
                         light: waypoints.light,
-                        waypoint,
-                        initial_translation,
-                        initial_time,
+                        waypoints: drag_waypoints,
                     }));
                 }
             }
@@ -739,12 +814,25 @@ impl EditorState {
             return;
         }
 
-        if let Some(waypoints) = &level_editor.level_state.waypoints
-            && let Some(selected) = waypoints.selected
+        if let Selection::Waypoints(light_id, waypoints) = &level_editor.selection
+            && let Some(event) = level_editor.level.events.get(light_id.event)
+            && let Event::Light(light) = &event.event
         {
+            let scale = r32(waypoints.len() as f32).recip();
+            let anchor = waypoints
+                .iter()
+                .flat_map(|selected| {
+                    light
+                        .movement
+                        .get_frame(*selected)
+                        .map(|frame| frame.translation * scale)
+                })
+                .fold(vec2::ZERO, Add::add);
             actions.push(
-                LevelAction::RotateWaypoint(waypoints.light, selected, Change::Add(rotate_by))
-                    .into(),
+                LevelAction::list(waypoints.iter().copied().map(|id| {
+                    LevelAction::RotateWaypointAround(*light_id, id, anchor, Change::Add(rotate_by))
+                }))
+                .into(),
             );
             return;
         }

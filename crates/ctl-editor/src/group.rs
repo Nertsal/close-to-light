@@ -60,9 +60,7 @@ pub enum DragTarget {
     },
     WaypointMove {
         light: LightId,
-        waypoint: WaypointId,
-        initial_translation: vec2<Coord>,
-        initial_time: Time,
+        waypoints: Vec<DragWaypoint>,
     },
     WaypointScale {
         light: LightId,
@@ -75,6 +73,13 @@ pub enum DragTarget {
 #[derive(Debug, Clone)]
 pub struct DragLight {
     pub id: LightId,
+    pub initial_time: Time,
+    pub initial_translation: vec2<Coord>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DragWaypoint {
+    pub id: WaypointId,
     pub initial_time: Time,
     pub initial_translation: vec2<Coord>,
 }

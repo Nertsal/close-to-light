@@ -50,8 +50,6 @@ pub struct Waypoints {
     pub points: Vec<WaypointEdit>,
     /// Index of the hovered *rendered* waypoint.
     pub hovered: Option<usize>,
-    /// Index of the selected *original* keyframe.
-    pub selected: Option<WaypointId>,
 }
 
 #[derive(Debug)]
