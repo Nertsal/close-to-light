@@ -377,10 +377,8 @@ impl TimelineWidget {
         // Events
         for (event_i, event) in level_editor.level.events.iter().enumerate() {
             let event_idx = EditorEventIdx::Event(event_i);
-            let is_selected = level_editor.selection.is_single(event_idx);
-            let visible = !is_selected
-                && (event.time + pre_event_time(&event.event) + self.scroll).abs()
-                    < self.visible_scroll() / 2;
+            let visible = (event.time + pre_event_time(&event.event) + self.scroll).abs()
+                < self.visible_scroll() / 2;
 
             match &event.event {
                 Event::Light(light_event) => {
@@ -553,7 +551,7 @@ impl TimelineWidget {
                     let mut overlapped = 0;
                     let light_time = event.time + light_event.movement.get_fade_in();
                     // Idle light icon
-                    if visible {
+                    if visible && !is_selected {
                         let on_top_of_highlight = self
                             .highlight_bar
                             .as_ref()
@@ -612,7 +610,7 @@ impl TimelineWidget {
                     let is_hovered =
                         is_hovered || level_editor.level_state.hovered_light == Some(light_id);
                     if !is_selected && is_hovered {
-                        // Waypoints
+                        // Hover preview waypoints
                         for (_, _, offset) in light_event.movement.timed_transforms() {
                             // Icon
                             let position = render_light(event.time + offset, overlapped).center();
@@ -654,6 +652,7 @@ impl TimelineWidget {
                     }
                 }
                 Event::Effect(effect) => {
+                    let is_selected = level_editor.selection.is_single(event_idx);
                     let duration = match *effect {
                         EffectEvent::PaletteSwap(duration)
                         | EffectEvent::RgbSplit(duration)
