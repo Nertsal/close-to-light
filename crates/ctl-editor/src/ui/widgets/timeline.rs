@@ -743,18 +743,30 @@ impl TimelineWidget {
             }
         }
 
+        let dragging = if let Some(drag) = &editor.drag
+            && let DragTarget::TimelineEvent { .. } = drag.target
+        {
+            true
+        } else {
+            false
+        };
         // NOTE: overlapping events
         // Normally, events stack on top of each other on the timeline.
         // However, when one light is selected, the timeline view squishes down
         // so it is easier to edit the waypoints of that light.
         // Unless SHIFT is pressed, in which case we're in *multi-select mode*:
         // timeline view grows to fit all lights allowing us to select them.
-        self.expansion.target =
-            if self.state.hovered && (self.highlight_bar.is_none() || multi_select_mode) {
-                occupied.into_values().max().unwrap_or(0) as f32
-            } else {
-                0.0
-            };
+        self.expansion.target = if self.state.hovered
+            && (self.highlight_bar.is_none() || multi_select_mode || dragging)
+        {
+            occupied.into_values().max().unwrap_or(0) as f32
+        } else {
+            0.0
+        };
+        if dragging {
+            // Limit expansion dropping which could prevent the dragging from finishing
+            self.expansion.target = self.expansion.target.max(self.expansion.current);
+        }
 
         // Main line ticks
         self.ticks.clear();
