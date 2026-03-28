@@ -368,10 +368,19 @@ impl TimelineWidget {
                 };
             }
 
-            for (event_i, event_time) in drag_ids {
-                let target_time = cursor_time - initial_time + event_time;
-                actions.push(LevelAction::MoveEvent(*event_i, Change::Set(target_time)).into());
-            }
+            actions.push(
+                LevelAction::MoveEvents(
+                    drag_ids
+                        .iter()
+                        .map(|(event_i, event_time)| {
+                            let target_time = cursor_time - initial_time + event_time;
+
+                            (*event_i, Change::Set(target_time))
+                        })
+                        .collect(),
+                )
+                .into(),
+            );
         }
 
         // Timing points
@@ -514,7 +523,18 @@ impl TimelineWidget {
                             if icon.state.mouse_left.just_pressed
                                 || tick.state.mouse_left.just_pressed
                             {
-                                if is_waypoint_selected {
+                                if multi_select_mode {
+                                    // Toggle selection
+                                    actions.push(
+                                        LevelAction::SelectWaypoint(
+                                            selection_mode,
+                                            light_id,
+                                            vec![waypoint_id],
+                                            false,
+                                        )
+                                        .into(),
+                                    );
+                                } else if is_waypoint_selected {
                                     actions.extend([EditorStateAction::StartDrag(
                                         DragTarget::TimelineEvent {
                                             initial_time: waypoint_time,
@@ -552,30 +572,6 @@ impl TimelineWidget {
                                     .into(),
                                     EditorStateAction::EndDrag,
                                 ]);
-                            }
-                            if is_dragging && is_waypoint_selected {
-                                let mut time = unrender_time(context.cursor.position.x);
-                                if enable_beat_snap {
-                                    time = level_editor.level.timing.snap_to_beat(time, beat_snap);
-                                }
-                                let selected = if let Selection::Waypoints(light, ids) =
-                                    &level_editor.selection
-                                    && *light == light_id
-                                    && ids.contains(&waypoint_id)
-                                {
-                                    ids.clone()
-                                } else {
-                                    vec![waypoint_id]
-                                };
-                                actions.push(
-                                    LevelAction::MoveWaypoint(
-                                        light_id,
-                                        selected,
-                                        Change::Set(time),
-                                        Change::Add(vec2::ZERO),
-                                    )
-                                    .into(),
-                                );
                             }
                         }
                     }

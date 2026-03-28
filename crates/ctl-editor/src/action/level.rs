@@ -32,6 +32,7 @@ pub enum LevelAction {
     SelectEvent(EditorEventIdx),
     DeleteEvent(EditorEventIdx),
     MoveEvent(EditorEventIdx, Change<Time>),
+    MoveEvents(Vec<(EditorEventIdx, Change<Time>)>),
 
     // Timing
     TimingNew(Time, FloatTime),
@@ -69,7 +70,10 @@ pub enum LevelAction {
     ScaleWaypoint(LightId, WaypointId, Change<Coord>),
     SetWaypointInterpolation(LightId, WaypointId, MoveInterpolation),
     SetWaypointCurve(LightId, WaypointId, Option<TrajectoryInterpolation>),
-    MoveWaypoint(LightId, Vec<WaypointId>, Change<Time>, Change<vec2<Coord>>),
+    MoveWaypoint(
+        LightId,
+        Vec<(WaypointId, Change<Time>, Change<vec2<Coord>>)>,
+    ),
     ChangeHollow(LightId, WaypointId, Change<R32>),
 }
 
@@ -150,6 +154,7 @@ impl LevelAction {
             LevelAction::SelectEvent(_) => false,
             LevelAction::DeleteEvent(_) => false,
             LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
+            LevelAction::MoveEvents(events) => events.is_empty(),
 
             LevelAction::TimingNew(..) => false,
             LevelAction::TimingUpdate(..) => false,
@@ -195,9 +200,7 @@ impl LevelAction {
             LevelAction::ScaleWaypoint(_, _, delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::SetWaypointInterpolation(..) => false,
             LevelAction::SetWaypointCurve(..) => false,
-            LevelAction::MoveWaypoint(_, ids, time, position) => {
-                ids.is_empty() || time.is_noop(&Time::ZERO) && position.is_noop(&vec2::ZERO)
-            }
+            LevelAction::MoveWaypoint(_, ids) => ids.is_empty(),
             LevelAction::ChangeHollow(_, _, delta) => delta.is_noop(&R32::ZERO),
         }
     }
@@ -359,9 +362,7 @@ impl LevelEditor {
                     self.execute(
                         LevelAction::MoveWaypoint(
                             light_id,
-                            vec![waypoint_id],
-                            change,
-                            Change::Add(vec2::ZERO),
+                            vec![(waypoint_id, change, Change::Add(vec2::ZERO))],
                         ),
                         drag,
                     );
@@ -374,6 +375,37 @@ impl LevelEditor {
                     }
                 }
             },
+            LevelAction::MoveEvents(events) => {
+                self.start_merge_changes(Some(HistoryLabel::Drag));
+
+                // Move waypoints together
+                #[allow(clippy::complexity)]
+                let mut waypoints: HashMap<
+                    LightId,
+                    Vec<(WaypointId, Change<Time>, Change<vec2<Coord>>)>,
+                > = HashMap::new();
+                let mut rest = Vec::new();
+                for (id, change) in events {
+                    if let EditorEventIdx::Waypoint(light_id, waypoint_id) = id {
+                        waypoints.entry(light_id).or_default().push((
+                            waypoint_id,
+                            change,
+                            Change::Add(vec2::ZERO),
+                        ));
+                    } else {
+                        rest.push((id, change));
+                    }
+                }
+                for (light_id, waypoints) in waypoints {
+                    self.move_waypoints(light_id, &waypoints, drag.as_deref_mut());
+                }
+
+                for (id, change) in rest {
+                    self.execute(LevelAction::MoveEvent(id, change), drag.as_deref_mut());
+                }
+
+                self.flush_changes(Some(HistoryLabel::Drag));
+            }
 
             LevelAction::TimingNew(time, beat_time) => {
                 match self
@@ -527,9 +559,8 @@ impl LevelEditor {
             LevelAction::SetWaypointCurve(light, waypoint, curve) => {
                 self.set_waypoint_curve(light, waypoint, curve)
             }
-            LevelAction::MoveWaypoint(light, waypoints, time, pos) => {
-                self.move_waypoint(light, &waypoints, pos);
-                self.move_waypoint_time(light, &waypoints, time, drag);
+            LevelAction::MoveWaypoint(light, waypoints) => {
+                self.move_waypoints(light, &waypoints, drag);
             }
             LevelAction::ChangeHollow(light, waypoint, change) => {
                 self.change_hollow(light, waypoint, change)
@@ -573,11 +604,12 @@ impl LevelEditor {
         self.save_state(HistoryLabel::MoveLight(light_id));
     }
 
-    fn move_waypoint(
+    #[allow(clippy::complexity)]
+    fn move_waypoints(
         &mut self,
         light_id: LightId,
-        waypoint_ids: &[WaypointId],
-        change_pos: Change<vec2<Coord>>,
+        waypoint_ids: &[(WaypointId, Change<Time>, Change<vec2<Coord>>)],
+        drag: Option<&mut Drag>,
     ) {
         if waypoint_ids.is_empty() {
             return;
@@ -590,7 +622,8 @@ impl LevelEditor {
             return;
         };
 
-        for &waypoint_id in waypoint_ids {
+        // Change position
+        for &(waypoint_id, _, change_pos) in waypoint_ids {
             let Some(frame) = event.movement.get_frame_mut(waypoint_id) else {
                 continue;
             };
@@ -607,30 +640,6 @@ impl LevelEditor {
             }
         }
 
-        self.save_state(HistoryLabel::MoveWaypoint(
-            light_id,
-            *waypoint_ids.first().unwrap(),
-        ));
-    }
-
-    fn move_waypoint_time(
-        &mut self,
-        light_id: LightId,
-        waypoint_ids: &[WaypointId],
-        change_time: Change<Time>,
-        drag: Option<&mut Drag>,
-    ) {
-        if waypoint_ids.is_empty() {
-            return;
-        }
-        let Some(timed_event) = self.level.events.get_mut(light_id.event) else {
-            return;
-        };
-
-        let Event::Light(event) = &mut timed_event.event else {
-            return;
-        };
-
         // Update time
         let fade_in = event.movement.get_fade_in();
         let fade_out = event.movement.get_fade_out();
@@ -639,8 +648,8 @@ impl LevelEditor {
             .timed_transforms()
             .map(|(id, transform, mut time)| {
                 time += timed_event.time;
-                if waypoint_ids.contains(&id) {
-                    change_time.apply(&mut time);
+                if let Some((_, change, _)) = waypoint_ids.iter().find(|(i, _, _)| *i == id) {
+                    change.apply(&mut time);
                 }
                 (id, transform, time)
             })
@@ -649,11 +658,14 @@ impl LevelEditor {
         // Edge (fade in/out) waypoints keep their relative timings unless moved directly
         if !waypoint_ids
             .iter()
-            .any(|id| matches!(id, WaypointId::Initial))
+            .any(|(id, _, _)| matches!(id, WaypointId::Initial))
         {
             frames[0].2 = frames[1].2 - fade_in;
         }
-        if !waypoint_ids.iter().any(|id| matches!(id, WaypointId::Last)) {
+        if !waypoint_ids
+            .iter()
+            .any(|(id, _, _)| matches!(id, WaypointId::Last))
+        {
             let len = frames.len();
             assert!(len >= 2);
             frames[len - 1].2 = frames[len - 2].2 + fade_out;
@@ -754,7 +766,7 @@ impl LevelEditor {
 
         self.save_state(HistoryLabel::MoveWaypointTime(
             light_id,
-            *waypoint_ids.first().unwrap(),
+            waypoint_ids.first().unwrap().0,
         ));
     }
 

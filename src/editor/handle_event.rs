@@ -410,23 +410,25 @@ impl EditorState {
             }
             DragTarget::WaypointMove { light, waypoints } => {
                 actions.push(
-                    LevelAction::list_with(
-                        HistoryLabel::Drag,
-                        waypoints.iter().map(|waypoint| {
-                            LevelAction::MoveWaypoint(
-                                *light,
-                                vec![waypoint.id],
-                                Change::Set(
-                                    waypoint.initial_time + level_editor.current_time.target
-                                        - drag.from_beat,
-                                ),
-                                Change::Set(
-                                    waypoint.initial_translation
-                                        + self.editor.cursor_world_pos_snapped
-                                        - drag.from_world,
-                                ),
-                            )
-                        }),
+                    LevelAction::MoveWaypoint(
+                        *light,
+                        waypoints
+                            .iter()
+                            .map(|waypoint| {
+                                (
+                                    waypoint.id,
+                                    Change::Set(
+                                        waypoint.initial_time + level_editor.current_time.target
+                                            - drag.from_beat,
+                                    ),
+                                    Change::Set(
+                                        waypoint.initial_translation
+                                            + self.editor.cursor_world_pos_snapped
+                                            - drag.from_world,
+                                    ),
+                                )
+                            })
+                            .collect(),
                     )
                     .into(),
                 );

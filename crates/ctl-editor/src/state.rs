@@ -77,7 +77,7 @@ impl EditorLevelState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LightId {
     // pub rendered: usize,
     pub event: usize,
