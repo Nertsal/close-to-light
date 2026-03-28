@@ -56,7 +56,9 @@ pub enum DragTarget {
         initial_center: vec2<Coord>,
     },
     TimelineEvent {
-        id: EditorEventIdx,
+        initial_time: Time,
+        /// (index, initial time of the target)
+        targets: Vec<(EditorEventIdx, Time)>,
     },
     /// Move the whole light event through time and space.
     Light {

@@ -90,6 +90,39 @@ impl Selection {
         self.single() == Some(id)
     }
 
+    pub fn to_editor_events(&self) -> Vec<EditorEventIdx> {
+        match self {
+            Selection::Empty => vec![],
+            Selection::Lights(ids) => ids
+                .iter()
+                .map(|id| EditorEventIdx::Event(id.event))
+                .collect(),
+            Selection::Waypoints(light_id, waypoint_ids) => waypoint_ids
+                .iter()
+                .map(|id| EditorEventIdx::Waypoint(*light_id, *id))
+                .collect(),
+            Selection::Event(id) => vec![EditorEventIdx::Event(*id)],
+            Selection::Timing(id) => vec![EditorEventIdx::Timing(*id)],
+        }
+    }
+
+    pub fn is_selected(&self, event_id: EditorEventIdx) -> bool {
+        match self {
+            Selection::Empty => false,
+            Selection::Lights(ids) => ids
+                .iter()
+                .any(|id| EditorEventIdx::Event(id.event) == event_id),
+            Selection::Waypoints(light_id, waypoint_ids) => {
+                EditorEventIdx::Event(light_id.event) == event_id
+                    || waypoint_ids
+                        .iter()
+                        .any(|id| EditorEventIdx::Waypoint(*light_id, *id) == event_id)
+            }
+            Selection::Event(id) => EditorEventIdx::Event(*id) == event_id,
+            Selection::Timing(id) => EditorEventIdx::Timing(*id) == event_id,
+        }
+    }
+
     pub fn light_single(&self) -> Option<LightId> {
         match self {
             Selection::Empty => None,

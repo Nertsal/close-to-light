@@ -739,9 +739,15 @@ impl LevelEditor {
                 DragTarget::WaypointMove { light, waypoints } if *light == light_id => {
                     waypoints.iter_mut().for_each(|drag| fix_id(&mut drag.id));
                 }
-                DragTarget::TimelineEvent {
-                    id: EditorEventIdx::Waypoint(light, waypoint),
-                } if *light == light_id => fix_id(waypoint),
+                DragTarget::TimelineEvent { targets, .. } => {
+                    for (id, _) in targets {
+                        if let EditorEventIdx::Waypoint(light, waypoint) = id
+                            && *light == light_id
+                        {
+                            fix_id(waypoint);
+                        }
+                    }
+                }
                 _ => {}
             }
         }
