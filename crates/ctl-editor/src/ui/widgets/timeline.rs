@@ -34,6 +34,7 @@ pub struct TimelineWidget {
     marks: Vec<(vec2<f32>, Color)>,
     /// Ticks with position and subdivision indicator used to select color and texture.
     ticks: Vec<(vec2<f32>, i64)>,
+    selection_area: Option<Aabb2<f32>>,
 
     /// Render scale in pixels per beat.
     scale: f32,
@@ -72,6 +73,7 @@ impl TimelineWidget {
             dots: Vec::new(),
             marks: Vec::new(),
             ticks: Vec::new(),
+            selection_area: None,
 
             scale: 0.5,
             scroll: Time::ZERO,
@@ -124,6 +126,41 @@ impl TimelineWidget {
         let enable_beat_snap = !context.mods.ctrl;
         let beat_snap = level_editor.beat_snap;
 
+        let mut extra_selection = Selection::Empty;
+        let selection_area = editor.drag.as_ref().and_then(|drag| {
+            if let DragTarget::SelectionAreaTimeline { .. } = drag.target {
+                Some(Aabb2::from_corners(
+                    drag.from_screen,
+                    context.cursor.position,
+                ))
+            } else {
+                None
+            }
+        });
+        self.selection_area = selection_area;
+        let selectable = |idx: EditorEventIdx, widget: &WidgetState, selection: &mut Selection| {
+            if let Some(area) = selection_area
+                && area.contains(widget.position.center())
+            {
+                let single = match idx {
+                    EditorEventIdx::Event(idx) => {
+                        if let Some(event) = level_editor.level.events.get(idx)
+                            && let Event::Light(_) = event.event
+                        {
+                            Selection::Lights(vec![LightId { event: idx }])
+                        } else {
+                            Selection::Event(idx)
+                        }
+                    }
+                    EditorEventIdx::Waypoint(light_id, waypoint_id) => {
+                        Selection::Waypoints(light_id, vec![waypoint_id])
+                    }
+                    EditorEventIdx::Timing(idx) => Selection::Timing(idx),
+                };
+                selection.merge(single);
+            }
+        };
+
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
             let size = vec2::splat(18) * PPU;
@@ -154,58 +191,62 @@ impl TimelineWidget {
         };
 
         // Check highlight bounds
-        let light_selection = level_editor
-            .selection
-            .light_single()
-            .and_then(|id| level_editor.level.events.get(id.event))
-            .and_then(|event| {
-                if let Event::Light(light) = &event.event {
-                    let from_time = event.time;
-                    let from = render_time(&self.highlight_line, from_time).center();
-                    let to_time = event.time + light.movement.duration();
-                    let to = render_time(&self.highlight_line, to_time).center();
-                    Some(HighlightBar {
-                        from_time,
-                        from,
-                        to_time,
-                        to,
-                    })
-                } else {
-                    None
-                }
-            });
-        self.highlight_bar = light_selection.or_else(|| {
-            level_editor
+        if selection_area.is_none() {
+            let light_selection = level_editor
                 .selection
-                .single()
-                .and_then(|id| {
-                    if let EditorEventIdx::Event(id) = id {
-                        level_editor.level.events.get(id)
+                .light_single()
+                .and_then(|id| level_editor.level.events.get(id.event))
+                .and_then(|event| {
+                    if let Event::Light(light) = &event.event {
+                        let from_time = event.time;
+                        let from = render_time(&self.highlight_line, from_time).center();
+                        let to_time = event.time + light.movement.duration();
+                        let to = render_time(&self.highlight_line, to_time).center();
+                        Some(HighlightBar {
+                            from_time,
+                            from,
+                            to_time,
+                            to,
+                        })
                     } else {
                         None
                     }
-                })
-                .and_then(|event| {
-                    let duration = match &event.event {
-                        Event::Light(_) => return None,
-                        Event::Effect(effect) => match effect {
-                            EffectEvent::PaletteSwap(duration)
-                            | EffectEvent::RgbSplit(duration)
-                            | EffectEvent::CameraShake(duration, _) => duration,
-                        },
-                    };
-                    let from_time = event.time;
-                    let from = render_time(&self.highlight_line, from_time).center();
-                    let to_time = event.time + duration;
-                    let to = render_time(&self.highlight_line, to_time).center();
-                    Some(HighlightBar {
-                        from_time,
-                        from,
-                        to_time,
-                        to,
+                });
+            self.highlight_bar = light_selection.or_else(|| {
+                level_editor
+                    .selection
+                    .single()
+                    .and_then(|id| {
+                        if let EditorEventIdx::Event(id) = id {
+                            level_editor.level.events.get(id)
+                        } else {
+                            None
+                        }
                     })
-                })
-        });
+                    .and_then(|event| {
+                        let duration = match &event.event {
+                            Event::Light(_) => return None,
+                            Event::Effect(effect) => match effect {
+                                EffectEvent::PaletteSwap(duration)
+                                | EffectEvent::RgbSplit(duration)
+                                | EffectEvent::CameraShake(duration, _) => duration,
+                            },
+                        };
+                        let from_time = event.time;
+                        let from = render_time(&self.highlight_line, from_time).center();
+                        let to_time = event.time + duration;
+                        let to = render_time(&self.highlight_line, to_time).center();
+                        Some(HighlightBar {
+                            from_time,
+                            from,
+                            to_time,
+                            to,
+                        })
+                    })
+            });
+        } else {
+            self.highlight_bar = None;
+        }
 
         let timeline_tick =
             |size: vec2<f32>,
@@ -224,6 +265,7 @@ impl TimelineWidget {
                         .highlight(HighlightMode::Color(ThemeColor::Highlight))
                 });
                 tick.update(position, context);
+                context.update_focus(tick.state.hovered);
                 if tick.state.mouse_left.pressed.is_some() {
                     let mut target = unrender_time(context.cursor.position.x);
                     target = level_editor.level.timing.snap_to_beat(target, beat_snap);
@@ -250,6 +292,7 @@ impl TimelineWidget {
                              event_time: Time,
                              event_duration: Time,
                              texture: SubTexture,
+                             selection: &mut Selection,
                              actions: &mut Vec<EditorStateAction>,
                              occupied: &mut BTreeMap<i64, usize>,
                              dots: &mut Vec<vec2<f32>>| {
@@ -275,6 +318,7 @@ impl TimelineWidget {
                 });
                 icon.texture = texture;
                 icon.update(position, context);
+                context.update_focus(icon.state.hovered);
                 is_hovered = is_hovered || icon.state.hovered;
                 if is_selected && !is_hovered {
                     icon.color = ThemeColor::Light;
@@ -301,6 +345,7 @@ impl TimelineWidget {
                         }),
                     ]);
                 }
+                selectable(event_i, &icon.state, selection);
             }
 
             if is_selected || is_hovered {
@@ -391,6 +436,7 @@ impl TimelineWidget {
                 point.time,
                 0,
                 atlas.timeline_metronome(),
+                &mut extra_selection,
                 actions,
                 &mut occupied,
                 &mut self.dots,
@@ -406,7 +452,9 @@ impl TimelineWidget {
             match &event.event {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
-                    let is_light_selected_single = level_editor.selection.is_light_single(light_id);
+                    // Waypoints view when single light is selected and not in area selection mode
+                    let is_light_selected_single = level_editor.selection.is_light_single(light_id)
+                        && selection_area.is_none();
                     if is_light_selected_single {
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
@@ -490,6 +538,12 @@ impl TimelineWidget {
                                 ThemeColor::Light
                             };
                             icon.update(position, context);
+                            context.update_focus(icon.state.hovered);
+                            selectable(
+                                EditorEventIdx::Waypoint(light_id, waypoint_id),
+                                &icon.state,
+                                &mut extra_selection,
+                            );
 
                             // Tick
                             let position =
@@ -509,6 +563,7 @@ impl TimelineWidget {
                                     .highlight(HighlightMode::Color(ThemeColor::Highlight))
                             });
                             tick.update(position, context);
+                            context.update_focus(tick.state.hovered);
 
                             // Waypoint drag
                             let is_dragging = if let Some(drag) = &editor.drag
@@ -603,6 +658,13 @@ impl TimelineWidget {
                                 .state
                                 .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
                             icon.update(light, context);
+                            context.update_focus(icon.state.hovered);
+                            selectable(
+                                EditorEventIdx::Event(light_id.event),
+                                &icon.state,
+                                &mut extra_selection,
+                            );
+
                             icon.color = if level_editor.selection.is_light_selected(light_id) {
                                 ThemeColor::Highlight
                             } else if light_event.danger {
@@ -679,6 +741,7 @@ impl TimelineWidget {
                                 .get_or(self.state.id, || IconButtonWidget::new(texture));
                             icon.color = ThemeColor::Light;
                             icon.update(position, context);
+                            context.update_focus(icon.state.hovered);
                         }
                     }
                     if is_light_selected_single || is_hovered {
@@ -789,6 +852,7 @@ impl TimelineWidget {
                             event.time,
                             duration,
                             texture,
+                            &mut extra_selection,
                             actions,
                             &mut occupied,
                             &mut self.dots,
@@ -796,6 +860,15 @@ impl TimelineWidget {
                     }
                 }
             }
+        }
+
+        // Update selection area
+        if let Some(drag) = &editor.drag
+            && let DragTarget::SelectionAreaTimeline { original } = &drag.target
+        {
+            let mut selection = original.clone();
+            selection.merge(extra_selection);
+            actions.push(LevelAction::SetSelection(selection).into());
         }
 
         let dragging = if let Some(drag) = &editor.drag
@@ -821,6 +894,23 @@ impl TimelineWidget {
         if dragging {
             // Limit expansion dropping which could prevent the dragging from finishing
             self.expansion.target = self.expansion.target.max(self.expansion.current);
+        }
+
+        // Start selection area drag
+        if !dragging && context.can_focus() && self.state.mouse_left.just_pressed {
+            let original = if context.mods.shift {
+                // Add to selection
+                level_editor.selection.clone()
+            } else if let Some(light_id) = level_editor.selection.light_single() {
+                // Select waypoints
+                Selection::Lights(vec![light_id])
+            } else {
+                // New selection
+                Selection::Empty
+            };
+            actions.push(EditorStateAction::StartDrag(
+                DragTarget::SelectionAreaTimeline { original },
+            ));
         }
 
         // Main line ticks
@@ -1155,6 +1245,18 @@ impl Widget for TimelineWidget {
         let atlas = &context.context.assets.atlas;
 
         let mut geometry = Geometry::new();
+
+        // Selection
+        if let Some(area) = self.selection_area {
+            geometry.merge(context.geometry.quad_outline(area, pixel, theme.light));
+            // self.ui.fill_quad(
+            //     selection.extend_uniform(width),
+            //     crate::util::with_alpha(color, 0.5),
+            //     &mut ui_buffer,
+            // );
+            // self.ui
+            //     .draw_outline(selection, width, color, &mut ui_buffer);
+        }
 
         // Current arrow
         {

@@ -449,6 +449,9 @@ impl EditorState {
                 actions
                     .push(LevelAction::ScaleWaypoint(light, waypoint, Change::Set(target)).into());
             }
+            DragTarget::SelectionAreaTimeline { .. } => {
+                // updates are done in the timeline widget
+            }
             DragTarget::TimelineEvent { .. } => {
                 // updates are done in the timeline widget
             }

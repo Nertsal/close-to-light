@@ -48,12 +48,11 @@ pub enum DragTarget {
         original: Selection,
         extra: Selection,
     },
-    // SelectionAreaTimeline {
-    //     original: Selection,
-    //     extra: Selection,
-    // },
     Camera {
         initial_center: vec2<Coord>,
+    },
+    SelectionAreaTimeline {
+        original: Selection,
     },
     TimelineEvent {
         initial_time: Time,
