@@ -223,6 +223,22 @@ impl LayoutHelper<'_> {
         if button.text.state.mouse_left.clicked {
             ui.event_mode = NewEventMode::Vfx;
         }
+
+        let new_shader = bar
+            .cut_top(self.button_height)
+            .with_width(button_width, 0.0);
+        let button = context.state.get_root_or(|| ButtonWidget::new("Shader"));
+        button.update(new_shader, context);
+        if button.text.state.mouse_left.clicked {
+            let time = self.level_editor.current_time.target;
+            let beat_time = self.level_editor.level.timing.get_timing(time).beat_time;
+            let shader = ShaderEvent {
+                shader: "".into(),
+                layer: ShaderLayer::Background,
+                duration: seconds_to_time(beat_time),
+            };
+            actions.push(LevelAction::NewShader(time, shader).into());
+        }
     }
 
     /// Light mode - select light shape
@@ -1020,6 +1036,16 @@ impl LayoutHelper<'_> {
                     }
                 }
             },
+            Event::Shader(shader) => {
+                self.event_title_delete(
+                    EditorEventIdx::Event(event_i),
+                    bar,
+                    "Custom Shader",
+                    tooltip,
+                    actions,
+                    context,
+                );
+            }
         }
     }
 

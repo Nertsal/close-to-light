@@ -33,6 +33,24 @@ pub struct TimedEvent {
 pub enum Event {
     Light(LightEvent),
     Effect(EffectEvent),
+    Shader(ShaderEvent),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ShaderEvent {
+    pub shader: Name,
+    pub layer: ShaderLayer,
+    pub duration: Time,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ShaderLayer {
+    /// Applied to a blank screen.
+    Background,
+    /// Applied to the game view (before regular postprocessing effects, such as crt and vfx).
+    PostProcessEarly,
+    /// Applied to the screen after all other processing.
+    PostProcessLate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -172,6 +190,7 @@ impl TimedEvent {
         match &self.event {
             Event::Light(event) => event.movement.duration(),
             Event::Effect(_) => Time::ZERO,
+            Event::Shader(_) => Time::ZERO,
         }
     }
 }

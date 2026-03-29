@@ -243,8 +243,9 @@ impl TimelineWidget {
                             Event::Effect(effect) => match effect {
                                 EffectEvent::PaletteSwap(duration)
                                 | EffectEvent::RgbSplit(duration)
-                                | EffectEvent::CameraShake(duration, _) => duration,
+                                | EffectEvent::CameraShake(duration, _) => *duration,
                             },
+                            Event::Shader(shader) => shader.duration,
                         };
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
@@ -787,13 +788,24 @@ impl TimelineWidget {
                         self.dots.extend(dots);
                     }
                 }
-                Event::Effect(effect) => {
+                Event::Effect(_) | Event::Shader(_) => {
                     let is_selected = level_editor.selection.is_single(event_idx);
-                    let duration = match *effect {
-                        EffectEvent::PaletteSwap(duration)
-                        | EffectEvent::RgbSplit(duration)
-                        | EffectEvent::CameraShake(duration, _) => duration,
+                    let duration = match &event.event {
+                        Event::Effect(effect) => match effect {
+                            EffectEvent::PaletteSwap(duration)
+                            | EffectEvent::RgbSplit(duration)
+                            | EffectEvent::CameraShake(duration, _) => *duration,
+                        },
+                        Event::Shader(shader) => shader.duration,
+                        _ => unreachable!(),
                     };
+
+                    let change_duration = |change| match &event.event {
+                        Event::Effect(_) => LevelAction::ChangeEffectDuration(event_i, change),
+                        Event::Shader(_) => LevelAction::ChangeShaderDuration(event_i, change),
+                        _ => unreachable!(),
+                    };
+
                     if is_selected {
                         // Start time
                         timeline_tick(
@@ -837,13 +849,7 @@ impl TimelineWidget {
                             &mut |actions, target| {
                                 // Drag end time
                                 let duration = (target - event.time).max(1);
-                                actions.push(
-                                    LevelAction::ChangeEffectDuration(
-                                        event_i,
-                                        Change::Set(duration),
-                                    )
-                                    .into(),
-                                );
+                                actions.push(change_duration(Change::Set(duration)).into());
                             },
                             &mut |actions| {
                                 actions.push(
@@ -857,10 +863,14 @@ impl TimelineWidget {
                     }
 
                     if visible {
-                        let texture = match effect {
-                            EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
-                            EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
-                            EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                        let texture = match &event.event {
+                            Event::Effect(effect) => match effect {
+                                EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
+                                EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
+                                EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                            },
+                            Event::Shader(_) => atlas.timeline_shader(),
+                            _ => atlas.timeline_unknown(),
                         };
 
                         regular_event(

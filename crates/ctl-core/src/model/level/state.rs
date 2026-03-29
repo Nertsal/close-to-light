@@ -138,6 +138,14 @@ impl LevelState {
                     }
                 }
             },
+            Event::Shader(shader) => {
+                if let Some(vfx) = vfx
+                    && event.time < self.time
+                    && self.time < event.time + shader.duration
+                {
+                    vfx.shaders.push(shader.shader.clone());
+                }
+            }
         }
 
         self.is_finished = self.is_finished && self.lights.is_empty() && self.telegraphs.is_empty();

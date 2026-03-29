@@ -38,6 +38,11 @@ pub enum LevelAction {
     TimingNew(Time, FloatTime),
     TimingUpdate(usize, FloatTime),
 
+    // Shaders
+    NewShader(Time, ShaderEvent),
+    ChangeShaderDuration(usize, Change<Time>),
+    UpdateShader(usize, ShaderEvent),
+
     // Vfx
     NewRgbSplit(Time),
     NewPaletteSwap(Time),
@@ -158,6 +163,10 @@ impl LevelAction {
 
             LevelAction::TimingNew(..) => false,
             LevelAction::TimingUpdate(..) => false,
+
+            LevelAction::NewShader(_, _) => false,
+            LevelAction::ChangeShaderDuration(_, change) => change.is_noop(&0),
+            LevelAction::UpdateShader(_, _) => false,
 
             LevelAction::NewRgbSplit(_) => false,
             LevelAction::NewPaletteSwap(_) => false,
@@ -427,6 +436,25 @@ impl LevelEditor {
             LevelAction::TimingUpdate(point, beat_time) => {
                 if let Some(point) = self.level.timing.points.get_mut(point) {
                     point.beat_time = beat_time;
+                }
+            }
+
+            LevelAction::NewShader(time, shader) => self.level.events.push(TimedEvent {
+                time,
+                event: Event::Shader(shader),
+            }),
+            LevelAction::ChangeShaderDuration(idx, change) => {
+                if let Some(event) = self.level.events.get_mut(idx)
+                    && let Event::Shader(shader) = &mut event.event
+                {
+                    change.apply(&mut shader.duration);
+                }
+            }
+            LevelAction::UpdateShader(idx, shader) => {
+                if let Some(event) = self.level.events.get_mut(idx)
+                    && let Event::Shader(old) = &mut event.event
+                {
+                    *old = shader;
                 }
             }
 
