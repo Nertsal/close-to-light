@@ -138,6 +138,20 @@ impl TimelineWidget {
             }
         });
         self.selection_area = selection_area;
+
+        // Waypoints view when light is single selected (confirmed, so not in selection drag)
+        let select_inside_light = if selection_area.is_some() {
+            if let Some(drag) = &editor.drag
+                && let DragTarget::SelectionAreaTimeline { original } = &drag.target
+            {
+                original.light_single()
+            } else {
+                None
+            }
+        } else {
+            level_editor.selection.light_single()
+        };
+
         let selectable = |idx: EditorEventIdx, widget: &WidgetState, selection: &mut Selection| {
             if let Some(area) = selection_area
                 && area.contains(widget.position.center())
@@ -191,7 +205,7 @@ impl TimelineWidget {
         };
 
         // Check highlight bounds
-        if selection_area.is_none() {
+        if selection_area.is_none() || select_inside_light.is_some() {
             let light_selection = level_editor
                 .selection
                 .light_single()
@@ -452,9 +466,11 @@ impl TimelineWidget {
             match &event.event {
                 Event::Light(light_event) => {
                     let light_id = LightId { event: event_i };
-                    // Waypoints view when single light is selected and not in area selection mode
-                    let is_light_selected_single = level_editor.selection.is_light_single(light_id)
-                        && selection_area.is_none();
+                    // Waypoints view when single light is selected
+                    // and not in area selection mode (unless selecting waypoints)
+                    let is_light_selected_single = level_editor.selection.is_light_single(light_id);
+                    let is_light_selected_single =
+                        is_light_selected_single && select_inside_light == Some(light_id);
                     if is_light_selected_single {
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
