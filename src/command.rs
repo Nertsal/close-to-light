@@ -270,6 +270,12 @@ impl Command {
                 .await
                 .expect("failed to load editor config");
 
+                let level_assets = ctl_assets::LevelAssets::load_all(
+                    context.geng.asset_manager(),
+                    &group.cached.local.path,
+                )
+                .await?;
+
                 let state = if let Some((level_index, level)) = level {
                     let level = ctl_logic::PlayLevel {
                         group,
@@ -279,9 +285,19 @@ impl Command {
                         start_time: 0,
                         transition_button: None,
                     };
-                    crate::editor::EditorState::new_level(context.clone(), config, level)
+                    crate::editor::EditorState::new_level(
+                        context.clone(),
+                        level_assets,
+                        config,
+                        level,
+                    )
                 } else {
-                    crate::editor::EditorState::new_group(context.clone(), config, group)
+                    crate::editor::EditorState::new_group(
+                        context.clone(),
+                        level_assets,
+                        config,
+                        group,
+                    )
                 };
                 context.geng.run_state(state).await;
             }

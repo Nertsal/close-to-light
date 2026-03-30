@@ -297,6 +297,31 @@ pub struct LevelAssets {
 }
 
 impl LevelAssets {
+    /// Load all assets located in the folder.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_all(
+        manager: &geng::asset::Manager,
+        path: &std::path::Path,
+    ) -> geng::asset::Future<Self> {
+        let shaders_path = path.join("shaders");
+        let shader_list = std::fs::read_dir(shaders_path)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .flat_map(|file| {
+                if !std::fs::exists(file.path()).ok()? {
+                    return None;
+                }
+                let name = file.file_name();
+                let name = name.to_str()?;
+                let name = name.strip_suffix(".glsl")?;
+                Some(Name::from(name))
+            })
+            .collect();
+
+        Self::load(manager, path, shader_list)
+    }
+
     pub fn load_for(
         manager: &geng::asset::Manager,
         path: &std::path::Path,
@@ -326,10 +351,12 @@ impl LevelAssets {
         async move {
             let mut shaders = HashMap::with_capacity(shader_list.len());
 
+            let shaders_path = path.join("shaders");
             for name in shader_list {
-                let path = path.join(format!("{name}.glsl"));
+                let path = shaders_path.join(format!("{name}.glsl"));
                 match geng::asset::Load::load(&manager, &path, &()).await {
                     Ok(shader) => {
+                        log::debug!("Loaded level shader: {:?}", path);
                         shaders.insert(name, shader);
                     }
                     Err(err) => {

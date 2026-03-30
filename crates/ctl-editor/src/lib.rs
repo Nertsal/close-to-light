@@ -21,6 +21,7 @@ pub use self::{
     state::{EditingState, *},
 };
 
+use ctl_assets::LevelAssets;
 use ctl_logic::*;
 use ctl_ui::widget::ConfirmPopup;
 use ctl_util::SecondOrderState;

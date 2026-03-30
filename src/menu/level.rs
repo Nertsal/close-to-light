@@ -911,6 +911,13 @@ impl geng::State for LevelMenu {
                                 .await
                                 .expect("failed to load editor config");
 
+                        let level_assets = ctl_assets::LevelAssets::load_all(
+                            context.geng.asset_manager(),
+                            &group.cached.local.path,
+                        )
+                        .await
+                        .expect("failed to load level assets");
+
                         if let Some((level_index, level)) = level {
                             let level = ctl_logic::PlayLevel {
                                 group,
@@ -920,9 +927,19 @@ impl geng::State for LevelMenu {
                                 start_time: Time::ZERO,
                                 transition_button: None,
                             };
-                            crate::editor::EditorState::new_level(context, config, level)
+                            crate::editor::EditorState::new_level(
+                                context,
+                                level_assets,
+                                config,
+                                level,
+                            )
                         } else {
-                            crate::editor::EditorState::new_group(context, config, group)
+                            crate::editor::EditorState::new_group(
+                                context,
+                                level_assets,
+                                config,
+                                group,
+                            )
                         }
                     };
                     let state = geng::LoadingScreen::new(

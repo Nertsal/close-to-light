@@ -29,7 +29,12 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    pub fn new_group(context: Context, config: EditorConfig, group: PlayGroup) -> Self {
+    pub fn new_group(
+        context: Context,
+        level_assets: LevelAssets,
+        config: EditorConfig,
+        group: PlayGroup,
+    ) -> Self {
         Self {
             transition: None,
             stop_music_next_frame: true,
@@ -42,6 +47,8 @@ impl EditorState {
             ui_context: UiContext::new(context.clone()),
             editor: Editor {
                 context: context.clone(),
+                level_assets,
+
                 real_time: FloatTime::ZERO,
                 render_options: RenderOptions {
                     show_grid: true,
@@ -72,8 +79,14 @@ impl EditorState {
         }
     }
 
-    pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
-        let mut editor = Self::new_group(context.clone(), config, level.group.clone());
+    pub fn new_level(
+        context: Context,
+        level_assets: LevelAssets,
+        config: EditorConfig,
+        level: PlayLevel,
+    ) -> Self {
+        let mut editor =
+            Self::new_group(context.clone(), level_assets, config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
         editor.editor.level_edit = Some(LevelEditor::new(context, level, true, false));
 

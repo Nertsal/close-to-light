@@ -2,6 +2,8 @@ use super::*;
 
 pub struct Editor {
     pub context: Context,
+    pub level_assets: LevelAssets,
+
     /// Real time (in seconds) passed since starting the editor.
     pub real_time: FloatTime,
     pub config: EditorConfig,
