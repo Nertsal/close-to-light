@@ -43,7 +43,7 @@ pub struct ShaderEvent {
     pub duration: Time,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ShaderLayer {
     /// Applied to a blank screen.
     Background,

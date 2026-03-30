@@ -1036,7 +1036,8 @@ impl LayoutHelper<'_> {
                     }
                 }
             },
-            Event::Shader(shader) => {
+            Event::Shader(old_shader) => {
+                let mut shader = old_shader.clone();
                 self.event_title_delete(
                     EditorEventIdx::Event(event_i),
                     bar,
@@ -1045,6 +1046,53 @@ impl LayoutHelper<'_> {
                     actions,
                     context,
                 );
+
+                let layer_pos = bar.cut_top(self.value_height);
+                let dropdown = context.state.get_root_or(|| {
+                    DropdownWidget::new(
+                        "Layer",
+                        0,
+                        [
+                            ("Background", ShaderLayer::Background),
+                            ("Post (early)", ShaderLayer::PostProcessEarly),
+                            ("Post (late)", ShaderLayer::PostProcessLate),
+                        ],
+                    )
+                });
+                dropdown.update(layer_pos, context, &mut shader.layer);
+
+                if *old_shader != shader {
+                    actions.push(LevelAction::UpdateShader(event_i, shader.clone()).into());
+                }
+
+                let duration_pos = bar.cut_top(self.value_height);
+                let mut duration = BeatTime::from_beats_float(
+                    time_to_seconds(shader.duration) / timing_point.beat_time,
+                );
+                let slider = context.state.get_root_or(|| {
+                    BeatValueWidget::new(
+                        "Duration",
+                        duration,
+                        BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                        self.level_editor.beat_snap,
+                    )
+                });
+                slider.scroll_by = self.level_editor.beat_snap;
+                if slider.update(duration_pos, context, &mut duration) {
+                    actions.push(
+                        LevelAction::ChangeShaderDuration(
+                            event_i,
+                            Change::Set(duration.as_time(timing_point.beat_time)),
+                        )
+                        .into(),
+                    );
+                }
+                if slider.control_state.mouse_left.just_released {
+                    actions.push(
+                        LevelAction::FlushChanges(Some(HistoryLabel::EventDuration(event_i)))
+                            .into(),
+                    );
+                }
             }
         }
     }
