@@ -54,7 +54,7 @@ impl EditorRender {
             .timing
             .get_relative_beat_time(level_time)
             .as_beats();
-        let shader_uniforms = ugli::uniforms! {
+        let shader_uniforms_common = ugli::uniforms! {
             u_theme_dark: theme.dark,
             u_theme_light: theme.light,
             u_theme_danger: theme.danger,
@@ -67,29 +67,43 @@ impl EditorRender {
             u_bpm: bpm.as_f32(),
             u_beat_duration: beat_duration.as_f32(),
         };
+        let shader_uniforms = |shader_time: Time, shader: &ShaderEvent| {
+            ugli::uniforms! {
+                u_shader_start_time_ms: shader_time,
+                u_shader_start_time: time_to_seconds(shader_time).as_f32(),
+                u_shader_duration_ms: shader.duration,
+                u_shader_duration: time_to_seconds(shader.duration).as_f32(),
+            }
+        };
+
+        macro_rules! apply_shaders {
+            ($order:pat) => {{
+                for (shader_time, shader, program) in &active_shaders {
+                    let $order = shader.layer else {
+                        continue;
+                    };
+                    let (texture, mut buffer) = self.post_render.apply_processing();
+                    ugli::draw(
+                        &mut buffer,
+                        program,
+                        ugli::DrawMode::TriangleFan,
+                        &self.util.unit_quad,
+                        (
+                            &shader_uniforms_common,
+                            shader_uniforms(*shader_time, shader),
+                            ugli::uniforms! {
+                                u_texture: texture,
+                            },
+                        ),
+                        ugli::DrawParameters::default(),
+                    );
+                }
+                &mut self.post_render.continu()
+            }};
+        }
 
         // Render background shaders
-        for (shader_time, shader, program) in &active_shaders {
-            let ShaderLayer::Background = shader.layer else {
-                continue;
-            };
-            ugli::draw(
-                game_buffer,
-                program,
-                ugli::DrawMode::TriangleFan,
-                &self.util.unit_quad,
-                (
-                    &shader_uniforms,
-                    ugli::uniforms! {
-                        u_shader_start_time_ms: shader_time,
-                        u_shader_start_time: time_to_seconds(*shader_time).as_f32(),
-                        u_shader_duration_ms: shader.duration,
-                        u_shader_duration: time_to_seconds(shader.duration).as_f32(),
-                    },
-                ),
-                draw_parameters(),
-            );
-        }
+        let game_buffer = apply_shaders!(ShaderLayer::Background);
 
         let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
         macro_rules! draw_game {
@@ -224,12 +238,24 @@ impl EditorRender {
         }
         let mut pixel_buffer = draw_game!(static_alpha, game_buffer);
 
+        // Render post processing (early) shaders
+        let _ = apply_shaders!(ShaderLayer::PostProcessEarly);
+
+        // Post processing effects
+        self.post_render
+            .post_process(&self.context.get_options(), post_vfx);
+
+        // Render post processing (late) shaders
+        let _ = apply_shaders!(ShaderLayer::PostProcessLate);
+
+        // Finalize post processing
         let game_buffer = &mut geng_utils::texture::attach_texture(
             &mut self.game_texture,
             self.context.geng.ugli(),
         );
-        self.post_render
-            .post_process(&self.context.get_options(), post_vfx, game_buffer);
+        self.post_render.finish(game_buffer);
+
+        // Other editor stuff
 
         {
             // Current action

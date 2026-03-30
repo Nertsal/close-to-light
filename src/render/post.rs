@@ -78,12 +78,19 @@ impl PostRender {
         buffer
     }
 
-    pub fn post_process(
-        &mut self,
-        options: &Options,
-        vfx: PostVfx,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
+    pub fn apply_processing(&'_ mut self) -> (&'_ ugli::Texture, ugli::Framebuffer<'_>) {
+        std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
+        (
+            &self.swap_buffer.0,
+            geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli()),
+        )
+    }
+
+    pub fn continu(&'_ mut self) -> ugli::Framebuffer<'_> {
+        geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli())
+    }
+
+    pub fn post_process(&mut self, options: &Options, vfx: PostVfx) {
         macro_rules! swap {
             () => {{
                 std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
@@ -147,7 +154,9 @@ impl PostRender {
                 ugli::DrawParameters::default(),
             );
         }
+    }
 
+    pub fn finish(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,

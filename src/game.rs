@@ -256,8 +256,8 @@ impl geng::State for Game {
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
                 colors: options.graphics.colors,
             },
-            framebuffer,
         );
+        self.post.finish(framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {

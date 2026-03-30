@@ -108,8 +108,8 @@ impl geng::State for MediaState {
                 rgb_split: 0.0,
                 colors: ctl_assets::GraphicsColorsOptions::default(),
             },
-            framebuffer,
         );
+        self.post.finish(framebuffer);
     }
 
     fn update(&mut self, delta_time: f64) {

@@ -238,7 +238,7 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
                 rgb_split: 0.0,
                 colors: self.options.graphics.colors,
             },
-            framebuffer,
         );
+        self.post_render.finish(framebuffer);
     }
 }

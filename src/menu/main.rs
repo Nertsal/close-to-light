@@ -326,8 +326,8 @@ impl geng::State for MainMenu {
                 rgb_split: 0.0,
                 colors: options.graphics.colors,
             },
-            screen_buffer,
         );
+        self.post_render.finish(screen_buffer);
 
         self.ui_context.frame_end();
     }

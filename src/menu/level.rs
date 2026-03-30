@@ -682,8 +682,8 @@ impl geng::State for LevelMenu {
                 rgb_split: 0.0,
                 colors: options.graphics.colors,
             },
-            framebuffer,
         );
+        self.post.finish(framebuffer);
 
         self.ui_context.frame_end();
     }

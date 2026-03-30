@@ -463,8 +463,8 @@ impl geng::State for TrailerState {
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
                 colors: ctl_assets::GraphicsColorsOptions::default(),
             },
-            framebuffer,
         );
+        self.post.finish(framebuffer);
     }
 }
 

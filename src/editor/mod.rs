@@ -346,7 +346,7 @@ impl geng::State for EditorState {
             rgb_split: 0.0,
             ..game_post_vfx
         };
-        self.post_render
-            .post_process(&options, editor_post_vfx, framebuffer);
+        self.post_render.post_process(&options, editor_post_vfx);
+        self.post_render.finish(framebuffer);
     }
 }
