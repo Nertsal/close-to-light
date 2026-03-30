@@ -1,6 +1,7 @@
 use super::*;
 
 impl EditorRender {
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn draw_game(
         &mut self,
         editor: &Editor,
@@ -8,6 +9,7 @@ impl EditorRender {
         interpolation_cache: &mut InterpolationCache,
         visible: bool,
         post_vfx: PostVfx,
+        level_assets: &LevelAssets,
     ) {
         let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
@@ -28,6 +30,57 @@ impl EditorRender {
         };
         if !visible {
             return;
+        }
+
+        // Prepare shaders and parameters
+        let active_shaders: Vec<(&ShaderEvent, &Rc<ugli::Program>)> = level_editor
+            .model
+            .vfx
+            .shaders
+            .iter()
+            .flat_map(|shader| {
+                level_assets
+                    .shaders
+                    .get(&shader.shader)
+                    .map(|program| (shader, program))
+            })
+            .collect();
+        let level_time = level_editor.current_time.target;
+        let timing = level_editor.level.timing.get_timing(level_time);
+        let beat_duration = timing.beat_time;
+        let bpm = r32(60.0) / beat_duration;
+        let relative_beat_time = level_editor
+            .level
+            .timing
+            .get_relative_beat_time(level_time)
+            .as_beats();
+
+        // Render background shaders
+        for (shader, program) in &active_shaders {
+            let ShaderLayer::Background = shader.layer else {
+                continue;
+            };
+            ugli::draw(
+                game_buffer,
+                program,
+                ugli::DrawMode::TriangleFan,
+                &self.util.unit_quad,
+                ugli::uniforms! {
+                    u_theme_dark: theme.dark,
+                    u_theme_light: theme.light,
+                    u_theme_danger: theme.danger,
+                    u_theme_highlight: theme.highlight,
+
+                    u_real_time: level_editor.real_time.as_f32(),
+                    u_level_time: level_time,
+                    u_relative_beat_time: relative_beat_time.as_f32(),
+                    u_bpm: bpm.as_f32(),
+                    u_beat_duration: beat_duration.as_f32(),
+
+                    u_shader_duration: shader.duration,
+                },
+                draw_parameters(),
+            );
         }
 
         let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());

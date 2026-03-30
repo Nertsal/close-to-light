@@ -32,7 +32,8 @@ pub struct Vfx {
     pub palette_swap: SecondOrderState<R32>,
     pub rgb_split: VfxValue,
     pub camera_shake: R32,
-    pub shaders: Vec<Name>,
+    /// Active shaders.
+    pub shaders: Vec<ShaderEvent>,
 }
 
 impl Vfx {
@@ -49,6 +50,7 @@ impl Vfx {
         self.palette_swap.target = R32::ZERO;
         self.rgb_split.time_left = FloatTime::ZERO;
         self.camera_shake = R32::ZERO;
+        self.shaders.clear();
     }
 
     pub fn update(&mut self, delta_time: FloatTime) {

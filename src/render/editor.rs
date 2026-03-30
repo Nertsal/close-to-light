@@ -54,6 +54,7 @@ impl EditorRender {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_editor(
         &mut self,
         editor: &Editor,
@@ -61,6 +62,7 @@ impl EditorRender {
         ui: &EditorUi,
         context: &UiContext,
         post_vfx: PostVfx,
+        level_assets: &LevelAssets,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.mask.update_size(framebuffer.size());
@@ -86,6 +88,7 @@ impl EditorRender {
             interpolation_cache,
             edit_tab,
             post_vfx,
+            level_assets,
         );
         if !editor.render_options.hide_ui {
             self.draw_ui(ui, context);

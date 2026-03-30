@@ -143,7 +143,7 @@ impl LevelState {
                     && event.time < self.time
                     && self.time < event.time + shader.duration
                 {
-                    vfx.shaders.push(shader.shader.clone());
+                    vfx.shaders.push(shader.clone());
                 }
             }
         }

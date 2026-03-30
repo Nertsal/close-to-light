@@ -337,6 +337,7 @@ impl geng::State for EditorState {
             &self.ui,
             &self.ui_context,
             game_post_vfx.clone(),
+            &self.editor.level_assets,
             buffer,
         );
 
