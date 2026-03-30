@@ -33,16 +33,16 @@ impl EditorRender {
         }
 
         // Prepare shaders and parameters
-        let active_shaders: Vec<(&ShaderEvent, &Rc<ugli::Program>)> = level_editor
+        let active_shaders: Vec<(Time, &ShaderEvent, &Rc<ugli::Program>)> = level_editor
             .model
             .vfx
             .shaders
             .iter()
-            .flat_map(|shader| {
+            .flat_map(|(time, shader)| {
                 level_assets
                     .shaders
                     .get(&shader.shader)
-                    .map(|program| (shader, program))
+                    .map(|program| (*time, shader, program))
             })
             .collect();
         let level_time = level_editor.current_time.target;
@@ -54,9 +54,22 @@ impl EditorRender {
             .timing
             .get_relative_beat_time(level_time)
             .as_beats();
+        let shader_uniforms = ugli::uniforms! {
+            u_theme_dark: theme.dark,
+            u_theme_light: theme.light,
+            u_theme_danger: theme.danger,
+            u_theme_highlight: theme.highlight,
+
+            u_real_time: level_editor.real_time.as_f32(),
+            u_level_time_ms: level_time,
+            u_level_time: time_to_seconds(level_time).as_f32(),
+            u_relative_beat_time: relative_beat_time.as_f32(),
+            u_bpm: bpm.as_f32(),
+            u_beat_duration: beat_duration.as_f32(),
+        };
 
         // Render background shaders
-        for (shader, program) in &active_shaders {
+        for (shader_time, shader, program) in &active_shaders {
             let ShaderLayer::Background = shader.layer else {
                 continue;
             };
@@ -65,20 +78,15 @@ impl EditorRender {
                 program,
                 ugli::DrawMode::TriangleFan,
                 &self.util.unit_quad,
-                ugli::uniforms! {
-                    u_theme_dark: theme.dark,
-                    u_theme_light: theme.light,
-                    u_theme_danger: theme.danger,
-                    u_theme_highlight: theme.highlight,
-
-                    u_real_time: level_editor.real_time.as_f32(),
-                    u_level_time: level_time,
-                    u_relative_beat_time: relative_beat_time.as_f32(),
-                    u_bpm: bpm.as_f32(),
-                    u_beat_duration: beat_duration.as_f32(),
-
-                    u_shader_duration: shader.duration,
-                },
+                (
+                    &shader_uniforms,
+                    ugli::uniforms! {
+                        u_shader_start_time_ms: shader_time,
+                        u_shader_start_time: time_to_seconds(*shader_time).as_f32(),
+                        u_shader_duration_ms: shader.duration,
+                        u_shader_duration: time_to_seconds(shader.duration).as_f32(),
+                    },
+                ),
                 draw_parameters(),
             );
         }

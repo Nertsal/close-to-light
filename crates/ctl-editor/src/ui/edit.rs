@@ -1049,7 +1049,7 @@ impl LayoutHelper<'_> {
 
                 let name_pos = bar.cut_top(self.value_height);
                 let dropdown = context.state.get_root_or(|| {
-                    DropdownWidget::new("Shader", 0, [("<name>", Name::from("<name>"))])
+                    DropdownWidget::new("Shader", 0, [("<name>", Name::from("<none>"))])
                 });
                 dropdown.update_options(
                     self.editor

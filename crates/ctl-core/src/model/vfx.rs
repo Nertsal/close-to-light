@@ -32,8 +32,8 @@ pub struct Vfx {
     pub palette_swap: SecondOrderState<R32>,
     pub rgb_split: VfxValue,
     pub camera_shake: R32,
-    /// Active shaders.
-    pub shaders: Vec<ShaderEvent>,
+    /// Active shaders (event start time, shader).
+    pub shaders: Vec<(Time, ShaderEvent)>,
 }
 
 impl Vfx {
