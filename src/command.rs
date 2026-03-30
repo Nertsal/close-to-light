@@ -215,6 +215,7 @@ impl Command {
                     context.geng.asset_manager(),
                     &group.local.path,
                     &diff.data,
+                    false,
                 )
                 .await?;
 
@@ -273,6 +274,7 @@ impl Command {
                 let level_assets = ctl_assets::LevelAssets::load_all(
                     context.geng.asset_manager(),
                     &group.cached.local.path,
+                    true,
                 )
                 .await?;
 

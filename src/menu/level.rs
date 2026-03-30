@@ -331,6 +331,7 @@ impl LevelMenu {
                     context.geng.asset_manager(),
                     &group.cached.local.path,
                     &level.data,
+                    false,
                 )
                 .await
                 .unwrap_or_else(|err| {
@@ -914,6 +915,7 @@ impl geng::State for LevelMenu {
                         let level_assets = ctl_assets::LevelAssets::load_all(
                             context.geng.asset_manager(),
                             &group.cached.local.path,
+                            true,
                         )
                         .await
                         .expect("failed to load level assets");

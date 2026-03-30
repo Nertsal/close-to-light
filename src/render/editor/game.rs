@@ -33,7 +33,7 @@ impl EditorRender {
         }
 
         // Prepare shaders and parameters
-        let active_shaders: Vec<(Time, &ShaderEvent, &Rc<ugli::Program>)> = level_editor
+        let active_shaders: Vec<(Time, &ShaderEvent, Ref<Rc<ugli::Program>>)> = level_editor
             .model
             .vfx
             .shaders
@@ -42,7 +42,7 @@ impl EditorRender {
                 level_assets
                     .shaders
                     .get(&shader.shader)
-                    .map(|program| (*time, shader, program))
+                    .map(|program| (*time, shader, program.get()))
             })
             .collect();
         let level_time = level_editor.current_time.target;

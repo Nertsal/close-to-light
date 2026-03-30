@@ -1,4 +1,7 @@
+mod hot;
 mod options;
+
+use self::hot::MaybeHot;
 
 pub use self::options::*;
 
@@ -293,7 +296,7 @@ impl Assets {
 
 #[derive(Default)]
 pub struct LevelAssets {
-    pub shaders: HashMap<Name, Rc<ugli::Program>>,
+    pub shaders: HashMap<Name, MaybeHot<Rc<ugli::Program>>>,
 }
 
 impl LevelAssets {
@@ -302,6 +305,7 @@ impl LevelAssets {
     pub fn load_all(
         manager: &geng::asset::Manager,
         path: &std::path::Path,
+        hot: bool,
     ) -> geng::asset::Future<Self> {
         let shaders_path = path.join("shaders");
         let shader_list = std::fs::read_dir(shaders_path)
@@ -319,13 +323,14 @@ impl LevelAssets {
             })
             .collect();
 
-        Self::load(manager, path, shader_list)
+        Self::load(manager, path, shader_list, hot)
     }
 
     pub fn load_for(
         manager: &geng::asset::Manager,
         path: &std::path::Path,
         level: &Level,
+        hot: bool,
     ) -> geng::asset::Future<Self> {
         let shader_list: HashSet<Name> = level
             .events
@@ -338,13 +343,14 @@ impl LevelAssets {
                 }
             })
             .collect();
-        Self::load(manager, path, shader_list)
+        Self::load(manager, path, shader_list, hot)
     }
 
     pub fn load(
         manager: &geng::asset::Manager,
         path: &std::path::Path,
         shader_list: HashSet<Name>,
+        hot: bool,
     ) -> geng::asset::Future<Self> {
         let manager = manager.clone();
         let path = path.to_owned();
@@ -354,7 +360,7 @@ impl LevelAssets {
             let shaders_path = path.join("shaders");
             for name in shader_list {
                 let path = shaders_path.join(format!("{name}.glsl"));
-                match geng::asset::Load::load(&manager, &path, &()).await {
+                match MaybeHot::load(&manager, &path, &(), hot).await {
                     Ok(shader) => {
                         log::debug!("Loaded level shader: {:?}", path);
                         shaders.insert(name, shader);
