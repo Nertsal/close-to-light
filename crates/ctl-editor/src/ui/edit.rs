@@ -1047,7 +1047,18 @@ impl LayoutHelper<'_> {
                     context,
                 );
 
-                // TODO: select shader from loaded list
+                let name_pos = bar.cut_top(self.value_height);
+                let dropdown = context.state.get_root_or(|| {
+                    DropdownWidget::new("Shader", 0, [("<name>", Name::from("<name>"))])
+                });
+                dropdown.update_options(
+                    self.editor
+                        .level_assets
+                        .shaders
+                        .keys()
+                        .map(|name| (name.clone(), name.clone())),
+                );
+                dropdown.update(name_pos, context, &mut shader.shader);
 
                 let layer_pos = bar.cut_top(self.value_height);
                 let dropdown = context.state.get_root_or(|| {

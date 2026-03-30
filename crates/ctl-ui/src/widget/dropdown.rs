@@ -22,26 +22,36 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
         value: usize,
         options: impl IntoIterator<Item = (impl Into<Name>, T)>,
     ) -> Self {
-        let options: Vec<_> = options
-            .into_iter()
-            .map(|(name, t)| (name.into(), t))
-            .collect();
-        Self {
+        let mut widget = Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover_left()),
             name: TextWidget::new(text).aligned(vec2(0.0, 0.5)),
             value_text: TextWidget::new("<value>").aligned(vec2(1.0, 0.5)),
             value,
             dropdown_state: WidgetState::new(),
             dropdown_window: UiWindow::new((), 0.2),
-            dropdown_items: options
+            dropdown_items: Vec::new(),
+            options: Vec::new(),
+        };
+        widget.update_options(options);
+        widget
+    }
+
+    pub fn update_options(&mut self, options: impl IntoIterator<Item = (impl Into<Name>, T)>) {
+        let options: Vec<_> = options
+            .into_iter()
+            .map(|(name, t)| (name.into(), t))
+            .collect();
+
+        if self.options != options {
+            self.dropdown_items = options
                 .iter()
                 .map(|(name, _)| {
                     let mut text = TextWidget::new(name.clone());
                     text.state.sfx_config = WidgetSfxConfig::hover_left();
                     text
                 })
-                .collect(),
-            options,
+                .collect();
+            self.options = options;
         }
     }
 
