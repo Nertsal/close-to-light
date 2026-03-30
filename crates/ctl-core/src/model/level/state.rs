@@ -140,7 +140,7 @@ impl LevelState {
             },
             Event::Shader(shader) => {
                 if let Some(vfx) = vfx
-                    && event.time < self.time
+                    && event.time <= self.time
                     && self.time < event.time + shader.duration
                 {
                     vfx.shaders.push((event.time, shader.clone()));
