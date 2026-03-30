@@ -211,6 +211,13 @@ impl Command {
                     (group, diff)
                 };
 
+                let level_assets = ctl_assets::LevelAssets::load_for(
+                    context.geng.asset_manager(),
+                    &group.local.path,
+                    &diff.data,
+                )
+                .await?;
+
                 let level = ctl_logic::PlayLevel {
                     start_time: start_time.unwrap_or(0),
                     level: diff,
@@ -226,6 +233,7 @@ impl Command {
 
                 let state = crate::game::Game::new(
                     context.clone(),
+                    Rc::new(level_assets),
                     level,
                     ctl_local::Leaderboard::new(
                         &context.geng,

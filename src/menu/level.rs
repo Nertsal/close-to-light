@@ -327,6 +327,30 @@ impl LevelMenu {
             let config = self.state.config.clone();
 
             async move {
+                let level_assets = ctl_assets::LevelAssets::load_for(
+                    context.geng.asset_manager(),
+                    &group.cached.local.path,
+                    &level.data,
+                )
+                .await
+                .unwrap_or_else(|err| {
+                    if let Some(music) = &group.music {
+                        log::error!(
+                            "Failed to load assets for level {} - {}: {}",
+                            music.meta.name,
+                            level.meta.name,
+                            err
+                        );
+                    } else {
+                        log::error!(
+                            "Failed to load assets for level {} - {}: {}",
+                            group.cached.local.meta.id,
+                            level.meta.name,
+                            err
+                        );
+                    }
+                    ctl_assets::LevelAssets::default()
+                });
                 let level = ctl_logic::PlayLevel {
                     group,
                     level_index,
@@ -335,7 +359,7 @@ impl LevelMenu {
                     start_time: Time::ZERO,
                     transition_button: Some(transition_button),
                 };
-                crate::game::Game::new(context, level, leaderboard)
+                crate::game::Game::new(context, Rc::new(level_assets), level, leaderboard)
             }
         };
         self.transition = Some(geng::state::Transition::Push(Box::new(

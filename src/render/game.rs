@@ -40,6 +40,7 @@ impl GameRender {
     pub fn draw_world(
         &mut self,
         model: &Model,
+        assets: &LevelAssets,
         _debug_mode: bool,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {

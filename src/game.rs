@@ -22,6 +22,7 @@ enum PauseState {
 
 pub struct Game {
     context: Context,
+    level_assets: Rc<LevelAssets>,
     transition: Option<geng::state::Transition>,
     render: GameRender,
     post: PostRender,
@@ -43,7 +44,12 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(context: Context, level: PlayLevel, leaderboard: Leaderboard) -> Self {
+    pub fn new(
+        context: Context,
+        level_assets: Rc<LevelAssets>,
+        level: PlayLevel,
+        leaderboard: Leaderboard,
+    ) -> Self {
         if let Some(music) = &level.group.music {
             context.set_status(format!(
                 "Playing {} - {}",
@@ -60,11 +66,12 @@ impl Game {
 
         Self::preloaded(
             context.clone(),
+            level_assets,
             Model::new(context, level.clone(), leaderboard),
         )
     }
 
-    fn preloaded(context: Context, model: Model) -> Self {
+    fn preloaded(context: Context, level_assets: Rc<LevelAssets>, model: Model) -> Self {
         Self {
             framebuffer_size: vec2(1, 1),
             delta_time: r32(0.1),
@@ -89,6 +96,7 @@ impl Game {
             render: GameRender::new(context.clone()),
             post: PostRender::new(&context),
             context,
+            level_assets,
         }
     }
 
@@ -155,7 +163,8 @@ impl geng::State for Game {
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
-        self.render.draw_world(&self.model, self.debug_mode, buffer);
+        self.render
+            .draw_world(&self.model, &self.level_assets, self.debug_mode, buffer);
 
         if !fading {
             self.ui_focused = self.ui.layout(

@@ -1047,6 +1047,8 @@ impl LayoutHelper<'_> {
                     context,
                 );
 
+                // TODO: select shader from loaded list
+
                 let layer_pos = bar.cut_top(self.value_height);
                 let dropdown = context.state.get_root_or(|| {
                     DropdownWidget::new(

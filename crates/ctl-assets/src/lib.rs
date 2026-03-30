@@ -5,8 +5,9 @@ pub use self::options::*;
 use std::path::PathBuf;
 
 use ctl_core::{
-    model::ScoreGrade,
+    model::{Event, Level, ScoreGrade},
     prelude::{Color, Modifier},
+    types::Name,
 };
 pub use ctl_font::Font;
 use ctl_render_core::SubTexture;
@@ -287,5 +288,58 @@ impl Assets {
             ScoreGrade::SS => self.atlas.grade_ss(),
             ScoreGrade::SSS => self.atlas.grade_sss(),
         }
+    }
+}
+
+#[derive(Default)]
+pub struct LevelAssets {
+    pub shaders: HashMap<Name, Rc<ugli::Program>>,
+}
+
+impl LevelAssets {
+    pub fn load_for(
+        manager: &geng::asset::Manager,
+        path: &std::path::Path,
+        level: &Level,
+    ) -> geng::asset::Future<Self> {
+        let shader_list: HashSet<Name> = level
+            .events
+            .iter()
+            .filter_map(|event| {
+                if let Event::Shader(shader) = &event.event {
+                    Some(shader.shader.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Self::load(manager, path, shader_list)
+    }
+
+    pub fn load(
+        manager: &geng::asset::Manager,
+        path: &std::path::Path,
+        shader_list: HashSet<Name>,
+    ) -> geng::asset::Future<Self> {
+        let manager = manager.clone();
+        let path = path.to_owned();
+        async move {
+            let mut shaders = HashMap::with_capacity(shader_list.len());
+
+            for name in shader_list {
+                let path = path.join(format!("{name}.glsl"));
+                match geng::asset::Load::load(&manager, &path, &()).await {
+                    Ok(shader) => {
+                        shaders.insert(name, shader);
+                    }
+                    Err(err) => {
+                        log::error!("Failed to load level shader: {}", err);
+                    }
+                }
+            }
+
+            Ok(Self { shaders })
+        }
+        .boxed_local()
     }
 }
