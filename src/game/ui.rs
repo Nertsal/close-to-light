@@ -23,12 +23,7 @@ impl GameUI {
         }
     }
 
-    pub fn layout(
-        &mut self,
-        model: &mut Model,
-        screen: Aabb2<f32>,
-        context: &mut UiContext,
-    ) -> bool {
+    pub fn layout(&mut self, model: &Model, screen: Aabb2<f32>, context: &mut UiContext) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 

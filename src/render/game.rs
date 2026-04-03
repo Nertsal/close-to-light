@@ -40,12 +40,11 @@ impl GameRender {
     pub fn draw_world(
         &mut self,
         model: &Model,
-        assets: &LevelAssets,
         _debug_mode: bool,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {
         self.dither.set_noise(1.0);
-        let mut framebuffer = self.dither.start();
+        let mut dither_buffer = self.dither.start();
         let options = self.context.get_options();
 
         let camera = &model.camera;
@@ -66,8 +65,13 @@ impl GameRender {
                 } else {
                     THEME.get_color(options.graphics.lights.telegraph_color)
                 };
-                self.util
-                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+                self.util.draw_outline(
+                    &tele.light.collider,
+                    0.05,
+                    color,
+                    camera,
+                    &mut dither_buffer,
+                );
             }
             // Waypoints
             // TODO: config
@@ -101,14 +105,14 @@ impl GameRender {
                     THEME.dark,
                     beat_time,
                     camera,
-                    &mut framebuffer,
+                    &mut dither_buffer,
                 );
             }
         }
 
         if let Some(button) = &model.transition_button {
             self.util
-                .draw_button(button, "", &THEME, camera, &mut framebuffer);
+                .draw_button(button, "", &THEME, camera, &mut dither_buffer);
         }
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
@@ -123,7 +127,7 @@ impl GameRender {
                 }
                 let button = smooth_button(button, model.button_time);
                 self.util
-                    .draw_button(&button, text, &THEME, camera, &mut framebuffer);
+                    .draw_button(&button, text, &THEME, camera, &mut dither_buffer);
             }
         }
 
@@ -133,7 +137,7 @@ impl GameRender {
                 vec2(0.0, -3.0).as_r32(),
                 TextRenderOptions::new(0.5).color(THEME.dark),
                 camera,
-                &mut framebuffer,
+                &mut dither_buffer,
             );
         }
 
@@ -157,13 +161,13 @@ impl GameRender {
                     .transformed(TransformLight { scale, ..default() });
                 visual.position = rhythm.position;
                 self.util
-                    .draw_outline(&visual, 0.05, color, camera, &mut framebuffer);
+                    .draw_outline(&visual, 0.05, color, camera, &mut dither_buffer);
             }
         }
 
         if !model.level.config.modifiers.clean_auto {
             self.util
-                .draw_player(&model.player, camera, &mut framebuffer);
+                .draw_player(&model.player, camera, &mut dither_buffer);
         }
 
         if !fading {
@@ -178,7 +182,7 @@ impl GameRender {
                         vec2(0.0, 3.5).as_r32(),
                         TextRenderOptions::new(0.8).color(color),
                         camera,
-                        &mut framebuffer,
+                        &mut dither_buffer,
                     );
                 }
                 State::Finished => {
@@ -187,7 +191,7 @@ impl GameRender {
                         vec2(0.0, 3.5).as_r32(),
                         TextRenderOptions::new(1.0).color(color),
                         camera,
-                        &mut framebuffer,
+                        &mut dither_buffer,
                     );
                 }
             }
@@ -199,7 +203,7 @@ impl GameRender {
             self.util.draw_health(
                 &model.player.health,
                 model.player.get_lit_state(),
-                &mut framebuffer,
+                &mut dither_buffer,
             );
         }
 
@@ -228,7 +232,7 @@ impl GameRender {
         //     }
         // }
 
-        self.dither.finish(model.real_time, &theme);
+        self.dither.finish(model.real_time, &theme.transparent());
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())

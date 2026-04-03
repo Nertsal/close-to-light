@@ -220,9 +220,7 @@ impl EditorState {
         self.transition = Some(geng::state::Transition::Push(Box::new(
             crate::game::Game::new(
                 self.context.clone(),
-                Rc::new(LevelAssets {
-                    shaders: HashMap::new(), // TODO
-                }),
+                Rc::new(self.editor.level_assets.freeze()),
                 level,
                 Leaderboard::empty(
                     &self.context.geng,

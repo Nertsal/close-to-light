@@ -159,16 +159,48 @@ impl geng::State for Game {
         ugli::clear(framebuffer, Some(theme.dark), None, None);
         let is_paused = self.is_paused();
 
-        let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
+        let _buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
-        self.render
-            .draw_world(&self.model, &self.level_assets, self.debug_mode, buffer);
+        // Prepare shaders and parameters
+        let (active_shaders, shader_uniforms_common, shader_uniforms) =
+            crate::render::prepare_shaders(theme, &self.model, &self.level_assets);
+
+        macro_rules! apply_shaders {
+            ($order:pat) => {{
+                for (shader_time, shader, program) in &active_shaders {
+                    let $order = shader.layer else {
+                        continue;
+                    };
+                    let (texture, mut buffer) = self.post.apply_processing();
+                    ugli::draw(
+                        &mut buffer,
+                        program,
+                        ugli::DrawMode::TriangleFan,
+                        &self.render.util.unit_quad,
+                        (
+                            &shader_uniforms_common,
+                            shader_uniforms(*shader_time, shader),
+                            ugli::uniforms! {
+                                u_texture: texture,
+                            },
+                        ),
+                        ugli::DrawParameters::default(),
+                    );
+                }
+                &mut self.post.continu()
+            }};
+        }
+
+        // Render background shaders
+        let buffer = apply_shaders!(ShaderLayer::Background);
+
+        self.render.draw_world(&self.model, self.debug_mode, buffer);
 
         if !fading {
             self.ui_focused = self.ui.layout(
-                &mut self.model,
+                &self.model,
                 Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
             );
@@ -248,6 +280,9 @@ impl geng::State for Game {
             }
         }
 
+        // Render postprocessing (early) shaders
+        let _ = apply_shaders!(ShaderLayer::PostProcessEarly);
+
         self.post.post_process(
             &options,
             crate::render::post::PostVfx {
@@ -257,6 +292,10 @@ impl geng::State for Game {
                 colors: options.graphics.colors,
             },
         );
+
+        // Render postprocessing (late) shaders
+        let _ = apply_shaders!(ShaderLayer::PostProcessLate);
+
         self.post.finish(framebuffer);
     }
 

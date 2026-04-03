@@ -152,6 +152,16 @@ impl<T: Load> MaybeHot<T> {
         }
         self.current.borrow()
     }
+
+    pub fn freeze(&self) -> Self
+    where
+        T: Clone,
+    {
+        Self {
+            current: RefCell::new(self.get().clone()),
+            hot: None,
+        }
+    }
 }
 
 impl<T: Load> Load for MaybeHot<T> {

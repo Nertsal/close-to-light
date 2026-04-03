@@ -375,4 +375,15 @@ impl LevelAssets {
         }
         .boxed_local()
     }
+
+    /// Freezes all hot assets.
+    pub fn freeze(&self) -> Self {
+        Self {
+            shaders: self
+                .shaders
+                .iter()
+                .map(|(key, value)| (key.clone(), value.freeze()))
+                .collect(),
+        }
+    }
 }

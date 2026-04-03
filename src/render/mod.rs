@@ -39,3 +39,80 @@ fn draw_parameters() -> ugli::DrawParameters {
         ..default()
     }
 }
+
+#[derive(ugli::Uniforms)]
+pub struct ShaderUniformsCommon {
+    pub u_theme_dark: Color,
+    pub u_theme_light: Color,
+    pub u_theme_danger: Color,
+    pub u_theme_highlight: Color,
+
+    pub u_real_time: f32,
+    pub u_level_time_ms: Time,
+    pub u_level_time: f32,
+    pub u_relative_beat_time: f32,
+    pub u_bpm: f32,
+    pub u_beat_duration: f32,
+}
+
+#[derive(ugli::Uniforms)]
+pub struct ShaderUniforms {
+    pub u_shader_start_time_ms: Time,
+    pub u_shader_start_time: f32,
+    pub u_shader_duration_ms: Time,
+    pub u_shader_duration: f32,
+}
+
+#[allow(clippy::type_complexity)]
+pub fn prepare_shaders<'a>(
+    theme: Theme,
+    model: &'a Model,
+    level_assets: &'a LevelAssets,
+) -> (
+    Vec<(Time, &'a ShaderEvent, Ref<'a, Rc<ugli::Program>>)>,
+    ShaderUniformsCommon,
+    impl Fn(Time, &ShaderEvent) -> ShaderUniforms,
+) {
+    let active_shaders: Vec<(Time, &ShaderEvent, Ref<Rc<ugli::Program>>)> = model
+        .vfx
+        .shaders
+        .iter()
+        .flat_map(|(time, shader)| {
+            level_assets
+                .shaders
+                .get(&shader.shader)
+                .map(|program| (*time, shader, program.get()))
+        })
+        .collect();
+    let timing = model.level.level.data.timing.get_timing(model.play_time_ms);
+    let beat_duration = timing.beat_time;
+    let bpm = r32(60.0) / beat_duration;
+    let relative_beat_time = model
+        .level
+        .level
+        .data
+        .timing
+        .get_relative_beat_time(model.play_time_ms)
+        .as_beats();
+    let shader_uniforms_common = ShaderUniformsCommon {
+        u_theme_dark: theme.dark,
+        u_theme_light: theme.light,
+        u_theme_danger: theme.danger,
+        u_theme_highlight: theme.highlight,
+
+        u_real_time: model.real_time.as_f32(),
+        u_level_time_ms: model.play_time_ms,
+        u_level_time: time_to_seconds(model.play_time_ms).as_f32(),
+        u_relative_beat_time: relative_beat_time.as_f32(),
+        u_bpm: bpm.as_f32(),
+        u_beat_duration: beat_duration.as_f32(),
+    };
+    let shader_uniforms = |shader_time: Time, shader: &ShaderEvent| ShaderUniforms {
+        u_shader_start_time_ms: shader_time,
+        u_shader_start_time: time_to_seconds(shader_time).as_f32(),
+        u_shader_duration_ms: shader.duration,
+        u_shader_duration: time_to_seconds(shader.duration).as_f32(),
+    };
+
+    (active_shaders, shader_uniforms_common, shader_uniforms)
+}
