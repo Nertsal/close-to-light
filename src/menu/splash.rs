@@ -79,7 +79,7 @@ trigger seizures for people with photosensitive epilepsy
 
         self.post.post_process(
             &options,
-            crate::render::post::PostVfx {
+            &crate::render::post::PostVfx {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,

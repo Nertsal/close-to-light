@@ -102,7 +102,7 @@ impl geng::State for MediaState {
         }
         self.post.post_process(
             &Options::default(),
-            PostVfx {
+            &PostVfx {
                 time: self.time,
                 crt: self.crt,
                 rgb_split: 0.0,

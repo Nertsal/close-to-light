@@ -4,8 +4,10 @@ pub struct DitherRender {
     geng: Geng,
     assets: Rc<Assets>,
     unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
-    double_buffer: (ugli::Texture, ugli::Texture),
     noise: f32,
+
+    lights_sdf: ugli::Texture,
+    target: ugli::Texture,
 }
 
 impl DitherRender {
@@ -20,21 +22,27 @@ impl DitherRender {
             geng: geng.clone(),
             assets: assets.clone(),
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
-            double_buffer: init_buffers(geng.ugli(), size),
             noise: 1.0,
+
+            lights_sdf: init_buffer(geng.ugli(), size),
+            target: init_buffer(geng.ugli(), size),
         }
     }
 
     fn swap_buffer(&mut self) {
-        std::mem::swap(&mut self.double_buffer.0, &mut self.double_buffer.1);
+        std::mem::swap(&mut self.lights_sdf, &mut self.target);
     }
 
     pub fn get_render_size(&self) -> vec2<usize> {
-        self.double_buffer.0.size()
+        self.target.size()
     }
 
     pub fn get_buffer(&self) -> &ugli::Texture {
-        &self.double_buffer.0
+        &self.target
+    }
+
+    pub fn get_lights_sdf(&self) -> &ugli::Texture {
+        &self.lights_sdf
     }
 
     // pub fn update_render_size(&mut self, new_size: vec2<usize>) {
@@ -44,12 +52,14 @@ impl DitherRender {
     // }
 
     pub fn start(&'_ mut self) -> ugli::Framebuffer<'_> {
+        self.swap_buffer();
+
         let mut framebuffer =
-            geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
+            geng_utils::texture::attach_texture(&mut self.target, self.geng.ugli());
         ugli::clear(&mut framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
 
         let mut framebuffer =
-            geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli());
+            geng_utils::texture::attach_texture(&mut self.lights_sdf, self.geng.ugli());
         ugli::clear(&mut framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
         framebuffer
     }
@@ -58,9 +68,9 @@ impl DitherRender {
         self.noise = noise;
     }
 
-    pub fn finish(&'_ mut self, time: FloatTime, theme: &Theme) -> ugli::Framebuffer<'_> {
+    pub fn finish(&'_ mut self, time: FloatTime, theme: &Theme) {
         let mut other_framebuffer =
-            geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
+            geng_utils::texture::attach_texture(&mut self.target, self.geng.ugli());
 
         let timespan = 32.0;
         let t = time.as_f32();
@@ -73,14 +83,14 @@ impl DitherRender {
             &self.unit_quad,
             ugli::uniforms!(
                 u_time: t,
-                u_framebuffer_size: self.double_buffer.0.size().as_f32(),
+                u_framebuffer_size: self.lights_sdf.size().as_f32(),
                 u_pattern_size: self.assets.dither.dither1.size().as_f32(),
                 u_noise: self.noise,
                 u_color_dark: theme.dark,
                 u_color_light: theme.light,
                 u_color_danger: theme.danger,
                 u_color_highlight: theme.highlight,
-                u_texture: &self.double_buffer.0,
+                u_texture: &self.lights_sdf,
                 u_dither1: &self.assets.dither.dither1,
                 u_dither2: &self.assets.dither.dither2,
                 u_dither3: &self.assets.dither.dither3,
@@ -90,15 +100,11 @@ impl DitherRender {
                 ..Default::default()
             },
         );
-        self.swap_buffer();
-        geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli())
     }
 }
 
-fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
+fn init_buffer(ugli: &Ugli, size: vec2<usize>) -> ugli::Texture {
     let mut first = geng_utils::texture::new_texture(ugli, size);
     first.set_filter(ugli::Filter::Nearest);
-    let mut second = geng_utils::texture::new_texture(ugli, size);
-    second.set_filter(ugli::Filter::Nearest);
-    (first, second)
+    first
 }

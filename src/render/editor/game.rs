@@ -1,5 +1,24 @@
 use super::*;
 
+struct RenderHelper<'a> {
+    screen_aabb: Aabb2<f32>,
+    interpolation_cache: &'a mut InterpolationCache,
+    post_vfx: PostVfx,
+    level_assets: &'a LevelAssets,
+
+    editor: &'a Editor,
+    level_editor: &'a LevelEditor,
+    theme: Theme,
+
+    light_color: Color,
+    danger_color: Color,
+    hover_color: Color,
+    select_color: Color,
+    selecting_area: bool,
+
+    get_color: Box<dyn Fn(Option<usize>) -> Color + 'a>,
+}
+
 impl EditorRender {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn draw_game(
@@ -11,7 +30,6 @@ impl EditorRender {
         post_vfx: PostVfx,
         level_assets: &LevelAssets,
     ) {
-        let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
 
         if let Some(level_editor) = &editor.level_edit {
@@ -32,96 +50,6 @@ impl EditorRender {
             return;
         }
 
-        // Prepare shaders and parameters
-        let active_shaders: Vec<(Time, &ShaderEvent, Ref<Rc<ugli::Program>>)> = level_editor
-            .model
-            .vfx
-            .shaders
-            .iter()
-            .flat_map(|(time, shader)| {
-                level_assets
-                    .shaders
-                    .get(&shader.shader)
-                    .map(|program| (*time, shader, program.get()))
-            })
-            .collect();
-        let level_time = level_editor.current_time.target;
-        let timing = level_editor.level.timing.get_timing(level_time);
-        let beat_duration = timing.beat_time;
-        let bpm = r32(60.0) / beat_duration;
-        let relative_beat_time = level_editor
-            .level
-            .timing
-            .get_relative_beat_time(level_time)
-            .as_beats();
-        let shader_uniforms_common = ugli::uniforms! {
-            u_theme_dark: theme.dark,
-            u_theme_light: theme.light,
-            u_theme_danger: theme.danger,
-            u_theme_highlight: theme.highlight,
-
-            u_real_time: level_editor.real_time.as_f32(),
-            u_level_time_ms: level_time,
-            u_level_time: time_to_seconds(level_time).as_f32(),
-            u_relative_beat_time: relative_beat_time.as_f32(),
-            u_bpm: bpm.as_f32(),
-            u_beat_duration: beat_duration.as_f32(),
-        };
-        let shader_uniforms = |shader_time: Time, shader: &ShaderEvent| {
-            ugli::uniforms! {
-                u_shader_start_time_ms: shader_time,
-                u_shader_start_time: time_to_seconds(shader_time).as_f32(),
-                u_shader_duration_ms: shader.duration,
-                u_shader_duration: time_to_seconds(shader.duration).as_f32(),
-            }
-        };
-
-        macro_rules! apply_shaders {
-            ($order:pat) => {{
-                for (shader_time, shader, program) in &active_shaders {
-                    let $order = shader.layer else {
-                        continue;
-                    };
-                    let (texture, mut buffer) = self.post_render.apply_processing();
-                    ugli::draw(
-                        &mut buffer,
-                        program,
-                        ugli::DrawMode::TriangleFan,
-                        &self.util.unit_quad,
-                        (
-                            &shader_uniforms_common,
-                            shader_uniforms(*shader_time, shader),
-                            ugli::uniforms! {
-                                u_texture: texture,
-                            },
-                        ),
-                        ugli::DrawParameters::default(),
-                    );
-                }
-                &mut self.post_render.continu()
-            }};
-        }
-
-        // Render background shaders
-        let game_buffer = apply_shaders!(ShaderLayer::Background);
-
-        let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
-        macro_rules! draw_game {
-            ($alpha:expr, $buffer:expr) => {{
-                self.dither
-                    .finish(level_editor.real_time, &theme.transparent());
-                self.context.geng.draw2d().textured_quad(
-                    $buffer,
-                    &geng::PixelPerfectCamera,
-                    game_screen,
-                    self.dither.get_buffer(),
-                    crate::util::with_alpha(Color::WHITE, $alpha),
-                );
-                self.dither.start()
-            }};
-        }
-
-        // Level
         let light_color = THEME.light;
         let danger_color = THEME.danger;
 
@@ -180,62 +108,146 @@ impl EditorRender {
             }
         };
 
+        self.draw_game_with(&mut RenderHelper {
+            screen_aabb,
+            interpolation_cache,
+            post_vfx,
+            level_assets,
+
+            editor,
+            level_editor,
+            theme,
+
+            light_color,
+            danger_color,
+            hover_color,
+            select_color,
+            selecting_area,
+
+            get_color: Box::new(get_color),
+        });
+    }
+
+    fn render_lights_sdf(&mut self, helper: &RenderHelper<'_>) {
+        let mut pixel_buffer = self.lights_dither.start();
+
+        if let Some(level) = helper
+            .level_editor
+            .level_state
+            .static_level
+            .as_ref()
+            .or(helper.level_editor.level_state.dynamic_level.as_ref())
+        {
+            for tele in &level.telegraphs {
+                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util);
+            }
+            for light in &level.lights {
+                helper.draw_light(light, &mut pixel_buffer, &self.util);
+            }
+        }
+    }
+
+    fn draw_game_with(&mut self, helper: &mut RenderHelper<'_>) {
+        self.render_lights_sdf(helper);
+
+        // Prepare shaders and parameters
+        let (active_shaders, shader_uniforms_common, shader_uniforms) =
+            crate::render::prepare_shaders(
+                helper.theme,
+                &helper.level_editor.level,
+                &helper.level_editor.model.vfx.shaders,
+                helper.level_editor.real_time,
+                helper.level_editor.current_time.value,
+                helper.level_assets,
+                self.lights_dither.get_lights_sdf(),
+            );
+
+        macro_rules! apply_shaders {
+            ($order:pat) => {{
+                for (shader_time, shader, program) in &active_shaders {
+                    let $order = shader.layer else {
+                        continue;
+                    };
+                    let (texture, mut buffer) = self.post_render.apply_processing();
+                    ugli::draw(
+                        &mut buffer,
+                        program,
+                        ugli::DrawMode::TriangleFan,
+                        &self.util.unit_quad,
+                        (
+                            &shader_uniforms_common,
+                            shader_uniforms(*shader_time, shader),
+                            ugli::uniforms! {
+                                u_texture: texture,
+                            },
+                        ),
+                        ugli::DrawParameters {
+                            blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                            ..default()
+                        },
+                    );
+                }
+                &mut self.post_render.continu()
+            }};
+        }
+
+        // Render background shaders
+        let game_buffer = apply_shaders!(ShaderLayer::Background);
+
+        let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
+        macro_rules! draw_game {
+            ($alpha:expr, $buffer:expr) => {{
+                self.dither
+                    .finish(helper.level_editor.real_time, &helper.theme.transparent());
+                self.context.geng.draw2d().textured_quad(
+                    $buffer,
+                    &geng::PixelPerfectCamera,
+                    game_screen,
+                    self.dither.get_buffer(),
+                    crate::util::with_alpha(Color::WHITE, $alpha),
+                );
+                self.dither.start()
+            }};
+        }
+
+        // Level
         let static_alpha = if let EditingState::Place { .. } | EditingState::Waypoints { .. } =
-            level_editor.state
+            helper.level_editor.state
         {
             0.75
         } else {
             1.0
         };
-        let dynamic_alpha = if level_editor.level_state.static_level.is_some() {
+        let dynamic_alpha = if helper.level_editor.level_state.static_level.is_some() {
             0.5
         } else {
             1.0
         } * static_alpha;
 
-        let draw_telegraph = |tele: &LightTelegraph, framebuffer: &mut ugli::Framebuffer| {
-            let color = get_color(tele.light.event_id);
-            self.util.draw_outline(
-                &tele.light.collider,
-                0.02,
-                color,
-                &level_editor.model.camera,
-                framebuffer,
-            );
-        };
-        let draw_light = |light: &Light, framebuffer: &mut ugli::Framebuffer| {
-            let color = get_color(light.event_id);
-            self.util.draw_light_gradient(
-                &light.collider,
-                light.hollow,
-                color,
-                &level_editor.model.camera,
-                framebuffer,
-            );
-        };
-
-        // Dynamic
         let mut pixel_buffer = self.dither.start();
 
-        if let Some(level) = &level_editor.level_state.dynamic_level {
+        // Dynamic
+        if let Some(level) = &helper.level_editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
-                draw_telegraph(tele, &mut pixel_buffer);
+                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util);
             }
             for light in &level.lights {
-                draw_light(light, &mut pixel_buffer);
+                helper.draw_light(light, &mut pixel_buffer, &self.util);
             }
         }
 
         let mut pixel_buffer = draw_game!(dynamic_alpha, game_buffer);
 
-        if let Some(level) = &level_editor.level_state.static_level {
+        // Static
+        if let Some(level) = &helper.level_editor.level_state.static_level {
             for tele in &level.telegraphs {
-                draw_telegraph(tele, &mut pixel_buffer);
+                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util);
             }
             for light in &level.lights {
-                draw_light(light, &mut pixel_buffer);
+                helper.draw_light(light, &mut pixel_buffer, &self.util);
             }
         }
+
         let mut pixel_buffer = draw_game!(static_alpha, game_buffer);
 
         // Render post processing (early) shaders
@@ -243,7 +255,7 @@ impl EditorRender {
 
         // Post processing effects
         self.post_render
-            .post_process(&self.context.get_options(), post_vfx);
+            .post_process(&self.context.get_options(), &helper.post_vfx);
 
         // Render post processing (late) shaders
         let _ = apply_shaders!(ShaderLayer::PostProcessLate);
@@ -253,28 +265,29 @@ impl EditorRender {
             &mut self.game_texture,
             self.context.geng.ugli(),
         );
+        ugli::clear(game_buffer, Some(Color::TRANSPARENT_BLACK), None, None);
         self.post_render.finish(game_buffer);
 
         // Other editor stuff
 
         {
             // Current action
-            let shape = match level_editor.state {
+            let shape = match helper.level_editor.state {
                 EditingState::Place { shape, danger } => Some((shape, danger)),
                 _ => None,
             };
             if let Some((shape, danger)) = shape {
                 let collider = Collider {
-                    position: editor.cursor_world_pos_snapped,
-                    rotation: level_editor.place_rotation,
-                    shape: shape.scaled(level_editor.place_scale),
+                    position: helper.editor.cursor_world_pos_snapped,
+                    rotation: helper.level_editor.place_rotation,
+                    shape: shape.scaled(helper.level_editor.place_scale),
                 };
                 let color = if danger { THEME.danger } else { THEME.light };
                 self.util.draw_outline(
                     &collider,
                     0.05,
                     color,
-                    &level_editor.model.camera,
+                    &helper.level_editor.model.camera,
                     &mut pixel_buffer,
                 );
             }
@@ -290,7 +303,7 @@ impl EditorRender {
         const MAX_VISIBILITY: Time = TIME_IN_FLOAT_TIME * 15;
         // Calculate the waypoint visibility at the given relative timestamp
         let visibility = |timed_event: &TimedEvent, beat: Time| {
-            let d = (timed_event.time + beat - level_editor.current_time.value).abs();
+            let d = (timed_event.time + beat - helper.level_editor.current_time.value).abs();
             if d > MAX_VISIBILITY {
                 return 0.0;
             }
@@ -298,22 +311,22 @@ impl EditorRender {
             (1.0 - d.sqr()).clamp(MIN_ALPHA, 1.0)
         };
 
-        let lights_movement_preview = match &level_editor.selection {
+        let lights_movement_preview = match &helper.level_editor.selection {
             Selection::Lights(lights) => lights.clone(),
             Selection::Waypoints(light_id, _) => vec![*light_id],
             _ => vec![],
         };
         for light_id in lights_movement_preview {
-            if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
+            if let Some(timed_event) = helper.level_editor.level.events.get(light_id.event) {
                 let visibility = |beat| visibility(timed_event, beat);
 
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.danger {
-                        danger_color
+                        helper.danger_color
                     } else {
-                        light_color
+                        helper.light_color
                     };
-                    let alpha = if let EditingState::Waypoints { .. } = level_editor.state {
+                    let alpha = if let EditingState::Waypoints { .. } = helper.level_editor.state {
                         1.0
                     } else {
                         0.5
@@ -331,14 +344,15 @@ impl EditorRender {
                     let num_points = (POINTS_DENSITY * event.movement.total_distance().as_f32())
                         .round() as usize;
                     if !event.movement.waypoints.is_empty() && num_points > 0 {
-                        let baked = interpolation_cache.get_or_bake(&event.movement);
+                        let baked = helper.interpolation_cache.get_or_bake(&event.movement);
                         let period = time_to_seconds(event.movement.duration()).max(r32(0.01)); // NOTE: avoid dividing by 0
                         let speed = r32(1.0 / 8.0); // game time per real time
                         let positions: Vec<draw2d::ColoredVertex> = (0..=num_points)
                             .map(|i| {
                                 let t = r32(i as f32 / num_points as f32);
-                                let t =
-                                    (level_editor.real_time / period * speed + t).fract() * period;
+                                let t = (helper.level_editor.real_time / period * speed + t)
+                                    .fract()
+                                    * period;
                                 let t = seconds_to_time(t) + event.movement.get_fade_in();
                                 let alpha = visibility(t);
                                 draw2d::ColoredVertex {
@@ -351,7 +365,7 @@ impl EditorRender {
                         self.util.draw_dashed_movement(
                             &positions,
                             &options,
-                            &level_editor.model.camera,
+                            &helper.level_editor.model.camera,
                             &mut pixel_buffer,
                         );
                     }
@@ -359,16 +373,16 @@ impl EditorRender {
             }
         }
 
-        if let EditingState::Waypoints { light_id, .. } = &level_editor.state {
+        if let EditingState::Waypoints { light_id, .. } = &helper.level_editor.state {
             let light_id = *light_id;
-            if let Some(timed_event) = level_editor.level.events.get(light_id.event) {
+            if let Some(timed_event) = helper.level_editor.level.events.get(light_id.event) {
                 let visibility = |beat| visibility(timed_event, beat);
 
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.danger {
-                        danger_color
+                        helper.danger_color
                     } else {
-                        light_color
+                        helper.light_color
                     };
 
                     let options = util::DashRenderOptions {
@@ -377,27 +391,29 @@ impl EditorRender {
                         space_length: 0.2,
                     };
 
-                    if let Some(waypoints) = &level_editor.level_state.waypoints {
+                    if let Some(waypoints) = &helper.level_editor.level_state.waypoints {
                         // Draw waypoints themselves
                         for (i, point) in waypoints.points.iter().enumerate() {
                             if !point.visible {
                                 continue;
                             }
                             let color = if let Some(id) = point.original
-                                && level_editor
+                                && helper
+                                    .level_editor
                                     .selection
                                     .is_waypoint_selected(waypoints.light, id)
                             {
-                                select_color
-                            } else if !selecting_area && Some(i) == waypoints.hovered {
-                                hover_color
+                                helper.select_color
+                            } else if !helper.selecting_area && Some(i) == waypoints.hovered {
+                                helper.hover_color
                             } else {
                                 color
                             };
 
                             let mut alpha = 1.0;
                             let _original = point.original.and_then(|i| {
-                                level_editor
+                                helper
+                                    .level_editor
                                     .level
                                     .events
                                     .get(waypoints.light.event)
@@ -419,7 +435,7 @@ impl EditorRender {
                                     &point.control,
                                     0.025,
                                     crate::util::with_alpha(color, alpha),
-                                    &level_editor.model.camera,
+                                    &helper.level_editor.model.camera,
                                     &mut pixel_buffer,
                                 );
 
@@ -436,7 +452,7 @@ impl EditorRender {
 
                                 let period = options.dash_length + options.space_length;
                                 let speed = 1.0;
-                                let t = ((level_editor.real_time.as_f32() * speed) / period)
+                                let t = ((helper.level_editor.real_time.as_f32() * speed) / period)
                                     .fract()
                                     * period;
                                 from.a_pos += (to.a_pos - from.a_pos).normalize_or_zero() * t;
@@ -446,7 +462,7 @@ impl EditorRender {
                                         width: options.width * 0.5,
                                         ..options
                                     },
-                                    &level_editor.model.camera,
+                                    &helper.level_editor.model.camera,
                                     &mut pixel_buffer,
                                 );
                             }
@@ -455,7 +471,7 @@ impl EditorRender {
                                 &point.actual,
                                 0.05,
                                 crate::util::with_alpha(color, alpha),
-                                &level_editor.model.camera,
+                                &helper.level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
                             let text_color = crate::util::with_alpha(THEME.light, alpha);
@@ -468,7 +484,7 @@ impl EditorRender {
                                     blend_mode: Some(util::additive()),
                                     ..default()
                                 },
-                                &level_editor.model.camera,
+                                &helper.level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
 
@@ -507,8 +523,8 @@ impl EditorRender {
         self.util.draw_outline(
             &Collider::aabb(gameplay_area.map(r32)),
             0.1,
-            theme.highlight,
-            &level_editor.model.camera,
+            helper.theme.highlight,
+            &helper.level_editor.model.camera,
             game_buffer,
         );
 
@@ -519,18 +535,26 @@ impl EditorRender {
             ugli::clear(&mut ui_buffer, Some(Rgba::TRANSPARENT_BLACK), None, None);
 
             let world_to_screen = |pos| {
-                crate::util::world_to_screen(&level_editor.model.camera, screen_aabb.size(), pos)
+                crate::util::world_to_screen(
+                    &helper.level_editor.model.camera,
+                    helper.screen_aabb.size(),
+                    pos,
+                )
             };
 
             let grid_thick = 5.0; // in pixels
             let grid_thin = 3.0; // in pixels
 
             // Grid
-            if options.show_grid {
-                let color = crate::util::with_alpha(Color::lerp(theme.dark, theme.light, 0.7), 0.8);
-                let grid_size = editor.grid.cell_size.as_f32();
+            if helper.editor.render_options.show_grid {
+                let color = crate::util::with_alpha(
+                    Color::lerp(helper.theme.dark, helper.theme.light, 0.7),
+                    0.8,
+                );
+                let grid_size = helper.editor.grid.cell_size.as_f32();
 
-                let view = level_editor
+                let view = helper
+                    .level_editor
                     .model
                     .camera
                     .view_area(ui_buffer.size().as_f32());
@@ -553,7 +577,7 @@ impl EditorRender {
                     a_color: color,
                 };
 
-                let thick = editor.config.grid.thick_every as i64;
+                let thick = helper.editor.config.grid.thick_every as i64;
                 for x in -view.x..=view.x {
                     // Vertical
                     let width = if thick > 0 && x % thick == 0 {
@@ -609,12 +633,13 @@ impl EditorRender {
             }
 
             // Selection
-            if let Some(drag) = &editor.drag
+            if let Some(drag) = &helper.editor.drag
                 && let DragTarget::SelectionArea { .. } = drag.target
             {
-                let color = Color::lerp(theme.dark, theme.highlight, 0.5);
-                let selection = Aabb2::from_corners(drag.from_world_raw, editor.cursor_world_pos)
-                    .map_bounds(|p| world_to_screen(p.as_f32()));
+                let color = Color::lerp(helper.theme.dark, helper.theme.highlight, 0.5);
+                let selection =
+                    Aabb2::from_corners(drag.from_world_raw, helper.editor.cursor_world_pos)
+                        .map_bounds(|p| world_to_screen(p.as_f32()));
                 let pixel = ctl_render_core::get_pixel_scale(ui_buffer.size());
                 let width = 2.0 * pixel;
                 self.ui.fill_quad(
@@ -630,5 +655,34 @@ impl EditorRender {
                 // .fit(screen_aabb, vec2(0.5, 0.5))
                 .draw(&geng::PixelPerfectCamera, &self.context.geng, game_buffer);
         }
+    }
+}
+
+impl RenderHelper<'_> {
+    fn draw_telegraph(
+        &self,
+        tele: &LightTelegraph,
+        framebuffer: &mut ugli::Framebuffer,
+        util: &UtilRender,
+    ) {
+        let color = (self.get_color)(tele.light.event_id);
+        util.draw_outline(
+            &tele.light.collider,
+            0.02,
+            color,
+            &self.level_editor.model.camera,
+            framebuffer,
+        );
+    }
+
+    fn draw_light(&self, light: &Light, framebuffer: &mut ugli::Framebuffer, util: &UtilRender) {
+        let color = (self.get_color)(light.event_id);
+        util.draw_light_gradient(
+            &light.collider,
+            light.hollow,
+            color,
+            &self.level_editor.model.camera,
+            framebuffer,
+        );
     }
 }

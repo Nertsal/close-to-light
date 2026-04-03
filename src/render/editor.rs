@@ -25,7 +25,9 @@ pub struct EditorRender {
     mask: MaskedRender,
     mask_stack: MaskedStack,
     post_render: PostRender,
+    lights_dither: DitherRender,
     // unit_quad: ugli::VertexBuffer<draw2d::TexturedVertex>,
+    static_level_texture: ugli::Texture,
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
     ui_depth: ugli::Renderbuffer<ugli::DepthComponent>,
@@ -33,6 +35,9 @@ pub struct EditorRender {
 
 impl EditorRender {
     pub fn new(context: Context) -> Self {
+        let mut static_level_texture =
+            geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
+        static_level_texture.set_filter(ugli::Filter::Nearest);
         let mut game_texture = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
         game_texture.set_filter(ugli::Filter::Nearest);
         let mut ui_texture = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
@@ -46,7 +51,9 @@ impl EditorRender {
             mask: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             mask_stack: MaskedStack::new(&context.geng, &context.assets),
             post_render: PostRender::new(&context),
+            lights_dither: DitherRender::new(&context.geng, &context.assets),
             // unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
+            static_level_texture,
             game_texture,
             ui_texture,
             ui_depth,
@@ -67,6 +74,11 @@ impl EditorRender {
     ) {
         self.mask.update_size(framebuffer.size());
         self.mask_stack.update_size(framebuffer.size());
+        geng_utils::texture::update_texture_size(
+            &mut self.static_level_texture,
+            context.screen.size().map(|x| x.round() as usize),
+            self.context.geng.ugli(),
+        );
         geng_utils::texture::update_texture_size(
             &mut self.game_texture,
             context.screen.size().map(|x| x.round() as usize),

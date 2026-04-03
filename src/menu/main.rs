@@ -320,7 +320,7 @@ impl geng::State for MainMenu {
 
         self.post_render.post_process(
             &options,
-            crate::render::post::PostVfx {
+            &crate::render::post::PostVfx {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,

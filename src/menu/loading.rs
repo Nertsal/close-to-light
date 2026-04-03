@@ -232,7 +232,7 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
 
         self.post_render.post_process(
             &self.options,
-            crate::render::post::PostVfx {
+            &crate::render::post::PostVfx {
                 time: r32(self.real_time as f32),
                 crt: self.options.graphics.crt.enabled,
                 rgb_split: 0.0,

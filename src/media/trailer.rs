@@ -457,7 +457,7 @@ impl geng::State for TrailerState {
         // Post processing effects
         self.post.post_process(
             &options,
-            PostVfx {
+            &PostVfx {
                 time: self.time,
                 crt: true,
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),

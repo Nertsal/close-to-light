@@ -676,7 +676,7 @@ impl geng::State for LevelMenu {
 
         self.post.post_process(
             &options,
-            crate::render::post::PostVfx {
+            &crate::render::post::PostVfx {
                 time: self.state.real_time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: 0.0,

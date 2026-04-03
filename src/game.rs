@@ -5,7 +5,7 @@ use self::ui::UiContext;
 
 use crate::{
     prelude::*,
-    render::{game::GameRender, post::PostRender},
+    render::{dither::DitherRender, game::GameRender, post::PostRender},
 };
 
 use ctl_local::Leaderboard;
@@ -26,6 +26,8 @@ pub struct Game {
     transition: Option<geng::state::Transition>,
     render: GameRender,
     post: PostRender,
+    lights_dither: DitherRender,
+    world_texture: ugli::Texture,
 
     model: Model,
     debug_mode: bool,
@@ -95,6 +97,13 @@ impl Game {
             transition: None,
             render: GameRender::new(context.clone()),
             post: PostRender::new(&context),
+            lights_dither: DitherRender::new(&context.geng, &context.assets),
+            world_texture: {
+                let mut t = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
+                t.set_filter(ugli::Filter::Nearest);
+                t
+            },
+
             context,
             level_assets,
         }
@@ -159,13 +168,39 @@ impl geng::State for Game {
         ugli::clear(framebuffer, Some(theme.dark), None, None);
         let is_paused = self.is_paused();
 
+        geng_utils::texture::update_texture_size(
+            &mut self.world_texture,
+            framebuffer.size(),
+            self.context.geng.ugli(),
+        );
         let _buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
 
+        // Render world to get the lights sdf
+        let world_buffer = &mut geng_utils::texture::attach_texture(
+            &mut self.world_texture,
+            self.context.geng.ugli(),
+        );
+        ugli::clear(world_buffer, Some(Color::TRANSPARENT_BLACK), None, None);
+        self.render.draw_world(
+            &self.model,
+            self.debug_mode,
+            &mut self.lights_dither,
+            world_buffer,
+        );
+
         // Prepare shaders and parameters
         let (active_shaders, shader_uniforms_common, shader_uniforms) =
-            crate::render::prepare_shaders(theme, &self.model, &self.level_assets);
+            crate::render::prepare_shaders(
+                theme,
+                &self.model.level.level.data,
+                &self.model.vfx.shaders,
+                self.model.real_time,
+                self.model.play_time_ms,
+                &self.level_assets,
+                self.lights_dither.get_lights_sdf(),
+            );
 
         macro_rules! apply_shaders {
             ($order:pat) => {{
@@ -186,7 +221,10 @@ impl geng::State for Game {
                                 u_texture: texture,
                             },
                         ),
-                        ugli::DrawParameters::default(),
+                        ugli::DrawParameters {
+                            blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                            ..default()
+                        },
                     );
                 }
                 &mut self.post.continu()
@@ -196,7 +234,12 @@ impl geng::State for Game {
         // Render background shaders
         let buffer = apply_shaders!(ShaderLayer::Background);
 
-        self.render.draw_world(&self.model, self.debug_mode, buffer);
+        // Render world
+        geng_utils::texture::DrawTexture::new(&self.world_texture).draw(
+            &geng::PixelPerfectCamera,
+            &self.context.geng,
+            buffer,
+        );
 
         if !fading {
             self.ui_focused = self.ui.layout(
@@ -285,7 +328,7 @@ impl geng::State for Game {
 
         self.post.post_process(
             &options,
-            crate::render::post::PostVfx {
+            &crate::render::post::PostVfx {
                 time: self.model.real_time,
                 crt: options.graphics.crt.enabled,
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),

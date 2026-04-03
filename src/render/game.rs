@@ -41,10 +41,11 @@ impl GameRender {
         &mut self,
         model: &Model,
         _debug_mode: bool,
+        dither: &mut DitherRender,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {
         self.dither.set_noise(1.0);
-        let mut dither_buffer = self.dither.start();
+        let mut dither_buffer = dither.start();
         let options = self.context.get_options();
 
         let camera = &model.camera;
@@ -232,10 +233,10 @@ impl GameRender {
         //     }
         // }
 
-        self.dither.finish(model.real_time, &theme.transparent());
+        dither.finish(model.real_time, &theme.transparent());
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
-        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+        geng_utils::texture::DrawTexture::new(dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
             .draw(
                 &geng::PixelPerfectCamera,

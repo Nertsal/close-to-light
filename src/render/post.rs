@@ -90,7 +90,7 @@ impl PostRender {
         geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli())
     }
 
-    pub fn post_process(&mut self, options: &Options, vfx: PostVfx) {
+    pub fn post_process(&mut self, options: &Options, vfx: &PostVfx) {
         macro_rules! swap {
             () => {{
                 std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
