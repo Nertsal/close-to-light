@@ -629,14 +629,17 @@ impl LevelEditor {
                 continue;
             };
 
+            // Move fade as well, but keep it relative
+            let change_fade = change_pos.into_delta(frame.translation);
+
             change_pos.apply(&mut frame.translation);
+
             if let WaypointId::Frame(i) = waypoint_id {
-                // Move fade as well
                 if i == 0 {
-                    change_pos.apply(&mut event.movement.initial.transform.translation);
+                    event.movement.initial.transform.translation += change_fade;
                 }
                 if i + 1 == event.movement.waypoints.len() {
-                    change_pos.apply(&mut event.movement.last.translation);
+                    event.movement.last.translation += change_fade;
                 }
             }
         }
