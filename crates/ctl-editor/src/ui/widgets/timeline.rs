@@ -1152,7 +1152,7 @@ impl TimelineWidget {
                 format!("Beat: {}", beat_whole + 1).into()
             };
             beat.update(current_beat, context);
-            beat.options.size = current_beat.height() * 0.4;
+            beat.options.size = current_beat.height() * 0.35;
             beat.options.color = color;
         }
 
