@@ -60,7 +60,7 @@ impl EditorState {
                 view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
                 visualize_beat: true,
                 show_only_selected: false,
-                snap_to_grid: true,
+                snap_to_grid: PTValue::new(true),
                 music_timer: FloatTime::ZERO,
 
                 group,
@@ -174,6 +174,20 @@ impl EditorState {
             self.editor.show_only_selected,
         );
 
+        {
+            let snap = self.editor.snap_to_grid.permanent;
+            self.editor.snap_to_grid.temporary = if self
+                .context
+                .geng
+                .window()
+                .is_key_pressed(geng::Key::ControlLeft)
+            {
+                !snap
+            } else {
+                snap
+            };
+        }
+
         let pos = self.ui_context.cursor.position;
         let pos = pos - self.ui_context.screen.bottom_left();
         let pos = level_editor
@@ -182,7 +196,7 @@ impl EditorState {
             .screen_to_world(self.ui_context.screen.size(), pos)
             .as_r32();
         self.editor.cursor_world_pos = pos;
-        self.editor.cursor_world_pos_snapped = if self.editor.snap_to_grid {
+        self.editor.cursor_world_pos_snapped = if self.editor.snap_to_grid.temporary {
             self.snap_pos_grid(pos)
         } else {
             pos

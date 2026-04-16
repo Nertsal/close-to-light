@@ -54,7 +54,9 @@ impl Editor {
             EditorAction::ToggleGrid => {
                 self.render_options.show_grid = !self.render_options.show_grid
             }
-            EditorAction::ToggleGridSnap => self.snap_to_grid = !self.snap_to_grid,
+            EditorAction::ToggleGridSnap => {
+                self.snap_to_grid.permanent = !self.snap_to_grid.permanent
+            }
             EditorAction::DeleteLevel(i) => self.popup_confirm(
                 ConfirmAction::DeleteLevel(i),
                 "delete this difficulty",

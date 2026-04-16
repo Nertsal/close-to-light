@@ -389,7 +389,7 @@ impl LayoutHelper<'_> {
         if button.state.mouse_left.clicked {
             actions.push(EditorAction::ToggleGridSnap.into());
         }
-        button.checked = self.editor.snap_to_grid;
+        button.checked = self.editor.snap_to_grid.temporary;
         tooltip.update(&button.state, "~", context);
 
         let grid_size = bar.cut_top(self.value_height);

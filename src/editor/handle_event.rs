@@ -328,6 +328,7 @@ impl EditorState {
         let Some(drag) = &mut self.editor.drag else {
             return actions;
         };
+
         match &mut drag.target {
             DragTarget::SelectionArea { original, extra } => {
                 let area = Aabb2::from_corners(drag.from_world_raw, self.editor.cursor_world_pos);
@@ -367,6 +368,10 @@ impl EditorState {
                 actions.push(LevelAction::SetSelection(selection).into());
             }
             &mut DragTarget::Camera { initial_center } => {
+                if !drag.moved {
+                    return actions;
+                }
+
                 let camera = &level_editor.model.camera;
 
                 let from = drag.from_screen;
@@ -380,13 +385,18 @@ impl EditorState {
                     .as_r32();
 
                 let mut target = initial_center + from - to;
-                if self.editor.snap_to_grid {
+                if self.editor.snap_to_grid.temporary {
                     target = self.snap_pos_grid(target);
                 }
 
                 actions.push(LevelAction::CameraPan(Change::Set(target.as_f32())).into());
             }
-            DragTarget::Light { lights, .. } => {
+            DragTarget::Light {
+                lights, align_pos, ..
+            } => {
+                if !drag.moved {
+                    return actions;
+                }
                 actions.push(
                     LevelAction::list_with(
                         HistoryLabel::Drag,
@@ -400,7 +410,7 @@ impl EditorState {
                                 Change::Set(
                                     light.initial_translation
                                         + self.editor.cursor_world_pos_snapped
-                                        - drag.from_world,
+                                        - *align_pos,
                                 ),
                             )
                         }),
@@ -408,7 +418,14 @@ impl EditorState {
                     .into(),
                 );
             }
-            DragTarget::WaypointMove { light, waypoints } => {
+            DragTarget::WaypointMove {
+                light,
+                waypoints,
+                align_pos,
+            } => {
+                if !drag.moved {
+                    return actions;
+                }
                 actions.push(
                     LevelAction::MoveWaypoint(
                         *light,
@@ -424,7 +441,7 @@ impl EditorState {
                                     Change::Set(
                                         waypoint.initial_translation
                                             + self.editor.cursor_world_pos_snapped
-                                            - drag.from_world,
+                                            - *align_pos,
                                     ),
                                 )
                             })
@@ -439,6 +456,9 @@ impl EditorState {
                 initial_scale,
                 scale_direction,
             } => {
+                if !drag.moved {
+                    return actions;
+                }
                 let delta = self.editor.cursor_world_pos - drag.from_world_raw;
                 let delta = vec2::dot(delta, scale_direction);
                 let target = initial_scale + delta;
@@ -488,6 +508,14 @@ impl EditorState {
                     if let Some(e) = level_editor.level.events.get(event)
                         && let Event::Light(_light) = &e.event
                     {
+                        let align_pos = level_editor
+                            .level_state
+                            .relevant()
+                            .lights
+                            .iter()
+                            .find(|light| light.event_id == Some(event))
+                            .map(|light| light.collider.position)
+                            .unwrap_or(self.editor.cursor_world_pos_snapped);
                         match button {
                             geng::MouseButton::Left => {
                                 // Left click
@@ -533,6 +561,7 @@ impl EditorState {
                                             })
                                         })
                                         .collect(),
+                                    align_pos,
                                 };
                                 actions.push(EditorStateAction::StartDrag(target));
                             }
@@ -782,6 +811,19 @@ impl EditorState {
                 //     }));
                 // } else
                 {
+                    let align_pos = level_editor
+                        .level
+                        .events
+                        .get(waypoints.light.event)
+                        .and_then(|event| {
+                            if let Event::Light(light) = &event.event {
+                                light.movement.get_frame(waypoint_id)
+                            } else {
+                                None
+                            }
+                        })
+                        .map(|waypoint| waypoint.translation)
+                        .unwrap_or(self.editor.cursor_world_pos_snapped);
                     let drag_waypoints = selected
                         .into_iter()
                         .map(|id| DragWaypoint {
@@ -798,6 +840,7 @@ impl EditorState {
                     actions.push(EditorStateAction::StartDrag(DragTarget::WaypointMove {
                         light: waypoints.light,
                         waypoints: drag_waypoints,
+                        align_pos,
                     }));
                 }
             }

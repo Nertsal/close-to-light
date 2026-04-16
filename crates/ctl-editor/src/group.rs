@@ -1,5 +1,21 @@
 use super::*;
 
+/// Permanent-Temporary value.
+/// A way of storing a configurable value that also allows temporary changes.
+pub struct PTValue<T> {
+    pub permanent: T,
+    pub temporary: T,
+}
+
+impl<T: Copy> PTValue<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            permanent: value,
+            temporary: value,
+        }
+    }
+}
+
 pub struct Editor {
     pub context: Context,
     /// Real time (in seconds) passed since starting the editor.
@@ -19,7 +35,7 @@ pub struct Editor {
     pub grid: Grid,
     pub view_zoom: SecondOrderState<f32>,
     pub music_timer: FloatTime,
-    pub snap_to_grid: bool,
+    pub snap_to_grid: PTValue<bool>,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
     /// Whether to only render the selected light.
@@ -65,10 +81,12 @@ pub enum DragTarget {
         /// If the drag is short, waypoints will be toggled.
         double: bool,
         lights: Vec<DragLight>,
+        align_pos: vec2<Coord>,
     },
     WaypointMove {
         light: LightId,
         waypoints: Vec<DragWaypoint>,
+        align_pos: vec2<Coord>,
     },
     WaypointScale {
         light: LightId,
