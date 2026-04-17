@@ -1,9 +1,5 @@
-<!-- <p align="center"> -->
-<!-- <video src="docs/infinity.mp4" autoplay="true" loop="true" muted width="80%"></video> -->
-<!-- </p> -->
-
 <p align="center">
-<img src="docs/title.png" style="image-rendering: pixelated;" width="80%"></video>
+<img src="docs/title.png" width="80%"></video>
 </p>
 
 Close to Light is a rhythm game in which you have to follow the lights along with the music while avoiding danger and darkness.
@@ -12,14 +8,14 @@ Close to Light is a rhythm game in which you have to follow the lights along wit
 - **Play the Demo** [on Steam](https://store.steampowered.com/app/4259120/Close_to_Light_Demo/) or [on Itch](https://nertsal.itch.io/close-to-light)!
 - **Join** the [official Discord server](https://discord.gg/DXZgEzEahu)!
 
-<p align="center">
-<video src="docs/ffd_hard_dodge.mp4" autoplay="true" loop="true" muted width="80%"></video>
+<p align="center" width="80%">
+<img src="docs/ffd_hard_dodge.gif" width="80%"></video>
 </p>
 
 Push your skills to the limit in the hard difficulties and experience the insanity that they have to offer!
 
-<p align="center">
-<video src="docs/ctc_shake.mp4" autoplay="true" loop="true" muted width="80%"></video>
+<p align="center" width="80%">
+<img src="docs/ctc_shake.gif" width="80%"></video>
 </p>
 
 ## Credits
