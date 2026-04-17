@@ -304,10 +304,10 @@ impl GeometryContext {
         &self,
         center: vec2<f32>,
         color: Color,
-        pixels_per_unit: usize,
+        pixels_per_unit: f32,
         texture: &SubTexture,
     ) -> Geometry {
-        let size = texture.size() * pixels_per_unit;
+        let size = (texture.size().as_f32() * pixels_per_unit).map(|x| x.round() as usize);
         let position = geng_utils::pixel::pixel_perfect_aabb(
             center,
             vec2(0.5, 0.5),

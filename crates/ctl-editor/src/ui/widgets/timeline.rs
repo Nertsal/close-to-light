@@ -8,8 +8,6 @@ use ctl_render_core::SubTexture;
 use ctl_util::SecondOrderState;
 use num_rational::Ratio;
 
-/// Pixels per unit
-const PPU: usize = 2;
 const LIGHT_LINE_WIDTH: f32 = 16.0;
 const LIGHT_LINE_SPACE: f32 = 4.0;
 
@@ -36,6 +34,8 @@ pub struct TimelineWidget {
     ticks: Vec<(vec2<f32>, i64)>,
     selection_area: Option<Aabb2<f32>>,
 
+    /// Pixels per unit.
+    ppu: f32,
     /// Render scale in pixels per beat.
     scale: f32,
     /// The scrolloff in exact time.
@@ -75,6 +75,7 @@ impl TimelineWidget {
             ticks: Vec::new(),
             selection_area: None,
 
+            ppu: 2.0,
             scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
@@ -177,7 +178,7 @@ impl TimelineWidget {
 
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
-            let size = vec2::splat(18) * PPU;
+            let size = (vec2::splat(18.0) * self.ppu).map(|x| x.round() as usize);
             let pos = (time + self.scroll) as f32 * self.scale;
             let pos = center + vec2(pos, 0.0);
             geng_utils::pixel::pixel_perfect_aabb(
@@ -194,7 +195,7 @@ impl TimelineWidget {
                 + vec2(
                     0.0,
                     (LIGHT_LINE_WIDTH * 0.5 + ((LIGHT_LINE_WIDTH + LIGHT_LINE_SPACE) * i as f32))
-                        * PPU as f32,
+                        * self.ppu,
                 );
             render_at(pos, time)
         };
@@ -278,7 +279,7 @@ impl TimelineWidget {
                     IconButtonWidget::new(texture)
                         .highlight(HighlightMode::Color(ThemeColor::Highlight))
                 });
-                tick.update(position, context);
+                tick.update(position, context, self.ppu);
                 context.update_focus(tick.state.hovered);
                 if tick.state.mouse_left.pressed.is_some() {
                     let mut target = unrender_time(context.cursor.position.x);
@@ -326,12 +327,12 @@ impl TimelineWidget {
             let visible = (event_time + self.scroll).abs() < visible_scroll / 2;
             if visible && overlapped as f32 <= self.expansion.current + 0.9 {
                 let position = render_light(event_time, overlapped).center();
-                let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                let position = Aabb2::point(position).extend_uniform(5.0 * self.ppu);
                 let icon = context.state.get_or(self.state.id, || {
                     IconButtonWidget::new(atlas.timeline_metronome())
                 });
                 icon.texture = texture;
-                icon.update(position, context);
+                icon.update(position, context, self.ppu);
                 context.update_focus(icon.state.hovered);
                 is_hovered = is_hovered || icon.state.hovered;
                 if is_selected && !is_hovered {
@@ -477,7 +478,7 @@ impl TimelineWidget {
                         let to_time = event.time + light_event.movement.duration();
                         let to = render_time(&self.highlight_line, to_time).center();
 
-                        let tick_size = vec2(4.0, 16.0) * PPU as f32;
+                        let tick_size = vec2(4.0, 16.0) * self.ppu;
 
                         // Fade in
                         timeline_tick(
@@ -542,7 +543,7 @@ impl TimelineWidget {
                             }
 
                             // Icon
-                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                            let position = Aabb2::point(position).extend_uniform(5.0 * self.ppu);
                             let texture = atlas.timeline_waypoint();
                             // TODO: somehow mask this with other stuff
                             let icon = context
@@ -553,7 +554,7 @@ impl TimelineWidget {
                             } else {
                                 ThemeColor::Light
                             };
-                            icon.update(position, context);
+                            icon.update(position, context, self.ppu);
                             context.update_focus(icon.state.hovered);
                             selectable(
                                 EditorEventIdx::Waypoint(light_id, waypoint_id),
@@ -578,7 +579,7 @@ impl TimelineWidget {
                                 IconButtonWidget::new(texture)
                                     .highlight(HighlightMode::Color(ThemeColor::Highlight))
                             });
-                            tick.update(position, context);
+                            tick.update(position, context, self.ppu);
                             context.update_focus(tick.state.hovered);
 
                             // Waypoint drag
@@ -673,7 +674,7 @@ impl TimelineWidget {
                             let icon = context
                                 .state
                                 .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
-                            icon.update(light, context);
+                            icon.update(light, context, self.ppu);
                             context.update_focus(icon.state.hovered);
                             selectable(
                                 EditorEventIdx::Event(light_id.event),
@@ -735,7 +736,7 @@ impl TimelineWidget {
                             let icon = context
                                 .state
                                 .get_or(self.state.id, || IconWidget::new(texture));
-                            icon.update(dots, context);
+                            icon.update(dots, context, self.ppu);
                         }
                     }
                     let is_hovered =
@@ -749,14 +750,14 @@ impl TimelineWidget {
                                 continue;
                             }
 
-                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                            let position = Aabb2::point(position).extend_uniform(5.0 * self.ppu);
                             let texture = atlas.timeline_waypoint();
                             // TODO: somehow mask this with other stuff
                             let icon = context
                                 .state
                                 .get_or(self.state.id, || IconButtonWidget::new(texture));
                             icon.color = ThemeColor::Light;
-                            icon.update(position, context);
+                            icon.update(position, context, self.ppu);
                             context.update_focus(icon.state.hovered);
                         }
                     }
@@ -797,7 +798,7 @@ impl TimelineWidget {
                     if is_selected {
                         // Start time
                         timeline_tick(
-                            vec2(4.0, 16.0) * PPU as f32,
+                            vec2(4.0, 16.0) * self.ppu,
                             render_time(&self.highlight_line, event.time).center(),
                             atlas.timeline_tick_smol(),
                             actions,
@@ -830,7 +831,7 @@ impl TimelineWidget {
 
                         // End time
                         timeline_tick(
-                            vec2(4.0, 16.0) * PPU as f32,
+                            vec2(4.0, 16.0) * self.ppu,
                             render_time(&self.highlight_line, event.time + duration).center(),
                             atlas.timeline_tick_smol(),
                             actions,
@@ -1021,7 +1022,17 @@ impl TimelineWidget {
         self.cursor_pos = context.cursor.position;
         self.expansion.update(context.delta_time);
 
-        let pixel = PPU as f32;
+        // let pixel = PPU as f32; //ctl_render_core::get_pixel_scale(context.screen.size().map(|x| x as usize));
+        let pixel = position.height() / 19.0;
+        self.ppu = pixel;
+        {
+            // Try aligning better to pixels if doesnt change size too much
+            let mut quart = self.ppu * 4.0;
+            if quart.fract() < 0.05 || quart.fract() > 0.95 {
+                quart = quart.round();
+            }
+            self.ppu = quart / 4.0;
+        }
 
         let allocated_position = position;
         let panel_width = 5.0 * context.layout_size;
@@ -1179,7 +1190,7 @@ impl TimelineWidget {
             let button = context.state.get_or(self.state.id, || {
                 IconButtonWidget::new(context.context.assets.atlas.button_prev())
             });
-            button.update(button_left, context);
+            button.update(button_left, context, self.ppu);
             if button.state.mouse_left.clicked {
                 new_i = new_i
                     .checked_sub(1)
@@ -1189,7 +1200,7 @@ impl TimelineWidget {
             let button = context.state.get_or(self.state.id, || {
                 IconButtonWidget::new(context.context.assets.atlas.button_next())
             });
-            button.update(panel, context);
+            button.update(panel, context, self.ppu);
             if button.state.mouse_left.clicked {
                 new_i += 1;
                 if new_i >= allowed_subdivisions.len() {
@@ -1255,8 +1266,7 @@ fn pre_event_time(event: &Event) -> Time {
 impl Widget for TimelineWidget {
     simple_widget_state!();
     fn draw_top(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
-        let pixel = pixel_scale as f32;
+        let pixel = self.ppu;
         let theme = context.theme();
         let atlas = &context.context.assets.atlas;
 
@@ -1277,7 +1287,7 @@ impl Widget for TimelineWidget {
         // Current arrow
         {
             let texture = &atlas.timeline_current_arrow();
-            let size = texture.size() * pixel_scale;
+            let size = (texture.size().as_f32() * pixel).map(|x| x.round() as usize);
             let position = geng_utils::pixel::pixel_perfect_aabb(
                 self.ceiling.position.align_pos(vec2(0.5, 1.0)),
                 vec2(0.5, 1.0),
@@ -1316,11 +1326,7 @@ impl Widget for TimelineWidget {
                     (red, &atlas.timeline_tick_smol())
                 }
             };
-            geometry.merge(
-                context
-                    .geometry
-                    .texture_pp_at(pos, color, pixel_scale, texture),
-            );
+            geometry.merge(context.geometry.texture_pp_at(pos, color, pixel, texture));
         }
 
         let position = self.state.position;
@@ -1335,8 +1341,7 @@ impl Widget for TimelineWidget {
         geometry
     }
     fn draw(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
-        let pixel = pixel_scale as f32;
+        let pixel = self.ppu;
         let theme = context.theme();
         let atlas = &context.context.assets.atlas;
         let bounds = self.state.position;
@@ -1348,7 +1353,7 @@ impl Widget for TimelineWidget {
             let dot = geng_utils::pixel::pixel_perfect_aabb(
                 dot,
                 vec2(0.5, 0.5),
-                vec2::splat(pixel_scale * 2),
+                vec2::splat(pixel * 2.0).map(|x| x.round() as usize),
                 &geng::PixelPerfectCamera,
                 context.geometry.framebuffer_size.as_f32(),
             );
@@ -1383,11 +1388,7 @@ impl Widget for TimelineWidget {
         // Time marks
         for &(pos, color) in &self.marks {
             let texture = atlas.timeline_time_mark();
-            geometry.merge(
-                context
-                    .geometry
-                    .texture_pp_at(pos, color, pixel_scale, &texture),
-            );
+            geometry.merge(context.geometry.texture_pp_at(pos, color, pixel, &texture));
         }
 
         // NOTE: mask is done manually because it weirdly affects the rendering order
@@ -1415,6 +1416,7 @@ struct IconWidget {
     state: WidgetState,
     texture: SubTexture,
     color: ThemeColor,
+    ppu: f32,
 }
 
 impl IconWidget {
@@ -1423,9 +1425,11 @@ impl IconWidget {
             state: default(),
             texture,
             color: ThemeColor::Light,
+            ppu: 1.0,
         }
     }
-    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, ppu: f32) {
+        self.ppu = ppu;
         self.state.update(position, context);
     }
 }
@@ -1433,7 +1437,7 @@ impl IconWidget {
 impl Widget for IconWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
+        let pixel_scale = self.ppu;
         let theme = context.theme();
         let mut geometry = Geometry::new();
 
@@ -1463,6 +1467,7 @@ struct IconButtonWidget {
     color: ThemeColor,
     bg_color: ThemeColor,
     highlight: HighlightMode,
+    ppu: f32,
 }
 
 impl IconButtonWidget {
@@ -1473,6 +1478,7 @@ impl IconButtonWidget {
             color: ThemeColor::Light,
             bg_color: ThemeColor::Dark,
             highlight: HighlightMode::SwapColors,
+            ppu: 1.0,
         }
     }
 
@@ -1481,7 +1487,8 @@ impl IconButtonWidget {
         self
     }
 
-    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, ppu: f32) {
+        self.ppu = ppu;
         self.state.update(position, context);
         context.update_focus(self.state.hovered);
     }
@@ -1490,9 +1497,9 @@ impl IconButtonWidget {
 impl Widget for IconButtonWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
+        let pixel_scale = self.ppu;
         let theme = context.theme();
-        let outline_width = pixel_scale as f32 * 3.0;
+        let outline_width = pixel_scale * 3.0;
         let mut geometry = Geometry::new();
 
         let mut fg_color = theme.get_color(self.color);
@@ -1504,7 +1511,7 @@ impl Widget for IconButtonWidget {
                     std::mem::swap(&mut fg_color, &mut bg_color);
                 }
 
-                let size = self.texture.size() * pixel_scale;
+                let size = (self.texture.size().as_f32() * pixel_scale).map(|x| x.round() as usize);
                 let position = geng_utils::pixel::pixel_perfect_aabb(
                     self.state.position.center(),
                     vec2(0.5, 0.5),
@@ -1520,7 +1527,7 @@ impl Widget for IconButtonWidget {
                     &self.texture,
                 ));
                 geometry.merge(context.geometry.quad_fill(
-                    position.extend_uniform(outline_width + pixel_scale as f32),
+                    position.extend_uniform(outline_width + pixel_scale),
                     outline_width,
                     bg_color,
                 ));
