@@ -335,11 +335,10 @@ impl TimelineWidget {
                 icon.update(position, context, self.ppu);
                 context.update_focus(icon.state.hovered);
                 is_hovered = is_hovered || icon.state.hovered;
-                if is_selected && !is_hovered {
-                    icon.color = ThemeColor::Light;
+                icon.color = ThemeColor::Light;
+                if is_selected {
                     icon.bg_color = ThemeColor::Highlight;
                 } else {
-                    icon.color = ThemeColor::Light;
                     icon.bg_color = ThemeColor::Dark;
                 }
                 if icon.state.mouse_left.just_pressed {
@@ -682,13 +681,17 @@ impl TimelineWidget {
                                 &mut extra_selection,
                             );
 
-                            icon.color = if level_editor.selection.is_light_selected(light_id) {
-                                ThemeColor::Highlight
-                            } else if light_event.danger {
+                            let is_selected = level_editor.selection.is_light_selected(light_id);
+                            icon.color = if light_event.danger {
                                 ThemeColor::Danger
                             } else {
                                 ThemeColor::Light
                             };
+                            if is_selected {
+                                icon.bg_color = ThemeColor::Highlight;
+                            } else {
+                                icon.bg_color = ThemeColor::Dark;
+                            }
                             icon.texture = texture;
                             is_hovered = is_hovered || icon.state.hovered;
                             if icon.state.hovered {
