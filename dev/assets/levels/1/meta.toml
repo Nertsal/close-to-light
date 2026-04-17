@@ -1,0 +1,50 @@
+version = "V3"
+id = 1
+featured = false
+hash = "3e131292b1eb302b8c543063149025650301282e96ef18df06191dfc18e257a4"
+
+[music]
+id = 1
+original = true
+featured = true
+name = "Far from Dark"
+romanized = "Far from Dark"
+
+[[music.authors]]
+id = 0
+name = "IcyLava"
+romanized = "IcyLava"
+
+[owner]
+id = 1
+name = "Nertsal"
+
+[[levels]]
+id = 1
+name = "Easy"
+hash = "0f2aeabc0072db42b3e48ae91bb2312e3a54b506501fd55de58407bd1e539b94"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"
+
+[[levels]]
+id = 2
+name = "Normal"
+hash = "3ca67d894cd45637d9a387e2c53223fcacc246645d5650605a0278ca62aeb364"
+
+[[levels.authors]]
+id = 0
+name = "IcyLava"
+romanized = "IcyLava"
+
+[[levels]]
+id = 3
+name = "Hard"
+hash = "713b6fbc15e502e758ab5a37811028262de9b0f71b5582b56d65f6aa07749be2"
+
+[[levels.authors]]
+id = 1
+name = "Nertsal"
+romanized = "Nertsal"

@@ -1,0 +1,11 @@
+space_size = 3.0
+tile_size = [13, 18]
+kerning = 1.0
+error = [15, 5]
+
+[[ranges]]
+start = '!'
+end = '~'
+at = [1, 0]
+
+[chars]
