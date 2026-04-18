@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId, ScrollSpeed};
+use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId};
 
 use std::collections::BTreeMap;
 
@@ -1065,14 +1065,10 @@ impl TimelineWidget {
         let highlight = position.cut_top(pixel * 16.0);
         self.highlight_line.update(highlight, context);
 
-        // TODO: unduplicate code from handle_event
-        let scroll_speed = if context.mods.shift {
-            ScrollSpeed::Slow
-        } else if context.mods.alt {
-            ScrollSpeed::Fast
-        } else {
-            ScrollSpeed::Normal
-        };
+        let scroll_speed = editor
+            .config
+            .timeline
+            .get_scroll_speed(context.mods.shift, context.mods.alt);
 
         // Calculate allocated state for side panels
         let mut allocated_position =
