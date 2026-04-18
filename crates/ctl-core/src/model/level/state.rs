@@ -126,7 +126,10 @@ impl LevelState {
                         return;
                     }
                     if let Some(vfx) = vfx {
-                        vfx.rgb_split.time_left = time_to_seconds(duration - time);
+                        vfx.rgb_split.time_left = vfx
+                            .rgb_split
+                            .time_left
+                            .max(time_to_seconds(duration - time));
                     }
                 }
                 EffectEvent::CameraShake(duration, intensity) => {
@@ -134,7 +137,7 @@ impl LevelState {
                         return;
                     }
                     if let Some(vfx) = vfx {
-                        vfx.camera_shake = intensity;
+                        vfx.camera_shake = vfx.camera_shake.max(intensity);
                     }
                 }
             },
