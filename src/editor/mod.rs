@@ -109,6 +109,8 @@ impl EditorState {
 
         level_editor.model.vfx.update(delta_time);
 
+        level_editor.selection.update(&level_editor.level);
+
         // TODO: maybe config option?
         // if let Some(waypoints) = &level_editor.level_state.waypoints {
         //     if let Some(waypoint) = waypoints.selected {

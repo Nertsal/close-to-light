@@ -84,6 +84,43 @@ impl Selection {
         *self = Self::Empty;
     }
 
+    pub fn update(&mut self, level: &Level) {
+        match self {
+            Selection::Empty => {}
+            Selection::Lights(light_ids) => {
+                if light_ids.is_empty() {
+                    *self = Selection::Empty;
+                }
+            }
+            Selection::Waypoints(light_id, waypoint_ids) => {
+                if waypoint_ids.is_empty() {
+                    *self = Selection::Lights(vec![*light_id]);
+                }
+            }
+            Selection::Events(events) => {
+                if events.is_empty() {
+                    *self = Selection::Empty;
+                } else if let Some(lights) = events
+                    .iter()
+                    .map(|id| {
+                        if let &TopLevelEventIdx::Event(i) = id
+                            && let Some(event) = level.events.get(i)
+                            && let Event::Light(_) = event.event
+                        {
+                            Some(LightId { event: i })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+                {
+                    // Only lights are selected
+                    *self = Selection::Lights(lights);
+                }
+            }
+        }
+    }
+
     pub fn single(&self) -> Option<EditorEventIdx> {
         match self {
             Selection::Empty => None,
