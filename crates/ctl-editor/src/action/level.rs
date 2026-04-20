@@ -239,19 +239,33 @@ impl LevelEditor {
                         .into_iter()
                         .flat_map(|id| self.level.events.get(id.event).cloned())
                         .collect();
-                    self.clipboard
-                        .copy(ClipboardItem::Events(self.current_time.target, lights));
+                    self.clipboard.copy(ClipboardItem::Events {
+                        time: self.current_time.target,
+                        events: lights,
+                        timing: vec![],
+                    });
                 }
                 Selection::Waypoints(..) => {
                     // TODO: copy waypoints maybe?
                 }
-                Selection::Event(index) => {
-                    let events = self.level.events.get(index).cloned().into_iter().collect();
-                    self.clipboard
-                        .copy(ClipboardItem::Events(self.current_time.target, events));
-                }
-                Selection::Timing(_) => {
-                    // TODO: copy timing maybe?
+                Selection::Events(idxs) => {
+                    let mut events = Vec::new();
+                    let mut timing = Vec::new();
+                    for idx in idxs {
+                        match idx {
+                            TopLevelEventIdx::Event(idx) => {
+                                events.extend(self.level.events.get(idx).cloned())
+                            }
+                            TopLevelEventIdx::Timing(idx) => {
+                                timing.extend(self.level.timing.points.get(idx).cloned())
+                            }
+                        }
+                    }
+                    self.clipboard.copy(ClipboardItem::Events {
+                        time: self.current_time.target,
+                        events,
+                        timing,
+                    });
                 }
             },
             LevelAction::SetSelection(selection) => {
@@ -317,7 +331,7 @@ impl LevelEditor {
             LevelAction::SelectEvent(index) => match index {
                 EditorEventIdx::Event(index) => {
                     if self.level.events.get(index).is_some() {
-                        self.selection = Selection::Event(index);
+                        self.selection = Selection::Events(vec![TopLevelEventIdx::Event(index)]);
                     }
                 }
                 EditorEventIdx::Waypoint(light_id, waypoint_id) => {
@@ -330,7 +344,7 @@ impl LevelEditor {
                 }
                 EditorEventIdx::Timing(index) => {
                     if self.level.timing.points.get(index).is_some() {
-                        self.selection = Selection::Timing(index);
+                        self.selection = Selection::Events(vec![TopLevelEventIdx::Timing(index)]);
                     }
                 }
             },

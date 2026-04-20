@@ -41,15 +41,29 @@ pub enum Selection {
     Empty,
     Lights(Vec<LightId>),
     Waypoints(LightId, Vec<WaypointId>),
+    Events(Vec<TopLevelEventIdx>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TopLevelEventIdx {
     Event(usize),
     Timing(usize),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EditorEventIdx {
     Event(usize),
     Waypoint(LightId, WaypointId),
     Timing(usize),
+}
+
+impl From<TopLevelEventIdx> for EditorEventIdx {
+    fn from(value: TopLevelEventIdx) -> Self {
+        match value {
+            TopLevelEventIdx::Event(i) => EditorEventIdx::Event(i),
+            TopLevelEventIdx::Timing(i) => EditorEventIdx::Timing(i),
+        }
+    }
 }
 
 impl Selection {
@@ -62,8 +76,7 @@ impl Selection {
             Selection::Empty => true,
             Selection::Lights(light_ids) => light_ids.is_empty(),
             Selection::Waypoints(_, ids) => ids.is_empty(),
-            Selection::Event(_) => false,
-            Selection::Timing(_) => false,
+            Selection::Events(ids) => ids.is_empty(),
         }
     }
 
@@ -81,8 +94,9 @@ impl Selection {
                 let id = *ids.first().unwrap();
                 EditorEventIdx::Waypoint(*light_id, id)
             }),
-            Selection::Event(idx) => Some(EditorEventIdx::Event(*idx)),
-            Selection::Timing(idx) => Some(EditorEventIdx::Timing(*idx)),
+            Selection::Events(ids) => (ids.len() == 1)
+                .then(|| ids.first().map(|&idx| idx.into()))
+                .flatten(),
         }
     }
 
@@ -101,8 +115,7 @@ impl Selection {
                 .iter()
                 .map(|id| EditorEventIdx::Waypoint(*light_id, *id))
                 .collect(),
-            Selection::Event(id) => vec![EditorEventIdx::Event(*id)],
-            Selection::Timing(id) => vec![EditorEventIdx::Timing(*id)],
+            Selection::Events(ids) => ids.iter().map(|&idx| idx.into()).collect(),
         }
     }
 
@@ -118,8 +131,7 @@ impl Selection {
                         .iter()
                         .any(|id| EditorEventIdx::Waypoint(*light_id, *id) == event_id)
             }
-            Selection::Event(id) => EditorEventIdx::Event(*id) == event_id,
-            Selection::Timing(id) => EditorEventIdx::Timing(*id) == event_id,
+            Selection::Events(ids) => ids.iter().any(|&idx| EditorEventIdx::from(idx) == event_id),
         }
     }
 
@@ -128,8 +140,7 @@ impl Selection {
             Selection::Empty => None,
             Selection::Lights(lights) => (lights.len() == 1).then(|| *lights.first().unwrap()),
             Selection::Waypoints(light, _) => Some(*light),
-            Selection::Event(_) => None,
-            Selection::Timing(_) => None,
+            Selection::Events(_) => None,
         }
     }
 
@@ -142,8 +153,7 @@ impl Selection {
             Selection::Empty => false,
             Selection::Lights(lights) => lights.contains(&id),
             Selection::Waypoints(light_id, _) => *light_id == id,
-            Selection::Event(_) => false,
-            Selection::Timing(_) => false,
+            Selection::Events(ids) => ids.contains(&TopLevelEventIdx::Event(id.event)),
         }
     }
 
@@ -156,8 +166,7 @@ impl Selection {
                 }
             }
             Selection::Waypoints(light_id, _) => *self = Self::Lights(vec![*light_id, id]),
-            Selection::Event(_) => *self = Self::Lights(vec![id]),
-            Selection::Timing(_) => *self = Self::Lights(vec![id]),
+            Selection::Events(ids) => ids.push(TopLevelEventIdx::Event(id.event)),
         }
     }
 
@@ -174,8 +183,14 @@ impl Selection {
                     *self = Selection::Empty;
                 }
             }
-            Selection::Event(_) => {}
-            Selection::Timing(_) => {}
+            Selection::Events(ids) => {
+                if let Some(i) = ids
+                    .iter()
+                    .position(|&idx| idx == TopLevelEventIdx::Event(id.event))
+                {
+                    ids.swap_remove(i);
+                }
+            }
         }
     }
 
@@ -186,8 +201,7 @@ impl Selection {
             Selection::Waypoints(light_id, waypoints) => {
                 (waypoints.len() == 1).then(|| (*light_id, *waypoints.first().unwrap()))
             }
-            Selection::Event(_) => None,
-            Selection::Timing(_) => None,
+            Selection::Events(_) => None,
         }
     }
 
@@ -200,8 +214,7 @@ impl Selection {
             Selection::Empty => false,
             Selection::Lights(_) => false,
             Selection::Waypoints(light, waypoints) => *light == light_id && waypoints.contains(&id),
-            Selection::Event(_) => false,
-            Selection::Timing(_) => false,
+            Selection::Events(_) => false,
         }
     }
 
@@ -219,8 +232,7 @@ impl Selection {
                     *waypoints = vec![id];
                 }
             }
-            Selection::Event(_) => *self = Self::Waypoints(light_id, vec![id]),
-            Selection::Timing(_) => *self = Self::Waypoints(light_id, vec![id]),
+            Selection::Events(_) => {}
         }
     }
 
@@ -238,8 +250,7 @@ impl Selection {
                     }
                 }
             }
-            Selection::Event(_) => {}
-            Selection::Timing(_) => {}
+            Selection::Events(_) => {}
         }
     }
 
@@ -263,8 +274,14 @@ impl Selection {
                     *self = Selection::Waypoints(light_id, waypoints);
                 }
             }
-            Selection::Event(_) => *self = other,
-            Selection::Timing(_) => *self = other,
+            Selection::Events(mut ids) => match self {
+                Selection::Lights(light_ids) => {
+                    ids.extend(light_ids.iter().map(|id| TopLevelEventIdx::Event(id.event)));
+                    *self = Selection::Events(ids);
+                }
+                Selection::Events(event_ids) => event_ids.extend(ids),
+                _ => *self = Selection::Events(ids),
+            },
         }
     }
 }
@@ -455,7 +472,11 @@ impl LevelEditor {
         };
 
         match item {
-            ClipboardItem::Events(time, events) => {
+            ClipboardItem::Events {
+                time,
+                events,
+                timing,
+            } => {
                 let new_ids = (0..events.len())
                     .map(|i| LightId {
                         event: self.level.events.len() + i,
@@ -467,6 +488,8 @@ impl LevelEditor {
                         time: self.current_time.target + event.time - time,
                         event: event.event,
                     }));
+                self.level.timing.points.extend(timing);
+                self.level.timing.points.sort_by_key(|point| point.time);
                 // Change selection to the new lights
                 self.selection = Selection::Lights(new_ids);
             }
@@ -623,7 +646,7 @@ impl LevelEditor {
                         .get(id.event)
                         .is_some_and(|light| light.contains_point(cursor))
                         .then_some(*id),
-                    Selection::Empty | Selection::Event(_) | Selection::Timing(_) => None,
+                    Selection::Empty | Selection::Events(_) => None,
                 };
                 selected.or_else(||
                         // Prioritise the light closest to the cursor

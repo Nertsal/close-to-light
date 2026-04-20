@@ -14,7 +14,7 @@ pub struct Timing {
 }
 
 /// A timing point.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TimingPoint {
     /// The time from which this timing applies.
     pub time: Time,

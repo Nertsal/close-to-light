@@ -132,14 +132,15 @@ impl EditorState {
                                     .into(),
                                 );
                             }
-                            Selection::Event(index) => {
+                            Selection::Events(_) => {
+                                let mut events = level_editor.selection.to_editor_events();
+                                // NOTE: delete events in reverse order because we are using raw indexes
+                                events.sort();
                                 actions.push(
-                                    LevelAction::DeleteEvent(EditorEventIdx::Event(*index)).into(),
-                                );
-                            }
-                            Selection::Timing(index) => {
-                                actions.push(
-                                    LevelAction::DeleteEvent(EditorEventIdx::Timing(*index)).into(),
+                                    LevelAction::list(
+                                        events.into_iter().rev().map(LevelAction::DeleteEvent),
+                                    )
+                                    .into(),
                                 );
                             }
                         }
@@ -535,8 +536,7 @@ impl EditorState {
                                     Selection::Empty => vec![],
                                     Selection::Lights(light_ids) => light_ids,
                                     Selection::Waypoints(light_id, _) => vec![light_id],
-                                    Selection::Event(_) => vec![],
-                                    Selection::Timing(_) => vec![],
+                                    Selection::Events(_) => vec![],
                                 };
                                 actions.push(
                                     LevelAction::SelectLight(SelectMode::Set, lights.clone())
@@ -576,8 +576,7 @@ impl EditorState {
                                         Selection::Empty => vec![],
                                         Selection::Lights(vec) => vec.clone(),
                                         Selection::Waypoints(light_id, _) => vec![*light_id],
-                                        Selection::Event(_) => vec![],
-                                        Selection::Timing(_) => vec![],
+                                        Selection::Events(_) => vec![],
                                     }
                                 } else {
                                     actions.push(

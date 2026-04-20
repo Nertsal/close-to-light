@@ -164,13 +164,15 @@ impl TimelineWidget {
                         {
                             Selection::Lights(vec![LightId { event: idx }])
                         } else {
-                            Selection::Event(idx)
+                            Selection::Events(vec![TopLevelEventIdx::Event(idx)])
                         }
                     }
                     EditorEventIdx::Waypoint(light_id, waypoint_id) => {
                         Selection::Waypoints(light_id, vec![waypoint_id])
                     }
-                    EditorEventIdx::Timing(idx) => Selection::Timing(idx),
+                    EditorEventIdx::Timing(idx) => {
+                        Selection::Events(vec![TopLevelEventIdx::Timing(idx)])
+                    }
                 };
                 selection.merge(single);
             }
@@ -351,13 +353,13 @@ impl TimelineWidget {
                         .into_iter()
                         .filter_map(|id| Some((id, editor_event_time(id, level_editor)?)))
                         .collect();
-                    actions.extend([
-                        LevelAction::SelectEvent(event_i).into(),
-                        EditorStateAction::StartDrag(DragTarget::TimelineEvent {
-                            initial_time: event_time,
-                            targets,
-                        }),
-                    ]);
+                    if !is_selected {
+                        actions.push(LevelAction::SelectEvent(event_i).into());
+                    }
+                    actions.push(EditorStateAction::StartDrag(DragTarget::TimelineEvent {
+                        initial_time: event_time,
+                        targets,
+                    }));
                 }
                 selectable(event_i, &icon.state, selection);
             }

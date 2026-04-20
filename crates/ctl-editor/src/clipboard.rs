@@ -6,7 +6,11 @@ pub struct Clipboard {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ClipboardItem {
-    Events(Time, Vec<TimedEvent>),
+    Events {
+        time: Time,
+        events: Vec<TimedEvent>,
+        timing: Vec<TimingPoint>,
+    },
 }
 
 impl Default for Clipboard {

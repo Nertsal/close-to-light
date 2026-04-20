@@ -428,11 +428,8 @@ impl LayoutHelper<'_> {
                     *light_id, selected, tooltip, &mut bar, actions, context,
                 );
             }
-            &Selection::Event(event_i) => {
-                self.layout_selected_event(event_i, tooltip, &mut bar, actions, context);
-            }
-            &Selection::Timing(idx) => {
-                self.layout_selected_timing(idx, tooltip, &mut bar, actions, context);
+            Selection::Events(idxs) => {
+                self.layout_selected_events(idxs, tooltip, &mut bar, actions, context);
             }
         }
     }
@@ -849,6 +846,30 @@ impl LayoutHelper<'_> {
         tooltip.update(&button.text.state, "X", context);
         if button.text.state.mouse_left.clicked {
             actions.push(LevelAction::DeleteEvent(event_idx).into());
+        }
+    }
+
+    fn layout_selected_events(
+        &self,
+        idxs: &[TopLevelEventIdx],
+        tooltip: &mut TooltipWidget,
+        bar: &mut Aabb2<f32>,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        match idxs {
+            [] => {}
+            &[TopLevelEventIdx::Event(event_i)] => {
+                // Single event
+                self.layout_selected_event(event_i, tooltip, bar, actions, context);
+            }
+            &[TopLevelEventIdx::Timing(timing_i)] => {
+                // Single timing
+                self.layout_selected_timing(timing_i, tooltip, bar, actions, context);
+            }
+            _ => {
+                // Multiple events
+            }
         }
     }
 
