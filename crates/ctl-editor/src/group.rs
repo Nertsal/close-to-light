@@ -397,7 +397,7 @@ impl Editor {
             }
         }
 
-        level_editor.scroll_time(target - level_editor.current_time.target);
+        level_editor.scroll_time(Change::Set(target));
         if let Some(music) = &level_editor.static_level.group.music
             && self.config.playback_duration > FloatTime::ZERO
         {

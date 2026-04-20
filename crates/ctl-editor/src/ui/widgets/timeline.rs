@@ -1245,7 +1245,7 @@ impl TimelineWidget {
 
         if self.main_line.mouse_left.clicked {
             let time = self.get_cursor_time();
-            actions.push(LevelAction::ScrollTime(time - level_editor.current_time.target).into());
+            actions.push(LevelAction::ScrollTime(Change::Set(time)).into());
         }
 
         self.reload(context, editor, level_editor, actions);

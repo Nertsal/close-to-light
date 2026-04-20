@@ -61,6 +61,20 @@ impl EditorState {
                 geng::Key::ArrowRight => {
                     actions.push(EditorAction::ScrollTimeBy(scroll_speed, 1).into());
                 }
+                geng::Key::PageDown => {
+                    actions.push(EditorAction::ScrollTimeBy(ScrollSpeed::Fast, -1).into());
+                }
+                geng::Key::PageUp => {
+                    actions.push(EditorAction::ScrollTimeBy(ScrollSpeed::Fast, -1).into());
+                }
+                geng::Key::Home => {
+                    actions.push(LevelAction::ScrollTime(Change::Set(Time::ZERO)).into());
+                }
+                geng::Key::End => {
+                    let last_time = level_editor.level.last_time();
+                    actions.push(LevelAction::ScrollTime(Change::Set(last_time)).into());
+                }
+
                 geng::Key::C if ctrl => {
                     actions.push(LevelAction::Copy.into());
                 }

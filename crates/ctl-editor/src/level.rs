@@ -529,7 +529,7 @@ impl LevelEditor {
         }
     }
 
-    pub fn scroll_time(&mut self, delta: Time) {
+    pub fn scroll_time(&mut self, change: Change<Time>) {
         if let EditingState::Playing { .. } = self.state {
             return;
         }
@@ -537,7 +537,10 @@ impl LevelEditor {
         let margin = 100 * TIME_IN_FLOAT_TIME;
         let min = Time::ZERO;
         let max = margin + self.level.last_time();
-        let target = (self.current_time.target + delta).clamp(min, max);
+
+        let mut target = self.current_time.target;
+        change.apply(&mut target);
+        let target = target.clamp(min, max);
 
         let target_time = self.level.timing.snap_to_beat(target, self.beat_snap);
         self.current_time.scroll_time(Change::Set(target_time));

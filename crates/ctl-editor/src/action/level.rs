@@ -18,7 +18,7 @@ pub enum LevelAction {
     ToggleWaypointsView,
     ScalePlacement(Change<Coord>),
     RotatePlacement(Angle<Coord>),
-    ScrollTime(Time),
+    ScrollTime(Change<Time>),
     SetBeatSnap(BeatTime),
     TimelineZoom(Change<f32>),
     CameraPan(Change<vec2<f32>>),
@@ -143,7 +143,7 @@ impl LevelAction {
             LevelAction::ToggleWaypointsView => false,
             LevelAction::ScalePlacement(delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
-            LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
+            LevelAction::ScrollTime(delta) => delta.is_noop(&Time::ZERO),
             LevelAction::SetBeatSnap(_) => false,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
@@ -953,10 +953,7 @@ impl LevelEditor {
                 })
                 .flatten();
             if let Some(waypoint_time) = waypoint_time {
-                self.execute(
-                    LevelAction::ScrollTime(waypoint_time - self.current_time.target),
-                    None,
-                );
+                self.execute(LevelAction::ScrollTime(Change::Set(waypoint_time)), None);
             }
         }
     }
