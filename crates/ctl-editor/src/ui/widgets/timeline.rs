@@ -305,7 +305,7 @@ impl TimelineWidget {
         let can_focus = context.can_focus();
         let visible_scroll = self.visible_scroll();
 
-        let regular_event = |event_i: EditorEventIdx,
+        let regular_event = |event_i: TopLevelEventIdx,
                              event_time: Time,
                              event_duration: Time,
                              texture: SubTexture,
@@ -313,7 +313,7 @@ impl TimelineWidget {
                              actions: &mut Vec<EditorStateAction>,
                              occupied: &mut BTreeMap<i64, usize>,
                              dots: &mut Vec<vec2<f32>>| {
-            let is_selected = level_editor.selection.is_selected(event_i);
+            let is_selected = level_editor.selection.is_selected(event_i.into());
 
             let on_top_of_highlight = !is_selected
                 && self
@@ -347,21 +347,34 @@ impl TimelineWidget {
                     let ids = if is_selected {
                         level_editor.selection.to_editor_events()
                     } else {
-                        vec![event_i]
+                        vec![event_i.into()]
                     };
                     let targets = ids
                         .into_iter()
                         .filter_map(|id| Some((id, editor_event_time(id, level_editor)?)))
                         .collect();
-                    if !is_selected {
-                        actions.push(LevelAction::SelectEvent(event_i).into());
+                    if multi_select_mode {
+                        // Toggle selection
+                        actions
+                            .push(LevelAction::SelectEvent(selection_mode, vec![event_i]).into());
+                    } else if is_selected {
+                        // Drag whole selection
+                        actions.push(EditorStateAction::StartDrag(DragTarget::TimelineEvent {
+                            initial_time: event_time,
+                            targets,
+                        }));
+                    } else {
+                        // Drag single light
+                        actions.extend([
+                            LevelAction::SelectEvent(SelectMode::Set, vec![event_i]).into(),
+                            EditorStateAction::StartDrag(DragTarget::TimelineEvent {
+                                initial_time: event_time,
+                                targets,
+                            }),
+                        ]);
                     }
-                    actions.push(EditorStateAction::StartDrag(DragTarget::TimelineEvent {
-                        initial_time: event_time,
-                        targets,
-                    }));
                 }
-                selectable(event_i, &icon.state, selection);
+                selectable(event_i.into(), &icon.state, selection);
             }
 
             if is_selected || is_hovered {
@@ -446,7 +459,7 @@ impl TimelineWidget {
 
         // Timing points
         for (idx, point) in level_editor.level.timing.points.iter().enumerate() {
-            let idx = EditorEventIdx::Timing(idx);
+            let idx = TopLevelEventIdx::Timing(idx);
             regular_event(
                 idx,
                 point.time,
@@ -870,7 +883,7 @@ impl TimelineWidget {
                         };
 
                         regular_event(
-                            EditorEventIdx::Event(event_i),
+                            TopLevelEventIdx::Event(event_i),
                             event.time,
                             duration,
                             texture,

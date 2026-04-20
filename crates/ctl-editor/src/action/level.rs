@@ -29,7 +29,7 @@ pub enum LevelAction {
     DeselectWaypoint,
 
     // General event
-    SelectEvent(EditorEventIdx),
+    SelectEvent(SelectMode, Vec<TopLevelEventIdx>),
     DeleteEvent(EditorEventIdx),
     MoveEvent(EditorEventIdx, Change<Time>),
     MoveEvents(Vec<(EditorEventIdx, Change<Time>)>),
@@ -151,7 +151,7 @@ impl LevelAction {
             LevelAction::Deselect => false,
             LevelAction::DeselectWaypoint => false,
 
-            LevelAction::SelectEvent(_) => false,
+            LevelAction::SelectEvent(_, _) => false,
             LevelAction::DeleteEvent(_) => false,
             LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
             LevelAction::MoveEvents(events) => events.is_empty(),
@@ -328,26 +328,7 @@ impl LevelEditor {
                 }
             }
 
-            LevelAction::SelectEvent(index) => match index {
-                EditorEventIdx::Event(index) => {
-                    if self.level.events.get(index).is_some() {
-                        self.selection = Selection::Events(vec![TopLevelEventIdx::Event(index)]);
-                    }
-                }
-                EditorEventIdx::Waypoint(light_id, waypoint_id) => {
-                    if let Some(event) = self.level.events.get(light_id.event)
-                        && let Event::Light(light) = &event.event
-                        && light.movement.get_frame(waypoint_id).is_some()
-                    {
-                        self.selection = Selection::Waypoints(light_id, vec![waypoint_id]);
-                    }
-                }
-                EditorEventIdx::Timing(index) => {
-                    if self.level.timing.points.get(index).is_some() {
-                        self.selection = Selection::Events(vec![TopLevelEventIdx::Timing(index)]);
-                    }
-                }
-            },
+            LevelAction::SelectEvent(mode, idxs) => self.select_event(mode, idxs),
             LevelAction::DeleteEvent(index) => match index {
                 EditorEventIdx::Event(index) => {
                     if self.level.events.get(index).is_some() {
@@ -855,6 +836,38 @@ impl LevelEditor {
                 self.save_state(default());
             }
             WaypointId::Last => {} // Noop
+        }
+    }
+
+    fn select_event(&mut self, mode: SelectMode, ids: Vec<TopLevelEventIdx>) {
+        self.level_state.waypoints = None;
+        self.state = EditingState::Idle;
+        match mode {
+            SelectMode::Add => {
+                for id in ids {
+                    self.selection.add_event(id);
+                }
+            }
+            SelectMode::Remove => {
+                for id in ids {
+                    self.selection.remove_event(id);
+                }
+            }
+            SelectMode::Toggle => {
+                for id in ids {
+                    if self.selection.is_selected(id.into()) {
+                        self.selection.remove_event(id);
+                    } else {
+                        self.selection.add_event(id);
+                    }
+                }
+            }
+            SelectMode::Set => {
+                self.selection.clear();
+                for id in ids {
+                    self.selection.add_event(id);
+                }
+            }
         }
     }
 

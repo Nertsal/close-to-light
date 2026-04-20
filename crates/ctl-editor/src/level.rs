@@ -135,6 +135,34 @@ impl Selection {
         }
     }
 
+    pub fn add_event(&mut self, id: TopLevelEventIdx) {
+        self.merge(Selection::Events(vec![id]));
+    }
+
+    pub fn remove_event(&mut self, id: TopLevelEventIdx) {
+        match self {
+            Selection::Empty => {}
+            Selection::Lights(lights) => {
+                if let Some(i) = lights
+                    .iter()
+                    .position(|l| TopLevelEventIdx::Event(l.event) == id)
+                {
+                    lights.swap_remove(i);
+                }
+            }
+            Selection::Waypoints(light_id, _) => {
+                if TopLevelEventIdx::Event(light_id.event) == id {
+                    *self = Selection::Empty;
+                }
+            }
+            Selection::Events(ids) => {
+                if let Some(i) = ids.iter().position(|&idx| idx == id) {
+                    ids.swap_remove(i);
+                }
+            }
+        }
+    }
+
     pub fn light_single(&self) -> Option<LightId> {
         match self {
             Selection::Empty => None,
