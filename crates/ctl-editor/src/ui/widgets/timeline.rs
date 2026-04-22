@@ -1,3 +1,14 @@
+// Timeline Selection Logic
+// input states
+// 1. idle - nothing selected
+//   - start dragging to create a selection area or just select a singular item
+//     no movement happens during selection
+// 2. single event selected
+//    this event is displayed at the bottom of the timeline so it is always visible
+//    a highlight bar is shown below the timeline
+//    - selecting an area has to preserve the positioning of elements,
+//      so until the selection is confirmed, the single selected event is at the bottom of the timeline
+
 use super::*;
 
 use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId};
@@ -140,6 +151,13 @@ impl TimelineWidget {
         });
         self.selection_area = selection_area;
 
+        let original_selection = if let Some(drag) = &editor.drag
+            && let DragTarget::SelectionAreaTimeline { original } = &drag.target
+        {
+            original
+        } else {
+            &level_editor.selection
+        };
         // Waypoints view when light is single selected (confirmed, so not in selection drag)
         let select_inside_light = if selection_area.is_some() {
             if let Some(drag) = &editor.drag
@@ -208,9 +226,10 @@ impl TimelineWidget {
         };
 
         // Check highlight bounds
-        if selection_area.is_none() || select_inside_light.is_some() {
-            let light_selection = level_editor
-                .selection
+        if selection_area.is_none()
+            || (select_inside_light.is_some() || original_selection.single().is_some())
+        {
+            let light_selection = original_selection
                 .light_single()
                 .and_then(|id| level_editor.level.events.get(id.event))
                 .and_then(|event| {
@@ -230,8 +249,7 @@ impl TimelineWidget {
                     }
                 });
             self.highlight_bar = light_selection.or_else(|| {
-                level_editor
-                    .selection
+                original_selection
                     .single()
                     .and_then(|id| {
                         if let EditorEventIdx::Event(id) = id {
@@ -313,17 +331,30 @@ impl TimelineWidget {
                              actions: &mut Vec<EditorStateAction>,
                              occupied: &mut BTreeMap<i64, usize>,
                              dots: &mut Vec<vec2<f32>>| {
-            let is_selected = level_editor.selection.is_selected(event_i.into());
+            let is_selected_temp = level_editor.selection.is_selected(event_i.into());
+            let is_selected_confirmed = original_selection.is_selected(event_i.into());
+            let is_selected_single = original_selection.is_single(event_i.into());
 
-            let on_top_of_highlight = !is_selected
-                && self
+            let overlapped = if !is_selected_single {
+                let on_top_of_highlight = self
                     .highlight_bar
                     .as_ref()
                     .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time));
-            let overlapped = *occupied
-                .entry(event_time)
-                .and_modify(|x| *x += 1)
-                .or_insert(if on_top_of_highlight { 1 } else { 0 });
+                *occupied
+                    .entry(event_time)
+                    .and_modify(|x| *x += 1)
+                    .or_insert(if on_top_of_highlight { 1 } else { 0 })
+            } else {
+                if self.highlight_bar.is_none() {
+                    // if this event does not get a highlight bar (e.g. timing point)
+                    // then the overlap need to be adjusted manually
+                    occupied
+                        .entry(event_time)
+                        .and_modify(|x| *x += 1)
+                        .or_insert(0);
+                }
+                0
+            };
 
             let mut is_hovered = false;
             let visible = (event_time + self.scroll).abs() < visible_scroll / 2;
@@ -338,13 +369,13 @@ impl TimelineWidget {
                 context.update_focus(icon.state.hovered);
                 is_hovered = is_hovered || icon.state.hovered;
                 icon.color = ThemeColor::Light;
-                if is_selected {
+                if is_selected_temp {
                     icon.bg_color = ThemeColor::Highlight;
                 } else {
                     icon.bg_color = ThemeColor::Dark;
                 }
                 if icon.state.mouse_left.just_pressed {
-                    let ids = if is_selected {
+                    let ids = if is_selected_confirmed {
                         level_editor.selection.to_editor_events()
                     } else {
                         vec![event_i.into()]
@@ -357,7 +388,7 @@ impl TimelineWidget {
                         // Toggle selection
                         actions
                             .push(LevelAction::SelectEvent(selection_mode, vec![event_i]).into());
-                    } else if is_selected {
+                    } else if is_selected_confirmed {
                         // Drag whole selection
                         actions.push(EditorStateAction::StartDrag(DragTarget::TimelineEvent {
                             initial_time: event_time,
@@ -377,7 +408,7 @@ impl TimelineWidget {
                 selectable(event_i.into(), &icon.state, selection);
             }
 
-            if is_selected || is_hovered {
+            if is_selected_single || is_hovered {
                 // Dots
                 let last_dot_time = event_time;
                 let time = event_time + event_duration;
@@ -389,7 +420,7 @@ impl TimelineWidget {
                 let step = timing.beat_time / r32(resolution);
                 let ds = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1).floor()
                     as usize;
-                let overlapped = if is_selected { 0 } else { overlapped };
+                let overlapped = if is_selected_confirmed { 0 } else { overlapped };
                 let ds = (0..=ds)
                     .map(|i| {
                         let time = last_dot_time + seconds_to_time(step * r32(i as f32));
@@ -483,10 +514,9 @@ impl TimelineWidget {
                     let light_id = LightId { event: event_i };
                     // Waypoints view when single light is selected
                     // and not in area selection mode (unless selecting waypoints)
-                    let is_light_selected_single = level_editor.selection.is_light_single(light_id);
-                    let is_light_selected_single =
-                        is_light_selected_single && select_inside_light == Some(light_id);
-                    if is_light_selected_single {
+                    let is_light_selected_single = original_selection.is_light_single(light_id);
+                    let show_light_waypoints = is_light_selected_single;
+                    if show_light_waypoints {
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + light_event.movement.duration();
@@ -666,7 +696,7 @@ impl TimelineWidget {
                     let mut overlapped = 0;
                     let light_time = event.time + light_event.movement.get_fade_in();
                     // Idle light icon
-                    if visible && !is_light_selected_single {
+                    if visible && !show_light_waypoints {
                         let on_top_of_highlight = self
                             .highlight_bar
                             .as_ref()
@@ -759,7 +789,7 @@ impl TimelineWidget {
                     }
                     let is_hovered =
                         is_hovered || level_editor.level_state.hovered_light == Some(light_id);
-                    if !is_light_selected_single && is_hovered {
+                    if !show_light_waypoints && is_hovered {
                         // Hover preview waypoints
                         for (_, _, offset) in light_event.movement.timed_transforms() {
                             // Icon
@@ -779,7 +809,7 @@ impl TimelineWidget {
                             context.update_focus(icon.state.hovered);
                         }
                     }
-                    if is_light_selected_single || is_hovered {
+                    if show_light_waypoints || is_hovered {
                         // Dots
                         let last_dot_time = event.time;
                         let time = event.time + light_event.movement.duration();
@@ -791,11 +821,7 @@ impl TimelineWidget {
                         let step = timing.beat_time / r32(resolution);
                         let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
                             .floor() as usize;
-                        let overlapped = if is_light_selected_single {
-                            0
-                        } else {
-                            overlapped
-                        };
+                        let overlapped = if show_light_waypoints { 0 } else { overlapped };
                         let dots = (0..=dots)
                             .map(|i| {
                                 let time = last_dot_time + seconds_to_time(step * r32(i as f32));
@@ -807,7 +833,7 @@ impl TimelineWidget {
                     }
                 }
                 Event::Effect(effect) => {
-                    let is_selected = level_editor.selection.is_single(event_idx);
+                    let is_selected = original_selection.is_single(event_idx);
                     let duration = match *effect {
                         EffectEvent::PaletteSwap(duration)
                         | EffectEvent::RgbSplit(duration)
