@@ -88,7 +88,9 @@ pub enum DragTarget {
     WaypointMove {
         light: LightId,
         waypoints: Vec<DragWaypoint>,
-        align_pos: vec2<Coord>,
+        anchor: WaypointId,
+        anchor_offset: vec2<Coord>,
+        anchor_offset_time: Time,
     },
     WaypointScale {
         light: LightId,

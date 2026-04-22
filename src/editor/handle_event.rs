@@ -440,34 +440,42 @@ impl EditorState {
             DragTarget::WaypointMove {
                 light,
                 waypoints,
-                align_pos,
+                anchor,
+                anchor_offset,
+                anchor_offset_time,
             } => {
                 if !drag.moved {
                     return actions;
                 }
+                let Some((anchor_time, anchor_pos)) = level_editor
+                    .level
+                    .events
+                    .get(light.event)
+                    .and_then(|event| {
+                        let Event::Light(light) = &event.event else {
+                            return None;
+                        };
+                        let waypoint = light.movement.get_frame(*anchor)?;
+                        let time = event.time + light.movement.get_time(*anchor)?;
+                        Some((time, waypoint.translation))
+                    })
+                else {
+                    return actions;
+                };
+                let shift_position =
+                    self.editor.cursor_world_pos_snapped - anchor_pos + *anchor_offset;
+                let shift_time =
+                    level_editor.current_time.target - anchor_time + *anchor_offset_time;
                 actions.push(
                     LevelAction::MoveWaypoint(
                         *light,
                         waypoints
                             .iter()
                             .flat_map(|waypoint| {
-                                let timed_event = level_editor.level.events.get(light.event)?;
-                                let Event::Light(event) = &timed_event.event else {
-                                    return None;
-                                };
-                                let point = event.movement.get_frame(waypoint.id)?;
-                                let point_time =
-                                    timed_event.time + event.movement.get_time(waypoint.id)?;
                                 Some((
                                     waypoint.id,
-                                    Change::Set(
-                                        point_time + level_editor.current_time.target
-                                            - drag.from_beat,
-                                    ),
-                                    Change::Set(
-                                        point.translation + self.editor.cursor_world_pos_snapped
-                                            - *align_pos,
-                                    ),
+                                    Change::Add(shift_time),
+                                    Change::Add(shift_position),
                                 ))
                             })
                             .collect(),
@@ -829,25 +837,32 @@ impl EditorState {
                 //     }));
                 // } else
                 {
-                    let align_pos = level_editor
+                    let anchor = waypoint_id;
+                    let (align_pos, align_time) = level_editor
                         .level
                         .events
                         .get(waypoints.light.event)
                         .and_then(|event| {
                             if let Event::Light(light) = &event.event {
-                                light.movement.get_frame(waypoint_id)
+                                let waypoint = light.movement.get_frame(waypoint_id)?;
+                                let time = event.time + light.movement.get_time(waypoint_id)?;
+                                Some((waypoint.translation, time))
                             } else {
                                 None
                             }
                         })
-                        .map(|waypoint| waypoint.translation)
-                        .unwrap_or(self.editor.cursor_world_pos_snapped);
+                        .unwrap_or((
+                            self.editor.cursor_world_pos_snapped,
+                            level_editor.current_time.target,
+                        ));
                     let drag_waypoints =
                         selected.into_iter().map(|id| DragWaypoint { id }).collect();
                     actions.push(EditorStateAction::StartDrag(DragTarget::WaypointMove {
                         light: waypoints.light,
                         waypoints: drag_waypoints,
-                        align_pos,
+                        anchor,
+                        anchor_offset: align_pos - self.editor.cursor_world_pos_snapped,
+                        anchor_offset_time: align_time - level_editor.current_time.target,
                     }));
                 }
             }
