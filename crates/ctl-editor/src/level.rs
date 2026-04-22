@@ -44,7 +44,7 @@ pub enum Selection {
     Events(Vec<TopLevelEventIdx>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TopLevelEventIdx {
     Event(usize),
     Timing(usize),
@@ -342,9 +342,15 @@ impl Selection {
             Selection::Events(mut ids) => match self {
                 Selection::Lights(light_ids) => {
                     ids.extend(light_ids.iter().map(|id| TopLevelEventIdx::Event(id.event)));
+                    ids.sort();
+                    ids.dedup();
                     *self = Selection::Events(ids);
                 }
-                Selection::Events(event_ids) => event_ids.extend(ids),
+                Selection::Events(event_ids) => {
+                    event_ids.extend(ids);
+                    event_ids.sort();
+                    event_ids.dedup();
+                }
                 _ => *self = Selection::Events(ids),
             },
         }
