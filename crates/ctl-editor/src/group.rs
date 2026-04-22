@@ -81,7 +81,9 @@ pub enum DragTarget {
         /// If the drag is short, waypoints will be toggled.
         double: bool,
         lights: Vec<DragLight>,
-        align_pos: vec2<Coord>,
+        light_anchor: LightId,
+        anchor_offset: vec2<Coord>,
+        anchor_offset_time: Time,
     },
     WaypointMove {
         light: LightId,
@@ -99,15 +101,11 @@ pub enum DragTarget {
 #[derive(Debug, Clone)]
 pub struct DragLight {
     pub id: LightId,
-    pub initial_time: Time,
-    pub initial_translation: vec2<Coord>,
 }
 
 #[derive(Debug, Clone)]
 pub struct DragWaypoint {
     pub id: WaypointId,
-    pub initial_time: Time,
-    pub initial_translation: vec2<Coord>,
 }
 
 impl Editor {
