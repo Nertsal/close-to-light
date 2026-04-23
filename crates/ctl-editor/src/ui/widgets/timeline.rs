@@ -138,6 +138,18 @@ impl TimelineWidget {
         let enable_beat_snap = !context.mods.ctrl;
         let beat_snap = level_editor.beat_snap;
 
+        let select_single_thing = if let Some(area) = self.selection_area
+            && area.bottom_left() == area.top_right()
+            && context.mods.shift
+            && !context.cursor.left.down
+            && context.cursor.left.was_down
+        {
+            // Just released the timeline selection with shift mode - select the hovered thing
+            true
+        } else {
+            false
+        };
+
         let mut extra_selection = Selection::Empty;
         let selection_area = editor.drag.as_ref().and_then(|drag| {
             if let DragTarget::SelectionAreaTimeline { .. } = drag.target {
@@ -374,7 +386,7 @@ impl TimelineWidget {
                 } else {
                     icon.bg_color = ThemeColor::Dark;
                 }
-                if icon.state.mouse_left.just_pressed {
+                if icon.state.mouse_left.just_pressed || select_single_thing && icon.state.hovered {
                     let ids = if is_selected_confirmed {
                         level_editor.selection.to_editor_events()
                     } else {
@@ -487,6 +499,26 @@ impl TimelineWidget {
                 )
                 .into(),
             );
+        }
+
+        // Start selection area drag if Shift clicking
+        let dragging = if let Some(drag) = &editor.drag
+            && let DragTarget::TimelineEvent { .. } = drag.target
+        {
+            true
+        } else {
+            false
+        };
+        if !dragging
+            && context.can_focus()
+            && self.state.mouse_left.just_pressed
+            && context.mods.shift
+        {
+            // Add to selection
+            let original = level_editor.selection.clone();
+            actions.push(EditorStateAction::StartDrag(
+                DragTarget::SelectionAreaTimeline { original },
+            ));
         }
 
         // Timing points
@@ -639,6 +671,7 @@ impl TimelineWidget {
                             };
                             if icon.state.mouse_left.just_pressed
                                 || tick.state.mouse_left.just_pressed
+                                || select_single_thing && icon.state.hovered
                             {
                                 if multi_select_mode {
                                     // Toggle selection
@@ -743,7 +776,9 @@ impl TimelineWidget {
                             if icon.state.hovered {
                                 actions.push(LevelAction::HoverLight(light_id).into());
                             }
-                            if icon.state.mouse_left.just_pressed {
+                            if icon.state.mouse_left.just_pressed
+                                || select_single_thing && icon.state.hovered
+                            {
                                 if multi_select_mode {
                                     // Toggle selection
                                     actions.push(
@@ -929,13 +964,11 @@ impl TimelineWidget {
             && let DragTarget::SelectionAreaTimeline { original } = &drag.target
         {
             let mut selection = original.clone();
-            match selection_mode {
-                SelectMode::Add => selection.merge(extra_selection),
-                SelectMode::Set => selection = extra_selection,
-                _ => {
-                    log::error!("Invalid selection mode for timeline");
-                    selection.merge(extra_selection);
-                }
+            // TODO: proper selection modes
+            if context.mods.shift {
+                selection.merge(extra_selection)
+            } else {
+                selection = extra_selection
             }
             actions.push(LevelAction::SetSelection(selection).into());
         }
