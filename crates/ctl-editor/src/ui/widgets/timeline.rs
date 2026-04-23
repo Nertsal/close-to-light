@@ -434,6 +434,7 @@ impl TimelineWidget {
 
         // Update drag
         if let Some(drag) = &editor.drag
+            && drag.moved
             && let DragTarget::TimelineEvent {
                 initial_time,
                 targets: drag_ids,
