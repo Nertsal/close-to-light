@@ -701,13 +701,29 @@ impl LevelEditor {
             hovered_light = cursor_world_pos.and_then(|cursor| {
                 // Check if the selected light is under the cursor to give it action priority
                 let selected = match &self.selection {
+                    Selection::Events(ids) => {
+                        // Priority to selected lights
+                        ids.iter().find_map(|id| {
+                            if let &TopLevelEventIdx::Event(id) = id {
+                                level
+                                    .lights
+                                    .iter()
+                                    .find(|light| light.event_id == Some(id))
+                                    .is_some_and(|light| light.contains_point(cursor))
+                                    .then_some(LightId { event: id })
+                            } else {
+                                None
+                            }
+                        })
+                    }
                     Selection::Lights(ids) => {
                         // Priority to selected lights
                         ids.iter()
                             .find(|id| {
                                 level
                                     .lights
-                                    .get(id.event)
+                                    .iter()
+                                    .find(|light| light.event_id == Some(id.event))
                                     .is_some_and(|light| light.contains_point(cursor))
                             })
                             .copied()
@@ -717,7 +733,7 @@ impl LevelEditor {
                         .get(id.event)
                         .is_some_and(|light| light.contains_point(cursor))
                         .then_some(*id),
-                    Selection::Empty | Selection::Events(_) => None,
+                    Selection::Empty => None,
                 };
                 selected.or_else(||
                         // Prioritise the light closest to the cursor
