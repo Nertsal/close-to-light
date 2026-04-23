@@ -542,14 +542,6 @@ impl EditorState {
                         && let Event::Light(_light) = &e.event
                     {
                         let light_anchor = light_id;
-                        let align_pos = level_editor
-                            .level_state
-                            .relevant()
-                            .lights
-                            .iter()
-                            .find(|light| light.event_id == Some(event))
-                            .map(|light| light.collider.position)
-                            .unwrap_or(self.editor.cursor_world_pos_snapped);
                         match button {
                             geng::MouseButton::Left => {
                                 // Left click
@@ -587,7 +579,7 @@ impl EditorState {
                                         })
                                         .collect(),
                                     light_anchor,
-                                    anchor_offset: align_pos - self.editor.cursor_world_pos_snapped,
+                                    anchor_offset: vec2::ZERO,
                                     anchor_offset_time: e.time - level_editor.current_time.target,
                                 };
                                 actions.push(EditorStateAction::StartDrag(target));
@@ -713,6 +705,7 @@ impl EditorState {
                                 {
                                     self.click_waypoint(
                                         waypoints,
+                                        hovered,
                                         event,
                                         waypoint,
                                         button,
@@ -752,6 +745,7 @@ impl EditorState {
     fn click_waypoint(
         &self,
         waypoints: &Waypoints,
+        edit: &WaypointEdit,
         event: &TimedEvent,
         waypoint_id: WaypointId,
         button: geng::MouseButton,
@@ -838,30 +832,32 @@ impl EditorState {
                 // } else
                 {
                     let anchor = waypoint_id;
-                    let (align_pos, align_time) = level_editor
+                    let align_pos = if edit.control.contains(self.editor.cursor_world_pos) {
+                        edit.control.position
+                    } else if edit.actual.contains(self.editor.cursor_world_pos) {
+                        edit.actual.position
+                    } else {
+                        edit.control.position
+                    };
+                    let align_time = level_editor
                         .level
                         .events
                         .get(waypoints.light.event)
                         .and_then(|event| {
                             if let Event::Light(light) = &event.event {
-                                let waypoint = light.movement.get_frame(waypoint_id)?;
-                                let time = event.time + light.movement.get_time(waypoint_id)?;
-                                Some((waypoint.translation, time))
+                                Some(event.time + light.movement.get_time(waypoint_id)?)
                             } else {
                                 None
                             }
                         })
-                        .unwrap_or((
-                            self.editor.cursor_world_pos_snapped,
-                            level_editor.current_time.target,
-                        ));
+                        .unwrap_or(level_editor.current_time.target);
                     let drag_waypoints =
                         selected.into_iter().map(|id| DragWaypoint { id }).collect();
                     actions.push(EditorStateAction::StartDrag(DragTarget::WaypointMove {
                         light: waypoints.light,
                         waypoints: drag_waypoints,
                         anchor,
-                        anchor_offset: align_pos - self.editor.cursor_world_pos_snapped,
+                        anchor_offset: edit.control.position - align_pos,
                         anchor_offset_time: align_time - level_editor.current_time.target,
                     }));
                 }
