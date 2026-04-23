@@ -928,7 +928,14 @@ impl TimelineWidget {
             && let DragTarget::SelectionAreaTimeline { original } = &drag.target
         {
             let mut selection = original.clone();
-            selection.merge(extra_selection);
+            match selection_mode {
+                SelectMode::Add => selection.merge(extra_selection),
+                SelectMode::Set => selection = extra_selection,
+                _ => {
+                    log::error!("Invalid selection mode for timeline");
+                    selection.merge(extra_selection);
+                }
+            }
             actions.push(LevelAction::SetSelection(selection).into());
         }
 
