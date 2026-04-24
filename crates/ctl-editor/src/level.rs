@@ -549,9 +549,10 @@ impl LevelEditor {
                 timing,
             } => {
                 let new_ids = (0..events.len())
-                    .map(|i| LightId {
-                        event: self.level.events.len() + i,
-                    })
+                    .map(|i| TopLevelEventIdx::Event(self.level.events.len() + i))
+                    .chain((0..timing.len()).map(|i| {
+                        TopLevelEventIdx::Timing(self.level.events.len() + events.len() + i)
+                    }))
                     .collect();
                 self.level
                     .events
@@ -561,8 +562,8 @@ impl LevelEditor {
                     }));
                 self.level.timing.points.extend(timing);
                 self.level.timing.points.sort_by_key(|point| point.time);
-                // Change selection to the new lights
-                self.selection = Selection::Lights(new_ids);
+                // Change selection to the new events
+                self.selection = Selection::Events(new_ids);
             }
         }
     }
