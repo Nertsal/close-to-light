@@ -29,3 +29,9 @@ pub fn world_to_screen(
         (pos.y + 1.0) / 2.0 * framebuffer_size.y,
     )
 }
+
+pub fn argsort_by_key<T, K: Ord>(data: &[T], mut f: impl FnMut(&T) -> K) -> Vec<usize> {
+    let mut indices = (0..data.len()).collect::<Vec<_>>();
+    indices.sort_by_key(|&i| f(&data[i]));
+    indices
+}

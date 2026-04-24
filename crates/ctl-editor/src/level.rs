@@ -548,22 +548,34 @@ impl LevelEditor {
                 events,
                 timing,
             } => {
-                let new_ids = (0..events.len())
-                    .map(|i| TopLevelEventIdx::Event(self.level.events.len() + i))
-                    .chain((0..timing.len()).map(|i| {
-                        TopLevelEventIdx::Timing(self.level.events.len() + events.len() + i)
-                    }))
-                    .collect();
+                let events_len = self.level.events.len();
+                let new_ids = (0..events.len()).map(|i| TopLevelEventIdx::Event(events_len + i));
                 self.level
                     .events
                     .extend(events.into_iter().map(|event| TimedEvent {
                         time: self.current_time.target + event.time - time,
                         event: event.event,
                     }));
-                self.level.timing.points.extend(timing);
+
+                let timing_len = self.level.timing.points.len();
+                self.level
+                    .timing
+                    .points
+                    .extend(timing.into_iter().map(|timing| TimingPoint {
+                        time: self.current_time.target + timing.time - time,
+                        beat_time: timing.beat_time,
+                    }));
+                let sorted_idxs =
+                    ctl_util::argsort_by_key(&self.level.timing.points, |point| point.time);
+                let new_ids = new_ids.chain(sorted_idxs.iter().enumerate().flat_map(
+                    |(sorted_idx, &new_idx)| {
+                        (new_idx >= timing_len).then_some(TopLevelEventIdx::Timing(sorted_idx))
+                    },
+                ));
                 self.level.timing.points.sort_by_key(|point| point.time);
+
                 // Change selection to the new events
-                self.selection = Selection::Events(new_ids);
+                self.selection = Selection::Events(new_ids.collect());
             }
         }
     }
