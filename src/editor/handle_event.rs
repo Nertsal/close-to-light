@@ -554,30 +554,13 @@ impl EditorState {
                                         Selection::Empty
                                     };
                                 selection.add_light(light_id);
-                                let lights = match selection {
-                                    Selection::Empty => vec![],
-                                    Selection::Lights(light_ids) => light_ids,
-                                    Selection::Waypoints(light_id, _) => vec![light_id],
-                                    Selection::Events(_) => vec![],
-                                };
-                                actions.push(
-                                    LevelAction::SelectLight(SelectMode::Set, lights.clone())
-                                        .into(),
-                                );
+                                let lights = selection.all_lights(&level_editor.level);
+                                actions.push(LevelAction::SetSelection(selection.clone()).into());
 
                                 let double = level_editor.selection.is_light_selected(light_id);
                                 let target = DragTarget::Light {
                                     double,
-                                    lights: lights
-                                        .into_iter()
-                                        .flat_map(|id| {
-                                            let e = level_editor.level.events.get(id.event)?;
-                                            let Event::Light(_light) = &e.event else {
-                                                return None;
-                                            };
-                                            Some(DragLight { id })
-                                        })
-                                        .collect(),
+                                    lights: lights.into_iter().map(|id| DragLight { id }).collect(),
                                     light_anchor,
                                     anchor_offset: vec2::ZERO,
                                     anchor_offset_time: e.time - level_editor.current_time.target,
@@ -908,7 +891,8 @@ impl EditorState {
             return;
         }
 
-        if let Selection::Lights(lights) = &level_editor.selection {
+        let lights = level_editor.selection.all_lights(&level_editor.level);
+        if !lights.is_empty() {
             let scale = r32(lights.len() as f32).recip();
             let anchor = lights
                 .iter()
@@ -941,9 +925,7 @@ impl EditorState {
 
     fn get_anchor(&self) -> Option<(Vec<LightId>, vec2<Coord>)> {
         let level_editor = self.editor.level_edit.as_ref()?;
-        let Selection::Lights(lights) = &level_editor.selection else {
-            return None;
-        };
+        let lights = level_editor.selection.all_lights(&level_editor.level);
 
         // TODO: option to flip around current position?
         // let event = level_editor.level.events.get(id.event)?;

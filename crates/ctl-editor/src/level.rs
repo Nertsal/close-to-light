@@ -121,6 +121,26 @@ impl Selection {
         }
     }
 
+    pub fn all_lights(&self, level: &Level) -> Vec<LightId> {
+        match self {
+            Selection::Lights(light_ids) => light_ids.clone(),
+            Selection::Events(events) => events
+                .iter()
+                .flat_map(|&id| {
+                    if let TopLevelEventIdx::Event(i) = id
+                        && let Some(event) = level.events.get(i)
+                        && let Event::Light(_) = &event.event
+                    {
+                        Some(LightId { event: i })
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            Selection::Empty | Selection::Waypoints(..) => vec![],
+        }
+    }
+
     pub fn single(&self) -> Option<EditorEventIdx> {
         match self {
             Selection::Empty => None,
@@ -231,7 +251,11 @@ impl Selection {
                 }
             }
             Selection::Waypoints(light_id, _) => *self = Self::Lights(vec![*light_id, id]),
-            Selection::Events(ids) => ids.push(TopLevelEventIdx::Event(id.event)),
+            Selection::Events(ids) => {
+                if !ids.contains(&TopLevelEventIdx::Event(id.event)) {
+                    ids.push(TopLevelEventIdx::Event(id.event))
+                }
+            }
         }
     }
 
