@@ -62,7 +62,7 @@ impl EditorEditUi {
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
             .extend_up(-layout_size);
         let mut left_bar = main.cut_left(layout_size * 7.0);
-        let right_bar = main.cut_right(layout_size * 7.0);
+        let mut right_bar = main.cut_right(layout_size * 7.0);
 
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
@@ -108,6 +108,11 @@ impl EditorEditUi {
 
         // Placement
         left_bar = helper.layout_placement(self, tooltip, left_bar, actions, context);
+
+        // Copy buffer
+        let buffer = right_bar.cut_top(context.font_size * 1.0);
+        right_bar.cut_top(context.font_size * 0.5);
+        helper.layout_copy_buffer(self, buffer, context);
 
         // Active selection
         helper.layout_selected(self, tooltip, right_bar, actions, context);
@@ -406,6 +411,34 @@ impl LayoutHelper<'_> {
 
         bar.cut_top(context.layout_size * 1.5);
         bar
+    }
+
+    /// Copy/paste buffer
+    fn layout_copy_buffer(&self, _ui: &mut EditorEditUi, pos: Aabb2<f32>, context: &UiContext) {
+        if let Some(ClipboardItem::Events { events, timing, .. }) =
+            self.level_editor.clipboard.get()
+        {
+            let mut count_lights = 0;
+            for event in events {
+                if let Event::Light(_) = event.event {
+                    count_lights += 1;
+                }
+            }
+
+            let count_events = events.len() + timing.len();
+
+            let msg = if count_events == count_lights {
+                format!("Clipboard: {} lights", count_lights)
+            } else {
+                format!("Clipboard: {} events", count_events)
+            };
+
+            let text = context
+                .state
+                .get_root_or(|| TextWidget::new("Buffer: 0 events").aligned(vec2(0.0, 0.5)));
+            text.text = msg.into();
+            text.update(pos, context);
+        }
     }
 
     /// View selected event

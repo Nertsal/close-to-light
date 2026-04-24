@@ -35,4 +35,8 @@ impl Clipboard {
     pub fn paste(&mut self) -> Option<ClipboardItem> {
         self.data.clone()
     }
+
+    pub fn get(&self) -> &Option<ClipboardItem> {
+        &self.data
+    }
 }
