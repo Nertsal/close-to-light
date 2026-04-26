@@ -1,5 +1,9 @@
 use super::*;
 
+/// Radius (in world coordinates) where lights and waypoints are considered as hovered
+/// even when not exactly inside.
+const CURSOR_HOVER_RADIUS: f32 = 0.05;
+
 pub struct LevelEditor {
     pub context: Context,
     /// Static (initial) version of the level.
@@ -883,13 +887,15 @@ impl LevelEditor {
                 }
 
                 let hovered = cursor_world_pos.and_then(|cursor_world_pos| {
+                    let cursor_collider =
+                        Collider::circle(cursor_world_pos, r32(CURSOR_HOVER_RADIUS));
                     points
                         .iter()
                         .enumerate()
                         .filter(|(_, (point, _))| {
                             point.visible
-                                && (point.control.contains(cursor_world_pos)
-                                    || point.actual.contains(cursor_world_pos))
+                                && (point.control.check(&cursor_collider)
+                                    || point.actual.check(&cursor_collider))
                         })
                         .min_by_key(|(_, (_, time))| {
                             (self.current_time.value - event_time - *time).abs()
