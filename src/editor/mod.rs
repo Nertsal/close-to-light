@@ -160,6 +160,8 @@ impl EditorState {
             level_editor.model.camera.center = level_editor.model.camera.center * 0.5
                 + Angle::from_degrees(thread_rng().gen_range(0.0..=360.0)).unit_vec()
                     * level_editor.model.vfx.camera_shake.as_f32();
+        } else {
+            level_editor.model.camera.center = vec2::ZERO;
         }
 
         let include_cursor = !self.ui_focused
