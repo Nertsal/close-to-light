@@ -135,6 +135,13 @@ impl Timing {
         timing.time + delta
     }
 
+    /// Returns the approximation of the beat time.
+    pub fn approximate_beat(&self, time: Time) -> BeatTime {
+        let timing = self.get_timing(time);
+        let beat_time = time_to_seconds(time - timing.time) / timing.beat_time;
+        BeatTime::from_beats_float(beat_time)
+    }
+
     /// Snaps to beat while ignoring a specified timing point.
     pub fn snap_to_beat_without(&self, ignored: usize, time: Time, snap: BeatTime) -> Time {
         let mut timing_i = self.get_timing_index(time);
@@ -187,6 +194,61 @@ impl LightEvent {
             hollow: r32(-1.0),
             event_id,
             closest_waypoint: (Time::ZERO, WaypointId::Initial),
+        }
+    }
+}
+
+#[test]
+fn test_snap_consistency() {
+    let timing = Timing {
+        points: vec![TimingPoint {
+            time: 0,
+            beat_time: r32(60.0 / 200.0),
+        }],
+    };
+
+    assert_eq!(timing.snap_to_beat(0, BeatTime::WHOLE), 0);
+    assert_eq!(timing.snap_to_beat(0, BeatTime::HALF), 0);
+
+    for i in 0..1000 {
+        for subdiv in 0..4 {
+            let time =
+                seconds_to_time(timing.points[0].beat_time * r32(i as f32 + subdiv as f32 / 4.0));
+            let time = timing.snap_to_beat(time, BeatTime::QUARTER);
+            if subdiv == 0 {
+                assert_eq!(
+                    time,
+                    timing.snap_to_beat(time, BeatTime::WHOLE),
+                    "Iteration {}, subdivision {}, time = {}, snap: WHOLE",
+                    i,
+                    subdiv,
+                    time
+                );
+            }
+            assert_eq!(
+                time,
+                timing.snap_to_beat(time, BeatTime::EIGHTH),
+                "Iteration {}, subdivision {}, time = {}, snap: EIGHTH",
+                i,
+                subdiv,
+                time
+            );
+            assert_eq!(
+                time,
+                timing.snap_to_beat(time, BeatTime::SIXTITH),
+                "Iteration {}, subdivision {}, time = {}, snap: SIXTITH",
+                i,
+                subdiv,
+                time
+            );
+            assert_eq!(
+                time,
+                timing.snap_to_beat(time, BeatTime::UNIT),
+                "Iteration {}, subdivision {}, time = {}, snap: UNIT",
+                i,
+                subdiv,
+                time
+            );
         }
     }
 }

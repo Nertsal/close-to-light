@@ -576,31 +576,47 @@ impl LevelEditor {
                 events,
                 timing,
             } => {
-                let events_len = self.level.events.len();
-                let new_ids = (0..events.len()).map(|i| TopLevelEventIdx::Event(events_len + i));
-                self.level
-                    .events
-                    .extend(events.into_iter().map(|event| TimedEvent {
-                        time: self.current_time.target + event.time - time,
-                        event: event.event,
-                    }));
-
+                // Timing
                 let timing_len = self.level.timing.points.len();
-                self.level
-                    .timing
-                    .points
-                    .extend(timing.into_iter().map(|timing| TimingPoint {
-                        time: self.current_time.target + timing.time - time,
-                        beat_time: timing.beat_time,
-                    }));
+                self.level.timing.points.extend(
+                    timing
+                        .into_iter()
+                        .map(|timing| {
+                            let mut time = self.current_time.target + timing.event.time - time;
+                            if timing.beat_aligned {
+                                time = self.level.timing.snap_to_beat(time, BeatTime::UNIT);
+                            }
+                            TimingPoint {
+                                time,
+                                beat_time: timing.event.beat_time,
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                );
                 let sorted_idxs =
                     ctl_util::argsort_by_key(&self.level.timing.points, |point| point.time);
-                let new_ids = new_ids.chain(sorted_idxs.iter().enumerate().flat_map(
-                    |(sorted_idx, &new_idx)| {
+                let new_ids = sorted_idxs
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(sorted_idx, &new_idx)| {
                         (new_idx >= timing_len).then_some(TopLevelEventIdx::Timing(sorted_idx))
-                    },
-                ));
+                    });
                 self.level.timing.points.sort_by_key(|point| point.time);
+
+                // Events
+                let events_len = self.level.events.len();
+                let new_ids = new_ids
+                    .chain((0..events.len()).map(|i| TopLevelEventIdx::Event(events_len + i)));
+                self.level.events.extend(events.into_iter().map(|event| {
+                    let mut time = self.current_time.target + event.event.time - time;
+                    if dbg!(event.beat_aligned) {
+                        time = self.level.timing.snap_to_beat(time, BeatTime::UNIT);
+                    }
+                    TimedEvent {
+                        time,
+                        event: event.event.event,
+                    }
+                }));
 
                 // Change selection to the new events
                 self.selection = Selection::Events(new_ids.collect());

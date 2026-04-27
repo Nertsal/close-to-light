@@ -22,6 +22,13 @@ pub fn time_to_seconds(time: Time) -> FloatTime {
     FloatTime::new(time as f32 / TIME_IN_FLOAT_TIME as f32)
 }
 
+#[test]
+fn test_time_conversion() {
+    for time in 0..1_000_000 {
+        assert_eq!(time, seconds_to_time(time_to_seconds(time)));
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(transparent)]
 struct BeatTimeSerde(FloatTime);
@@ -89,6 +96,11 @@ impl BeatTime {
     pub const SIXTEENTH: Self = Self {
         units: Self::UNITS_PER_BEAT / 16,
     };
+    pub const SIXTITH: Self = Self {
+        units: Self::UNITS_PER_BEAT / 60,
+    };
+    /// The smallest representable unit of beat time.
+    pub const UNIT: Self = Self { units: 1 };
     pub const ZERO: Self = Self { units: 0 };
 
     /// From whole beats.

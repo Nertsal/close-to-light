@@ -232,42 +232,65 @@ impl LevelEditor {
                 return;
             }
             LevelAction::Copy => self.copy(),
-            LevelAction::CopySelection(selection) => match selection {
-                Selection::Empty => self.clipboard.clear(),
-                Selection::Lights(lights) => {
-                    let lights = lights
-                        .into_iter()
-                        .flat_map(|id| self.level.events.get(id.event).cloned())
-                        .collect();
-                    self.clipboard.copy(ClipboardItem::Events {
-                        time: self.current_time.target,
-                        events: lights,
-                        timing: vec![],
-                    });
+            LevelAction::CopySelection(selection) => {
+                macro_rules! to_clipboard {
+                    ($event:expr) => {
+                        ClipboardEvent {
+                            beat_aligned: $event.time
+                                == self.level.timing.snap_to_beat($event.time, BeatTime::UNIT),
+                            event: $event,
+                        }
+                    };
                 }
-                Selection::Waypoints(..) => {
-                    // TODO: copy waypoints maybe?
-                }
-                Selection::Events(idxs) => {
-                    let mut events = Vec::new();
-                    let mut timing = Vec::new();
-                    for idx in idxs {
-                        match idx {
-                            TopLevelEventIdx::Event(idx) => {
-                                events.extend(self.level.events.get(idx).cloned())
-                            }
-                            TopLevelEventIdx::Timing(idx) => {
-                                timing.extend(self.level.timing.points.get(idx).cloned())
+                match selection {
+                    Selection::Empty => self.clipboard.clear(),
+                    Selection::Lights(lights) => {
+                        let lights = lights
+                            .into_iter()
+                            .flat_map(|id| {
+                                let event = self.level.events.get(id.event).cloned()?;
+                                Some(to_clipboard!(event))
+                            })
+                            .collect();
+                        self.clipboard.copy(ClipboardItem::Events {
+                            time: self.current_time.target,
+                            events: lights,
+                            timing: vec![],
+                        });
+                    }
+                    Selection::Waypoints(..) => {
+                        // TODO: copy waypoints maybe?
+                    }
+                    Selection::Events(idxs) => {
+                        let mut events = Vec::new();
+                        let mut timing = Vec::new();
+                        for idx in idxs {
+                            match idx {
+                                TopLevelEventIdx::Event(idx) => events.extend(
+                                    self.level
+                                        .events
+                                        .get(idx)
+                                        .cloned()
+                                        .map(|e| to_clipboard!(e)),
+                                ),
+                                TopLevelEventIdx::Timing(idx) => timing.extend(
+                                    self.level
+                                        .timing
+                                        .points
+                                        .get(idx)
+                                        .cloned()
+                                        .map(|e| to_clipboard!(e)),
+                                ),
                             }
                         }
+                        self.clipboard.copy(ClipboardItem::Events {
+                            time: self.current_time.target,
+                            events,
+                            timing,
+                        });
                     }
-                    self.clipboard.copy(ClipboardItem::Events {
-                        time: self.current_time.target,
-                        events,
-                        timing,
-                    });
                 }
-            },
+            }
             LevelAction::SetSelection(selection) => {
                 self.selection = selection;
             }

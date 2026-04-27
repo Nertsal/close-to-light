@@ -420,7 +420,7 @@ impl LayoutHelper<'_> {
         {
             let mut count_lights = 0;
             for event in events {
-                if let Event::Light(_) = event.event {
+                if let Event::Light(_) = event.event.event {
                     count_lights += 1;
                 }
             }

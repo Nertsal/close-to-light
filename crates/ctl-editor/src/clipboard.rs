@@ -8,9 +8,15 @@ pub struct Clipboard {
 pub enum ClipboardItem {
     Events {
         time: Time,
-        events: Vec<TimedEvent>,
-        timing: Vec<TimingPoint>,
+        events: Vec<ClipboardEvent<TimedEvent>>,
+        timing: Vec<ClipboardEvent<TimingPoint>>,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ClipboardEvent<E> {
+    pub event: E,
+    pub beat_aligned: bool,
 }
 
 impl Default for Clipboard {

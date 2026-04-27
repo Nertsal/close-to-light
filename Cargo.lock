@@ -1761,6 +1761,7 @@ dependencies = [
  "data-encoding",
  "geng",
  "geng-utils",
+ "num-rational",
  "parry2d",
  "serde",
  "sha2",
