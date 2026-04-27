@@ -608,35 +608,6 @@ impl LevelEditor {
         }
     }
 
-    // TODO: reimplement with smooth transition or smth
-    // /// Swap the palette at current time.
-    // fn palette_swap(&mut self) {
-    //     // Remove any already existing palette swap event at current time
-    //     let mut ids = Vec::new();
-    //     for (i, event) in self.level.events.iter().enumerate() {
-    //         if event.beat == self.current_beat {
-    //             if let Event::PaletteSwap = event.event {
-    //                 ids.push(i);
-    //             }
-    //         }
-    //     }
-
-    //     let add = ids.len() % 2 == 0;
-
-    //     // Remove events
-    //     for i in ids.into_iter().rev() {
-    //         self.level.events.swap_remove(i);
-    //     }
-
-    //     if add {
-    //         // Add a new palette swap event
-    //         self.level.events.push(TimedEvent {
-    //             beat: self.current_beat,
-    //             event: Event::PaletteSwap,
-    //         });
-    //     }
-    // }
-
     pub fn new_waypoint(&mut self) {
         if let Selection::Waypoints(..) = self.selection {
             self.execute(LevelAction::Deselect, None);
