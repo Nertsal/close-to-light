@@ -65,7 +65,7 @@ impl EditorState {
                     actions.push(EditorAction::ScrollTimeBy(ScrollSpeed::Fast, -1).into());
                 }
                 geng::Key::PageUp => {
-                    actions.push(EditorAction::ScrollTimeBy(ScrollSpeed::Fast, -1).into());
+                    actions.push(EditorAction::ScrollTimeBy(ScrollSpeed::Fast, 1).into());
                 }
                 geng::Key::Home => {
                     actions.push(LevelAction::ScrollTime(Change::Set(Time::ZERO)).into());
