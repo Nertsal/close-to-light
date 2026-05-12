@@ -211,7 +211,7 @@ async fn load_everything(
     });
 
     #[allow(unused_mut)] // used with only some features
-    let mut client = {
+    let mut client: Option<Nertboard> = {
         #[cfg(not(feature = "online"))]
         {
             None
@@ -228,6 +228,7 @@ async fn load_everything(
     #[cfg(feature = "steam")]
     let steam = {
         let steam = ctl_context::connect_steam();
+        #[cfg(feature = "online")]
         if let Some(steam) = &steam
             && let Some(client) = &mut client
         {

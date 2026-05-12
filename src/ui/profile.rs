@@ -182,7 +182,7 @@ impl StatefulWidget for RegisterWidget {
             state.get_mut().login_discord();
             login = true;
         }
-        #[cfg(feature = "steam")]
+        #[cfg(all(feature = "steam", feature = "online"))]
         if self.steam.icon.state.mouse_left.clicked {
             state.get_mut().login_steam();
             login = true;

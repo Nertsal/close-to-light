@@ -13,6 +13,7 @@ test:
     cargo clippy --workspace --no-default-features -F online -F demo
     cargo clippy --workspace --no-default-features -F editor
     cargo clippy --workspace --no-default-features -F editor -F demo
+    cargo clippy --workspace --no-default-features -F steam
 
 game *ARGS:
     cargo run -- {{ARGS}}
