@@ -2,6 +2,7 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
+#[cfg(feature = "editor")]
 mod editor;
 mod game;
 #[cfg(not(target_arch = "wasm32"))]

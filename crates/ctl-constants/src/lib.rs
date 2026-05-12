@@ -3,7 +3,7 @@
 pub const GAME_VERSION: GameVersion = GameVersion {
     major: 0,
     minor: 1,
-    patch: 4,
+    patch: 5,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -21,6 +21,9 @@ impl std::fmt::Display for GameVersion {
         #[cfg(feature = "demo")]
         write!(f, "-demo")?;
 
+        // #[cfg(feature = "playtest")]
+        // write!(f, "-playtest")?;
+
         Ok(())
     }
 }
@@ -33,6 +36,8 @@ mod steam {
     pub const STEAM_APP_ID_FULL: u32 = 4209820;
     /// App ID of the demo version.
     pub const STEAM_APP_ID_DEMO: u32 = 4259120;
+    // /// App ID of the playtest version.
+    // pub const STEAM_APP_ID_PLAYTEST: u32 = 4734500;
 
     /// App ID of the client version of the game (full or demo).
     #[cfg(feature = "demo")]

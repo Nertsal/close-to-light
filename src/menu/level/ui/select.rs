@@ -74,6 +74,7 @@ impl SelectLightUi {
 pub enum LevelSelectAction {
     EditDifficulty(Index, usize),
     DeleteDifficulty(Index, usize),
+    // #[cfg(feature = "online")]
     SyncGroup(Index),
     EditGroup(Index),
     DeleteGroup(Index),
@@ -175,6 +176,9 @@ impl LevelSelectUI {
             tooltip = Some((self.tab_new.icon.state.position, "Create Level"));
         }
         if self.tab_new.icon.state.mouse_left.clicked {
+            #[cfg(not(feature = "editor"))]
+            state.editor_not_available();
+            #[cfg(feature = "editor")]
             state.popup_confirm(
                 ConfirmAction::CreateLevel,
                 "Create a new Custom Level",

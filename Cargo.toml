@@ -92,9 +92,13 @@ version.workspace = true
 edition.workspace = true
 
 [features]
+default = ["editor", "online"]
 itch = []
 steam = ["ctl-constants/steam", "ctl-client/steam", "ctl-local/steam", "ctl-context/steam"]
 demo = ["ctl-constants/demo", "ctl-client/demo", "ctl-local/demo", "ctl-assets/demo"]
+# playtest = ["ctl-constants/demo", "ctl-client/demo", "ctl-local/demo", "ctl-assets/demo"]
+editor = ["dep:ctl-editor"]
+online = []
 
 [dependencies]
 ctl-constants.workspace = true
@@ -109,7 +113,7 @@ ctl-local.workspace = true
 ctl-context.workspace = true
 ctl-ui.workspace = true
 ctl-logic.workspace = true
-ctl-editor.workspace = true
+ctl-editor = { workspace = true, optional = true }
 geng.workspace = true
 geng-utils.workspace = true
 parry2d.workspace = true

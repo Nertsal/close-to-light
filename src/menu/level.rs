@@ -18,11 +18,18 @@ const DIFF_SWITCH_TIME: f32 = 0.5;
 
 #[derive(Debug)]
 pub enum ConfirmAction {
+    /// Just a message for the player.
+    #[allow(dead_code)]
+    Noop,
     DeleteGroup(Index),
     DeleteLevel(Index, usize),
+    // #[cfg(feature = "online")]
     SyncDiscard,
+    // #[cfg(feature = "online")]
     DownloadRecommended,
+    // #[cfg(feature = "online")]
     SyncUpload,
+    #[cfg(feature = "editor")]
     CreateLevel,
 }
 
@@ -119,6 +126,18 @@ impl MenuState {
         self.edit_level(group_index, None);
     }
 
+    #[cfg(not(feature = "editor"))]
+    pub fn editor_not_available(&mut self) {
+        self.popup_confirm_custom(
+            ConfirmAction::Noop,
+            "Oops!",
+            "The editor is not available yet\nbut it is coming soon!",
+            "Ok",
+            ThemeColor::Light,
+            "Fine",
+        );
+    }
+
     /// Create a popup window with a message for the given action.
     pub fn popup_confirm(
         &mut self,
@@ -164,6 +183,7 @@ impl MenuState {
             return;
         };
         match popup.action {
+            ConfirmAction::Noop => {}
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
             ConfirmAction::DeleteLevel(group, level) => {
                 self.context.local.delete_level(group, level)
@@ -187,6 +207,7 @@ impl MenuState {
                 self.notifications
                     .push("Please wait while the levels are being downloaded".into());
             }
+            #[cfg(feature = "editor")]
             ConfirmAction::CreateLevel => {
                 // Switch to custom view so the new level is visible
                 if let LevelsFilter::Demo = ui.level_select.active_filter {
@@ -873,6 +894,11 @@ impl geng::State for LevelMenu {
                 Err(err) => {
                     log::error!("Edit failed: {err:?}");
                 }
+                #[cfg(not(feature = "editor"))]
+                Ok(_) => {
+                    log::error!("Cannot edit levels in this version");
+                }
+                #[cfg(feature = "editor")]
                 Ok((group, level)) => {
                     let level_index = level.as_ref().map(|(idx, _)| idx);
                     log::debug!(

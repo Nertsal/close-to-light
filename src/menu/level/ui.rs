@@ -230,6 +230,9 @@ impl MenuUI {
                     }
                 }
                 LevelSelectAction::EditDifficulty(group, level) => {
+                    #[cfg(not(feature = "editor"))]
+                    state.editor_not_available();
+                    #[cfg(feature = "editor")]
                     state.edit_level(group, Some(level));
                 }
                 LevelSelectAction::DeleteDifficulty(group, level) => {
@@ -242,6 +245,9 @@ impl MenuUI {
                     );
                 }
                 LevelSelectAction::EditGroup(group) => {
+                    #[cfg(not(feature = "editor"))]
+                    state.editor_not_available();
+                    #[cfg(feature = "editor")]
                     state.edit_level(group, None);
                 }
                 LevelSelectAction::DeleteGroup(group) => {

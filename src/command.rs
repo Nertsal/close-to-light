@@ -26,6 +26,7 @@ pub enum Command {
         diff: String,
         start_time: Option<String>,
     },
+    #[cfg(feature = "editor")]
     Edit {
         level: String,
         diff: Option<String>,
@@ -237,6 +238,7 @@ impl Command {
                 );
                 context.geng.run_state(state).await;
             }
+            #[cfg(feature = "editor")]
             Command::Edit { level, diff } => {
                 let (group_index, group, level) = {
                     let local = context.local.inner.borrow();
