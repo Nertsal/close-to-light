@@ -3,6 +3,9 @@ name = "ctl-ui"
 version.workspace = true
 edition.workspace = true
 
+[features]
+online = []
+
 [dependencies]
 ctl-core.workspace = true
 ctl-assets.workspace = true

@@ -1,3 +1,8 @@
+// TODO: remove when full release achievements are added
+#![cfg_attr(not(feature = "demo"), allow(dead_code, unused_imports))]
+// NOTE: only steam build has achievements
+#![cfg_attr(not(feature = "steam"), allow(unused))]
+
 use crate::{SavedScore, fs::LocalLevelId};
 
 use std::collections::HashMap;
@@ -15,7 +20,6 @@ mod constants {
     pub const STAT_LEVELS_COMPLETED: &str = "LEVELS_COMPLETED";
     pub const HARD_LEVEL_IDS: [u32; 4] = [3, 6, 13, 16];
 
-    #[cfg(feature = "demo")]
     #[derive(Debug, Clone, Copy)]
     pub enum Achievement {
         /// Complete any level.
@@ -49,7 +53,6 @@ mod constants {
 mod constants {
     // TODO
 
-    #[cfg(not(feature = "demo"))]
     #[derive(Debug)]
     pub enum Achievement {
         // TODO
@@ -57,6 +60,7 @@ mod constants {
 
     impl Achievement {
         pub fn api_key(&self) -> &'static str {
+            #[allow(clippy::match_single_binding)]
             match self {
                 _ => todo!(),
             }

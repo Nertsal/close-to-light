@@ -20,6 +20,7 @@ pub struct MenuUI {
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
+    #[cfg(feature = "online")]
     pub sync: Option<SyncWidget>,
     pub notifications: NotificationsWidget,
 
@@ -50,6 +51,7 @@ impl MenuUI {
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
+            #[cfg(feature = "online")]
             sync: None,
             notifications: NotificationsWidget::new(assets),
 
@@ -68,6 +70,7 @@ impl MenuUI {
         }
     }
 
+    #[cfg(feature = "online")]
     fn explore_groups(&mut self) {
         // TODO: with music filter
         self.explore.window.request = Some(WidgetRequest::Open);
@@ -142,6 +145,7 @@ impl MenuUI {
             self.confirm = Some(confirm);
         }
 
+        #[cfg(feature = "online")]
         if let Some(sync) = &mut self.sync {
             let size = vec2(20.0, 17.0) * layout_size;
             let pos = screen.align_aabb(size, vec2(0.5, 0.5));
@@ -218,6 +222,7 @@ impl MenuUI {
         let action = self.level_select.update(level_select, state, context);
         if let Some(action) = action {
             match action {
+                #[cfg(feature = "online")]
                 LevelSelectAction::SyncGroup(group_index) => {
                     let local = self.context.local.inner.borrow();
                     if let Some(group) = local.groups.get(group_index) {
@@ -231,7 +236,10 @@ impl MenuUI {
                 }
                 LevelSelectAction::EditDifficulty(group, level) => {
                     #[cfg(not(feature = "editor"))]
-                    state.editor_not_available();
+                    {
+                        let _ = (group, level);
+                        state.editor_not_available();
+                    }
                     #[cfg(feature = "editor")]
                     state.edit_level(group, Some(level));
                 }
@@ -246,7 +254,10 @@ impl MenuUI {
                 }
                 LevelSelectAction::EditGroup(group) => {
                     #[cfg(not(feature = "editor"))]
-                    state.editor_not_available();
+                    {
+                        let _ = group;
+                        state.editor_not_available();
+                    }
                     #[cfg(feature = "editor")]
                     state.edit_level(group, None);
                 }

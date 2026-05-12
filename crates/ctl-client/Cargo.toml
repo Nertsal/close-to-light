@@ -6,11 +6,12 @@ edition.workspace = true
 [features]
 steam = ["dep:steamworks"]
 demo = []
+online = ["dep:reqwest"]
 
 [dependencies]
 ctl-constants.workspace = true
 ctl-core.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, optional = true }
 url.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true

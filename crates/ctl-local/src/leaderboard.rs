@@ -1,10 +1,12 @@
 use ctl_client::Nertboard;
 use ctl_core::{
     auth::UserLogin,
-    prelude::{HealthConfig, LevelModifiers, Uuid},
-    score::{ScoreCategory, ScoreEntry, ScoreMeta, ServerScore, SubmitScore},
+    prelude::{HealthConfig, LevelModifiers},
+    score::{ScoreCategory, ScoreEntry, ScoreMeta, ServerScore},
     types::{Id, LevelInfo, MusicInfo, UserInfo},
 };
+#[cfg(feature = "online")]
+use ctl_core::{prelude::Uuid, score::SubmitScore};
 use ctl_util::Task;
 use geng::prelude::*;
 
@@ -136,12 +138,14 @@ impl LeaderboardImpl {
         client: Option<&Arc<Nertboard>>,
         fs: &Rc<crate::fs::Controller>,
         achievements: &Achievements,
-        auto_login: bool,
+        #[allow(unused_variables)] auto_login: bool,
     ) -> Self {
+        #[allow(unused_mut)]
         let mut leaderboard = Self {
             client: client.cloned(),
             ..Self::empty(geng, fs, achievements)
         };
+        #[cfg(feature = "online")]
         if auto_login {
             leaderboard.relogin();
         }
@@ -154,11 +158,18 @@ impl LeaderboardImpl {
     }
 
     pub fn is_online(&self) -> bool {
+        #[cfg(not(feature = "online"))]
+        {
+            false
+        }
+
+        #[cfg(feature = "online")]
         self.client
             .as_ref()
             .is_some_and(|client| client.is_online())
     }
 
+    #[cfg(feature = "online")]
     pub fn login_discord(&mut self) {
         if self.log_task.is_some() {
             return;
@@ -187,6 +198,7 @@ impl LeaderboardImpl {
     }
 
     #[cfg(feature = "steam")]
+    #[cfg(feature = "online")]
     /// Login directly via Steam
     pub fn login_steam(&mut self) {
         let Some(client) = &self.client else { return };
@@ -197,6 +209,7 @@ impl LeaderboardImpl {
     }
 
     /// Attempt to login back using the saved credentials.
+    #[cfg(feature = "online")]
     pub fn relogin(&mut self) {
         if self.log_task.is_some() {
             return;
@@ -259,6 +272,7 @@ impl LeaderboardImpl {
     //     }
     // }
 
+    #[cfg(feature = "online")]
     pub fn logout(&mut self) {
         if self.log_task.is_some() {
             return;
@@ -403,6 +417,7 @@ impl LeaderboardImpl {
         self.update_local(None);
         match self.status {
             LeaderboardStatus::None | LeaderboardStatus::Failed => {
+                #[cfg(feature = "online")]
                 self.refetch();
             }
             LeaderboardStatus::Pending => {}
@@ -413,6 +428,7 @@ impl LeaderboardImpl {
     }
 
     /// Fetch scores from the server with the same meta.
+    #[cfg(feature = "online")]
     pub fn refetch(&mut self) {
         // Let the active task finish
         if self.task.is_some() {
@@ -436,7 +452,7 @@ impl LeaderboardImpl {
     pub fn reload_submit(
         &mut self,
         score: Option<i32>,
-        submit_score: bool,
+        #[allow(unused_variables)] submit_score: bool,
         music: MusicInfo,
         level: LevelInfo,
         meta: ScoreMeta,
@@ -462,6 +478,7 @@ impl LeaderboardImpl {
         self.loaded.category = meta.category.clone();
         self.update_local(score.clone());
 
+        #[cfg(feature = "online")]
         if let Some(board) = &self.client {
             let mut score = score;
             if !submit_score || self.user.is_none() {
@@ -583,14 +600,17 @@ impl LoadedBoard {
     }
 }
 
+#[allow(dead_code)]
 fn meta_to_string(meta: &ScoreMeta) -> anyhow::Result<String> {
     Ok(ron::ser::to_string(meta)?)
 }
 
+#[allow(dead_code)]
 fn meta_from_str(s: &str) -> anyhow::Result<ScoreMeta> {
     Ok(ron::de::from_str(s)?)
 }
 
+#[allow(dead_code)]
 fn load_server_scores(scores: Vec<ServerScore>) -> Vec<ScoreEntry> {
     scores
         .into_iter()

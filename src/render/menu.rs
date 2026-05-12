@@ -3,7 +3,6 @@ use super::{mask::MaskedRender, ui::UiRender, *};
 use crate::{
     menu::{MenuState, MenuUI},
     render::dither::DitherRender,
-    ui::layout::AreaOps,
 };
 
 pub struct MenuRender {
@@ -69,6 +68,7 @@ impl MenuRender {
         }
 
         self.draw_explore(ui, state, framebuffer);
+        #[cfg(feature = "online")]
         self.draw_sync(ui, state, framebuffer);
 
         self.ui.draw_item_widget(
@@ -106,7 +106,10 @@ impl MenuRender {
         }
     }
 
+    #[cfg(feature = "online")]
     fn draw_sync(&mut self, ui: &MenuUI, state: &MenuState, framebuffer: &mut ugli::Framebuffer) {
+        use crate::ui::layout::AreaOps;
+
         let Some(sync) = &ui.sync else { return };
         let theme = state.context.get_options().theme;
         let t = crate::util::smoothstep(sync.window.show.time.get_ratio());

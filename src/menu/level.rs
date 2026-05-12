@@ -23,11 +23,11 @@ pub enum ConfirmAction {
     Noop,
     DeleteGroup(Index),
     DeleteLevel(Index, usize),
-    // #[cfg(feature = "online")]
+    #[cfg(feature = "online")]
     SyncDiscard,
-    // #[cfg(feature = "online")]
+    #[cfg(feature = "online")]
     DownloadRecommended,
-    // #[cfg(feature = "online")]
+    #[cfg(feature = "online")]
     SyncUpload,
     #[cfg(feature = "editor")]
     CreateLevel,
@@ -115,10 +115,12 @@ impl MenuState {
         self.switch_diff = Some(level);
     }
 
+    #[cfg(feature = "editor")]
     fn edit_level(&mut self, group: Index, level: Option<usize>) {
         self.edit_level = Some((group, level));
     }
 
+    #[cfg(feature = "editor")]
     fn new_group(&mut self) {
         self.switch_level = None; // Deselect group
         let local = &self.context.local;
@@ -178,7 +180,7 @@ impl MenuState {
     }
 
     /// Confirm the popup action and execute it.
-    pub fn confirm_action(&mut self, ui: &mut MenuUI) {
+    pub fn confirm_action(&mut self, #[allow(unused_variables)] ui: &mut MenuUI) {
         let Some(popup) = self.confirm_popup.take() else {
             return;
         };
@@ -188,6 +190,7 @@ impl MenuState {
             ConfirmAction::DeleteLevel(group, level) => {
                 self.context.local.delete_level(group, level)
             }
+            #[cfg(feature = "online")]
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync
                     && let Some(client) = self.leaderboard.get().client.clone()
@@ -195,6 +198,7 @@ impl MenuState {
                     sync.discard_changes(client);
                 }
             }
+            #[cfg(feature = "online")]
             ConfirmAction::SyncUpload => {
                 if let Some(sync) = &mut ui.sync
                     && let Some(client) = self.leaderboard.get().client.clone()
@@ -202,6 +206,7 @@ impl MenuState {
                     sync.upload(client);
                 }
             }
+            #[cfg(feature = "online")]
             ConfirmAction::DownloadRecommended => {
                 self.context.local.download_recommended();
                 self.notifications
@@ -230,6 +235,7 @@ impl LevelMenu {
             r32(0.0),
         );
 
+        #[allow(unused_mut)]
         let mut state = Self {
             render: MenuRender::new(context.clone()),
             util: UtilRender::new(context.clone()),
@@ -289,6 +295,7 @@ impl LevelMenu {
             transition: None,
         };
 
+        #[cfg(feature = "online")]
         if state.context.local.inner.borrow().groups.is_empty() {
             state.state.popup_confirm_custom(
                 ConfirmAction::DownloadRecommended,
@@ -704,9 +711,14 @@ impl geng::State for LevelMenu {
                         if let Some(confirm) = &mut self.ui.confirm {
                             confirm.window.request = Some(WidgetRequest::Close);
                         }
-                    } else if let Some(sync) = &mut self.ui.sync {
+                        return;
+                    }
+                    #[cfg(feature = "online")]
+                    if let Some(sync) = &mut self.ui.sync {
                         sync.window.request = Some(WidgetRequest::Close);
-                    } else if self.ui.explore.window.show.time.is_max() {
+                        return;
+                    }
+                    if self.ui.explore.window.show.time.is_max() {
                         self.ui.explore.window.request = Some(WidgetRequest::Close);
                     } else if self.ui.leaderboard.window.show.time.is_max() {
                         self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
@@ -885,9 +897,6 @@ impl geng::State for LevelMenu {
                 };
                 anyhow::Ok((group, level))
             });
-        let context = self.context.clone();
-        let manager = self.context.geng.asset_manager().clone();
-        let assets_path = run_dir().join("assets");
 
         if let Some(edit_level) = edit_level {
             match edit_level {
@@ -906,6 +915,10 @@ impl geng::State for LevelMenu {
                         group.group_index,
                         level_index
                     );
+
+                    let context = self.context.clone();
+                    let manager = self.context.geng.asset_manager().clone();
+                    let assets_path = run_dir().join("assets");
 
                     let future = async move {
                         let config: crate::editor::EditorConfig =

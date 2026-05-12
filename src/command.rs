@@ -5,13 +5,11 @@ use super::*;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use ctl_client::core::types::Id;
+#[cfg(feature = "online")]
 use ctl_client::{
     Nertboard,
-    core::{
-        auth::UserLogin,
-        prelude::Uuid,
-        types::{Id, NewMusician},
-    },
+    core::{auth::UserLogin, prelude::Uuid, types::NewMusician},
 };
 use ctl_logic::FloatTime;
 
@@ -67,8 +65,10 @@ pub struct ArtistArgs {
 
 #[derive(clap::Subcommand)]
 pub enum MusicCommand {
+    #[cfg(feature = "online")]
     Author(MusicAuthorArgs),
     /// Upload music to the server.
+    #[cfg(feature = "online")]
     Upload {
         path: PathBuf,
         #[clap(long)]
@@ -77,6 +77,7 @@ pub enum MusicCommand {
         romanized_name: Option<String>,
     },
     /// Update music info.
+    #[cfg(feature = "online")]
     Update {
         id: Id,
         #[clap(long)]
@@ -112,6 +113,7 @@ pub enum MusicAuthorCommand {
 
 #[derive(clap::Subcommand)]
 pub enum ArtistCommand {
+    #[cfg(feature = "online")]
     Create {
         name: String,
         #[clap(long)]
@@ -122,7 +124,12 @@ pub enum ArtistCommand {
 }
 
 impl Command {
-    pub async fn execute(self, context: Context, secrets: Option<Secrets>) -> Result<()> {
+    pub async fn execute(
+        self,
+        context: Context,
+        #[allow(unused_variables)] secrets: Option<Secrets>,
+    ) -> Result<()> {
+        #[cfg(feature = "online")]
         async fn init_client(secrets: Option<&Secrets>) -> Result<Option<Arc<Nertboard>>> {
             if let Some(secrets) = &secrets {
                 let client = ctl_client::Nertboard::new(&secrets.leaderboard.url)
@@ -423,10 +430,12 @@ impl Command {
                 context.geng.run_state(state).await;
             }
             Command::Music(music) => {
+                #[cfg(feature = "online")]
                 let client = init_client(secrets.as_ref())
                     .await?
                     .expect("Cannot update music without secrets");
                 match music.command {
+                    #[cfg(feature = "online")]
                     MusicCommand::Upload {
                         path,
                         name,
@@ -444,6 +453,7 @@ impl Command {
                             .context("failed to upload music")?;
                         log::info!("Music uploaded successfully, id: {music_id}");
                     }
+                    #[cfg(feature = "online")]
                     MusicCommand::Update {
                         id,
                         name,
@@ -463,6 +473,7 @@ impl Command {
                             .context("failed to update music")?;
                         log::info!("Music updated successfully");
                     }
+                    #[cfg(feature = "online")]
                     MusicCommand::Author(author) => match author.command {
                         MusicAuthorCommand::Add { music, artist } => {
                             log::info!("Adding artist {artist} as author of music {music}");
@@ -482,10 +493,12 @@ impl Command {
                 }
             }
             Command::Artist(artist) => {
+                #[cfg(feature = "online")]
                 let client = init_client(secrets.as_ref())
                     .await?
                     .expect("Cannot update artists without secrets");
                 match artist.command {
+                    #[cfg(feature = "online")]
                     ArtistCommand::Create {
                         name,
                         romanized,
@@ -509,6 +522,7 @@ impl Command {
     }
 }
 
+#[cfg(feature = "online")]
 async fn login(client: &Nertboard) -> Result<()> {
     let user: Option<UserLogin> = preferences::load(ctl_local::PLAYER_LOGIN_STORAGE);
 

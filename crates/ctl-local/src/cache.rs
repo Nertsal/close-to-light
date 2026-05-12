@@ -45,6 +45,7 @@ pub struct CacheTasks {
 enum CacheAction {
     GroupList(Vec<LevelSetInfo>),
     Group(Box<CachedGroup>),
+    #[cfg(feature = "online")]
     DownloadGroups(Vec<Id>),
 }
 
@@ -98,6 +99,9 @@ impl CacheTasks {
             match task.poll() {
                 Err(task) => self.get_recommended = Some(task),
                 Ok(Err(err)) => error!("Failed to get recommended levels: {:?}", err),
+                #[cfg(not(feature = "online"))]
+                Ok(Ok(_)) => {}
+                #[cfg(feature = "online")]
                 Ok(Ok(groups)) => {
                     let group_ids = groups.into_iter().map(|group| group.id).collect();
                     return Some(CacheAction::DownloadGroups(group_ids));
@@ -224,6 +228,9 @@ impl LevelCache {
         let result = async {
             group.meta.hash = group.data.calculate_hash();
 
+            #[cfg(not(feature = "online"))]
+            let origin = None;
+            #[cfg(feature = "online")]
             let origin = if group.meta.id == 0 {
                 None
             } else if let Some(client) = self.client() {
@@ -351,6 +358,7 @@ impl LevelCache {
         self.inner.borrow_mut().groups.insert(group)
     }
 
+    #[cfg(feature = "online")]
     pub fn fetch_groups(&self) {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.fetch_groups.is_none()
@@ -367,6 +375,7 @@ impl LevelCache {
         }
     }
 
+    #[cfg(feature = "online")]
     pub fn download_recommended(&self) {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.get_recommended.is_none()
@@ -382,6 +391,7 @@ impl LevelCache {
         }
     }
 
+    #[cfg(feature = "online")]
     pub fn download_group(&self, group_id: Id) {
         let mut inner = self.inner.borrow_mut();
         if inner
@@ -465,6 +475,7 @@ impl LevelCache {
 
                     inner.groups.insert(Rc::new(*group));
                 }
+                #[cfg(feature = "online")]
                 CacheAction::DownloadGroups(ids) => {
                     drop(inner);
                     for group_id in ids {

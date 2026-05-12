@@ -93,12 +93,12 @@ edition.workspace = true
 
 [features]
 default = ["editor", "online"]
-itch = []
+itch = ["ctl-local/itch"]
 steam = ["ctl-constants/steam", "ctl-client/steam", "ctl-local/steam", "ctl-context/steam"]
 demo = ["ctl-constants/demo", "ctl-client/demo", "ctl-local/demo", "ctl-assets/demo"]
 # playtest = ["ctl-constants/demo", "ctl-client/demo", "ctl-local/demo", "ctl-assets/demo"]
 editor = ["dep:ctl-editor"]
-online = []
+online = ["ctl-client/online", "ctl-local/online", "ctl-ui/online"]
 
 [dependencies]
 ctl-constants.workspace = true

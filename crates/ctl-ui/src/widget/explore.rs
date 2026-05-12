@@ -92,6 +92,7 @@ impl StatefulWidget for ExploreWidget {
             return;
         }
 
+        #[cfg(feature = "online")]
         if std::mem::take(&mut self.refetch) {
             state.fetch_groups();
         }
@@ -279,6 +280,7 @@ impl StatefulWidget for LevelItemWidget {
             self.pause_music.hide();
             self.download.update(rows[1], context);
             self.downloading.update(rows[1], context);
+            #[cfg(feature = "online")]
             if self.download.icon.state.mouse_left.clicked {
                 state.download_group(self.info.id);
             }

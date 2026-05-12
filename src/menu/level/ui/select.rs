@@ -74,7 +74,7 @@ impl SelectLightUi {
 pub enum LevelSelectAction {
     EditDifficulty(Index, usize),
     DeleteDifficulty(Index, usize),
-    // #[cfg(feature = "online")]
+    #[cfg(feature = "online")]
     SyncGroup(Index),
     EditGroup(Index),
     DeleteGroup(Index),
@@ -554,6 +554,12 @@ impl ItemLevelWidget {
         } else {
             self.menu.delete.show();
         }
+        if cfg!(feature = "online") {
+            self.menu.sync.show();
+        } else {
+            // Cannot synchronise in offline mode
+            self.menu.sync.hide();
+        }
 
         self.index = group_id;
         self.text.text = cached
@@ -651,7 +657,10 @@ impl ItemLevelWidget {
         if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditGroup(self.index));
         } else if self.menu.sync.icon.state.mouse_left.clicked {
-            action = Some(LevelSelectAction::SyncGroup(self.index));
+            #[cfg(feature = "online")]
+            {
+                action = Some(LevelSelectAction::SyncGroup(self.index));
+            }
         } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteGroup(self.index));
         }
@@ -799,7 +808,10 @@ impl ItemDiffWidget {
         if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditDifficulty(self.group, self.index));
         } else if self.menu.sync.icon.state.mouse_left.clicked {
-            action = Some(LevelSelectAction::SyncGroup(self.group));
+            #[cfg(feature = "online")]
+            {
+                action = Some(LevelSelectAction::SyncGroup(self.group));
+            }
         } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteDifficulty(self.group, self.index));
         }

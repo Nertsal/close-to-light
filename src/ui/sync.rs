@@ -1,13 +1,11 @@
 use super::*;
 
-use crate::{
-    menu::{ConfirmAction, MenuState},
-    prelude::Assets,
-    ui::layout::AreaOps,
-};
+use crate::menu::ConfirmAction;
+use crate::{menu::MenuState, prelude::Assets, ui::layout::AreaOps};
 
+use ctl_client::Nertboard;
 use ctl_client::{
-    ClientError, Nertboard,
+    ClientError,
     core::types::{LevelSet, LevelSetInfo},
 };
 use ctl_local::CachedGroup;
@@ -17,8 +15,10 @@ use generational_arena::Index;
 type TaskRes<T> = Option<Task<ctl_client::Result<T>>>;
 
 pub struct SyncWidget {
+    #[allow(dead_code)]
     geng: Geng,
     cached_group: Rc<CachedGroup>,
+    #[allow(dead_code)]
     cached_group_index: Index,
     reload: bool,
 
@@ -154,13 +154,11 @@ impl StatefulWidget for SyncWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        state: &mut Self::State<'_>,
+        #[allow(unused_variables)] state: &mut Self::State<'_>,
     ) {
-        let local = &state.context.local;
-
         if std::mem::take(&mut self.reload)
             && self.task_group_info.is_none()
-            && let Some(client) = local.client()
+            && let Some(client) = state.context.local.client()
         {
             let group_id = self.cached_group.local.meta.id;
             if group_id == 0 {
@@ -226,7 +224,7 @@ impl StatefulWidget for SyncWidget {
                     self.response.text = format!("{err}").into();
                 }
                 Ok(Ok((group_index, group))) => {
-                    if let Some(group) = local.synchronize_meta(group_index, group) {
+                    if let Some(group) = state.context.local.synchronize_meta(group_index, group) {
                         let name = group
                             .local
                             .music
@@ -254,7 +252,10 @@ impl StatefulWidget for SyncWidget {
                 }
                 Ok(Ok((group, info))) => {
                     if let Some(group) =
-                        local.update_group(self.cached_group_index, group, Some(info))
+                        state
+                            .context
+                            .local
+                            .update_group(self.cached_group_index, group, Some(info))
                     {
                         let name = group
                             .local

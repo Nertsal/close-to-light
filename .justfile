@@ -6,9 +6,13 @@ test:
     cargo build --release # Native build
     cargo geng build --platform web --release # Web build
     cargo test --workspace --all-features # Tests
-    cargo check --workspace -F steam
-    cargo check --workspace -F steam -F demo
-    cargo check --workspace -F itch -F demo
+    cargo clippy --workspace -F steam
+    cargo clippy --workspace -F steam -F demo
+    cargo clippy --workspace -F itch -F demo
+    cargo clippy --workspace --no-default-features -F online
+    cargo clippy --workspace --no-default-features -F online -F demo
+    cargo clippy --workspace --no-default-features -F editor
+    cargo clippy --workspace --no-default-features -F editor -F demo
 
 game *ARGS:
     cargo run -- {{ARGS}}
