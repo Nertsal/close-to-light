@@ -28,6 +28,7 @@
               sqlite
               rlwrap
               sqlx-cli
+              cargo-flamegraph
             ];
           };
         });
