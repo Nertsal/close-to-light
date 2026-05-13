@@ -1140,6 +1140,7 @@ impl UiRender {
                 // Text
                 let mut text = TextWidget::new("Adjust offset until audio matches visual")
                     .aligned(vec2(0.0, 1.0));
+                text.options.color = theme.light;
                 text.options.size = font_size;
                 text.state.position = popup.extend_uniform(-width);
                 self.draw_text_wrapped(&text, framebuffer);
