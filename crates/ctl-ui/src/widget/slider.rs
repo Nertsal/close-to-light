@@ -91,10 +91,11 @@ impl SliderWidget {
         self.value.format = InputFormat::Float {
             precision: self.precision,
         };
-        // self.value.text =
-        //     format!("{:.precision$}", state.value(), precision = self.precision).into();
         if !self.value.editing {
-            self.value.sync(&state.value().to_string(), context);
+            self.value.sync(
+                &format!("{:.precision$}", state.value(), precision = self.precision),
+                context,
+            );
         }
         self.value.update(value, context);
         if !self.value.editing
