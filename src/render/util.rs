@@ -744,11 +744,9 @@ impl UtilRender {
         &self,
         health: &Lifetime,
         state: LitState,
-        // theme: &Theme,
+        theme: Theme,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let theme = THEME;
-
         let camera = &geng::PixelPerfectCamera;
         let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
         let font_size = screen.height() * 0.05;

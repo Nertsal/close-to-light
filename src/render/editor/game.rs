@@ -47,10 +47,6 @@ impl EditorRender {
         }
 
         // Level
-        let light_color = THEME.light;
-        let danger_color = THEME.danger;
-
-        let active_color = light_color;
 
         let hover_color = editor.config.theme.hover;
         let selecting_area = matches!(
@@ -63,7 +59,11 @@ impl EditorRender {
 
         let select_color = editor.config.theme.select;
 
-        let get_color = |event_id: Option<usize>| -> Color {
+        let get_color = |event_id: Option<usize>, theme: Theme| -> Color {
+            let light_color = theme.light;
+            let danger_color = theme.danger;
+            let active_color = light_color;
+
             if let Some(event_id) = event_id {
                 let check = |a: Option<usize>| -> bool { a == Some(event_id) };
                 let base_color =
@@ -119,7 +119,8 @@ impl EditorRender {
         } * static_alpha;
 
         let draw_telegraph = |tele: &LightTelegraph, framebuffer: &mut ugli::Framebuffer| {
-            let color = get_color(tele.light.event_id);
+            let mut color = get_color(tele.light.event_id, theme);
+            color = color.map_rgb(|x| x * 0.5); // telegraph brightness
             self.util.draw_outline(
                 &tele.light.collider,
                 0.02,
@@ -129,7 +130,7 @@ impl EditorRender {
             );
         };
         let draw_light = |light: &Light, framebuffer: &mut ugli::Framebuffer| {
-            let color = get_color(light.event_id);
+            let color = get_color(light.event_id, THEME);
             self.util.draw_light_gradient(
                 &light.collider,
                 light.hollow,
@@ -142,6 +143,7 @@ impl EditorRender {
         // Dynamic
         let mut pixel_buffer = self.dither.start();
 
+        // Lights
         if let Some(level) = &level_editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
                 draw_telegraph(tele, &mut pixel_buffer);
@@ -150,18 +152,49 @@ impl EditorRender {
                 draw_light(light, &mut pixel_buffer);
             }
         }
+        let mut pixel_buffer = self
+            .dither
+            .finish(level_editor.real_time, &theme.transparent());
 
-        let mut pixel_buffer = draw_game!(dynamic_alpha, game_buffer);
-
-        if let Some(level) = &level_editor.level_state.static_level {
+        // Telegraphs
+        if let Some(level) = &level_editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
                 draw_telegraph(tele, &mut pixel_buffer);
             }
+        }
+        self.context.geng.draw2d().textured_quad(
+            game_buffer,
+            &geng::PixelPerfectCamera,
+            game_screen,
+            self.dither.get_buffer(),
+            crate::util::with_alpha(Color::WHITE, dynamic_alpha),
+        );
+        let mut pixel_buffer = self.dither.start();
+
+        // Lights
+        if let Some(level) = &level_editor.level_state.static_level {
             for light in &level.lights {
                 draw_light(light, &mut pixel_buffer);
             }
         }
-        let mut pixel_buffer = draw_game!(static_alpha, game_buffer);
+        let mut pixel_buffer = self
+            .dither
+            .finish(level_editor.real_time, &theme.transparent());
+
+        // Telegraphs
+        if let Some(level) = &level_editor.level_state.static_level {
+            for tele in &level.telegraphs {
+                draw_telegraph(tele, &mut pixel_buffer);
+            }
+        }
+        self.context.geng.draw2d().textured_quad(
+            game_buffer,
+            &geng::PixelPerfectCamera,
+            game_screen,
+            self.dither.get_buffer(),
+            crate::util::with_alpha(Color::WHITE, static_alpha),
+        );
+        let mut pixel_buffer = self.dither.start();
 
         let game_buffer = &mut geng_utils::texture::attach_texture(
             &mut self.game_texture,
@@ -222,9 +255,9 @@ impl EditorRender {
 
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.danger {
-                        danger_color
+                        THEME.danger
                     } else {
-                        light_color
+                        THEME.light
                     };
                     let alpha = if let EditingState::Waypoints { .. } = level_editor.state {
                         1.0
@@ -279,9 +312,9 @@ impl EditorRender {
 
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.danger {
-                        danger_color
+                        THEME.danger
                     } else {
-                        light_color
+                        THEME.light
                     };
 
                     let options = util::DashRenderOptions {

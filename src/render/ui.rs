@@ -906,6 +906,7 @@ impl UiRender {
                     self.draw_slider(&graphics.blue, theme, framebuffer);
                     self.draw_slider(&graphics.saturation, theme, framebuffer);
                     self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
+                    self.draw_slider(&graphics.telegraph_brightness, theme, framebuffer);
                     self.draw_color_select(&graphics.perfect_color, theme, framebuffer);
                 }
 
@@ -936,6 +937,8 @@ impl UiRender {
         // Preview effect
         let preview = if ui.options.graphics.telegraph_color.state.hovered {
             Some(ui.options.graphics.telegraph_color.state.position)
+        } else if ui.options.graphics.telegraph_brightness.state.hovered {
+            Some(ui.options.graphics.telegraph_brightness.state.position)
         } else if ui.options.graphics.perfect_color.state.hovered {
             Some(ui.options.graphics.perfect_color.state.position)
         } else {
@@ -1046,17 +1049,6 @@ impl UiRender {
         let camera = &preview.camera;
         let theme = options.theme;
 
-        // Telegraphs
-        for tele in &level_state.telegraphs {
-            let color = if tele.light.danger {
-                THEME.danger
-            } else {
-                THEME.get_color(options.graphics.lights.telegraph_color)
-            };
-            self.util
-                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
-        }
-
         // Lights
         for light in &level_state.lights {
             let color = if light.danger {
@@ -1076,7 +1068,19 @@ impl UiRender {
         self.util
             .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
 
-        dither.finish(preview.real_time, &theme);
+        let mut framebuffer = dither.finish(preview.real_time, &theme);
+
+        // Telegraphs
+        for tele in &level_state.telegraphs {
+            let mut color = if tele.light.danger {
+                theme.danger
+            } else {
+                theme.get_color(options.graphics.lights.telegraph_color)
+            };
+            color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness);
+            self.util
+                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+        }
 
         let popup_size = vec2(PREVIEW_RESOLUTION.as_f32().aspect(), 1.0) * 6.0 * font_size;
         let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)

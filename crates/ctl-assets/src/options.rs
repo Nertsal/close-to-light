@@ -97,6 +97,7 @@ impl Default for GraphicsColorsOptions {
 #[serde(default)]
 pub struct GraphicsLightsOptions {
     pub telegraph_color: ThemeColor,
+    pub telegraph_brightness: f32,
     pub perfect_color: ThemeColor,
 }
 
@@ -104,6 +105,7 @@ impl Default for GraphicsLightsOptions {
     fn default() -> Self {
         Self {
             telegraph_color: ThemeColor::Light,
+            telegraph_brightness: 0.5,
             perfect_color: ThemeColor::Highlight,
         }
     }

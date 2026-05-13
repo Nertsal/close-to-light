@@ -57,35 +57,6 @@ impl GameRender {
             .get_timing(model.play_time_ms)
             .beat_time;
 
-        if !model.level.config.modifiers.sudden {
-            // Telegraphs
-            for tele in &model.level_state.telegraphs {
-                let color = if tele.light.danger {
-                    THEME.danger
-                } else {
-                    THEME.get_color(options.graphics.lights.telegraph_color)
-                };
-                self.util
-                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
-            }
-            // Waypoints
-            // TODO: config
-            // for waypoint in &model.level_state.waypoints {
-            //     let color = if waypoint.light.danger {
-            //         THEME.danger
-            //     } else {
-            //         THEME.light
-            //     };
-            //     self.util.draw_outline(
-            //         &waypoint.light.collider,
-            //         0.05,
-            //         color,
-            //         camera,
-            //         &mut framebuffer,
-            //     );
-            // }
-        }
-
         if !model.level.config.modifiers.hidden {
             // Lights
             for light in &model.level_state.lights {
@@ -192,16 +163,6 @@ impl GameRender {
             }
         }
 
-        if let State::Playing = model.state
-            && !model.level.config.modifiers.clean_auto
-        {
-            self.util.draw_health(
-                &model.player.health,
-                model.player.get_lit_state(),
-                &mut framebuffer,
-            );
-        }
-
         // TODO: option
         // {
         //     // Rhythm
@@ -227,7 +188,49 @@ impl GameRender {
         //     }
         // }
 
-        self.dither.finish(model.real_time, &theme);
+        let mut framebuffer = self.dither.finish(model.real_time, &theme);
+
+        if !model.level.config.modifiers.sudden {
+            // Telegraphs
+            // NOTE: non-dithered to apply different coloring options
+            for tele in &model.level_state.telegraphs {
+                let mut color = if tele.light.danger {
+                    theme.danger
+                } else {
+                    theme.get_color(options.graphics.lights.telegraph_color)
+                };
+                color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness);
+                self.util
+                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+            }
+            // Waypoints
+            // TODO: config
+            // for waypoint in &model.level_state.waypoints {
+            //     let color = if waypoint.light.danger {
+            //         THEME.danger
+            //     } else {
+            //         THEME.light
+            //     };
+            //     self.util.draw_outline(
+            //         &waypoint.light.collider,
+            //         0.05,
+            //         color,
+            //         camera,
+            //         &mut framebuffer,
+            //     );
+            // }
+        }
+
+        if let State::Playing = model.state
+            && !model.level.config.modifiers.clean_auto
+        {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                theme,
+                &mut framebuffer,
+            );
+        }
 
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
