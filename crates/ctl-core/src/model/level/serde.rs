@@ -55,6 +55,10 @@ pub enum EffectEvent {
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the intensity/curvature.
     ScreenCurvature(Time, R32),
+    /// Apply a horizontal noise offset effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/curvature.
+    NoiseOffset(Time, R32),
 }
 
 impl EffectEvent {
@@ -64,7 +68,8 @@ impl EffectEvent {
             | EffectEvent::RgbSplit(duration)
             | EffectEvent::CameraShake(duration, _)
             | EffectEvent::Vignette(duration, _)
-            | EffectEvent::ScreenCurvature(duration, _) => *duration,
+            | EffectEvent::ScreenCurvature(duration, _)
+            | EffectEvent::NoiseOffset(duration, _) => *duration,
         }
     }
 }

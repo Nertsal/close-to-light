@@ -25,8 +25,8 @@ pub struct LoadingAssets {
     pub shader_background: ugli::Program,
     #[load(path = "shaders/crt.glsl")]
     pub shader_crt: Rc<ugli::Program>,
-    #[load(path = "shaders/rgb_split.glsl")]
-    pub shader_rgb_split: Rc<ugli::Program>,
+    #[load(path = "shaders/noise_effects.glsl")]
+    pub shader_noise_effects: Rc<ugli::Program>,
     #[load(path = "shaders/color_correction.glsl")]
     pub shader_color_correction: Rc<ugli::Program>,
 }
@@ -190,7 +190,7 @@ pub struct Shaders {
     pub ellipse: Rc<ugli::Program>,
     pub texture_ui: Rc<ugli::Program>,
     pub crt: Rc<ugli::Program>,
-    pub rgb_split: Rc<ugli::Program>,
+    pub noise_effects: Rc<ugli::Program>,
     pub color_correction: Rc<ugli::Program>,
 }
 

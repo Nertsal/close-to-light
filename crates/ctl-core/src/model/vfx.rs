@@ -37,6 +37,7 @@ pub struct Vfx {
     pub camera_shake: R32,
     pub vignette: VfxValue,
     pub curvature: VfxValue,
+    pub noise_offset: VfxValue,
 }
 
 impl Vfx {
@@ -47,6 +48,7 @@ impl Vfx {
             camera_shake: R32::ZERO,
             vignette: VfxValue::new(2.0, 1.0, 0.0),
             curvature: VfxValue::new(2.0, 1.0, 0.0),
+            noise_offset: VfxValue::new(2.0, 1.0, 0.0),
         }
     }
 
@@ -55,6 +57,7 @@ impl Vfx {
         self.rgb_split.time_left = FloatTime::ZERO;
         self.vignette.time_left = FloatTime::ZERO;
         self.curvature.time_left = FloatTime::ZERO;
+        self.noise_offset.time_left = FloatTime::ZERO;
         self.camera_shake = R32::ZERO;
     }
 
@@ -63,6 +66,7 @@ impl Vfx {
         self.rgb_split.update(delta_time);
         self.vignette.update(delta_time);
         self.curvature.update(delta_time);
+        self.noise_offset.update(delta_time);
     }
 }
 

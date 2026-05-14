@@ -312,6 +312,14 @@ impl LayoutHelper<'_> {
         if button.text.state.mouse_left.clicked {
             actions.push(LevelAction::NewCurvature(BeatTime::WHOLE).into());
         }
+
+        let new_noise = bar.cut_top(self.button_height).cut_left(button_width);
+        bar.cut_top(self.spacing);
+        let button = context.state.get_root_or(|| ButtonWidget::new("Noise"));
+        button.update(new_noise, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::NewNoiseOffset(BeatTime::WHOLE).into());
+        }
     }
 
     /// View configuration
@@ -1018,11 +1026,21 @@ impl LayoutHelper<'_> {
                         );
                     }
                 }
-                EffectEvent::CameraShake(duration, intensity) => {
+                EffectEvent::CameraShake(duration, intensity)
+                | EffectEvent::Vignette(duration, intensity)
+                | EffectEvent::ScreenCurvature(duration, intensity)
+                | EffectEvent::NoiseOffset(duration, intensity) => {
+                    let name = match effect {
+                        EffectEvent::CameraShake(..) => "Camera Shake",
+                        EffectEvent::Vignette(..) => "Vignette",
+                        EffectEvent::ScreenCurvature(..) => "Curvature",
+                        EffectEvent::NoiseOffset(..) => "Noise",
+                        _ => "unknown",
+                    };
                     self.event_title_delete(
                         EditorEventIdx::Event(event_i),
                         bar,
-                        "Camera Shake",
+                        name,
                         tooltip,
                         actions,
                         context,
@@ -1058,8 +1076,7 @@ impl LayoutHelper<'_> {
                     }
 
                     let intensity_pos = bar.cut_top(self.value_height);
-                    let scale = r32(2.0);
-                    let mut intensity = intensity * scale;
+                    let mut intensity = intensity;
                     let slider = context.state.get_root_or(|| {
                         ValueWidget::new(
                             "Intensity",
@@ -1068,154 +1085,13 @@ impl LayoutHelper<'_> {
                                 min: R32::ZERO,
                                 max: r32(1.0),
                             },
-                            r32(0.05),
+                            r32(0.01),
                         )
                     });
                     if slider.update(intensity_pos, context, &mut intensity) {
                         actions.push(
-                            LevelAction::ChangeEffectIntensity(
-                                event_i,
-                                Change::Set(intensity / scale),
-                            )
-                            .into(),
-                        );
-                    }
-                    if slider.control_state.mouse_left.just_released {
-                        actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::EffectIntensity(event_i)))
+                            LevelAction::ChangeEffectIntensity(event_i, Change::Set(intensity))
                                 .into(),
-                        );
-                    }
-                }
-                EffectEvent::Vignette(duration, intensity) => {
-                    self.event_title_delete(
-                        EditorEventIdx::Event(event_i),
-                        bar,
-                        "Vignette",
-                        tooltip,
-                        actions,
-                        context,
-                    );
-
-                    let duration_pos = bar.cut_top(self.value_height);
-                    let mut duration = BeatTime::from_beats_float(
-                        time_to_seconds(duration) / timing_point.beat_time,
-                    );
-                    let slider = context.state.get_root_or(|| {
-                        BeatValueWidget::new(
-                            "Duration",
-                            duration,
-                            BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                            self.level_editor.beat_snap,
-                        )
-                    });
-                    slider.scroll_by = self.level_editor.beat_snap;
-                    if slider.update(duration_pos, context, &mut duration) {
-                        actions.push(
-                            LevelAction::ChangeEffectDuration(
-                                event_i,
-                                Change::Set(duration.as_time(timing_point.beat_time)),
-                            )
-                            .into(),
-                        );
-                    }
-                    if slider.control_state.mouse_left.just_released {
-                        actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::EventDuration(event_i)))
-                                .into(),
-                        );
-                    }
-
-                    let intensity_pos = bar.cut_top(self.value_height);
-                    let scale = r32(2.0);
-                    let mut intensity = intensity * scale;
-                    let slider = context.state.get_root_or(|| {
-                        ValueWidget::new(
-                            "Intensity",
-                            intensity,
-                            ValueControl::Slider {
-                                min: R32::ZERO,
-                                max: r32(1.0),
-                            },
-                            r32(0.05),
-                        )
-                    });
-                    if slider.update(intensity_pos, context, &mut intensity) {
-                        actions.push(
-                            LevelAction::ChangeEffectIntensity(
-                                event_i,
-                                Change::Set(intensity / scale),
-                            )
-                            .into(),
-                        );
-                    }
-                    if slider.control_state.mouse_left.just_released {
-                        actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::EffectIntensity(event_i)))
-                                .into(),
-                        );
-                    }
-                }
-                EffectEvent::ScreenCurvature(duration, intensity) => {
-                    self.event_title_delete(
-                        EditorEventIdx::Event(event_i),
-                        bar,
-                        "Curvature",
-                        tooltip,
-                        actions,
-                        context,
-                    );
-
-                    let duration_pos = bar.cut_top(self.value_height);
-                    let mut duration = BeatTime::from_beats_float(
-                        time_to_seconds(duration) / timing_point.beat_time,
-                    );
-                    let slider = context.state.get_root_or(|| {
-                        BeatValueWidget::new(
-                            "Duration",
-                            duration,
-                            BeatTime::ZERO..=BeatTime::WHOLE * 10,
-                            self.level_editor.beat_snap,
-                        )
-                    });
-                    slider.scroll_by = self.level_editor.beat_snap;
-                    if slider.update(duration_pos, context, &mut duration) {
-                        actions.push(
-                            LevelAction::ChangeEffectDuration(
-                                event_i,
-                                Change::Set(duration.as_time(timing_point.beat_time)),
-                            )
-                            .into(),
-                        );
-                    }
-                    if slider.control_state.mouse_left.just_released {
-                        actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::EventDuration(event_i)))
-                                .into(),
-                        );
-                    }
-
-                    let intensity_pos = bar.cut_top(self.value_height);
-                    let scale = r32(2.0);
-                    let mut intensity = intensity * scale;
-                    let slider = context.state.get_root_or(|| {
-                        ValueWidget::new(
-                            "Intensity",
-                            intensity,
-                            ValueControl::Slider {
-                                min: R32::ZERO,
-                                max: r32(1.0),
-                            },
-                            r32(0.05),
-                        )
-                    });
-                    if slider.update(intensity_pos, context, &mut intensity) {
-                        actions.push(
-                            LevelAction::ChangeEffectIntensity(
-                                event_i,
-                                Change::Set(intensity / scale),
-                            )
-                            .into(),
                         );
                     }
                     if slider.control_state.mouse_left.just_released {

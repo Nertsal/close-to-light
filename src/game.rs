@@ -241,14 +241,12 @@ impl geng::State for Game {
 
         self.post.post_process(
             &options,
-            crate::render::post::PostVfx {
-                time: self.model.real_time,
-                crt: options.graphics.crt.enabled,
-                vignette: self.model.vfx.vignette.value.current.as_f32(),
-                curvature: self.model.vfx.curvature.value.current.as_f32(),
-                rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
-                colors: options.graphics.colors,
-            },
+            crate::render::post::PostVfx::new(
+                &self.model.vfx,
+                self.model.real_time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
             framebuffer,
         );
     }

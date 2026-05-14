@@ -5,7 +5,7 @@ use ctl_assets::GraphicsColorsOptions;
 pub struct PostContext {
     pub geng: Geng,
     pub shader_crt: Rc<ugli::Program>,
-    pub shader_rgb_split: Rc<ugli::Program>,
+    pub shader_noise_effects: Rc<ugli::Program>,
     pub shader_color_correction: Rc<ugli::Program>,
 }
 
@@ -23,7 +23,34 @@ pub struct PostVfx {
     pub vignette: f32,
     pub curvature: f32,
     pub rgb_split: f32,
+    pub noise_offset: f32,
     pub colors: GraphicsColorsOptions,
+}
+
+impl PostVfx {
+    pub fn new(vfx: &Vfx, time: FloatTime, crt: bool, colors: GraphicsColorsOptions) -> Self {
+        Self {
+            time,
+            crt,
+            vignette: vfx.vignette.value.current.as_f32(),
+            curvature: vfx.curvature.value.current.as_f32(),
+            rgb_split: vfx.rgb_split.value.current.as_f32(),
+            noise_offset: vfx.noise_offset.value.current.as_f32(),
+            colors,
+        }
+    }
+
+    pub fn minimal(time: FloatTime, crt: bool, colors: GraphicsColorsOptions) -> Self {
+        Self {
+            time,
+            crt,
+            vignette: 0.0,
+            curvature: 0.0,
+            rgb_split: 0.0,
+            noise_offset: 0.0,
+            colors,
+        }
+    }
 }
 
 fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
@@ -39,7 +66,7 @@ impl PostRender {
         Self::new_with(PostContext {
             geng: context.geng.clone(),
             shader_crt: context.assets.shaders.crt.clone(),
-            shader_rgb_split: context.assets.shaders.rgb_split.clone(),
+            shader_noise_effects: context.assets.shaders.noise_effects.clone(),
             shader_color_correction: context.assets.shaders.color_correction.clone(),
         })
     }
@@ -125,13 +152,14 @@ impl PostRender {
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,
-                &self.context.shader_rgb_split,
+                &self.context.shader_noise_effects,
                 ugli::DrawMode::TriangleFan,
                 &self.unit_quad,
                 ugli::uniforms! {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
-                    u_offset: 0.01 * vfx.rgb_split,
+                    u_rgb_offset: 0.01 * vfx.rgb_split,
+                    u_noise_offset: vfx.noise_offset,
                 },
                 ugli::DrawParameters::default(),
             );

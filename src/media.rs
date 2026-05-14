@@ -102,14 +102,11 @@ impl geng::State for MediaState {
         }
         self.post.post_process(
             &Options::default(),
-            PostVfx {
-                time: self.time,
-                crt: self.crt,
-                vignette: 0.0,
-                curvature: 0.0,
-                rgb_split: 0.0,
-                colors: ctl_assets::GraphicsColorsOptions::default(),
-            },
+            PostVfx::minimal(
+                self.time,
+                self.crt,
+                ctl_assets::GraphicsColorsOptions::default(),
+            ),
             framebuffer,
         );
     }

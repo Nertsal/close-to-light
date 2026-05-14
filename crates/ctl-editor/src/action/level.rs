@@ -44,6 +44,7 @@ pub enum LevelAction {
     NewCameraShake(BeatTime),
     NewVignette(BeatTime),
     NewCurvature(BeatTime),
+    NewNoiseOffset(BeatTime),
     ChangeEffectDuration(usize, Change<Time>),
     ChangeEffectIntensity(usize, Change<R32>),
 
@@ -166,6 +167,7 @@ impl LevelAction {
             LevelAction::NewCameraShake(_) => false,
             LevelAction::NewVignette(_) => false,
             LevelAction::NewCurvature(_) => false,
+            LevelAction::NewNoiseOffset(_) => false,
             LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeEffectIntensity(_, delta) => delta.is_noop(&R32::ZERO),
 
@@ -517,6 +519,19 @@ impl LevelEditor {
                     event: Event::Effect(EffectEvent::ScreenCurvature(duration, r32(0.5))),
                 });
             }
+            LevelAction::NewNoiseOffset(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::NoiseOffset(duration, r32(1.0))),
+                });
+            }
             LevelAction::ChangeEffectDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
                     && let Event::Effect(effect) = &mut event.event
@@ -526,7 +541,8 @@ impl LevelEditor {
                         | EffectEvent::RgbSplit(duration)
                         | EffectEvent::CameraShake(duration, _)
                         | EffectEvent::Vignette(duration, _)
-                        | EffectEvent::ScreenCurvature(duration, _) => duration,
+                        | EffectEvent::ScreenCurvature(duration, _)
+                        | EffectEvent::NoiseOffset(duration, _) => duration,
                     };
                     change.apply(duration);
                     self.save_state(HistoryLabel::EventDuration(index));
@@ -537,7 +553,8 @@ impl LevelEditor {
                     && let Event::Effect(effect) = &mut event.event
                     && let EffectEvent::CameraShake(_, intensity)
                     | EffectEvent::Vignette(_, intensity)
-                    | EffectEvent::ScreenCurvature(_, intensity) = effect
+                    | EffectEvent::ScreenCurvature(_, intensity)
+                    | EffectEvent::NoiseOffset(_, intensity) = effect
                 {
                     change.apply(intensity);
                     self.save_state(HistoryLabel::EffectIntensity(index));

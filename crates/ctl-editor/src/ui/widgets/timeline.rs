@@ -936,6 +936,7 @@ impl TimelineWidget {
                             EffectEvent::CameraShake(..) => atlas.timeline_shake(),
                             EffectEvent::Vignette(..) => atlas.timeline_rgb_split(),
                             EffectEvent::ScreenCurvature(..) => atlas.timeline_rgb_split(),
+                            EffectEvent::NoiseOffset(..) => atlas.timeline_rgb_split(),
                         };
 
                         regular_event(

@@ -156,6 +156,15 @@ impl LevelState {
                             .set(time_to_seconds(duration - time), intensity);
                     }
                 }
+                EffectEvent::NoiseOffset(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.noise_offset
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
+                }
             },
         }
 
