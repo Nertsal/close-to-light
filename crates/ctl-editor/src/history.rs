@@ -11,7 +11,7 @@ pub enum HistoryLabel {
     EventDuration(usize),
 
     // Vfx
-    CameraShakeIntensity(usize),
+    EffectIntensity(usize),
 
     // Lights
     FadeIn(LightId),

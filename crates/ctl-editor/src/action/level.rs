@@ -39,11 +39,13 @@ pub enum LevelAction {
     TimingUpdate(usize, FloatTime),
 
     // Vfx
-    NewRgbSplit(Time),
-    NewPaletteSwap(Time),
-    NewCameraShake(Time),
+    NewRgbSplit(BeatTime),
+    NewPaletteSwap(BeatTime),
+    NewCameraShake(BeatTime),
+    NewVignette(BeatTime),
+    NewCurvature(BeatTime),
     ChangeEffectDuration(usize, Change<Time>),
-    ChangeCameraShakeIntensity(usize, Change<R32>),
+    ChangeEffectIntensity(usize, Change<R32>),
 
     // Light actions
     NewLight(Shape),
@@ -162,8 +164,10 @@ impl LevelAction {
             LevelAction::NewRgbSplit(_) => false,
             LevelAction::NewPaletteSwap(_) => false,
             LevelAction::NewCameraShake(_) => false,
+            LevelAction::NewVignette(_) => false,
+            LevelAction::NewCurvature(_) => false,
             LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
-            LevelAction::ChangeCameraShakeIntensity(_, delta) => delta.is_noop(&R32::ZERO),
+            LevelAction::ChangeEffectIntensity(_, delta) => delta.is_noop(&R32::ZERO),
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -450,6 +454,12 @@ impl LevelEditor {
 
             LevelAction::NewRgbSplit(duration) => {
                 self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::RgbSplit(duration)),
@@ -457,6 +467,12 @@ impl LevelEditor {
             }
             LevelAction::NewCameraShake(duration) => {
                 self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::CameraShake(duration, r32(0.25))),
@@ -464,9 +480,41 @@ impl LevelEditor {
             }
             LevelAction::NewPaletteSwap(duration) => {
                 self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::PaletteSwap(duration)),
+                });
+            }
+            LevelAction::NewVignette(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::Vignette(duration, r32(0.5))),
+                });
+            }
+            LevelAction::NewCurvature(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::ScreenCurvature(duration, r32(0.5))),
                 });
             }
             LevelAction::ChangeEffectDuration(index, change) => {
@@ -476,18 +524,23 @@ impl LevelEditor {
                     let duration = match effect {
                         EffectEvent::PaletteSwap(duration)
                         | EffectEvent::RgbSplit(duration)
-                        | EffectEvent::CameraShake(duration, _) => duration,
+                        | EffectEvent::CameraShake(duration, _)
+                        | EffectEvent::Vignette(duration, _)
+                        | EffectEvent::ScreenCurvature(duration, _) => duration,
                     };
                     change.apply(duration);
                     self.save_state(HistoryLabel::EventDuration(index));
                 }
             }
-            LevelAction::ChangeCameraShakeIntensity(index, change) => {
+            LevelAction::ChangeEffectIntensity(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
-                    && let Event::Effect(EffectEvent::CameraShake(_, intensity)) = &mut event.event
+                    && let Event::Effect(effect) = &mut event.event
+                    && let EffectEvent::CameraShake(_, intensity)
+                    | EffectEvent::Vignette(_, intensity)
+                    | EffectEvent::ScreenCurvature(_, intensity) = effect
                 {
                     change.apply(intensity);
-                    self.save_state(HistoryLabel::CameraShakeIntensity(index));
+                    self.save_state(HistoryLabel::EffectIntensity(index));
                 }
             }
 

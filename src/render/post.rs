@@ -20,6 +20,8 @@ pub struct PostRender {
 pub struct PostVfx {
     pub time: FloatTime,
     pub crt: bool,
+    pub vignette: f32,
+    pub curvature: f32,
     pub rgb_split: f32,
     pub colors: GraphicsColorsOptions,
 }
@@ -96,7 +98,11 @@ impl PostRender {
         }
 
         // CRT
-        if vfx.crt {
+        {
+            let crt_mult = if vfx.crt { 1.0 } else { 0.0 };
+            let curvature = options.graphics.crt.curvature * crt_mult + vfx.curvature;
+            let vignette = options.graphics.crt.vignette * crt_mult + vfx.vignette;
+            let scanlines = options.graphics.crt.scanlines * crt_mult;
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,
@@ -106,9 +112,9 @@ impl PostRender {
                 ugli::uniforms! {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
-                    u_curvature: options.graphics.crt.curvature,
-                    u_vignette_multiplier: options.graphics.crt.vignette,
-                    u_scanlines_multiplier: options.graphics.crt.scanlines,
+                    u_curvature: curvature,
+                    u_vignette_multiplier: vignette,
+                    u_scanlines_multiplier: scanlines,
                 },
                 ugli::DrawParameters::default(),
             );

@@ -70,7 +70,7 @@ impl Default for GraphicsCrtOptions {
     fn default() -> Self {
         Self {
             enabled: true,
-            curvature: 20.0,
+            curvature: 0.05,
             vignette: 0.2,
             scanlines: 0.5,
         }

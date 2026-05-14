@@ -82,6 +82,8 @@ trigger seizures for people with photosensitive epilepsy
             crate::render::post::PostVfx {
                 time: self.time,
                 crt: options.graphics.crt.enabled,
+                vignette: 0.0,
+                curvature: 0.0,
                 rgb_split: 0.0,
                 colors: options.graphics.colors,
             },

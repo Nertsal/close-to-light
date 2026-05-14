@@ -235,6 +235,8 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
             crate::render::post::PostVfx {
                 time: r32(self.real_time as f32),
                 crt: self.options.graphics.crt.enabled,
+                vignette: 0.0,
+                curvature: 0.0,
                 rgb_split: 0.0,
                 colors: self.options.graphics.colors,
             },

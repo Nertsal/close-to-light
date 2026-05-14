@@ -460,6 +460,8 @@ impl geng::State for TrailerState {
             PostVfx {
                 time: self.time,
                 crt: true,
+                vignette: self.model.vfx.vignette.value.current.as_f32(),
+                curvature: self.model.vfx.curvature.value.current.as_f32(),
                 rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
                 colors: ctl_assets::GraphicsColorsOptions::default(),
             },

@@ -273,11 +273,7 @@ impl TimelineWidget {
                     .and_then(|event| {
                         let duration = match &event.event {
                             Event::Light(_) => return None,
-                            Event::Effect(effect) => match effect {
-                                EffectEvent::PaletteSwap(duration)
-                                | EffectEvent::RgbSplit(duration)
-                                | EffectEvent::CameraShake(duration, _) => duration,
-                            },
+                            Event::Effect(effect) => effect.duration(),
                         };
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
@@ -870,11 +866,7 @@ impl TimelineWidget {
                 }
                 Event::Effect(effect) => {
                     let is_selected = original_selection.is_single(event_idx);
-                    let duration = match *effect {
-                        EffectEvent::PaletteSwap(duration)
-                        | EffectEvent::RgbSplit(duration)
-                        | EffectEvent::CameraShake(duration, _) => duration,
-                    };
+                    let duration = effect.duration();
                     if is_selected {
                         // Start time
                         timeline_tick(
@@ -942,6 +934,8 @@ impl TimelineWidget {
                             EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
                             EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
                             EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                            EffectEvent::Vignette(..) => atlas.timeline_rgb_split(),
+                            EffectEvent::ScreenCurvature(..) => atlas.timeline_rgb_split(),
                         };
 
                         regular_event(

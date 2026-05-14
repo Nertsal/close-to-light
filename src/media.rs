@@ -105,6 +105,8 @@ impl geng::State for MediaState {
             PostVfx {
                 time: self.time,
                 crt: self.crt,
+                vignette: 0.0,
+                curvature: 0.0,
                 rgb_split: 0.0,
                 colors: ctl_assets::GraphicsColorsOptions::default(),
             },

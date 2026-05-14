@@ -126,10 +126,8 @@ impl LevelState {
                         return;
                     }
                     if let Some(vfx) = vfx {
-                        vfx.rgb_split.time_left = vfx
-                            .rgb_split
-                            .time_left
-                            .max(time_to_seconds(duration - time));
+                        vfx.rgb_split
+                            .set(time_to_seconds(duration - time), R32::ONE);
                     }
                 }
                 EffectEvent::CameraShake(duration, intensity) => {
@@ -138,6 +136,24 @@ impl LevelState {
                     }
                     if let Some(vfx) = vfx {
                         vfx.camera_shake = vfx.camera_shake.max(intensity);
+                    }
+                }
+                EffectEvent::Vignette(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.vignette
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
+                }
+                EffectEvent::ScreenCurvature(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.curvature
+                            .set(time_to_seconds(duration - time), intensity);
                     }
                 }
             },

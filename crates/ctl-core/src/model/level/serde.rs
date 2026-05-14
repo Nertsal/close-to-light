@@ -43,10 +43,30 @@ pub enum EffectEvent {
     /// Apply an RGB-splitting shader to the screen.
     /// Time specifies the duration of the **effect**.
     RgbSplit(Time),
-    /// Apply an screen shake effect to the camera.
+    /// Apply a screen shake effect to the camera.
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the intensity/amplitude.
     CameraShake(Time, R32),
+    /// Apply a CRT screen vignette effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/darkness.
+    Vignette(Time, R32),
+    /// Apply a CRT screen curvature effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/curvature.
+    ScreenCurvature(Time, R32),
+}
+
+impl EffectEvent {
+    pub fn duration(&self) -> Time {
+        match self {
+            EffectEvent::PaletteSwap(duration)
+            | EffectEvent::RgbSplit(duration)
+            | EffectEvent::CameraShake(duration, _)
+            | EffectEvent::Vignette(duration, _)
+            | EffectEvent::ScreenCurvature(duration, _) => *duration,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

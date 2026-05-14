@@ -305,6 +305,8 @@ impl geng::State for EditorState {
         let game_post_vfx = crate::render::post::PostVfx {
             time: self.editor.real_time,
             crt: false,
+            vignette: vfx.vignette.value.current.as_f32(),
+            curvature: vfx.curvature.value.current.as_f32(),
             rgb_split: vfx.rgb_split.value.current.as_f32(),
             colors: options.graphics.colors,
         };
@@ -345,6 +347,8 @@ impl geng::State for EditorState {
         let editor_post_vfx = crate::render::post::PostVfx {
             crt: options.graphics.crt.enabled,
             rgb_split: 0.0,
+            vignette: 0.0,
+            curvature: 0.0,
             ..game_post_vfx
         };
         self.post_render

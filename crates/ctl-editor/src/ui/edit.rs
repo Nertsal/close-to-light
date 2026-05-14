@@ -274,7 +274,7 @@ impl LayoutHelper<'_> {
         let button = context.state.get_root_or(|| ButtonWidget::new("RGB Split"));
         button.update(new_rgb, context);
         if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewRgbSplit(TIME_IN_FLOAT_TIME).into());
+            actions.push(LevelAction::NewRgbSplit(BeatTime::WHOLE).into());
         }
 
         let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
@@ -284,17 +284,33 @@ impl LayoutHelper<'_> {
             .get_root_or(|| ButtonWidget::new("Palette swap"));
         button.update(new_palette, context);
         if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewPaletteSwap(TIME_IN_FLOAT_TIME / 2).into());
+            actions.push(LevelAction::NewPaletteSwap(BeatTime::HALF).into());
         }
 
-        let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
+        let new_shake = bar.cut_top(self.button_height).cut_left(button_width);
         bar.cut_top(self.spacing);
         let button = context
             .state
             .get_root_or(|| ButtonWidget::new("Camera shake"));
-        button.update(new_palette, context);
+        button.update(new_shake, context);
         if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewCameraShake(TIME_IN_FLOAT_TIME / 8).into());
+            actions.push(LevelAction::NewCameraShake(BeatTime::QUARTER).into());
+        }
+
+        let new_vignette = bar.cut_top(self.button_height).cut_left(button_width);
+        bar.cut_top(self.spacing);
+        let button = context.state.get_root_or(|| ButtonWidget::new("Vignette"));
+        button.update(new_vignette, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::NewVignette(BeatTime::WHOLE).into());
+        }
+
+        let new_curvature = bar.cut_top(self.button_height).cut_left(button_width);
+        bar.cut_top(self.spacing);
+        let button = context.state.get_root_or(|| ButtonWidget::new("Curvature"));
+        button.update(new_curvature, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(LevelAction::NewCurvature(BeatTime::WHOLE).into());
         }
     }
 
@@ -1057,7 +1073,7 @@ impl LayoutHelper<'_> {
                     });
                     if slider.update(intensity_pos, context, &mut intensity) {
                         actions.push(
-                            LevelAction::ChangeCameraShakeIntensity(
+                            LevelAction::ChangeEffectIntensity(
                                 event_i,
                                 Change::Set(intensity / scale),
                             )
@@ -1066,10 +1082,146 @@ impl LayoutHelper<'_> {
                     }
                     if slider.control_state.mouse_left.just_released {
                         actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::CameraShakeIntensity(
+                            LevelAction::FlushChanges(Some(HistoryLabel::EffectIntensity(event_i)))
+                                .into(),
+                        );
+                    }
+                }
+                EffectEvent::Vignette(duration, intensity) => {
+                    self.event_title_delete(
+                        EditorEventIdx::Event(event_i),
+                        bar,
+                        "Vignette",
+                        tooltip,
+                        actions,
+                        context,
+                    );
+
+                    let duration_pos = bar.cut_top(self.value_height);
+                    let mut duration = BeatTime::from_beats_float(
+                        time_to_seconds(duration) / timing_point.beat_time,
+                    );
+                    let slider = context.state.get_root_or(|| {
+                        BeatValueWidget::new(
+                            "Duration",
+                            duration,
+                            BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                            self.level_editor.beat_snap,
+                        )
+                    });
+                    slider.scroll_by = self.level_editor.beat_snap;
+                    if slider.update(duration_pos, context, &mut duration) {
+                        actions.push(
+                            LevelAction::ChangeEffectDuration(
                                 event_i,
-                            )))
+                                Change::Set(duration.as_time(timing_point.beat_time)),
+                            )
                             .into(),
+                        );
+                    }
+                    if slider.control_state.mouse_left.just_released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::EventDuration(event_i)))
+                                .into(),
+                        );
+                    }
+
+                    let intensity_pos = bar.cut_top(self.value_height);
+                    let scale = r32(2.0);
+                    let mut intensity = intensity * scale;
+                    let slider = context.state.get_root_or(|| {
+                        ValueWidget::new(
+                            "Intensity",
+                            intensity,
+                            ValueControl::Slider {
+                                min: R32::ZERO,
+                                max: r32(1.0),
+                            },
+                            r32(0.05),
+                        )
+                    });
+                    if slider.update(intensity_pos, context, &mut intensity) {
+                        actions.push(
+                            LevelAction::ChangeEffectIntensity(
+                                event_i,
+                                Change::Set(intensity / scale),
+                            )
+                            .into(),
+                        );
+                    }
+                    if slider.control_state.mouse_left.just_released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::EffectIntensity(event_i)))
+                                .into(),
+                        );
+                    }
+                }
+                EffectEvent::ScreenCurvature(duration, intensity) => {
+                    self.event_title_delete(
+                        EditorEventIdx::Event(event_i),
+                        bar,
+                        "Curvature",
+                        tooltip,
+                        actions,
+                        context,
+                    );
+
+                    let duration_pos = bar.cut_top(self.value_height);
+                    let mut duration = BeatTime::from_beats_float(
+                        time_to_seconds(duration) / timing_point.beat_time,
+                    );
+                    let slider = context.state.get_root_or(|| {
+                        BeatValueWidget::new(
+                            "Duration",
+                            duration,
+                            BeatTime::ZERO..=BeatTime::WHOLE * 10,
+                            self.level_editor.beat_snap,
+                        )
+                    });
+                    slider.scroll_by = self.level_editor.beat_snap;
+                    if slider.update(duration_pos, context, &mut duration) {
+                        actions.push(
+                            LevelAction::ChangeEffectDuration(
+                                event_i,
+                                Change::Set(duration.as_time(timing_point.beat_time)),
+                            )
+                            .into(),
+                        );
+                    }
+                    if slider.control_state.mouse_left.just_released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::EventDuration(event_i)))
+                                .into(),
+                        );
+                    }
+
+                    let intensity_pos = bar.cut_top(self.value_height);
+                    let scale = r32(2.0);
+                    let mut intensity = intensity * scale;
+                    let slider = context.state.get_root_or(|| {
+                        ValueWidget::new(
+                            "Intensity",
+                            intensity,
+                            ValueControl::Slider {
+                                min: R32::ZERO,
+                                max: r32(1.0),
+                            },
+                            r32(0.05),
+                        )
+                    });
+                    if slider.update(intensity_pos, context, &mut intensity) {
+                        actions.push(
+                            LevelAction::ChangeEffectIntensity(
+                                event_i,
+                                Change::Set(intensity / scale),
+                            )
+                            .into(),
+                        );
+                    }
+                    if slider.control_state.mouse_left.just_released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::EffectIntensity(event_i)))
+                                .into(),
                         );
                     }
                 }
