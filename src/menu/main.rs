@@ -337,7 +337,7 @@ impl MainUI {
         Self {
             exit_queued: false,
             version: TextWidget::new(ctl_constants::GAME_VERSION.to_string())
-                .aligned(vec2(0.5, 0.5)),
+                .aligned(vec2(0.0, 0.5)),
             screen: WidgetState::new(),
             exit: ButtonWidget::new("Exit"),
             options: OptionsButtonWidget::new(&context.assets, 0.25),
@@ -376,8 +376,8 @@ impl MainUI {
             self.exit_queued = true;
         }
 
-        let version = Aabb2::point(exit.align_pos(vec2(0.5, 0.0)))
-            .extend_symmetric(vec2(1.5 * font_size, 0.0))
+        let version = Aabb2::point(exit.align_pos(vec2(1.0, 1.0)) + vec2(0.5 * font_size, 0.0))
+            .extend_positive(vec2(6.5 * font_size, 0.0))
             .extend_down(font_size);
         self.version.update(version, &context.scale_font(0.7));
 

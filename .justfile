@@ -15,8 +15,15 @@ test:
     cargo clippy --workspace --no-default-features -F editor -F demo
     cargo clippy --workspace --no-default-features -F steam
 
+docker_image := "ctl-build-docker"
+steam_sdk := "./dev-assets/redistributable_bin"
+server_url := "https://ctl-server.nertsal.com"
+server := "ctl-server.nertsal.com"
+server_user := "nertsal"
+git_commit_hash := `git rev-parse --short HEAD`
+
 game *ARGS:
-    cargo run -- {{ARGS}}
+    GIT_COMMIT_HASH={{git_commit_hash}} cargo run {{ARGS}}
 
 web command *ARGS:
     cargo geng {{command}} --platform web --release {{ARGS}}
@@ -33,12 +40,6 @@ build-demo:
 build-game:
     just build-all-platforms ./target/release-game
 
-docker_image := "ctl-build-docker"
-steam_sdk := "./dev-assets/redistributable_bin"
-server_url := "https://ctl-server.nertsal.com"
-server := "ctl-server.nertsal.com"
-server_user := "nertsal"
-
 build-docker:
     docker build -t {{docker_image}} .
 
@@ -53,6 +54,7 @@ build-all-platforms TARGET_DIR *ARGS:
     --env CARGO_HOME=./target/linux/.cargo \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
     --env LEADERBOARD_URL={{server_url}} \
+    --env GIT_COMMIT_HASH={{git_commit_hash}} \
     {{docker_image}} \
     cargo geng build --release --platform linux --features steam {{ARGS}}
     cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
@@ -62,12 +64,13 @@ build-all-platforms TARGET_DIR *ARGS:
     --env CARGO_HOME=./target/windows/.cargo \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
     --env LEADERBOARD_URL={{server_url}} \
+    --env GIT_COMMIT_HASH={{git_commit_hash}} \
     {{docker_image}} \
     cargo geng build --release --platform windows --features steam {{ARGS}}
     cp {{steam_sdk}}/win64/steam_api64.dll {{TARGET_DIR}}/windows/geng
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
-    LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
+    LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web GIT_COMMIT_HASH={{git_commit_hash}} \
     cargo geng build --release --platform web --features itch {{ARGS}}
     cd {{TARGET_DIR}}/web/geng && zip -FS -r ../../web.zip ./*
 

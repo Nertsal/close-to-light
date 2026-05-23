@@ -4,6 +4,7 @@ pub const GAME_VERSION: GameVersion = GameVersion {
     major: 0,
     minor: 1,
     patch: 5,
+    commit: option_env!("GIT_COMMIT_HASH"),
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -11,6 +12,7 @@ pub struct GameVersion {
     pub major: usize,
     pub minor: usize,
     pub patch: usize,
+    pub commit: Option<&'static str>,
 }
 
 impl std::fmt::Display for GameVersion {
@@ -23,6 +25,8 @@ impl std::fmt::Display for GameVersion {
 
         // #[cfg(feature = "playtest")]
         // write!(f, "-playtest")?;
+
+        write!(f, " [{}]", self.commit.unwrap_or("dev"))?;
 
         Ok(())
     }

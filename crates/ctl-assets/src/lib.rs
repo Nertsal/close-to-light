@@ -79,6 +79,7 @@ pub struct Sounds {
 #[derive(geng::asset::Load)]
 pub struct Sprites {
     pub title: PixelTexture,
+    pub title2: PixelTexture,
     pub linear_gradient: PixelTexture,
     pub radial_gradient: PixelTexture,
     pub square_gradient: PixelTexture,
