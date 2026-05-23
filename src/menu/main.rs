@@ -246,14 +246,16 @@ impl geng::State for MainMenu {
         );
 
         let fading = self.play_button.is_fading();
-        if !fading
-            && let Ok(pos) = self
-                .camera
-                .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
-        {
+        if !fading {
+            // Title
+            let pos = crate::util::world_to_screen(
+                &self.camera,
+                framebuffer.size().as_f32(),
+                vec2(0.0, 3.5),
+            );
             self.ui_render.draw_texture(
                 Aabb2::point(pos),
-                &self.context.assets.sprites.title,
+                &self.context.assets.sprites.title2,
                 THEME.light,
                 1.0,
                 &mut framebuffer,
