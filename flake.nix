@@ -31,6 +31,17 @@
               cargo-flamegraph
             ];
           };
+
+          # use
+          # ```
+          # nix develop .#minimal --ignore-env --impure --keep DISPLAY --keep TERM --keep NIX_SSL_CERT_FILE --keep XDG_RUNTIME_DIR --command echo 'hi'
+          # ```
+          # to test the library dependencies
+          minimal = pkgs.mkShell {
+            buildInputs = [
+              pkgs.steam-run
+            ];
+          };
         });
       formatter = forEachSystem ({ pkgs, ... }: pkgs.nixfmt);
     };
