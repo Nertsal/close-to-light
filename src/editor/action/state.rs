@@ -76,6 +76,32 @@ impl EditorState {
                     }
                 });
             }
+            EditorStateAction::SetLevelName(level, name) => {
+                self.update_diff_meta(level, |meta| {
+                    meta.name = name;
+                });
+            }
+            EditorStateAction::AddLevelAuthor(level, author) => {
+                self.update_diff_meta(level, |meta| {
+                    log::debug!("Adding level {level} author {author:?}");
+                    meta.authors.push(author);
+                });
+            }
+            EditorStateAction::UpdateLevelAuthor(level, author_idx, author) => {
+                self.update_diff_meta(level, |meta| {
+                    log::debug!("Changing level {level} author {author_idx} to {author:?}");
+                    if let Some(old) = meta.authors.get_mut(author_idx) {
+                        *old = author;
+                    }
+                });
+            }
+            EditorStateAction::RemoveLevelAuthor(level, i) => {
+                self.update_diff_meta(level, |meta| {
+                    if let Some(author) = (i < meta.authors.len()).then(|| meta.authors.remove(i)) {
+                        log::debug!("Removed music author {i}: {author:?}");
+                    }
+                });
+            }
         }
     }
 
@@ -92,6 +118,24 @@ impl EditorState {
             Some(group) => {
                 self.editor.group.music = group.local.music.clone();
                 self.editor.group.cached = group;
+            }
+        }
+    }
+
+    fn update_diff_meta(&mut self, index: usize, f: impl FnOnce(&mut LevelInfo)) {
+        let group = self.editor.group.group_index;
+        let mut meta = self.editor.group.cached.local.meta.clone();
+        if let Some(level_meta) = meta.levels.get_mut(index) {
+            f(level_meta);
+
+            match self.context.local.update_group_meta(group, meta, false) {
+                None => {
+                    log::error!("Failed to update level difficulty meta");
+                }
+                Some(group) => {
+                    self.editor.group.music = group.local.music.clone();
+                    self.editor.group.cached = group;
+                }
             }
         }
     }

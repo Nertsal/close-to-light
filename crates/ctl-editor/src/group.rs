@@ -126,10 +126,13 @@ impl Editor {
         let mut new_group = self.group.cached.local.data.clone();
         new_group.levels.remove(level_index);
 
+        let mut new_meta = self.group.cached.local.meta.clone();
+        new_meta.levels.remove(level_index);
+
         if let Some(group) =
             self.context
                 .local
-                .update_group(self.group.group_index, new_group, None)
+                .update_group_and_meta(self.group.group_index, new_group, new_meta)
         {
             self.group.cached = group;
             log::info!("Saved the level successfully");
@@ -269,7 +272,6 @@ impl Editor {
             level_editor.static_level.group.group_index,
             level_editor.static_level.level_index,
             level_editor.level.clone(),
-            level_editor.name.clone(),
         ) {
             level_editor.model.level.level = level;
             self.group.cached = group;
@@ -282,24 +284,17 @@ impl Editor {
     /// Check whether the level has been changed.
     pub fn is_changed(&self) -> bool {
         if let Some(level_editor) = &self.level_edit {
-            let (Some(cached), Some(cached_meta)) = (
-                self.group
-                    .cached
-                    .local
-                    .data
-                    .levels
-                    .get(level_editor.static_level.level_index),
-                self.group
-                    .cached
-                    .local
-                    .meta
-                    .levels
-                    .get(level_editor.static_level.level_index),
-            ) else {
+            let Some(cached) = self
+                .group
+                .cached
+                .local
+                .data
+                .levels
+                .get(level_editor.static_level.level_index)
+            else {
                 return true;
             };
-            let level_changed =
-                level_editor.level != **cached || *level_editor.name != *cached_meta.name;
+            let level_changed = level_editor.level != **cached;
             if level_changed {
                 return true;
             }

@@ -4,6 +4,7 @@ mod color;
 mod confirm;
 mod dropdown;
 mod explore;
+mod geometry;
 mod icon;
 mod input;
 mod notification;
@@ -12,8 +13,8 @@ mod text;
 mod value;
 
 pub use self::{
-    beat_time::*, button::*, color::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
-    notification::*, slider::*, text::*, value::*,
+    beat_time::*, button::*, color::*, confirm::*, dropdown::*, explore::*, geometry::*, icon::*,
+    input::*, notification::*, slider::*, text::*, value::*,
 };
 
 use super::{WidgetId, context::*, geometry::Geometry, window::*};

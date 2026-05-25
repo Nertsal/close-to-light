@@ -21,6 +21,11 @@ pub enum EditorStateAction {
     AddMusicAuthor(MusicianInfo),
     UpdateMusicAuthor(usize, MusicianInfo),
     RemoveMusicAuthor(usize),
+
+    SetLevelName(usize, Name),
+    AddLevelAuthor(usize, MapperInfo),
+    UpdateLevelAuthor(usize, usize, MapperInfo),
+    RemoveLevelAuthor(usize, usize),
 }
 
 impl From<EditorAction> for EditorStateAction {

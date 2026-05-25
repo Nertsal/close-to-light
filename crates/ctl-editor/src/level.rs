@@ -10,7 +10,6 @@ pub struct LevelEditor {
     pub static_level: PlayLevel,
     /// Current state of the level.
     pub level: Level,
-    pub name: String,
 
     /// Simulation model.
     pub model: Model,
@@ -394,7 +393,6 @@ impl LevelEditor {
     ) -> Self {
         let mut editor = Self {
             level: (*level.level.data).clone(),
-            name: level.level.meta.name.to_string(),
 
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(),

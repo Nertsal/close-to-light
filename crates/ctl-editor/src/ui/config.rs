@@ -101,9 +101,9 @@ impl EditorConfigUi {
             bar.cut_top(context.layout_size * 0.5);
 
             // Music authors
-            let timing = bar.cut_top(context.font_size);
+            let authors = bar.cut_top(context.font_size);
             let text = context.state.get_root_or(|| TextWidget::new("Authors"));
-            text.update(timing, context);
+            text.update(authors, context);
             for (i, author) in music.meta.authors.iter().enumerate() {
                 let mut author_pos = bar.cut_top(context.font_size);
 
@@ -148,46 +148,10 @@ impl EditorConfigUi {
 
         bar.cut_top(context.layout_size * 1.0);
 
-        let level = bar.cut_top(context.font_size * 1.4);
-        let text = context
-            .state
-            .get_root_or(|| TextWidget::new("Difficulty").max_sized());
-        text.update(level, context);
-
-        let name = bar.cut_top(context.font_size);
-        let delete = bar
-            .cut_top(context.font_size * 1.2)
-            .with_width(bar.width() * 0.8, 0.5);
-        if let Some(level_editor) = &editor.level_edit {
-            let input = context.state.get_root_or(|| InputWidget::new(""));
-            input.sync(&level_editor.name, context);
-            input.update(name, context);
-            actions.push(LevelAction::SetName(input.raw.clone()).into());
-
-            let button = context
-                .state
-                .get_root_or(|| ButtonWidget::new("Delete").color(ThemeColor::Danger));
-            button.update(delete, context);
-            if button.text.state.mouse_left.clicked {
-                let index = level_editor.static_level.level_index;
-                actions.push(EditorAction::DeleteLevel(index).into());
-            }
-        }
-
-        let create = bar
-            .cut_top(context.font_size * 1.2)
-            .with_width(bar.width() * 0.8, 0.5);
-        let button = context.state.get_root_or(|| ButtonWidget::new("Create"));
-        button.update(create, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(EditorAction::NewLevel.into());
-        }
-
-        bar.cut_top(context.layout_size);
         let all = bar.cut_top(context.font_size * 1.4);
         let text = context
             .state
-            .get_root_or(|| TextWidget::new("All Difficulties").max_sized());
+            .get_root_or(|| TextWidget::new("Select Difficulty").max_sized());
         text.update(all, context);
 
         let names: Vec<_> = editor
@@ -201,28 +165,33 @@ impl EditorConfigUi {
             .collect();
 
         let max = names.len().saturating_sub(1);
-        for (i, mut level_name) in names.into_iter().enumerate() {
-            let level = context
-                .state
-                .get_root_or(|| ButtonWidget::new("<diff name>"));
+        for (level_idx, level_name) in names.into_iter().enumerate() {
+            let is_selected = editor
+                .level_edit
+                .as_ref()
+                .is_some_and(|editor| editor.static_level.level_index == level_idx);
 
             let name = bar
                 .cut_top(context.font_size * 1.2)
                 .with_width(bar.width() * 0.8, 0.5);
+
+            // Name
+            let level = context
+                .state
+                .get_root_or(|| ButtonWidget::new("<diff name>"));
+            level.text.text = level_name;
+            level.bg_color = if is_selected {
+                ThemeColor::Highlight
+            } else {
+                ThemeColor::Light
+            };
             level.update(name, context);
 
-            if let Some(level_editor) = &editor.level_edit
-                && level_editor.static_level.level_index == i
-            {
-                level_name = level_editor.name.clone().into();
-            }
-            level.text.text = level_name;
-
-            if level.text.state.mouse_left.clicked {
+            if level.text.state.mouse_left.clicked && !is_selected {
                 if editor.is_changed() {
                     actions.push(
                         EditorAction::PopupConfirm(
-                            ConfirmAction::ChangeLevelUnsaved(i),
+                            ConfirmAction::ChangeLevelUnsaved(level_idx),
                             "unsaved changes will be lost".into(),
                             "change difficulty".into(),
                             "cancel".into(),
@@ -230,13 +199,29 @@ impl EditorConfigUi {
                         .into(),
                     );
                 } else {
-                    actions.push(EditorAction::ChangeLevel(i).into());
+                    actions.push(EditorAction::ChangeLevel(level_idx).into());
                 }
             }
 
-            let width = name.height();
-            let mut icons = name;
-            let icons = icons.cut_left(width).translate(vec2(-width, 0.0));
+            // Delete difficulty
+            let button_delete = name
+                .clone()
+                .cut_left(name.height())
+                .translate(vec2(-name.height(), 0.0));
+            let button = context.state.get_root_or(|| {
+                IconButtonWidget::new_danger(context.context.assets.atlas.discard())
+            });
+            button.update(button_delete, context);
+            if button.icon.state.mouse_left.clicked {
+                actions.push(EditorAction::DeleteLevel(level_idx).into());
+            }
+
+            // Icons to reorder the levels
+            let icons_width = name.height();
+            let icons = name
+                .clone()
+                .cut_right(icons_width)
+                .translate(vec2(icons_width, 0.0));
 
             if level.text.state.hovered
                 || context.can_focus() && icons.contains(context.cursor.position)
@@ -247,26 +232,135 @@ impl EditorConfigUi {
                 let down = icons[1];
                 let down_hover = down.contains(context.cursor.position);
 
-                if i > 0 && (up_hover || !down_hover) {
+                // Move up
+                if level_idx > 0 && (up_hover || !down_hover) {
                     let icon_up = context
                         .state
                         .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_up()));
                     icon_up.update(up, context);
                     if icon_up.state.mouse_left.clicked {
-                        actions.push(EditorAction::MoveLevelLow(i).into());
+                        actions.push(EditorAction::MoveLevelLow(level_idx).into());
                     }
                 }
 
-                if i < max && (down_hover || !up_hover) {
+                // Move down
+                if level_idx < max && (down_hover || !up_hover) {
                     let icon_down = context
                         .state
                         .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_down()));
                     icon_down.update(down, context);
                     if icon_down.state.mouse_left.clicked {
-                        actions.push(EditorAction::MoveLevelHigh(i).into());
+                        actions.push(EditorAction::MoveLevelHigh(level_idx).into());
                     }
                 }
             }
+        }
+
+        let create = bar
+            .cut_top(context.font_size * 1.0)
+            .with_width(context.font_size * 2.0, 0.5);
+        let button = context.state.get_root_or(|| ButtonWidget::new("+"));
+        button.update(create, context);
+        if button.text.state.mouse_left.clicked {
+            actions.push(EditorAction::NewLevel.into());
+        }
+
+        // Difficulties - Detailed view
+        bar.cut_top(context.layout_size);
+        let all = bar.cut_top(context.font_size * 1.4);
+        let text = context
+            .state
+            .get_root_or(|| TextWidget::new("All Difficulties").max_sized());
+        text.update(all, context);
+
+        for (level_idx, level_info) in editor.group.cached.local.meta.levels.iter().enumerate() {
+            let mut level_bounds = bar;
+
+            let name = bar.cut_top(context.font_size * 1.2);
+
+            // Name
+            let level = context.state.get_root_or(|| InputWidget::new("Name"));
+            if !level.editing {
+                level.sync(&level_info.name, context);
+            }
+            level.update(name, context);
+            if !level.editing && *level_info.name != level.raw {
+                actions.push(EditorStateAction::SetLevelName(
+                    level_idx,
+                    level.raw.clone().into(),
+                ));
+            }
+
+            // Authors
+            let authors = bar.cut_top(context.font_size);
+            let text = context.state.get_root_or(|| TextWidget::new("Authors"));
+            text.update(authors, context);
+            for (author_idx, author) in level_info.authors.iter().enumerate() {
+                let mut author_pos = bar
+                    .cut_top(context.font_size)
+                    .with_width(bar.width() * 0.8, 0.5);
+
+                // Delete
+                let delete_pos = author_pos.cut_left(author_pos.height());
+                let delete = context.state.get_root_or(|| {
+                    IconButtonWidget::new_danger(context.context.assets.atlas.discard())
+                });
+                delete.update(delete_pos, context);
+                if delete.icon.state.mouse_left.clicked {
+                    actions.push(EditorStateAction::RemoveLevelAuthor(level_idx, author_idx));
+                }
+
+                // Name
+                let input = context.state.get_root_or(|| InputWidget::new("Name"));
+                if !input.editing {
+                    input.sync(&author.name, context);
+                }
+                input.update(author_pos, context);
+                if !input.editing && *author.name != input.raw {
+                    actions.push(EditorStateAction::UpdateLevelAuthor(
+                        level_idx,
+                        author_idx,
+                        MapperInfo {
+                            name: input.raw.clone().into(),
+                            romanized: input.raw.clone().into(), // TODO
+                            ..author.clone()
+                        },
+                    ));
+                }
+            }
+            // Add author
+            let button_pos = bar
+                .cut_top(context.font_size)
+                .with_width(context.font_size * 2.0, 0.5);
+            let button = context.state.get_root_or(|| ButtonWidget::new("+"));
+            button.update(button_pos, context);
+            if button.text.state.mouse_left.clicked {
+                actions.push(EditorStateAction::AddLevelAuthor(
+                    level_idx,
+                    MapperInfo {
+                        id: 0,
+                        name: "".into(),
+                        romanized: "".into(),
+                    },
+                ));
+            }
+
+            level_bounds.min.y = bar.max.y;
+            let bounds = context.state.get_root_or(|| {
+                GeometryWidget::new(|state, context| {
+                    let mut geometry = ctl_ui::geometry::Geometry::new();
+                    let width = 10.0;
+                    geometry.merge(context.geometry.quad_outline(
+                        state.position.extend_uniform(width * 1.25),
+                        width,
+                        context.theme().light,
+                    ));
+                    geometry
+                })
+            });
+            bounds.update(level_bounds, context);
+
+            bar.cut_top(context.layout_size * 0.5);
         }
 
         // Timeline

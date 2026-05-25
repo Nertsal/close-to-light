@@ -14,7 +14,6 @@ pub enum LevelAction {
     Paste,
     FlushChanges(Option<HistoryLabel>),
     Cancel,
-    SetName(String),
     ToggleWaypointsView,
     ScalePlacement(Change<Coord>),
     RotatePlacement(Angle<Coord>),
@@ -142,7 +141,6 @@ impl LevelAction {
             LevelAction::Paste => false,
             LevelAction::FlushChanges(_) => false,
             LevelAction::Cancel => false,
-            LevelAction::SetName(_) => false,
             LevelAction::ToggleWaypointsView => false,
             LevelAction::ScalePlacement(delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
@@ -307,7 +305,6 @@ impl LevelEditor {
                 }
             }
             LevelAction::Cancel => self.cancel(),
-            LevelAction::SetName(name) => self.name = name,
             LevelAction::ToggleWaypointsView => self.view_waypoints(),
             LevelAction::ScalePlacement(delta) => {
                 delta.apply(&mut self.place_scale);

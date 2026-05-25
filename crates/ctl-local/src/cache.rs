@@ -606,8 +606,26 @@ impl LevelCache {
             new_music.meta = group_meta.music.clone();
             new_group.music = Some(Rc::new(new_music));
         }
+
         new_group.meta = group_meta;
         new_group.data = group;
+
+        // Make sure meta and data are matching
+        if new_group.meta.levels.len() > new_group.data.levels.len() {
+            // Too much meta information - cut
+            new_group.meta.levels.drain(new_group.data.levels.len()..);
+        } else if new_group.data.levels.len() > new_group.meta.levels.len() {
+            // Too many levels - add missing info
+            new_group.meta.levels.extend(
+                (new_group.meta.levels.len()..new_group.data.levels.len()).map(|_| LevelInfo {
+                    id: 0,
+                    name: "<diff>".into(),
+                    authors: vec![],
+                    hash: String::new(),
+                }),
+            )
+        }
+
         new_group.update_hash();
 
         drop(inner);
@@ -619,20 +637,19 @@ impl LevelCache {
         group_index: Index,
         level_index: usize,
         level: Level,
-        name: String,
     ) -> Option<(Rc<CachedGroup>, LevelFull)> {
         let inner = self.inner.borrow();
         let group = inner.groups.get(group_index)?;
         let mut new_group = group.local.data.clone();
-        let mut new_meta = group.local.meta.clone();
+        // let mut new_meta = group.local.meta.clone();
         let new_level = new_group.levels.get_mut(level_index)?;
         *new_level = Rc::new(level);
 
-        let level_meta = new_meta.levels.get_mut(level_index)?;
-        level_meta.name = name.into();
+        // let level_meta = new_meta.levels.get_mut(level_index)?;
+        // level_meta.name = name.into();
 
         drop(inner);
-        let group = self.update_group_and_meta(group_index, new_group, new_meta)?;
+        let group = self.update_group(group_index, new_group, None)?;
         let level = group.local.data.levels.get(level_index)?.clone();
         let level_meta = group.local.meta.levels.get(level_index)?.clone();
         Some((
