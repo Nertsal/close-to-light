@@ -21,7 +21,7 @@ pub struct EditorUi {
 impl EditorUi {
     pub fn new(_context: Context) -> Self {
         Self {
-            game: default(),
+            game: WidgetState::new(),
             edit: EditorEditUi::new(),
             config: EditorConfigUi::new(),
             context_menu: ContextMenuWidget::empty(), // TODO: persistent widget in UI state

@@ -12,22 +12,13 @@ pub struct TextWidget {
     pub options: TextRenderOptions,
 }
 
-impl Default for TextWidget {
-    fn default() -> Self {
-        Self {
-            state: default(),
-            text: "<text>".into(),
-            max_size: false,
-            options: default(),
-        }
-    }
-}
-
 impl TextWidget {
     pub fn new(text: impl Into<Name>) -> Self {
         Self {
             text: text.into(),
-            ..default()
+            state: WidgetState::new(),
+            max_size: false,
+            options: default(),
         }
     }
 

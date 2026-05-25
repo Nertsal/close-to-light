@@ -139,7 +139,7 @@ impl Widget for IconButtonWidget {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ToggleButtonWidget {
     pub state: WidgetState,
     pub text: TextWidget,

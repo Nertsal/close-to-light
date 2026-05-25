@@ -2,14 +2,35 @@ use super::widget::Widget;
 
 use std::{cell::UnsafeCell, collections::BTreeMap, panic::Location};
 
-use geng::prelude::*;
+use geng::prelude::{once_cell::sync::Lazy, *};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct WidgetId(Id, usize);
+pub struct WidgetId(u64, Id, usize);
 
-impl Default for WidgetId {
-    fn default() -> Self {
-        Self(*Location::caller(), 0)
+static ID_COUNTER: Lazy<Arc<Mutex<u64>>> = Lazy::new(|| Arc::new(Mutex::new(1)));
+
+fn get_next_id() -> u64 {
+    let Ok(mut counter) = ID_COUNTER.lock() else {
+        return 0;
+    };
+    let id = *counter;
+    *counter += 1;
+    id
+}
+
+impl WidgetId {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(get_next_id(), *Location::caller(), 0)
+    }
+
+    // #[track_caller]
+    // fn state_new() -> Self {
+    //     Self(get_next_id(), *Location::caller(), 0)
+    // }
+
+    fn state_root() -> Self {
+        Self(0, *Location::caller(), 0)
     }
 }
 
@@ -50,13 +71,13 @@ impl UiState {
 
     #[track_caller]
     pub fn get_root_or_default<T: 'static + Default + Widget>(&self) -> &mut T {
-        self.get_or(WidgetId::default(), Default::default)
+        self.get_or(WidgetId::state_root(), Default::default)
     }
 
     #[track_caller]
     #[allow(clippy::mut_from_ref)]
     pub fn get_root_or<T: 'static + Widget>(&self, default: impl FnOnce() -> T) -> &mut T {
-        self.get_or(WidgetId::default(), default)
+        self.get_or(WidgetId::state_root(), default)
     }
 
     // #[track_caller]
@@ -74,7 +95,7 @@ impl UiState {
         let mut inner = self.0.borrow_mut();
         let id = *Location::caller();
         let count = inner.active.entry(id).or_insert(0);
-        let widget_id = WidgetId(id, *count);
+        let widget_id = WidgetId(parent.0, id, *count);
         *count += 1;
 
         inner.children.entry(parent).or_default().push(widget_id);
@@ -118,7 +139,7 @@ impl UiState {
         mut f_post: impl FnMut(&dyn Widget),
     ) {
         let inner = self.0.borrow();
-        inner.iter_children(&WidgetId::default(), &mut f_pre, &mut f_post)
+        inner.iter_children(&WidgetId::state_root(), &mut f_pre, &mut f_post)
     }
 }
 
@@ -132,11 +153,11 @@ impl State {
         if let Some(children) = self.children.get(parent) {
             for child in children {
                 {
-                    let cell = self.widgets.get(&child.0).expect(
+                    let cell = self.widgets.get(&child.1).expect(
                         "invalid implementation of UiState: active id is not present in widgets",
                     );
                     let cell = unsafe { &*(cell.get()) };
-                    let w = cell.widgets.get(child.1).expect(
+                    let w = cell.widgets.get(child.2).expect(
                         "invalid implementation of UiState: active id is not present in widgets",
                     );
                     f_pre(&**w);
@@ -144,11 +165,11 @@ impl State {
 
                 self.iter_children(child, f_pre, f_post);
 
-                let cell = self.widgets.get(&child.0).expect(
+                let cell = self.widgets.get(&child.1).expect(
                     "invalid implementation of UiState: active id is not present in widgets",
                 );
                 let cell = unsafe { &*(cell.get()) };
-                let w = cell.widgets.get(child.1).expect(
+                let w = cell.widgets.get(child.2).expect(
                     "invalid implementation of UiState: active id is not present in widgets",
                 );
                 f_post(&**w);

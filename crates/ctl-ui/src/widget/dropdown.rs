@@ -57,10 +57,16 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
         let name = main.split_left(0.5);
         let value = main;
 
+        let focus =
+            self.dropdown_window.show.time.is_max() && context.total_focus(self.dropdown_state.id);
+        if focus {
+            context.focus_begin();
+        }
+
         // TODO: limit height and allow scroll
         let item_height = context.font_size;
         let spacing = context.layout_size * 0.5;
-        let dropdown_height = (item_height + spacing) * self.options.len() as f32 - spacing;
+        let dropdown_height = (item_height + spacing) * self.dropdown_items.len() as f32 - spacing;
         let floor = (value.max.y - dropdown_height).max(context.screen.min.y);
         let dropdown = Aabb2 {
             min: vec2(value.min.x, floor),
@@ -68,10 +74,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
         };
         self.dropdown_state.update(dropdown, context);
 
-        let focus = context.can_focus();
-        let can_select =
-            focus && self.dropdown_window.show.time.is_max() && self.dropdown_state.hovered;
-
+        let can_select = focus && self.dropdown_state.hovered;
         let mut position = dropdown.clone().cut_top(item_height);
         for (i, item) in self.dropdown_items.iter_mut().enumerate() {
             item.update(position, context);
@@ -84,15 +87,12 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             }
             position = position.translate(vec2(0.0, -item_height - spacing));
         }
-
-        if self.dropdown_window.show.time.is_max() {
-            let cancel = context.total_focus();
-            if cancel {
-                self.dropdown_window.request = Some(WidgetRequest::Close);
-            }
+        if focus {
+            context.focus_end();
         }
-        if can_select {
-            context.update_focus(true);
+
+        if self.dropdown_window.show.time.is_max() && !focus {
+            self.dropdown_window.request = Some(WidgetRequest::Close);
         }
 
         self.state.update(state_position, context);
@@ -103,7 +103,7 @@ impl<T: PartialEq + Clone> DropdownWidget<T> {
             self.value_text.text = name.clone();
         }
 
-        if self.state.mouse_left.clicked {
+        if !focus && self.state.mouse_left.clicked {
             self.dropdown_window.request = Some(WidgetRequest::Open);
         }
         self.dropdown_window.update(context.delta_time);

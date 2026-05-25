@@ -1,5 +1,7 @@
 use super::{geometry::GeometryContext, state::UiState};
 
+use crate::WidgetId;
+
 use ctl_assets::Theme;
 use ctl_context::Context;
 use ctl_font::Font;
@@ -112,8 +114,11 @@ pub struct UiContext {
     /// Whether the widget can use the cursor position to get focus.
     pub can_focus: Rc<RefCell<bool>>,
 
-    pub total_focus: Rc<RefCell<bool>>,
+    pub total_focus: Rc<RefCell<Option<WidgetId>>>,
+    pub total_focus_last_frame: Rc<RefCell<Option<WidgetId>>>,
     pub cancel_focus: Rc<RefCell<bool>>,
+    pub cancel_focus_last_frame: Rc<RefCell<bool>>,
+    pub override_focus: Rc<RefCell<bool>>,
 
     pub real_time: f32,
     pub delta_time: f32,
@@ -214,8 +219,11 @@ impl UiContext {
             mods: KeyModifiers::default(),
             can_focus: Rc::new(true.into()),
 
-            total_focus: Rc::new(false.into()),
+            total_focus: Rc::new(None.into()),
+            total_focus_last_frame: Rc::new(None.into()),
             cancel_focus: Rc::new(false.into()),
+            cancel_focus_last_frame: Rc::new(false.into()),
+            override_focus: Rc::new(false.into()),
 
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
             layout_size: 1.0,
@@ -240,12 +248,35 @@ impl UiContext {
     }
 
     pub fn can_focus(&self) -> bool {
-        *self.can_focus.borrow()
+        *self.override_focus.borrow()
+            || (*self.can_focus.borrow() && self.is_totally_focused().is_none())
     }
 
     pub fn reset_focus(&self) {
         *self.can_focus.borrow_mut() = true;
-        *self.total_focus.borrow_mut() = false;
+        *self.override_focus.borrow_mut() = false;
+
+        *self.cancel_focus_last_frame.borrow_mut() = *self.cancel_focus.borrow();
+        if std::mem::take(&mut *self.cancel_focus.borrow_mut()) {
+            *self.total_focus_last_frame.borrow_mut() = None;
+        } else {
+            *self.total_focus_last_frame.borrow_mut() = *self.total_focus.borrow();
+        }
+        *self.total_focus.borrow_mut() = None;
+    }
+
+    pub fn focus_begin(&self) -> bool {
+        let mut focus = self.override_focus.borrow_mut();
+        if *focus {
+            false
+        } else {
+            *focus = true;
+            true
+        }
+    }
+
+    pub fn focus_end(&self) {
+        *self.override_focus.borrow_mut() = false;
     }
 
     /// Update `can_focus` property given another widget's focus.
@@ -255,8 +286,11 @@ impl UiContext {
     }
 
     /// Whether any of the widgets requested total focus.
-    pub fn is_totally_focused(&self) -> bool {
-        *self.total_focus.borrow()
+    pub fn is_totally_focused(&self) -> Option<WidgetId> {
+        if *self.cancel_focus_last_frame.borrow() || *self.cancel_focus.borrow() {
+            return None;
+        }
+        (*self.total_focus.borrow()).or_else(|| *self.total_focus_last_frame.borrow())
     }
 
     /// Cancel total widget focus.
@@ -265,14 +299,25 @@ impl UiContext {
     }
 
     /// Request total focus on the widget.
-    /// If a cancel was called since last frame, `true` is returned.
-    pub fn total_focus(&self) -> bool {
-        let mut cancel = self.cancel_focus.borrow_mut();
-        let cancel = std::mem::take(&mut *cancel);
-        if !cancel {
-            *self.total_focus.borrow_mut() = true;
+    /// Returns `true` if the focus is still active.
+    /// The focus will remain for one frame after the call (call every frame to maintain focus).
+    /// The focus can be cancelled externally or when the focused widget registers a click outside of its area.
+    pub fn total_focus(&self, widget: WidgetId) -> bool {
+        if *self.cancel_focus_last_frame.borrow() || *self.cancel_focus.borrow() {
+            return false;
         }
-        cancel
+
+        match self.is_totally_focused() {
+            None => {
+                *self.total_focus.borrow_mut() = Some(widget);
+                true // Enable focus
+            }
+            Some(focused) if focused == widget => {
+                *self.total_focus.borrow_mut() = Some(widget);
+                true // Still active
+            }
+            Some(_) => false, // Another widget is focused
+        }
     }
 
     /// Should be called before layout.
@@ -293,7 +338,6 @@ impl UiContext {
     /// Should be called after the layout.
     /// Reset accumulators to prepare for the next frame.
     pub fn frame_end(&mut self) {
-        *self.cancel_focus.borrow_mut() = false;
         self.cursor.scroll = 0.0
     }
 }

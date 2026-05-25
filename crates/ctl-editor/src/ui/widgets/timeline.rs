@@ -73,13 +73,13 @@ impl TimelineWidget {
         Self {
             cursor_pos: vec2::ZERO,
             expansion: SecondOrderState::new(3.0, 1.0, 1.0, 0.0),
-            allocated_position: default(),
-            state: default(),
-            ceiling: default(),
-            extra_line: default(),
-            lights_line: default(),
-            main_line: default(),
-            highlight_line: default(),
+            allocated_position: WidgetState::new(),
+            state: WidgetState::new(),
+            ceiling: WidgetState::new(),
+            extra_line: WidgetState::new(),
+            lights_line: WidgetState::new(),
+            main_line: WidgetState::new(),
+            highlight_line: WidgetState::new(),
             highlight_bar: None,
             dots: Vec::new(),
             marks: Vec::new(),
@@ -1498,7 +1498,7 @@ struct IconWidget {
 impl IconWidget {
     pub fn new(texture: SubTexture) -> Self {
         Self {
-            state: default(),
+            state: WidgetState::new(),
             texture,
             color: ThemeColor::Light,
             ppu: 1.0,

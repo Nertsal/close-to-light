@@ -609,7 +609,7 @@ impl LevelEditor {
                     .chain((0..events.len()).map(|i| TopLevelEventIdx::Event(events_len + i)));
                 self.level.events.extend(events.into_iter().map(|event| {
                     let mut time = self.current_time.target + event.event.time - time;
-                    if dbg!(event.beat_aligned) {
+                    if event.beat_aligned {
                         time = self.level.timing.snap_to_beat(time, BeatTime::UNIT);
                     }
                     TimedEvent {

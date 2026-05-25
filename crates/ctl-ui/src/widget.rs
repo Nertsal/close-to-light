@@ -141,8 +141,18 @@ pub struct WidgetSfxConfig {
 }
 
 impl WidgetState {
+    #[allow(clippy::new_without_default)]
+    #[track_caller]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            id: WidgetId::new(),
+            position: Aabb2::ZERO.extend_uniform(1.0),
+            visible: true,
+            hovered: false,
+            mouse_left: WidgetMouseState::default(),
+            mouse_right: WidgetMouseState::default(),
+            sfx_config: WidgetSfxConfig::default(),
+        }
     }
 
     pub fn with_sfx(self, sfx_config: WidgetSfxConfig) -> Self {
@@ -151,7 +161,17 @@ impl WidgetState {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
-        if self.visible && context.can_focus() {
+        let totally_focused = context.is_totally_focused() == Some(self.id);
+        if self.visible && (context.can_focus() || totally_focused) {
+            if totally_focused
+                && context.cursor.left.down
+                && !context.cursor.left.was_down
+                && !position.contains(context.cursor.position)
+            {
+                // Clicked outside of the area of the totally focused widget
+                context.cancel_total_focus();
+            }
+
             let was_hovered = self.hovered;
             self.hovered = self.position.contains(context.cursor.position);
 
@@ -189,20 +209,6 @@ impl WidgetState {
         self.hovered = false;
         self.mouse_left = WidgetMouseState::default();
         self.mouse_right = WidgetMouseState::default();
-    }
-}
-
-impl Default for WidgetState {
-    fn default() -> Self {
-        Self {
-            id: WidgetId::default(),
-            position: Aabb2::ZERO.extend_uniform(1.0),
-            visible: true,
-            hovered: false,
-            mouse_left: WidgetMouseState::default(),
-            mouse_right: WidgetMouseState::default(),
-            sfx_config: WidgetSfxConfig::default(),
-        }
     }
 }
 
