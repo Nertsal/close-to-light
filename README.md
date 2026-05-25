@@ -15,7 +15,7 @@ Close to Light is a rhythm game in which you have to follow the lights along wit
 Push your skills to the limit in the hard difficulties and experience the insanity that they have to offer!
 
 <p align="center" width="80%">
-<img src="docs/ctc_shake.gif" width="80%"></video>
+<img src="docs/tunnel_vision.gif" width="80%"></video>
 </p>
 
 ## Credits
