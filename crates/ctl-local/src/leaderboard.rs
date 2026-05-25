@@ -446,6 +446,8 @@ impl LeaderboardImpl {
             };
             self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
+            self.loaded.filtered.clear();
+            self.loaded.all_scores.clear();
         }
     }
 
@@ -507,6 +509,8 @@ impl LeaderboardImpl {
             };
             self.task = Some(Task::new(&self.geng, future));
             self.status = LeaderboardStatus::Pending;
+            self.loaded.all_scores.clear();
+            self.loaded.filtered.clear();
         }
     }
 
