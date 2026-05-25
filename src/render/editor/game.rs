@@ -120,7 +120,10 @@ impl EditorRender {
 
         let draw_telegraph = |tele: &LightTelegraph, framebuffer: &mut ugli::Framebuffer| {
             let mut color = get_color(tele.light.event_id, theme);
-            color = color.map_rgb(|x| x * 0.5); // telegraph brightness
+            color = color.map_rgb(|x| {
+                x * ctl_assets::GraphicsLightsOptions::default()
+                    .telegraph_brightness(level_editor.model.vfx.palette_swap.current.as_f32())
+            }); // telegraph brightness
             self.util.draw_outline(
                 &tele.light.collider,
                 0.02,

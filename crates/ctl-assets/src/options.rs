@@ -111,6 +111,35 @@ impl Default for GraphicsLightsOptions {
     }
 }
 
+impl GraphicsLightsOptions {
+    pub fn telegraph_brightness(&self, palette_swap: f32) -> f32 {
+        let swap_t = palette_swap * 2.0 - 1.0;
+        let modifier = (1.0 - self.telegraph_brightness) * swap_t;
+        1.0 + modifier
+    }
+}
+
+#[test]
+fn test_brightness() {
+    let mut options = GraphicsLightsOptions {
+        telegraph_brightness: 1.0,
+        ..default()
+    };
+    assert_eq!(options.telegraph_brightness(0.0), 1.0);
+    assert_eq!(options.telegraph_brightness(0.5), 1.0);
+    assert_eq!(options.telegraph_brightness(1.0), 1.0);
+
+    options.telegraph_brightness = 0.5;
+    assert_eq!(options.telegraph_brightness(0.0), 0.5);
+    assert_eq!(options.telegraph_brightness(0.5), 1.0);
+    assert_eq!(options.telegraph_brightness(1.0), 1.5);
+
+    options.telegraph_brightness = 0.0;
+    assert_eq!(options.telegraph_brightness(0.0), 0.0);
+    assert_eq!(options.telegraph_brightness(0.5), 1.0);
+    assert_eq!(options.telegraph_brightness(1.0), 2.0);
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct CursorOptions {

@@ -199,7 +199,7 @@ impl GameRender {
                 } else {
                     theme.get_color(options.graphics.lights.telegraph_color)
                 };
-                color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness);
+                color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness(0.0));
                 self.util
                     .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
             }
