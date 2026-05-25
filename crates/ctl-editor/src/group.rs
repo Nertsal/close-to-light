@@ -1,5 +1,7 @@
 use super::*;
 
+const MAX_DIFFICULTIES: usize = 4;
+
 /// Permanent-Temporary value.
 /// A way of storing a configurable value that also allows temporary changes.
 pub struct PTValue<T> {
@@ -142,6 +144,11 @@ impl Editor {
     }
 
     pub fn create_new_level(&mut self) {
+        if self.group.cached.local.data.levels.len() >= MAX_DIFFICULTIES {
+            log::warn!("Reached max number of difficulties");
+            return;
+        }
+
         let mut new_group = self.group.cached.local.data.clone();
         let mut new_meta = self.group.cached.local.meta.clone();
         let bpm = r32(120.0);

@@ -38,31 +38,30 @@ impl EditorConfigUi {
         let text = context.state.get_root_or(|| TextWidget::new("Timing"));
         text.update(timing, context);
 
-        // TODO: bpm editor
-        let bpm_pos = bar.cut_top(context.font_size);
-        if let Some(level_editor) = &editor.level_edit
-            && let Some(timing) = level_editor.level.timing.points.first()
-        {
-            let mut bpm = 60.0 / timing.beat_time.as_f32();
-            let slider = context.state.get_root_or(|| {
-                ValueWidget::new(
-                    "BPM",
-                    bpm,
-                    ValueControl::Slider {
-                        min: 1.0,
-                        max: 500.0,
-                    },
-                    1.0,
-                )
-            });
-            slider.update(bpm_pos, context, &mut bpm);
-            actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
-        }
+        // let bpm_pos = bar.cut_top(context.font_size);
+        // if let Some(level_editor) = &editor.level_edit
+        //     && let Some(timing) = level_editor.level.timing.points.first()
+        // {
+        //     let mut bpm = 60.0 / timing.beat_time.as_f32();
+        //     let slider = context.state.get_root_or(|| {
+        //         ValueWidget::new(
+        //             "BPM",
+        //             bpm,
+        //             ValueControl::Slider {
+        //                 min: 1.0,
+        //                 max: 500.0,
+        //             },
+        //             1.0,
+        //         )
+        //     });
+        //     slider.update(bpm_pos, context, &mut bpm);
+        //     actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
+        // }
 
         // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
         // self.offset.update(offset, context);
 
-        let mut bar = columns[1];
+        let mut bar = columns[0];
 
         // Music
         let button_pos = bar.cut_top(context.font_size * 1.4);
@@ -146,7 +145,7 @@ impl EditorConfigUi {
             }
         }
 
-        bar.cut_top(context.layout_size * 1.0);
+        let mut bar = columns[1];
 
         let all = bar.cut_top(context.font_size * 1.4);
         let text = context
@@ -256,6 +255,7 @@ impl EditorConfigUi {
             }
         }
 
+        // Create difficulty
         let create = bar
             .cut_top(context.font_size * 1.0)
             .with_width(context.font_size * 2.0, 0.5);
@@ -265,8 +265,9 @@ impl EditorConfigUi {
             actions.push(EditorAction::NewLevel.into());
         }
 
+        let mut bar = columns[2];
+
         // Difficulties - Detailed view
-        bar.cut_top(context.layout_size);
         let all = bar.cut_top(context.font_size * 1.4);
         let text = context
             .state
@@ -276,9 +277,10 @@ impl EditorConfigUi {
         for (level_idx, level_info) in editor.group.cached.local.meta.levels.iter().enumerate() {
             let mut level_bounds = bar;
 
-            let name = bar.cut_top(context.font_size * 1.2);
-
             // Name
+            let name = bar
+                .cut_top(context.font_size * 1.2)
+                .with_width(bar.width() * 0.9, 0.5);
             let level = context.state.get_root_or(|| InputWidget::new("Name"));
             if !level.editing {
                 level.sync(&level_info.name, context);
@@ -292,7 +294,7 @@ impl EditorConfigUi {
             }
 
             // Authors
-            let authors = bar.cut_top(context.font_size);
+            let authors = bar.cut_top(context.font_size * 0.8);
             let text = context.state.get_root_or(|| TextWidget::new("Authors"));
             text.update(authors, context);
             for (author_idx, author) in level_info.authors.iter().enumerate() {
@@ -349,7 +351,7 @@ impl EditorConfigUi {
             let bounds = context.state.get_root_or(|| {
                 GeometryWidget::new(|state, context| {
                     let mut geometry = ctl_ui::geometry::Geometry::new();
-                    let width = 10.0;
+                    let width = 5.0;
                     geometry.merge(context.geometry.quad_outline(
                         state.position.extend_uniform(width * 1.25),
                         width,
@@ -364,40 +366,40 @@ impl EditorConfigUi {
         }
 
         // Timeline
-        {
-            let mut bar = columns[2];
-            let timeline = bar.cut_top(context.font_size);
-            let title = context.state.get_root_or(|| TextWidget::new("Timeline"));
-            title.update(timeline, context);
+        // {
+        //     let mut bar = columns[2];
+        //     let timeline = bar.cut_top(context.font_size);
+        //     let title = context.state.get_root_or(|| TextWidget::new("Timeline"));
+        //     title.update(timeline, context);
 
-            let mut config = editor.config.clone();
-            let value_height = context.font_size * 1.2;
-            let spacing = context.font_size * 0.3;
+        //     let mut config = editor.config.clone();
+        //     let value_height = context.font_size * 1.2;
+        //     let spacing = context.font_size * 0.3;
 
-            let shift_scroll = bar.cut_top(value_height);
-            bar.cut_top(spacing);
-            let value = context
-                .state
-                .get_root_or(|| ToggleWidget::new("Shift Precision"));
-            value.update_state(
-                shift_scroll,
-                context,
-                &mut config.timeline.hold_to_scroll_slow,
-            );
+        //     let shift_scroll = bar.cut_top(value_height);
+        //     bar.cut_top(spacing);
+        //     let value = context
+        //         .state
+        //         .get_root_or(|| ToggleWidget::new("Shift Precision"));
+        //     value.update_state(
+        //         shift_scroll,
+        //         context,
+        //         &mut config.timeline.hold_to_scroll_slow,
+        //     );
 
-            let alt_scroll = bar.cut_top(value_height);
-            bar.cut_top(spacing);
-            let value = context.state.get_root_or(|| {
-                BeatValueWidget::new(
-                    "Alt scroll",
-                    BeatTime::WHOLE * 16,
-                    BeatTime::WHOLE * 4..=BeatTime::WHOLE * 64,
-                    BeatTime::WHOLE,
-                )
-            });
-            value.update(alt_scroll, context, &mut config.timeline.fast_speed);
+        //     let alt_scroll = bar.cut_top(value_height);
+        //     bar.cut_top(spacing);
+        //     let value = context.state.get_root_or(|| {
+        //         BeatValueWidget::new(
+        //             "Alt scroll",
+        //             BeatTime::WHOLE * 16,
+        //             BeatTime::WHOLE * 4..=BeatTime::WHOLE * 64,
+        //             BeatTime::WHOLE,
+        //         )
+        //     });
+        //     value.update(alt_scroll, context, &mut config.timeline.fast_speed);
 
-            actions.push(EditorAction::SetConfig(config).into());
-        }
+        //     actions.push(EditorAction::SetConfig(config).into());
+        // }
     }
 }
