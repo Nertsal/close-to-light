@@ -47,22 +47,51 @@ impl EditorState {
                 }
             }
             EditorStateAction::SetGroupName(name) => {
-                let group = self.editor.group.group_index;
-                let mut meta = self.editor.group.cached.local.meta.clone();
-
-                log::debug!("Renaming music into {name:?}");
-                meta.music.name = name.into();
-                meta.music.romanized = meta.music.name.clone(); // TODO: separate config
-
-                match self.context.local.update_group_meta(group, meta, false) {
-                    None => {
-                        log::error!("Failed to rename level");
+                self.update_group_meta(|meta| {
+                    log::debug!("Renaming music into {name:?}");
+                    meta.music.name = name.into();
+                    meta.music.romanized = meta.music.name.clone(); // TODO: separate config
+                });
+            }
+            EditorStateAction::AddMusicAuthor(author) => {
+                self.update_group_meta(|meta| {
+                    log::debug!("Adding music author {author:?}");
+                    meta.music.authors.push(author);
+                });
+            }
+            EditorStateAction::UpdateMusicAuthor(i, author) => {
+                self.update_group_meta(|meta| {
+                    log::debug!("Changing music author {i} to {author:?}");
+                    if let Some(old) = meta.music.authors.get_mut(i) {
+                        *old = author;
                     }
-                    Some(group) => {
-                        self.editor.group.music = group.local.music.clone();
-                        self.editor.group.cached = group;
+                });
+            }
+            EditorStateAction::RemoveMusicAuthor(i) => {
+                self.update_group_meta(|meta| {
+                    if let Some(author) =
+                        (i < meta.music.authors.len()).then(|| meta.music.authors.remove(i))
+                    {
+                        log::debug!("Removed music author {i}: {author:?}");
                     }
-                }
+                });
+            }
+        }
+    }
+
+    fn update_group_meta(&mut self, f: impl FnOnce(&mut LevelSetInfo)) {
+        let group = self.editor.group.group_index;
+        let mut meta = self.editor.group.cached.local.meta.clone();
+
+        f(&mut meta);
+
+        match self.context.local.update_group_meta(group, meta, false) {
+            None => {
+                log::error!("Failed to update level meta");
+            }
+            Some(group) => {
+                self.editor.group.music = group.local.music.clone();
+                self.editor.group.cached = group;
             }
         }
     }

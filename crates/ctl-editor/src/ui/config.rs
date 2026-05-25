@@ -20,13 +20,18 @@ impl EditorConfigUi {
         let width = context.layout_size * 7.0;
         let spacing = context.layout_size * 5.0;
 
-        let columns = 3;
-        let total_width = columns as f32 * width + (columns - 1) as f32 * spacing;
-        let column = Aabb2::point(vec2(main.center().x - total_width / 2.0, main.max.y))
+        let column_widths = [1.0, 1.5, 1.0].map(|x| x * width);
+        let total_width =
+            column_widths.iter().copied().sum::<f32>() + (column_widths.len() - 1) as f32 * spacing;
+        let mut column = Aabb2::point(vec2(main.center().x - total_width / 2.0, main.max.y))
             .extend_right(width)
             .extend_down(main.height());
 
-        let columns = column.stack(vec2(width + spacing, 0.0), columns);
+        let columns = column_widths.map(|width| {
+            let c = column.with_width(width, 0.0);
+            column = column.translate(vec2(width + spacing, 0.0));
+            c
+        });
 
         let mut bar = columns[0];
         let timing = bar.cut_top(context.font_size);
@@ -58,6 +63,8 @@ impl EditorConfigUi {
         // self.offset.update(offset, context);
 
         let mut bar = columns[1];
+
+        // Music
         let button_pos = bar.cut_top(context.font_size * 1.4);
         let button = context
             .state
@@ -81,7 +88,8 @@ impl EditorConfigUi {
 
         let music_pos = bar.cut_top(context.font_size);
         if let Some(music) = &editor.group.music {
-            let input = context.state.get_root_or(|| InputWidget::new(""));
+            // Music name
+            let input = context.state.get_root_or(|| InputWidget::new("Music name"));
             if !input.editing {
                 input.sync(&music.meta.name, context);
             }
@@ -89,9 +97,56 @@ impl EditorConfigUi {
             if !input.editing && *music.meta.name != input.raw {
                 actions.push(EditorStateAction::SetGroupName(input.raw.clone()));
             }
+
+            bar.cut_top(context.layout_size * 0.5);
+
+            // Music authors
+            let timing = bar.cut_top(context.font_size);
+            let text = context.state.get_root_or(|| TextWidget::new("Authors"));
+            text.update(timing, context);
+            for (i, author) in music.meta.authors.iter().enumerate() {
+                let mut author_pos = bar.cut_top(context.font_size);
+
+                let delete_pos = author_pos.cut_left(author_pos.height());
+                let delete = context.state.get_root_or(|| {
+                    IconButtonWidget::new_danger(context.context.assets.atlas.discard())
+                });
+                delete.update(delete_pos, context);
+                if delete.icon.state.mouse_left.clicked {
+                    actions.push(EditorStateAction::RemoveMusicAuthor(i));
+                }
+
+                let input = context.state.get_root_or(|| InputWidget::new("Name"));
+                if !input.editing {
+                    input.sync(&author.name, context);
+                }
+                input.update(author_pos, context);
+                if !input.editing && *author.name != input.raw {
+                    actions.push(EditorStateAction::UpdateMusicAuthor(
+                        i,
+                        MusicianInfo {
+                            name: input.raw.clone().into(),
+                            romanized: input.raw.clone().into(), // TODO
+                            ..author.clone()
+                        },
+                    ));
+                }
+            }
+            let button_pos = bar
+                .cut_top(context.font_size)
+                .with_width(context.font_size * 2.0, 0.5);
+            let button = context.state.get_root_or(|| ButtonWidget::new("+"));
+            button.update(button_pos, context);
+            if button.text.state.mouse_left.clicked {
+                actions.push(EditorStateAction::AddMusicAuthor(MusicianInfo {
+                    id: 0,
+                    name: "".into(),
+                    romanized: "".into(),
+                }));
+            }
         }
 
-        bar.cut_top(context.layout_size);
+        bar.cut_top(context.layout_size * 1.0);
 
         let level = bar.cut_top(context.font_size * 1.4);
         let text = context

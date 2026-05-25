@@ -15,8 +15,12 @@ pub enum EditorStateAction {
     ConfirmPopupAction,
     ContextMenu(vec2<f32>, Vec<(Name, EditorStateAction)>),
     CloseContextMenu,
+
     SelectMusicFile(std::path::PathBuf),
     SetGroupName(String),
+    AddMusicAuthor(MusicianInfo),
+    UpdateMusicAuthor(usize, MusicianInfo),
+    RemoveMusicAuthor(usize),
 }
 
 impl From<EditorAction> for EditorStateAction {
