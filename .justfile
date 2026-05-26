@@ -34,7 +34,7 @@ web-itch command *ARGS:
 
 # Build the Demo version of the game for all platforms
 build-demo:
-    just build-all-platforms ./target/release-demo --features demo
+    just build-all-platforms ./target/release-demo --no-default-features --features online --features demo
 
 # Build the Full version of the game for all platforms
 build-game:
