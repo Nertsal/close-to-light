@@ -29,7 +29,7 @@ pub struct EditorState {
 
 impl EditorState {
     pub fn new_group(context: Context, config: EditorConfig, group: PlayGroup) -> Self {
-        Self {
+        let editor = Self {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(context.clone()),
@@ -42,16 +42,15 @@ impl EditorState {
             editor: Editor::new(context.clone(), config, group),
             interpolation_cache: InterpolationCache::new(),
             context,
-        }
+        };
+        editor.context.set_status("In Editor");
+        editor
     }
 
     pub fn new_level(context: Context, config: EditorConfig, level: PlayLevel) -> Self {
         let mut editor = Self::new_group(context.clone(), config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
         editor.editor.level_edit = Some(LevelEditor::new(context, level, true, false));
-
-        editor.context.set_status("In Editor");
-
         editor
     }
 
