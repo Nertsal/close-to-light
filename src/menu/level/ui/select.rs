@@ -607,7 +607,7 @@ impl ItemLevelWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+        if self.state.mouse_right.clicked && (!cfg!(feature = "demo") || cfg!(feature = "editor")) {
             // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
@@ -766,7 +766,7 @@ impl ItemDiffWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+        if self.state.mouse_right.clicked && (!cfg!(feature = "demo") || cfg!(feature = "editor")) {
             // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();

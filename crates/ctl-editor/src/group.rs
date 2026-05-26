@@ -144,6 +144,10 @@ impl Editor {
     }
 
     pub fn delete_level(&mut self, level_index: usize) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         if let Some(level_editor) = &self.level_edit
             && level_index == level_editor.static_level.level_index
         {
@@ -174,6 +178,10 @@ impl Editor {
     }
 
     pub fn create_new_level(&mut self) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         if self.group.cached.local.data.levels.len() >= MAX_DIFFICULTIES {
             log::warn!("Reached max number of difficulties");
             return;
@@ -214,6 +222,10 @@ impl Editor {
     }
 
     pub fn swap_levels(&mut self, i: usize, j: usize) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         let levels = &self.group.cached.local.data.levels;
         if !(0..levels.len()).contains(&i) || !(0..levels.len()).contains(&j) {
             log::error!("Invalid indices to swap levels");
@@ -287,7 +299,25 @@ impl Editor {
         self.exit = true;
     }
 
+    fn cannot_edit_assets(&mut self) -> bool {
+        if self.group.cached.local.loaded_from_assets {
+            self.popup_confirm(
+                ConfirmAction::Noop,
+                "You cannot edit official levels",
+                "Ok",
+                "Fine",
+            );
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn save(&mut self) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         let Some(level_editor) = &mut self.level_edit else {
             // Save whole group
             // NOTE: null action, but it might update the saved format/version

@@ -47,7 +47,7 @@ impl EditorState {
         editor.editor.popup_confirm(
             ConfirmAction::Noop,
             "Editor is in beta, bugs might happen >_<",
-            "ok",
+            "Ok",
             "I know",
         );
         editor
