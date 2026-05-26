@@ -382,7 +382,9 @@ impl TimelineWidget {
                 } else {
                     icon.bg_color = ThemeColor::Dark;
                 }
-                if icon.state.mouse_left.just_pressed || select_single_thing && icon.state.hovered {
+                if icon.state.mouse_left.just_pressed && !multi_select_mode
+                    || select_single_thing && icon.state.hovered
+                {
                     let ids = if is_selected_confirmed {
                         level_editor.selection.to_editor_events()
                     } else {
@@ -665,8 +667,9 @@ impl TimelineWidget {
                             } else {
                                 false
                             };
-                            if icon.state.mouse_left.just_pressed
-                                || tick.state.mouse_left.just_pressed
+                            if (icon.state.mouse_left.just_pressed
+                                || tick.state.mouse_left.just_pressed)
+                                && !multi_select_mode
                                 || select_single_thing && icon.state.hovered
                             {
                                 if multi_select_mode {
@@ -772,7 +775,7 @@ impl TimelineWidget {
                             if icon.state.hovered {
                                 actions.push(LevelAction::HoverLight(light_id).into());
                             }
-                            if icon.state.mouse_left.just_pressed
+                            if icon.state.mouse_left.just_pressed && !multi_select_mode
                                 || select_single_thing && icon.state.hovered
                             {
                                 if multi_select_mode {
@@ -957,12 +960,14 @@ impl TimelineWidget {
         // Update selection area
         if let Some(drag) = &editor.drag
             && let DragTarget::SelectionAreaTimeline { original } = &drag.target
+            && drag.moved
         {
             let mut selection = original.clone();
             // TODO: proper selection modes
             if context.mods.shift {
                 selection.merge(extra_selection)
-            } else {
+            } else if !extra_selection.is_empty() {
+                // If the selection is empty - ignore
                 selection = extra_selection
             }
             actions.push(LevelAction::SetSelection(selection).into());
