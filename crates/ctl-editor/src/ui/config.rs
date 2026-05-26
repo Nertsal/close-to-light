@@ -198,7 +198,7 @@ impl EditorConfigUi {
                         .into(),
                     );
                 } else {
-                    actions.push(EditorAction::ChangeLevel(level_idx).into());
+                    actions.push(EditorAction::ChangeDiff(level_idx).into());
                 }
             }
 
@@ -212,7 +212,7 @@ impl EditorConfigUi {
             });
             button.update(button_delete, context);
             if button.icon.state.mouse_left.clicked {
-                actions.push(EditorAction::DeleteLevel(level_idx).into());
+                actions.push(EditorAction::DeleteDiff(level_idx).into());
             }
 
             // Icons to reorder the levels
@@ -238,7 +238,7 @@ impl EditorConfigUi {
                         .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_up()));
                     icon_up.update(up, context);
                     if icon_up.state.mouse_left.clicked {
-                        actions.push(EditorAction::MoveLevelLow(level_idx).into());
+                        actions.push(EditorAction::MoveDiffLow(level_idx).into());
                     }
                 }
 
@@ -249,7 +249,7 @@ impl EditorConfigUi {
                         .get_root_or(|| IconWidget::new(context.context.assets.atlas.arrow_down()));
                     icon_down.update(down, context);
                     if icon_down.state.mouse_left.clicked {
-                        actions.push(EditorAction::MoveLevelHigh(level_idx).into());
+                        actions.push(EditorAction::MoveDiffHigh(level_idx).into());
                     }
                 }
             }
@@ -262,7 +262,7 @@ impl EditorConfigUi {
         let button = context.state.get_root_or(|| ButtonWidget::new("+"));
         button.update(create, context);
         if button.text.state.mouse_left.clicked {
-            actions.push(EditorAction::NewLevel.into());
+            actions.push(EditorAction::NewDiff.into());
         }
 
         let mut bar = columns[2];
@@ -287,7 +287,7 @@ impl EditorConfigUi {
             }
             level.update(name, context);
             if !level.editing && *level_info.name != level.raw {
-                actions.push(EditorStateAction::SetLevelName(
+                actions.push(EditorStateAction::SetDiffName(
                     level_idx,
                     level.raw.clone().into(),
                 ));
@@ -309,7 +309,7 @@ impl EditorConfigUi {
                 });
                 delete.update(delete_pos, context);
                 if delete.icon.state.mouse_left.clicked {
-                    actions.push(EditorStateAction::RemoveLevelAuthor(level_idx, author_idx));
+                    actions.push(EditorStateAction::RemoveDiffAuthor(level_idx, author_idx));
                 }
 
                 // Name
@@ -319,7 +319,7 @@ impl EditorConfigUi {
                 }
                 input.update(author_pos, context);
                 if !input.editing && *author.name != input.raw {
-                    actions.push(EditorStateAction::UpdateLevelAuthor(
+                    actions.push(EditorStateAction::UpdateDiffAuthor(
                         level_idx,
                         author_idx,
                         MapperInfo {
@@ -337,7 +337,7 @@ impl EditorConfigUi {
             let button = context.state.get_root_or(|| ButtonWidget::new("+"));
             button.update(button_pos, context);
             if button.text.state.mouse_left.clicked {
-                actions.push(EditorStateAction::AddLevelAuthor(
+                actions.push(EditorStateAction::AddDiffAuthor(
                     level_idx,
                     MapperInfo {
                         id: 0,

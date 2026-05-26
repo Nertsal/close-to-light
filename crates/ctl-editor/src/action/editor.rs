@@ -10,11 +10,13 @@ pub enum EditorAction {
     ToggleUI,
     ToggleGrid,
     ToggleGridSnap,
-    DeleteLevel(usize),
-    NewLevel,
-    ChangeLevel(usize),
-    MoveLevelLow(usize),
-    MoveLevelHigh(usize),
+
+    DeleteDiff(usize),
+    NewDiff,
+    ChangeDiff(usize),
+    MoveDiffLow(usize),
+    MoveDiffHigh(usize),
+
     PopupConfirm(ConfirmAction, Name, Name, Name),
     ClosePopup,
     SetConfig(EditorConfig),
@@ -57,16 +59,16 @@ impl Editor {
             EditorAction::ToggleGridSnap => {
                 self.snap_to_grid.permanent = !self.snap_to_grid.permanent
             }
-            EditorAction::DeleteLevel(i) => self.popup_confirm(
+            EditorAction::DeleteDiff(i) => self.popup_confirm(
                 ConfirmAction::DeleteLevel(i),
                 "delete this difficulty",
                 "delete",
                 "cancel",
             ),
-            EditorAction::NewLevel => self.create_new_level(),
-            EditorAction::ChangeLevel(i) => self.change_level(i),
-            EditorAction::MoveLevelLow(i) => self.move_level_low(i),
-            EditorAction::MoveLevelHigh(i) => self.move_level_high(i),
+            EditorAction::NewDiff => self.create_new_level(),
+            EditorAction::ChangeDiff(i) => self.change_level(i),
+            EditorAction::MoveDiffLow(i) => self.move_level_low(i),
+            EditorAction::MoveDiffHigh(i) => self.move_level_high(i),
             EditorAction::PopupConfirm(action, message, confirm, discard) => {
                 self.popup_confirm(action, message, confirm, discard)
             }

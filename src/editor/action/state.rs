@@ -76,18 +76,18 @@ impl EditorState {
                     }
                 });
             }
-            EditorStateAction::SetLevelName(level, name) => {
+            EditorStateAction::SetDiffName(level, name) => {
                 self.update_diff_meta(level, |meta| {
                     meta.name = name;
                 });
             }
-            EditorStateAction::AddLevelAuthor(level, author) => {
+            EditorStateAction::AddDiffAuthor(level, author) => {
                 self.update_diff_meta(level, |meta| {
                     log::debug!("Adding level {level} author {author:?}");
                     meta.authors.push(author);
                 });
             }
-            EditorStateAction::UpdateLevelAuthor(level, author_idx, author) => {
+            EditorStateAction::UpdateDiffAuthor(level, author_idx, author) => {
                 self.update_diff_meta(level, |meta| {
                     log::debug!("Changing level {level} author {author_idx} to {author:?}");
                     if let Some(old) = meta.authors.get_mut(author_idx) {
@@ -95,7 +95,7 @@ impl EditorState {
                     }
                 });
             }
-            EditorStateAction::RemoveLevelAuthor(level, i) => {
+            EditorStateAction::RemoveDiffAuthor(level, i) => {
                 self.update_diff_meta(level, |meta| {
                     if let Some(author) = (i < meta.authors.len()).then(|| meta.authors.remove(i)) {
                         log::debug!("Removed music author {i}: {author:?}");

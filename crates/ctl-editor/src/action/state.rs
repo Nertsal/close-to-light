@@ -22,10 +22,10 @@ pub enum EditorStateAction {
     UpdateMusicAuthor(usize, MusicianInfo),
     RemoveMusicAuthor(usize),
 
-    SetLevelName(usize, Name),
-    AddLevelAuthor(usize, MapperInfo),
-    UpdateLevelAuthor(usize, usize, MapperInfo),
-    RemoveLevelAuthor(usize, usize),
+    SetDiffName(usize, Name),
+    AddDiffAuthor(usize, MapperInfo),
+    UpdateDiffAuthor(usize, usize, MapperInfo),
+    RemoveDiffAuthor(usize, usize),
 }
 
 impl From<EditorAction> for EditorStateAction {
