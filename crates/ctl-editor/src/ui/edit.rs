@@ -1,21 +1,11 @@
 use super::*;
 
-pub struct EditorEditUi {
-    event_mode: NewEventMode,
-}
-
-enum NewEventMode {
-    Idle,
-    Light,
-    Vfx,
-}
+pub struct EditorEditUi {}
 
 impl EditorEditUi {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self {
-            event_mode: NewEventMode::Idle,
-        }
+        Self {}
     }
 }
 
@@ -141,20 +131,6 @@ impl LayoutHelper<'_> {
         text.update(event, context);
         text.options.size = self.title_size;
 
-        if !matches!(ui.event_mode, NewEventMode::Idle) {
-            // Button to return to idle mode
-            let back = event
-                .with_width(event.height(), 1.0)
-                .translate(vec2(event.height(), 0.0));
-            let button = context.state.get_root_or(|| {
-                IconButtonWidget::new_normal(context.context.assets.atlas.button_close())
-            });
-            button.update(back, context);
-            if button.icon.state.mouse_left.clicked {
-                ui.event_mode = NewEventMode::Idle;
-            }
-        }
-
         if self.level_editor.level_state.waypoints.is_some() {
             // Waypoints mode
             let waypoint = bar.cut_top(self.button_height);
@@ -172,15 +148,7 @@ impl LayoutHelper<'_> {
             bar.cut_top(self.button_height);
             bar.cut_top(self.spacing);
         } else {
-            match ui.event_mode {
-                NewEventMode::Idle => {
-                    self.layout_event_idle(ui, tooltip, &mut bar, actions, context)
-                }
-                NewEventMode::Light => {
-                    self.layout_event_light(ui, tooltip, &mut bar, actions, context)
-                }
-                NewEventMode::Vfx => self.layout_event_vfx(ui, tooltip, &mut bar, actions, context),
-            }
+            self.layout_event_idle(ui, tooltip, &mut bar, actions, context)
         }
 
         bar.cut_top(context.layout_size * 0.5);
@@ -190,7 +158,7 @@ impl LayoutHelper<'_> {
     /// Regular mode - new lights and effects
     fn layout_event_idle(
         &self,
-        ui: &mut EditorEditUi,
+        _ui: &mut EditorEditUi,
         _tooltip: &mut TooltipWidget,
         bar: &mut Aabb2<f32>,
         actions: &mut Vec<EditorStateAction>,
@@ -214,111 +182,48 @@ impl LayoutHelper<'_> {
         let new_light = bar
             .cut_top(self.button_height)
             .with_width(button_width, 0.0);
-        let button = context.state.get_root_or(|| ButtonWidget::new("Light"));
-        button.update(new_light, context);
-        if button.text.state.mouse_left.clicked {
-            ui.event_mode = NewEventMode::Light;
+        let button = context.state.get_root_or(|| {
+            DropdownWidget::new(
+                "Light",
+                self.editor.config.shapes.iter().map(|shape| {
+                    let name = match shape {
+                        Shape::Circle { .. } => "Circle",
+                        Shape::Line { .. } => "Line",
+                        Shape::Rectangle { .. } => "Rectangle",
+                    };
+                    (name, *shape)
+                }),
+            )
+        });
+        if let Some(i) = button.update(new_light, context)
+            && let Some((_, shape)) = button.options.get(i)
+        {
+            actions.push(LevelAction::Shape(*shape).into());
         }
 
         let new_vfx = bar
             .cut_top(self.button_height)
             .with_width(button_width, 0.0);
-        let button = context.state.get_root_or(|| ButtonWidget::new("VFX"));
-        button.update(new_vfx, context);
-        if button.text.state.mouse_left.clicked {
-            ui.event_mode = NewEventMode::Vfx;
-        }
-    }
-
-    /// Light mode - select light shape
-    fn layout_event_light(
-        &self,
-        _ui: &mut EditorEditUi,
-        tooltip: &mut TooltipWidget,
-        bar: &mut Aabb2<f32>,
-        actions: &mut Vec<EditorStateAction>,
-        context: &UiContext,
-    ) {
-        let new_light_width = context.font_size * 4.0;
-        for (i, shape) in self.editor.config.shapes.iter().enumerate() {
-            let new_shape = bar.cut_top(self.button_height).cut_left(new_light_width);
-            bar.cut_top(self.spacing);
-            let button = context.state.get_root_or(|| {
-                ButtonWidget::new(match shape {
-                    Shape::Circle { .. } => "Circle",
-                    Shape::Line { .. } => "Line",
-                    Shape::Rectangle { .. } => "Rectangle",
-                })
-            });
-            button.update(new_shape, context);
-            if button.text.state.mouse_left.clicked {
-                actions.push(LevelAction::Shape(*shape).into());
-            }
-            tooltip.update(&button.text.state, format!("{}", i + 1), context);
-        }
-    }
-
-    /// VFX mode - select vfx
-    fn layout_event_vfx(
-        &self,
-        _ui: &mut EditorEditUi,
-        _tooltip: &mut TooltipWidget,
-        bar: &mut Aabb2<f32>,
-        actions: &mut Vec<EditorStateAction>,
-        context: &UiContext,
-    ) {
-        let button_width = context.font_size * 4.0;
-
-        let new_rgb = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context.state.get_root_or(|| ButtonWidget::new("RGB Split"));
-        button.update(new_rgb, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewRgbSplit(BeatTime::WHOLE).into());
-        }
-
-        let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context
-            .state
-            .get_root_or(|| ButtonWidget::new("Palette swap"));
-        button.update(new_palette, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewPaletteSwap(BeatTime::HALF).into());
-        }
-
-        let new_shake = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context
-            .state
-            .get_root_or(|| ButtonWidget::new("Camera shake"));
-        button.update(new_shake, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewCameraShake(BeatTime::QUARTER).into());
-        }
-
-        let new_vignette = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context.state.get_root_or(|| ButtonWidget::new("Vignette"));
-        button.update(new_vignette, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewVignette(BeatTime::WHOLE).into());
-        }
-
-        let new_curvature = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context.state.get_root_or(|| ButtonWidget::new("Curvature"));
-        button.update(new_curvature, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewCurvature(BeatTime::WHOLE).into());
-        }
-
-        let new_noise = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context.state.get_root_or(|| ButtonWidget::new("Noise"));
-        button.update(new_noise, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewNoiseOffset(BeatTime::WHOLE).into());
+        let button = context.state.get_root_or(|| {
+            DropdownWidget::new(
+                "VFX",
+                [
+                    ("RGB Split", LevelAction::NewRgbSplit(BeatTime::WHOLE)),
+                    ("Palette swap", LevelAction::NewPaletteSwap(BeatTime::HALF)),
+                    (
+                        "Camera shake",
+                        LevelAction::NewCameraShake(BeatTime::QUARTER),
+                    ),
+                    ("Vignette", LevelAction::NewVignette(BeatTime::WHOLE)),
+                    ("Curvature", LevelAction::NewCurvature(BeatTime::WHOLE)),
+                    ("Noise", LevelAction::NewNoiseOffset(BeatTime::WHOLE)),
+                ],
+            )
+        });
+        if let Some(i) = button.update(new_vfx, context)
+            && let Some((_, action)) = button.options.get(i)
+        {
+            actions.push(action.clone().into());
         }
     }
 
@@ -827,7 +732,7 @@ impl LayoutHelper<'_> {
                     light.movement.get_interpolation(selected)
                 {
                     let waypoint_curve = context.state.get_root_or(|| {
-                        DropdownWidget::new(
+                        DropdownValueWidget::new(
                             "Curve",
                             0,
                             [
@@ -843,7 +748,7 @@ impl LayoutHelper<'_> {
                     });
 
                     let waypoint_interpolation = context.state.get_root_or(|| {
-                        DropdownWidget::new(
+                        DropdownValueWidget::new(
                             "Interpolation",
                             0,
                             [
