@@ -495,7 +495,7 @@ impl TimelineWidget {
                         .iter()
                         .map(|(event_i, event_time)| {
                             let target_time = move_event_time_beat_aligned(
-                                &level_editor.level,
+                                &level_editor.level.timing,
                                 reference_snap,
                                 *event_time,
                                 cursor_time - initial_time,

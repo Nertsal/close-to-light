@@ -95,12 +95,12 @@ impl TimeInterpolation {
 }
 
 pub fn move_event_time_beat_aligned(
-    level: &Level,
+    timing: &Timing,
     reference_snap: BeatTime,
     time: Time,
     shift: Time,
 ) -> Time {
-    let beat_aligned = level.timing.is_beat_aligned(time);
+    let beat_aligned = timing.is_beat_aligned(time);
     let mut time = time + shift;
     if let Some(alignment) = beat_aligned {
         let alignment = BeatTime::UNITS_PER_BEAT
@@ -108,9 +108,7 @@ pub fn move_event_time_beat_aligned(
                 (BeatTime::UNITS_PER_BEAT / reference_snap.units()) as usize,
                 (BeatTime::UNITS_PER_BEAT / alignment.units()) as usize,
             ) as Time;
-        time = level
-            .timing
-            .snap_to_beat(time, BeatTime::from_units(alignment));
+        time = timing.snap_to_beat(time, BeatTime::from_units(alignment));
     }
     time
 }

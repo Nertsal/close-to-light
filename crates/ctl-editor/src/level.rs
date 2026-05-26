@@ -602,14 +602,21 @@ impl LevelEditor {
                 self.level.timing.points.sort_by_key(|point| point.time);
 
                 // Events
+                let reference_snap = self
+                    .level
+                    .timing
+                    .is_beat_aligned(self.current_time.target)
+                    .unwrap_or(BeatTime::UNIT);
                 let events_len = self.level.events.len();
                 let new_ids = new_ids
                     .chain((0..events.len()).map(|i| TopLevelEventIdx::Event(events_len + i)));
                 self.level.events.extend(events.into_iter().map(|event| {
-                    let mut time = self.current_time.target + event.event.time - time;
-                    if event.beat_aligned {
-                        time = self.level.timing.snap_to_beat(time, BeatTime::UNIT);
-                    }
+                    let time = move_event_time_beat_aligned(
+                        &self.level.timing,
+                        reference_snap,
+                        event.event.time,
+                        self.current_time.target - time,
+                    );
                     TimedEvent {
                         time,
                         event: event.event.event,

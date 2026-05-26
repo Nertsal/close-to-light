@@ -434,7 +434,7 @@ impl EditorState {
                         lights.iter().flat_map(|light| {
                             let event = level_editor.level.events.get(light.id.event)?;
                             let time = move_event_time_beat_aligned(
-                                &level_editor.level,
+                                &level_editor.level.timing,
                                 reference_snap,
                                 event.time,
                                 shift_time,
@@ -495,7 +495,7 @@ impl EditorState {
                                 };
                                 let time = light.movement.get_time(waypoint.id)?;
                                 let time = move_event_time_beat_aligned(
-                                    &level_editor.level,
+                                    &level_editor.level.timing,
                                     reference_snap,
                                     time,
                                     shift_time,
