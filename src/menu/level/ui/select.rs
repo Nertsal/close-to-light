@@ -524,12 +524,7 @@ pub struct ItemLevelWidget {
 
 impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
-        let mut menu = ItemMenuWidget::new(assets);
-
-        if cfg!(feature = "demo") {
-            menu.sync.hide(); // NOTE: Disabled in demo
-        }
-
+        let menu = ItemMenuWidget::new(assets);
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             iconless_state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
@@ -554,10 +549,10 @@ impl ItemLevelWidget {
         } else {
             self.menu.delete.show();
         }
-        if cfg!(feature = "online") {
+        if cfg!(feature = "online") && !cfg!(feature = "demo") {
             self.menu.sync.show();
         } else {
-            // Cannot synchronise in offline mode
+            // Cannot synchronise in offline mode or demo
             self.menu.sync.hide();
         }
 
