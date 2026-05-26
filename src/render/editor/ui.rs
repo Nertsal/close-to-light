@@ -16,7 +16,9 @@ impl EditorRender {
 
         let mut geometry = Geometry::new();
         if let Some(widget) = &editor_ui.confirm {
-            geometry.merge(widget.draw(ui));
+            let mut g = widget.draw(ui);
+            g.change_z_index(100);
+            geometry.merge(g);
         }
         geometry.merge(editor_ui.context_menu.draw(ui));
 
