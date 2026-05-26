@@ -47,6 +47,8 @@ impl<T> DropdownWidget<T> {
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) -> Option<usize> {
         self.text.update(position, context);
 
+        let _l = context.state.start_layer();
+
         let could_focus_before = context.can_focus();
         let focus =
             self.dropdown_window.show.time.is_max() && context.total_focus(self.dropdown_state.id);
@@ -68,6 +70,7 @@ impl<T> DropdownWidget<T> {
             max: vec2(position.max.x, floor + dropdown_height),
         };
         self.dropdown_state.update(dropdown, context);
+        self.dropdown_state.z_index = context.state.current_layer();
 
         let mut just_selected = None;
         let can_select = focus && self.dropdown_state.hovered;
@@ -152,7 +155,7 @@ impl<T: 'static> Widget for DropdownWidget<T> {
                     .geometry
                     .quad_outline(bounds, outline_width, theme.light),
             );
-            geometry.change_z_index(100);
+            geometry.change_z_index(10);
         } else {
             geometry.merge(self.text.draw_colored(context, fg_color));
         }

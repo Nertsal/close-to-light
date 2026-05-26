@@ -59,7 +59,7 @@ impl Geometry {
         self.masked.extend(other.masked);
     }
 
-    pub fn change_z_index(&mut self, delta: isize) {
+    pub fn change_z_index(&mut self, delta: i64) {
         let delta = -(delta as f32) * 1e-5;
         for masked in &mut self.masked {
             masked.z_index += delta;
@@ -75,13 +75,13 @@ impl Geometry {
     pub fn with_z_index(mut self, z_index: i64) -> Self {
         let z_index = -z_index as f32 * 1e-4;
         for masked in &mut self.masked {
-            masked.z_index = z_index;
+            masked.z_index += z_index;
         }
         for v in &mut self.triangles {
-            v.a_z = z_index;
+            v.a_z += z_index;
         }
         for text in &mut self.text {
-            text.z_index = z_index;
+            text.z_index += z_index;
         }
         self
     }
