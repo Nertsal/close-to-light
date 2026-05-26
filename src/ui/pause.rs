@@ -25,7 +25,9 @@ impl PauseWidget {
 }
 
 impl WidgetOld for PauseWidget {
-    simple_widget_state!();
+    fn state_mut(&mut self) -> &mut WidgetState {
+        &mut self.state
+    }
 
     fn update(&mut self, position: Aabb2<f32>, context: &mut UiContext) {
         self.window.update(context.delta_time);

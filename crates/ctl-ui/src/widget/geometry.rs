@@ -20,10 +20,7 @@ impl GeometryWidget {
 }
 
 impl Widget for GeometryWidget {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         (self.geometry)(&self.state, context)
     }

@@ -31,11 +31,17 @@ const MAX_CLICK_DISTANCE: f32 = 10.0;
 #[macro_export]
 macro_rules! simple_widget_state {
     () => {
+        fn state(&self) -> &WidgetState {
+            &self.state
+        }
         fn state_mut(&mut self) -> &mut WidgetState {
             &mut self.state
         }
     };
     ($path:tt) => {
+        fn state(&self) -> &WidgetState {
+            &self.$path.state
+        }
         fn state_mut(&mut self) -> &mut WidgetState {
             &mut self.$path.state
         }
@@ -43,6 +49,7 @@ macro_rules! simple_widget_state {
 }
 
 pub trait Widget: WidgetToAny {
+    fn state(&self) -> &WidgetState;
     fn state_mut(&mut self) -> &mut WidgetState;
     #[must_use]
     fn draw_top(&self, context: &UiContext) -> Geometry {
@@ -105,6 +112,7 @@ pub trait StatefulWidget {
 #[derive(Debug, Clone)]
 pub struct WidgetState {
     pub id: WidgetId,
+    pub z_index: i64,
     pub position: Aabb2<f32>,
     /// Whether to show the widget.
     pub visible: bool,
@@ -147,6 +155,7 @@ impl WidgetState {
     pub fn new() -> Self {
         Self {
             id: WidgetId::new(),
+            z_index: 0,
             position: Aabb2::ZERO.extend_uniform(1.0),
             visible: true,
             hovered: false,

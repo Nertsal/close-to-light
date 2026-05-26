@@ -16,19 +16,21 @@ impl EditorRender {
 
         let mut geometry = Geometry::new();
         if let Some(widget) = &editor_ui.confirm {
-            let mut g = widget.draw(ui);
-            g.change_z_index(100);
-            geometry.merge(g);
+            geometry.merge(widget.draw(ui).with_z_index(widget.state().z_index));
         }
         geometry.merge(editor_ui.context_menu.draw(ui));
 
         let geometry = RefCell::new(geometry);
         ui.state.iter_widgets(
             |w| {
-                geometry.borrow_mut().merge(w.draw_top(ui));
+                geometry
+                    .borrow_mut()
+                    .merge(w.draw_top(ui).with_z_index(w.state().z_index));
             },
             |w| {
-                geometry.borrow_mut().merge(w.draw(ui));
+                geometry
+                    .borrow_mut()
+                    .merge(w.draw(ui).with_z_index(w.state().z_index));
             },
         );
         let geometry = geometry.into_inner();

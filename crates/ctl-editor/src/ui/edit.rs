@@ -76,6 +76,7 @@ impl EditorEditUi {
             linetime.update(timeline, context, editor, level_editor, actions);
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
+            context.state.decrement_layer();
         }
 
         let helper = LayoutHelper {
