@@ -113,6 +113,36 @@ pub struct DragWaypoint {
 }
 
 impl Editor {
+    pub fn new(context: Context, config: EditorConfig, group: PlayGroup) -> Self {
+        Self {
+            context: context.clone(),
+            real_time: FloatTime::ZERO,
+            render_options: RenderOptions {
+                show_grid: true,
+                hide_ui: false,
+            },
+            cursor_world_pos: vec2::ZERO,
+            cursor_world_pos_snapped: vec2::ZERO,
+            drag: None,
+
+            confirm_popup: None,
+
+            tab: EditorTab::Config,
+            exit: false,
+
+            grid: Grid::new_with(config.grid.clone()),
+            view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
+            visualize_beat: true,
+            show_only_selected: false,
+            snap_to_grid: PTValue::new(true),
+            music_timer: FloatTime::ZERO,
+
+            group,
+            level_edit: None,
+            config,
+        }
+    }
+
     pub fn delete_level(&mut self, level_index: usize) {
         if let Some(level_editor) = &self.level_edit
             && level_index == level_editor.static_level.level_index

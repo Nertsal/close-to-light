@@ -237,11 +237,18 @@ impl LevelEditor {
             }
             LevelAction::Copy => self.copy(),
             LevelAction::CopySelection(selection) => {
+                let beat_time = self
+                    .level
+                    .timing
+                    .get_timing(self.current_time.target)
+                    .beat_time;
                 macro_rules! to_clipboard {
                     ($event:expr) => {
                         ClipboardEvent {
                             beat_aligned: $event.time
                                 == self.level.timing.snap_to_beat($event.time, BeatTime::UNIT),
+                            beat_offset: time_to_seconds($event.time - self.current_time.target)
+                                / beat_time,
                             event: $event,
                         }
                     };

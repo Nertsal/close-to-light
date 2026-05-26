@@ -10,7 +10,6 @@ pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::{UiContext, layout::AreaOps};
-use ctl_util::SecondOrderState;
 
 pub struct EditorState {
     context: Context,
@@ -40,33 +39,7 @@ impl EditorState {
             ui: EditorUi::new(context.clone()),
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
-            editor: Editor {
-                context: context.clone(),
-                real_time: FloatTime::ZERO,
-                render_options: RenderOptions {
-                    show_grid: true,
-                    hide_ui: false,
-                },
-                cursor_world_pos: vec2::ZERO,
-                cursor_world_pos_snapped: vec2::ZERO,
-                drag: None,
-
-                confirm_popup: None,
-
-                tab: EditorTab::Config,
-                exit: false,
-
-                grid: Grid::new_with(config.grid.clone()),
-                view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
-                visualize_beat: true,
-                show_only_selected: false,
-                snap_to_grid: PTValue::new(true),
-                music_timer: FloatTime::ZERO,
-
-                group,
-                level_edit: None,
-                config,
-            },
+            editor: Editor::new(context.clone(), config, group),
             interpolation_cache: InterpolationCache::new(),
             context,
         }

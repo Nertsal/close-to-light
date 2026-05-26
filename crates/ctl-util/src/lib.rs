@@ -35,3 +35,45 @@ pub fn argsort_by_key<T, K: Ord>(data: &[T], mut f: impl FnMut(&T) -> K) -> Vec<
     indices.sort_by_key(|&i| f(&data[i]));
     indices
 }
+
+/// Calculates the Greatest Common Divisor (GCD) of the number and `other`
+pub fn gcd(mut m: usize, mut n: usize) -> usize {
+    // Use Stein's algorithm
+    if m == 0 || n == 0 {
+        return m | n;
+    }
+
+    // find common factors of 2
+    let shift = (m | n).trailing_zeros();
+
+    // divide n and m by 2 until odd
+    m >>= m.trailing_zeros();
+    n >>= n.trailing_zeros();
+
+    while m != n {
+        if m > n {
+            m -= n;
+            m >>= m.trailing_zeros();
+        } else {
+            n -= m;
+            n >>= n.trailing_zeros();
+        }
+    }
+    m << shift
+}
+
+/// Calculates the Lowest Common Multiple (LCM) of the number and `other`.
+pub fn lcm(m: usize, n: usize) -> usize {
+    gcd_lcm(m, n).1
+}
+
+/// Calculates the Greatest Common Divisor (GCD) and
+/// Lowest Common Multiple (LCM) of the number and `other`.
+pub fn gcd_lcm(m: usize, n: usize) -> (usize, usize) {
+    if m == 0 && n == 0 {
+        return (0, 0);
+    }
+    let gcd = gcd(m, n);
+    let lcm = m * (n / gcd);
+    (gcd, lcm)
+}

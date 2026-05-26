@@ -17,6 +17,7 @@ pub enum ClipboardItem {
 pub struct ClipboardEvent<E> {
     pub event: E,
     pub beat_aligned: bool,
+    pub beat_offset: FloatTime,
 }
 
 impl Default for Clipboard {

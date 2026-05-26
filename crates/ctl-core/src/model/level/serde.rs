@@ -160,6 +160,16 @@ impl Timing {
         timing.time + delta
     }
 
+    pub fn is_beat_aligned(&self, time: Time) -> Option<BeatTime> {
+        let beat_ratio = num_rational::Ratio::new(
+            self.approximate_beat(time).units(),
+            BeatTime::UNITS_PER_BEAT,
+        );
+        // Small enough subdivision to consider it a valid beat point
+        let subdivision = *beat_ratio.denom();
+        (subdivision <= 20).then(|| BeatTime::from_units(BeatTime::UNITS_PER_BEAT / subdivision))
+    }
+
     /// Returns the approximation of the beat time.
     pub fn approximate_beat(&self, time: Time) -> BeatTime {
         let timing = self.get_timing(time);
@@ -225,12 +235,7 @@ impl LightEvent {
 
 #[test]
 fn test_snap_consistency() {
-    let timing = Timing {
-        points: vec![TimingPoint {
-            time: 0,
-            beat_time: r32(60.0 / 200.0),
-        }],
-    };
+    let timing = Timing::new(r32(200.0));
 
     assert_eq!(timing.snap_to_beat(0, BeatTime::WHOLE), 0);
     assert_eq!(timing.snap_to_beat(0, BeatTime::HALF), 0);
@@ -276,4 +281,13 @@ fn test_snap_consistency() {
             );
         }
     }
+}
+
+#[test]
+fn test_beat_alignment() {
+    let timing = Timing::new(r32(180.0));
+    // times off by one are fine to consider either way
+    assert!(timing.is_beat_aligned(665).is_none());
+    assert!(timing.is_beat_aligned(667).is_some());
+    assert!(timing.is_beat_aligned(669).is_none());
 }

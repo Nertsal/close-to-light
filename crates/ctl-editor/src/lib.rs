@@ -7,6 +7,8 @@ mod history;
 mod interpolation_cache;
 mod level;
 mod state;
+#[cfg(test)]
+mod tests;
 pub mod ui;
 
 pub use self::{
@@ -90,4 +92,25 @@ impl TimeInterpolation {
         self.state.current = time;
         self.state.target = time;
     }
+}
+
+pub fn move_event_time_beat_aligned(
+    level: &Level,
+    reference_snap: BeatTime,
+    time: Time,
+    shift: Time,
+) -> Time {
+    let beat_aligned = level.timing.is_beat_aligned(time);
+    let mut time = time + shift;
+    if let Some(alignment) = beat_aligned {
+        let alignment = BeatTime::UNITS_PER_BEAT
+            / ctl_util::lcm(
+                (BeatTime::UNITS_PER_BEAT / reference_snap.units()) as usize,
+                (BeatTime::UNITS_PER_BEAT / alignment.units()) as usize,
+            ) as Time;
+        time = level
+            .timing
+            .snap_to_beat(time, BeatTime::from_units(alignment));
+    }
+    time
 }

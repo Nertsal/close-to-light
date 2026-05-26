@@ -423,13 +423,25 @@ impl EditorState {
                     self.editor.cursor_world_pos_snapped - anchor_pos + *anchor_offset;
                 let shift_time =
                     level_editor.current_time.target - anchor_time + *anchor_offset_time;
+                let reference_snap = level_editor
+                    .level
+                    .timing
+                    .is_beat_aligned(anchor_time)
+                    .unwrap_or(BeatTime::UNIT);
                 actions.push(
                     LevelAction::list_with(
                         HistoryLabel::Drag,
                         lights.iter().flat_map(|light| {
+                            let event = level_editor.level.events.get(light.id.event)?;
+                            let time = move_event_time_beat_aligned(
+                                &level_editor.level,
+                                reference_snap,
+                                event.time,
+                                shift_time,
+                            );
                             Some(LevelAction::MoveLight(
                                 light.id,
-                                Change::Add(shift_time),
+                                Change::Set(time),
                                 Change::Add(shift_position),
                             ))
                         }),
@@ -466,17 +478,29 @@ impl EditorState {
                     self.editor.cursor_world_pos_snapped - anchor_pos + *anchor_offset;
                 let shift_time =
                     level_editor.current_time.target - anchor_time + *anchor_offset_time;
+                let reference_snap = level_editor
+                    .level
+                    .timing
+                    .is_beat_aligned(anchor_time)
+                    .unwrap_or(BeatTime::UNIT);
                 actions.push(
                     LevelAction::MoveWaypoint(
                         *light,
                         waypoints
                             .iter()
                             .flat_map(|waypoint| {
-                                Some((
-                                    waypoint.id,
-                                    Change::Add(shift_time),
-                                    Change::Add(shift_position),
-                                ))
+                                let event = level_editor.level.events.get(light.event)?;
+                                let Event::Light(light) = &event.event else {
+                                    return None;
+                                };
+                                let time = light.movement.get_time(waypoint.id)?;
+                                let time = move_event_time_beat_aligned(
+                                    &level_editor.level,
+                                    reference_snap,
+                                    time,
+                                    shift_time,
+                                );
+                                Some((waypoint.id, Change::Set(time), Change::Add(shift_position)))
                             })
                             .collect(),
                     )
