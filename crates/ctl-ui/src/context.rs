@@ -249,7 +249,9 @@ impl UiContext {
 
     pub fn can_focus(&self) -> bool {
         *self.override_focus.borrow()
-            || (*self.can_focus.borrow() && self.is_totally_focused().is_none())
+            || (*self.can_focus.borrow()
+                && self.is_totally_focused().is_none()
+                && !*self.cancel_focus_last_frame.borrow())
     }
 
     pub fn reset_focus(&self) {
