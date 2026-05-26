@@ -226,21 +226,19 @@ impl Widget for ToggleButtonWidget {
     fn draw(&self, context: &UiContext) -> Geometry {
         let theme = context.theme();
         let width = self.text.options.size * 0.2;
-        let (bg_color, fg_color) = if self.selected {
+        let (bg_color, fg_color) = if self.selected || (self.icon.is_none() && self.state.hovered) {
             (theme.light, theme.dark)
         } else {
             (theme.dark, theme.light)
         };
 
-        let mut geometry = context
-            .geometry
-            .quad_fill(self.text.state.position, width, bg_color);
+        let outline = self.text.state.position;
+        let mut geometry = context.geometry.quad_fill(outline, width, bg_color);
         geometry.merge(self.text.draw_colored(context, fg_color));
-        geometry.merge(
-            context
-                .geometry
-                .quad_outline(self.text.state.position, width, theme.light),
-        );
+        if let Some(icon) = &self.icon {
+            geometry.merge(icon.draw(context));
+        }
+        geometry.merge(context.geometry.quad_outline(outline, width, theme.light));
         geometry
     }
 }
