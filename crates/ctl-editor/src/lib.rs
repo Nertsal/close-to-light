@@ -31,7 +31,7 @@ use itertools::Itertools;
 pub enum ConfirmAction {
     ExitUnsaved,
     ChangeLevelUnsaved(usize),
-    DeleteLevel(usize),
+    DeleteDiff(usize),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

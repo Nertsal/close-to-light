@@ -322,7 +322,7 @@ impl Editor {
             ConfirmAction::ChangeLevelUnsaved(_) => {
                 (ThemeColor::Danger, "Switch to another difficulty?")
             }
-            ConfirmAction::DeleteLevel(_) => (ThemeColor::Danger, "Delete this difficulty?"),
+            ConfirmAction::DeleteDiff(_) => (ThemeColor::Danger, "Delete this difficulty?"),
         };
         self.confirm_popup = Some(ConfirmPopup {
             action,
@@ -342,7 +342,7 @@ impl Editor {
         match popup.action {
             ConfirmAction::ExitUnsaved => self.exit(),
             ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
-            ConfirmAction::DeleteLevel(index) => self.delete_level(index),
+            ConfirmAction::DeleteDiff(index) => self.delete_level(index),
         }
     }
 
