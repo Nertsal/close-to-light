@@ -348,6 +348,7 @@ impl Editor {
         discard_text: impl Into<Name>,
     ) {
         let (confirm_color, title) = match action {
+            ConfirmAction::Noop => (ThemeColor::Light, ""),
             ConfirmAction::ExitUnsaved => (ThemeColor::Danger, "Exit the editor?"),
             ConfirmAction::ChangeLevelUnsaved(_) => {
                 (ThemeColor::Danger, "Switch to another difficulty?")
@@ -370,6 +371,7 @@ impl Editor {
             return;
         };
         match popup.action {
+            ConfirmAction::Noop => {}
             ConfirmAction::ExitUnsaved => self.exit(),
             ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
             ConfirmAction::DeleteDiff(index) => self.delete_level(index),

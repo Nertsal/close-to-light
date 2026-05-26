@@ -29,7 +29,7 @@ pub struct EditorState {
 
 impl EditorState {
     pub fn new_group(context: Context, config: EditorConfig, group: PlayGroup) -> Self {
-        let editor = Self {
+        let mut editor = Self {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(context.clone()),
@@ -44,6 +44,12 @@ impl EditorState {
             context,
         };
         editor.context.set_status("In Editor");
+        editor.editor.popup_confirm(
+            ConfirmAction::Noop,
+            "Editor is in beta, bugs might happen >_<",
+            "ok",
+            "I know",
+        );
         editor
     }
 
