@@ -80,13 +80,9 @@ impl EditorRender {
         }
 
         let edit_tab = matches!(editor.tab, EditorTab::Edit);
-        self.draw_game(
-            editor,
-            context.screen,
-            interpolation_cache,
-            edit_tab,
-            post_vfx,
-        );
+        if edit_tab {
+            self.draw_game(editor, context.screen, interpolation_cache, post_vfx);
+        }
         if !editor.render_options.hide_ui {
             self.draw_ui(ui, context);
         }

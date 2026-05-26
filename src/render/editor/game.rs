@@ -6,7 +6,6 @@ impl EditorRender {
         editor: &Editor,
         screen_aabb: Aabb2<f32>,
         interpolation_cache: &mut InterpolationCache,
-        visible: bool,
         post_vfx: PostVfx,
     ) {
         let options = &editor.render_options;
@@ -24,11 +23,14 @@ impl EditorRender {
         ugli::clear(game_buffer, Some(theme.dark), None, None);
 
         let Some(level_editor) = &editor.level_edit else {
+            let game_buffer = &mut geng_utils::texture::attach_texture(
+                &mut self.game_texture,
+                self.context.geng.ugli(),
+            );
+            self.post_render
+                .post_process(&self.context.get_options(), post_vfx, game_buffer);
             return;
         };
-        if !visible {
-            return;
-        }
 
         let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
         macro_rules! draw_game {
