@@ -167,6 +167,9 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
         rgb_split,
         palette_swap,
         shake,
+        vignette,
+        curvature,
+        noise,
 
         circle,
         circle_fill,
