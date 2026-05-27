@@ -563,7 +563,7 @@ impl EditorState {
                     // Clicked on an light
                     let light_id = LightId { event };
                     if let Some(e) = level_editor.level.events.get(event)
-                        && let Event::Light(_light) = &e.event
+                        && let Event::Light(light) = &e.event
                     {
                         let light_anchor = light_id;
                         match button {
@@ -581,12 +581,18 @@ impl EditorState {
                                 let lights = selection.all_lights(&level_editor.level);
                                 actions.push(LevelAction::SetSelection(selection.clone()).into());
 
+                                let anchor_offset = light.movement.initial.transform.translation
+                                    - light
+                                        .movement
+                                        .get(level_editor.current_time.target - e.time)
+                                        .translation;
+
                                 let double = level_editor.selection.is_light_selected(light_id);
                                 let target = DragTarget::Light {
                                     double,
                                     lights: lights.into_iter().map(|id| DragLight { id }).collect(),
                                     light_anchor,
-                                    anchor_offset: vec2::ZERO,
+                                    anchor_offset,
                                     anchor_offset_time: e.time - level_editor.current_time.target,
                                 };
                                 actions.push(EditorStateAction::StartDrag(target));
