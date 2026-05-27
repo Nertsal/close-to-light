@@ -493,7 +493,7 @@ impl EditorState {
                                 let Event::Light(light) = &event.event else {
                                     return None;
                                 };
-                                let time = light.movement.get_time(waypoint.id)?;
+                                let time = event.time + light.movement.get_time(waypoint.id)?;
                                 let time = move_event_time_beat_aligned(
                                     &level_editor.level.timing,
                                     reference_snap,
