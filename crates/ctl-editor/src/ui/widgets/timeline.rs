@@ -483,24 +483,22 @@ impl TimelineWidget {
                         .snap_to_beat(cursor_time, beat_snap)
                 };
             }
-            let reference_snap = level_editor
-                .level
-                .timing
-                .is_beat_aligned(cursor_time)
-                .unwrap_or(BeatTime::UNIT);
 
             actions.push(
                 LevelAction::MoveEvents(
                     drag_ids
                         .iter()
                         .map(|(event_i, event_time)| {
-                            let target_time = move_event_time_beat_aligned(
-                                &level_editor.level.timing,
-                                reference_snap,
-                                *event_time,
-                                cursor_time - initial_time,
-                            );
-                            (*event_i, Change::Set(target_time))
+                            let mut time = *event_time + cursor_time - initial_time;
+                            if level_editor
+                                .level
+                                .timing
+                                .is_beat_aligned(*event_time)
+                                .is_some()
+                            {
+                                time = level_editor.level.timing.snap_to_best_alignment(time).0;
+                            }
+                            (*event_i, Change::Set(time))
                         })
                         .collect(),
                 )

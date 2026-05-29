@@ -94,22 +94,3 @@ impl TimeInterpolation {
         self.state.target = time;
     }
 }
-
-pub fn move_event_time_beat_aligned(
-    timing: &Timing,
-    reference_snap: BeatTime,
-    time: Time,
-    shift: Time,
-) -> Time {
-    let beat_aligned = timing.is_beat_aligned(time);
-    let mut time = time + shift;
-    if let Some(alignment) = beat_aligned {
-        let alignment = BeatTime::UNITS_PER_BEAT
-            / ctl_util::lcm(
-                (BeatTime::UNITS_PER_BEAT / reference_snap.units()) as usize,
-                (BeatTime::UNITS_PER_BEAT / alignment.units()) as usize,
-            ) as Time;
-        time = timing.snap_to_beat(time, BeatTime::from_units(alignment));
-    }
-    time
-}

@@ -426,22 +426,20 @@ impl EditorState {
                     self.editor.cursor_world_pos_snapped - anchor_pos + *anchor_offset;
                 let shift_time =
                     level_editor.current_time.target - anchor_time + *anchor_offset_time;
-                let reference_snap = level_editor
-                    .level
-                    .timing
-                    .is_beat_aligned(anchor_time)
-                    .unwrap_or(BeatTime::UNIT);
                 actions.push(
                     LevelAction::list_with(
                         HistoryLabel::Drag,
                         lights.iter().flat_map(|light| {
                             let event = level_editor.level.events.get(light.id.event)?;
-                            let time = move_event_time_beat_aligned(
-                                &level_editor.level.timing,
-                                reference_snap,
-                                event.time,
-                                shift_time,
-                            );
+                            let mut time = event.time + shift_time;
+                            if level_editor
+                                .level
+                                .timing
+                                .is_beat_aligned(event.time)
+                                .is_some()
+                            {
+                                time = level_editor.level.timing.snap_to_best_alignment(time).0;
+                            }
                             Some(LevelAction::MoveLight(
                                 light.id,
                                 Change::Set(time),
@@ -481,11 +479,6 @@ impl EditorState {
                     self.editor.cursor_world_pos_snapped - anchor_pos + *anchor_offset;
                 let shift_time =
                     level_editor.current_time.target - anchor_time + *anchor_offset_time;
-                let reference_snap = level_editor
-                    .level
-                    .timing
-                    .is_beat_aligned(anchor_time)
-                    .unwrap_or(BeatTime::UNIT);
                 actions.push(
                     LevelAction::MoveWaypoint(
                         *light,
@@ -496,13 +489,17 @@ impl EditorState {
                                 let Event::Light(light) = &event.event else {
                                     return None;
                                 };
-                                let time = event.time + light.movement.get_time(waypoint.id)?;
-                                let time = move_event_time_beat_aligned(
-                                    &level_editor.level.timing,
-                                    reference_snap,
-                                    time,
-                                    shift_time,
-                                );
+                                let orig_time =
+                                    event.time + light.movement.get_time(waypoint.id)?;
+                                let mut time = orig_time + shift_time;
+                                if level_editor
+                                    .level
+                                    .timing
+                                    .is_beat_aligned(orig_time)
+                                    .is_some()
+                                {
+                                    time = level_editor.level.timing.snap_to_best_alignment(time).0;
+                                }
                                 Some((waypoint.id, Change::Set(time), Change::Add(shift_position)))
                             })
                             .collect(),

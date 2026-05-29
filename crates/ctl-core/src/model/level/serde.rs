@@ -160,21 +160,44 @@ impl Timing {
         timing.time + delta
     }
 
+    // /// Returns the approximation of the beat time.
+    // pub fn approximate_beat(&self, time: Time) -> BeatTime {
+    //     let timing = self.get_timing(time);
+    //     let beat_time = time_to_seconds(time - timing.time) / timing.beat_time;
+    //     BeatTime::from_beats_float(beat_time)
+    // }
+
     pub fn is_beat_aligned(&self, time: Time) -> Option<BeatTime> {
-        let beat_ratio = num_rational::Ratio::new(
-            self.approximate_beat(time).units(),
-            BeatTime::UNITS_PER_BEAT,
-        );
-        // Small enough subdivision to consider it a valid beat point
-        let subdivision = *beat_ratio.denom();
-        (subdivision <= 20).then(|| BeatTime::from_units(BeatTime::UNITS_PER_BEAT / subdivision))
+        // let beat_ratio = num_rational::Ratio::new(
+        //     self.approximate_beat(time).units(),
+        //     BeatTime::UNITS_PER_BEAT,
+        // );
+        // // Small enough subdivision to consider it a valid beat point
+        // let subdivision = *beat_ratio.denom();
+        // (subdivision <= 21).then(|| BeatTime::from_units(BeatTime::UNITS_PER_BEAT / subdivision))
+
+        let (aligned, snap) = self.snap_to_best_alignment(time);
+        (aligned == time).then_some(snap)
     }
 
-    /// Returns the approximation of the beat time.
-    pub fn approximate_beat(&self, time: Time) -> BeatTime {
-        let timing = self.get_timing(time);
-        let beat_time = time_to_seconds(time - timing.time) / timing.beat_time;
-        BeatTime::from_beats_float(beat_time)
+    /// Return the closest reasonable beat subdivision that this time falls onto.
+    pub fn snap_to_best_alignment(&self, time: Time) -> (Time, BeatTime) {
+        let max_error: Time = 1;
+        let subdivisions = [1, 2, 4, 8, 16, 3, 9, 12, 5, 15, 7, 21];
+        let mut best_error = max_error + 1;
+        let mut best_snap = BeatTime::UNIT;
+        let mut best_time = time;
+        for subdiv in subdivisions {
+            let snap = BeatTime::from_units(BeatTime::UNITS_PER_BEAT / subdiv);
+            let aligned = self.snap_to_beat(time, snap);
+            let error = (time - aligned).abs();
+            if error <= max_error && error < best_error {
+                best_snap = snap;
+                best_error = error;
+                best_time = aligned
+            }
+        }
+        (best_time, best_snap)
     }
 
     /// Snaps to beat while ignoring a specified timing point.
