@@ -114,9 +114,12 @@ impl EditorState {
                         match &level_editor.selection {
                             Selection::Empty => {}
                             Selection::Lights(lights) => {
+                                let mut lights = lights.clone();
+                                // NOTE: delete events in reverse order because we are using raw indexes
+                                lights.sort();
                                 actions.push(
                                     LevelAction::list(
-                                        lights.iter().copied().map(LevelAction::DeleteLight),
+                                        lights.into_iter().rev().map(LevelAction::DeleteLight),
                                     )
                                     .into(),
                                 );
