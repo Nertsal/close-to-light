@@ -3,13 +3,26 @@ use super::*;
 pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let mut groups = load_groups_from(geng, &fs::all_groups_path()).await?;
     if cfg!(debug_assertions) {
+        // Demo levels
         groups.extend(
             load_groups_from(
                 geng,
                 &run_dir()
                     .join("..")
                     .join("close-to-assets")
-                    .join("assets")
+                    .join("assets-demo")
+                    .join("levels"),
+            )
+            .await?,
+        );
+        // Full release levels
+        groups.extend(
+            load_groups_from(
+                geng,
+                &run_dir()
+                    .join("..")
+                    .join("close-to-assets")
+                    .join("assets-release")
                     .join("levels"),
             )
             .await?,
