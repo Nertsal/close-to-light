@@ -21,6 +21,7 @@ server_url := "https://ctl-server.nertsal.com"
 server := "ctl-server.nertsal.com"
 server_user := "nertsal"
 git_commit_hash := `git rev-parse --short HEAD`
+assets_folder := "../close-to-assets/assets/"
 
 game *ARGS:
     GIT_COMMIT_HASH={{git_commit_hash}} cargo run {{ARGS}}
@@ -58,6 +59,7 @@ build-all-platforms TARGET_DIR *ARGS:
     {{docker_image}} \
     cargo geng build --release --platform linux --features steam {{ARGS}}
     cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
+    cp -r {{assets_folder}} {{TARGET_DIR}}/linux/geng/
     cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
     # Steam-Windows
     docker run --user $(id -u):$(id -g) --rm -it -v `pwd`:/src --workdir /src \
@@ -68,10 +70,12 @@ build-all-platforms TARGET_DIR *ARGS:
     {{docker_image}} \
     cargo geng build --release --platform windows --features steam {{ARGS}}
     cp {{steam_sdk}}/win64/steam_api64.dll {{TARGET_DIR}}/windows/geng
+    cp -r {{assets_folder}} {{TARGET_DIR}}/windows/geng/
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
     LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web GIT_COMMIT_HASH={{git_commit_hash}} \
     cargo geng build --release --platform web --features itch {{ARGS}}
+    cp -r {{assets_folder}} {{TARGET_DIR}}/web/geng/
     cd {{TARGET_DIR}}/web/geng && zip -FS -r ../../web.zip ./*
 
 

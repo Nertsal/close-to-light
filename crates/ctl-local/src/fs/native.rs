@@ -1,7 +1,25 @@
 use super::*;
 
 pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
-    let groups_path = fs::all_groups_path();
+    let mut groups = load_groups_from(geng, &fs::all_groups_path()).await?;
+    if cfg!(debug_assertions) {
+        groups.extend(
+            load_groups_from(
+                geng,
+                &run_dir()
+                    .join("..")
+                    .join("close-to-assets")
+                    .join("assets")
+                    .join("levels"),
+            )
+            .await?,
+        );
+    }
+    Ok(groups)
+}
+
+async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<LocalGroup>> {
+    log::debug!("Looking for levels in {:?}", groups_path);
     if !groups_path.exists() {
         return Ok(Vec::new());
     }
