@@ -144,9 +144,9 @@ impl HealthConfig {
     pub fn preset_normal() -> Self {
         Self {
             max: r32(1.0),
-            dark_decrease_rate: r32(0.75),
+            dark_decrease_rate: r32(0.7),
             danger_decrease_rate: r32(2.0),
-            restore_rate: r32(0.35),
+            restore_rate: r32(0.4),
         }
     }
 
