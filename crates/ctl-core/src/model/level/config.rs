@@ -39,6 +39,8 @@ pub struct LevelModifiers {
     pub hidden: bool,
     /// Whether touchscreen was used during gameplay.
     pub touch: bool,
+    /// Time speed up or slow down.
+    pub time_scale: FloatTime,
 }
 
 impl LevelModifiers {
@@ -49,6 +51,7 @@ impl LevelModifiers {
             self.sudden.then_some(Modifier::Sudden),
             self.hidden.then_some(Modifier::Hidden),
             self.touch.then_some(Modifier::Touch),
+            (self.time_scale != FloatTime::ONE).then_some(Modifier::TimeScale(self.time_scale)),
         ]
         .into_iter()
         .flatten()
@@ -68,6 +71,7 @@ pub enum Modifier {
     Sudden,
     Hidden,
     Touch,
+    TimeScale(FloatTime),
 }
 
 impl Modifier {
@@ -77,6 +81,13 @@ impl Modifier {
             Modifier::Sudden => r32(1.15),
             Modifier::Hidden => r32(1.1),
             Modifier::Touch => r32(1.0),
+            &Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    (scale - r32(0.4)).clamp(r32(0.1), r32(1.0))
+                } else {
+                    r32(1.0) + (scale - r32(1.0)) * r32(0.2)
+                }
+            }
         }
     }
 
@@ -86,6 +97,13 @@ impl Modifier {
             Modifier::Sudden => "the lights are less predictable",
             Modifier::Hidden => "the lights are hidden in the dark",
             Modifier::Touch => "played with touchscreen",
+            &Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    "slow motion"
+                } else {
+                    "fast motion"
+                }
+            }
         }
     }
 }
@@ -97,17 +115,25 @@ impl Display for Modifier {
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
             Modifier::Touch => write!(f, "Touch"),
+            &Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    write!(f, "Half Time")
+                } else {
+                    write!(f, "Double Time")
+                }
+            }
         }
     }
 }
 
 impl LevelModifiers {
-    pub fn get_mut(&mut self, modifier: Modifier) -> &mut bool {
+    pub fn get_mut(&mut self, modifier: Modifier) -> Option<&mut bool> {
         match modifier {
-            Modifier::NoFail => &mut self.nofail,
-            Modifier::Sudden => &mut self.sudden,
-            Modifier::Hidden => &mut self.hidden,
-            Modifier::Touch => &mut self.touch,
+            Modifier::NoFail => Some(&mut self.nofail),
+            Modifier::Sudden => Some(&mut self.sudden),
+            Modifier::Hidden => Some(&mut self.hidden),
+            Modifier::Touch => Some(&mut self.touch),
+            Modifier::TimeScale(_) => None,
         }
     }
 }
@@ -121,6 +147,7 @@ impl Default for LevelModifiers {
             sudden: false,
             hidden: false,
             touch: false,
+            time_scale: FloatTime::ONE,
         }
     }
 }

@@ -77,3 +77,41 @@ pub fn gcd_lcm(m: usize, n: usize) -> (usize, usize) {
     let lcm = m * (n / gcd);
     (gcd, lcm)
 }
+
+pub async fn change_sound_speed(
+    sound: &geng::Sound,
+    speed: f32,
+    geng: &Geng,
+) -> anyhow::Result<geng::Sound> {
+    let speed = speed.clamp(0.1, 10.0);
+    let sample_rate = sound.sample_rate();
+    let channels_n = sound.number_of_channels() as u32;
+    assert!(channels_n <= 2);
+    let channels: Vec<_> = (0..channels_n).map(|i| sound.get_channel_data(i)).collect();
+    let channel_len = channels[0].len();
+    let mut data = Vec::with_capacity(channel_len);
+    for i in 0..channel_len {
+        data.extend(channels.iter().map(|c| c[i]));
+    }
+
+    let data = timestretch::stretch(
+        &data,
+        &timestretch::StretchParams::new(speed.into())
+            // .with_preset(timestretch::EdmPreset::HouseLoop)
+            .with_channels(channels_n)
+            .with_quality_mode(timestretch::QualityMode::LowLatency),
+    )?;
+    let mut samples = vec![Vec::with_capacity(channel_len); channels_n as usize];
+    let mut data = data.into_iter();
+    'outer: loop {
+        for channel in &mut samples {
+            let Some(s) = data.next() else {
+                break 'outer;
+            };
+            channel.push(s);
+        }
+    }
+
+    let sound = geng.audio().sound_from_buffer(samples, sample_rate).await?;
+    Ok(sound)
+}

@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use ctl_core::{
     model::ScoreGrade,
     prelude::{Color, Modifier},
+    types::FloatTime,
 };
 pub use ctl_font::Font;
 use ctl_render_core::SubTexture;
@@ -139,6 +140,8 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_sudden,
     mod_hidden,
     mod_touch,
+    mod_half_time,
+    mod_double_time,
 
     light,
     wrench,
@@ -275,6 +278,13 @@ impl Assets {
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
             Modifier::Touch => self.atlas.mod_touch(),
+            Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    self.atlas.mod_half_time()
+                } else {
+                    self.atlas.mod_double_time()
+                }
+            }
         }
     }
 

@@ -355,6 +355,31 @@ impl LevelMenu {
             let config = self.state.config.clone();
 
             async move {
+                let mut group = group;
+                if config.modifiers.time_scale != FloatTime::ONE
+                    && let Some(music) = &mut group.music
+                {
+                    let sound = ctl_util::change_sound_speed(
+                        &music.sound,
+                        config.modifiers.time_scale.as_f32().recip(),
+                        &context.geng,
+                    )
+                    .await;
+                    match sound {
+                        Ok(sound) => {
+                            *music = Rc::new(ctl_local::LocalMusic {
+                                meta: music.meta.clone(),
+                                sound: Rc::new(sound),
+                                bytes: music.bytes.clone(),
+                            })
+                        }
+                        Err(err) => log::error!(
+                            "Failed to resample the music to match the target speed: {:?}",
+                            err
+                        ),
+                    }
+                }
+
                 let level = ctl_logic::PlayLevel {
                     group,
                     level_index,

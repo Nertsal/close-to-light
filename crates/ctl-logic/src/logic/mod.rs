@@ -46,6 +46,8 @@ impl Model {
             return;
         }
 
+        // NOTE: !!! Gameplay speed affects delta time from this point
+        let delta_time = delta_time * self.level.config.modifiers.time_scale;
         self.vfx.update(delta_time);
 
         // Camera shake
@@ -287,7 +289,9 @@ impl Model {
     pub fn start(&mut self, music_start_time: Time) {
         self.state = State::Playing;
         if let Some(music) = &self.level.group.music {
-            log::debug!("Starting music at {music_start_time}");
+            let speed = self.level.config.modifiers.time_scale;
+            log::debug!("Starting music at {music_start_time}, speed: x{speed:.2}");
+            // TODO: scale start_time by speed
             self.context
                 .music
                 .play_from_time(music, music_start_time, false);
