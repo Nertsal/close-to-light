@@ -47,6 +47,7 @@ num-rational = "0.4.2"
 
 # Game
 geng = "0.18"
+geng-web-audio-api = { git = "https://github.com/geng-engine/web-audio-api", rev = "374dbb8fc4463e69f75dad1000d60a66114f8d8d" }
 wasm-bindgen = { version = "=0.2.106", features = ["serde"] }
 geng-utils = "0.4.0"
 parry2d = "0.13.5"
@@ -138,6 +139,6 @@ tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 web-sys = "=0.3.83"
 
 [patch.crates-io]
-geng = { git = "https://github.com/geng-engine/geng", rev = "1e35585545463c919ff0da849af4fdad69ab02fa" }
+geng = { git = "https://github.com/geng-engine/geng", rev = "f15cd129bc831ee043915c018893123e32d54545" }
 geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}
 time = { git = "https://github.com/Nertsal/time", rev = "748366af4446aa890220a9da14873ee728fe0108" } # NOTE: until <https://github.com/time-rs/time/issues/751> is resolved

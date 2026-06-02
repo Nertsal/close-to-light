@@ -47,12 +47,15 @@ pub struct TimelineWidget {
 
     /// Pixels per unit.
     ppu: f32,
-    /// Render scale in pixels per beat.
+    /// Render scale in pixels per time unit.
     scale: f32,
     /// The scrolloff in exact time.
     scroll: Time,
     raw_current_time: Time,
     raw_target_time: Time,
+
+    cached_music: Option<Rc<ctl_local::LocalMusic>>,
+    music_waveform: Vec<vec2<f32>>,
 }
 
 struct HighlightBar {
@@ -91,6 +94,9 @@ impl TimelineWidget {
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
             raw_target_time: Time::ZERO,
+
+            cached_music: None,
+            music_waveform: Vec::new(),
         }
     }
 
@@ -111,6 +117,11 @@ impl TimelineWidget {
         (self.state.position.width() / self.scale) as Time
     }
 
+    pub fn visible_range(&self) -> (Time, Time) {
+        let visible_scroll = self.visible_scroll() / 2;
+        (-self.scroll - visible_scroll, -self.scroll + visible_scroll)
+    }
+
     pub fn update_time(&mut self, current_beat: Time, target_beat: Time) {
         self.raw_current_time = current_beat;
         self.raw_target_time = target_beat;
@@ -126,6 +137,19 @@ impl TimelineWidget {
     ) {
         let atlas = &context.context.assets.atlas;
         let theme = context.theme();
+
+        if let Some(level_music) = &level_editor.static_level.group.music
+            && self
+                .cached_music
+                .as_ref()
+                .is_none_or(|cached| !Rc::ptr_eq(cached, level_music))
+        {
+            self.cached_music = Some(level_music.clone());
+            self.music_waveform = build_waveform(
+                &level_music.sound.get_channel_data(0),
+                level_music.sound.sample_rate(),
+            );
+        }
 
         // Selection mode for clicking on the icons on the timeline
         let selection_mode = if context.mods.shift {
@@ -1494,6 +1518,44 @@ impl Widget for TimelineWidget {
             geometry.merge(context.geometry.texture_pp_at(pos, color, pixel, &texture));
         }
 
+        let waveform = &self.music_waveform;
+        if !waveform.is_empty() {
+            // Music waveform - find the visible range
+            let (from, to) = self.visible_range();
+            let music_duration = self
+                .cached_music
+                .as_ref()
+                .map_or(0.0, |music| music.sound.duration().as_secs_f64() as f32);
+            let from = time_to_seconds(from.max(0)).as_f32() / music_duration.max(1.0);
+            let to = time_to_seconds(to.max(0)).as_f32() / music_duration.max(1.0);
+            let from =
+                ((from * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let to = ((to * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+
+            if from < to {
+                // render at the scale of the timeline
+                let waveform = &waveform[from..to];
+                let triangles: Vec<_> = waveform
+                    .iter()
+                    .map(|&pos| {
+                        let pos =
+                            pos * vec2(
+                                self.scale * TIME_IN_FLOAT_TIME as f32,
+                                self.allocated_position.position.height() * 0.5,
+                            ) + self.main_line.position.center()
+                                + vec2(self.scroll as f32 * self.scale, 0.0);
+                        ctl_ui::geometry::GeometryTriangleVertex {
+                            a_z: 0.0,
+                            a_pos: pos,
+                            a_color: ctl_util::with_alpha(theme.light, 0.5),
+                            a_vt: vec2::ZERO,
+                        }
+                    })
+                    .collect();
+                geometry.merge(context.geometry.custom(triangles));
+            }
+        }
+
         // NOTE: mask is done manually because it weirdly affects the rendering order
         let width = pixel * 2.0;
         geometry.merge(
@@ -1669,4 +1731,36 @@ fn editor_event_time(id: EditorEventIdx, level_editor: &LevelEditor) -> Option<T
         }
         EditorEventIdx::Timing(idx) => Some(level_editor.level.timing.points.get(idx)?.time),
     }
+}
+
+fn build_waveform(sound: &[f32], sample_rate: f32) -> Vec<vec2<f32>> {
+    let mut triangles = Vec::new();
+
+    let mut prev_amp = 0.0;
+    let mut prev_x = 0.0;
+    const CHUNK_SIZE: usize = 400;
+    let (chunks, _) = sound.as_chunks::<CHUNK_SIZE>();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let amp: f32 = chunk.iter().map(|&amp| amp.abs() / CHUNK_SIZE as f32).sum();
+        let amp = amp.sqrt().min(1.0);
+        let x = i as f32 / sample_rate * CHUNK_SIZE as f32; // Time in seconds
+        triangles.extend([
+            // top left
+            vec2(prev_x, 0.0),
+            vec2(x, amp),
+            vec2(prev_x, prev_amp),
+            // mid
+            vec2(prev_x, 0.0),
+            vec2(x, -amp),
+            vec2(x, amp),
+            // bottom left
+            vec2(prev_x, 0.0),
+            vec2(prev_x, -prev_amp),
+            vec2(x, -amp),
+        ]);
+        prev_amp = amp;
+        prev_x = x;
+    }
+
+    triangles
 }
