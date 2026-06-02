@@ -320,7 +320,25 @@ impl TimelineWidget {
             };
 
         // Render events on the timeline
+        const OVERLAP_MARGIN: Time = 6;
         let mut occupied = BTreeMap::new();
+        fn get_occupied<'a>(
+            level_editor: &LevelEditor,
+            map: &'a mut BTreeMap<Time, usize>,
+            time: Time,
+        ) -> std::collections::btree_map::Entry<'a, Time, usize> {
+            let beat_aligned = level_editor
+                .level
+                .timing
+                .snap_to_beat(time, BeatTime::SIXTEENTH);
+            let key = if (beat_aligned - time).abs() <= OVERLAP_MARGIN {
+                beat_aligned
+            } else {
+                time
+            };
+            map.entry(key)
+        }
+
         self.dots.clear();
         let focus = {
             let mut focus = context.can_focus.borrow_mut();
@@ -344,20 +362,18 @@ impl TimelineWidget {
             let is_selected_single = original_selection.is_single(event_i.into());
 
             let overlapped = if !is_selected_single {
-                let on_top_of_highlight = self
-                    .highlight_bar
-                    .as_ref()
-                    .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time));
-                *occupied
-                    .entry(event_time)
+                let on_top_of_highlight = self.highlight_bar.as_ref().is_some_and(|bar| {
+                    (bar.from_time - OVERLAP_MARGIN..=bar.to_time + OVERLAP_MARGIN)
+                        .contains(&event_time)
+                });
+                *get_occupied(level_editor, occupied, event_time)
                     .and_modify(|x| *x += 1)
                     .or_insert(if on_top_of_highlight { 1 } else { 0 })
             } else {
                 if self.highlight_bar.is_none() {
                     // if this event does not get a highlight bar (e.g. timing point)
                     // then the overlap need to be adjusted manually
-                    occupied
-                        .entry(event_time)
+                    get_occupied(level_editor, occupied, event_time)
                         .and_modify(|x| *x += 1)
                         .or_insert(0);
                 }
@@ -737,12 +753,11 @@ impl TimelineWidget {
                     let light_time = event.time + light_event.movement.get_fade_in();
                     // Idle light icon
                     if visible && !show_light_waypoints {
-                        let on_top_of_highlight = self
-                            .highlight_bar
-                            .as_ref()
-                            .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&light_time));
-                        overlapped = *occupied
-                            .entry(light_time)
+                        let on_top_of_highlight = self.highlight_bar.as_ref().is_some_and(|bar| {
+                            (bar.from_time - OVERLAP_MARGIN..=bar.to_time + OVERLAP_MARGIN)
+                                .contains(&light_time)
+                        });
+                        overlapped = *get_occupied(level_editor, &mut occupied, light_time)
                             .and_modify(|x| *x += 1)
                             .or_insert(if on_top_of_highlight { 1 } else { 0 });
 
