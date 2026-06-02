@@ -1916,7 +1916,7 @@ dependencies = [
  "ctl-core",
  "geng",
  "geng-utils",
- "timestretch",
+ "pitch_shift",
 ]
 
 [[package]]
@@ -3994,6 +3994,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "microfft"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b6673eb0cc536241d6734c2ca45abfdbf90e9e7791c66a36a7ba3c315b76cf"
+dependencies = [
+ "cfg-if 1.0.4",
+ "num-complex",
+ "static_assertions",
+]
+
+[[package]]
+name = "micromath"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3c8dda44ff03a2f238717214da50f65d5a53b45cd213a7370424ffdb6fae815"
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4320,6 +4337,7 @@ version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
+ "bytemuck",
  "num-traits",
 ]
 
@@ -4909,6 +4927,18 @@ name = "piston-float"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad78bf43dcf80e8f950c92b84f938a0fc7590b7f6866fbcbeca781609c115590"
+
+[[package]]
+name = "pitch_shift"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0768e7cebce3deed6b8249e3c636f65cdb791e235258694b6d12f71f036ce9d3"
+dependencies = [
+ "bytemuck",
+ "microfft",
+ "micromath",
+ "num-complex",
+]
 
 [[package]]
 name = "pkcs1"
@@ -6376,6 +6406,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "steamworks"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6822,18 +6858,6 @@ source = "git+https://github.com/Nertsal/time?rev=748366af4446aa890220a9da14873e
 dependencies = [
  "num-conv",
  "time-core",
-]
-
-[[package]]
-name = "timestretch"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84f2be302681be6e361b28d6275a9915d70f836a39fab3d19adaa39fad01c8f5"
-dependencies = [
- "arc-swap",
- "rustfft",
- "serde",
- "serde_json",
 ]
 
 [[package]]
