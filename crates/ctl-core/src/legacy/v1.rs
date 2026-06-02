@@ -173,6 +173,7 @@ pub fn migrate(
         })
         .collect();
     let level_set = crate::LevelSet {
+        music_offset: 0,
         levels: value
             .levels
             .into_iter()

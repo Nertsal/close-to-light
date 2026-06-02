@@ -356,6 +356,7 @@ impl LevelMenu {
 
             async move {
                 let level = ctl_logic::PlayLevel {
+                    music_offset: group.cached.local.data.music_offset,
                     group,
                     level_index,
                     level: level.clone(),
@@ -927,6 +928,7 @@ impl geng::State for LevelMenu {
 
                         if let Some((level_index, level)) = level {
                             let level = ctl_logic::PlayLevel {
+                                music_offset: group.cached.local.data.music_offset,
                                 group,
                                 level_index,
                                 level,

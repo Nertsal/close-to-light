@@ -193,6 +193,7 @@ impl EditorState {
 
         let level = ctl_logic::PlayLevel {
             start_time: level_editor.current_time.target,
+            music_offset: self.editor.group.cached.local.data.music_offset,
             level: LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
                 data: Rc::new(level_editor.level.clone()),

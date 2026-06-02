@@ -304,6 +304,7 @@ pub fn migrate(value: LevelSet, info: LevelSetInfo) -> (crate::LevelSet, crate::
         })
         .collect();
     let level_set = crate::LevelSet {
+        music_offset: 0,
         levels: value
             .levels
             .into_iter()

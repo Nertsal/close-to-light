@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum EditorAction {
     Level(LevelAction),
+    SetMusicOffset(Time),
     SwitchTab(EditorTab),
     ToggleDynamicVisual,
     ToggleShowOnlySelected,
@@ -46,6 +47,7 @@ impl Editor {
                     );
                 }
             }
+            EditorAction::SetMusicOffset(offset) => self.set_music_offset(offset),
             EditorAction::SwitchTab(tab) => self.tab = tab,
             EditorAction::ToggleDynamicVisual => self.visualize_beat = !self.visualize_beat,
             EditorAction::ToggleShowOnlySelected => {
@@ -117,6 +119,7 @@ impl Editor {
                         old_state: Box::new(level_editor.state.clone()),
                     };
                     if let Some(music) = &level_editor.static_level.group.music {
+                        // TODO: apply offset
                         let time = time_to_seconds(level_editor.current_time.target);
                         self.context.music.play_from(
                             music,

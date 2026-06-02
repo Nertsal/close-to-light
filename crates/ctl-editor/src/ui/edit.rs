@@ -286,7 +286,7 @@ impl LayoutHelper<'_> {
         let zoom = bar.cut_top(self.value_height);
         bar.cut_top(self.spacing);
         let slider = context.state.get_root_or(|| {
-            ValueWidget::new_range("Zoom", self.editor.view_zoom.target, 0.5..=2.0, 0.25)
+            ValueWidget::new_range("Zoom", self.editor.view_zoom.target, 0.5..=2.0, 0.25, 2)
         });
         {
             let mut view_zoom = self.editor.view_zoom.clone();
@@ -333,7 +333,7 @@ impl LayoutHelper<'_> {
             let mut value = 10.0 / self.editor.grid.cell_size.as_f32();
             let slider = context
                 .state
-                .get_root_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0));
+                .get_root_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0, 2));
             slider.update(grid_size, context, &mut value);
             actions.push(EditorAction::SetGridSize(r32(10.0 / value)).into());
             context.update_focus(slider.state.hovered);
@@ -670,6 +670,7 @@ impl LayoutHelper<'_> {
                             max: r32(1.0),
                         },
                         r32(0.05),
+                        2,
                     )
                 });
                 value.update(hollow_pos, context, &mut hollow);
@@ -682,7 +683,7 @@ impl LayoutHelper<'_> {
                 let mut value = frame.scale.as_f32();
                 let slider = context
                     .state
-                    .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=20.0, 0.25));
+                    .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=20.0, 0.25, 2));
                 if slider.update(scale, context, &mut value) {
                     actions.push(
                         LevelAction::ScaleWaypoint(light_id, selected, Change::Set(r32(value)))
@@ -702,7 +703,7 @@ impl LayoutHelper<'_> {
                 let mut value = frame.rotation.as_degrees().as_f32();
                 let slider = context
                     .state
-                    .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0));
+                    .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0, 0));
                 if slider.update(angle, context, &mut value) {
                     actions.push(
                         LevelAction::RotateWaypointAround(
@@ -992,6 +993,7 @@ impl LayoutHelper<'_> {
                                 max: r32(1.0),
                             },
                             r32(0.01),
+                            2,
                         )
                     });
                     if slider.update(intensity_pos, context, &mut intensity) {
@@ -1044,6 +1046,7 @@ impl LayoutHelper<'_> {
                     max: r32(500.0),
                 },
                 r32(1.0),
+                2,
             )
         });
         bpm.update(bpm_pos, context, &mut bpm_value);

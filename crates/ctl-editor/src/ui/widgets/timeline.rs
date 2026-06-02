@@ -56,6 +56,7 @@ pub struct TimelineWidget {
 
     cached_music: Option<Rc<ctl_local::LocalMusic>>,
     music_waveform: Vec<vec2<f32>>,
+    music_offset: Time,
 }
 
 struct HighlightBar {
@@ -97,6 +98,7 @@ impl TimelineWidget {
 
             cached_music: None,
             music_waveform: Vec::new(),
+            music_offset: 0,
         }
     }
 
@@ -150,6 +152,7 @@ impl TimelineWidget {
                 level_music.sound.sample_rate(),
             );
         }
+        self.music_offset = editor.group.cached.local.data.music_offset;
 
         // Selection mode for clicking on the icons on the timeline
         let selection_mode = if context.mods.shift {
@@ -1531,6 +1534,7 @@ impl Widget for TimelineWidget {
             let from =
                 ((from * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
             let to = ((to * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let music_offset = self.music_offset;
 
             if from < to {
                 // render at the scale of the timeline
@@ -1543,7 +1547,7 @@ impl Widget for TimelineWidget {
                                 self.scale * TIME_IN_FLOAT_TIME as f32,
                                 self.allocated_position.position.height() * 0.5,
                             ) + self.main_line.position.center()
-                                + vec2(self.scroll as f32 * self.scale, 0.0);
+                                + vec2((self.scroll - music_offset) as f32 * self.scale, 0.0);
                         ctl_ui::geometry::GeometryTriangleVertex {
                             a_z: 0.0,
                             a_pos: pos,

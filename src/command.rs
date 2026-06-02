@@ -220,6 +220,7 @@ impl Command {
                 };
 
                 let level = ctl_logic::PlayLevel {
+                    music_offset: group.local.data.music_offset,
                     start_time: start_time.unwrap_or(0),
                     level: diff,
                     group: ctl_logic::PlayGroup {
@@ -273,6 +274,7 @@ impl Command {
 
                 let state = if let Some((level_index, level)) = level {
                     let level = ctl_logic::PlayLevel {
+                        music_offset: group.cached.local.data.music_offset,
                         group,
                         level_index,
                         level,
@@ -351,6 +353,7 @@ impl Command {
                         + level_time_bounds
                             .map_or(0, |(from, _to)| ctl_logic::seconds_to_time(from));
                     ctl_logic::PlayLevel {
+                        music_offset: group.local.data.music_offset,
                         start_time,
                         level: diff,
                         group: ctl_logic::PlayGroup {
@@ -390,6 +393,7 @@ impl Command {
 
                     let level_data = level_set.levels[0].clone();
                     ctl_logic::PlayLevel {
+                        music_offset: level_set.music_offset,
                         group: ctl_logic::PlayGroup {
                             group_index: generational_arena::Index::from_raw_parts(0, 0),
                             cached: Rc::new(ctl_local::CachedGroup {

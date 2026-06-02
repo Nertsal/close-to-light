@@ -127,7 +127,7 @@ impl Model {
         };
         self.level_state = LevelState::render(
             &self.level.level.data,
-            self.play_time_ms,
+            self.play_time_ms.max(0),
             ignore_time,
             Some(&mut self.vfx),
         );

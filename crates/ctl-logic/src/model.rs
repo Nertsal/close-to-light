@@ -17,6 +17,7 @@ pub struct PlayLevel {
     pub level_index: usize,
     pub level: LevelFull,
     pub config: LevelConfig,
+    pub music_offset: Time,
     pub start_time: Time,
     pub transition_button: Option<HoverButton>,
 }
@@ -214,7 +215,8 @@ impl Model {
             cursor_clicked: false,
             vfx: Vfx::new(),
 
-            music_offset: seconds_to_time(r32(options.gameplay.music_offset * 1e-3)),
+            music_offset: seconds_to_time(r32(options.gameplay.music_offset * 1e-3))
+                + level.group.cached.local.data.music_offset,
             level_state: LevelState::default(),
             state: State::Starting {
                 start_timer: FloatTime::ZERO, // reset during init

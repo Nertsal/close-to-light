@@ -11,8 +11,10 @@ pub struct ValueWidget<T> {
     pub value_text: InputWidget,
     pub control_state: WidgetState,
     pub value: T,
+    pub target: T,
     pub control: ValueControl<T>,
     pub scroll_by: T,
+    pub precision: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -22,14 +24,22 @@ pub enum ValueControl<T> {
 }
 
 impl<T: Float + Interpolatable> ValueWidget<T> {
-    pub fn new(text: impl Into<Name>, value: T, control: ValueControl<T>, scroll_by: T) -> Self {
+    pub fn new(
+        text: impl Into<Name>,
+        value: T,
+        control: ValueControl<T>,
+        scroll_by: T,
+        precision: usize,
+    ) -> Self {
         Self {
             state: WidgetState::new(),
-            value_text: InputWidget::new(text).format(InputFormat::Float { precision: 5 }),
+            value_text: InputWidget::new(text).format(InputFormat::Float { precision }),
             control_state: WidgetState::new(),
+            target: value,
             value,
             control,
             scroll_by,
+            precision,
         }
     }
 
@@ -38,6 +48,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         value: T,
         range: RangeInclusive<T>,
         scroll_by: T,
+        precision: usize,
     ) -> Self {
         Self::new(
             text,
@@ -47,10 +58,17 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
                 max: *range.end(),
             },
             scroll_by,
+            precision,
         )
     }
 
-    pub fn new_circle(text: impl Into<Name>, value: T, period: T, scroll_by: T) -> Self {
+    pub fn new_circle(
+        text: impl Into<Name>,
+        value: T,
+        period: T,
+        scroll_by: T,
+        precision: usize,
+    ) -> Self {
         Self::new(
             text,
             value,
@@ -59,6 +77,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
                 period,
             },
             scroll_by,
+            precision,
         )
     }
 
@@ -139,8 +158,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
             ValueControl::Circle { .. } => {}
         }
 
-        // TODO: better formatting with decimal points
-        let precision = T::from_f32(100.0);
+        let precision = T::from_f32(10.0.powi(self.precision as i32));
         target = (target * precision).round() / precision;
 
         if !self.value_text.editing {
@@ -148,6 +166,7 @@ impl<T: Float + Interpolatable> ValueWidget<T> {
         }
 
         *state = target;
+        self.target = target;
         controlling
     }
 }
@@ -164,12 +183,15 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
 
         let mut geometry = self.value_text.draw_colored(context, fg_color);
 
+        let controlling = self.control_state.mouse_left.pressed.is_some();
+        let value = if controlling { self.target } else { self.value };
+
         let quad = self.control_state.position;
         let width = quad.height() * 0.05;
         let quad = quad.extend_uniform(-width);
         match self.control {
             ValueControl::Slider { min, max } => {
-                let t = (self.value - min) / (max - min);
+                let t = (value - min) / (max - min);
                 let mut fill = quad;
                 let fill = fill.cut_left(fill.width() * t.as_f32());
 
@@ -198,8 +220,7 @@ impl<T: 'static + Float> Widget for ValueWidget<T> {
                 geometry.merge(context.geometry.quad(quad, theme.light));
             }
             ValueControl::Circle { zero_angle, period } => {
-                let angle =
-                    Angle::from_radians((self.value / period).as_f32() * std::f32::consts::TAU);
+                let angle = Angle::from_radians((value / period).as_f32() * std::f32::consts::TAU);
                 let angle = zero_angle + angle;
 
                 let texture = context.context.assets.atlas.value_knob();

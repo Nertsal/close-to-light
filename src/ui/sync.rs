@@ -126,6 +126,7 @@ impl SyncWidget {
                 let level_set_full = LevelSetFull {
                     meta,
                     data: LevelSet {
+                        music_offset: group.local.data.music_offset,
                         levels: group
                             .local
                             .data
