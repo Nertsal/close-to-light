@@ -124,6 +124,7 @@ impl GameUI {
                         .map(|music| music.meta.clone())
                         .unwrap_or_default(),
                     &model.level.level.meta,
+                    model.is_practice(),
                 );
                 self.score.update(score, context);
                 context.update_focus(self.score.state.hovered);
