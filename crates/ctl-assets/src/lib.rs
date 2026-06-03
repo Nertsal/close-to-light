@@ -102,6 +102,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     button_prev,
     button_prev_hollow,
     button_close,
+    button_confirm,
     border,
     border_thin,
     border_thinner,

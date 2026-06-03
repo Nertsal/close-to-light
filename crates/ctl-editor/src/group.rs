@@ -295,6 +295,7 @@ impl Editor {
                 },
                 config: LevelConfig::default(),
                 start_time: Time::ZERO,
+                end_time: None,
                 transition_button: None,
             };
 

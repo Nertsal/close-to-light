@@ -19,6 +19,7 @@ pub struct PlayLevel {
     pub config: LevelConfig,
     pub music_offset: Time,
     pub start_time: Time,
+    pub end_time: Option<Time>,
     pub transition_button: Option<HoverButton>,
 }
 
@@ -32,7 +33,7 @@ pub struct HoverButton {
     pub base_collider: Collider,
     pub hover_time: Lifetime,
     pub animation: Movement,
-    pub clicked: bool,
+    pub force_fade: bool,
 }
 
 impl HoverButton {
@@ -45,7 +46,7 @@ impl HoverButton {
                 waypoints: vec![Waypoint::scale(seconds_to_time(0.25), 5.0)].into(),
                 last: TransformLight::scale(75.0),
             },
-            clicked: false,
+            force_fade: false,
         }
     }
 
@@ -65,15 +66,15 @@ impl HoverButton {
     }
 
     pub fn reset(&mut self) {
-        self.clicked = false;
+        self.force_fade = false;
         self.hover_time.set_ratio(FloatTime::ZERO);
     }
 
     pub fn update(&mut self, hovering: bool, delta_time: FloatTime) {
         let scale = if self.is_fading() {
-            self.clicked = false;
+            self.force_fade = false;
             1.0
-        } else if self.clicked {
+        } else if self.force_fade {
             3.0
         } else if hovering {
             1.0

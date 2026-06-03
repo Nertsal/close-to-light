@@ -10,6 +10,7 @@ pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::{UiContext, layout::AreaOps};
+use ctl_util::Change;
 
 pub struct EditorState {
     context: Context,

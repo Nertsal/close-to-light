@@ -222,6 +222,7 @@ impl Command {
                 let level = ctl_logic::PlayLevel {
                     music_offset: group.local.data.music_offset,
                     start_time: start_time.unwrap_or(0),
+                    end_time: None,
                     level: diff,
                     group: ctl_logic::PlayGroup {
                         group_index,
@@ -280,6 +281,7 @@ impl Command {
                         level,
                         config: ctl_logic::LevelConfig::default(),
                         start_time: 0,
+                        end_time: None,
                         transition_button: None,
                     };
                     crate::editor::EditorState::new_level(context.clone(), config, level)
@@ -355,6 +357,7 @@ impl Command {
                     ctl_logic::PlayLevel {
                         music_offset: group.local.data.music_offset,
                         start_time,
+                        end_time: None,
                         level: diff,
                         group: ctl_logic::PlayGroup {
                             group_index,
@@ -421,6 +424,7 @@ impl Command {
                             ..default()
                         },
                         start_time,
+                        end_time: None,
                         transition_button: None,
                     }
                 };

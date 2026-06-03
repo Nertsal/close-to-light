@@ -1260,14 +1260,9 @@ impl TimelineWidget {
                 context.theme().light
             };
 
-            let display_time = focus_time.unwrap_or(self.raw_current_time);
-            let mut ms = display_time;
-            let mut secs = ms / 1000;
-            ms -= secs * 1000;
-            let mins = secs / 60;
-            secs -= mins * 60;
-
-            time.text = format!("Time: {:02}:{:02}.{:03}", mins, secs, ms).into();
+            let display_time =
+                ctl_util::display_time(focus_time.unwrap_or(self.raw_current_time), true);
+            time.text = format!("Time: {}", display_time).into();
             time.update(current_time, context);
             time.options.size = current_time.height() * 0.4;
             time.options.color = color;

@@ -202,7 +202,12 @@ impl Model {
                 }
             }
             State::Playing => {
-                if self.level_state.is_finished {
+                if self.level_state.is_finished
+                    || self
+                        .level
+                        .end_time
+                        .is_some_and(|end| self.play_time_ms >= end)
+                {
                     self.finish();
                 } else if !self.level.config.modifiers.clean_auto {
                     // Player health
@@ -240,7 +245,7 @@ impl Model {
                     .base_collider
                     .check(&self.player.collider);
                 if hovering && self.cursor_clicked {
-                    self.restart_button.clicked = true;
+                    self.restart_button.force_fade = true;
                 }
                 self.restart_button.update(hovering, delta_time);
                 self.player
@@ -252,7 +257,7 @@ impl Model {
                 // 1 second before the UI is active
                 let hovering = self.exit_button.base_collider.check(&self.player.collider);
                 if hovering && self.cursor_clicked {
-                    self.exit_button.clicked = true;
+                    self.exit_button.force_fade = true;
                 }
                 self.exit_button.update(hovering, delta_time);
                 self.player
@@ -297,7 +302,7 @@ impl Model {
     pub fn finish(&mut self) {
         self.state = State::Finished;
         self.switch_time = FloatTime::ZERO;
-        self.get_leaderboard(true);
+        self.get_leaderboard();
     }
 
     pub fn lose(&mut self) {
@@ -305,10 +310,11 @@ impl Model {
             death_time_ms: self.play_time_ms,
         };
         self.switch_time = FloatTime::ZERO;
-        self.get_leaderboard(true);
+        self.get_leaderboard();
     }
 
-    pub fn get_leaderboard(&mut self, submit_score: bool) {
+    pub fn get_leaderboard(&mut self) {
+        let submit_score = self.level.start_time == Time::ZERO && self.level.end_time.is_none();
         self.transition = Some(Transition::LoadLeaderboard { submit_score });
     }
 
