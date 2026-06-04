@@ -104,6 +104,10 @@ impl PracticeWidget {
             title.align_aabb(vec2::splat(title.height()), vec2(0.0, 0.5)),
             context,
         );
+        self.confirm
+            .icon
+            .state
+            .set_visibility(self.select_to != self.select_from);
         self.confirm.update(
             title.align_aabb(vec2::splat(title.height()), vec2(1.0, 0.5)),
             context,
@@ -120,12 +124,15 @@ impl PracticeWidget {
             position.align_aabb(vec2(10.0, 0.8) * context.font_size, vec2(0.5, 1.0)),
             context,
         );
-        self.timeline_selected_text.text = format!(
-            "{} - {}",
-            ctl_util::display_time(self.select_from, false),
-            ctl_util::display_time(self.select_to, false)
-        )
-        .into();
+        self.timeline_selected_text.text = {
+            let (from, to) = self.selected_range();
+            format!(
+                "{} - {}",
+                ctl_util::display_time(from, false),
+                ctl_util::display_time(to, false)
+            )
+            .into()
+        };
 
         // Timeline
         position.cut_top(timeline_space);

@@ -138,16 +138,6 @@ impl MenuRender {
                 self.ui
                     .draw_icon_button(&practice.confirm, theme, framebuffer);
 
-                // Separator
-                self.ui.draw_quad(
-                    practice
-                        .preview
-                        .position
-                        .with_height(self.font_size * 0.1, 1.0),
-                    theme.light,
-                    framebuffer,
-                );
-
                 // Level preview
                 if let Some(level_state) = &practice.rendered {
                     self.ui.draw_level(
@@ -170,6 +160,16 @@ impl MenuRender {
                         .fit(practice.preview.position, vec2(0.5, 0.5))
                         .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
                 }
+
+                // Separator
+                self.ui.draw_quad(
+                    practice
+                        .preview
+                        .position
+                        .with_height(self.font_size * 0.1, 1.0),
+                    theme.light,
+                    framebuffer,
+                );
 
                 // Separator
                 self.ui.draw_quad(
