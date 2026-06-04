@@ -125,7 +125,8 @@ impl ModifiersWidget {
 
         let t = crate::util::smoothstep(self.body_slide.get_ratio());
 
-        let mut body_height = 4.0 * context.font_size + 0.1 * context.layout_size;
+        let buttons_height = (self.mod_rows() as f32) * context.font_size * 1.8;
+        let mut body_height = 1.0 * context.font_size + 2.5 * context.layout_size + buttons_height;
         if self.description_lerp.current() > 0.0 {
             body_height += self.description_lerp.current();
         }
@@ -150,7 +151,7 @@ impl ModifiersWidget {
         if self.body.visible && body_size.y > 20.0 {
             let mut main = body.extend_uniform(-context.layout_size);
 
-            let buttons = main.cut_bottom(1.7 * context.font_size);
+            let buttons = main.cut_bottom(buttons_height);
 
             let mut multipler = main.cut_bottom(1.0 * context.font_size);
             multipler.cut_bottom(context.layout_size);
@@ -171,7 +172,7 @@ impl ModifiersWidget {
         }
     }
 
-    pub fn update_description(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
+    fn update_description(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
         if let Some(widget) = self.mods.iter().find(|widget| widget.state.hovered) {
             let modifier = &widget.modifier;
             let lines = crate::util::wrap_text(
@@ -201,24 +202,38 @@ impl ModifiersWidget {
         self.description_lerp.update(context.delta_time);
     }
 
+    const MAX_MOD_COLUMNS: usize = 3;
+
+    fn mod_rows(&self) -> usize {
+        self.mods.len().saturating_sub(1) / Self::MAX_MOD_COLUMNS + 1
+    }
+
     pub fn update_buttons(
         &mut self,
         main: Aabb2<f32>,
         state: &mut MenuState,
         context: &mut UiContext,
     ) {
-        let columns = self.mods.len();
+        let mods_count = self.mods.len();
         let spacing = 1.0 * context.layout_size;
 
-        let button_size = vec2(
-            (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
-            2.0 * context.font_size,
-        );
-        let button = main.align_aabb(button_size, vec2(0.5, 0.5));
-        let stack =
-            button.stack_aligned(vec2(button_size.x + spacing, 0.0), columns, vec2(0.5, 0.5));
-        for (widget, pos) in self.mods.iter_mut().zip(stack) {
-            widget.update(pos, state, context);
+        let max_columns = Self::MAX_MOD_COLUMNS;
+        let rows = self.mod_rows();
+        let mut widgets = self.mods.iter_mut();
+        for (i_row, row) in main.split_rows(rows).iter().enumerate() {
+            let columns = (mods_count - i_row * max_columns).min(max_columns);
+            let button_size = vec2(
+                (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
+                1.9 * context.font_size,
+            );
+            let button = row.align_aabb(button_size, vec2(0.5, 0.5));
+            let stack =
+                button.stack_aligned(vec2(button_size.x + spacing, 0.0), columns, vec2(0.5, 0.5));
+            for pos in stack {
+                if let Some(widget) = widgets.next() {
+                    widget.update(pos, state, context);
+                }
+            }
         }
     }
 }
