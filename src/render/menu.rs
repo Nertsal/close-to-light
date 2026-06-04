@@ -194,14 +194,14 @@ impl MenuRender {
                     practice.timeline_start.position,
                     &self.context.assets.atlas.timeline_tick_mid(),
                     theme.light,
-                    2.0,
+                    1.0,
                     framebuffer,
                 );
                 self.ui.draw_subtexture(
                     practice.timeline_end.position,
                     &self.context.assets.atlas.timeline_tick_mid(),
                     theme.light,
-                    2.0,
+                    1.0,
                     framebuffer,
                 );
                 // Selected area
@@ -220,7 +220,7 @@ impl MenuRender {
                     practice.timeline_from.position,
                     &self.context.assets.atlas.timeline_tick_big(),
                     theme.highlight,
-                    2.0,
+                    1.0,
                     framebuffer,
                 );
                 // Selection to
@@ -228,7 +228,7 @@ impl MenuRender {
                     practice.timeline_to.position,
                     &self.context.assets.atlas.timeline_tick_big(),
                     theme.highlight,
-                    2.0,
+                    1.0,
                     framebuffer,
                 );
                 // Current
@@ -236,7 +236,7 @@ impl MenuRender {
                     practice.timeline_current.position,
                     &self.context.assets.atlas.timeline_tick_smol(),
                     theme.light,
-                    2.0,
+                    1.0,
                     framebuffer,
                 );
 
