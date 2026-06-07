@@ -168,20 +168,20 @@ impl geng::State for Game {
         }
         self.ui_context.frame_end();
 
-        if !self.model.level.config.modifiers.clean_auto {
-            let mut dither_buffer = self.render.dither.start();
-            self.render.util.draw_player(
-                &self.model.player,
-                &self.model.camera,
-                &mut dither_buffer,
-            );
-            self.render
-                .dither
-                .finish(self.model.real_time, &theme.transparent());
-            geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
-                .fit_screen(vec2(0.5, 0.5), buffer)
-                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
-        }
+        // if !self.model.level.config.modifiers.clean_auto {
+        //     let mut dither_buffer = self.render.dither.start();
+        //     self.render.util.draw_player(
+        //         &self.model.player,
+        //         &self.model.camera,
+        //         &mut dither_buffer,
+        //     );
+        //     self.render
+        //         .dither
+        //         .finish(self.model.real_time, &theme.transparent());
+        //     geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
+        //         .fit_screen(vec2(0.5, 0.5), buffer)
+        //         .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+        // }
 
         if is_paused {
             let ui = &self.ui.pause;

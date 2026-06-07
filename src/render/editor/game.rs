@@ -415,7 +415,7 @@ impl EditorRender {
                                 0.0,
                                 TextRenderOptions::new(1.5).color(color),
                                 ugli::DrawParameters {
-                                    blend_mode: Some(util::additive()),
+                                    blend_mode: Some(util::blend_additive()),
                                     ..default()
                                 },
                                 &level_editor.model.camera,
