@@ -251,18 +251,6 @@ impl GameRender {
                 &self.context.geng,
                 old_framebuffer,
             );
-
-        // Draw player health bar
-        if let State::Playing = model.state
-            && !model.level.config.modifiers.clean_auto
-        {
-            self.util.draw_health(
-                &model.player.health,
-                model.player.get_lit_state(),
-                theme,
-                old_framebuffer,
-            );
-        }
     }
 
     pub fn draw_ui(
@@ -278,6 +266,18 @@ impl GameRender {
 
         let options = self.context.get_options();
         let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
+
+        // Draw player health bar
+        if let State::Playing = model.state
+            && !model.level.config.modifiers.clean_auto
+        {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                theme,
+                framebuffer,
+            );
+        }
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
         // let precision = model.score.calculated.precision.as_f32() * 100.0;

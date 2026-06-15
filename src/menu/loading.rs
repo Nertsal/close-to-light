@@ -40,6 +40,7 @@ impl<T: 'static> LoadingScreen<T> {
                 shader_crt: assets.shader_crt.clone(),
                 shader_noise_effects: assets.shader_noise_effects.clone(),
                 shader_color_correction: assets.shader_color_correction.clone(),
+                shader_masked_sdf: assets.shader_masked_sdf.clone(),
             }),
             assets,
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),

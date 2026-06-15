@@ -7,6 +7,7 @@ pub struct PostContext {
     pub shader_crt: Rc<ugli::Program>,
     pub shader_noise_effects: Rc<ugli::Program>,
     pub shader_color_correction: Rc<ugli::Program>,
+    pub shader_masked_sdf: Rc<ugli::Program>,
 }
 
 /// Renderer responsible for common post-processing effects, such as crt.
@@ -68,6 +69,7 @@ impl PostRender {
             shader_crt: context.assets.shaders.crt.clone(),
             shader_noise_effects: context.assets.shaders.noise_effects.clone(),
             shader_color_correction: context.assets.shaders.color_correction.clone(),
+            shader_masked_sdf: context.assets.shaders.masked_sdf.clone(),
         })
     }
 
@@ -107,12 +109,12 @@ impl PostRender {
         buffer
     }
 
-    pub fn post_process(
-        &mut self,
-        options: &Options,
-        vfx: PostVfx,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
+    pub fn continu(&'_ mut self) -> ugli::Framebuffer<'_> {
+        geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli())
+    }
+
+    /// Apply the postprocessing effects internally.
+    pub fn self_process(&mut self, options: &Options, vfx: PostVfx) {
         macro_rules! swap {
             () => {{
                 std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
@@ -181,13 +183,41 @@ impl PostRender {
                 ugli::DrawParameters::default(),
             );
         }
+    }
 
+    /// Apply the postprocessing effects and render the final result to the framebuffer.
+    pub fn post_process(
+        &mut self,
+        options: &Options,
+        vfx: PostVfx,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.self_process(options, vfx);
         self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             &self.swap_buffer.1,
             Color::WHITE,
+        );
+    }
+
+    pub fn apply_sdf_mask(&mut self, mask: &ugli::Texture) {
+        std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
+        let mut buffer =
+            geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli());
+        let texture = &self.swap_buffer.0;
+        ugli::draw(
+            &mut buffer,
+            &self.context.shader_masked_sdf,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            ugli::uniforms! {
+                u_mask_texture: mask,
+                u_color_texture: texture,
+                u_affect_color: 1.0,
+            },
+            ugli::DrawParameters { ..default() },
         );
     }
 }

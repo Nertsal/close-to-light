@@ -29,6 +29,8 @@ pub struct LoadingAssets {
     pub shader_noise_effects: Rc<ugli::Program>,
     #[load(path = "shaders/color_correction.glsl")]
     pub shader_color_correction: Rc<ugli::Program>,
+    #[load(path = "shaders/masked_sdf.glsl")]
+    pub shader_masked_sdf: Rc<ugli::Program>,
 }
 
 fn load_gif(

@@ -105,6 +105,7 @@ impl DitherRender {
             ugli::uniforms! {
                 u_mask_texture: mask,
                 u_color_texture: &self.double_buffer.0,
+                u_affect_color: 0.0,
             },
             ugli::DrawParameters { ..default() },
         );

@@ -157,6 +157,31 @@ impl geng::State for Game {
 
         self.render.draw_world(&self.model, self.debug_mode, buffer);
 
+        // Render just the scanlines effect on the world
+        // and apply the flashlight effect before the UI and full postprocessing
+        self.post.self_process(
+            &Options {
+                graphics: ctl_assets::GraphicsOptions {
+                    crt: ctl_assets::GraphicsCrtOptions {
+                        enabled: options.graphics.crt.enabled,
+                        curvature: 0.0,
+                        vignette: 0.0,
+                        scanlines: options.graphics.crt.scanlines,
+                    },
+                    ..options.graphics.clone()
+                },
+                ..options.clone()
+            },
+            crate::render::post::PostVfx::new(
+                &Vfx::new(), // Real vfx are rendered later
+                self.model.real_time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
+        );
+        self.post.apply_sdf_mask(&self.render.lights_sdf);
+        let buffer = &mut self.post.continu();
+
         if !fading {
             self.ui_focused = self.ui.layout(
                 &mut self.model,
@@ -239,6 +264,8 @@ impl geng::State for Game {
             }
         }
 
+        let mut options = options.clone();
+        options.graphics.crt.scanlines = 0.0;
         self.post.post_process(
             &options,
             crate::render::post::PostVfx::new(
