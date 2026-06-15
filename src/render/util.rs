@@ -287,7 +287,7 @@ impl UtilRender {
                 mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
             ),
         };
-        let texture = &*texture.texture;
+        // let texture = &*texture.texture;
         let transform = mat3::translate(collider.position.as_f32())
             * mat3::rotate(collider.rotation.map(Coord::as_f32))
             // * mat3::scale_uniform(4.0)
@@ -358,7 +358,7 @@ impl UtilRender {
                 mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
             ),
         };
-        let texture = &*texture.texture;
+        // let texture = &*texture.texture;
         let transform = mat3::translate(collider.position.as_f32())
             * mat3::rotate(collider.rotation.map(Coord::as_f32))
             * transform;

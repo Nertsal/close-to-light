@@ -5,7 +5,7 @@ pub use self::options::*;
 use std::path::PathBuf;
 
 use ctl_core::{
-    model::ScoreGrade,
+    model::{LightMode, ScoreGrade},
     prelude::{Color, Modifier},
 };
 pub use ctl_font::Font;
@@ -82,9 +82,9 @@ pub struct Sounds {
 pub struct Sprites {
     pub title: PixelTexture,
     pub title2: PixelTexture,
-    pub linear_gradient: PixelTexture,
-    pub radial_gradient: PixelTexture,
-    pub square_gradient: PixelTexture,
+    pub linear_gradient: ugli::Texture,
+    pub radial_gradient: ugli::Texture,
+    pub square_gradient: ugli::Texture,
     pub border: PixelTexture,
     pub border_thin: PixelTexture,
     pub border_thinner: PixelTexture,
@@ -97,8 +97,6 @@ pub struct Sprites {
 ctl_derive::texture_atlas!(pub SpritesAtlas {
     white,
     title,
-    linear_gradient,
-    radial_gradient,
     button_next,
     button_next_hollow,
     button_prev,
@@ -142,6 +140,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_sudden,
     mod_hidden,
     mod_touch,
+    mod_spotlight,
 
     light,
     wrench,
@@ -279,6 +278,7 @@ impl Assets {
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
             Modifier::Touch => self.atlas.mod_touch(),
+            Modifier::LightMode(LightMode::Spotlight) => self.atlas.mod_spotlight(),
         }
     }
 

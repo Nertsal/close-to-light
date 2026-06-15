@@ -53,12 +53,18 @@ impl ModButtonWidget {
 
         self.icon.update(icon_pos, context);
 
-        let value = state.config.modifiers.get_mut(self.modifier);
-        self.selected = *value;
-        if self.state.mouse_left.clicked {
-            self.selected = !self.selected;
+        if let Some(value) = state.config.modifiers.get_mut(self.modifier) {
+            self.selected = *value;
+            if self.state.mouse_left.clicked {
+                *value = !*value;
+            }
+        } else if let Modifier::LightMode(mode) = self.modifier {
+            let value = &mut state.config.modifiers.light;
+            self.selected = *value == Some(mode);
+            if self.state.mouse_left.clicked {
+                *value = if self.selected { None } else { Some(mode) }
+            }
         }
-        *value = self.selected;
     }
 }
 
@@ -72,10 +78,15 @@ impl ModifiersWidget {
             body: WidgetState::new(),
             description: Vec::new(),
             description_lerp: Lerp::new_smooth(0.25, 0.0, 0.0),
-            mods: [Modifier::NoFail, Modifier::Sudden, Modifier::Hidden]
-                .into_iter()
-                .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
-                .collect(),
+            mods: [
+                Modifier::NoFail,
+                Modifier::Sudden,
+                Modifier::Hidden,
+                Modifier::LightMode(LightMode::Spotlight),
+            ]
+            .into_iter()
+            .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
+            .collect(),
             score_multiplier: TextWidget::new(""),
             separator: WidgetState::new(),
         }

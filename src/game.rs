@@ -179,7 +179,9 @@ impl geng::State for Game {
                 options.graphics.colors,
             ),
         );
-        self.post.apply_sdf_mask(&self.render.lights_sdf);
+        if self.model.level.config.modifiers.light.is_some() {
+            self.post.apply_sdf_mask(&self.render.lights_sdf);
+        }
         let buffer = &mut self.post.continu();
 
         if !fading {

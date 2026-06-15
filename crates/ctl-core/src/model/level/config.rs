@@ -39,6 +39,15 @@ pub struct LevelModifiers {
     pub hidden: bool,
     /// Whether touchscreen was used during gameplay.
     pub touch: bool,
+    /// Normal/Flashlight/Spotlight.
+    pub light: Option<LightMode>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LightMode {
+    // Flashlight,
+    /// Stuff is only visible within a range of lights.
+    Spotlight,
 }
 
 impl LevelModifiers {
@@ -49,6 +58,7 @@ impl LevelModifiers {
             self.sudden.then_some(Modifier::Sudden),
             self.hidden.then_some(Modifier::Hidden),
             self.touch.then_some(Modifier::Touch),
+            self.light.map(Modifier::LightMode),
         ]
         .into_iter()
         .flatten()
@@ -68,6 +78,7 @@ pub enum Modifier {
     Sudden,
     Hidden,
     Touch,
+    LightMode(LightMode),
 }
 
 impl Modifier {
@@ -77,6 +88,7 @@ impl Modifier {
             Modifier::Sudden => r32(1.15),
             Modifier::Hidden => r32(1.1),
             Modifier::Touch => r32(1.0),
+            Modifier::LightMode(LightMode::Spotlight) => r32(1.05),
         }
     }
 
@@ -86,6 +98,7 @@ impl Modifier {
             Modifier::Sudden => "the lights are less predictable",
             Modifier::Hidden => "the lights are hidden in the dark",
             Modifier::Touch => "played with touchscreen",
+            Modifier::LightMode(LightMode::Spotlight) => "who turned the lights off??",
         }
     }
 }
@@ -97,17 +110,19 @@ impl Display for Modifier {
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
             Modifier::Touch => write!(f, "Touch"),
+            Modifier::LightMode(LightMode::Spotlight) => write!(f, "Spotlight"),
         }
     }
 }
 
 impl LevelModifiers {
-    pub fn get_mut(&mut self, modifier: Modifier) -> &mut bool {
+    pub fn get_mut(&mut self, modifier: Modifier) -> Option<&mut bool> {
         match modifier {
-            Modifier::NoFail => &mut self.nofail,
-            Modifier::Sudden => &mut self.sudden,
-            Modifier::Hidden => &mut self.hidden,
-            Modifier::Touch => &mut self.touch,
+            Modifier::NoFail => Some(&mut self.nofail),
+            Modifier::Sudden => Some(&mut self.sudden),
+            Modifier::Hidden => Some(&mut self.hidden),
+            Modifier::Touch => Some(&mut self.touch),
+            Modifier::LightMode(_) => None,
         }
     }
 }
@@ -121,6 +136,7 @@ impl Default for LevelModifiers {
             sudden: false,
             hidden: false,
             touch: false,
+            light: None,
         }
     }
 }

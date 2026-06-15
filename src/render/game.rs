@@ -237,7 +237,7 @@ impl GameRender {
             // }
         }
 
-        if true {
+        if model.level.config.modifiers.light.is_some() {
             // Apply flashlight mask to the dither
             self.dither.apply_sdf_mask(&self.lights_sdf);
         }
