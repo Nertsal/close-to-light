@@ -237,11 +237,6 @@ impl GameRender {
             // }
         }
 
-        if model.level.config.modifiers.light.is_some() {
-            // Apply flashlight mask to the dither
-            self.dither.apply_sdf_mask(&self.lights_sdf);
-        }
-
         // Draw the dithered
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())

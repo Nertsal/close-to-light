@@ -202,7 +202,7 @@ impl PostRender {
         );
     }
 
-    pub fn apply_sdf_mask(&mut self, mask: &ugli::Texture) {
+    pub fn apply_sdf_mask(&mut self, mask: &ugli::Texture, t: f32) {
         std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
         let mut buffer =
             geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli());
@@ -216,6 +216,7 @@ impl PostRender {
                 u_mask_texture: mask,
                 u_color_texture: texture,
                 u_affect_color: 1.0,
+                u_t: t,
             },
             ugli::DrawParameters { ..default() },
         );

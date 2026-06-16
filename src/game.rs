@@ -179,8 +179,22 @@ impl geng::State for Game {
                 options.graphics.colors,
             ),
         );
-        if self.model.level.config.modifiers.light.is_some() {
-            self.post.apply_sdf_mask(&self.render.lights_sdf);
+        {
+            let mut spotlight = if self.model.level.config.modifiers.light.is_some() {
+                1.0
+            } else {
+                self.model.vfx.spotlight.value.current.as_f32()
+            };
+            // Transition at start/end of level
+            let transition = match self.model.state {
+                State::Starting { .. } => (self.model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0),
+                State::Lost { .. } | State::Finished => {
+                    (1.0 - self.model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0)
+                }
+                _ => 1.0,
+            };
+            spotlight *= transition;
+            self.post.apply_sdf_mask(&self.render.lights_sdf, spotlight);
         }
         let buffer = &mut self.post.continu();
 

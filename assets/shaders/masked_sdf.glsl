@@ -15,6 +15,7 @@ void main() {
 uniform sampler2D u_mask_texture;
 uniform sampler2D u_color_texture;
 uniform float u_affect_color;
+uniform float u_t;
 
 // Green and red channels are inverted sdf representations of white and red lights.
 // 1.0 means center of the light, 0.75 and lower means no light, but still encoded relative distance.
@@ -23,8 +24,10 @@ void main() {
     float mask_value = max(mask.g, mask.r);
 
     vec4 color = texture2D(u_color_texture, v_uv);
-    color.a *= mask_value;
-    color.rgb = mix(color.rgb, color.rgb * mask_value, u_affect_color);
+    color = vec4(
+        mix(color.rgb, color.rgb * mask_value, u_affect_color * u_t),
+        mix(color.a, color.a * mask_value, u_t)
+    );
     gl_FragColor = color;
 }
 #endif
