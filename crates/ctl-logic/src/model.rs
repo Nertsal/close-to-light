@@ -33,7 +33,9 @@ pub struct HoverButton {
     pub base_collider: Collider,
     pub hover_time: Lifetime,
     pub animation: Movement,
+    pub animation_unfade: Movement,
     pub force_fade: bool,
+    pub force_unfade: bool,
 }
 
 impl HoverButton {
@@ -46,7 +48,13 @@ impl HoverButton {
                 waypoints: vec![Waypoint::scale(seconds_to_time(0.25), 5.0)].into(),
                 last: TransformLight::scale(75.0),
             },
+            animation_unfade: Movement {
+                initial: WaypointInitial::new(seconds_to_time(0.5), TransformLight::scale(0.0)),
+                waypoints: vec![].into(),
+                last: TransformLight::scale(75.0),
+            },
             force_fade: false,
+            force_unfade: false,
         }
     }
 
@@ -54,7 +62,12 @@ impl HoverButton {
     /// based on the current hover_time and the set animation.
     pub fn get_relevant_collider(&self) -> Collider {
         let t = self.hover_time.get_ratio();
-        let scale = self.animation.get(seconds_to_time(t)).scale;
+        let animation = if self.force_unfade {
+            &self.animation_unfade
+        } else {
+            &self.animation
+        };
+        let scale = animation.get(seconds_to_time(t)).scale;
         self.base_collider
             .transformed(TransformLight { scale, ..default() })
     }
@@ -71,7 +84,9 @@ impl HoverButton {
     }
 
     pub fn update(&mut self, hovering: bool, delta_time: FloatTime) {
-        let scale = if self.is_fading() {
+        let scale = if self.force_unfade {
+            -1.0
+        } else if self.is_fading() {
             self.force_fade = false;
             1.0
         } else if self.force_fade {
