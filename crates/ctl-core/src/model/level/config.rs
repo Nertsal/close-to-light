@@ -45,7 +45,8 @@ pub struct LevelModifiers {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LightMode {
-    // Flashlight,
+    /// Stuff is only visible within a small range near the cursor.
+    Flashlight,
     /// Stuff is only visible within a range of lights.
     Spotlight,
 }
@@ -88,6 +89,7 @@ impl Modifier {
             Modifier::Sudden => r32(1.15),
             Modifier::Hidden => r32(1.1),
             Modifier::Touch => r32(1.0),
+            Modifier::LightMode(LightMode::Flashlight) => r32(1.05),
             Modifier::LightMode(LightMode::Spotlight) => r32(1.05),
         }
     }
@@ -98,7 +100,8 @@ impl Modifier {
             Modifier::Sudden => "the lights are less predictable",
             Modifier::Hidden => "the lights are hidden in the dark",
             Modifier::Touch => "played with touchscreen",
-            Modifier::LightMode(LightMode::Spotlight) => "who turned the lights off??",
+            Modifier::LightMode(LightMode::Flashlight) => "who turned the lights off??",
+            Modifier::LightMode(LightMode::Spotlight) => "the lights are spot on",
         }
     }
 }
@@ -110,6 +113,7 @@ impl Display for Modifier {
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
             Modifier::Touch => write!(f, "Touch"),
+            Modifier::LightMode(LightMode::Flashlight) => write!(f, "Flashlight"),
             Modifier::LightMode(LightMode::Spotlight) => write!(f, "Spotlight"),
         }
     }

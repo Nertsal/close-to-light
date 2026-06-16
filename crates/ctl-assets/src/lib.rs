@@ -140,6 +140,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_sudden,
     mod_hidden,
     mod_touch,
+    mod_flashlight,
     mod_spotlight,
 
     light,
@@ -278,6 +279,7 @@ impl Assets {
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
             Modifier::Touch => self.atlas.mod_touch(),
+            Modifier::LightMode(LightMode::Flashlight) => self.atlas.mod_flashlight(),
             Modifier::LightMode(LightMode::Spotlight) => self.atlas.mod_spotlight(),
         }
     }

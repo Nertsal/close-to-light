@@ -194,7 +194,12 @@ impl geng::State for Game {
                 _ => 1.0,
             };
             spotlight *= transition;
-            self.post.apply_sdf_mask(&self.render.lights_sdf, spotlight);
+            let mask = match self.model.level.config.modifiers.light {
+                Some(LightMode::Flashlight) => &self.render.cursor_sdf,
+                Some(LightMode::Spotlight) => &self.render.lights_sdf,
+                None => &self.render.lights_sdf,
+            };
+            self.post.apply_sdf_mask(mask, spotlight);
         }
         let buffer = &mut self.post.continu();
 

@@ -13,6 +13,7 @@ pub struct GameRender {
     pub dither: DitherRender,
     masked: MaskedRender,
     masked2: MaskedRender,
+    pub cursor_sdf: ugli::Texture,
     pub lights_sdf: ugli::Texture,
     pub util: UtilRender,
     pub ui: UiRender,
@@ -26,6 +27,10 @@ impl GameRender {
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            cursor_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                dither::DITHER_RESOLUTION,
+            ),
             lights_sdf: geng_utils::texture::new_texture(
                 context.geng.ugli(),
                 dither::DITHER_RESOLUTION,
@@ -61,6 +66,21 @@ impl GameRender {
             ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
             self.util
                 .draw_level_sdf(&model.level_state, &model.camera, framebuffer);
+        }
+        {
+            // Cursor SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.cursor_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util.draw_light_sdf(
+                &Collider::circle(model.player.collider.position, r32(1.0)),
+                r32(-1.0),
+                THEME.light,
+                &model.camera,
+                framebuffer,
+            );
         }
 
         let camera = &model.camera;

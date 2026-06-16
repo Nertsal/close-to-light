@@ -82,6 +82,7 @@ impl ModifiersWidget {
                 Modifier::NoFail,
                 Modifier::Sudden,
                 Modifier::Hidden,
+                Modifier::LightMode(LightMode::Flashlight),
                 Modifier::LightMode(LightMode::Spotlight),
             ]
             .into_iter()
