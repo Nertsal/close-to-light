@@ -14,6 +14,7 @@ ctl-assets.workspace = true
 ctl-client.workspace = true
 ctl-local.workspace = true
 geng.workspace = true
+tokio.workspace = true
 steamworks = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

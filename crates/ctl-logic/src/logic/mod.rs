@@ -291,12 +291,14 @@ impl Model {
         if let Some(music) = &self.level.group.music {
             let speed = self.level.config.modifiers.time_scale;
             log::debug!("Starting music at {music_start_time}, speed: x{speed:.2}");
-            // TODO: scale start_time by speed
-            // self.context
-            //     .music
-            //     .play_from_time(music, music_start_time, false);
-            let music = MusicStreaming::new_speed(&self.context.geng, music, 0, speed.as_f32());
-            self.context.music.play_streaming(music);
+            if speed.as_f32() == 1.0 {
+                self.context
+                    .music
+                    .play_from_time(music, music_start_time, false);
+            } else {
+                let music = MusicStreaming::new_speed(&self.context.geng, music, 0, speed.as_f32());
+                self.context.music.play_streaming(music);
+            }
         }
     }
 

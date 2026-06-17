@@ -1751,6 +1751,7 @@ dependencies = [
  "discord-presence",
  "geng",
  "steamworks",
+ "tokio",
 ]
 
 [[package]]

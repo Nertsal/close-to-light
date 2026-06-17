@@ -172,6 +172,7 @@ struct MusicStreamingBuffer {
     buffer: VecDeque<geng::Sound>,
 }
 
+#[derive(Debug)]
 enum MusicControl {
     Start,
     Stop,
@@ -185,20 +186,21 @@ impl MusicStreaming {
             let geng = geng.clone();
             let start_time =
                 time::Duration::from_secs_f64(time_to_seconds(start_time).as_f32().into());
+            let sample_rate = music.sound.sample_rate();
             async move {
                 log::debug!("spawned stream processor");
-                match ctl_util::change_sound_speed(
-                    &music.sound,
-                    dbg!(speed),
-                    &geng,
-                    Some(start_time),
-                ) {
-                    Err(err) => {
-                        log::error!("Failed to change music speed: {:?}", err)
+                let iter = ctl_util::change_sound_speed_iter(&music.sound, speed, Some(start_time));
+                for chunk in iter {
+                    match geng.audio().sound_from_buffer(chunk, sample_rate) {
+                        Err(err) => {
+                            log::error!("Failed to change music speed: {:?}", err)
+                        }
+                        Ok(chunk) => {
+                            let _ = send_stream.try_send(chunk);
+                        }
                     }
-                    Ok(chunk) => {
-                        let _ = send_stream.try_send(chunk);
-                    }
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
                 }
             }
         };
@@ -212,12 +214,14 @@ impl MusicStreaming {
             .run()
         };
 
-        Self {
+        let m = Self {
             geng: geng.clone(),
             stream: Some(Task::new(geng, stream)),
             playback: Some(Task::new(geng, playback)),
             playback_handle: send_control,
-        }
+        };
+        log::debug!("initialized streaming");
+        m
     }
 
     fn poll(&mut self) {
@@ -234,7 +238,6 @@ impl MusicStreaming {
     }
 
     fn start(&mut self) {
-        log::debug!("start");
         let _ = self.playback_handle.try_send(MusicControl::Start);
     }
 
@@ -251,7 +254,9 @@ impl MusicStreaming {
 impl MusicStreamingBuffer {
     async fn run(mut self) {
         log::debug!("spawned stream buffer");
-        while self.update() {}
+        while self.update() {
+            tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+        }
     }
 
     /// Returns `false` when it's safe to drop the buffer.
@@ -276,11 +281,12 @@ impl MusicStreamingBuffer {
     }
 
     fn control(&mut self, control: MusicControl) {
-        log::debug!("received control signal");
+        log::debug!("received control signal: {:?}", control);
         match control {
             MusicControl::Start => {
                 // TODO
                 if let Some(s) = self.buffer.front() {
+                    log::debug!("start");
                     s.play();
                 }
             }
@@ -289,9 +295,10 @@ impl MusicStreamingBuffer {
     }
 
     fn add_chunk(&mut self, chunk: geng::Sound) {
-        log::debug!("chunk processed");
         self.buffer.push_back(chunk);
-        self.control(MusicControl::Start); // TODO: temporary manual start
+        if self.buffer.len() == 1 {
+            self.control(MusicControl::Start); // TODO: temporary manual start
+        }
     }
 }
 

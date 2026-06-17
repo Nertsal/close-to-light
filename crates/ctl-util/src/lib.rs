@@ -78,17 +78,60 @@ pub fn gcd_lcm(m: usize, n: usize) -> (usize, usize) {
     (gcd, lcm)
 }
 
-/// Change speed of the sound while preserving pitch.
-pub fn change_sound_speed(
-    sound: &geng::Sound,
+const SAMPLES_PER_OP: usize = 128;
+const OPS_PER_CHUNK: usize = 16;
+
+pub struct ChangeSoundSpeedIter<'a> {
+    shifter: pitch_shift::Shifter<Box<[f32; pitch_shift::TOTAL_F32]>>,
+    channels: Vec<std::borrow::Cow<'a, [f32]>>,
     speed: f32,
-    geng: &Geng,
+    sample_rate: f32,
+    next_i: usize,
+}
+
+impl Iterator for ChangeSoundSpeedIter<'_> {
+    type Item = Vec<Vec<f32>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self
+            .channels
+            .first()
+            .is_none_or(|c| c.len().saturating_sub(self.next_i) < SAMPLES_PER_OP)
+        {
+            return None;
+        }
+
+        let out_samples: usize = (SAMPLES_PER_OP as f32 * self.speed) as usize;
+        let mut samples = Vec::with_capacity(self.channels.len());
+        for channel in &self.channels {
+            let channel = &channel[self.next_i..];
+            let (chunks, _remainder) = channel.as_chunks::<SAMPLES_PER_OP>();
+            let mut out_channel = Vec::with_capacity(chunks.len() * out_samples);
+            for chunk in chunks.iter().take(OPS_PER_CHUNK) {
+                let out_chunk = self
+                    .shifter
+                    .shift(chunk, 0.0, out_samples, self.sample_rate);
+                out_channel.extend(out_chunk.iter().copied());
+            }
+            samples.push(out_channel);
+        }
+        self.next_i += SAMPLES_PER_OP * OPS_PER_CHUNK;
+        Some(samples)
+    }
+}
+
+/// Change speed of the sound while preserving pitch.
+pub fn change_sound_speed_iter<'a>(
+    sound: &'a geng::Sound,
+    speed: f32,
     start_from: Option<time::Duration>,
-) -> anyhow::Result<geng::Sound> {
+) -> ChangeSoundSpeedIter<'a> {
     let speed = speed.recip().clamp(0.2, 5.0);
     let sample_rate = sound.sample_rate();
     let channels_n = sound.number_of_channels() as u32;
     assert!(channels_n <= 2);
+
+    let channels: Vec<_> = (0..channels_n).map(|i| sound.get_channel_data(i)).collect();
 
     let start_t = start_from.map_or(0.0, |time| {
         let duration = sound.duration().as_secs_f64();
@@ -98,33 +141,14 @@ pub fn change_sound_speed(
             time.as_secs_f64() / duration
         }
     });
-    let channels: Vec<_> = (0..channels_n).map(|i| sound.get_channel_data(i)).collect();
-    let channels: Vec<_> = channels
-        .iter()
-        .map(|data| {
-            let start_i =
-                ((start_t * data.len() as f64) as usize).clamp(0, data.len().saturating_sub(1));
-            &data[start_i..]
-        })
-        .collect();
+    let samples = channels.first().map_or(0, |c| c.len());
+    let start_i = ((start_t * samples as f64) as usize).clamp(0, samples.saturating_sub(1));
 
-    let state: Box<[f32; pitch_shift::TOTAL_F32]> =
-        vec![0.0; pitch_shift::TOTAL_F32].try_into().unwrap();
-    let mut shifter = pitch_shift::Shifter::new(state);
-    const IN_SAMPLES: usize = 128;
-    let out_samples: usize = (IN_SAMPLES as f32 * speed) as usize;
-
-    let mut samples = Vec::with_capacity(channels_n as usize);
-    for channel in channels {
-        let (chunks, _remainder) = channel.as_chunks::<IN_SAMPLES>();
-        let mut out_channel = Vec::with_capacity(chunks.len() * out_samples);
-        for chunk in chunks {
-            let out_chunk = shifter.shift(chunk, 0.0, out_samples, sample_rate);
-            out_channel.extend(out_chunk.iter().copied());
-        }
-        samples.push(out_channel);
+    ChangeSoundSpeedIter {
+        shifter: pitch_shift::Shifter::new(vec![0.0; pitch_shift::TOTAL_F32].try_into().unwrap()),
+        channels,
+        speed,
+        sample_rate,
+        next_i: start_i,
     }
-
-    let sound = geng.audio().sound_from_buffer(samples, sample_rate)?;
-    Ok(sound)
 }
