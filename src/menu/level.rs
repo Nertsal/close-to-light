@@ -356,29 +356,30 @@ impl LevelMenu {
 
             async move {
                 let mut group = group;
-                if config.modifiers.time_scale != FloatTime::ONE
-                    && let Some(music) = &mut group.music
-                {
-                    let sound = ctl_util::change_sound_speed(
-                        &music.sound,
-                        config.modifiers.time_scale.as_f32().recip(),
-                        &context.geng,
-                    )
-                    .await;
-                    match sound {
-                        Ok(sound) => {
-                            *music = Rc::new(ctl_local::LocalMusic {
-                                meta: music.meta.clone(),
-                                sound: Rc::new(sound),
-                                bytes: music.bytes.clone(),
-                            })
-                        }
-                        Err(err) => log::error!(
-                            "Failed to resample the music to match the target speed: {:?}",
-                            err
-                        ),
-                    }
-                }
+                // if config.modifiers.time_scale != FloatTime::ONE
+                //     && let Some(music) = &mut group.music
+                // {
+                //     // TODO: account for change in music duration when starting playback
+                //     let sound = ctl_util::change_sound_speed(
+                //         &music.sound,
+                //         config.modifiers.time_scale.as_f32().recip(),
+                //         &context.geng,
+                //         None,
+                //     );
+                //     match sound {
+                //         Ok(sound) => {
+                //             *music = Rc::new(ctl_local::LocalMusic {
+                //                 meta: music.meta.clone(),
+                //                 sound: Rc::new(sound),
+                //                 bytes: music.bytes.clone(),
+                //             })
+                //         }
+                //         Err(err) => log::error!(
+                //             "Failed to resample the music to match the target speed: {:?}",
+                //             err
+                //         ),
+                //     }
+                // }
 
                 let level = ctl_logic::PlayLevel {
                     group,
@@ -793,7 +794,7 @@ impl geng::State for LevelMenu {
         };
         if self.ui.explore.state.visible {
             let music_change = || {
-                let current = self.context.music.current();
+                let current = self.context.music.current_static();
                 let target = target_music();
                 match (current, target) {
                     (None, None) => false,

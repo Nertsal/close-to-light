@@ -79,16 +79,34 @@ pub fn gcd_lcm(m: usize, n: usize) -> (usize, usize) {
 }
 
 /// Change speed of the sound while preserving pitch.
-pub async fn change_sound_speed(
+pub fn change_sound_speed(
     sound: &geng::Sound,
     speed: f32,
     geng: &Geng,
+    start_from: Option<time::Duration>,
 ) -> anyhow::Result<geng::Sound> {
-    let speed = speed.clamp(0.2, 5.0);
+    let speed = speed.recip().clamp(0.2, 5.0);
     let sample_rate = sound.sample_rate();
     let channels_n = sound.number_of_channels() as u32;
     assert!(channels_n <= 2);
+
+    let start_t = start_from.map_or(0.0, |time| {
+        let duration = sound.duration().as_secs_f64();
+        if duration < 0.1 {
+            0.0
+        } else {
+            time.as_secs_f64() / duration
+        }
+    });
     let channels: Vec<_> = (0..channels_n).map(|i| sound.get_channel_data(i)).collect();
+    let channels: Vec<_> = channels
+        .iter()
+        .map(|data| {
+            let start_i =
+                ((start_t * data.len() as f64) as usize).clamp(0, data.len().saturating_sub(1));
+            &data[start_i..]
+        })
+        .collect();
 
     let state: Box<[f32; pitch_shift::TOTAL_F32]> =
         vec![0.0; pitch_shift::TOTAL_F32].try_into().unwrap();
@@ -107,6 +125,6 @@ pub async fn change_sound_speed(
         samples.push(out_channel);
     }
 
-    let sound = geng.audio().sound_from_buffer(samples, sample_rate).await?;
+    let sound = geng.audio().sound_from_buffer(samples, sample_rate)?;
     Ok(sound)
 }

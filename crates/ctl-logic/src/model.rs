@@ -11,8 +11,15 @@ pub struct PlayGroup {
     pub music: Option<Rc<LocalMusic>>,
 }
 
+// #[derive(Debug, Clone)]
+// pub enum PlayMusic {
+//     Static(Rc<LocalMusic>),
+//     Streaming(MusicStreaming),
+// }
+
 #[derive(Debug, Clone)]
 pub struct PlayLevel {
+    // pub music: PlayMusic,
     pub group: PlayGroup,
     pub level_index: usize,
     pub level: LevelFull,
