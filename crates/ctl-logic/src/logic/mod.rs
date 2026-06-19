@@ -296,8 +296,11 @@ impl Model {
                     .music
                     .play_from_time(music, music_start_time, false);
             } else {
-                let music = MusicStreaming::new_speed(&self.context.geng, music, 0, speed.as_f32());
-                self.context.music.play_streaming(music);
+                self.context.music.play_from_time_with_speed(
+                    music,
+                    music_start_time,
+                    speed.as_f32(),
+                );
             }
         }
     }

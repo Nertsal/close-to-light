@@ -1917,7 +1917,6 @@ dependencies = [
  "ctl-core",
  "geng",
  "geng-utils",
- "pitch_shift",
 ]
 
 [[package]]
@@ -2878,6 +2877,7 @@ dependencies = [
  "futures",
  "js-sys",
  "log",
+ "pitch_shift",
  "serde",
  "thiserror 2.0.18",
  "wasm-bindgen",
