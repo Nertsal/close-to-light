@@ -83,6 +83,8 @@ pub struct MenuState {
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
+    /// Whether to start a practice section.
+    pub practice_section: Option<(Time, Time)>,
 
     /// List of notifications to be consumed and transferred to UI.
     pub notifications: Vec<String>,
@@ -278,6 +280,7 @@ impl LevelMenu {
                 switch_diff: None,
 
                 edit_level: None,
+                practice_section: None,
 
                 notifications: Vec::new(),
             },
@@ -353,6 +356,7 @@ impl LevelMenu {
             let context = self.context.clone();
             let leaderboard = self.state.leaderboard.clone();
             let config = self.state.config.clone();
+            let practice = self.state.practice_section.take();
 
             async move {
                 let mut group = group;
@@ -382,11 +386,13 @@ impl LevelMenu {
                 // }
 
                 let level = ctl_logic::PlayLevel {
+                    music_offset: group.cached.local.data.music_offset,
                     group,
                     level_index,
                     level: level.clone(),
                     config,
-                    start_time: Time::ZERO,
+                    start_time: practice.map_or(Time::ZERO, |(s, _)| s),
+                    end_time: practice.map(|(_, e)| e),
                     transition_button: Some(transition_button),
                 };
                 crate::game::Game::new(context, level, leaderboard)
@@ -646,7 +652,8 @@ impl geng::State for LevelMenu {
 
         let mut dither_buffer = self.dither.start();
 
-        if !fading {
+        // NOTE: hardcoded to not draw above practice
+        if !fading && self.ui.practice.window.show.time.is_min() {
             // UI lights
             let mut draw_light = |light: &SelectLightUi| {
                 let light_pos = (vec2(light.pos_x, light.light_y.current())
@@ -743,9 +750,11 @@ impl geng::State for LevelMenu {
                         sync.window.request = Some(WidgetRequest::Close);
                         return;
                     }
-                    if self.ui.explore.window.show.time.is_max() {
+                    if self.ui.practice.window.show.time.is_above_min() {
+                        self.ui.practice.window.request = Some(WidgetRequest::Close);
+                    } else if self.ui.explore.window.show.time.is_above_min() {
                         self.ui.explore.window.request = Some(WidgetRequest::Close);
-                    } else if self.ui.leaderboard.window.show.time.is_max() {
+                    } else if self.ui.leaderboard.window.show.time.is_above_min() {
                         self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
                     } else if self.state.switch_diff.take().is_some()
                         || self.state.switch_level.take().is_some()
@@ -832,6 +841,10 @@ impl geng::State for LevelMenu {
         }
         self.context.music.set_speed(1.0);
 
+        if self.state.practice_section.is_some() {
+            self.play_button.force_fade = true;
+        }
+
         if let Some(button) = &mut self.transition_button {
             button.update(true, delta_time);
             if button.hover_time.is_max() {
@@ -866,7 +879,7 @@ impl geng::State for LevelMenu {
         // Update player cursor
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
-        if !self.ui_focused && self.state.selected_diff.is_some() {
+        let hovering = if !self.ui_focused && self.state.selected_diff.is_some() {
             self.state
                 .player
                 .update_distance_simple(&self.play_button.base_collider);
@@ -876,10 +889,13 @@ impl geng::State for LevelMenu {
                 .base_collider
                 .contains(cursor_world.as_r32());
             if hovering && self.ui_context.cursor.left.was_down {
-                self.play_button.clicked = true;
+                self.play_button.force_fade = true;
             }
-            self.play_button.update(hovering, delta_time);
-        }
+            hovering
+        } else {
+            false
+        };
+        self.play_button.update(hovering, delta_time);
         if self.play_button.is_fading() {
             self.play_level();
         }
@@ -953,11 +969,13 @@ impl geng::State for LevelMenu {
 
                         if let Some((level_index, level)) = level {
                             let level = ctl_logic::PlayLevel {
+                                music_offset: group.cached.local.data.music_offset,
                                 group,
                                 level_index,
                                 level,
                                 config: LevelConfig::default(),
                                 start_time: Time::ZERO,
+                                end_time: None,
                                 transition_button: None,
                             };
                             crate::editor::EditorState::new_level(context, config, level)

@@ -328,7 +328,10 @@ impl LevelCache {
             }
         };
 
-        let data = LevelSet { levels: Vec::new() };
+        let data = LevelSet {
+            levels: Vec::new(),
+            music_offset: 0,
+        };
         let group = CachedGroup {
             origin: None,
             local: LocalGroup {

@@ -206,6 +206,15 @@ impl GeometryContext {
     }
 
     #[must_use]
+    pub fn custom(&self, triangles: Vec<GeometryTriangleVertex>) -> Geometry {
+        if !triangles.len().is_multiple_of(3) {
+            log::error!("Custom geometry vertex count is not divisble by 3");
+            return Geometry::new();
+        }
+        Geometry::triangles(triangles)
+    }
+
+    #[must_use]
     pub fn quad(&self, position: Aabb2<f32>, color: Color) -> Geometry {
         let z_index = self.next_z_index();
 

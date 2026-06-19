@@ -10,6 +10,7 @@ pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::{UiContext, layout::AreaOps};
+use ctl_util::Change;
 
 pub struct EditorState {
     context: Context,
@@ -193,6 +194,7 @@ impl EditorState {
 
         let level = ctl_logic::PlayLevel {
             start_time: level_editor.current_time.target,
+            music_offset: self.editor.group.cached.local.data.music_offset,
             level: LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
                 data: Rc::new(level_editor.level.clone()),

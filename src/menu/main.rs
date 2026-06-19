@@ -178,7 +178,7 @@ impl geng::State for MainMenu {
 
         let hovering = self.player.collider.check(&self.play_button.base_collider);
         if hovering && self.clicked {
-            self.play_button.clicked = true;
+            self.play_button.force_fade = true;
         }
         self.play_button.update(hovering, delta_time);
         self.player

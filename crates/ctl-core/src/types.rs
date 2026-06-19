@@ -195,6 +195,9 @@ impl Mul<Time> for BeatTime {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LevelSet<L = Rc<crate::Level>> {
+    /// Offset added to the user's music offset.
+    #[serde(default)]
+    pub music_offset: Time,
     pub levels: Vec<L>,
 }
 
@@ -205,7 +208,7 @@ impl<T: Serialize> LevelSet<T> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct LevelFull<L = Rc<crate::Level>> {
     pub meta: LevelInfo,
     pub data: L,

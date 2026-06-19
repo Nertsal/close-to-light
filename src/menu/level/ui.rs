@@ -1,13 +1,17 @@
 mod level;
 mod modifiers;
+mod practice;
 mod select;
 
-pub use self::{level::*, modifiers::*, select::*};
+pub use self::{level::*, modifiers::*, practice::*, select::*};
 
 use super::*;
 
 use crate::ui::{layout::AreaOps, widget::*};
 
+use ctl_local::LocalMusic;
+use ctl_ui::UiWindow;
+use ctl_util::{Change, TimeInterpolation};
 use itertools::Itertools;
 
 pub struct MenuUI {
@@ -27,7 +31,9 @@ pub struct MenuUI {
     pub level_select: LevelSelectUI,
     pub play_level: PlayLevelWidget,
     pub modifiers: ModifiersWidget,
+    pub practice_button: ButtonWidget,
 
+    pub practice: PracticeWidget,
     pub explore: ExploreWidget,
 
     pub leaderboard_head: TextWidget,
@@ -58,7 +64,9 @@ impl MenuUI {
             level_select: LevelSelectUI::new(geng, assets),
             play_level: PlayLevelWidget::new(),
             modifiers: ModifiersWidget::new(assets),
+            practice_button: ButtonWidget::new("Practice"),
 
+            practice: PracticeWidget::new(assets),
             explore,
 
             leaderboard_head: TextWidget::new("Leaderboard")
@@ -111,6 +119,12 @@ impl MenuUI {
         let left = left.extend_symmetric(-vec2(2.0, 3.0) * layout_size);
         // let logo = left.cut_top(2.5 * layout_size);
         // self.ctl_logo.update(logo, context);
+
+        {
+            // Practice
+            let position = left;
+            self.practice.update(position, state, context);
+        }
 
         if let Some(confirm) = &mut self.confirm {
             let size = vec2(20.0, 10.0) * layout_size;
@@ -281,6 +295,28 @@ impl MenuUI {
         right.cut_bottom(2.0 * layout_size);
         self.play_level.update(right, state, context);
         self.modifiers.update(right, state, context);
+        {
+            // Practice button
+            // Slide in when a level is selected
+            let pos = right
+                .align_aabb(
+                    vec2(7.0 * context.layout_size, 1.1 * context.font_size),
+                    vec2(0.5, 0.0),
+                )
+                .translate(vec2(8.0 * context.layout_size, 0.0));
+            let t = self.modifiers.t;
+            let t = crate::util::smoothstep(t);
+            let slide = vec2(0.0, context.screen.min.y - pos.max.y);
+            let pos = pos.translate(slide * (1.0 - t));
+            self.practice_button.update(pos, context);
+            if self.practice_button.text.state.mouse_left.clicked {
+                if self.practice.window.show.going_up {
+                    self.practice.window.request = Some(WidgetRequest::Close);
+                } else {
+                    self.practice.window.request = Some(WidgetRequest::Open);
+                }
+            }
+        }
         state.update_board_meta();
 
         {

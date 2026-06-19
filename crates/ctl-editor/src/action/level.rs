@@ -87,39 +87,6 @@ pub enum SelectMode {
     Set,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Change<T> {
-    Add(T),
-    Set(T),
-}
-
-impl<T: Sub<Output = T>> Change<T> {
-    pub fn into_delta(self, reference_value: T) -> T {
-        match self {
-            Change::Add(delta) => delta,
-            Change::Set(target_value) => target_value.sub(reference_value),
-        }
-    }
-}
-
-impl<T: Add<Output = T> + Copy> Change<T> {
-    pub fn apply(&self, value: &mut T) {
-        *value = match *self {
-            Change::Add(delta) => value.add(delta),
-            Change::Set(value) => value,
-        };
-    }
-}
-
-impl<T: PartialEq> Change<T> {
-    pub fn is_noop(&self, zero_delta: &T) -> bool {
-        match self {
-            Change::Add(delta) => delta == zero_delta,
-            Change::Set(_) => false,
-        }
-    }
-}
-
 impl LevelAction {
     pub fn list(iter: impl IntoIterator<Item = Self>) -> Self {
         Self::List(None, iter.into_iter().collect())

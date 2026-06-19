@@ -47,12 +47,16 @@ pub struct TimelineWidget {
 
     /// Pixels per unit.
     ppu: f32,
-    /// Render scale in pixels per beat.
+    /// Render scale in pixels per time unit.
     scale: f32,
     /// The scrolloff in exact time.
     scroll: Time,
     raw_current_time: Time,
     raw_target_time: Time,
+
+    cached_music: Option<Rc<ctl_local::LocalMusic>>,
+    music_waveform: Vec<vec2<f32>>,
+    music_offset: Time,
 }
 
 struct HighlightBar {
@@ -91,6 +95,10 @@ impl TimelineWidget {
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
             raw_target_time: Time::ZERO,
+
+            cached_music: None,
+            music_waveform: Vec::new(),
+            music_offset: 0,
         }
     }
 
@@ -111,6 +119,11 @@ impl TimelineWidget {
         (self.state.position.width() / self.scale) as Time
     }
 
+    pub fn visible_range(&self) -> (Time, Time) {
+        let visible_scroll = self.visible_scroll() / 2;
+        (-self.scroll - visible_scroll, -self.scroll + visible_scroll)
+    }
+
     pub fn update_time(&mut self, current_beat: Time, target_beat: Time) {
         self.raw_current_time = current_beat;
         self.raw_target_time = target_beat;
@@ -126,6 +139,20 @@ impl TimelineWidget {
     ) {
         let atlas = &context.context.assets.atlas;
         let theme = context.theme();
+
+        if let Some(level_music) = &level_editor.static_level.group.music
+            && self
+                .cached_music
+                .as_ref()
+                .is_none_or(|cached| !Rc::ptr_eq(cached, level_music))
+        {
+            self.cached_music = Some(level_music.clone());
+            self.music_waveform = build_waveform(
+                &level_music.sound.get_channel_data(0),
+                level_music.sound.sample_rate(),
+            );
+        }
+        self.music_offset = editor.group.cached.local.data.music_offset;
 
         // Selection mode for clicking on the icons on the timeline
         let selection_mode = if context.mods.shift {
@@ -320,7 +347,25 @@ impl TimelineWidget {
             };
 
         // Render events on the timeline
+        const OVERLAP_MARGIN: Time = 6;
         let mut occupied = BTreeMap::new();
+        fn get_occupied<'a>(
+            level_editor: &LevelEditor,
+            map: &'a mut BTreeMap<Time, usize>,
+            time: Time,
+        ) -> std::collections::btree_map::Entry<'a, Time, usize> {
+            let beat_aligned = level_editor
+                .level
+                .timing
+                .snap_to_beat(time, BeatTime::SIXTEENTH);
+            let key = if (beat_aligned - time).abs() <= OVERLAP_MARGIN {
+                beat_aligned
+            } else {
+                time
+            };
+            map.entry(key)
+        }
+
         self.dots.clear();
         let focus = {
             let mut focus = context.can_focus.borrow_mut();
@@ -344,20 +389,18 @@ impl TimelineWidget {
             let is_selected_single = original_selection.is_single(event_i.into());
 
             let overlapped = if !is_selected_single {
-                let on_top_of_highlight = self
-                    .highlight_bar
-                    .as_ref()
-                    .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time));
-                *occupied
-                    .entry(event_time)
+                let on_top_of_highlight = self.highlight_bar.as_ref().is_some_and(|bar| {
+                    (bar.from_time - OVERLAP_MARGIN..=bar.to_time + OVERLAP_MARGIN)
+                        .contains(&event_time)
+                });
+                *get_occupied(level_editor, occupied, event_time)
                     .and_modify(|x| *x += 1)
                     .or_insert(if on_top_of_highlight { 1 } else { 0 })
             } else {
                 if self.highlight_bar.is_none() {
                     // if this event does not get a highlight bar (e.g. timing point)
                     // then the overlap need to be adjusted manually
-                    occupied
-                        .entry(event_time)
+                    get_occupied(level_editor, occupied, event_time)
                         .and_modify(|x| *x += 1)
                         .or_insert(0);
                 }
@@ -737,12 +780,11 @@ impl TimelineWidget {
                     let light_time = event.time + light_event.movement.get_fade_in();
                     // Idle light icon
                     if visible && !show_light_waypoints {
-                        let on_top_of_highlight = self
-                            .highlight_bar
-                            .as_ref()
-                            .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&light_time));
-                        overlapped = *occupied
-                            .entry(light_time)
+                        let on_top_of_highlight = self.highlight_bar.as_ref().is_some_and(|bar| {
+                            (bar.from_time - OVERLAP_MARGIN..=bar.to_time + OVERLAP_MARGIN)
+                                .contains(&light_time)
+                        });
+                        overlapped = *get_occupied(level_editor, &mut occupied, light_time)
                             .and_modify(|x| *x += 1)
                             .or_insert(if on_top_of_highlight { 1 } else { 0 });
 
@@ -1218,14 +1260,9 @@ impl TimelineWidget {
                 context.theme().light
             };
 
-            let display_time = focus_time.unwrap_or(self.raw_current_time);
-            let mut ms = display_time;
-            let mut secs = ms / 1000;
-            ms -= secs * 1000;
-            let mins = secs / 60;
-            secs -= mins * 60;
-
-            time.text = format!("Time: {:02}:{:02}.{:03}", mins, secs, ms).into();
+            let display_time =
+                ctl_util::display_time(focus_time.unwrap_or(self.raw_current_time), true);
+            time.text = format!("Time: {}", display_time).into();
             time.update(current_time, context);
             time.options.size = current_time.height() * 0.4;
             time.options.color = color;
@@ -1479,6 +1516,45 @@ impl Widget for TimelineWidget {
             geometry.merge(context.geometry.texture_pp_at(pos, color, pixel, &texture));
         }
 
+        let waveform = &self.music_waveform;
+        if !waveform.is_empty() {
+            // Music waveform - find the visible range
+            let (from, to) = self.visible_range();
+            let music_duration = self
+                .cached_music
+                .as_ref()
+                .map_or(0.0, |music| music.sound.duration().as_secs_f64() as f32);
+            let from = time_to_seconds(from.max(0)).as_f32() / music_duration.max(1.0);
+            let to = time_to_seconds(to.max(0)).as_f32() / music_duration.max(1.0);
+            let from =
+                ((from * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let to = ((to * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let music_offset = self.music_offset;
+
+            if from < to {
+                // render at the scale of the timeline
+                let waveform = &waveform[from..to];
+                let triangles: Vec<_> = waveform
+                    .iter()
+                    .map(|&pos| {
+                        let pos =
+                            pos * vec2(
+                                self.scale * TIME_IN_FLOAT_TIME as f32,
+                                self.allocated_position.position.height() * 0.5,
+                            ) + self.main_line.position.center()
+                                + vec2((self.scroll - music_offset) as f32 * self.scale, 0.0);
+                        ctl_ui::geometry::GeometryTriangleVertex {
+                            a_z: 0.0,
+                            a_pos: pos,
+                            a_color: ctl_util::with_alpha(theme.light, 0.5),
+                            a_vt: vec2::ZERO,
+                        }
+                    })
+                    .collect();
+                geometry.merge(context.geometry.custom(triangles));
+            }
+        }
+
         // NOTE: mask is done manually because it weirdly affects the rendering order
         let width = pixel * 2.0;
         geometry.merge(
@@ -1654,4 +1730,36 @@ fn editor_event_time(id: EditorEventIdx, level_editor: &LevelEditor) -> Option<T
         }
         EditorEventIdx::Timing(idx) => Some(level_editor.level.timing.points.get(idx)?.time),
     }
+}
+
+fn build_waveform(sound: &[f32], sample_rate: f32) -> Vec<vec2<f32>> {
+    let mut triangles = Vec::new();
+
+    let mut prev_amp = 0.0;
+    let mut prev_x = 0.0;
+    const CHUNK_SIZE: usize = 400;
+    let (chunks, _) = sound.as_chunks::<CHUNK_SIZE>();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let amp: f32 = chunk.iter().map(|&amp| amp.abs() / CHUNK_SIZE as f32).sum();
+        let amp = amp.sqrt().min(1.0);
+        let x = i as f32 / sample_rate * CHUNK_SIZE as f32; // Time in seconds
+        triangles.extend([
+            // top left
+            vec2(prev_x, 0.0),
+            vec2(x, amp),
+            vec2(prev_x, prev_amp),
+            // mid
+            vec2(prev_x, 0.0),
+            vec2(x, -amp),
+            vec2(x, amp),
+            // bottom left
+            vec2(prev_x, 0.0),
+            vec2(prev_x, -prev_amp),
+            vec2(x, -amp),
+        ]);
+        prev_amp = amp;
+        prev_x = x;
+    }
+
+    triangles
 }

@@ -1,3 +1,5 @@
+use ctl_ui::layout::AreaOps;
+
 use super::{mask::MaskedRender, ui::UiRender, *};
 
 use crate::{
@@ -6,6 +8,7 @@ use crate::{
 };
 
 pub struct MenuRender {
+    context: Context,
     dither_preview: DitherRender,
     masked: MaskedRender,
     masked2: MaskedRender, // TODO: have just one somehow maybe
@@ -23,8 +26,9 @@ impl MenuRender {
             ),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
-            ui: UiRender::new(context),
+            ui: UiRender::new(context.clone()),
             font_size: 1.0,
+            context,
         }
     }
 
@@ -41,6 +45,7 @@ impl MenuRender {
         //     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
         self.ui.draw_button(&ui.exit, theme, framebuffer);
+        self.ui.draw_button(&ui.practice_button, theme, framebuffer);
 
         self.draw_levels(ui, state, framebuffer);
         self.draw_play_level(ui, state, framebuffer);
@@ -66,6 +71,8 @@ impl MenuRender {
                 framebuffer,
             );
         }
+
+        self.draw_practice(ui, state, framebuffer);
 
         self.draw_explore(ui, state, framebuffer);
         #[cfg(feature = "online")]
@@ -104,6 +111,143 @@ impl MenuRender {
                 framebuffer,
             );
         }
+    }
+
+    fn draw_practice(
+        &mut self,
+        ui: &MenuUI,
+        state: &MenuState,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let practice = &ui.practice;
+        let options = state.context.get_options();
+        let theme = options.theme;
+        let window = practice.state.position;
+        self.ui.draw_window(
+            &mut self.masked,
+            window,
+            None,
+            self.font_size * 0.2,
+            theme,
+            framebuffer,
+            |framebuffer| {
+                // Title
+                self.ui.draw_text(&practice.title, framebuffer);
+                self.ui
+                    .draw_icon_button(&practice.close, theme, framebuffer);
+                self.ui
+                    .draw_icon_button(&practice.confirm, theme, framebuffer);
+
+                // Level preview
+                if let Some(level_state) = &practice.rendered {
+                    self.ui.draw_level(
+                        &mut self.dither_preview,
+                        level_state,
+                        None,
+                        &Camera2d {
+                            center: vec2::ZERO,
+                            rotation: Angle::ZERO,
+                            fov: Camera2dFov::Cover {
+                                width: 17.778,
+                                height: 10.0,
+                                scale: 1.0,
+                            },
+                        },
+                        &options,
+                        state.real_time,
+                    );
+                    geng_utils::texture::DrawTexture::new(self.dither_preview.get_buffer())
+                        .fit(practice.preview.position, vec2(0.5, 0.5))
+                        .draw(&geng::PixelPerfectCamera, &self.context.geng, framebuffer);
+                }
+
+                // Separator
+                self.ui.draw_quad(
+                    practice
+                        .preview
+                        .position
+                        .with_height(self.font_size * 0.1, 1.0),
+                    theme.light,
+                    framebuffer,
+                );
+
+                // Separator
+                self.ui.draw_quad(
+                    practice
+                        .preview
+                        .position
+                        .with_height(self.font_size * 0.1, 0.0),
+                    theme.light,
+                    framebuffer,
+                );
+
+                // Timeline
+                self.ui.draw_quad(
+                    practice
+                        .timeline
+                        .position
+                        .with_height(self.font_size * 0.2, 0.5),
+                    theme.light,
+                    framebuffer,
+                );
+                self.ui.draw_subtexture(
+                    practice.timeline_start.position,
+                    &self.context.assets.atlas.timeline_tick_mid(),
+                    theme.light,
+                    1.0,
+                    framebuffer,
+                );
+                self.ui.draw_subtexture(
+                    practice.timeline_end.position,
+                    &self.context.assets.atlas.timeline_tick_mid(),
+                    theme.light,
+                    1.0,
+                    framebuffer,
+                );
+                // Selected area
+                self.ui.draw_quad(
+                    Aabb2::point(practice.timeline_from.position.center())
+                        .extend_right(
+                            practice.timeline_to.position.center().x
+                                - practice.timeline_from.position.center().x,
+                        )
+                        .extend_symmetric(vec2(0.0, 0.5 * self.font_size)),
+                    crate::util::with_alpha(theme.highlight, 0.8),
+                    framebuffer,
+                );
+                // Selection from
+                self.ui.draw_subtexture(
+                    practice.timeline_from.position,
+                    &self.context.assets.atlas.timeline_tick_big(),
+                    theme.highlight,
+                    1.0,
+                    framebuffer,
+                );
+                // Selection to
+                self.ui.draw_subtexture(
+                    practice.timeline_to.position,
+                    &self.context.assets.atlas.timeline_tick_big(),
+                    theme.highlight,
+                    1.0,
+                    framebuffer,
+                );
+                // Current
+                self.ui.draw_subtexture(
+                    practice.timeline_current.position,
+                    &self.context.assets.atlas.timeline_tick_smol(),
+                    theme.light,
+                    1.0,
+                    framebuffer,
+                );
+
+                // Current time text
+                self.ui
+                    .draw_text(&practice.timeline_current_time, framebuffer);
+                // Selected area text
+                self.ui
+                    .draw_text(&practice.timeline_selected_text, framebuffer);
+            },
+        );
     }
 
     #[cfg(feature = "online")]

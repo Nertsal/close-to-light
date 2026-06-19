@@ -949,7 +949,7 @@ impl UiRender {
                 masked,
                 dither,
                 &state.preview,
-                options,
+                &options,
                 hovered,
                 framebuffer,
             );
@@ -1032,22 +1032,19 @@ impl UiRender {
         }
     }
 
-    fn draw_preview(
-        &mut self,
-        masked: &mut MaskedRender,
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_level(
+        &self,
         dither: &mut DitherRender,
-        preview: &GameplayPreview,
-        options: Options,
-        setting: Aabb2<f32>,
-        old_framebuffer: &mut ugli::Framebuffer,
+        level_state: &LevelState,
+        player: Option<&Player>,
+        camera: &Camera2d,
+        options: &Options,
+        real_time: FloatTime,
     ) {
-        let font_size = old_framebuffer.size().y as f32 * 0.04;
+        let theme = options.theme;
 
         let mut framebuffer = dither.start();
-
-        let level_state = &preview.state;
-        let camera = &preview.camera;
-        let theme = options.theme;
 
         // Lights
         for light in &level_state.lights {
@@ -1065,10 +1062,12 @@ impl UiRender {
             );
         }
 
-        self.util
-            .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
+        if let Some(player) = player {
+            self.util
+                .draw_player_with(options, player, camera, &mut framebuffer);
+        }
 
-        let mut framebuffer = dither.finish(preview.real_time, &theme);
+        let mut framebuffer = dither.finish(real_time, &theme);
 
         // Telegraphs
         for tele in &level_state.telegraphs {
@@ -1081,7 +1080,30 @@ impl UiRender {
             self.util
                 .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
         }
+    }
 
+    fn draw_preview(
+        &mut self,
+        masked: &mut MaskedRender,
+        dither: &mut DitherRender,
+        preview: &GameplayPreview,
+        options: &Options,
+        setting: Aabb2<f32>,
+        old_framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = old_framebuffer.size().y as f32 * 0.04;
+
+        // Render the level
+        self.draw_level(
+            dither,
+            &preview.state,
+            Some(&preview.player),
+            &preview.camera,
+            options,
+            preview.real_time,
+        );
+
+        // Draw the window
         let popup_size = vec2(PREVIEW_RESOLUTION.as_f32().aspect(), 1.0) * 6.0 * font_size;
         let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)
             .extend_positive(popup_size);

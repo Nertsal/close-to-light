@@ -13,7 +13,7 @@ impl Model {
         // since `play_time` is used to recalculate `play_time_ms` every frame
         self.play_time = time_to_seconds(target_time);
         self.play_time_ms = seconds_to_time(self.play_time) - self.music_offset;
-        self.completion_time = self.play_time;
+        self.completion_time = FloatTime::ZERO;
 
         self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
@@ -125,11 +125,12 @@ impl Model {
             State::Lost {
                 death_time_ms: death_beat_time,
             } => Some(death_beat_time),
+            State::Finished => self.level.end_time,
             _ => None,
         };
         self.level_state = LevelState::render(
             &self.level.level.data,
-            self.play_time_ms,
+            self.play_time_ms.max(0),
             ignore_time,
             Some(&mut self.vfx),
         );
@@ -174,15 +175,18 @@ impl Model {
                 .update_light_distance(light, &self.recent_rhythm);
         }
 
-        // Check missed rhythm
-        let light = get_light(self.player.closest_light, false);
-        if last_light.is_some()
-            && last_light != light
-            && last_light.is_none_or(|last_light| !self.recent_rhythm.contains_key(&last_light))
-        {
-            // Light has changed and no perfect rhythm
-            self.score.metrics.discrete.missed_rhythm();
-            self.handle_event(GameEvent::Rhythm { perfect: false });
+        if let State::Playing = self.state {
+            // Check missed rhythm
+            let light = get_light(self.player.closest_light, false);
+
+            if last_light.is_some()
+                && last_light != light
+                && last_light.is_none_or(|last_light| !self.recent_rhythm.contains_key(&last_light))
+            {
+                // Light has changed and no perfect rhythm
+                self.score.metrics.discrete.missed_rhythm();
+                self.handle_event(GameEvent::Rhythm { perfect: false });
+            }
         }
 
         if !self.level.config.modifiers.clean_auto {
@@ -204,7 +208,12 @@ impl Model {
                 }
             }
             State::Playing => {
-                if self.level_state.is_finished {
+                if self.level_state.is_finished
+                    || self
+                        .level
+                        .end_time
+                        .is_some_and(|end| self.play_time_ms >= end)
+                {
                     self.finish();
                 } else if !self.level.config.modifiers.clean_auto {
                     // Player health
@@ -242,7 +251,7 @@ impl Model {
                     .base_collider
                     .check(&self.player.collider);
                 if hovering && self.cursor_clicked {
-                    self.restart_button.clicked = true;
+                    self.restart_button.force_fade = true;
                 }
                 self.restart_button.update(hovering, delta_time);
                 self.player
@@ -254,7 +263,7 @@ impl Model {
                 // 1 second before the UI is active
                 let hovering = self.exit_button.base_collider.check(&self.player.collider);
                 if hovering && self.cursor_clicked {
-                    self.exit_button.clicked = true;
+                    self.exit_button.force_fade = true;
                 }
                 self.exit_button.update(hovering, delta_time);
                 self.player
@@ -308,7 +317,7 @@ impl Model {
     pub fn finish(&mut self) {
         self.state = State::Finished;
         self.switch_time = FloatTime::ZERO;
-        self.get_leaderboard(true);
+        self.get_leaderboard();
     }
 
     pub fn lose(&mut self) {
@@ -316,11 +325,16 @@ impl Model {
             death_time_ms: self.play_time_ms,
         };
         self.switch_time = FloatTime::ZERO;
-        self.get_leaderboard(true);
+        self.get_leaderboard();
     }
 
-    pub fn get_leaderboard(&mut self, submit_score: bool) {
+    pub fn get_leaderboard(&mut self) {
+        let submit_score = !self.is_practice();
         self.transition = Some(Transition::LoadLeaderboard { submit_score });
+    }
+
+    pub fn is_practice(&self) -> bool {
+        self.level.start_time != Time::ZERO || self.level.end_time.is_some()
     }
 
     /// Calculates the current completion percentage (in range 0..=1).
@@ -329,7 +343,12 @@ impl Model {
             // Finished the level, avoid floating point imprecision
             R32::ONE
         } else {
-            self.completion_time / time_to_seconds(self.level.level.data.last_time())
+            let duration = self
+                .level
+                .end_time
+                .unwrap_or_else(|| self.level.level.data.last_time())
+                - self.level.start_time;
+            self.completion_time / time_to_seconds(duration)
         };
         t.clamp(R32::ZERO, R32::ONE)
     }

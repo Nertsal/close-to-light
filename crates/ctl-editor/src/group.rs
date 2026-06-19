@@ -143,6 +143,27 @@ impl Editor {
         }
     }
 
+    pub fn set_music_offset(&mut self, offset: Time) {
+        // TODO: have a modified version of full level and meta so we dont have to save every frame
+        if self.cannot_edit_assets() {
+            return;
+        }
+
+        let mut new_group = self.group.cached.local.data.clone();
+        new_group.music_offset = offset;
+
+        if let Some(group) =
+            self.context
+                .local
+                .update_group(self.group.group_index, new_group, None)
+        {
+            self.group.cached = group;
+            log::info!("Saved the level successfully");
+        } else {
+            log::error!("Failed to update the level cache");
+        }
+    }
+
     pub fn delete_level(&mut self, level_index: usize) {
         if self.cannot_edit_assets() {
             return;
@@ -267,12 +288,14 @@ impl Editor {
             let level = PlayLevel {
                 group: self.group.clone(),
                 level_index,
+                music_offset: self.group.cached.local.data.music_offset,
                 level: LevelFull {
                     meta: meta.clone(),
                     data: level.clone(),
                 },
                 config: LevelConfig::default(),
                 start_time: Time::ZERO,
+                end_time: None,
                 transition_button: None,
             };
 

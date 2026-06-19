@@ -4,6 +4,7 @@ mod task;
 
 pub use self::{lerp::*, sod::*, task::*};
 
+use ctl_core::types::{FloatTime, Time, seconds_to_time, time_to_seconds};
 use geng::prelude::*;
 use geng_utils::bounded::Bounded;
 
@@ -76,4 +77,95 @@ pub fn gcd_lcm(m: usize, n: usize) -> (usize, usize) {
     let gcd = gcd(m, n);
     let lcm = m * (n / gcd);
     (gcd, lcm)
+}
+
+pub fn display_time(time: Time, include_ms: bool) -> String {
+    let mut ms = time;
+    let mut secs = ms / 1000;
+    ms -= secs * 1000;
+    let mins = secs / 60;
+    secs -= mins * 60;
+    if include_ms {
+        format!("{:02}:{:02}.{:03}", mins, secs, ms)
+    } else {
+        format!("{:02}:{:02}", mins, secs)
+    }
+}
+
+pub struct TimeInterpolation {
+    state: SecondOrderState<FloatTime>,
+    pub value: Time,
+    pub target: Time,
+}
+
+impl Default for TimeInterpolation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TimeInterpolation {
+    pub fn new() -> Self {
+        let time = Time::ZERO;
+        Self {
+            state: SecondOrderState::new(3.0, 1.0, 0.0, time_to_seconds(time)),
+            value: time,
+            target: time,
+        }
+    }
+
+    pub fn update(&mut self, delta_time: FloatTime) {
+        self.state.update(delta_time.as_f32());
+        if (self.state.current - self.state.target).abs().as_f32() < 0.002 {
+            // Skip the final step for better precision on dependent visuals
+            self.state.current = self.state.target;
+        }
+        self.value = seconds_to_time(self.state.current);
+    }
+
+    pub fn scroll_time(&mut self, change: Change<Time>) {
+        change.apply(&mut self.target);
+        self.state.target = time_to_seconds(self.target);
+    }
+
+    pub fn snap_to(&mut self, time: Time) {
+        self.value = time;
+        self.target = time;
+        let time = time_to_seconds(self.value);
+        self.state.current = time;
+        self.state.target = time;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Change<T> {
+    Add(T),
+    Set(T),
+}
+
+impl<T: Sub<Output = T>> Change<T> {
+    pub fn into_delta(self, reference_value: T) -> T {
+        match self {
+            Change::Add(delta) => delta,
+            Change::Set(target_value) => target_value.sub(reference_value),
+        }
+    }
+}
+
+impl<T: Add<Output = T> + Copy> Change<T> {
+    pub fn apply(&self, value: &mut T) {
+        *value = match *self {
+            Change::Add(delta) => value.add(delta),
+            Change::Set(value) => value,
+        };
+    }
+}
+
+impl<T: PartialEq> Change<T> {
+    pub fn is_noop(&self, zero_delta: &T) -> bool {
+        match self {
+            Change::Add(delta) => delta == zero_delta,
+            Change::Set(_) => false,
+        }
+    }
 }

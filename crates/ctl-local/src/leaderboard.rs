@@ -454,7 +454,7 @@ impl LeaderboardImpl {
     pub fn reload_submit(
         &mut self,
         score: Option<i32>,
-        #[allow(unused_variables)] submit_score: bool,
+        submit_score: bool,
         music: MusicInfo,
         level: LevelInfo,
         meta: ScoreMeta,
@@ -478,7 +478,7 @@ impl LeaderboardImpl {
         self.loaded.music = music;
         self.loaded.level = level.clone();
         self.loaded.category = meta.category.clone();
-        self.update_local(score.clone());
+        self.update_local(submit_score.then(|| score.clone()).flatten());
 
         #[cfg(feature = "online")]
         if let Some(board) = &self.client {

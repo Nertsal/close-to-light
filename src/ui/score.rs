@@ -53,7 +53,13 @@ impl ScoreWidget {
         }
     }
 
-    pub fn update_state(&mut self, score: &ScoreMeta, music: &MusicInfo, level: &LevelInfo) {
+    pub fn update_state(
+        &mut self,
+        score: &ScoreMeta,
+        music: &MusicInfo,
+        level: &LevelInfo,
+        practice: bool,
+    ) {
         self.saved_score = score.clone();
         self.music_name.text = music.name.clone();
         self.difficulty_name.text = level.name.clone();
@@ -71,12 +77,17 @@ impl ScoreWidget {
         self.score_grade = score.score.calculate_grade(score.completion);
         self.grade.texture = self.assets.get_grade(self.score_grade);
 
-        let completion = (score.completion.as_f32() * 100.0).floor() as isize;
-        if completion < 100 {
+        if practice {
             self.completion.show();
-            self.completion.text = format!("Completion: {}%", completion).into();
+            self.completion.text = "Practice".into();
         } else {
-            self.completion.hide();
+            let completion = (score.completion.as_f32() * 100.0).floor() as isize;
+            if completion < 100 {
+                self.completion.show();
+                self.completion.text = format!("Completion: {}%", completion).into();
+            } else {
+                self.completion.hide();
+            }
         }
 
         self.accuracy_value.text =

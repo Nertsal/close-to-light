@@ -38,29 +38,6 @@ impl EditorConfigUi {
         let text = context.state.get_root_or(|| TextWidget::new("Timing"));
         text.update(timing, context);
 
-        // let bpm_pos = bar.cut_top(context.font_size);
-        // if let Some(level_editor) = &editor.level_edit
-        //     && let Some(timing) = level_editor.level.timing.points.first()
-        // {
-        //     let mut bpm = 60.0 / timing.beat_time.as_f32();
-        //     let slider = context.state.get_root_or(|| {
-        //         ValueWidget::new(
-        //             "BPM",
-        //             bpm,
-        //             ValueControl::Slider {
-        //                 min: 1.0,
-        //                 max: 500.0,
-        //             },
-        //             1.0,
-        //         )
-        //     });
-        //     slider.update(bpm_pos, context, &mut bpm);
-        //     actions.push(LevelAction::TimingUpdate(0, r32(60.0 / bpm)).into());
-        // }
-
-        // let (offset, bar) = layout::cut_top_down(bar, context.font_size);
-        // self.offset.update(offset, context);
-
         let mut bar = columns[0];
 
         // Music
@@ -95,6 +72,27 @@ impl EditorConfigUi {
             input.update(music_pos, context);
             if !input.editing && *music.meta.name != input.raw {
                 actions.push(EditorStateAction::SetGroupName(input.raw.clone()));
+            }
+
+            let offset_pos = bar.cut_top(context.font_size);
+            let mut offset = editor.group.cached.local.data.music_offset as f32;
+            let slider = context.state.get_root_or(|| {
+                ValueWidget::new(
+                    "Offset",
+                    offset,
+                    ValueControl::Slider {
+                        min: -200.0,
+                        max: 200.0,
+                    },
+                    1.0,
+                    0,
+                )
+            });
+            if slider.update(offset_pos, context, &mut offset) {
+                let offset = offset.round() as Time;
+                if offset != editor.group.cached.local.data.music_offset {
+                    actions.push(EditorAction::SetMusicOffset(offset as Time).into());
+                }
             }
 
             bar.cut_top(context.layout_size * 0.5);
