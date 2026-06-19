@@ -422,10 +422,15 @@ impl Music {
         let mut effect = self
             .geng
             .audio()
-            .timestretch(channels, speed, self.geng.audio().default_type())
+            .timestretch(
+                channels,
+                self.local.sound.sample_rate(),
+                speed,
+                self.geng.audio().default_type(),
+            )
             .expect("failed to timestretch audio");
         effect.set_volume(self.volume);
-        // effect.play_from(time);
+        effect.play_from(time);
         self.effect = Some(MusicEffect::Stream(effect));
     }
 }
