@@ -359,32 +359,6 @@ impl LevelMenu {
             let practice = self.state.practice_section.take();
 
             async move {
-                let mut group = group;
-                // if config.modifiers.time_scale != FloatTime::ONE
-                //     && let Some(music) = &mut group.music
-                // {
-                //     // TODO: account for change in music duration when starting playback
-                //     let sound = ctl_util::change_sound_speed(
-                //         &music.sound,
-                //         config.modifiers.time_scale.as_f32().recip(),
-                //         &context.geng,
-                //         None,
-                //     );
-                //     match sound {
-                //         Ok(sound) => {
-                //             *music = Rc::new(ctl_local::LocalMusic {
-                //                 meta: music.meta.clone(),
-                //                 sound: Rc::new(sound),
-                //                 bytes: music.bytes.clone(),
-                //             })
-                //         }
-                //         Err(err) => log::error!(
-                //             "Failed to resample the music to match the target speed: {:?}",
-                //             err
-                //         ),
-                //     }
-                // }
-
                 let level = ctl_logic::PlayLevel {
                     music_offset: group.cached.local.data.music_offset,
                     group,
