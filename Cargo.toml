@@ -138,11 +138,11 @@ tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = "=0.3.83"
 
-[patch."https://github.com/geng-engine/web-audio-api"]
-geng-web-audio-api = { path = "../web-audio-api" }
+# [patch."https://github.com/geng-engine/web-audio-api"]
+# geng-web-audio-api = { path = "../web-audio-api" }
 
 [patch.crates-io]
-# geng = { git = "https://github.com/geng-engine/geng", rev = "f15cd129bc831ee043915c018893123e32d54545" }
-geng = { path = "../geng" }
+geng = { git = "https://github.com/geng-engine/geng", rev = "c9b0ae160097225307b34617df0574a8dd6b7cf7" }
+# geng = { path = "../geng" }
 geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}
 time = { git = "https://github.com/Nertsal/time", rev = "748366af4446aa890220a9da14873ee728fe0108" } # NOTE: until <https://github.com/time-rs/time/issues/751> is resolved
