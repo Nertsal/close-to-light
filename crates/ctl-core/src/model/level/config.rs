@@ -118,8 +118,12 @@ impl Modifier {
                     "fast motion"
                 }
             }
-            Modifier::LightMode(LightMode::Flashlight) => "who turned the lights off??",
-            Modifier::LightMode(LightMode::Spotlight) => "the lights are spot on",
+            Modifier::LightMode(LightMode::Flashlight) => {
+                "who turned the lights off??\nvision is limited"
+            }
+            Modifier::LightMode(LightMode::Spotlight) => {
+                "the lights are spot on!\nvision is limited"
+            }
         }
     }
 }
