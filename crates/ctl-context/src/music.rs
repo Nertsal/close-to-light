@@ -337,6 +337,7 @@ impl MusicManager {
 
 enum MusicEffect {
     Static(geng::SoundEffect),
+    #[cfg(not(target_arch = "wasm32"))]
     Stream(geng::StreamingSoundEffect),
 }
 
@@ -387,6 +388,7 @@ impl Music {
         if let Some(effect) = &mut self.effect {
             match effect {
                 MusicEffect::Static(effect) => effect.set_volume(volume),
+                #[cfg(not(target_arch = "wasm32"))]
                 MusicEffect::Stream(effect) => effect.set_volume(volume),
             }
         }
@@ -396,6 +398,7 @@ impl Music {
         if let Some(mut effect) = self.effect.take() {
             match &mut effect {
                 MusicEffect::Static(effect) => effect.stop(),
+                #[cfg(not(target_arch = "wasm32"))]
                 MusicEffect::Stream(effect) => effect.stop(),
             }
         }
@@ -410,7 +413,25 @@ impl Music {
         self.effect = Some(MusicEffect::Static(effect));
     }
 
+    pub fn play_from_with_speed_pitch_shifted(&mut self, time: time::Duration, speed: f32) {
+        let speed = speed.clamp(0.2, 5.0);
+        self.stop();
+        let mut effect = self.local.sound.effect(self.geng.audio().default_type());
+        effect.set_volume(self.volume);
+        effect.play_from(time);
+        effect.set_speed(speed);
+        self.effect = Some(MusicEffect::Static(effect));
+    }
+
+    // TODO; same as native (pitch-preserved)
+    #[cfg(target_arch = "wasm32")]
     pub fn play_from_with_speed(&mut self, time: time::Duration, speed: f32) {
+        self.play_from_with_speed_pitch_shifted(time, speed)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn play_from_with_speed(&mut self, time: time::Duration, speed: f32) {
+        let speed = speed.clamp(0.2, 5.0);
         self.stop();
 
         let channels_n = self.local.sound.number_of_channels();
