@@ -276,7 +276,7 @@ impl UtilRender {
                 mat3::scale_uniform(radius.as_f32()),
             ),
             Shape::Line { width } => {
-                let inf = 999.0;
+                let inf = 99.0;
                 (
                     &self.context.assets.sprites.linear_gradient,
                     mat3::scale(vec2(inf, width.as_f32()) / 2.0),
@@ -287,9 +287,10 @@ impl UtilRender {
                 mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
             ),
         };
-        let texture = &*texture.texture;
+        // let texture = &*texture.texture;
         let transform = mat3::translate(collider.position.as_f32())
             * mat3::rotate(collider.rotation.map(Coord::as_f32))
+            // * mat3::scale_uniform(4.0)
             * transform;
 
         let framebuffer_size = framebuffer.size();
@@ -308,7 +309,78 @@ impl UtilRender {
                 camera.uniforms(framebuffer_size.as_f32()),
             ),
             ugli::DrawParameters {
-                blend_mode: Some(additive()),
+                blend_mode: Some(blend_additive()),
+                ..default()
+            },
+        );
+    }
+
+    pub fn draw_level_sdf(
+        &self,
+        level_state: &LevelState,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        // Lights
+        for light in &level_state.lights {
+            let color = if light.danger {
+                THEME.danger
+            } else {
+                THEME.light
+            };
+            self.draw_light_sdf(&light.collider, light.hollow, color, camera, framebuffer);
+        }
+    }
+
+    pub fn draw_light_sdf(
+        &self,
+        collider: &Collider,
+        hollow_cut: R32,
+        color: Color,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let hollow_cut = hollow_cut.as_f32().clamp(-1.0, 1.0);
+        let (texture, transform) = match collider.shape {
+            Shape::Circle { radius } => (
+                &self.context.assets.sprites.radial_gradient,
+                mat3::scale_uniform(radius.as_f32()),
+            ),
+            Shape::Line { width } => {
+                let inf = 99.0;
+                (
+                    &self.context.assets.sprites.linear_gradient,
+                    mat3::scale(vec2(inf, width.as_f32()) / 2.0),
+                )
+            }
+            Shape::Rectangle { width, height } => (
+                &self.context.assets.sprites.square_gradient,
+                mat3::scale(vec2(width.as_f32(), height.as_f32()) / 2.0),
+            ),
+        };
+        // let texture = &*texture.texture;
+        let transform = mat3::translate(collider.position.as_f32())
+            * mat3::rotate(collider.rotation.map(Coord::as_f32))
+            * transform;
+
+        let framebuffer_size = framebuffer.size();
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.light,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: transform,
+                    u_color: color,
+                    u_texture: texture,
+                    u_hollow_cut: hollow_cut,
+                    u_sdf_pad: 0.75,
+                },
+                camera.uniforms(framebuffer_size.as_f32()),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(blend_max()),
                 ..default()
             },
         );
@@ -821,11 +893,19 @@ impl UtilRender {
     }
 }
 
-pub fn additive() -> ugli::BlendMode {
+pub fn blend_additive() -> ugli::BlendMode {
     ugli::BlendMode::combined(ugli::ChannelBlendMode {
         src_factor: ugli::BlendFactor::One,
         dst_factor: ugli::BlendFactor::One,
         equation: ugli::BlendEquation::Add,
+    })
+}
+
+pub fn blend_max() -> ugli::BlendMode {
+    ugli::BlendMode::combined(ugli::ChannelBlendMode {
+        src_factor: ugli::BlendFactor::One,
+        dst_factor: ugli::BlendFactor::One,
+        equation: ugli::BlendEquation::Max,
     })
 }
 

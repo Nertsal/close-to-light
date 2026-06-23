@@ -13,6 +13,8 @@ pub struct GameRender {
     pub dither: DitherRender,
     masked: MaskedRender,
     masked2: MaskedRender,
+    pub cursor_sdf: ugli::Texture,
+    pub lights_sdf: ugli::Texture,
     pub util: UtilRender,
     pub ui: UiRender,
 
@@ -25,6 +27,14 @@ impl GameRender {
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            cursor_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                dither::DITHER_RESOLUTION,
+            ),
+            lights_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                dither::DITHER_RESOLUTION,
+            ),
             util: UtilRender::new(context.clone()),
             ui: UiRender::new(context.clone()),
             context,
@@ -46,6 +56,32 @@ impl GameRender {
         self.dither.set_noise(1.0);
         let mut framebuffer = self.dither.start();
         let options = self.context.get_options();
+
+        {
+            // Light SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.lights_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util
+                .draw_level_sdf(&model.level_state, &model.camera, framebuffer);
+        }
+        {
+            // Cursor SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.cursor_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util.draw_light_sdf(
+                &Collider::circle(model.player.collider.position, r32(1.0)),
+                r32(-1.0),
+                THEME.light,
+                &model.camera,
+                framebuffer,
+            );
+        }
 
         let camera = &model.camera;
         let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
@@ -221,17 +257,7 @@ impl GameRender {
             // }
         }
 
-        if let State::Playing = model.state
-            && !model.level.config.modifiers.clean_auto
-        {
-            self.util.draw_health(
-                &model.player.health,
-                model.player.get_lit_state(),
-                theme,
-                &mut framebuffer,
-            );
-        }
-
+        // Draw the dithered
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
@@ -255,6 +281,18 @@ impl GameRender {
 
         let options = self.context.get_options();
         let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
+
+        // Draw player health bar
+        if let State::Playing = model.state
+            && !model.level.config.modifiers.clean_auto
+        {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                theme,
+                framebuffer,
+            );
+        }
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
         // let precision = model.score.calculated.precision.as_f32() * 100.0;

@@ -1,5 +1,7 @@
 use super::*;
 
+pub const DITHER_RESOLUTION: vec2<usize> = vec2(360 * 16 / 9, 360);
+
 pub struct DitherRender {
     geng: Geng,
     assets: Rc<Assets>,
@@ -10,9 +12,7 @@ pub struct DitherRender {
 
 impl DitherRender {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
-        let height = 360;
-        let size = vec2(height * 16 / 9, height);
-        Self::new_sized(geng, assets, size)
+        Self::new_sized(geng, assets, DITHER_RESOLUTION)
     }
 
     pub fn new_sized(geng: &Geng, assets: &Rc<Assets>, size: vec2<usize>) -> Self {
@@ -86,12 +86,30 @@ impl DitherRender {
                 u_dither3: &self.assets.dither.dither3,
             ),
             ugli::DrawParameters {
-                blend_mode: Some(util::additive()),
+                blend_mode: Some(util::blend_additive()),
                 ..Default::default()
             },
         );
         self.swap_buffer();
         geng_utils::texture::attach_texture(&mut self.double_buffer.0, self.geng.ugli())
+    }
+
+    pub fn apply_sdf_mask(&mut self, mask: &ugli::Texture) {
+        let mut framebuffer =
+            geng_utils::texture::attach_texture(&mut self.double_buffer.1, self.geng.ugli());
+        ugli::draw(
+            &mut framebuffer,
+            &self.assets.shaders.masked_sdf,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            ugli::uniforms! {
+                u_mask_texture: mask,
+                u_color_texture: &self.double_buffer.0,
+                u_affect_color: 0.0,
+            },
+            ugli::DrawParameters { ..default() },
+        );
+        self.swap_buffer();
     }
 }
 

@@ -56,15 +56,20 @@ impl ModButtonWidget {
         if let Some(value) = state.config.modifiers.get_mut(self.modifier) {
             self.selected = *value;
             if self.state.mouse_left.clicked {
-                self.selected = !self.selected;
+                *value = !*value;
             }
-            *value = self.selected;
         } else if let Modifier::TimeScale(scale) = self.modifier {
             self.selected = scale.cmp(&FloatTime::ONE)
                 == state.config.modifiers.time_scale.cmp(&FloatTime::ONE);
             if self.state.mouse_left.clicked {
                 state.config.modifiers.time_scale =
                     if self.selected { FloatTime::ONE } else { scale };
+            }
+        } else if let Modifier::LightMode(mode) = self.modifier {
+            let value = &mut state.config.modifiers.light;
+            self.selected = *value == Some(mode);
+            if self.state.mouse_left.clicked {
+                *value = if self.selected { None } else { Some(mode) }
             }
         }
     }
@@ -86,6 +91,8 @@ impl ModifiersWidget {
                 Modifier::Hidden,
                 Modifier::TimeScale(r32(0.75)),
                 Modifier::TimeScale(r32(1.5)),
+                Modifier::LightMode(LightMode::Flashlight),
+                Modifier::LightMode(LightMode::Spotlight),
             ]
             .into_iter()
             .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))

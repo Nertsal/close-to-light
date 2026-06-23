@@ -41,6 +41,16 @@ pub struct LevelModifiers {
     pub touch: bool,
     /// Time speed up or slow down.
     pub time_scale: FloatTime,
+    /// Normal/Flashlight/Spotlight.
+    pub light: Option<LightMode>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LightMode {
+    /// Stuff is only visible within a small range near the cursor.
+    Flashlight,
+    /// Stuff is only visible within a range of lights.
+    Spotlight,
 }
 
 impl LevelModifiers {
@@ -52,6 +62,7 @@ impl LevelModifiers {
             self.hidden.then_some(Modifier::Hidden),
             self.touch.then_some(Modifier::Touch),
             (self.time_scale != FloatTime::ONE).then_some(Modifier::TimeScale(self.time_scale)),
+            self.light.map(Modifier::LightMode),
         ]
         .into_iter()
         .flatten()
@@ -72,6 +83,7 @@ pub enum Modifier {
     Hidden,
     Touch,
     TimeScale(FloatTime),
+    LightMode(LightMode),
 }
 
 impl Modifier {
@@ -88,6 +100,8 @@ impl Modifier {
                     r32(1.0) + (scale - r32(1.0)) * r32(0.2)
                 }
             }
+            Modifier::LightMode(LightMode::Flashlight) => r32(1.05),
+            Modifier::LightMode(LightMode::Spotlight) => r32(1.05),
         }
     }
 
@@ -104,6 +118,8 @@ impl Modifier {
                     "fast motion"
                 }
             }
+            Modifier::LightMode(LightMode::Flashlight) => "who turned the lights off??",
+            Modifier::LightMode(LightMode::Spotlight) => "the lights are spot on",
         }
     }
 }
@@ -122,6 +138,8 @@ impl Display for Modifier {
                     write!(f, "Double Time")
                 }
             }
+            Modifier::LightMode(LightMode::Flashlight) => write!(f, "Flashlight"),
+            Modifier::LightMode(LightMode::Spotlight) => write!(f, "Spotlight"),
         }
     }
 }
@@ -134,6 +152,7 @@ impl LevelModifiers {
             Modifier::Hidden => Some(&mut self.hidden),
             Modifier::Touch => Some(&mut self.touch),
             Modifier::TimeScale(_) => None,
+            Modifier::LightMode(_) => None,
         }
     }
 }
@@ -148,6 +167,7 @@ impl Default for LevelModifiers {
             hidden: false,
             touch: false,
             time_scale: FloatTime::ONE,
+            light: None,
         }
     }
 }

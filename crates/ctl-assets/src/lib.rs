@@ -5,7 +5,7 @@ pub use self::options::*;
 use std::path::PathBuf;
 
 use ctl_core::{
-    model::ScoreGrade,
+    model::{LightMode, ScoreGrade},
     prelude::{Color, Modifier},
     types::FloatTime,
 };
@@ -30,6 +30,8 @@ pub struct LoadingAssets {
     pub shader_noise_effects: Rc<ugli::Program>,
     #[load(path = "shaders/color_correction.glsl")]
     pub shader_color_correction: Rc<ugli::Program>,
+    #[load(path = "shaders/masked_sdf.glsl")]
+    pub shader_masked_sdf: Rc<ugli::Program>,
 }
 
 fn load_gif(
@@ -81,9 +83,9 @@ pub struct Sounds {
 pub struct Sprites {
     pub title: PixelTexture,
     pub title2: PixelTexture,
-    pub linear_gradient: PixelTexture,
-    pub radial_gradient: PixelTexture,
-    pub square_gradient: PixelTexture,
+    pub linear_gradient: ugli::Texture,
+    pub radial_gradient: ugli::Texture,
+    pub square_gradient: ugli::Texture,
     pub border: PixelTexture,
     pub border_thin: PixelTexture,
     pub border_thinner: PixelTexture,
@@ -96,8 +98,6 @@ pub struct Sprites {
 ctl_derive::texture_atlas!(pub SpritesAtlas {
     white,
     title,
-    linear_gradient,
-    radial_gradient,
     button_next,
     button_next_hollow,
     button_prev,
@@ -143,6 +143,8 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_touch,
     mod_half_time,
     mod_double_time,
+    mod_flashlight,
+    mod_spotlight,
 
     light,
     wrench,
@@ -194,6 +196,7 @@ pub struct Shaders {
     pub solid: Rc<ugli::Program>,
     pub light: Rc<ugli::Program>,
     pub masked: Rc<ugli::Program>,
+    pub masked_sdf: Rc<ugli::Program>,
     pub texture: Rc<ugli::Program>,
     pub ellipse: Rc<ugli::Program>,
     pub texture_ui: Rc<ugli::Program>,
@@ -286,6 +289,8 @@ impl Assets {
                     self.atlas.mod_double_time()
                 }
             }
+            Modifier::LightMode(LightMode::Flashlight) => self.atlas.mod_flashlight(),
+            Modifier::LightMode(LightMode::Spotlight) => self.atlas.mod_spotlight(),
         }
     }
 
