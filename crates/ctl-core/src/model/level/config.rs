@@ -97,7 +97,7 @@ impl Modifier {
                 if scale < FloatTime::ONE {
                     (scale - r32(0.4)).clamp(r32(0.1), r32(1.0))
                 } else {
-                    r32(1.0) + (scale - r32(1.0)) * r32(0.2)
+                    r32(1.0) + (scale - r32(1.0)) * r32(0.4)
                 }
             }
             Modifier::LightMode(LightMode::Flashlight) => r32(1.05),
