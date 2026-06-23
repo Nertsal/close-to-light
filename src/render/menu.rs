@@ -519,7 +519,7 @@ impl MenuRender {
                 theme,
                 framebuffer,
                 |framebuffer| {
-                    for widget in &ui.mods {
+                    for widget in ui.mods.iter().flatten() {
                         let state = &widget.state;
                         if !state.visible {
                             continue;
