@@ -215,21 +215,32 @@ impl MenuRender {
                     crate::util::with_alpha(theme.highlight, 0.8),
                     framebuffer,
                 );
+
+                let mut interactive_tick = |state: &ctl_ui::widget::WidgetState, texture| {
+                    let a = if state.mouse_left.pressed.is_some() {
+                        0.5
+                    } else if state.hovered {
+                        0.7
+                    } else {
+                        1.0
+                    };
+                    self.ui.draw_subtexture(
+                        state.position,
+                        &texture,
+                        theme.highlight.map_rgb(|x| x * a),
+                        1.0,
+                        framebuffer,
+                    );
+                };
                 // Selection from
-                self.ui.draw_subtexture(
-                    practice.timeline_from.position,
-                    &self.context.assets.atlas.timeline_tick_big(),
-                    theme.highlight,
-                    1.0,
-                    framebuffer,
+                interactive_tick(
+                    &practice.timeline_from,
+                    self.context.assets.atlas.timeline_tick_big(),
                 );
                 // Selection to
-                self.ui.draw_subtexture(
-                    practice.timeline_to.position,
-                    &self.context.assets.atlas.timeline_tick_big(),
-                    theme.highlight,
-                    1.0,
-                    framebuffer,
+                interactive_tick(
+                    &practice.timeline_to,
+                    self.context.assets.atlas.timeline_tick_big(),
                 );
                 // Current
                 self.ui.draw_subtexture(

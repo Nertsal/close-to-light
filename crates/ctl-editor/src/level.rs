@@ -395,7 +395,7 @@ impl LevelEditor {
             level: (*level.level.data).clone(),
 
             level_state: EditorLevelState::default(),
-            current_time: TimeInterpolation::new(),
+            current_time: TimeInterpolation::new(3.0),
             timeline_zoom: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.5)),
             real_time: FloatTime::ZERO,
             timeline_light_hover: None,

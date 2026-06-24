@@ -42,7 +42,7 @@ impl PracticeWidget {
             ),
 
             preview: WidgetState::new(),
-            preview_time: TimeInterpolation::new(),
+            preview_time: TimeInterpolation::new(5.0),
             level_duration: 0,
             cached_level: None,
             rendered: None,
@@ -160,7 +160,12 @@ impl PracticeWidget {
                     .position
                     .align_pos(vec2(time as f32 / self.level_duration as f32, 0.5)),
             )
-            .extend_symmetric(vec2(0.1, 0.3) * context.font_size / 2.0)
+            .extend_symmetric(
+                vec2(
+                    0.5 * context.font_size,
+                    self.timeline_interactive.position.height(),
+                ) / 2.0,
+            )
         };
         self.timeline_start.update(tick(0), context);
         self.timeline_end.update(tick(self.level_duration), context);
@@ -189,11 +194,14 @@ impl PracticeWidget {
             let t = t.clamp(0.0, 1.0);
             let cursor_time = (self.level_duration as f32 * t) as Time;
             let cursor_time = level.data.timing.snap_to_beat(cursor_time, BeatTime::WHOLE);
-            if self.timeline_interactive.mouse_left.just_pressed {
+            if self.timeline_to.mouse_left.pressed.is_some() {
+                self.select_to = cursor_time;
+            } else if self.timeline_from.mouse_left.pressed.is_some() {
+                self.select_from = cursor_time;
+            } else if self.timeline_interactive.mouse_left.just_pressed {
                 self.select_from = cursor_time;
                 self.select_to = cursor_time;
-            }
-            if self.timeline_interactive.mouse_left.pressed.is_some() {
+            } else if self.timeline_interactive.mouse_left.pressed.is_some() {
                 self.select_to = cursor_time;
             }
             if self.timeline_interactive.hovered {

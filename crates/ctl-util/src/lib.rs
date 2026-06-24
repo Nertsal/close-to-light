@@ -100,15 +100,15 @@ pub struct TimeInterpolation {
 
 impl Default for TimeInterpolation {
     fn default() -> Self {
-        Self::new()
+        Self::new(3.0)
     }
 }
 
 impl TimeInterpolation {
-    pub fn new() -> Self {
+    pub fn new(lerp_speed: f32) -> Self {
         let time = Time::ZERO;
         Self {
-            state: SecondOrderState::new(3.0, 1.0, 0.0, time_to_seconds(time)),
+            state: SecondOrderState::new(lerp_speed, 1.0, 0.0, time_to_seconds(time)),
             value: time,
             target: time,
         }
