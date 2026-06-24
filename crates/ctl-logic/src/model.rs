@@ -125,6 +125,13 @@ pub enum State {
     Finished,
 }
 
+impl State {
+    /// Returns `true` when the player finished or lost the level.
+    pub fn ended(&self) -> bool {
+        matches!(self, Self::Lost { .. } | Self::Finished)
+    }
+}
+
 pub enum Transition {
     LoadLeaderboard { submit_score: bool },
     Exit,

@@ -154,6 +154,7 @@ impl geng::State for Game {
         let buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
+        let flashlight_mode = !self.model.state.ended();
 
         self.render.draw_world(&self.model, self.debug_mode, buffer);
 
@@ -166,7 +167,11 @@ impl geng::State for Game {
                         enabled: options.graphics.crt.enabled,
                         curvature: 0.0,
                         vignette: 0.0,
-                        scanlines: options.graphics.crt.scanlines,
+                        scanlines: if flashlight_mode {
+                            options.graphics.crt.scanlines
+                        } else {
+                            0.0
+                        },
                     },
                     ..options.graphics.clone()
                 },
@@ -214,20 +219,22 @@ impl geng::State for Game {
         }
         self.ui_context.frame_end();
 
-        // if !self.model.level.config.modifiers.clean_auto {
-        //     let mut dither_buffer = self.render.dither.start();
-        //     self.render.util.draw_player(
-        //         &self.model.player,
-        //         &self.model.camera,
-        //         &mut dither_buffer,
-        //     );
-        //     self.render
-        //         .dither
-        //         .finish(self.model.real_time, &theme.transparent());
-        //     geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
-        //         .fit_screen(vec2(0.5, 0.5), buffer)
-        //         .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
-        // }
+        // Render player on top of UI when gameplay is done
+        // to be compatible with flashlight mod
+        if !self.model.level.config.modifiers.clean_auto && !flashlight_mode {
+            let mut dither_buffer = self.render.dither.start();
+            self.render.util.draw_player(
+                &self.model.player,
+                &self.model.camera,
+                &mut dither_buffer,
+            );
+            self.render
+                .dither
+                .finish(self.model.real_time, &theme.transparent());
+            geng_utils::texture::DrawTexture::new(self.render.dither.get_buffer())
+                .fit_screen(vec2(0.5, 0.5), buffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+        }
 
         if is_paused {
             let ui = &self.ui.pause;
@@ -286,7 +293,9 @@ impl geng::State for Game {
         }
 
         let mut options = options.clone();
-        options.graphics.crt.scanlines = 0.0;
+        if flashlight_mode {
+            options.graphics.crt.scanlines = 0.0;
+        }
         self.post.post_process(
             &options,
             crate::render::post::PostVfx::new(

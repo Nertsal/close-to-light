@@ -167,7 +167,7 @@ impl GameRender {
             }
         }
 
-        if !model.level.config.modifiers.clean_auto {
+        if !model.level.config.modifiers.clean_auto && !model.state.ended() {
             self.util
                 .draw_player(&model.player, camera, &mut framebuffer);
         }
