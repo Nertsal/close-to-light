@@ -165,6 +165,15 @@ impl LevelState {
                             .set(time_to_seconds(duration - time), intensity);
                     }
                 }
+                EffectEvent::Spotlight(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.spotlight
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
+                }
             },
         }
 

@@ -218,6 +218,7 @@ impl LayoutHelper<'_> {
                     ("Vignette", LevelAction::NewVignette(BeatTime::WHOLE)),
                     ("Curvature", LevelAction::NewCurvature(BeatTime::WHOLE)),
                     ("Noise", LevelAction::NewNoiseOffset(BeatTime::WHOLE)),
+                    ("Spotlight", LevelAction::NewSpotlight(BeatTime::WHOLE)),
                 ],
             )
         });
@@ -936,12 +937,14 @@ impl LayoutHelper<'_> {
                 EffectEvent::CameraShake(duration, intensity)
                 | EffectEvent::Vignette(duration, intensity)
                 | EffectEvent::ScreenCurvature(duration, intensity)
-                | EffectEvent::NoiseOffset(duration, intensity) => {
+                | EffectEvent::NoiseOffset(duration, intensity)
+                | EffectEvent::Spotlight(duration, intensity) => {
                     let name = match effect {
                         EffectEvent::CameraShake(..) => "Camera Shake",
                         EffectEvent::Vignette(..) => "Vignette",
                         EffectEvent::ScreenCurvature(..) => "Curvature",
                         EffectEvent::NoiseOffset(..) => "Noise",
+                        EffectEvent::Spotlight(..) => "Spotlight",
                         _ => "unknown",
                     };
                     self.event_title_delete(

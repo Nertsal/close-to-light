@@ -59,6 +59,10 @@ pub enum EffectEvent {
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the intensity/curvature.
     NoiseOffset(Time, R32),
+    /// Apply a spotlight vision effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the dimming value (0-1).
+    Spotlight(Time, R32),
 }
 
 impl EffectEvent {
@@ -69,7 +73,20 @@ impl EffectEvent {
             | EffectEvent::CameraShake(duration, _)
             | EffectEvent::Vignette(duration, _)
             | EffectEvent::ScreenCurvature(duration, _)
-            | EffectEvent::NoiseOffset(duration, _) => *duration,
+            | EffectEvent::NoiseOffset(duration, _)
+            | EffectEvent::Spotlight(duration, _) => *duration,
+        }
+    }
+
+    pub fn duration_mut(&mut self) -> &mut Time {
+        match self {
+            EffectEvent::PaletteSwap(duration)
+            | EffectEvent::RgbSplit(duration)
+            | EffectEvent::CameraShake(duration, _)
+            | EffectEvent::Vignette(duration, _)
+            | EffectEvent::ScreenCurvature(duration, _)
+            | EffectEvent::NoiseOffset(duration, _)
+            | EffectEvent::Spotlight(duration, _) => duration,
         }
     }
 }
