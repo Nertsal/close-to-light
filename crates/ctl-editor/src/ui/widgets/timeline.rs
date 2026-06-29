@@ -1520,15 +1520,21 @@ impl Widget for TimelineWidget {
         if !waveform.is_empty() {
             // Music waveform - find the visible range
             let (from, to) = self.visible_range();
+            // TODO: figure out why the rendering is not exact to the widget size
+            let from = from + 50;
+            let to = to + 25;
+
             let music_duration = self
                 .cached_music
                 .as_ref()
-                .map_or(0.0, |music| music.sound.duration().as_secs_f64() as f32);
-            let from = time_to_seconds(from.max(0)).as_f32() / music_duration.max(1.0);
-            let to = time_to_seconds(to.max(0)).as_f32() / music_duration.max(1.0);
+                .map_or(0.0, |music| music.sound.duration().as_secs_f64());
+            let from = time_to_seconds(from.max(0)).as_f32() as f64 / music_duration.max(1.0);
+            let to = time_to_seconds(to.max(0)).as_f32() as f64 / music_duration.max(1.0);
+            // NOTE: rounding to divisible by 9 to ensure the triangular vertex count
+            // Specifically 9 because there are 3 triangles per waveform bar.
             let from =
-                ((from * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
-            let to = ((to * waveform.len() as f32) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+                ((from * waveform.len() as f64) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let to = ((to * waveform.len() as f64) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
             let music_offset = self.music_offset;
 
             if from < to {
