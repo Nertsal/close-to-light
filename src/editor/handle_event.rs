@@ -125,11 +125,14 @@ impl EditorState {
                                 );
                             }
                             Selection::Waypoints(light_id, waypoints) => {
+                                let mut waypoints = waypoints.clone();
+                                // NOTE: delete events in reverse order because we are using raw indexes
+                                waypoints.sort();
                                 actions.push(
                                     LevelAction::list(
                                         waypoints
-                                            .iter()
-                                            .copied()
+                                            .into_iter()
+                                            .rev()
                                             .map(|id| LevelAction::DeleteWaypoint(*light_id, id)),
                                     )
                                     .into(),
