@@ -48,7 +48,7 @@ pub enum LevelsFilter {
 pub struct SelectLightUi {
     pub radius: f32,
     pub pos_x: f32,
-    pub light_y: ctl_util::Lerp<f32>,
+    pub light_y: SecondOrderState<f32>,
     // pub telegraph_y: ctl_util::Lerp<f32>,
 }
 
@@ -57,7 +57,7 @@ impl Default for SelectLightUi {
         Self {
             radius: 0.0,
             pos_x: 0.0,
-            light_y: ctl_util::Lerp::new_smooth(0.25, 0.0, 0.0),
+            light_y: SecondOrderState::new(3.0, 1.0, 0.0, 0.0),
             // telegraph_y: ctl_util::Lerp::new_smooth(0.25, 0.0, 0.0),
         }
     }
@@ -218,11 +218,15 @@ impl LevelSelectUI {
         self.tabs(bar.extend_symmetric(-vec2(light_size, 0.0)), context);
 
         if self.light_level.pos_x == 0.0 {
-            self.light_level.light_y.snap_to(bar.center().y);
+            self.light_level
+                .light_y
+                .snap_to(bar.center().y, context.delta_time);
             // self.light_level.telegraph_y.snap_to(bar.center().y);
         }
         if self.light_diff.pos_x == 0.0 {
-            self.light_diff.light_y.snap_to(bar.center().y);
+            self.light_diff
+                .light_y
+                .snap_to(bar.center().y, context.delta_time);
             // self.light_diff.telegraph_y.snap_to(bar.center().y);
         }
 
@@ -242,22 +246,18 @@ impl LevelSelectUI {
         action = action.or(act);
 
         match state.switch_level {
-            None => self.light_level.light_y.change_target(bar.center().y),
+            None => self.light_level.light_y.target = bar.center().y,
             Some(selected) => {
                 if let Some(widget) = self.levels.iter().find(|level| level.index == selected) {
-                    self.light_level
-                        .light_y
-                        .change_target(widget.state.position.center().y)
+                    self.light_level.light_y.target = widget.state.position.center().y
                 }
             }
         }
         match state.switch_diff {
-            None => self.light_diff.light_y.change_target(bar.center().y),
+            None => self.light_diff.light_y.target = bar.center().y,
             Some(selected) => {
                 if let Some(widget) = self.diffs.iter().find(|diff| diff.index == selected) {
-                    self.light_diff
-                        .light_y
-                        .change_target(widget.state.position.center().y)
+                    self.light_diff.light_y.target = widget.state.position.center().y
                 }
             }
         }
@@ -352,7 +352,7 @@ impl LevelSelectUI {
             action = action.or(act);
             if widget.state.mouse_left.clicked {
                 state.select_level(widget.index);
-                self.light_level.light_y.change_target(pos.center().y);
+                self.light_level.light_y.target = pos.center().y;
             }
             // if widget.state.hovered {
             //     self.light_level.telegraph_y.change_target(pos.center().y);
@@ -493,7 +493,7 @@ impl LevelSelectUI {
             action = action.or(act);
             if widget.state.mouse_left.clicked {
                 state.select_difficulty(widget.index);
-                self.light_diff.light_y.change_target(pos.center().y);
+                self.light_diff.light_y.target = pos.center().y;
             }
             // if widget.state.hovered {
             //     self.light_diff.telegraph_y.change_target(pos.center().y);

@@ -630,7 +630,7 @@ impl geng::State for LevelMenu {
         if !fading && self.ui.practice.window.show.time.is_min() {
             // UI lights
             let mut draw_light = |light: &SelectLightUi| {
-                let light_pos = (vec2(light.pos_x, light.light_y.current())
+                let light_pos = (vec2(light.pos_x, light.light_y.current)
                     - self.ui.screen.position.bottom_left())
                     / self.ui.screen.position.size()
                     * dither_buffer.size().as_f32();
