@@ -530,10 +530,7 @@ impl LevelEditor {
             LevelAction::ChangeEffectIntensity(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
                     && let Event::Effect(effect) = &mut event.event
-                    && let EffectEvent::CameraShake(_, intensity)
-                    | EffectEvent::Vignette(_, intensity)
-                    | EffectEvent::ScreenCurvature(_, intensity)
-                    | EffectEvent::NoiseOffset(_, intensity) = effect
+                    && let Some(intensity) = effect.intensity_mut()
                 {
                     change.apply(intensity);
                     self.save_state(HistoryLabel::EffectIntensity(index));

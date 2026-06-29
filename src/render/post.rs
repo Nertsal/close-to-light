@@ -193,6 +193,11 @@ impl PostRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.self_process(options, vfx);
+        self.render_noop(framebuffer);
+    }
+
+    /// Render the current framebuffer directly without applying extra effects.
+    pub fn render_noop(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,

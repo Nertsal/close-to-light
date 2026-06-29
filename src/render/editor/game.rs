@@ -32,6 +32,20 @@ impl EditorRender {
             return;
         };
 
+        {
+            // Light SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.lights_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util.draw_level_sdf(
+                level_editor.level_state.relevant(),
+                &level_editor.model.camera,
+                framebuffer,
+            );
+        }
+
         let game_screen = Aabb2::ZERO.extend_positive(game_buffer.size().as_f32());
         macro_rules! draw_game {
             ($alpha:expr, $buffer:expr) => {{
@@ -201,12 +215,20 @@ impl EditorRender {
         );
         let mut pixel_buffer = self.dither.start();
 
+        // Render level state
         let game_buffer = &mut geng_utils::texture::attach_texture(
             &mut self.game_texture,
             self.context.geng.ugli(),
         );
         self.post_render
-            .post_process(&self.context.get_options(), post_vfx, game_buffer);
+            .self_process(&self.context.get_options(), post_vfx);
+        // Spotlight effect
+        let spotlight = level_editor.model.vfx.spotlight.value.current.as_f32();
+        if spotlight > 0.0 {
+            self.post_render.apply_sdf_mask(&self.lights_sdf, spotlight);
+        }
+        // Draw to screen
+        self.post_render.render_noop(game_buffer);
 
         {
             // Current action

@@ -89,6 +89,17 @@ impl EffectEvent {
             | EffectEvent::Spotlight(duration, _) => duration,
         }
     }
+
+    pub fn intensity_mut(&mut self) -> Option<&mut R32> {
+        match self {
+            EffectEvent::CameraShake(_, intensity)
+            | EffectEvent::Vignette(_, intensity)
+            | EffectEvent::ScreenCurvature(_, intensity)
+            | EffectEvent::NoiseOffset(_, intensity)
+            | EffectEvent::Spotlight(_, intensity) => Some(intensity),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
