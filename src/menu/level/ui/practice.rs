@@ -194,17 +194,21 @@ impl PracticeWidget {
             let t = t.clamp(0.0, 1.0);
             let cursor_time = (self.level_duration as f32 * t) as Time;
             let cursor_time = level.data.timing.snap_to_beat(cursor_time, BeatTime::WHOLE);
+            let mut preview_time = self.timeline_interactive.hovered;
             if self.timeline_to.mouse_left.pressed.is_some() {
                 self.select_to = cursor_time;
+                preview_time = true;
             } else if self.timeline_from.mouse_left.pressed.is_some() {
                 self.select_from = cursor_time;
+                preview_time = true;
             } else if self.timeline_interactive.mouse_left.just_pressed {
                 self.select_from = cursor_time;
                 self.select_to = cursor_time;
             } else if self.timeline_interactive.mouse_left.pressed.is_some() {
                 self.select_to = cursor_time;
+                preview_time = true;
             }
-            if self.timeline_interactive.hovered {
+            if preview_time {
                 self.preview_time.scroll_time(Change::Set(cursor_time));
             }
 
