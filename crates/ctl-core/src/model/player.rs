@@ -2,7 +2,7 @@ use super::*;
 
 /// Extra distance within which the player is still counted as in-light
 /// to give some leeway on fading lights.
-const LEEWAY: f32 = 0.025;
+const LEEWAY: f32 = 0.1;
 
 #[derive(Debug, Clone)]
 pub struct Player {
