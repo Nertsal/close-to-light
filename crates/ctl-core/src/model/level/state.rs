@@ -114,9 +114,15 @@ impl LevelState {
                     }
                     if let Some(vfx) = vfx {
                         let t = (time as f32 / duration as f32).clamp(0.0, 1.0);
-                        vfx.palette_swap.target = if vfx.palette_swap.target > r32(0.5) {
+                        vfx.palette_swap.target = if t == 1.0 {
+                            // After this palette swap - just invert target
+                            // since a later swap event could be processed before this one
+                            r32(1.0) - vfx.palette_swap.target
+                        } else if vfx.palette_swap.target > r32(0.5) {
+                            // Fade to normal
                             r32(1.0 - t)
                         } else {
+                            // Fade to inverted
                             r32(t)
                         };
                     }
