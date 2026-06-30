@@ -46,6 +46,7 @@ impl LevelState {
         time: Time,
         ignore_after: Option<Time>,
         mut vfx: Option<&mut Vfx>,
+        reset_vfx_after_finish: bool,
     ) -> Self {
         let mut state = Self {
             time,
@@ -66,7 +67,8 @@ impl LevelState {
             state.render_event(e, Some(i), vfx.as_deref_mut());
         }
 
-        if state.is_finished
+        if reset_vfx_after_finish
+            && state.is_finished
             && let Some(vfx) = vfx
         {
             // Reset persistent vfx

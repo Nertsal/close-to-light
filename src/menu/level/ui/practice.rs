@@ -219,6 +219,7 @@ impl PracticeWidget {
                     self.preview_time.value,
                     None,
                     Some(&mut vfx),
+                    true,
                 ));
             }
         }

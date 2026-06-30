@@ -136,6 +136,7 @@ impl Model {
             self.play_time_ms.max(0),
             ignore_time,
             Some(&mut self.vfx),
+            true,
         );
     }
 
