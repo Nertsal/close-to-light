@@ -149,22 +149,19 @@ impl EditorRender {
     }
 
     fn render_lights_sdf(&mut self, helper: &RenderHelper<'_>) {
-        let mut pixel_buffer = self.lights_dither.start();
-
-        if let Some(level) = helper
-            .level_editor
-            .level_state
-            .static_level
-            .as_ref()
-            .or(helper.level_editor.level_state.dynamic_level.as_ref())
-        {
-            for tele in &level.telegraphs {
-                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util, true);
-            }
-            for light in &level.lights {
-                helper.draw_light(light, &mut pixel_buffer, &self.util);
-            }
-        }
+        let mut pixel_buffer =
+            geng_utils::texture::attach_texture(&mut self.lights_sdf, self.context.geng.ugli());
+        ugli::clear(
+            &mut pixel_buffer,
+            Some(Color::TRANSPARENT_BLACK),
+            None,
+            None,
+        );
+        self.util.draw_level_sdf(
+            helper.level_editor.level_state.relevant(),
+            &helper.level_editor.model.camera,
+            &mut pixel_buffer,
+        );
     }
 
     fn draw_game_with(&mut self, helper: &mut RenderHelper<'_>) {
@@ -179,7 +176,7 @@ impl EditorRender {
                 helper.level_editor.real_time,
                 helper.level_editor.current_time.value,
                 helper.level_assets,
-                self.lights_dither.get_lights_sdf(),
+                &self.lights_sdf,
             );
 
         macro_rules! apply_shaders {
