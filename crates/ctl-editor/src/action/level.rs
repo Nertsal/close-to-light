@@ -423,11 +423,13 @@ impl LevelEditor {
                     Ok(_) => {
                         // Point already exists at this time
                     }
-                    Err(i) => self
-                        .level
-                        .timing
-                        .points
-                        .insert(i, TimingPoint { time, beat_time }),
+                    Err(i) => {
+                        self.level
+                            .timing
+                            .points
+                            .insert(i, TimingPoint { time, beat_time });
+                        self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Timing(i)]);
+                    }
                 }
             }
             LevelAction::TimingUpdate(point, beat_time) => {
@@ -436,10 +438,14 @@ impl LevelEditor {
                 }
             }
 
-            LevelAction::NewShader(time, shader) => self.level.events.push(TimedEvent {
-                time,
-                event: Event::Shader(shader),
-            }),
+            LevelAction::NewShader(time, shader) => {
+                let idx = self.level.events.len();
+                self.level.events.push(TimedEvent {
+                    time,
+                    event: Event::Shader(shader),
+                });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
+            }
             LevelAction::ChangeShaderDuration(idx, change) => {
                 if let Some(event) = self.level.events.get_mut(idx)
                     && let Event::Shader(shader) = &mut event.event
@@ -463,10 +469,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::RgbSplit(duration)),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::NewCameraShake(duration) => {
                 self.execute(LevelAction::Deselect, drag);
@@ -476,10 +484,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::CameraShake(duration, r32(0.25))),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::NewPaletteSwap(duration) => {
                 self.execute(LevelAction::Deselect, drag);
@@ -489,10 +499,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::PaletteSwap(duration)),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::NewVignette(duration) => {
                 self.execute(LevelAction::Deselect, drag);
@@ -502,10 +514,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::Vignette(duration, r32(0.5))),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::NewCurvature(duration) => {
                 self.execute(LevelAction::Deselect, drag);
@@ -515,10 +529,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::ScreenCurvature(duration, r32(0.5))),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::NewNoiseOffset(duration) => {
                 self.execute(LevelAction::Deselect, drag);
@@ -528,10 +544,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::NoiseOffset(duration, r32(1.0))),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::NewSpotlight(duration) => {
                 self.execute(LevelAction::Deselect, drag);
@@ -541,10 +559,12 @@ impl LevelEditor {
                         .get_timing(self.current_time.target)
                         .beat_time,
                 );
+                let idx = self.level.events.len();
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::Spotlight(duration, r32(1.0))),
                 });
+                self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
             LevelAction::ChangeEffectDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
