@@ -6,12 +6,26 @@ test:
     cargo build --release # Native build
     cargo geng build --platform web --release # Web build
     cargo test --workspace --all-features # Tests
-    cargo check --workspace -F steam
-    cargo check --workspace -F steam -F demo
-    cargo check --workspace -F itch -F demo
+    cargo clippy --workspace -F steam
+    cargo clippy --workspace -F steam -F demo
+    cargo clippy --workspace -F itch -F demo
+    cargo clippy --workspace --no-default-features -F online
+    cargo clippy --workspace --no-default-features -F online -F demo
+    cargo clippy --workspace --no-default-features -F editor
+    cargo clippy --workspace --no-default-features -F editor -F demo
+    cargo clippy --workspace --no-default-features -F steam
+
+docker_image := "ctl-build-docker"
+steam_sdk := "./dev-assets/redistributable_bin"
+server_url := "https://ctl-server.nertsal.com"
+server := "ctl-server.nertsal.com"
+server_user := "nertsal"
+git_commit_hash := `git rev-parse --short HEAD`
+assets_folder_demo := "../close-to-assets/assets-demo"
+assets_folder_release := "../close-to-assets/assets-release"
 
 game *ARGS:
-    cargo run -- {{ARGS}}
+    GIT_COMMIT_HASH={{git_commit_hash}} cargo run {{ARGS}}
 
 web command *ARGS:
     cargo geng {{command}} --platform web --release {{ARGS}}
@@ -22,23 +36,17 @@ web-itch command *ARGS:
 
 # Build the Demo version of the game for all platforms
 build-demo:
-    just build-all-platforms ./target/release-demo --features demo
+    just build-all-platforms false ./target/release-demo --no-default-features --features online --features demo
 
 # Build the Full version of the game for all platforms
 build-game:
-    just build-all-platforms ./target/release-game
-
-docker_image := "ctl-build-docker"
-steam_sdk := "./dev-assets/redistributable_bin"
-server_url := "https://ctl-server.nertsal.com"
-server := "ctl-server.nertsal.com"
-server_user := "nertsal"
+    just build-all-platforms true ./target/release-game
 
 build-docker:
     docker build -t {{docker_image}} .
 
 # Make builds for every target platform
-build-all-platforms TARGET_DIR *ARGS:
+build-all-platforms RELEASE TARGET_DIR *ARGS:
     # Steam-Linux
     # LEADERBOARD_URL={{server_url}} CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
     # cargo geng build --release --platform linux --features steam {{ARGS}}
@@ -48,22 +56,30 @@ build-all-platforms TARGET_DIR *ARGS:
     --env CARGO_HOME=./target/linux/.cargo \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/linux \
     --env LEADERBOARD_URL={{server_url}} \
+    --env GIT_COMMIT_HASH={{git_commit_hash}} \
     {{docker_image}} \
     cargo geng build --release --platform linux --features steam {{ARGS}}
     cp {{steam_sdk}}/linux64/libsteam_api.so {{TARGET_DIR}}/linux/geng
+    cp -r {{assets_folder_demo}}/* {{TARGET_DIR}}/linux/geng/assets/
+    {{ if RELEASE == 'true' { "cp -r " + assets_folder_release + "/* " + TARGET_DIR + "/linux/geng/assets/" } else { "echo 'demo'" } }}
     cd {{TARGET_DIR}}/linux/geng && zip -FS -r ../../linux.zip ./*
     # Steam-Windows
     docker run --user $(id -u):$(id -g) --rm -it -v `pwd`:/src --workdir /src \
     --env CARGO_HOME=./target/windows/.cargo \
     --env CARGO_TARGET_DIR={{TARGET_DIR}}/windows \
     --env LEADERBOARD_URL={{server_url}} \
+    --env GIT_COMMIT_HASH={{git_commit_hash}} \
     {{docker_image}} \
     cargo geng build --release --platform windows --features steam {{ARGS}}
     cp {{steam_sdk}}/win64/steam_api64.dll {{TARGET_DIR}}/windows/geng
+    cp -r {{assets_folder_demo}}/* {{TARGET_DIR}}/windows/geng/assets/
+    {{ if RELEASE == 'true' { "cp -r " + assets_folder_release + "/* " + TARGET_DIR + "/windows/geng/assets/" } else { "echo 'demo'" } }}
     cd {{TARGET_DIR}}/windows/geng && zip -FS -r ../../windows.zip ./*
     # Itch-Web
-    LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web \
+    LEADERBOARD_URL=wss://{{server}} CARGO_TARGET_DIR={{TARGET_DIR}}/web GIT_COMMIT_HASH={{git_commit_hash}} \
     cargo geng build --release --platform web --features itch {{ARGS}}
+    cp -r {{assets_folder_demo}}/* {{TARGET_DIR}}/web/geng/assets/
+    {{ if RELEASE == 'true' { "cp -r " + assets_folder_release + "/* " + TARGET_DIR + "/web/geng/assets/" } else { "echo 'demo'" } }}
     cd {{TARGET_DIR}}/web/geng && zip -FS -r ../../web.zip ./*
 
 

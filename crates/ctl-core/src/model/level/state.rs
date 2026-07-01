@@ -46,6 +46,7 @@ impl LevelState {
         time: Time,
         ignore_after: Option<Time>,
         mut vfx: Option<&mut Vfx>,
+        reset_vfx_after_finish: bool,
     ) -> Self {
         let mut state = Self {
             time,
@@ -66,7 +67,8 @@ impl LevelState {
             state.render_event(e, Some(i), vfx.as_deref_mut());
         }
 
-        if state.is_finished
+        if reset_vfx_after_finish
+            && state.is_finished
             && let Some(vfx) = vfx
         {
             // Reset persistent vfx
@@ -114,9 +116,15 @@ impl LevelState {
                     }
                     if let Some(vfx) = vfx {
                         let t = (time as f32 / duration as f32).clamp(0.0, 1.0);
-                        vfx.palette_swap.target = if vfx.palette_swap.target > r32(0.5) {
+                        vfx.palette_swap.target = if t == 1.0 {
+                            // After this palette swap - just invert target
+                            // since a later swap event could be processed before this one
+                            r32(1.0) - vfx.palette_swap.target
+                        } else if vfx.palette_swap.target > r32(0.5) {
+                            // Fade to normal
                             r32(1.0 - t)
                         } else {
+                            // Fade to inverted
                             r32(t)
                         };
                     }
@@ -126,7 +134,8 @@ impl LevelState {
                         return;
                     }
                     if let Some(vfx) = vfx {
-                        vfx.rgb_split.time_left = time_to_seconds(duration - time);
+                        vfx.rgb_split
+                            .set(time_to_seconds(duration - time), R32::ONE);
                     }
                 }
                 EffectEvent::CameraShake(duration, intensity) => {
@@ -134,7 +143,43 @@ impl LevelState {
                         return;
                     }
                     if let Some(vfx) = vfx {
-                        vfx.camera_shake = intensity;
+                        vfx.camera_shake = vfx.camera_shake.max(intensity);
+                    }
+                }
+                EffectEvent::Vignette(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.vignette
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
+                }
+                EffectEvent::ScreenCurvature(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.curvature
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
+                }
+                EffectEvent::NoiseOffset(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.noise_offset
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
+                }
+                EffectEvent::Spotlight(duration, intensity) => {
+                    if self.time < event.time || self.time > event.time + duration {
+                        return;
+                    }
+                    if let Some(vfx) = vfx {
+                        vfx.spotlight
+                            .set(time_to_seconds(duration - time), intensity);
                     }
                 }
             },

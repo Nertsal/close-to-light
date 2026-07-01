@@ -1,4 +1,7 @@
+#![allow(dead_code)]
+
 pub mod dither;
+#[cfg(feature = "editor")]
 pub mod editor;
 pub mod game;
 pub mod mask;

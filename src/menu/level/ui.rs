@@ -1,13 +1,17 @@
 mod level;
 mod modifiers;
+mod practice;
 mod select;
 
-pub use self::{level::*, modifiers::*, select::*};
+pub use self::{level::*, modifiers::*, practice::*, select::*};
 
 use super::*;
 
 use crate::ui::{layout::AreaOps, widget::*};
 
+use ctl_local::LocalMusic;
+use ctl_ui::UiWindow;
+use ctl_util::{Change, TimeInterpolation};
 use itertools::Itertools;
 
 pub struct MenuUI {
@@ -20,13 +24,16 @@ pub struct MenuUI {
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
+    #[cfg(feature = "online")]
     pub sync: Option<SyncWidget>,
     pub notifications: NotificationsWidget,
 
     pub level_select: LevelSelectUI,
     pub play_level: PlayLevelWidget,
     pub modifiers: ModifiersWidget,
+    pub practice_button: ButtonWidget,
 
+    pub practice: PracticeWidget,
     pub explore: ExploreWidget,
 
     pub leaderboard_head: TextWidget,
@@ -50,13 +57,16 @@ impl MenuUI {
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
+            #[cfg(feature = "online")]
             sync: None,
             notifications: NotificationsWidget::new(assets),
 
             level_select: LevelSelectUI::new(geng, assets),
             play_level: PlayLevelWidget::new(),
             modifiers: ModifiersWidget::new(assets),
+            practice_button: ButtonWidget::new("Practice"),
 
+            practice: PracticeWidget::new(assets),
             explore,
 
             leaderboard_head: TextWidget::new("Leaderboard")
@@ -68,6 +78,7 @@ impl MenuUI {
         }
     }
 
+    #[cfg(feature = "online")]
     fn explore_groups(&mut self) {
         // TODO: with music filter
         self.explore.window.request = Some(WidgetRequest::Open);
@@ -109,6 +120,12 @@ impl MenuUI {
         // let logo = left.cut_top(2.5 * layout_size);
         // self.ctl_logo.update(logo, context);
 
+        {
+            // Practice
+            let position = left;
+            self.practice.update(position, state, context);
+        }
+
         if let Some(confirm) = &mut self.confirm {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
@@ -142,6 +159,7 @@ impl MenuUI {
             self.confirm = Some(confirm);
         }
 
+        #[cfg(feature = "online")]
         if let Some(sync) = &mut self.sync {
             let size = vec2(20.0, 17.0) * layout_size;
             let pos = screen.align_aabb(size, vec2(0.5, 0.5));
@@ -218,6 +236,7 @@ impl MenuUI {
         let action = self.level_select.update(level_select, state, context);
         if let Some(action) = action {
             match action {
+                #[cfg(feature = "online")]
                 LevelSelectAction::SyncGroup(group_index) => {
                     let local = self.context.local.inner.borrow();
                     if let Some(group) = local.groups.get(group_index) {
@@ -230,6 +249,12 @@ impl MenuUI {
                     }
                 }
                 LevelSelectAction::EditDifficulty(group, level) => {
+                    #[cfg(not(feature = "editor"))]
+                    {
+                        let _ = (group, level);
+                        state.editor_not_available();
+                    }
+                    #[cfg(feature = "editor")]
                     state.edit_level(group, Some(level));
                 }
                 LevelSelectAction::DeleteDifficulty(group, level) => {
@@ -242,6 +267,12 @@ impl MenuUI {
                     );
                 }
                 LevelSelectAction::EditGroup(group) => {
+                    #[cfg(not(feature = "editor"))]
+                    {
+                        let _ = group;
+                        state.editor_not_available();
+                    }
+                    #[cfg(feature = "editor")]
                     state.edit_level(group, None);
                 }
                 LevelSelectAction::DeleteGroup(group) => {
@@ -264,6 +295,28 @@ impl MenuUI {
         right.cut_bottom(2.0 * layout_size);
         self.play_level.update(right, state, context);
         self.modifiers.update(right, state, context);
+        {
+            // Practice button
+            // Slide in when a level is selected
+            let pos = right
+                .align_aabb(
+                    vec2(7.0 * context.layout_size, 1.1 * context.font_size),
+                    vec2(0.5, 0.0),
+                )
+                .translate(vec2(8.0 * context.layout_size, 0.0));
+            let t = self.modifiers.t;
+            let t = crate::util::smoothstep(t);
+            let slide = vec2(0.0, context.screen.min.y - pos.max.y);
+            let pos = pos.translate(slide * (1.0 - t));
+            self.practice_button.update(pos, context);
+            if self.practice_button.text.state.mouse_left.clicked {
+                if self.practice.window.show.going_up {
+                    self.practice.window.request = Some(WidgetRequest::Close);
+                } else {
+                    self.practice.window.request = Some(WidgetRequest::Open);
+                }
+            }
+        }
         state.update_board_meta();
 
         {

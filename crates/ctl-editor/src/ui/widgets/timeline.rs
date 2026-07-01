@@ -1,6 +1,17 @@
+// Timeline Selection Logic
+// input states
+// 1. idle - nothing selected
+//   - start dragging to create a selection area or just select a singular item
+//     no movement happens during selection
+// 2. single event selected
+//    this event is displayed at the bottom of the timeline so it is always visible
+//    a highlight bar is shown below the timeline
+//    - selecting an area has to preserve the positioning of elements,
+//      so until the selection is confirmed, the single selected event is at the bottom of the timeline
+
 use super::*;
 
-use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId, ScrollSpeed};
+use crate::{Change, EditorAction, HistoryLabel, LevelAction, LevelEditor, LightId};
 
 use std::collections::BTreeMap;
 
@@ -8,8 +19,6 @@ use ctl_render_core::SubTexture;
 use ctl_util::SecondOrderState;
 use num_rational::Ratio;
 
-/// Pixels per unit
-const PPU: usize = 2;
 const LIGHT_LINE_WIDTH: f32 = 16.0;
 const LIGHT_LINE_SPACE: f32 = 4.0;
 
@@ -36,12 +45,18 @@ pub struct TimelineWidget {
     ticks: Vec<(vec2<f32>, i64)>,
     selection_area: Option<Aabb2<f32>>,
 
-    /// Render scale in pixels per beat.
+    /// Pixels per unit.
+    ppu: f32,
+    /// Render scale in pixels per time unit.
     scale: f32,
     /// The scrolloff in exact time.
     scroll: Time,
     raw_current_time: Time,
     raw_target_time: Time,
+
+    cached_music: Option<Rc<ctl_local::LocalMusic>>,
+    music_waveform: Vec<vec2<f32>>,
+    music_offset: Time,
 }
 
 struct HighlightBar {
@@ -62,23 +77,28 @@ impl TimelineWidget {
         Self {
             cursor_pos: vec2::ZERO,
             expansion: SecondOrderState::new(3.0, 1.0, 1.0, 0.0),
-            allocated_position: default(),
-            state: default(),
-            ceiling: default(),
-            extra_line: default(),
-            lights_line: default(),
-            main_line: default(),
-            highlight_line: default(),
+            allocated_position: WidgetState::new(),
+            state: WidgetState::new(),
+            ceiling: WidgetState::new(),
+            extra_line: WidgetState::new(),
+            lights_line: WidgetState::new(),
+            main_line: WidgetState::new(),
+            highlight_line: WidgetState::new(),
             highlight_bar: None,
             dots: Vec::new(),
             marks: Vec::new(),
             ticks: Vec::new(),
             selection_area: None,
 
+            ppu: 2.0,
             scale: 0.5,
             scroll: Time::ZERO,
             raw_current_time: Time::ZERO,
             raw_target_time: Time::ZERO,
+
+            cached_music: None,
+            music_waveform: Vec::new(),
+            music_offset: 0,
         }
     }
 
@@ -99,6 +119,11 @@ impl TimelineWidget {
         (self.state.position.width() / self.scale) as Time
     }
 
+    pub fn visible_range(&self) -> (Time, Time) {
+        let visible_scroll = self.visible_scroll() / 2;
+        (-self.scroll - visible_scroll, -self.scroll + visible_scroll)
+    }
+
     pub fn update_time(&mut self, current_beat: Time, target_beat: Time) {
         self.raw_current_time = current_beat;
         self.raw_target_time = target_beat;
@@ -115,6 +140,20 @@ impl TimelineWidget {
         let atlas = &context.context.assets.atlas;
         let theme = context.theme();
 
+        if let Some(level_music) = &level_editor.static_level.group.music
+            && self
+                .cached_music
+                .as_ref()
+                .is_none_or(|cached| !Rc::ptr_eq(cached, level_music))
+        {
+            self.cached_music = Some(level_music.clone());
+            self.music_waveform = build_waveform(
+                &level_music.sound.get_channel_data(0),
+                level_music.sound.sample_rate(),
+            );
+        }
+        self.music_offset = editor.group.cached.local.data.music_offset;
+
         // Selection mode for clicking on the icons on the timeline
         let selection_mode = if context.mods.shift {
             SelectMode::Toggle
@@ -125,6 +164,18 @@ impl TimelineWidget {
 
         let enable_beat_snap = !context.mods.ctrl;
         let beat_snap = level_editor.beat_snap;
+
+        let select_single_thing = if let Some(area) = self.selection_area
+            && area.bottom_left() == area.top_right()
+            && context.mods.shift
+            && !context.cursor.left.down
+            && context.cursor.left.was_down
+        {
+            // Just released the timeline selection with shift mode - select the hovered thing
+            true
+        } else {
+            false
+        };
 
         let mut extra_selection = Selection::Empty;
         let selection_area = editor.drag.as_ref().and_then(|drag| {
@@ -139,6 +190,13 @@ impl TimelineWidget {
         });
         self.selection_area = selection_area;
 
+        let original_selection = if let Some(drag) = &editor.drag
+            && let DragTarget::SelectionAreaTimeline { original } = &drag.target
+        {
+            original
+        } else {
+            &level_editor.selection
+        };
         // Waypoints view when light is single selected (confirmed, so not in selection drag)
         let select_inside_light = if selection_area.is_some() {
             if let Some(drag) = &editor.drag
@@ -163,13 +221,15 @@ impl TimelineWidget {
                         {
                             Selection::Lights(vec![LightId { event: idx }])
                         } else {
-                            Selection::Event(idx)
+                            Selection::Events(vec![TopLevelEventIdx::Event(idx)])
                         }
                     }
                     EditorEventIdx::Waypoint(light_id, waypoint_id) => {
                         Selection::Waypoints(light_id, vec![waypoint_id])
                     }
-                    EditorEventIdx::Timing(idx) => Selection::Timing(idx),
+                    EditorEventIdx::Timing(idx) => {
+                        Selection::Events(vec![TopLevelEventIdx::Timing(idx)])
+                    }
                 };
                 selection.merge(single);
             }
@@ -177,7 +237,7 @@ impl TimelineWidget {
 
         // from time to screen position
         let render_at = |center: vec2<f32>, time: Time| {
-            let size = vec2::splat(18) * PPU;
+            let size = (vec2::splat(18.0) * self.ppu).map(|x| x.round() as usize);
             let pos = (time + self.scroll) as f32 * self.scale;
             let pos = center + vec2(pos, 0.0);
             geng_utils::pixel::pixel_perfect_aabb(
@@ -194,7 +254,7 @@ impl TimelineWidget {
                 + vec2(
                     0.0,
                     (LIGHT_LINE_WIDTH * 0.5 + ((LIGHT_LINE_WIDTH + LIGHT_LINE_SPACE) * i as f32))
-                        * PPU as f32,
+                        * self.ppu,
                 );
             render_at(pos, time)
         };
@@ -205,9 +265,10 @@ impl TimelineWidget {
         };
 
         // Check highlight bounds
-        if selection_area.is_none() || select_inside_light.is_some() {
-            let light_selection = level_editor
-                .selection
+        if selection_area.is_none()
+            || (select_inside_light.is_some() || original_selection.single().is_some())
+        {
+            let light_selection = original_selection
                 .light_single()
                 .and_then(|id| level_editor.level.events.get(id.event))
                 .and_then(|event| {
@@ -227,8 +288,7 @@ impl TimelineWidget {
                     }
                 });
             self.highlight_bar = light_selection.or_else(|| {
-                level_editor
-                    .selection
+                original_selection
                     .single()
                     .and_then(|id| {
                         if let EditorEventIdx::Event(id) = id {
@@ -240,12 +300,8 @@ impl TimelineWidget {
                     .and_then(|event| {
                         let duration = match &event.event {
                             Event::Light(_) => return None,
-                            Event::Effect(effect) => match effect {
-                                EffectEvent::PaletteSwap(duration)
-                                | EffectEvent::RgbSplit(duration)
-                                | EffectEvent::CameraShake(duration, _) => *duration,
-                            },
                             Event::Shader(shader) => shader.duration,
+                            Event::Effect(effect) => effect.duration(),
                         };
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
@@ -279,7 +335,7 @@ impl TimelineWidget {
                     IconButtonWidget::new(texture)
                         .highlight(HighlightMode::Color(ThemeColor::Highlight))
                 });
-                tick.update(position, context);
+                tick.update(position, context, self.ppu);
                 context.update_focus(tick.state.hovered);
                 if tick.state.mouse_left.pressed.is_some() {
                     let mut target = unrender_time(context.cursor.position.x);
@@ -292,7 +348,25 @@ impl TimelineWidget {
             };
 
         // Render events on the timeline
+        const OVERLAP_MARGIN: Time = 6;
         let mut occupied = BTreeMap::new();
+        fn get_occupied<'a>(
+            level_editor: &LevelEditor,
+            map: &'a mut BTreeMap<Time, usize>,
+            time: Time,
+        ) -> std::collections::btree_map::Entry<'a, Time, usize> {
+            let beat_aligned = level_editor
+                .level
+                .timing
+                .snap_to_beat(time, BeatTime::SIXTEENTH);
+            let key = if (beat_aligned - time).abs() <= OVERLAP_MARGIN {
+                beat_aligned
+            } else {
+                time
+            };
+            map.entry(key)
+        }
+
         self.dots.clear();
         let focus = {
             let mut focus = context.can_focus.borrow_mut();
@@ -303,7 +377,7 @@ impl TimelineWidget {
         let can_focus = context.can_focus();
         let visible_scroll = self.visible_scroll();
 
-        let regular_event = |event_i: EditorEventIdx,
+        let regular_event = |event_i: TopLevelEventIdx,
                              event_time: Time,
                              event_duration: Time,
                              texture: SubTexture,
@@ -311,59 +385,84 @@ impl TimelineWidget {
                              actions: &mut Vec<EditorStateAction>,
                              occupied: &mut BTreeMap<i64, usize>,
                              dots: &mut Vec<vec2<f32>>| {
-            let is_selected = level_editor.selection.is_selected(event_i);
+            let is_selected_temp = level_editor.selection.is_selected(event_i.into());
+            let is_selected_confirmed = original_selection.is_selected(event_i.into());
+            let is_selected_single = original_selection.is_single(event_i.into());
 
-            let on_top_of_highlight = !is_selected
-                && self
-                    .highlight_bar
-                    .as_ref()
-                    .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&event_time));
-            let overlapped = *occupied
-                .entry(event_time)
-                .and_modify(|x| *x += 1)
-                .or_insert(if on_top_of_highlight { 1 } else { 0 });
+            let overlapped = if !is_selected_single {
+                let on_top_of_highlight = self.highlight_bar.as_ref().is_some_and(|bar| {
+                    (bar.from_time - OVERLAP_MARGIN..=bar.to_time + OVERLAP_MARGIN)
+                        .contains(&event_time)
+                });
+                *get_occupied(level_editor, occupied, event_time)
+                    .and_modify(|x| *x += 1)
+                    .or_insert(if on_top_of_highlight { 1 } else { 0 })
+            } else {
+                if self.highlight_bar.is_none() {
+                    // if this event does not get a highlight bar (e.g. timing point)
+                    // then the overlap need to be adjusted manually
+                    get_occupied(level_editor, occupied, event_time)
+                        .and_modify(|x| *x += 1)
+                        .or_insert(0);
+                }
+                0
+            };
 
             let mut is_hovered = false;
             let visible = (event_time + self.scroll).abs() < visible_scroll / 2;
             if visible && overlapped as f32 <= self.expansion.current + 0.9 {
                 let position = render_light(event_time, overlapped).center();
-                let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                let position = Aabb2::point(position).extend_uniform(5.0 * self.ppu);
                 let icon = context.state.get_or(self.state.id, || {
                     IconButtonWidget::new(atlas.timeline_metronome())
                 });
                 icon.texture = texture;
-                icon.update(position, context);
+                icon.update(position, context, self.ppu);
                 context.update_focus(icon.state.hovered);
                 is_hovered = is_hovered || icon.state.hovered;
-                if is_selected && !is_hovered {
-                    icon.color = ThemeColor::Light;
+                icon.color = ThemeColor::Light;
+                if is_selected_temp {
                     icon.bg_color = ThemeColor::Highlight;
                 } else {
-                    icon.color = ThemeColor::Light;
                     icon.bg_color = ThemeColor::Dark;
                 }
-                if icon.state.mouse_left.just_pressed {
-                    let ids = if is_selected {
+                if icon.state.mouse_left.just_pressed && !multi_select_mode
+                    || select_single_thing && icon.state.hovered
+                {
+                    let ids = if is_selected_confirmed {
                         level_editor.selection.to_editor_events()
                     } else {
-                        vec![event_i]
+                        vec![event_i.into()]
                     };
                     let targets = ids
                         .into_iter()
                         .filter_map(|id| Some((id, editor_event_time(id, level_editor)?)))
                         .collect();
-                    actions.extend([
-                        LevelAction::SelectEvent(event_i).into(),
-                        EditorStateAction::StartDrag(DragTarget::TimelineEvent {
+                    if multi_select_mode {
+                        // Toggle selection
+                        actions
+                            .push(LevelAction::SelectEvent(selection_mode, vec![event_i]).into());
+                    } else if is_selected_confirmed {
+                        // Drag whole selection
+                        actions.push(EditorStateAction::StartDrag(DragTarget::TimelineEvent {
                             initial_time: event_time,
                             targets,
-                        }),
-                    ]);
+                        }));
+                    } else {
+                        // Drag single light
+                        actions.extend([
+                            LevelAction::SelectEvent(SelectMode::Set, vec![event_i]).into(),
+                            EditorStateAction::StartDrag(DragTarget::TimelineEvent {
+                                initial_time: event_time,
+                                targets,
+                            }),
+                        ]);
+                    }
                 }
-                selectable(event_i, &icon.state, selection);
+                selectable(event_i.into(), &icon.state, selection);
             }
 
-            if is_selected || is_hovered {
+            if is_selected_single || is_hovered {
                 // Dots
                 let last_dot_time = event_time;
                 let time = event_time + event_duration;
@@ -375,7 +474,7 @@ impl TimelineWidget {
                 let step = timing.beat_time / r32(resolution);
                 let ds = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1).floor()
                     as usize;
-                let overlapped = if is_selected { 0 } else { overlapped };
+                let overlapped = if is_selected_confirmed { 0 } else { overlapped };
                 let ds = (0..=ds)
                     .map(|i| {
                         let time = last_dot_time + seconds_to_time(step * r32(i as f32));
@@ -389,6 +488,7 @@ impl TimelineWidget {
 
         // Update drag
         if let Some(drag) = &editor.drag
+            && drag.moved
             && let DragTarget::TimelineEvent {
                 initial_time,
                 targets: drag_ids,
@@ -433,9 +533,16 @@ impl TimelineWidget {
                     drag_ids
                         .iter()
                         .map(|(event_i, event_time)| {
-                            let target_time = cursor_time - initial_time + event_time;
-
-                            (*event_i, Change::Set(target_time))
+                            let mut time = *event_time + cursor_time - initial_time;
+                            if level_editor
+                                .level
+                                .timing
+                                .is_beat_aligned(*event_time)
+                                .is_some()
+                            {
+                                time = level_editor.level.timing.snap_to_best_alignment(time).0;
+                            }
+                            (*event_i, Change::Set(time))
                         })
                         .collect(),
                 )
@@ -443,9 +550,29 @@ impl TimelineWidget {
             );
         }
 
+        // Start selection area drag if Shift clicking
+        let dragging = if let Some(drag) = &editor.drag
+            && let DragTarget::TimelineEvent { .. } = drag.target
+        {
+            true
+        } else {
+            false
+        };
+        if !dragging
+            && context.can_focus()
+            && self.state.mouse_left.just_pressed
+            && context.mods.shift
+        {
+            // Add to selection
+            let original = level_editor.selection.clone();
+            actions.push(EditorStateAction::StartDrag(
+                DragTarget::SelectionAreaTimeline { original },
+            ));
+        }
+
         // Timing points
         for (idx, point) in level_editor.level.timing.points.iter().enumerate() {
-            let idx = EditorEventIdx::Timing(idx);
+            let idx = TopLevelEventIdx::Timing(idx);
             regular_event(
                 idx,
                 point.time,
@@ -469,16 +596,15 @@ impl TimelineWidget {
                     let light_id = LightId { event: event_i };
                     // Waypoints view when single light is selected
                     // and not in area selection mode (unless selecting waypoints)
-                    let is_light_selected_single = level_editor.selection.is_light_single(light_id);
-                    let is_light_selected_single =
-                        is_light_selected_single && select_inside_light == Some(light_id);
-                    if is_light_selected_single {
+                    let is_light_selected_single = original_selection.is_light_single(light_id);
+                    let show_light_waypoints = is_light_selected_single;
+                    if show_light_waypoints {
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + light_event.movement.duration();
                         let to = render_time(&self.highlight_line, to_time).center();
 
-                        let tick_size = vec2(4.0, 16.0) * PPU as f32;
+                        let tick_size = vec2(4.0, 16.0) * self.ppu;
 
                         // Fade in
                         timeline_tick(
@@ -543,7 +669,7 @@ impl TimelineWidget {
                             }
 
                             // Icon
-                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                            let position = Aabb2::point(position).extend_uniform(5.0 * self.ppu);
                             let texture = atlas.timeline_waypoint();
                             // TODO: somehow mask this with other stuff
                             let icon = context
@@ -554,7 +680,7 @@ impl TimelineWidget {
                             } else {
                                 ThemeColor::Light
                             };
-                            icon.update(position, context);
+                            icon.update(position, context, self.ppu);
                             context.update_focus(icon.state.hovered);
                             selectable(
                                 EditorEventIdx::Waypoint(light_id, waypoint_id),
@@ -579,7 +705,7 @@ impl TimelineWidget {
                                 IconButtonWidget::new(texture)
                                     .highlight(HighlightMode::Color(ThemeColor::Highlight))
                             });
-                            tick.update(position, context);
+                            tick.update(position, context, self.ppu);
                             context.update_focus(tick.state.hovered);
 
                             // Waypoint drag
@@ -592,8 +718,10 @@ impl TimelineWidget {
                             } else {
                                 false
                             };
-                            if icon.state.mouse_left.just_pressed
-                                || tick.state.mouse_left.just_pressed
+                            if (icon.state.mouse_left.just_pressed
+                                || tick.state.mouse_left.just_pressed)
+                                && !multi_select_mode
+                                || select_single_thing && icon.state.hovered
                             {
                                 if multi_select_mode {
                                     // Toggle selection
@@ -652,13 +780,12 @@ impl TimelineWidget {
                     let mut overlapped = 0;
                     let light_time = event.time + light_event.movement.get_fade_in();
                     // Idle light icon
-                    if visible && !is_light_selected_single {
-                        let on_top_of_highlight = self
-                            .highlight_bar
-                            .as_ref()
-                            .is_some_and(|bar| (bar.from_time..=bar.to_time).contains(&light_time));
-                        overlapped = *occupied
-                            .entry(light_time)
+                    if visible && !show_light_waypoints {
+                        let on_top_of_highlight = self.highlight_bar.as_ref().is_some_and(|bar| {
+                            (bar.from_time - OVERLAP_MARGIN..=bar.to_time + OVERLAP_MARGIN)
+                                .contains(&light_time)
+                        });
+                        overlapped = *get_occupied(level_editor, &mut occupied, light_time)
                             .and_modify(|x| *x += 1)
                             .or_insert(if on_top_of_highlight { 1 } else { 0 });
 
@@ -674,7 +801,7 @@ impl TimelineWidget {
                             let icon = context
                                 .state
                                 .get_or(self.state.id, || IconButtonWidget::new(texture.clone()));
-                            icon.update(light, context);
+                            icon.update(light, context, self.ppu);
                             context.update_focus(icon.state.hovered);
                             selectable(
                                 EditorEventIdx::Event(light_id.event),
@@ -682,19 +809,25 @@ impl TimelineWidget {
                                 &mut extra_selection,
                             );
 
-                            icon.color = if level_editor.selection.is_light_selected(light_id) {
-                                ThemeColor::Highlight
-                            } else if light_event.danger {
+                            let is_selected = level_editor.selection.is_light_selected(light_id);
+                            icon.color = if light_event.danger {
                                 ThemeColor::Danger
                             } else {
                                 ThemeColor::Light
                             };
+                            if is_selected {
+                                icon.bg_color = ThemeColor::Highlight;
+                            } else {
+                                icon.bg_color = ThemeColor::Dark;
+                            }
                             icon.texture = texture;
                             is_hovered = is_hovered || icon.state.hovered;
                             if icon.state.hovered {
                                 actions.push(LevelAction::HoverLight(light_id).into());
                             }
-                            if icon.state.mouse_left.just_pressed {
+                            if icon.state.mouse_left.just_pressed && !multi_select_mode
+                                || select_single_thing && icon.state.hovered
+                            {
                                 if multi_select_mode {
                                     // Toggle selection
                                     actions.push(
@@ -736,12 +869,12 @@ impl TimelineWidget {
                             let icon = context
                                 .state
                                 .get_or(self.state.id, || IconWidget::new(texture));
-                            icon.update(dots, context);
+                            icon.update(dots, context, self.ppu);
                         }
                     }
                     let is_hovered =
                         is_hovered || level_editor.level_state.hovered_light == Some(light_id);
-                    if !is_light_selected_single && is_hovered {
+                    if !show_light_waypoints && is_hovered {
                         // Hover preview waypoints
                         for (_, _, offset) in light_event.movement.timed_transforms() {
                             // Icon
@@ -750,18 +883,18 @@ impl TimelineWidget {
                                 continue;
                             }
 
-                            let position = Aabb2::point(position).extend_uniform(5.0 * PPU as f32);
+                            let position = Aabb2::point(position).extend_uniform(5.0 * self.ppu);
                             let texture = atlas.timeline_waypoint();
                             // TODO: somehow mask this with other stuff
                             let icon = context
                                 .state
                                 .get_or(self.state.id, || IconButtonWidget::new(texture));
                             icon.color = ThemeColor::Light;
-                            icon.update(position, context);
+                            icon.update(position, context, self.ppu);
                             context.update_focus(icon.state.hovered);
                         }
                     }
-                    if is_light_selected_single || is_hovered {
+                    if show_light_waypoints || is_hovered {
                         // Dots
                         let last_dot_time = event.time;
                         let time = event.time + light_event.movement.duration();
@@ -773,11 +906,7 @@ impl TimelineWidget {
                         let step = timing.beat_time / r32(resolution);
                         let dots = ((time_to_seconds(time - last_dot_time) / step).as_f32() + 0.1)
                             .floor() as usize;
-                        let overlapped = if is_light_selected_single {
-                            0
-                        } else {
-                            overlapped
-                        };
+                        let overlapped = if show_light_waypoints { 0 } else { overlapped };
                         let dots = (0..=dots)
                             .map(|i| {
                                 let time = last_dot_time + seconds_to_time(step * r32(i as f32));
@@ -791,11 +920,7 @@ impl TimelineWidget {
                 Event::Effect(_) | Event::Shader(_) => {
                     let is_selected = level_editor.selection.is_single(event_idx);
                     let duration = match &event.event {
-                        Event::Effect(effect) => match effect {
-                            EffectEvent::PaletteSwap(duration)
-                            | EffectEvent::RgbSplit(duration)
-                            | EffectEvent::CameraShake(duration, _) => *duration,
-                        },
+                        Event::Effect(effect) => effect.duration(),
                         Event::Shader(shader) => shader.duration,
                         _ => unreachable!(),
                     };
@@ -809,7 +934,7 @@ impl TimelineWidget {
                     if is_selected {
                         // Start time
                         timeline_tick(
-                            vec2(4.0, 16.0) * PPU as f32,
+                            vec2(4.0, 16.0) * self.ppu,
                             render_time(&self.highlight_line, event.time).center(),
                             atlas.timeline_tick_smol(),
                             actions,
@@ -842,7 +967,7 @@ impl TimelineWidget {
 
                         // End time
                         timeline_tick(
-                            vec2(4.0, 16.0) * PPU as f32,
+                            vec2(4.0, 16.0) * self.ppu,
                             render_time(&self.highlight_line, event.time + duration).center(),
                             atlas.timeline_tick_smol(),
                             actions,
@@ -868,13 +993,17 @@ impl TimelineWidget {
                                 EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
                                 EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
                                 EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                                EffectEvent::Vignette(..) => atlas.timeline_vignette(),
+                                EffectEvent::ScreenCurvature(..) => atlas.timeline_curvature(),
+                                EffectEvent::NoiseOffset(..) => atlas.timeline_noise(),
+                                EffectEvent::Spotlight(..) => atlas.mod_spotlight(),
                             },
                             Event::Shader(_) => atlas.timeline_shader(),
                             _ => atlas.timeline_unknown(),
                         };
 
                         regular_event(
-                            EditorEventIdx::Event(event_i),
+                            TopLevelEventIdx::Event(event_i),
                             event.time,
                             duration,
                             texture,
@@ -891,9 +1020,16 @@ impl TimelineWidget {
         // Update selection area
         if let Some(drag) = &editor.drag
             && let DragTarget::SelectionAreaTimeline { original } = &drag.target
+            && drag.moved
         {
             let mut selection = original.clone();
-            selection.merge(extra_selection);
+            // TODO: proper selection modes
+            if context.mods.shift {
+                selection.merge(extra_selection)
+            } else if !extra_selection.is_empty() {
+                // If the selection is empty - ignore
+                selection = extra_selection
+            }
             actions.push(LevelAction::SetSelection(selection).into());
         }
 
@@ -1031,7 +1167,17 @@ impl TimelineWidget {
         self.cursor_pos = context.cursor.position;
         self.expansion.update(context.delta_time);
 
-        let pixel = PPU as f32;
+        // let pixel = PPU as f32; //ctl_render_core::get_pixel_scale(context.screen.size().map(|x| x as usize));
+        let pixel = position.height() / 19.0;
+        self.ppu = pixel;
+        {
+            // Try aligning better to pixels if doesnt change size too much
+            let mut quart = self.ppu * 4.0;
+            if quart.fract() < 0.05 || quart.fract() > 0.95 {
+                quart = quart.round();
+            }
+            self.ppu = quart / 4.0;
+        }
 
         let allocated_position = position;
         let panel_width = 5.0 * context.layout_size;
@@ -1061,14 +1207,10 @@ impl TimelineWidget {
         let highlight = position.cut_top(pixel * 16.0);
         self.highlight_line.update(highlight, context);
 
-        // TODO: unduplicate code from handle_event
-        let scroll_speed = if context.mods.shift {
-            ScrollSpeed::Slow
-        } else if context.mods.alt {
-            ScrollSpeed::Fast
-        } else {
-            ScrollSpeed::Normal
-        };
+        let scroll_speed = editor
+            .config
+            .timeline
+            .get_scroll_speed(context.mods.shift, context.mods.alt);
 
         // Calculate allocated state for side panels
         let mut allocated_position =
@@ -1129,14 +1271,9 @@ impl TimelineWidget {
                 context.theme().light
             };
 
-            let display_time = focus_time.unwrap_or(self.raw_current_time);
-            let mut ms = display_time;
-            let mut secs = ms / 1000;
-            ms -= secs * 1000;
-            let mins = secs / 60;
-            secs -= mins * 60;
-
-            time.text = format!("Time: {:02}:{:02}.{:03}", mins, secs, ms).into();
+            let display_time =
+                ctl_util::display_time(focus_time.unwrap_or(self.raw_current_time), true);
+            time.text = format!("Time: {}", display_time).into();
             time.update(current_time, context);
             time.options.size = current_time.height() * 0.4;
             time.options.color = color;
@@ -1162,7 +1299,7 @@ impl TimelineWidget {
                 format!("Beat: {}", beat_whole + 1).into()
             };
             beat.update(current_beat, context);
-            beat.options.size = current_beat.height() * 0.4;
+            beat.options.size = current_beat.height() * 0.35;
             beat.options.color = color;
         }
 
@@ -1189,7 +1326,7 @@ impl TimelineWidget {
             let button = context.state.get_or(self.state.id, || {
                 IconButtonWidget::new(context.context.assets.atlas.button_prev())
             });
-            button.update(button_left, context);
+            button.update(button_left, context, self.ppu);
             if button.state.mouse_left.clicked {
                 new_i = new_i
                     .checked_sub(1)
@@ -1199,7 +1336,7 @@ impl TimelineWidget {
             let button = context.state.get_or(self.state.id, || {
                 IconButtonWidget::new(context.context.assets.atlas.button_next())
             });
-            button.update(panel, context);
+            button.update(panel, context, self.ppu);
             if button.state.mouse_left.clicked {
                 new_i += 1;
                 if new_i >= allowed_subdivisions.len() {
@@ -1245,7 +1382,7 @@ impl TimelineWidget {
 
         if self.main_line.mouse_left.clicked {
             let time = self.get_cursor_time();
-            actions.push(LevelAction::ScrollTime(time - level_editor.current_time.target).into());
+            actions.push(LevelAction::ScrollTime(Change::Set(time)).into());
         }
 
         self.reload(context, editor, level_editor, actions);
@@ -1265,8 +1402,7 @@ fn pre_event_time(event: &Event) -> Time {
 impl Widget for TimelineWidget {
     simple_widget_state!();
     fn draw_top(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
-        let pixel = pixel_scale as f32;
+        let pixel = self.ppu;
         let theme = context.theme();
         let atlas = &context.context.assets.atlas;
 
@@ -1287,7 +1423,7 @@ impl Widget for TimelineWidget {
         // Current arrow
         {
             let texture = &atlas.timeline_current_arrow();
-            let size = texture.size() * pixel_scale;
+            let size = (texture.size().as_f32() * pixel).map(|x| x.round() as usize);
             let position = geng_utils::pixel::pixel_perfect_aabb(
                 self.ceiling.position.align_pos(vec2(0.5, 1.0)),
                 vec2(0.5, 1.0),
@@ -1326,11 +1462,7 @@ impl Widget for TimelineWidget {
                     (red, &atlas.timeline_tick_smol())
                 }
             };
-            geometry.merge(
-                context
-                    .geometry
-                    .texture_pp_at(pos, color, pixel_scale, texture),
-            );
+            geometry.merge(context.geometry.texture_pp_at(pos, color, pixel, texture));
         }
 
         let position = self.state.position;
@@ -1345,8 +1477,7 @@ impl Widget for TimelineWidget {
         geometry
     }
     fn draw(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
-        let pixel = pixel_scale as f32;
+        let pixel = self.ppu;
         let theme = context.theme();
         let atlas = &context.context.assets.atlas;
         let bounds = self.state.position;
@@ -1358,7 +1489,7 @@ impl Widget for TimelineWidget {
             let dot = geng_utils::pixel::pixel_perfect_aabb(
                 dot,
                 vec2(0.5, 0.5),
-                vec2::splat(pixel_scale * 2),
+                vec2::splat(pixel * 2.0).map(|x| x.round() as usize),
                 &geng::PixelPerfectCamera,
                 context.geometry.framebuffer_size.as_f32(),
             );
@@ -1393,11 +1524,52 @@ impl Widget for TimelineWidget {
         // Time marks
         for &(pos, color) in &self.marks {
             let texture = atlas.timeline_time_mark();
-            geometry.merge(
-                context
-                    .geometry
-                    .texture_pp_at(pos, color, pixel_scale, &texture),
-            );
+            geometry.merge(context.geometry.texture_pp_at(pos, color, pixel, &texture));
+        }
+
+        let waveform = &self.music_waveform;
+        if !waveform.is_empty() {
+            // Music waveform - find the visible range
+            let (from, to) = self.visible_range();
+            // TODO: figure out why the rendering is not exact to the widget size
+            let from = from + 50;
+            let to = to + 25;
+
+            let music_duration = self
+                .cached_music
+                .as_ref()
+                .map_or(0.0, |music| music.sound.duration().as_secs_f64());
+            let from = time_to_seconds(from.max(0)).as_f32() as f64 / music_duration.max(1.0);
+            let to = time_to_seconds(to.max(0)).as_f32() as f64 / music_duration.max(1.0);
+            // NOTE: rounding to divisible by 9 to ensure the triangular vertex count
+            // Specifically 9 because there are 3 triangles per waveform bar.
+            let from =
+                ((from * waveform.len() as f64) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let to = ((to * waveform.len() as f64) as usize).clamp(0, waveform.len() - 1) / 9 * 9;
+            let music_offset = self.music_offset;
+
+            if from < to {
+                // render at the scale of the timeline
+                let waveform = &waveform[from..to];
+                let triangles: Vec<_> = waveform
+                    .iter()
+                    .map(|&pos| {
+                        let pos =
+                            pos * vec2(
+                                self.scale * TIME_IN_FLOAT_TIME as f32,
+                                self.allocated_position.position.height() * 0.5,
+                            ) + self.main_line.position.center()
+                                + vec2((self.scroll - music_offset) as f32 * self.scale, 0.0);
+                        ctl_ui::geometry::GeometryTriangleVertex {
+                            a_z: 0.0,
+                            a_pos: pos,
+                            a_color: ctl_util::with_alpha(theme.light, 0.5),
+                            a_vt: vec2::ZERO,
+                        }
+                    })
+                    .collect();
+                geometry.merge(context.geometry.custom(triangles));
+            }
         }
 
         // NOTE: mask is done manually because it weirdly affects the rendering order
@@ -1425,17 +1597,20 @@ struct IconWidget {
     state: WidgetState,
     texture: SubTexture,
     color: ThemeColor,
+    ppu: f32,
 }
 
 impl IconWidget {
     pub fn new(texture: SubTexture) -> Self {
         Self {
-            state: default(),
+            state: WidgetState::new(),
             texture,
             color: ThemeColor::Light,
+            ppu: 1.0,
         }
     }
-    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, ppu: f32) {
+        self.ppu = ppu;
         self.state.update(position, context);
     }
 }
@@ -1443,7 +1618,7 @@ impl IconWidget {
 impl Widget for IconWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
+        let pixel_scale = self.ppu;
         let theme = context.theme();
         let mut geometry = Geometry::new();
 
@@ -1473,6 +1648,7 @@ struct IconButtonWidget {
     color: ThemeColor,
     bg_color: ThemeColor,
     highlight: HighlightMode,
+    ppu: f32,
 }
 
 impl IconButtonWidget {
@@ -1483,6 +1659,7 @@ impl IconButtonWidget {
             color: ThemeColor::Light,
             bg_color: ThemeColor::Dark,
             highlight: HighlightMode::SwapColors,
+            ppu: 1.0,
         }
     }
 
@@ -1491,7 +1668,8 @@ impl IconButtonWidget {
         self
     }
 
-    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
+    pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, ppu: f32) {
+        self.ppu = ppu;
         self.state.update(position, context);
         context.update_focus(self.state.hovered);
     }
@@ -1500,9 +1678,9 @@ impl IconButtonWidget {
 impl Widget for IconButtonWidget {
     simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
-        let pixel_scale = PPU;
+        let pixel_scale = self.ppu;
         let theme = context.theme();
-        let outline_width = pixel_scale as f32 * 3.0;
+        let outline_width = pixel_scale * 3.0;
         let mut geometry = Geometry::new();
 
         let mut fg_color = theme.get_color(self.color);
@@ -1514,7 +1692,7 @@ impl Widget for IconButtonWidget {
                     std::mem::swap(&mut fg_color, &mut bg_color);
                 }
 
-                let size = self.texture.size() * pixel_scale;
+                let size = (self.texture.size().as_f32() * pixel_scale).map(|x| x.round() as usize);
                 let position = geng_utils::pixel::pixel_perfect_aabb(
                     self.state.position.center(),
                     vec2(0.5, 0.5),
@@ -1530,7 +1708,7 @@ impl Widget for IconButtonWidget {
                     &self.texture,
                 ));
                 geometry.merge(context.geometry.quad_fill(
-                    position.extend_uniform(outline_width + pixel_scale as f32),
+                    position.extend_uniform(outline_width + pixel_scale),
                     outline_width,
                     bg_color,
                 ));
@@ -1569,4 +1747,36 @@ fn editor_event_time(id: EditorEventIdx, level_editor: &LevelEditor) -> Option<T
         }
         EditorEventIdx::Timing(idx) => Some(level_editor.level.timing.points.get(idx)?.time),
     }
+}
+
+fn build_waveform(sound: &[f32], sample_rate: f32) -> Vec<vec2<f32>> {
+    let mut triangles = Vec::new();
+
+    let mut prev_amp = 0.0;
+    let mut prev_x = 0.0;
+    const CHUNK_SIZE: usize = 400;
+    let (chunks, _) = sound.as_chunks::<CHUNK_SIZE>();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let amp: f32 = chunk.iter().map(|&amp| amp.abs() / CHUNK_SIZE as f32).sum();
+        let amp = amp.sqrt().min(1.0);
+        let x = i as f32 / sample_rate * CHUNK_SIZE as f32; // Time in seconds
+        triangles.extend([
+            // top left
+            vec2(prev_x, 0.0),
+            vec2(x, amp),
+            vec2(prev_x, prev_amp),
+            // mid
+            vec2(prev_x, 0.0),
+            vec2(x, -amp),
+            vec2(x, amp),
+            // bottom left
+            vec2(prev_x, 0.0),
+            vec2(prev_x, -prev_amp),
+            vec2(x, -amp),
+        ]);
+        prev_amp = amp;
+        prev_x = x;
+    }
+
+    triangles
 }

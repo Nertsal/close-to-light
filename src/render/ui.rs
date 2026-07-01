@@ -128,7 +128,14 @@ impl UiRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let size = texture.size().as_f32() * pixel_scale * get_pixel_scale(framebuffer.size());
-        let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+        // let pos = crate::ui::layout::align_aabb(size, quad, vec2(0.5, 0.5));
+        let pos = geng_utils::pixel::pixel_perfect_aabb(
+            quad.center(),
+            vec2(0.5, 0.5),
+            size.map(|x| x.round() as usize),
+            &geng::PixelPerfectCamera,
+            framebuffer.size().as_f32(),
+        );
         self.context.geng.draw2d().draw2d(
             framebuffer,
             &geng::PixelPerfectCamera,
@@ -906,6 +913,7 @@ impl UiRender {
                     self.draw_slider(&graphics.blue, theme, framebuffer);
                     self.draw_slider(&graphics.saturation, theme, framebuffer);
                     self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
+                    self.draw_slider(&graphics.telegraph_brightness, theme, framebuffer);
                     self.draw_color_select(&graphics.perfect_color, theme, framebuffer);
                 }
 
@@ -936,6 +944,8 @@ impl UiRender {
         // Preview effect
         let preview = if ui.options.graphics.telegraph_color.state.hovered {
             Some(ui.options.graphics.telegraph_color.state.position)
+        } else if ui.options.graphics.telegraph_brightness.state.hovered {
+            Some(ui.options.graphics.telegraph_brightness.state.position)
         } else if ui.options.graphics.perfect_color.state.hovered {
             Some(ui.options.graphics.perfect_color.state.position)
         } else {
@@ -946,7 +956,7 @@ impl UiRender {
                 masked,
                 dither,
                 &state.preview,
-                options,
+                &options,
                 hovered,
                 framebuffer,
             );
@@ -1029,33 +1039,19 @@ impl UiRender {
         }
     }
 
-    fn draw_preview(
-        &mut self,
-        masked: &mut MaskedRender,
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_level(
+        &self,
         dither: &mut DitherRender,
-        preview: &GameplayPreview,
-        options: Options,
-        setting: Aabb2<f32>,
-        old_framebuffer: &mut ugli::Framebuffer,
+        level_state: &LevelState,
+        player: Option<&Player>,
+        camera: &Camera2d,
+        options: &Options,
+        real_time: FloatTime,
     ) {
-        let font_size = old_framebuffer.size().y as f32 * 0.04;
-
-        let mut framebuffer = dither.start();
-
-        let level_state = &preview.state;
-        let camera = &preview.camera;
         let theme = options.theme;
 
-        // Telegraphs
-        for tele in &level_state.telegraphs {
-            let color = if tele.light.danger {
-                THEME.danger
-            } else {
-                THEME.get_color(options.graphics.lights.telegraph_color)
-            };
-            self.util
-                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
-        }
+        let mut framebuffer = dither.start();
 
         // Lights
         for light in &level_state.lights {
@@ -1073,11 +1069,49 @@ impl UiRender {
             );
         }
 
-        self.util
-            .draw_player_with(&options, &preview.player, camera, &mut framebuffer);
+        if let Some(player) = player {
+            self.util
+                .draw_player_with(options, player, camera, &mut framebuffer);
+        }
 
-        dither.finish(preview.real_time, &theme);
+        dither.finish(real_time, &theme);
+        let mut framebuffer = dither.post();
 
+        // Telegraphs
+        for tele in &level_state.telegraphs {
+            let mut color = if tele.light.danger {
+                theme.danger
+            } else {
+                theme.get_color(options.graphics.lights.telegraph_color)
+            };
+            color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness);
+            self.util
+                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+        }
+    }
+
+    fn draw_preview(
+        &mut self,
+        masked: &mut MaskedRender,
+        dither: &mut DitherRender,
+        preview: &GameplayPreview,
+        options: &Options,
+        setting: Aabb2<f32>,
+        old_framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let font_size = old_framebuffer.size().y as f32 * 0.04;
+
+        // Render the level
+        self.draw_level(
+            dither,
+            &preview.state,
+            Some(&preview.player),
+            &preview.camera,
+            options,
+            preview.real_time,
+        );
+
+        // Draw the window
         let popup_size = vec2(PREVIEW_RESOLUTION.as_f32().aspect(), 1.0) * 6.0 * font_size;
         let mut popup = Aabb2::point(setting.top_left() + vec2(-2.0, 1.5) * font_size)
             .extend_positive(popup_size);
@@ -1140,6 +1174,7 @@ impl UiRender {
                 // Text
                 let mut text = TextWidget::new("Adjust offset until audio matches visual")
                     .aligned(vec2(0.0, 1.0));
+                text.options.color = theme.light;
                 text.options.size = font_size;
                 text.state.position = popup.extend_uniform(-width);
                 self.draw_text_wrapped(&text, framebuffer);

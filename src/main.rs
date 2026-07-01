@@ -2,6 +2,7 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 mod command;
+#[cfg(feature = "editor")]
 mod editor;
 mod game;
 #[cfg(not(target_arch = "wasm32"))]
@@ -48,9 +49,11 @@ struct Opts {
 #[derive(geng::asset::Load, Deserialize, Clone)]
 #[load(serde = "toml")]
 pub struct Secrets {
+    #[cfg(feature = "online")]
     leaderboard: LeaderboardSecrets,
 }
 
+#[cfg(feature = "online")]
 #[derive(Deserialize, Clone)]
 pub struct LeaderboardSecrets {
     url: String,
@@ -187,31 +190,45 @@ async fn load_everything(
                 None
             }
         };
+    #[allow(clippy::unnecessary_lazy_evaluations)]
     let secrets = secrets.or_else(|| {
-        let url = option_env!("LEADERBOARD_URL");
-        if url.is_none() {
-            log::debug!("LEADERBOARD_URL environment variable is not set, launching offline");
-            return None;
-        }
-        log::debug!("Loaded LEADERBOARD_URL");
         Some(Secrets {
+            #[cfg(feature = "online")]
             leaderboard: LeaderboardSecrets {
-                url: url?.to_string(),
+                url: {
+                    let url = option_env!("LEADERBOARD_URL");
+                    if url.is_none() {
+                        log::debug!(
+                            "LEADERBOARD_URL environment variable is not set, launching offline"
+                        );
+                        return None;
+                    }
+                    log::debug!("Loaded LEADERBOARD_URL");
+                    url?.to_string()
+                },
             },
         })
     });
 
     #[allow(unused_mut)] // used with only some features
-    let mut client = secrets
-        .as_ref()
-        .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
-        .transpose()?;
+    let mut client: Option<Nertboard> = {
+        #[cfg(not(feature = "online"))]
+        {
+            None
+        }
+        #[cfg(feature = "online")]
+        secrets
+            .as_ref()
+            .map(|secrets| ctl_client::Nertboard::new(&secrets.leaderboard.url))
+            .transpose()?
+    };
 
     // TODO: parallel client.ping
 
     #[cfg(feature = "steam")]
     let steam = {
         let steam = ctl_context::connect_steam();
+        #[cfg(feature = "online")]
         if let Some(steam) = &steam
             && let Some(client) = &mut client
         {

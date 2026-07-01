@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum EditorAction {
     Level(LevelAction),
+    SetMusicOffset(Time),
     SwitchTab(EditorTab),
     ToggleDynamicVisual,
     ToggleShowOnlySelected,
@@ -10,11 +11,13 @@ pub enum EditorAction {
     ToggleUI,
     ToggleGrid,
     ToggleGridSnap,
-    DeleteLevel(usize),
-    NewLevel,
-    ChangeLevel(usize),
-    MoveLevelLow(usize),
-    MoveLevelHigh(usize),
+
+    DeleteDiff(usize),
+    NewDiff,
+    ChangeDiff(usize),
+    MoveDiffLow(usize),
+    MoveDiffHigh(usize),
+
     PopupConfirm(ConfirmAction, Name, Name, Name),
     ClosePopup,
     SetConfig(EditorConfig),
@@ -44,6 +47,7 @@ impl Editor {
                     );
                 }
             }
+            EditorAction::SetMusicOffset(offset) => self.set_music_offset(offset),
             EditorAction::SwitchTab(tab) => self.tab = tab,
             EditorAction::ToggleDynamicVisual => self.visualize_beat = !self.visualize_beat,
             EditorAction::ToggleShowOnlySelected => {
@@ -54,17 +58,26 @@ impl Editor {
             EditorAction::ToggleGrid => {
                 self.render_options.show_grid = !self.render_options.show_grid
             }
-            EditorAction::ToggleGridSnap => self.snap_to_grid = !self.snap_to_grid,
-            EditorAction::DeleteLevel(i) => self.popup_confirm(
-                ConfirmAction::DeleteLevel(i),
-                "delete this difficulty",
-                "delete",
-                "cancel",
-            ),
-            EditorAction::NewLevel => self.create_new_level(),
-            EditorAction::ChangeLevel(i) => self.change_level(i),
-            EditorAction::MoveLevelLow(i) => self.move_level_low(i),
-            EditorAction::MoveLevelHigh(i) => self.move_level_high(i),
+            EditorAction::ToggleGridSnap => {
+                self.snap_to_grid.permanent = !self.snap_to_grid.permanent
+            }
+            EditorAction::DeleteDiff(i) => {
+                if let Some(diff) = self.group.cached.local.meta.levels.get(i) {
+                    self.popup_confirm(
+                        ConfirmAction::DeleteDiff(i),
+                        format!(
+                            "Delete difficulty \'{}\'\nThis action cannot be undone!",
+                            diff.name
+                        ),
+                        "delete",
+                        "cancel",
+                    )
+                }
+            }
+            EditorAction::NewDiff => self.create_new_level(),
+            EditorAction::ChangeDiff(i) => self.change_level(i),
+            EditorAction::MoveDiffLow(i) => self.move_level_low(i),
+            EditorAction::MoveDiffHigh(i) => self.move_level_high(i),
             EditorAction::PopupConfirm(action, message, confirm, discard) => {
                 self.popup_confirm(action, message, confirm, discard)
             }
@@ -106,6 +119,7 @@ impl Editor {
                         old_state: Box::new(level_editor.state.clone()),
                     };
                     if let Some(music) = &level_editor.static_level.group.music {
+                        // TODO: apply offset
                         let time = time_to_seconds(level_editor.current_time.target);
                         self.context.music.play_from(
                             music,

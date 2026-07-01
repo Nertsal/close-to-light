@@ -79,14 +79,13 @@ trigger seizures for people with photosensitive epilepsy
 
         self.post.post_process(
             &options,
-            &crate::render::post::PostVfx {
-                time: self.time,
-                crt: options.graphics.crt.enabled,
-                rgb_split: 0.0,
-                colors: options.graphics.colors,
-            },
+            &crate::render::post::PostVfx::minimal(
+                self.time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
+            framebuffer,
         );
-        self.post.finish(framebuffer);
     }
 
     fn update(&mut self, delta_time: f64) {

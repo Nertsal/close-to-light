@@ -24,7 +24,7 @@ impl GameplayPreview {
                     scale: 1.0,
                 },
             },
-            state: LevelState::render(&level, 0, None, None),
+            state: LevelState::render(&level, 0, None, None, false),
             level,
             player: Player::new(Collider::new(vec2::ZERO, Shape::circle(r32(0.5))), r32(1.0)),
             real_time: FloatTime::ZERO,
@@ -55,7 +55,7 @@ impl GameplayPreview {
                 light.movement.get_fade_in() + seconds_to_time(self.real_time) % duration;
         }
 
-        self.state = LevelState::render(&self.level, self.render_time, None, None);
+        self.state = LevelState::render(&self.level, self.render_time, None, None, false);
 
         if let Some(light) = self.state.lights.first() {
             self.player.collider.position = light.collider.position;

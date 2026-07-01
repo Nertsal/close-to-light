@@ -129,7 +129,7 @@ impl StatefulWidget for RegisterWidget {
         &mut self,
         position: Aabb2<f32>,
         context: &mut UiContext,
-        state: &mut Self::State<'_>,
+        #[allow(unused_variables)] state: &mut Self::State<'_>,
     ) {
         self.state.update(position, context);
 
@@ -175,12 +175,14 @@ impl StatefulWidget for RegisterWidget {
             with.update(pos, context);
         }
 
+        #[allow(unused_mut)]
         let mut login = false;
+        #[cfg(feature = "online")]
         if self.discord.icon.state.mouse_left.clicked {
             state.get_mut().login_discord();
             login = true;
         }
-        #[cfg(feature = "steam")]
+        #[cfg(all(feature = "steam", feature = "online"))]
         if self.steam.icon.state.mouse_left.clicked {
             state.get_mut().login_steam();
             login = true;
@@ -219,6 +221,7 @@ impl StatefulWidget for LoggedWidget {
         self.username.update(rows[0], context);
 
         self.logout.update(rows[1], context);
+        #[cfg(feature = "online")]
         if self.logout.text.state.mouse_left.clicked {
             state.get_mut().logout();
             let mut options = context.context.get_options();

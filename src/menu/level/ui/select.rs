@@ -48,7 +48,7 @@ pub enum LevelsFilter {
 pub struct SelectLightUi {
     pub radius: f32,
     pub pos_x: f32,
-    pub light_y: ctl_util::Lerp<f32>,
+    pub light_y: SecondOrderState<f32>,
     // pub telegraph_y: ctl_util::Lerp<f32>,
 }
 
@@ -57,7 +57,7 @@ impl Default for SelectLightUi {
         Self {
             radius: 0.0,
             pos_x: 0.0,
-            light_y: ctl_util::Lerp::new_smooth(0.25, 0.0, 0.0),
+            light_y: SecondOrderState::new(3.0, 1.0, 0.0, 0.0),
             // telegraph_y: ctl_util::Lerp::new_smooth(0.25, 0.0, 0.0),
         }
     }
@@ -74,6 +74,7 @@ impl SelectLightUi {
 pub enum LevelSelectAction {
     EditDifficulty(Index, usize),
     DeleteDifficulty(Index, usize),
+    #[cfg(feature = "online")]
     SyncGroup(Index),
     EditGroup(Index),
     DeleteGroup(Index),
@@ -175,6 +176,9 @@ impl LevelSelectUI {
             tooltip = Some((self.tab_new.icon.state.position, "Create Level"));
         }
         if self.tab_new.icon.state.mouse_left.clicked {
+            #[cfg(not(feature = "editor"))]
+            state.editor_not_available();
+            #[cfg(feature = "editor")]
             state.popup_confirm(
                 ConfirmAction::CreateLevel,
                 "Create a new Custom Level",
@@ -214,11 +218,15 @@ impl LevelSelectUI {
         self.tabs(bar.extend_symmetric(-vec2(light_size, 0.0)), context);
 
         if self.light_level.pos_x == 0.0 {
-            self.light_level.light_y.snap_to(bar.center().y);
+            self.light_level
+                .light_y
+                .snap_to(bar.center().y, context.delta_time);
             // self.light_level.telegraph_y.snap_to(bar.center().y);
         }
         if self.light_diff.pos_x == 0.0 {
-            self.light_diff.light_y.snap_to(bar.center().y);
+            self.light_diff
+                .light_y
+                .snap_to(bar.center().y, context.delta_time);
             // self.light_diff.telegraph_y.snap_to(bar.center().y);
         }
 
@@ -238,22 +246,18 @@ impl LevelSelectUI {
         action = action.or(act);
 
         match state.switch_level {
-            None => self.light_level.light_y.change_target(bar.center().y),
+            None => self.light_level.light_y.target = bar.center().y,
             Some(selected) => {
                 if let Some(widget) = self.levels.iter().find(|level| level.index == selected) {
-                    self.light_level
-                        .light_y
-                        .change_target(widget.state.position.center().y)
+                    self.light_level.light_y.target = widget.state.position.center().y
                 }
             }
         }
         match state.switch_diff {
-            None => self.light_diff.light_y.change_target(bar.center().y),
+            None => self.light_diff.light_y.target = bar.center().y,
             Some(selected) => {
                 if let Some(widget) = self.diffs.iter().find(|diff| diff.index == selected) {
-                    self.light_diff
-                        .light_y
-                        .change_target(widget.state.position.center().y)
+                    self.light_diff.light_y.target = widget.state.position.center().y
                 }
             }
         }
@@ -348,7 +352,7 @@ impl LevelSelectUI {
             action = action.or(act);
             if widget.state.mouse_left.clicked {
                 state.select_level(widget.index);
-                self.light_level.light_y.change_target(pos.center().y);
+                self.light_level.light_y.target = pos.center().y;
             }
             // if widget.state.hovered {
             //     self.light_level.telegraph_y.change_target(pos.center().y);
@@ -489,7 +493,7 @@ impl LevelSelectUI {
             action = action.or(act);
             if widget.state.mouse_left.clicked {
                 state.select_difficulty(widget.index);
-                self.light_diff.light_y.change_target(pos.center().y);
+                self.light_diff.light_y.target = pos.center().y;
             }
             // if widget.state.hovered {
             //     self.light_diff.telegraph_y.change_target(pos.center().y);
@@ -520,12 +524,7 @@ pub struct ItemLevelWidget {
 
 impl ItemLevelWidget {
     pub fn new(assets: &Rc<Assets>, text: impl Into<Name>, index: Index) -> Self {
-        let mut menu = ItemMenuWidget::new(assets);
-
-        if cfg!(feature = "demo") {
-            menu.sync.hide(); // NOTE: Disabled in demo
-        }
-
+        let menu = ItemMenuWidget::new(assets);
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
             iconless_state: WidgetState::new().with_sfx(WidgetSfxConfig::all()),
@@ -549,6 +548,12 @@ impl ItemLevelWidget {
             self.menu.delete.hide();
         } else {
             self.menu.delete.show();
+        }
+        if cfg!(feature = "online") && !cfg!(feature = "demo") {
+            self.menu.sync.show();
+        } else {
+            // Cannot synchronise in offline mode or demo
+            self.menu.sync.hide();
         }
 
         self.index = group_id;
@@ -597,7 +602,7 @@ impl ItemLevelWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+        if self.state.mouse_right.clicked && (!cfg!(feature = "demo") || cfg!(feature = "editor")) {
             // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
@@ -647,7 +652,10 @@ impl ItemLevelWidget {
         if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditGroup(self.index));
         } else if self.menu.sync.icon.state.mouse_left.clicked {
-            action = Some(LevelSelectAction::SyncGroup(self.index));
+            #[cfg(feature = "online")]
+            {
+                action = Some(LevelSelectAction::SyncGroup(self.index));
+            }
         } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteGroup(self.index));
         }
@@ -753,7 +761,7 @@ impl ItemDiffWidget {
         mut position: Aabb2<f32>,
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
-        if self.state.mouse_right.clicked && !cfg!(feature = "demo") {
+        if self.state.mouse_right.clicked && (!cfg!(feature = "demo") || cfg!(feature = "editor")) {
             // Disabled in demo
             self.menu.window.request = Some(WidgetRequest::Open);
             self.menu.show();
@@ -795,7 +803,10 @@ impl ItemDiffWidget {
         if self.menu.edit.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::EditDifficulty(self.group, self.index));
         } else if self.menu.sync.icon.state.mouse_left.clicked {
-            action = Some(LevelSelectAction::SyncGroup(self.group));
+            #[cfg(feature = "online")]
+            {
+                action = Some(LevelSelectAction::SyncGroup(self.group));
+            }
         } else if self.menu.delete.icon.state.mouse_left.clicked {
             action = Some(LevelSelectAction::DeleteDifficulty(self.group, self.index));
         }

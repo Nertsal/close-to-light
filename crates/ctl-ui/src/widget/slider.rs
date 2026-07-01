@@ -52,6 +52,23 @@ impl SliderWidget {
         *state = bounded.value();
     }
 
+    pub fn update_value_percent(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &UiContext,
+        state: &mut f32,
+        range: RangeInclusive<f32>,
+    ) {
+        let mut value = *state * 100.0;
+        self.update_value(
+            position,
+            context,
+            &mut value,
+            range.start() * 100.0..=range.end() * 100.0,
+        );
+        *state = value / 100.0;
+    }
+
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext, state: &mut Bounded<f32>) {
         self.state.update(
             position.with_width(position.width() + context.font_size * 0.5, 0.5),
@@ -74,10 +91,11 @@ impl SliderWidget {
         self.value.format = InputFormat::Float {
             precision: self.precision,
         };
-        // self.value.text =
-        //     format!("{:.precision$}", state.value(), precision = self.precision).into();
         if !self.value.editing {
-            self.value.sync(&state.value().to_string(), context);
+            self.value.sync(
+                &format!("{:.precision$}", state.value(), precision = self.precision),
+                context,
+            );
         }
         self.value.update(value, context);
         if !self.value.editing

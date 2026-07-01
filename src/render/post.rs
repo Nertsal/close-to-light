@@ -5,8 +5,9 @@ use ctl_assets::GraphicsColorsOptions;
 pub struct PostContext {
     pub geng: Geng,
     pub shader_crt: Rc<ugli::Program>,
-    pub shader_rgb_split: Rc<ugli::Program>,
+    pub shader_noise_effects: Rc<ugli::Program>,
     pub shader_color_correction: Rc<ugli::Program>,
+    pub shader_masked_sdf: Rc<ugli::Program>,
 }
 
 /// Renderer responsible for common post-processing effects, such as crt.
@@ -20,8 +21,37 @@ pub struct PostRender {
 pub struct PostVfx {
     pub time: FloatTime,
     pub crt: bool,
+    pub vignette: f32,
+    pub curvature: f32,
     pub rgb_split: f32,
+    pub noise_offset: f32,
     pub colors: GraphicsColorsOptions,
+}
+
+impl PostVfx {
+    pub fn new(vfx: &Vfx, time: FloatTime, crt: bool, colors: GraphicsColorsOptions) -> Self {
+        Self {
+            time,
+            crt,
+            vignette: vfx.vignette.value.current.as_f32(),
+            curvature: vfx.curvature.value.current.as_f32(),
+            rgb_split: vfx.rgb_split.value.current.as_f32(),
+            noise_offset: vfx.noise_offset.value.current.as_f32(),
+            colors,
+        }
+    }
+
+    pub fn minimal(time: FloatTime, crt: bool, colors: GraphicsColorsOptions) -> Self {
+        Self {
+            time,
+            crt,
+            vignette: 0.0,
+            curvature: 0.0,
+            rgb_split: 0.0,
+            noise_offset: 0.0,
+            colors,
+        }
+    }
 }
 
 fn init_buffers(ugli: &Ugli, size: vec2<usize>) -> (ugli::Texture, ugli::Texture) {
@@ -37,8 +67,9 @@ impl PostRender {
         Self::new_with(PostContext {
             geng: context.geng.clone(),
             shader_crt: context.assets.shaders.crt.clone(),
-            shader_rgb_split: context.assets.shaders.rgb_split.clone(),
+            shader_noise_effects: context.assets.shaders.noise_effects.clone(),
             shader_color_correction: context.assets.shaders.color_correction.clone(),
+            shader_masked_sdf: context.assets.shaders.masked_sdf.clone(),
         })
     }
 
@@ -90,7 +121,8 @@ impl PostRender {
         geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli())
     }
 
-    pub fn post_process(&mut self, options: &Options, vfx: &PostVfx) {
+    /// Apply the postprocessing effects internally.
+    pub fn self_process(&mut self, options: &Options, vfx: &PostVfx) {
         macro_rules! swap {
             () => {{
                 std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
@@ -103,7 +135,11 @@ impl PostRender {
         }
 
         // CRT
-        if vfx.crt {
+        {
+            let crt_mult = if vfx.crt { 1.0 } else { 0.0 };
+            let curvature = options.graphics.crt.curvature * crt_mult + vfx.curvature;
+            let vignette = options.graphics.crt.vignette * crt_mult + vfx.vignette;
+            let scanlines = options.graphics.crt.scanlines * crt_mult;
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,
@@ -113,9 +149,9 @@ impl PostRender {
                 ugli::uniforms! {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
-                    u_curvature: options.graphics.crt.curvature,
-                    u_vignette_multiplier: options.graphics.crt.vignette,
-                    u_scanlines_multiplier: options.graphics.crt.scanlines,
+                    u_curvature: curvature,
+                    u_vignette_multiplier: vignette,
+                    u_scanlines_multiplier: scanlines,
                 },
                 ugli::DrawParameters::default(),
             );
@@ -126,13 +162,14 @@ impl PostRender {
             let (texture, mut buffer) = swap!();
             ugli::draw(
                 &mut buffer,
-                &self.context.shader_rgb_split,
+                &self.context.shader_noise_effects,
                 ugli::DrawMode::TriangleFan,
                 &self.unit_quad,
                 ugli::uniforms! {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
-                    u_offset: 0.01 * vfx.rgb_split,
+                    u_rgb_offset: 0.01 * vfx.rgb_split,
+                    u_noise_offset: vfx.noise_offset,
                 },
                 ugli::DrawParameters::default(),
             );
@@ -156,13 +193,45 @@ impl PostRender {
         }
     }
 
-    pub fn finish(&mut self, framebuffer: &mut ugli::Framebuffer) {
+    /// Apply the postprocessing effects and render the final result to the framebuffer.
+    pub fn post_process(
+        &mut self,
+        options: &Options,
+        vfx: &PostVfx,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.self_process(options, vfx);
+        self.render_noop(framebuffer);
+    }
+
+    /// Render the current framebuffer directly without applying extra effects.
+    pub fn render_noop(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.context.geng.draw2d().textured_quad(
             framebuffer,
             &geng::PixelPerfectCamera,
             Aabb2::ZERO.extend_positive(framebuffer.size().as_f32()),
             &self.swap_buffer.1,
             Color::WHITE,
+        );
+    }
+
+    pub fn apply_sdf_mask(&mut self, mask: &ugli::Texture, t: f32) {
+        std::mem::swap(&mut self.swap_buffer.0, &mut self.swap_buffer.1);
+        let mut buffer =
+            geng_utils::texture::attach_texture(&mut self.swap_buffer.1, self.context.geng.ugli());
+        let texture = &self.swap_buffer.0;
+        ugli::draw(
+            &mut buffer,
+            &self.context.shader_masked_sdf,
+            ugli::DrawMode::TriangleFan,
+            &self.unit_quad,
+            ugli::uniforms! {
+                u_mask_texture: mask,
+                u_color_texture: texture,
+                u_affect_color: 1.0,
+                u_t: t,
+            },
+            ugli::DrawParameters { ..default() },
         );
     }
 }

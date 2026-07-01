@@ -10,7 +10,7 @@ pub struct ModifiersWidget {
     pub body: WidgetState,
     pub description: Vec<TextWidget>,
     pub description_lerp: Lerp<f32>,
-    pub mods: Vec<ModButtonWidget>,
+    pub mods: Vec<Vec<ModButtonWidget>>,
     pub score_multiplier: TextWidget,
     pub separator: WidgetState,
 }
@@ -53,12 +53,25 @@ impl ModButtonWidget {
 
         self.icon.update(icon_pos, context);
 
-        let value = state.config.modifiers.get_mut(self.modifier);
-        self.selected = *value;
-        if self.state.mouse_left.clicked {
-            self.selected = !self.selected;
+        if let Some(value) = state.config.modifiers.get_mut(self.modifier) {
+            self.selected = *value;
+            if self.state.mouse_left.clicked {
+                *value = !*value;
+            }
+        } else if let Modifier::TimeScale(scale) = self.modifier {
+            self.selected = scale.cmp(&FloatTime::ONE)
+                == state.config.modifiers.time_scale.cmp(&FloatTime::ONE);
+            if self.state.mouse_left.clicked {
+                state.config.modifiers.time_scale =
+                    if self.selected { FloatTime::ONE } else { scale };
+            }
+        } else if let Modifier::LightMode(mode) = self.modifier {
+            let value = &mut state.config.modifiers.light;
+            self.selected = *value == Some(mode);
+            if self.state.mouse_left.clicked {
+                *value = if self.selected { None } else { Some(mode) }
+            }
         }
-        *value = self.selected;
     }
 }
 
@@ -72,10 +85,24 @@ impl ModifiersWidget {
             body: WidgetState::new(),
             description: Vec::new(),
             description_lerp: Lerp::new_smooth(0.25, 0.0, 0.0),
-            mods: [Modifier::NoFail, Modifier::Sudden, Modifier::Hidden]
-                .into_iter()
-                .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
-                .collect(),
+            mods: [
+                vec![Modifier::NoFail, Modifier::Sudden, Modifier::Hidden],
+                vec![
+                    Modifier::TimeScale(r32(0.75)),
+                    Modifier::TimeScale(r32(1.5)),
+                ],
+                vec![
+                    Modifier::LightMode(LightMode::Flashlight),
+                    Modifier::LightMode(LightMode::Spotlight),
+                ],
+            ]
+            .into_iter()
+            .map(|row| {
+                row.into_iter()
+                    .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
+                    .collect()
+            })
+            .collect(),
             score_multiplier: TextWidget::new(""),
             separator: WidgetState::new(),
         }
@@ -125,7 +152,9 @@ impl ModifiersWidget {
 
         let t = crate::util::smoothstep(self.body_slide.get_ratio());
 
-        let mut body_height = 4.0 * context.font_size + 0.1 * context.layout_size;
+        let buttons_height = (self.mod_rows() as f32) * context.font_size * 1.8;
+        // let mut body_height = 2.5 * context.font_size + 0.1 * context.layout_size + buttons_height;
+        let mut body_height = buttons_height + 3.0 * context.layout_size + 1.0 * context.font_size;
         if self.description_lerp.current() > 0.0 {
             body_height += self.description_lerp.current();
         }
@@ -150,7 +179,7 @@ impl ModifiersWidget {
         if self.body.visible && body_size.y > 20.0 {
             let mut main = body.extend_uniform(-context.layout_size);
 
-            let buttons = main.cut_bottom(1.7 * context.font_size);
+            let buttons = main.cut_bottom(buttons_height);
 
             let mut multipler = main.cut_bottom(1.0 * context.font_size);
             multipler.cut_bottom(context.layout_size);
@@ -169,10 +198,17 @@ impl ModifiersWidget {
             self.update_description(main, context);
             self.update_buttons(buttons, state, context);
         }
+
+        context.update_focus(self.body.hovered);
     }
 
-    pub fn update_description(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
-        if let Some(widget) = self.mods.iter().find(|widget| widget.state.hovered) {
+    fn update_description(&mut self, main: Aabb2<f32>, context: &mut UiContext) {
+        if let Some(widget) = self
+            .mods
+            .iter()
+            .flatten()
+            .find(|widget| widget.state.hovered)
+        {
             let modifier = &widget.modifier;
             let lines = crate::util::wrap_text(
                 &context.font,
@@ -201,24 +237,25 @@ impl ModifiersWidget {
         self.description_lerp.update(context.delta_time);
     }
 
-    pub fn update_buttons(
-        &mut self,
-        main: Aabb2<f32>,
-        state: &mut MenuState,
-        context: &mut UiContext,
-    ) {
-        let columns = self.mods.len();
-        let spacing = 1.0 * context.layout_size;
+    fn mod_rows(&self) -> usize {
+        self.mods.len()
+    }
 
-        let button_size = vec2(
-            (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
-            2.0 * context.font_size,
-        );
-        let button = main.align_aabb(button_size, vec2(0.5, 0.5));
-        let stack =
-            button.stack_aligned(vec2(button_size.x + spacing, 0.0), columns, vec2(0.5, 0.5));
-        for (widget, pos) in self.mods.iter_mut().zip(stack) {
-            widget.update(pos, state, context);
+    fn update_buttons(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
+        let spacing = 1.0 * context.layout_size;
+        let rows = self.mod_rows();
+        for (widget_row, row) in itertools::izip![&mut self.mods, main.split_rows(rows)] {
+            let columns = widget_row.len();
+            let button_size = vec2(
+                (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
+                1.9 * context.font_size,
+            );
+            let button = row.align_aabb(button_size, vec2(0.5, 0.5));
+            let stack =
+                button.stack_aligned(vec2(button_size.x + spacing, 0.0), columns, vec2(0.5, 0.5));
+            for (widget, pos) in itertools::izip![widget_row, stack] {
+                widget.update(pos, state, context);
+            }
         }
     }
 }

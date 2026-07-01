@@ -1,12 +1,15 @@
 use super::*;
 
+/// Radius (in world coordinates) where lights and waypoints are considered as hovered
+/// even when not exactly inside.
+const CURSOR_HOVER_RADIUS: f32 = 0.05;
+
 pub struct LevelEditor {
     pub context: Context,
     /// Static (initial) version of the level.
     pub static_level: PlayLevel,
     /// Current state of the level.
     pub level: Level,
-    pub name: String,
 
     /// Simulation model.
     pub model: Model,
@@ -41,15 +44,29 @@ pub enum Selection {
     Empty,
     Lights(Vec<LightId>),
     Waypoints(LightId, Vec<WaypointId>),
+    Events(Vec<TopLevelEventIdx>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TopLevelEventIdx {
     Event(usize),
     Timing(usize),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EditorEventIdx {
     Event(usize),
     Waypoint(LightId, WaypointId),
     Timing(usize),
+}
+
+impl From<TopLevelEventIdx> for EditorEventIdx {
+    fn from(value: TopLevelEventIdx) -> Self {
+        match value {
+            TopLevelEventIdx::Event(i) => EditorEventIdx::Event(i),
+            TopLevelEventIdx::Timing(i) => EditorEventIdx::Timing(i),
+        }
+    }
 }
 
 impl Selection {
@@ -62,13 +79,69 @@ impl Selection {
             Selection::Empty => true,
             Selection::Lights(light_ids) => light_ids.is_empty(),
             Selection::Waypoints(_, ids) => ids.is_empty(),
-            Selection::Event(_) => false,
-            Selection::Timing(_) => false,
+            Selection::Events(ids) => ids.is_empty(),
         }
     }
 
     pub fn clear(&mut self) {
         *self = Self::Empty;
+    }
+
+    pub fn update(&mut self, level: &Level) {
+        match self {
+            Selection::Empty => {}
+            Selection::Lights(light_ids) => {
+                if light_ids.is_empty() {
+                    *self = Selection::Empty;
+                }
+            }
+            Selection::Waypoints(light_id, waypoint_ids) => {
+                if waypoint_ids.is_empty() {
+                    *self = Selection::Lights(vec![*light_id]);
+                }
+            }
+            Selection::Events(events) => {
+                if events.is_empty() {
+                    *self = Selection::Empty;
+                } else if let Some(lights) = events
+                    .iter()
+                    .map(|id| {
+                        if let &TopLevelEventIdx::Event(i) = id
+                            && let Some(event) = level.events.get(i)
+                            && let Event::Light(_) = event.event
+                        {
+                            Some(LightId { event: i })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+                {
+                    // Only lights are selected
+                    *self = Selection::Lights(lights);
+                }
+            }
+        }
+    }
+
+    pub fn all_lights(&self, level: &Level) -> Vec<LightId> {
+        match self {
+            Selection::Lights(light_ids) => light_ids.clone(),
+            Selection::Events(events) => events
+                .iter()
+                .flat_map(|&id| {
+                    if let TopLevelEventIdx::Event(i) = id
+                        && let Some(event) = level.events.get(i)
+                        && let Event::Light(_) = &event.event
+                    {
+                        Some(LightId { event: i })
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            Selection::Empty | Selection::Waypoints(..) => vec![],
+        }
     }
 
     pub fn single(&self) -> Option<EditorEventIdx> {
@@ -81,8 +154,9 @@ impl Selection {
                 let id = *ids.first().unwrap();
                 EditorEventIdx::Waypoint(*light_id, id)
             }),
-            Selection::Event(idx) => Some(EditorEventIdx::Event(*idx)),
-            Selection::Timing(idx) => Some(EditorEventIdx::Timing(*idx)),
+            Selection::Events(ids) => (ids.len() == 1)
+                .then(|| ids.first().map(|&idx| idx.into()))
+                .flatten(),
         }
     }
 
@@ -101,8 +175,7 @@ impl Selection {
                 .iter()
                 .map(|id| EditorEventIdx::Waypoint(*light_id, *id))
                 .collect(),
-            Selection::Event(id) => vec![EditorEventIdx::Event(*id)],
-            Selection::Timing(id) => vec![EditorEventIdx::Timing(*id)],
+            Selection::Events(ids) => ids.iter().map(|&idx| idx.into()).collect(),
         }
     }
 
@@ -118,8 +191,35 @@ impl Selection {
                         .iter()
                         .any(|id| EditorEventIdx::Waypoint(*light_id, *id) == event_id)
             }
-            Selection::Event(id) => EditorEventIdx::Event(*id) == event_id,
-            Selection::Timing(id) => EditorEventIdx::Timing(*id) == event_id,
+            Selection::Events(ids) => ids.iter().any(|&idx| EditorEventIdx::from(idx) == event_id),
+        }
+    }
+
+    pub fn add_event(&mut self, id: TopLevelEventIdx) {
+        self.merge(Selection::Events(vec![id]));
+    }
+
+    pub fn remove_event(&mut self, id: TopLevelEventIdx) {
+        match self {
+            Selection::Empty => {}
+            Selection::Lights(lights) => {
+                if let Some(i) = lights
+                    .iter()
+                    .position(|l| TopLevelEventIdx::Event(l.event) == id)
+                {
+                    lights.swap_remove(i);
+                }
+            }
+            Selection::Waypoints(light_id, _) => {
+                if TopLevelEventIdx::Event(light_id.event) == id {
+                    *self = Selection::Empty;
+                }
+            }
+            Selection::Events(ids) => {
+                if let Some(i) = ids.iter().position(|&idx| idx == id) {
+                    ids.swap_remove(i);
+                }
+            }
         }
     }
 
@@ -128,8 +228,7 @@ impl Selection {
             Selection::Empty => None,
             Selection::Lights(lights) => (lights.len() == 1).then(|| *lights.first().unwrap()),
             Selection::Waypoints(light, _) => Some(*light),
-            Selection::Event(_) => None,
-            Selection::Timing(_) => None,
+            Selection::Events(_) => None,
         }
     }
 
@@ -142,8 +241,7 @@ impl Selection {
             Selection::Empty => false,
             Selection::Lights(lights) => lights.contains(&id),
             Selection::Waypoints(light_id, _) => *light_id == id,
-            Selection::Event(_) => false,
-            Selection::Timing(_) => false,
+            Selection::Events(ids) => ids.contains(&TopLevelEventIdx::Event(id.event)),
         }
     }
 
@@ -156,8 +254,11 @@ impl Selection {
                 }
             }
             Selection::Waypoints(light_id, _) => *self = Self::Lights(vec![*light_id, id]),
-            Selection::Event(_) => *self = Self::Lights(vec![id]),
-            Selection::Timing(_) => *self = Self::Lights(vec![id]),
+            Selection::Events(ids) => {
+                if !ids.contains(&TopLevelEventIdx::Event(id.event)) {
+                    ids.push(TopLevelEventIdx::Event(id.event))
+                }
+            }
         }
     }
 
@@ -174,8 +275,14 @@ impl Selection {
                     *self = Selection::Empty;
                 }
             }
-            Selection::Event(_) => {}
-            Selection::Timing(_) => {}
+            Selection::Events(ids) => {
+                if let Some(i) = ids
+                    .iter()
+                    .position(|&idx| idx == TopLevelEventIdx::Event(id.event))
+                {
+                    ids.swap_remove(i);
+                }
+            }
         }
     }
 
@@ -186,8 +293,7 @@ impl Selection {
             Selection::Waypoints(light_id, waypoints) => {
                 (waypoints.len() == 1).then(|| (*light_id, *waypoints.first().unwrap()))
             }
-            Selection::Event(_) => None,
-            Selection::Timing(_) => None,
+            Selection::Events(_) => None,
         }
     }
 
@@ -200,8 +306,7 @@ impl Selection {
             Selection::Empty => false,
             Selection::Lights(_) => false,
             Selection::Waypoints(light, waypoints) => *light == light_id && waypoints.contains(&id),
-            Selection::Event(_) => false,
-            Selection::Timing(_) => false,
+            Selection::Events(_) => false,
         }
     }
 
@@ -219,8 +324,7 @@ impl Selection {
                     *waypoints = vec![id];
                 }
             }
-            Selection::Event(_) => *self = Self::Waypoints(light_id, vec![id]),
-            Selection::Timing(_) => *self = Self::Waypoints(light_id, vec![id]),
+            Selection::Events(_) => {}
         }
     }
 
@@ -238,8 +342,7 @@ impl Selection {
                     }
                 }
             }
-            Selection::Event(_) => {}
-            Selection::Timing(_) => {}
+            Selection::Events(_) => {}
         }
     }
 
@@ -263,8 +366,20 @@ impl Selection {
                     *self = Selection::Waypoints(light_id, waypoints);
                 }
             }
-            Selection::Event(_) => *self = other,
-            Selection::Timing(_) => *self = other,
+            Selection::Events(mut ids) => match self {
+                Selection::Lights(light_ids) => {
+                    ids.extend(light_ids.iter().map(|id| TopLevelEventIdx::Event(id.event)));
+                    ids.sort();
+                    ids.dedup();
+                    *self = Selection::Events(ids);
+                }
+                Selection::Events(event_ids) => {
+                    event_ids.extend(ids);
+                    event_ids.sort();
+                    event_ids.dedup();
+                }
+                _ => *self = Selection::Events(ids),
+            },
         }
     }
 }
@@ -278,10 +393,9 @@ impl LevelEditor {
     ) -> Self {
         let mut editor = Self {
             level: (*level.level.data).clone(),
-            name: level.level.meta.name.to_string(),
 
             level_state: EditorLevelState::default(),
-            current_time: TimeInterpolation::new(),
+            current_time: TimeInterpolation::new(3.0),
             timeline_zoom: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.5)),
             real_time: FloatTime::ZERO,
             timeline_light_hover: None,
@@ -455,52 +569,62 @@ impl LevelEditor {
         };
 
         match item {
-            ClipboardItem::Events(time, events) => {
-                let new_ids = (0..events.len())
-                    .map(|i| LightId {
-                        event: self.level.events.len() + i,
-                    })
-                    .collect();
-                self.level
-                    .events
-                    .extend(events.into_iter().map(|event| TimedEvent {
-                        time: self.current_time.target + event.time - time,
-                        event: event.event,
-                    }));
-                // Change selection to the new lights
-                self.selection = Selection::Lights(new_ids);
+            ClipboardItem::Events {
+                time,
+                events,
+                timing,
+            } => {
+                // Timing
+                let timing_len = self.level.timing.points.len();
+                self.level.timing.points.extend(
+                    timing
+                        .into_iter()
+                        .map(|timing| {
+                            let mut time = self.current_time.target + timing.event.time - time;
+                            if timing.beat_aligned {
+                                time = self.level.timing.snap_to_best_alignment(time).0;
+                            }
+                            TimingPoint {
+                                time,
+                                beat_time: timing.event.beat_time,
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                );
+                let sorted_idxs =
+                    ctl_util::argsort_by_key(&self.level.timing.points, |point| point.time);
+                let new_ids = sorted_idxs
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(sorted_idx, &new_idx)| {
+                        (new_idx >= timing_len).then_some(TopLevelEventIdx::Timing(sorted_idx))
+                    });
+                self.level.timing.points.sort_by_key(|point| point.time);
+
+                // Events
+                let events_len = self.level.events.len();
+                let new_ids = new_ids
+                    .chain((0..events.len()).map(|i| TopLevelEventIdx::Event(events_len + i)));
+                self.level.events.extend(events.into_iter().map(|event| {
+                    let mut time = event.event.time + self.current_time.target - time;
+                    if event.beat_aligned {
+                        time = self.level.timing.snap_to_best_alignment(time).0;
+                    }
+
+                    let mut event = event.event.event;
+                    if let Event::Light(light) = &mut event {
+                        // Beat align each waypoint
+                        beat_align_waypoints(&self.level.timing, time, light);
+                    }
+
+                    TimedEvent { time, event }
+                }));
+
+                // Change selection to the new events
+                self.selection = Selection::Events(new_ids.collect());
             }
         }
     }
-
-    // TODO: reimplement with smooth transition or smth
-    // /// Swap the palette at current time.
-    // fn palette_swap(&mut self) {
-    //     // Remove any already existing palette swap event at current time
-    //     let mut ids = Vec::new();
-    //     for (i, event) in self.level.events.iter().enumerate() {
-    //         if event.beat == self.current_beat {
-    //             if let Event::PaletteSwap = event.event {
-    //                 ids.push(i);
-    //             }
-    //         }
-    //     }
-
-    //     let add = ids.len() % 2 == 0;
-
-    //     // Remove events
-    //     for i in ids.into_iter().rev() {
-    //         self.level.events.swap_remove(i);
-    //     }
-
-    //     if add {
-    //         // Add a new palette swap event
-    //         self.level.events.push(TimedEvent {
-    //             beat: self.current_beat,
-    //             event: Event::PaletteSwap,
-    //         });
-    //     }
-    // }
 
     pub fn new_waypoint(&mut self) {
         if let Selection::Waypoints(..) = self.selection {
@@ -529,7 +653,7 @@ impl LevelEditor {
         }
     }
 
-    pub fn scroll_time(&mut self, delta: Time) {
+    pub fn scroll_time(&mut self, change: Change<Time>) {
         if let EditingState::Playing { .. } = self.state {
             return;
         }
@@ -537,7 +661,10 @@ impl LevelEditor {
         let margin = 100 * TIME_IN_FLOAT_TIME;
         let min = Time::ZERO;
         let max = margin + self.level.last_time();
-        let target = (self.current_time.target + delta).clamp(min, max);
+
+        let mut target = self.current_time.target;
+        change.apply(&mut target);
+        let target = target.clamp(min, max);
 
         let target_time = self.level.timing.snap_to_beat(target, self.beat_snap);
         self.current_time.scroll_time(Change::Set(target_time));
@@ -589,10 +716,10 @@ impl LevelEditor {
         let level = selected_level.as_ref().unwrap_or(&self.level);
 
         let static_level = static_time
-            .map(|time| LevelState::render(level, time, None, Some(&mut self.model.vfx)));
+            .map(|time| LevelState::render(level, time, None, Some(&mut self.model.vfx), false));
         let dynamic_level = dynamic_time.map(|time| {
             let vfx = static_time.is_none().then_some(&mut self.model.vfx);
-            LevelState::render(level, time, None, vfx)
+            LevelState::render(level, time, None, vfx, false)
         });
 
         let mut hovered_light = self.timeline_light_hover.take();
@@ -604,13 +731,29 @@ impl LevelEditor {
             hovered_light = cursor_world_pos.and_then(|cursor| {
                 // Check if the selected light is under the cursor to give it action priority
                 let selected = match &self.selection {
+                    Selection::Events(ids) => {
+                        // Priority to selected lights
+                        ids.iter().find_map(|id| {
+                            if let &TopLevelEventIdx::Event(id) = id {
+                                level
+                                    .lights
+                                    .iter()
+                                    .find(|light| light.event_id == Some(id))
+                                    .is_some_and(|light| light.contains_point(cursor))
+                                    .then_some(LightId { event: id })
+                            } else {
+                                None
+                            }
+                        })
+                    }
                     Selection::Lights(ids) => {
                         // Priority to selected lights
                         ids.iter()
                             .find(|id| {
                                 level
                                     .lights
-                                    .get(id.event)
+                                    .iter()
+                                    .find(|light| light.event_id == Some(id.event))
                                     .is_some_and(|light| light.contains_point(cursor))
                             })
                             .copied()
@@ -620,7 +763,7 @@ impl LevelEditor {
                         .get(id.event)
                         .is_some_and(|light| light.contains_point(cursor))
                         .then_some(*id),
-                    Selection::Empty | Selection::Event(_) | Selection::Timing(_) => None,
+                    Selection::Empty => None,
                 };
                 selected.or_else(||
                         // Prioritise the light closest to the cursor
@@ -733,13 +876,15 @@ impl LevelEditor {
                 }
 
                 let hovered = cursor_world_pos.and_then(|cursor_world_pos| {
+                    let cursor_collider =
+                        Collider::circle(cursor_world_pos, r32(CURSOR_HOVER_RADIUS));
                     points
                         .iter()
                         .enumerate()
                         .filter(|(_, (point, _))| {
                             point.visible
-                                && (point.control.contains(cursor_world_pos)
-                                    || point.actual.contains(cursor_world_pos))
+                                && (point.control.check(&cursor_collider)
+                                    || point.actual.check(&cursor_collider))
                         })
                         .min_by_key(|(_, (_, time))| {
                             (self.current_time.value - event_time - *time).abs()
@@ -767,4 +912,19 @@ impl LevelEditor {
 
 pub fn commit_light(light: LightEvent) -> LightEvent {
     light
+}
+
+pub fn beat_align_waypoints(timing: &Timing, event_time: Time, light: &mut LightEvent) {
+    let mut prev_time = event_time;
+    let mut lerp_time = &mut light.movement.initial.lerp_time;
+    for waypoint in &mut light.movement.waypoints {
+        let snap = timing
+            .is_beat_aligned(prev_time + *lerp_time)
+            .unwrap_or(BeatTime::UNIT);
+        // TODO: not all waypoints need to be snapped
+        let waypoint_time = timing.snap_to_best_alignment(prev_time + *lerp_time).0;
+        *lerp_time = waypoint_time - prev_time;
+        prev_time = waypoint_time;
+        lerp_time = &mut waypoint.lerp_time;
+    }
 }

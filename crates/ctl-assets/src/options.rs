@@ -70,7 +70,7 @@ impl Default for GraphicsCrtOptions {
     fn default() -> Self {
         Self {
             enabled: true,
-            curvature: 20.0,
+            curvature: 0.05,
             vignette: 0.2,
             scanlines: 0.5,
         }
@@ -97,6 +97,7 @@ impl Default for GraphicsColorsOptions {
 #[serde(default)]
 pub struct GraphicsLightsOptions {
     pub telegraph_color: ThemeColor,
+    pub telegraph_brightness: f32,
     pub perfect_color: ThemeColor,
 }
 
@@ -104,9 +105,39 @@ impl Default for GraphicsLightsOptions {
     fn default() -> Self {
         Self {
             telegraph_color: ThemeColor::Light,
+            telegraph_brightness: 0.5,
             perfect_color: ThemeColor::Highlight,
         }
     }
+}
+
+impl GraphicsLightsOptions {
+    pub fn telegraph_brightness(&self, palette_swap: f32) -> f32 {
+        let swap_t = palette_swap * 2.0 - 1.0;
+        let modifier = (1.0 - self.telegraph_brightness) * swap_t;
+        1.0 + modifier
+    }
+}
+
+#[test]
+fn test_brightness() {
+    let mut options = GraphicsLightsOptions {
+        telegraph_brightness: 1.0,
+        ..default()
+    };
+    assert_eq!(options.telegraph_brightness(0.0), 1.0);
+    assert_eq!(options.telegraph_brightness(0.5), 1.0);
+    assert_eq!(options.telegraph_brightness(1.0), 1.0);
+
+    options.telegraph_brightness = 0.5;
+    assert_eq!(options.telegraph_brightness(0.0), 0.5);
+    assert_eq!(options.telegraph_brightness(0.5), 1.0);
+    assert_eq!(options.telegraph_brightness(1.0), 1.5);
+
+    options.telegraph_brightness = 0.0;
+    assert_eq!(options.telegraph_brightness(0.0), 0.0);
+    assert_eq!(options.telegraph_brightness(0.5), 1.0);
+    assert_eq!(options.telegraph_brightness(1.0), 2.0);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -102,14 +102,13 @@ impl geng::State for MediaState {
         }
         self.post.post_process(
             &Options::default(),
-            &PostVfx {
-                time: self.time,
-                crt: self.crt,
-                rgb_split: 0.0,
-                colors: ctl_assets::GraphicsColorsOptions::default(),
-            },
+            &PostVfx::minimal(
+                self.time,
+                self.crt,
+                ctl_assets::GraphicsColorsOptions::default(),
+            ),
+            framebuffer,
         );
-        self.post.finish(framebuffer);
     }
 
     fn update(&mut self, delta_time: f64) {

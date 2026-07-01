@@ -11,13 +11,22 @@ pub struct PlayGroup {
     pub music: Option<Rc<LocalMusic>>,
 }
 
+// #[derive(Debug, Clone)]
+// pub enum PlayMusic {
+//     Static(Rc<LocalMusic>),
+//     Streaming(MusicStreaming),
+// }
+
 #[derive(Debug, Clone)]
 pub struct PlayLevel {
+    // pub music: PlayMusic,
     pub group: PlayGroup,
     pub level_index: usize,
     pub level: LevelFull,
     pub config: LevelConfig,
+    pub music_offset: Time,
     pub start_time: Time,
+    pub end_time: Option<Time>,
     pub transition_button: Option<HoverButton>,
 }
 
@@ -31,7 +40,9 @@ pub struct HoverButton {
     pub base_collider: Collider,
     pub hover_time: Lifetime,
     pub animation: Movement,
-    pub clicked: bool,
+    pub animation_unfade: Movement,
+    pub force_fade: bool,
+    pub force_unfade: bool,
 }
 
 impl HoverButton {
@@ -44,7 +55,13 @@ impl HoverButton {
                 waypoints: vec![Waypoint::scale(seconds_to_time(0.25), 5.0)].into(),
                 last: TransformLight::scale(75.0),
             },
-            clicked: false,
+            animation_unfade: Movement {
+                initial: WaypointInitial::new(seconds_to_time(0.5), TransformLight::scale(0.0)),
+                waypoints: vec![].into(),
+                last: TransformLight::scale(75.0),
+            },
+            force_fade: false,
+            force_unfade: false,
         }
     }
 
@@ -52,7 +69,12 @@ impl HoverButton {
     /// based on the current hover_time and the set animation.
     pub fn get_relevant_collider(&self) -> Collider {
         let t = self.hover_time.get_ratio();
-        let scale = self.animation.get(seconds_to_time(t)).scale;
+        let animation = if self.force_unfade {
+            &self.animation_unfade
+        } else {
+            &self.animation
+        };
+        let scale = animation.get(seconds_to_time(t)).scale;
         self.base_collider
             .transformed(TransformLight { scale, ..default() })
     }
@@ -64,15 +86,17 @@ impl HoverButton {
     }
 
     pub fn reset(&mut self) {
-        self.clicked = false;
+        self.force_fade = false;
         self.hover_time.set_ratio(FloatTime::ZERO);
     }
 
     pub fn update(&mut self, hovering: bool, delta_time: FloatTime) {
-        let scale = if self.is_fading() {
-            self.clicked = false;
+        let scale = if self.force_unfade {
+            -1.0
+        } else if self.is_fading() {
+            self.force_fade = false;
             1.0
-        } else if self.clicked {
+        } else if self.force_fade {
             3.0
         } else if hovering {
             1.0
@@ -99,6 +123,13 @@ pub enum State {
         death_time_ms: Time,
     },
     Finished,
+}
+
+impl State {
+    /// Returns `true` when the player finished or lost the level.
+    pub fn ended(&self) -> bool {
+        matches!(self, Self::Lost { .. } | Self::Finished)
+    }
 }
 
 pub enum Transition {
@@ -214,7 +245,8 @@ impl Model {
             cursor_clicked: false,
             vfx: Vfx::new(),
 
-            music_offset: seconds_to_time(r32(options.gameplay.music_offset * 1e-3)),
+            music_offset: seconds_to_time(r32(options.gameplay.music_offset * 1e-3))
+                + level.group.cached.local.data.music_offset,
             level_state: LevelState::default(),
             state: State::Starting {
                 start_timer: FloatTime::ZERO, // reset during init

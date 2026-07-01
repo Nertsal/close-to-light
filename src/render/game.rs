@@ -13,6 +13,7 @@ pub struct GameRender {
     pub dither: DitherRender,
     masked: MaskedRender,
     masked2: MaskedRender,
+    pub cursor_sdf: ugli::Texture,
     pub util: UtilRender,
     pub ui: UiRender,
 
@@ -25,6 +26,10 @@ impl GameRender {
             dither: DitherRender::new(&context.geng, &context.assets),
             masked: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
             masked2: MaskedRender::new(&context.geng, &context.assets, vec2(1, 1)),
+            cursor_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                dither::DITHER_RESOLUTION,
+            ),
             util: UtilRender::new(context.clone()),
             ui: UiRender::new(context.clone()),
             context,
@@ -41,12 +46,36 @@ impl GameRender {
         &mut self,
         model: &Model,
         _debug_mode: bool,
-        dither: &mut DitherRender,
+        lights_sdf: &mut ugli::Texture,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {
         self.dither.set_noise(1.0);
-        let mut dither_buffer = dither.start();
+        let mut dither_buffer = self.dither.start();
         let options = self.context.get_options();
+
+        {
+            // Light SDF
+            let framebuffer =
+                &mut geng_utils::texture::attach_texture(lights_sdf, self.context.geng.ugli());
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util
+                .draw_level_sdf(&model.level_state, &model.camera, framebuffer);
+        }
+        {
+            // Cursor SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.cursor_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util.draw_light_sdf(
+                &Collider::circle(model.player.collider.position, r32(1.0)),
+                r32(-1.0),
+                THEME.light,
+                &model.camera,
+                framebuffer,
+            );
+        }
 
         let camera = &model.camera;
         let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
@@ -57,40 +86,6 @@ impl GameRender {
             .timing
             .get_timing(model.play_time_ms)
             .beat_time;
-
-        if !model.level.config.modifiers.sudden {
-            // Telegraphs
-            for tele in &model.level_state.telegraphs {
-                let color = if tele.light.danger {
-                    THEME.danger
-                } else {
-                    THEME.get_color(options.graphics.lights.telegraph_color)
-                };
-                self.util.draw_outline(
-                    &tele.light.collider,
-                    0.05,
-                    color,
-                    camera,
-                    &mut dither_buffer,
-                );
-            }
-            // Waypoints
-            // TODO: config
-            // for waypoint in &model.level_state.waypoints {
-            //     let color = if waypoint.light.danger {
-            //         THEME.danger
-            //     } else {
-            //         THEME.light
-            //     };
-            //     self.util.draw_outline(
-            //         &waypoint.light.collider,
-            //         0.05,
-            //         color,
-            //         camera,
-            //         &mut framebuffer,
-            //     );
-            // }
-        }
 
         if !model.level.config.modifiers.hidden {
             // Lights
@@ -166,7 +161,7 @@ impl GameRender {
             }
         }
 
-        if !model.level.config.modifiers.clean_auto {
+        if !model.level.config.modifiers.clean_auto && !model.state.ended() {
             self.util
                 .draw_player(&model.player, camera, &mut dither_buffer);
         }
@@ -198,16 +193,6 @@ impl GameRender {
             }
         }
 
-        if let State::Playing = model.state
-            && !model.level.config.modifiers.clean_auto
-        {
-            self.util.draw_health(
-                &model.player.health,
-                model.player.get_lit_state(),
-                &mut dither_buffer,
-            );
-        }
-
         // TODO: option
         // {
         //     // Rhythm
@@ -233,10 +218,43 @@ impl GameRender {
         //     }
         // }
 
-        dither.finish(model.real_time, &theme.transparent());
+        self.dither.finish(model.real_time, &theme);
+        let mut framebuffer = self.dither.post();
 
+        if !model.level.config.modifiers.sudden {
+            // Telegraphs
+            // NOTE: non-dithered to apply different coloring options
+            for tele in &model.level_state.telegraphs {
+                let mut color = if tele.light.danger {
+                    theme.danger
+                } else {
+                    theme.get_color(options.graphics.lights.telegraph_color)
+                };
+                color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness(0.0));
+                self.util
+                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+            }
+            // Waypoints
+            // TODO: config
+            // for waypoint in &model.level_state.waypoints {
+            //     let color = if waypoint.light.danger {
+            //         THEME.danger
+            //     } else {
+            //         THEME.light
+            //     };
+            //     self.util.draw_outline(
+            //         &waypoint.light.collider,
+            //         0.05,
+            //         color,
+            //         camera,
+            //         &mut framebuffer,
+            //     );
+            // }
+        }
+
+        // Draw the dithered
         let aabb = Aabb2::ZERO.extend_positive(old_framebuffer.size().as_f32());
-        geng_utils::texture::DrawTexture::new(dither.get_buffer())
+        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit(aabb, vec2(0.5, 0.5))
             .draw(
                 &geng::PixelPerfectCamera,
@@ -259,27 +277,50 @@ impl GameRender {
         let options = self.context.get_options();
         let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
 
+        // Draw player health bar
+        if let State::Playing = model.state
+            && !model.level.config.modifiers.clean_auto
+        {
+            self.util.draw_health(
+                &model.player.health,
+                model.player.get_lit_state(),
+                theme,
+                framebuffer,
+            );
+        }
+
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
         // let precision = model.score.calculated.precision.as_f32() * 100.0;
 
         if let State::Lost { .. } | State::Finished = model.state {
         } else if !model.level.config.modifiers.clean_auto {
+            // Score
             self.util.draw_text(
-                format!("SCORE: {}", model.score.calculated.combined),
-                vec2(-8.5, 4.5).as_r32(),
-                TextRenderOptions::new(0.7)
+                "SCORE",
+                vec2(-8.5, 4.85).as_r32(),
+                TextRenderOptions::new(0.85)
                     .color(theme.light)
-                    .align(vec2(0.0, 0.5)),
+                    .align(vec2(0.0, 1.0)),
+                &model.camera,
+                framebuffer,
+            );
+            self.util.draw_text(
+                format!("{}", model.score.calculated.combined),
+                vec2(-8.5, 4.3).as_r32(),
+                TextRenderOptions::new(0.8)
+                    .color(theme.light)
+                    .align(vec2(0.0, 1.0)),
                 &model.camera,
                 framebuffer,
             );
 
+            // Accuracy
             self.util.draw_text(
-                format!("{accuracy:3.2}%"),
-                vec2(-8.5, 3.9).as_r32(),
-                TextRenderOptions::new(0.7)
+                format!("{:3.2}%", accuracy),
+                vec2(-8.5, 3.7).as_r32(),
+                TextRenderOptions::new(0.4)
                     .color(theme.light)
-                    .align(vec2(0.0, 0.5)),
+                    .align(vec2(0.0, 1.0)),
                 &model.camera,
                 framebuffer,
             );
@@ -294,9 +335,31 @@ impl GameRender {
             //     framebuffer,
             // );
 
-            let position = Aabb2::point(vec2(-8.3, 3.2)).extend_uniform(0.3);
+            // {
+            // // Rank letter
+            //     let completion = model.current_completion();
+            //     let grade = model.score.calculate_grade(completion);
+            //     let grade_texture = self.context.assets.get_grade(grade);
+
+            //     let rank_world_pos = vec2(-6.0, 4.0);
+            //     let rank_screen_pos = crate::util::world_to_screen(
+            //         &model.camera,
+            //         framebuffer.size().as_f32(),
+            //         rank_world_pos,
+            //     );
+            //     let rank_quad = Aabb2::point(rank_screen_pos);
+            //     let grade_color = match grade {
+            //         ScoreGrade::F => theme.danger,
+            //         _ => theme.highlight,
+            //     };
+
+            //     self.ui
+            //         .draw_subtexture(rank_quad, &grade_texture, grade_color, 3.5, framebuffer);
+            // }
+
+            let position = Aabb2::point(vec2(7.3, 4.5)).extend_uniform(0.3);
             for (i, modifier) in model.level.config.modifiers.iter().enumerate() {
-                let position = position.translate(vec2(i as f32, 0.0) * position.size());
+                let position = position.translate(vec2(-(i as f32), 0.0) * position.size());
                 if let Ok(position) = model
                     .camera
                     .world_to_screen(framebuffer.size().as_f32(), position.center())

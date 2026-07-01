@@ -38,8 +38,9 @@ impl<T: 'static> LoadingScreen<T> {
             post_render: PostRender::new_with(crate::render::post::PostContext {
                 geng: geng.clone(),
                 shader_crt: assets.shader_crt.clone(),
-                shader_rgb_split: assets.shader_rgb_split.clone(),
+                shader_noise_effects: assets.shader_noise_effects.clone(),
                 shader_color_correction: assets.shader_color_correction.clone(),
+                shader_masked_sdf: assets.shader_masked_sdf.clone(),
             }),
             assets,
             unit_quad: geng_utils::geometry::unit_quad_geometry(geng.ugli()),
@@ -232,13 +233,12 @@ impl<T: 'static> geng::State for LoadingScreen<T> {
 
         self.post_render.post_process(
             &self.options,
-            &crate::render::post::PostVfx {
-                time: r32(self.real_time as f32),
-                crt: self.options.graphics.crt.enabled,
-                rgb_split: 0.0,
-                colors: self.options.graphics.colors,
-            },
+            &crate::render::post::PostVfx::minimal(
+                r32(self.real_time as f32),
+                self.options.graphics.crt.enabled,
+                self.options.graphics.colors,
+            ),
+            framebuffer,
         );
-        self.post_render.finish(framebuffer);
     }
 }

@@ -41,3 +41,21 @@ pub struct TimelineConfig {
     /// How many beat to scroll when using fast scroll mode (Alt).
     pub fast_speed: BeatTime,
 }
+
+impl TimelineConfig {
+    pub fn get_scroll_speed(&self, holding_shift: bool, holding_alt: bool) -> ScrollSpeed {
+        let mut shift_speed = ScrollSpeed::Slow;
+        let mut normal_speed = ScrollSpeed::Normal;
+        if !self.hold_to_scroll_slow {
+            std::mem::swap(&mut shift_speed, &mut normal_speed);
+        }
+
+        if holding_shift {
+            shift_speed
+        } else if holding_alt {
+            ScrollSpeed::Fast
+        } else {
+            normal_speed
+        }
+    }
+}

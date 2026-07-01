@@ -178,7 +178,7 @@ impl geng::State for MainMenu {
 
         let hovering = self.player.collider.check(&self.play_button.base_collider);
         if hovering && self.clicked {
-            self.play_button.clicked = true;
+            self.play_button.force_fade = true;
         }
         self.play_button.update(hovering, delta_time);
         self.player
@@ -246,14 +246,16 @@ impl geng::State for MainMenu {
         );
 
         let fading = self.play_button.is_fading();
-        if !fading
-            && let Ok(pos) = self
-                .camera
-                .world_to_screen(framebuffer.size().as_f32(), vec2(0.0, 3.5))
-        {
+        if !fading {
+            // Title
+            let pos = crate::util::world_to_screen(
+                &self.camera,
+                framebuffer.size().as_f32(),
+                vec2(0.0, 3.5),
+            );
             self.ui_render.draw_texture(
                 Aabb2::point(pos),
-                &self.context.assets.sprites.title,
+                &self.context.assets.sprites.title2,
                 THEME.light,
                 1.0,
                 &mut framebuffer,
@@ -320,14 +322,13 @@ impl geng::State for MainMenu {
 
         self.post_render.post_process(
             &options,
-            &crate::render::post::PostVfx {
-                time: self.time,
-                crt: options.graphics.crt.enabled,
-                rgb_split: 0.0,
-                colors: options.graphics.colors,
-            },
+            &crate::render::post::PostVfx::minimal(
+                self.time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
+            screen_buffer,
         );
-        self.post_render.finish(screen_buffer);
 
         self.ui_context.frame_end();
     }
@@ -338,7 +339,7 @@ impl MainUI {
         Self {
             exit_queued: false,
             version: TextWidget::new(ctl_constants::GAME_VERSION.to_string())
-                .aligned(vec2(0.5, 0.5)),
+                .aligned(vec2(0.0, 0.5)),
             screen: WidgetState::new(),
             exit: ButtonWidget::new("Exit"),
             options: OptionsButtonWidget::new(&context.assets, 0.25),
@@ -377,8 +378,8 @@ impl MainUI {
             self.exit_queued = true;
         }
 
-        let version = Aabb2::point(exit.align_pos(vec2(0.5, 0.0)))
-            .extend_symmetric(vec2(1.5 * font_size, 0.0))
+        let version = Aabb2::point(exit.align_pos(vec2(1.0, 1.0)) + vec2(0.5 * font_size, 0.0))
+            .extend_positive(vec2(6.5 * font_size, 0.0))
             .extend_down(font_size);
         self.version.update(version, &context.scale_font(0.7));
 

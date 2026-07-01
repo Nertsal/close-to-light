@@ -19,7 +19,7 @@ uniform float u_time;
 
 void main() {
     vec2 centered_uv = v_vt * 2.0 - 1.0;
-    vec2 uv_offset = centered_uv.yx / u_curvature;
+    vec2 uv_offset = centered_uv.yx * u_curvature;
     vec2 warped_uv =
         centered_uv
         + centered_uv * uv_offset * uv_offset

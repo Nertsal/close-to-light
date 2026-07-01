@@ -39,6 +39,18 @@ pub struct LevelModifiers {
     pub hidden: bool,
     /// Whether touchscreen was used during gameplay.
     pub touch: bool,
+    /// Time speed up or slow down.
+    pub time_scale: FloatTime,
+    /// Normal/Flashlight/Spotlight.
+    pub light: Option<LightMode>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LightMode {
+    /// Stuff is only visible within a small range near the cursor.
+    Flashlight,
+    /// Stuff is only visible within a range of lights.
+    Spotlight,
 }
 
 impl LevelModifiers {
@@ -49,6 +61,8 @@ impl LevelModifiers {
             self.sudden.then_some(Modifier::Sudden),
             self.hidden.then_some(Modifier::Hidden),
             self.touch.then_some(Modifier::Touch),
+            (self.time_scale != FloatTime::ONE).then_some(Modifier::TimeScale(self.time_scale)),
+            self.light.map(Modifier::LightMode),
         ]
         .into_iter()
         .flatten()
@@ -68,6 +82,8 @@ pub enum Modifier {
     Sudden,
     Hidden,
     Touch,
+    TimeScale(FloatTime),
+    LightMode(LightMode),
 }
 
 impl Modifier {
@@ -77,6 +93,15 @@ impl Modifier {
             Modifier::Sudden => r32(1.15),
             Modifier::Hidden => r32(1.1),
             Modifier::Touch => r32(1.0),
+            &Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    (scale - r32(0.4)).clamp(r32(0.1), r32(1.0))
+                } else {
+                    r32(1.0) + (scale - r32(1.0)) * r32(0.4)
+                }
+            }
+            Modifier::LightMode(LightMode::Flashlight) => r32(1.05),
+            Modifier::LightMode(LightMode::Spotlight) => r32(1.05),
         }
     }
 
@@ -86,6 +111,19 @@ impl Modifier {
             Modifier::Sudden => "the lights are less predictable",
             Modifier::Hidden => "the lights are hidden in the dark",
             Modifier::Touch => "played with touchscreen",
+            &Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    "slow motion"
+                } else {
+                    "fast motion"
+                }
+            }
+            Modifier::LightMode(LightMode::Flashlight) => {
+                "who turned the lights off??\nvision is limited"
+            }
+            Modifier::LightMode(LightMode::Spotlight) => {
+                "the lights are spot on!\nvision is limited"
+            }
         }
     }
 }
@@ -97,17 +135,28 @@ impl Display for Modifier {
             Modifier::Sudden => write!(f, "Sudden"),
             Modifier::Hidden => write!(f, "Hidden"),
             Modifier::Touch => write!(f, "Touch"),
+            &Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    write!(f, "Half Time")
+                } else {
+                    write!(f, "Double Time")
+                }
+            }
+            Modifier::LightMode(LightMode::Flashlight) => write!(f, "Flashlight"),
+            Modifier::LightMode(LightMode::Spotlight) => write!(f, "Spotlight"),
         }
     }
 }
 
 impl LevelModifiers {
-    pub fn get_mut(&mut self, modifier: Modifier) -> &mut bool {
+    pub fn get_mut(&mut self, modifier: Modifier) -> Option<&mut bool> {
         match modifier {
-            Modifier::NoFail => &mut self.nofail,
-            Modifier::Sudden => &mut self.sudden,
-            Modifier::Hidden => &mut self.hidden,
-            Modifier::Touch => &mut self.touch,
+            Modifier::NoFail => Some(&mut self.nofail),
+            Modifier::Sudden => Some(&mut self.sudden),
+            Modifier::Hidden => Some(&mut self.hidden),
+            Modifier::Touch => Some(&mut self.touch),
+            Modifier::TimeScale(_) => None,
+            Modifier::LightMode(_) => None,
         }
     }
 }
@@ -121,6 +170,8 @@ impl Default for LevelModifiers {
             sudden: false,
             hidden: false,
             touch: false,
+            time_scale: FloatTime::ONE,
+            light: None,
         }
     }
 }
@@ -144,9 +195,9 @@ impl HealthConfig {
     pub fn preset_normal() -> Self {
         Self {
             max: r32(1.0),
-            dark_decrease_rate: r32(0.6),
-            danger_decrease_rate: r32(0.75),
-            restore_rate: r32(0.35),
+            dark_decrease_rate: r32(0.7),
+            danger_decrease_rate: r32(1.5),
+            restore_rate: r32(0.4),
         }
     }
 

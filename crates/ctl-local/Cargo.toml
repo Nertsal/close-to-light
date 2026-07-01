@@ -6,6 +6,8 @@ edition.workspace = true
 [features]
 demo = []
 steam = ["dep:steamworks"]
+itch = []
+online = []
 
 [dependencies]
 ctl-constants.workspace = true

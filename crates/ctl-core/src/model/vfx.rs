@@ -16,13 +16,16 @@ impl VfxValue {
         }
     }
 
+    pub fn set(&mut self, time_left: FloatTime, target: R32) {
+        self.time_left = self.time_left.max(time_left);
+        self.value.target = target;
+    }
+
     pub fn update(&mut self, delta_time: FloatTime) {
         self.time_left = (self.time_left - delta_time).max(FloatTime::ZERO);
-        self.value.target = if self.time_left.as_f32() > 0.0 {
-            r32(1.0)
-        } else {
-            r32(0.0)
-        };
+        if self.time_left.as_f32() <= 0.0 {
+            self.value.target = R32::ZERO;
+        }
         self.value.update(delta_time.as_f32());
     }
 }
@@ -34,6 +37,10 @@ pub struct Vfx {
     pub camera_shake: R32,
     /// Active shaders (event start time, shader).
     pub shaders: Vec<(Time, ShaderEvent)>,
+    pub vignette: VfxValue,
+    pub curvature: VfxValue,
+    pub noise_offset: VfxValue,
+    pub spotlight: VfxValue,
 }
 
 impl Vfx {
@@ -43,12 +50,20 @@ impl Vfx {
             rgb_split: VfxValue::new(2.0, 1.0, 0.0),
             camera_shake: R32::ZERO,
             shaders: Vec::new(),
+            vignette: VfxValue::new(2.0, 1.0, 0.0),
+            curvature: VfxValue::new(2.0, 1.0, 0.0),
+            noise_offset: VfxValue::new(2.0, 1.0, 0.0),
+            spotlight: VfxValue::new(2.0, 1.0, 0.0),
         }
     }
 
     pub fn reset(&mut self) {
         self.palette_swap.target = R32::ZERO;
         self.rgb_split.time_left = FloatTime::ZERO;
+        self.vignette.time_left = FloatTime::ZERO;
+        self.curvature.time_left = FloatTime::ZERO;
+        self.noise_offset.time_left = FloatTime::ZERO;
+        self.spotlight.time_left = FloatTime::ZERO;
         self.camera_shake = R32::ZERO;
         self.shaders.clear();
     }
@@ -56,6 +71,10 @@ impl Vfx {
     pub fn update(&mut self, delta_time: FloatTime) {
         self.palette_swap.update(delta_time.as_f32());
         self.rgb_split.update(delta_time);
+        self.vignette.update(delta_time);
+        self.curvature.update(delta_time);
+        self.noise_offset.update(delta_time);
+        self.spotlight.update(delta_time);
     }
 }
 

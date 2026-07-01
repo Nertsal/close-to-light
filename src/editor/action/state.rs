@@ -47,21 +47,94 @@ impl EditorState {
                 }
             }
             EditorStateAction::SetGroupName(name) => {
-                let group = self.editor.group.group_index;
-                let mut meta = self.editor.group.cached.local.meta.clone();
-
-                log::debug!("Renaming music into {name:?}");
-                meta.music.name = name.into();
-                meta.music.romanized = meta.music.name.clone(); // TODO: separate config
-
-                match self.context.local.update_group_meta(group, meta, false) {
-                    None => {
-                        log::error!("Failed to rename level");
+                self.update_group_meta(|meta| {
+                    log::debug!("Renaming music into {name:?}");
+                    meta.music.name = name.into();
+                    meta.music.romanized = meta.music.name.clone(); // TODO: separate config
+                });
+            }
+            EditorStateAction::AddMusicAuthor(author) => {
+                self.update_group_meta(|meta| {
+                    log::debug!("Adding music author {author:?}");
+                    meta.music.authors.push(author);
+                });
+            }
+            EditorStateAction::UpdateMusicAuthor(i, author) => {
+                self.update_group_meta(|meta| {
+                    log::debug!("Changing music author {i} to {author:?}");
+                    if let Some(old) = meta.music.authors.get_mut(i) {
+                        *old = author;
                     }
-                    Some(group) => {
-                        self.editor.group.music = group.local.music.clone();
-                        self.editor.group.cached = group;
+                });
+            }
+            EditorStateAction::RemoveMusicAuthor(i) => {
+                self.update_group_meta(|meta| {
+                    if let Some(author) =
+                        (i < meta.music.authors.len()).then(|| meta.music.authors.remove(i))
+                    {
+                        log::debug!("Removed music author {i}: {author:?}");
                     }
+                });
+            }
+            EditorStateAction::SetDiffName(level, name) => {
+                self.update_diff_meta(level, |meta| {
+                    meta.name = name;
+                });
+            }
+            EditorStateAction::AddDiffAuthor(level, author) => {
+                self.update_diff_meta(level, |meta| {
+                    log::debug!("Adding level {level} author {author:?}");
+                    meta.authors.push(author);
+                });
+            }
+            EditorStateAction::UpdateDiffAuthor(level, author_idx, author) => {
+                self.update_diff_meta(level, |meta| {
+                    log::debug!("Changing level {level} author {author_idx} to {author:?}");
+                    if let Some(old) = meta.authors.get_mut(author_idx) {
+                        *old = author;
+                    }
+                });
+            }
+            EditorStateAction::RemoveDiffAuthor(level, i) => {
+                self.update_diff_meta(level, |meta| {
+                    if let Some(author) = (i < meta.authors.len()).then(|| meta.authors.remove(i)) {
+                        log::debug!("Removed music author {i}: {author:?}");
+                    }
+                });
+            }
+        }
+    }
+
+    fn update_group_meta(&mut self, f: impl FnOnce(&mut LevelSetInfo)) {
+        let group = self.editor.group.group_index;
+        let mut meta = self.editor.group.cached.local.meta.clone();
+
+        f(&mut meta);
+
+        match self.context.local.update_group_meta(group, meta, false) {
+            None => {
+                log::error!("Failed to update level meta");
+            }
+            Some(group) => {
+                self.editor.group.music = group.local.music.clone();
+                self.editor.group.cached = group;
+            }
+        }
+    }
+
+    fn update_diff_meta(&mut self, index: usize, f: impl FnOnce(&mut LevelInfo)) {
+        let group = self.editor.group.group_index;
+        let mut meta = self.editor.group.cached.local.meta.clone();
+        if let Some(level_meta) = meta.levels.get_mut(index) {
+            f(level_meta);
+
+            match self.context.local.update_group_meta(group, meta, false) {
+                None => {
+                    log::error!("Failed to update level difficulty meta");
+                }
+                Some(group) => {
+                    self.editor.group.music = group.local.music.clone();
+                    self.editor.group.cached = group;
                 }
             }
         }
@@ -154,7 +227,7 @@ impl EditorState {
     fn cancel(&mut self) {
         if self.editor.confirm_popup.is_some() {
             self.execute(EditorAction::ClosePopup.into());
-        } else if self.ui_context.is_totally_focused() {
+        } else if self.ui_context.is_totally_focused().is_some() {
             self.ui_context.cancel_total_focus();
         } else if self.ui.context_menu.is_open() {
             self.ui.context_menu.close();

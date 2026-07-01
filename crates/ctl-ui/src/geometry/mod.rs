@@ -11,7 +11,6 @@ pub struct GeometryContext {
     assets: Rc<Assets>,
     pub framebuffer_size: vec2<usize>,
     pub pixel_scale: f32,
-    z_index: RefCell<f32>,
 }
 
 #[derive(Default, Debug)]
@@ -60,7 +59,7 @@ impl Geometry {
         self.masked.extend(other.masked);
     }
 
-    pub fn change_z_index(&mut self, delta: isize) {
+    pub fn change_z_index(&mut self, delta: i64) {
         let delta = -(delta as f32) * 1e-5;
         for masked in &mut self.masked {
             masked.z_index += delta;
@@ -71,6 +70,20 @@ impl Geometry {
         for text in &mut self.text {
             text.z_index += delta;
         }
+    }
+
+    pub fn with_z_index(mut self, z_index: i64) -> Self {
+        let z_index = -z_index as f32 * 1e-4;
+        for masked in &mut self.masked {
+            masked.z_index += z_index;
+        }
+        for v in &mut self.triangles {
+            v.a_z += z_index;
+        }
+        for text in &mut self.text {
+            text.z_index += z_index;
+        }
+        self
     }
 
     fn triangles(triangles: Vec<GeometryTriangleVertex>) -> Self {
@@ -88,31 +101,22 @@ impl Geometry {
     }
 }
 
-const DEFAULT_Z: f32 = 0.0;
-
 impl GeometryContext {
     pub fn new(assets: Rc<Assets>) -> Self {
         Self {
             assets,
             framebuffer_size: vec2(1, 1),
             pixel_scale: 1.0,
-            z_index: DEFAULT_Z.into(),
         }
     }
 
     pub fn update(&mut self, framebuffer_size: vec2<usize>) {
         self.framebuffer_size = framebuffer_size;
         self.pixel_scale = ctl_render_core::get_pixel_scale(self.framebuffer_size);
-        *self.z_index.get_mut() = DEFAULT_Z;
     }
 
     fn next_z_index(&self) -> f32 {
-        let mut index = self.z_index.borrow_mut();
-        let current = *index;
-        // NOTE: big increment because it seems that the framebuffer loses precision
-        // TODO: figure out proper precision or remove z-index entirely
-        *index = f32::from_bits(current.to_bits() + (1 << 16));
-        current
+        0.0
     }
 
     #[must_use]
@@ -198,6 +202,15 @@ impl GeometryContext {
             })
             .collect();
 
+        Geometry::triangles(triangles)
+    }
+
+    #[must_use]
+    pub fn custom(&self, triangles: Vec<GeometryTriangleVertex>) -> Geometry {
+        if !triangles.len().is_multiple_of(3) {
+            log::error!("Custom geometry vertex count is not divisble by 3");
+            return Geometry::new();
+        }
         Geometry::triangles(triangles)
     }
 
@@ -304,10 +317,10 @@ impl GeometryContext {
         &self,
         center: vec2<f32>,
         color: Color,
-        pixels_per_unit: usize,
+        pixels_per_unit: f32,
         texture: &SubTexture,
     ) -> Geometry {
-        let size = texture.size() * pixels_per_unit;
+        let size = (texture.size().as_f32() * pixels_per_unit).map(|x| x.round() as usize);
         let position = geng_utils::pixel::pixel_perfect_aabb(
             center,
             vec2(0.5, 0.5),

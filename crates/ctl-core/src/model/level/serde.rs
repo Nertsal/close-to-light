@@ -14,7 +14,7 @@ pub struct Timing {
 }
 
 /// A timing point.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TimingPoint {
     /// The time from which this timing applies.
     pub time: Time,
@@ -61,10 +61,63 @@ pub enum EffectEvent {
     /// Apply an RGB-splitting shader to the screen.
     /// Time specifies the duration of the **effect**.
     RgbSplit(Time),
-    /// Apply an screen shake effect to the camera.
+    /// Apply a screen shake effect to the camera.
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the intensity/amplitude.
     CameraShake(Time, R32),
+    /// Apply a CRT screen vignette effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/darkness.
+    Vignette(Time, R32),
+    /// Apply a CRT screen curvature effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/curvature.
+    ScreenCurvature(Time, R32),
+    /// Apply a horizontal noise offset effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/curvature.
+    NoiseOffset(Time, R32),
+    /// Apply a spotlight vision effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the dimming value (0-1).
+    Spotlight(Time, R32),
+}
+
+impl EffectEvent {
+    pub fn duration(&self) -> Time {
+        match self {
+            EffectEvent::PaletteSwap(duration)
+            | EffectEvent::RgbSplit(duration)
+            | EffectEvent::CameraShake(duration, _)
+            | EffectEvent::Vignette(duration, _)
+            | EffectEvent::ScreenCurvature(duration, _)
+            | EffectEvent::NoiseOffset(duration, _)
+            | EffectEvent::Spotlight(duration, _) => *duration,
+        }
+    }
+
+    pub fn duration_mut(&mut self) -> &mut Time {
+        match self {
+            EffectEvent::PaletteSwap(duration)
+            | EffectEvent::RgbSplit(duration)
+            | EffectEvent::CameraShake(duration, _)
+            | EffectEvent::Vignette(duration, _)
+            | EffectEvent::ScreenCurvature(duration, _)
+            | EffectEvent::NoiseOffset(duration, _)
+            | EffectEvent::Spotlight(duration, _) => duration,
+        }
+    }
+
+    pub fn intensity_mut(&mut self) -> Option<&mut R32> {
+        match self {
+            EffectEvent::CameraShake(_, intensity)
+            | EffectEvent::Vignette(_, intensity)
+            | EffectEvent::ScreenCurvature(_, intensity)
+            | EffectEvent::NoiseOffset(_, intensity)
+            | EffectEvent::Spotlight(_, intensity) => Some(intensity),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -153,6 +206,46 @@ impl Timing {
         timing.time + delta
     }
 
+    // /// Returns the approximation of the beat time.
+    // pub fn approximate_beat(&self, time: Time) -> BeatTime {
+    //     let timing = self.get_timing(time);
+    //     let beat_time = time_to_seconds(time - timing.time) / timing.beat_time;
+    //     BeatTime::from_beats_float(beat_time)
+    // }
+
+    pub fn is_beat_aligned(&self, time: Time) -> Option<BeatTime> {
+        // let beat_ratio = num_rational::Ratio::new(
+        //     self.approximate_beat(time).units(),
+        //     BeatTime::UNITS_PER_BEAT,
+        // );
+        // // Small enough subdivision to consider it a valid beat point
+        // let subdivision = *beat_ratio.denom();
+        // (subdivision <= 21).then(|| BeatTime::from_units(BeatTime::UNITS_PER_BEAT / subdivision))
+
+        let (aligned, snap) = self.snap_to_best_alignment(time);
+        (aligned == time).then_some(snap)
+    }
+
+    /// Return the closest reasonable beat subdivision that this time falls onto.
+    pub fn snap_to_best_alignment(&self, time: Time) -> (Time, BeatTime) {
+        let max_error: Time = 1;
+        let subdivisions = [1, 2, 4, 8, 16, 3, 9, 12, 5, 15, 7, 21];
+        let mut best_error = max_error + 1;
+        let mut best_snap = BeatTime::UNIT;
+        let mut best_time = time;
+        for subdiv in subdivisions {
+            let snap = BeatTime::from_units(BeatTime::UNITS_PER_BEAT / subdiv);
+            let aligned = self.snap_to_beat(time, snap);
+            let error = (time - aligned).abs();
+            if error <= max_error && error < best_error {
+                best_snap = snap;
+                best_error = error;
+                best_time = aligned
+            }
+        }
+        (best_time, best_snap)
+    }
+
     /// Snaps to beat while ignoring a specified timing point.
     pub fn snap_to_beat_without(&self, ignored: usize, time: Time, snap: BeatTime) -> Time {
         let mut timing_i = self.get_timing_index(time);
@@ -208,4 +301,63 @@ impl LightEvent {
             closest_waypoint: (Time::ZERO, WaypointId::Initial),
         }
     }
+}
+
+#[test]
+fn test_snap_consistency() {
+    let timing = Timing::new(r32(200.0));
+
+    assert_eq!(timing.snap_to_beat(0, BeatTime::WHOLE), 0);
+    assert_eq!(timing.snap_to_beat(0, BeatTime::HALF), 0);
+
+    for i in 0..1000 {
+        for subdiv in 0..4 {
+            let time =
+                seconds_to_time(timing.points[0].beat_time * r32(i as f32 + subdiv as f32 / 4.0));
+            let time = timing.snap_to_beat(time, BeatTime::QUARTER);
+            if subdiv == 0 {
+                assert_eq!(
+                    time,
+                    timing.snap_to_beat(time, BeatTime::WHOLE),
+                    "Iteration {}, subdivision {}, time = {}, snap: WHOLE",
+                    i,
+                    subdiv,
+                    time
+                );
+            }
+            assert_eq!(
+                time,
+                timing.snap_to_beat(time, BeatTime::EIGHTH),
+                "Iteration {}, subdivision {}, time = {}, snap: EIGHTH",
+                i,
+                subdiv,
+                time
+            );
+            assert_eq!(
+                time,
+                timing.snap_to_beat(time, BeatTime::SIXTITH),
+                "Iteration {}, subdivision {}, time = {}, snap: SIXTITH",
+                i,
+                subdiv,
+                time
+            );
+            assert_eq!(
+                time,
+                timing.snap_to_beat(time, BeatTime::UNIT),
+                "Iteration {}, subdivision {}, time = {}, snap: UNIT",
+                i,
+                subdiv,
+                time
+            );
+        }
+    }
+}
+
+#[test]
+fn test_beat_alignment() {
+    let timing = Timing::new(r32(180.0));
+    // times off by one are fine to consider either way
+    assert!(timing.is_beat_aligned(665).is_none());
+    assert!(timing.is_beat_aligned(667).is_some());
+    assert!(timing.is_beat_aligned(669).is_none());
 }

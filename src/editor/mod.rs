@@ -10,7 +10,7 @@ pub use ctl_editor::{ui::*, *};
 use ctl_local::Leaderboard;
 use ctl_logic::{PlayGroup, PlayLevel};
 use ctl_ui::{UiContext, layout::AreaOps};
-use ctl_util::SecondOrderState;
+use ctl_util::Change;
 
 pub struct EditorState {
     context: Context,
@@ -35,7 +35,7 @@ impl EditorState {
         config: EditorConfig,
         group: PlayGroup,
     ) -> Self {
-        Self {
+        let mut editor = Self {
             transition: None,
             stop_music_next_frame: true,
             render: EditorRender::new(context.clone()),
@@ -45,38 +45,18 @@ impl EditorState {
             ui: EditorUi::new(context.clone()),
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
-            editor: Editor {
-                context: context.clone(),
-                level_assets,
-
-                real_time: FloatTime::ZERO,
-                render_options: RenderOptions {
-                    show_grid: true,
-                    hide_ui: false,
-                },
-                cursor_world_pos: vec2::ZERO,
-                cursor_world_pos_snapped: vec2::ZERO,
-                drag: None,
-
-                confirm_popup: None,
-
-                tab: EditorTab::Config,
-                exit: false,
-
-                grid: Grid::new_with(config.grid.clone()),
-                view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
-                visualize_beat: true,
-                show_only_selected: false,
-                snap_to_grid: true,
-                music_timer: FloatTime::ZERO,
-
-                group,
-                level_edit: None,
-                config,
-            },
+            editor: Editor::new(context.clone(), level_assets, config, group),
             interpolation_cache: InterpolationCache::new(),
             context,
-        }
+        };
+        editor.context.set_status("In Editor");
+        editor.editor.popup_confirm(
+            ConfirmAction::Noop,
+            "Editor is in beta, bugs might happen >_<",
+            "Ok",
+            "I know",
+        );
+        editor
     }
 
     pub fn new_level(
@@ -89,9 +69,6 @@ impl EditorState {
             Self::new_group(context.clone(), level_assets, config, level.group.clone());
         editor.editor.tab = EditorTab::Edit;
         editor.editor.level_edit = Some(LevelEditor::new(context, level, true, false));
-
-        editor.context.set_status("In Editor");
-
         editor
     }
 
@@ -121,6 +98,8 @@ impl EditorState {
         }
 
         level_editor.model.vfx.update(delta_time);
+
+        level_editor.selection.update(&level_editor.level);
 
         // TODO: maybe config option?
         // if let Some(waypoints) = &level_editor.level_state.waypoints {
@@ -171,6 +150,8 @@ impl EditorState {
             level_editor.model.camera.center = level_editor.model.camera.center * 0.5
                 + Angle::from_degrees(thread_rng().gen_range(0.0..=360.0)).unit_vec()
                     * level_editor.model.vfx.camera_shake.as_f32();
+        } else {
+            level_editor.model.camera.center = vec2::ZERO;
         }
 
         let include_cursor = !self.ui_focused
@@ -187,6 +168,20 @@ impl EditorState {
             self.editor.show_only_selected,
         );
 
+        {
+            let snap = self.editor.snap_to_grid.permanent;
+            self.editor.snap_to_grid.temporary = if self
+                .context
+                .geng
+                .window()
+                .is_key_pressed(geng::Key::ControlLeft)
+            {
+                !snap
+            } else {
+                snap
+            };
+        }
+
         let pos = self.ui_context.cursor.position;
         let pos = pos - self.ui_context.screen.bottom_left();
         let pos = level_editor
@@ -195,7 +190,7 @@ impl EditorState {
             .screen_to_world(self.ui_context.screen.size(), pos)
             .as_r32();
         self.editor.cursor_world_pos = pos;
-        self.editor.cursor_world_pos_snapped = if self.editor.snap_to_grid {
+        self.editor.cursor_world_pos_snapped = if self.editor.snap_to_grid.temporary {
             self.snap_pos_grid(pos)
         } else {
             pos
@@ -210,6 +205,7 @@ impl EditorState {
 
         let level = ctl_logic::PlayLevel {
             start_time: level_editor.current_time.target,
+            music_offset: self.editor.group.cached.local.data.music_offset,
             level: LevelFull {
                 meta: level_editor.static_level.level.meta.clone(),
                 data: Rc::new(level_editor.level.clone()),
@@ -298,12 +294,12 @@ impl geng::State for EditorState {
             .level_edit
             .as_ref()
             .map_or(Vfx::new(), |level| level.model.vfx.clone());
-        let game_post_vfx = crate::render::post::PostVfx {
-            time: self.editor.real_time,
-            crt: false,
-            rgb_split: vfx.rgb_split.value.current.as_f32(),
-            colors: options.graphics.colors,
-        };
+        let game_post_vfx = crate::render::post::PostVfx::new(
+            &vfx,
+            self.editor.real_time,
+            false,
+            options.graphics.colors,
+        );
 
         self.ui_context.state.frame_start();
         self.ui_context.geometry.update(framebuffer.size());
@@ -339,12 +335,12 @@ impl geng::State for EditorState {
             buffer,
         );
 
-        let editor_post_vfx = crate::render::post::PostVfx {
-            crt: options.graphics.crt.enabled,
-            rgb_split: 0.0,
-            ..game_post_vfx
-        };
-        self.post_render.post_process(&options, &editor_post_vfx);
-        self.post_render.finish(framebuffer);
+        let editor_post_vfx = crate::render::post::PostVfx::minimal(
+            game_post_vfx.time,
+            options.graphics.crt.enabled,
+            game_post_vfx.colors,
+        );
+        self.post_render
+            .post_process(&options, &editor_post_vfx, framebuffer);
     }
 }

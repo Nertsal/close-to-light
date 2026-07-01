@@ -16,7 +16,7 @@ struct RenderHelper<'a> {
     select_color: Color,
     selecting_area: bool,
 
-    get_color: Box<dyn Fn(Option<usize>) -> Color + 'a>,
+    get_color: Box<dyn Fn(Option<usize>, Theme) -> Color + 'a>,
 }
 
 impl EditorRender {
@@ -26,7 +26,6 @@ impl EditorRender {
         editor: &Editor,
         screen_aabb: Aabb2<f32>,
         interpolation_cache: &mut InterpolationCache,
-        visible: bool,
         post_vfx: PostVfx,
         level_assets: &LevelAssets,
     ) {
@@ -39,21 +38,38 @@ impl EditorRender {
             theme.dark = Color::lerp(dark, light, swap_t);
         }
 
+        let light_color = theme.light;
+        let danger_color = theme.danger;
+
         let game_buffer = &mut self.post_render.begin(self.game_texture.size(), theme.dark);
 
         ugli::clear(game_buffer, Some(theme.dark), None, None);
 
         let Some(level_editor) = &editor.level_edit else {
+            let game_buffer = &mut geng_utils::texture::attach_texture(
+                &mut self.game_texture,
+                self.context.geng.ugli(),
+            );
+            self.post_render
+                .post_process(&self.context.get_options(), &post_vfx, game_buffer);
             return;
         };
-        if !visible {
-            return;
+
+        {
+            // Light SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.lights_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util.draw_level_sdf(
+                level_editor.level_state.relevant(),
+                &level_editor.model.camera,
+                framebuffer,
+            );
         }
 
-        let light_color = THEME.light;
-        let danger_color = THEME.danger;
-
-        let active_color = light_color;
+        // Level
 
         let hover_color = editor.config.theme.hover;
         let selecting_area = matches!(
@@ -66,7 +82,11 @@ impl EditorRender {
 
         let select_color = editor.config.theme.select;
 
-        let get_color = |event_id: Option<usize>| -> Color {
+        let get_color = |event_id: Option<usize>, theme: Theme| -> Color {
+            let light_color = theme.light;
+            let danger_color = theme.danger;
+            let active_color = light_color;
+
             if let Some(event_id) = event_id {
                 let check = |a: Option<usize>| -> bool { a == Some(event_id) };
                 let base_color =
@@ -139,7 +159,7 @@ impl EditorRender {
             .or(helper.level_editor.level_state.dynamic_level.as_ref())
         {
             for tele in &level.telegraphs {
-                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util);
+                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util, true);
             }
             for light in &level.lights {
                 helper.draw_light(light, &mut pixel_buffer, &self.util);
@@ -224,51 +244,85 @@ impl EditorRender {
             1.0
         } * static_alpha;
 
+        // Dynamic
         let mut pixel_buffer = self.dither.start();
 
-        // Dynamic
+        // Dynamic Lights
+        if let Some(level) = &helper.level_editor.level_state.dynamic_level {
+            for light in &level.lights {
+                helper.draw_light(light, &mut pixel_buffer, &self.util);
+            }
+        }
+        draw_game!(dynamic_alpha, game_buffer);
+        let mut pixel_buffer = self.dither.post();
+
+        // Dynamic Telegraphs
         if let Some(level) = &helper.level_editor.level_state.dynamic_level {
             for tele in &level.telegraphs {
-                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util);
+                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util, false);
             }
+        }
+        self.context.geng.draw2d().textured_quad(
+            game_buffer,
+            &geng::PixelPerfectCamera,
+            game_screen,
+            self.dither.get_buffer(),
+            crate::util::with_alpha(Color::WHITE, dynamic_alpha),
+        );
+        let mut pixel_buffer = self.dither.start();
+
+        // Static Lights
+        if let Some(level) = &helper.level_editor.level_state.static_level {
             for light in &level.lights {
                 helper.draw_light(light, &mut pixel_buffer, &self.util);
             }
         }
+        draw_game!(static_alpha, game_buffer);
+        let mut pixel_buffer = self.dither.post();
 
-        let mut pixel_buffer = draw_game!(dynamic_alpha, game_buffer);
-
-        // Static
+        // Static Telegraphs
         if let Some(level) = &helper.level_editor.level_state.static_level {
             for tele in &level.telegraphs {
-                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util);
-            }
-            for light in &level.lights {
-                helper.draw_light(light, &mut pixel_buffer, &self.util);
+                helper.draw_telegraph(tele, &mut pixel_buffer, &self.util, false);
             }
         }
-
-        let mut pixel_buffer = draw_game!(static_alpha, game_buffer);
+        self.context.geng.draw2d().textured_quad(
+            game_buffer,
+            &geng::PixelPerfectCamera,
+            game_screen,
+            self.dither.get_buffer(),
+            crate::util::with_alpha(Color::WHITE, static_alpha),
+        );
+        let mut pixel_buffer = self.dither.start();
 
         // Render post processing (early) shaders
         let _ = apply_shaders!(ShaderLayer::PostProcessEarly);
 
-        // Post processing effects
+        // Render level state
+        let game_buffer = &mut geng_utils::texture::attach_texture(
+            &mut self.game_texture,
+            self.context.geng.ugli(),
+        );
         self.post_render
-            .post_process(&self.context.get_options(), &helper.post_vfx);
+            .self_process(&self.context.get_options(), &helper.post_vfx);
+        // Spotlight effect
+        let spotlight = helper
+            .level_editor
+            .model
+            .vfx
+            .spotlight
+            .value
+            .current
+            .as_f32();
+        if spotlight > 0.0 {
+            self.post_render.apply_sdf_mask(&self.lights_sdf, spotlight);
+        }
 
         // Render post processing (late) shaders
         let _ = apply_shaders!(ShaderLayer::PostProcessLate);
 
         // Finalize post processing
-        let game_buffer = &mut geng_utils::texture::attach_texture(
-            &mut self.game_texture,
-            self.context.geng.ugli(),
-        );
-        ugli::clear(game_buffer, Some(Color::TRANSPARENT_BLACK), None, None);
-        self.post_render.finish(game_buffer);
-
-        // Other editor stuff
+        self.post_render.render_noop(game_buffer);
 
         {
             // Current action
@@ -474,14 +528,13 @@ impl EditorRender {
                                 &helper.level_editor.model.camera,
                                 &mut pixel_buffer,
                             );
-                            let text_color = crate::util::with_alpha(THEME.light, alpha);
                             self.util.draw_text_with(
                                 format!("{}", i + 1),
                                 point.control.position,
                                 0.0,
-                                TextRenderOptions::new(1.5).color(text_color),
+                                TextRenderOptions::new(1.5).color(color),
                                 ugli::DrawParameters {
-                                    blend_mode: Some(util::additive()),
+                                    blend_mode: Some(util::blend_additive()),
                                     ..default()
                                 },
                                 &helper.level_editor.model.camera,
@@ -664,8 +717,16 @@ impl RenderHelper<'_> {
         tele: &LightTelegraph,
         framebuffer: &mut ugli::Framebuffer,
         util: &UtilRender,
+        dithered: bool,
     ) {
-        let color = (self.get_color)(tele.light.event_id);
+        let theme = if dithered { THEME } else { self.theme };
+        let mut color = (self.get_color)(tele.light.event_id, theme);
+        if !dithered {
+            color = color.map_rgb(|x| {
+                x * ctl_assets::GraphicsLightsOptions::default()
+                    .telegraph_brightness(self.level_editor.model.vfx.palette_swap.current.as_f32())
+            }); // telegraph brightness
+        }
         util.draw_outline(
             &tele.light.collider,
             0.02,
@@ -676,7 +737,7 @@ impl RenderHelper<'_> {
     }
 
     fn draw_light(&self, light: &Light, framebuffer: &mut ugli::Framebuffer, util: &UtilRender) {
-        let color = (self.get_color)(light.event_id);
+        let color = (self.get_color)(light.event_id, THEME);
         util.draw_light_gradient(
             &light.collider,
             light.hollow,

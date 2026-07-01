@@ -1,21 +1,11 @@
 use super::*;
 
-pub struct EditorEditUi {
-    event_mode: NewEventMode,
-}
-
-enum NewEventMode {
-    Idle,
-    Light,
-    Vfx,
-}
+pub struct EditorEditUi {}
 
 impl EditorEditUi {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self {
-            event_mode: NewEventMode::Idle,
-        }
+        Self {}
     }
 }
 
@@ -62,7 +52,7 @@ impl EditorEditUi {
             .extend_symmetric(-vec2(1.0, 2.0) * layout_size)
             .extend_up(-layout_size);
         let mut left_bar = main.cut_left(layout_size * 7.0);
-        let right_bar = main.cut_right(layout_size * 7.0);
+        let mut right_bar = main.cut_right(layout_size * 7.0);
 
         let spacing = layout_size * 0.25;
         let title_size = font_size * 1.3;
@@ -86,6 +76,7 @@ impl EditorEditUi {
             linetime.update(timeline, context, editor, level_editor, actions);
 
             // self.timeline.auto_scale(level_editor.level.last_beat());
+            context.state.decrement_layer();
         }
 
         let helper = LayoutHelper {
@@ -108,6 +99,11 @@ impl EditorEditUi {
 
         // Placement
         left_bar = helper.layout_placement(self, tooltip, left_bar, actions, context);
+
+        // Copy buffer
+        let buffer = right_bar.cut_top(context.font_size * 1.0);
+        right_bar.cut_top(context.font_size * 0.5);
+        helper.layout_copy_buffer(self, buffer, context);
 
         // Active selection
         helper.layout_selected(self, tooltip, right_bar, actions, context);
@@ -136,20 +132,6 @@ impl LayoutHelper<'_> {
         text.update(event, context);
         text.options.size = self.title_size;
 
-        if !matches!(ui.event_mode, NewEventMode::Idle) {
-            // Button to return to idle mode
-            let back = event
-                .with_width(event.height(), 1.0)
-                .translate(vec2(event.height(), 0.0));
-            let button = context.state.get_root_or(|| {
-                IconButtonWidget::new_normal(context.context.assets.atlas.button_close())
-            });
-            button.update(back, context);
-            if button.icon.state.mouse_left.clicked {
-                ui.event_mode = NewEventMode::Idle;
-            }
-        }
-
         if self.level_editor.level_state.waypoints.is_some() {
             // Waypoints mode
             let waypoint = bar.cut_top(self.button_height);
@@ -167,15 +149,7 @@ impl LayoutHelper<'_> {
             bar.cut_top(self.button_height);
             bar.cut_top(self.spacing);
         } else {
-            match ui.event_mode {
-                NewEventMode::Idle => {
-                    self.layout_event_idle(ui, tooltip, &mut bar, actions, context)
-                }
-                NewEventMode::Light => {
-                    self.layout_event_light(ui, tooltip, &mut bar, actions, context)
-                }
-                NewEventMode::Vfx => self.layout_event_vfx(ui, tooltip, &mut bar, actions, context),
-            }
+            self.layout_event_idle(ui, tooltip, &mut bar, actions, context)
         }
 
         bar.cut_top(context.layout_size * 0.5);
@@ -185,7 +159,7 @@ impl LayoutHelper<'_> {
     /// Regular mode - new lights and effects
     fn layout_event_idle(
         &self,
-        ui: &mut EditorEditUi,
+        _ui: &mut EditorEditUi,
         _tooltip: &mut TooltipWidget,
         bar: &mut Aabb2<f32>,
         actions: &mut Vec<EditorStateAction>,
@@ -209,19 +183,49 @@ impl LayoutHelper<'_> {
         let new_light = bar
             .cut_top(self.button_height)
             .with_width(button_width, 0.0);
-        let button = context.state.get_root_or(|| ButtonWidget::new("Light"));
-        button.update(new_light, context);
-        if button.text.state.mouse_left.clicked {
-            ui.event_mode = NewEventMode::Light;
+        let button = context.state.get_root_or(|| {
+            DropdownWidget::new(
+                "Light",
+                self.editor.config.shapes.iter().map(|shape| {
+                    let name = match shape {
+                        Shape::Circle { .. } => "Circle",
+                        Shape::Line { .. } => "Line",
+                        Shape::Rectangle { .. } => "Rectangle",
+                    };
+                    (name, *shape)
+                }),
+            )
+        });
+        if let Some(i) = button.update(new_light, context)
+            && let Some((_, shape)) = button.options.get(i)
+        {
+            actions.push(LevelAction::Shape(*shape).into());
         }
 
         let new_vfx = bar
             .cut_top(self.button_height)
             .with_width(button_width, 0.0);
-        let button = context.state.get_root_or(|| ButtonWidget::new("VFX"));
-        button.update(new_vfx, context);
-        if button.text.state.mouse_left.clicked {
-            ui.event_mode = NewEventMode::Vfx;
+        let button = context.state.get_root_or(|| {
+            DropdownWidget::new(
+                "VFX",
+                [
+                    ("RGB Split", LevelAction::NewRgbSplit(BeatTime::WHOLE)),
+                    ("Palette swap", LevelAction::NewPaletteSwap(BeatTime::HALF)),
+                    (
+                        "Camera shake",
+                        LevelAction::NewCameraShake(BeatTime::QUARTER),
+                    ),
+                    ("Vignette", LevelAction::NewVignette(BeatTime::WHOLE)),
+                    ("Curvature", LevelAction::NewCurvature(BeatTime::WHOLE)),
+                    ("Noise", LevelAction::NewNoiseOffset(BeatTime::WHOLE)),
+                    ("Spotlight", LevelAction::NewSpotlight(BeatTime::WHOLE)),
+                ],
+            )
+        });
+        if let Some(i) = button.update(new_vfx, context)
+            && let Some((_, action)) = button.options.get(i)
+        {
+            actions.push(action.clone().into());
         }
 
         let new_shader = bar
@@ -238,74 +242,6 @@ impl LayoutHelper<'_> {
                 duration: seconds_to_time(beat_time),
             };
             actions.push(LevelAction::NewShader(time, shader).into());
-        }
-    }
-
-    /// Light mode - select light shape
-    fn layout_event_light(
-        &self,
-        _ui: &mut EditorEditUi,
-        tooltip: &mut TooltipWidget,
-        bar: &mut Aabb2<f32>,
-        actions: &mut Vec<EditorStateAction>,
-        context: &UiContext,
-    ) {
-        let new_light_width = context.font_size * 4.0;
-        for (i, shape) in self.editor.config.shapes.iter().enumerate() {
-            let new_shape = bar.cut_top(self.button_height).cut_left(new_light_width);
-            bar.cut_top(self.spacing);
-            let button = context.state.get_root_or(|| {
-                ButtonWidget::new(match shape {
-                    Shape::Circle { .. } => "Circle",
-                    Shape::Line { .. } => "Line",
-                    Shape::Rectangle { .. } => "Rectangle",
-                })
-            });
-            button.update(new_shape, context);
-            if button.text.state.mouse_left.clicked {
-                actions.push(LevelAction::Shape(*shape).into());
-            }
-            tooltip.update(&button.text.state, format!("{}", i + 1), context);
-        }
-    }
-
-    /// VFX mode - select vfx
-    fn layout_event_vfx(
-        &self,
-        _ui: &mut EditorEditUi,
-        _tooltip: &mut TooltipWidget,
-        bar: &mut Aabb2<f32>,
-        actions: &mut Vec<EditorStateAction>,
-        context: &UiContext,
-    ) {
-        let button_width = context.font_size * 4.0;
-
-        let new_rgb = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context.state.get_root_or(|| ButtonWidget::new("RGB Split"));
-        button.update(new_rgb, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewRgbSplit(TIME_IN_FLOAT_TIME).into());
-        }
-
-        let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context
-            .state
-            .get_root_or(|| ButtonWidget::new("Palette swap"));
-        button.update(new_palette, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewPaletteSwap(TIME_IN_FLOAT_TIME / 2).into());
-        }
-
-        let new_palette = bar.cut_top(self.button_height).cut_left(button_width);
-        bar.cut_top(self.spacing);
-        let button = context
-            .state
-            .get_root_or(|| ButtonWidget::new("Camera shake"));
-        button.update(new_palette, context);
-        if button.text.state.mouse_left.clicked {
-            actions.push(LevelAction::NewCameraShake(TIME_IN_FLOAT_TIME / 8).into());
         }
     }
 
@@ -367,7 +303,7 @@ impl LayoutHelper<'_> {
         let zoom = bar.cut_top(self.value_height);
         bar.cut_top(self.spacing);
         let slider = context.state.get_root_or(|| {
-            ValueWidget::new_range("Zoom", self.editor.view_zoom.target, 0.5..=2.0, 0.25)
+            ValueWidget::new_range("Zoom", self.editor.view_zoom.target, 0.5..=2.0, 0.25, 2)
         });
         {
             let mut view_zoom = self.editor.view_zoom.clone();
@@ -405,7 +341,7 @@ impl LayoutHelper<'_> {
         if button.state.mouse_left.clicked {
             actions.push(EditorAction::ToggleGridSnap.into());
         }
-        button.checked = self.editor.snap_to_grid;
+        button.checked = self.editor.snap_to_grid.temporary;
         tooltip.update(&button.state, "~", context);
 
         let grid_size = bar.cut_top(self.value_height);
@@ -414,7 +350,7 @@ impl LayoutHelper<'_> {
             let mut value = 10.0 / self.editor.grid.cell_size.as_f32();
             let slider = context
                 .state
-                .get_root_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0));
+                .get_root_or(|| ValueWidget::new_range("Grid size", value, 2.0..=32.0, 1.0, 2));
             slider.update(grid_size, context, &mut value);
             actions.push(EditorAction::SetGridSize(r32(10.0 / value)).into());
             context.update_focus(slider.state.hovered);
@@ -422,6 +358,34 @@ impl LayoutHelper<'_> {
 
         bar.cut_top(context.layout_size * 1.5);
         bar
+    }
+
+    /// Copy/paste buffer
+    fn layout_copy_buffer(&self, _ui: &mut EditorEditUi, pos: Aabb2<f32>, context: &UiContext) {
+        if let Some(ClipboardItem::Events { events, timing, .. }) =
+            self.level_editor.clipboard.get()
+        {
+            let mut count_lights = 0;
+            for event in events {
+                if let Event::Light(_) = event.event.event {
+                    count_lights += 1;
+                }
+            }
+
+            let count_events = events.len() + timing.len();
+
+            let msg = if count_events == count_lights {
+                format!("Clipboard: {} lights", count_lights)
+            } else {
+                format!("Clipboard: {} events", count_events)
+            };
+
+            let text = context
+                .state
+                .get_root_or(|| TextWidget::new("Buffer: 0 events").aligned(vec2(0.0, 0.5)));
+            text.text = msg.into();
+            text.update(pos, context);
+        }
     }
 
     /// View selected event
@@ -444,11 +408,8 @@ impl LayoutHelper<'_> {
                     *light_id, selected, tooltip, &mut bar, actions, context,
                 );
             }
-            &Selection::Event(event_i) => {
-                self.layout_selected_event(event_i, tooltip, &mut bar, actions, context);
-            }
-            &Selection::Timing(idx) => {
-                self.layout_selected_timing(idx, tooltip, &mut bar, actions, context);
+            Selection::Events(idxs) => {
+                self.layout_selected_events(idxs, tooltip, &mut bar, actions, context);
             }
         }
     }
@@ -726,6 +687,7 @@ impl LayoutHelper<'_> {
                             max: r32(1.0),
                         },
                         r32(0.05),
+                        2,
                     )
                 });
                 value.update(hollow_pos, context, &mut hollow);
@@ -738,7 +700,7 @@ impl LayoutHelper<'_> {
                 let mut value = frame.scale.as_f32();
                 let slider = context
                     .state
-                    .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=20.0, 0.25));
+                    .get_root_or(|| ValueWidget::new_range("Scale", value, 0.0..=20.0, 0.25, 2));
                 if slider.update(scale, context, &mut value) {
                     actions.push(
                         LevelAction::ScaleWaypoint(light_id, selected, Change::Set(r32(value)))
@@ -758,7 +720,7 @@ impl LayoutHelper<'_> {
                 let mut value = frame.rotation.as_degrees().as_f32();
                 let slider = context
                     .state
-                    .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0));
+                    .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0, 0));
                 if slider.update(angle, context, &mut value) {
                     actions.push(
                         LevelAction::RotateWaypointAround(
@@ -789,7 +751,7 @@ impl LayoutHelper<'_> {
                     light.movement.get_interpolation(selected)
                 {
                     let waypoint_curve = context.state.get_root_or(|| {
-                        DropdownWidget::new(
+                        DropdownValueWidget::new(
                             "Curve",
                             0,
                             [
@@ -805,7 +767,7 @@ impl LayoutHelper<'_> {
                     });
 
                     let waypoint_interpolation = context.state.get_root_or(|| {
-                        DropdownWidget::new(
+                        DropdownValueWidget::new(
                             "Interpolation",
                             0,
                             [
@@ -865,6 +827,30 @@ impl LayoutHelper<'_> {
         tooltip.update(&button.text.state, "X", context);
         if button.text.state.mouse_left.clicked {
             actions.push(LevelAction::DeleteEvent(event_idx).into());
+        }
+    }
+
+    fn layout_selected_events(
+        &self,
+        idxs: &[TopLevelEventIdx],
+        tooltip: &mut TooltipWidget,
+        bar: &mut Aabb2<f32>,
+        actions: &mut Vec<EditorStateAction>,
+        context: &UiContext,
+    ) {
+        match idxs {
+            [] => {}
+            &[TopLevelEventIdx::Event(event_i)] => {
+                // Single event
+                self.layout_selected_event(event_i, tooltip, bar, actions, context);
+            }
+            &[TopLevelEventIdx::Timing(timing_i)] => {
+                // Single timing
+                self.layout_selected_timing(timing_i, tooltip, bar, actions, context);
+            }
+            _ => {
+                // Multiple events
+            }
         }
     }
 
@@ -964,11 +950,23 @@ impl LayoutHelper<'_> {
                         );
                     }
                 }
-                EffectEvent::CameraShake(duration, intensity) => {
+                EffectEvent::CameraShake(duration, intensity)
+                | EffectEvent::Vignette(duration, intensity)
+                | EffectEvent::ScreenCurvature(duration, intensity)
+                | EffectEvent::NoiseOffset(duration, intensity)
+                | EffectEvent::Spotlight(duration, intensity) => {
+                    let name = match effect {
+                        EffectEvent::CameraShake(..) => "Camera Shake",
+                        EffectEvent::Vignette(..) => "Vignette",
+                        EffectEvent::ScreenCurvature(..) => "Curvature",
+                        EffectEvent::NoiseOffset(..) => "Noise",
+                        EffectEvent::Spotlight(..) => "Spotlight",
+                        _ => "unknown",
+                    };
                     self.event_title_delete(
                         EditorEventIdx::Event(event_i),
                         bar,
-                        "Camera Shake",
+                        name,
                         tooltip,
                         actions,
                         context,
@@ -1004,8 +1002,7 @@ impl LayoutHelper<'_> {
                     }
 
                     let intensity_pos = bar.cut_top(self.value_height);
-                    let scale = r32(2.0);
-                    let mut intensity = intensity * scale;
+                    let mut intensity = intensity;
                     let slider = context.state.get_root_or(|| {
                         ValueWidget::new(
                             "Intensity",
@@ -1014,24 +1011,20 @@ impl LayoutHelper<'_> {
                                 min: R32::ZERO,
                                 max: r32(1.0),
                             },
-                            r32(0.05),
+                            r32(0.01),
+                            2,
                         )
                     });
                     if slider.update(intensity_pos, context, &mut intensity) {
                         actions.push(
-                            LevelAction::ChangeCameraShakeIntensity(
-                                event_i,
-                                Change::Set(intensity / scale),
-                            )
-                            .into(),
+                            LevelAction::ChangeEffectIntensity(event_i, Change::Set(intensity))
+                                .into(),
                         );
                     }
                     if slider.control_state.mouse_left.just_released {
                         actions.push(
-                            LevelAction::FlushChanges(Some(HistoryLabel::CameraShakeIntensity(
-                                event_i,
-                            )))
-                            .into(),
+                            LevelAction::FlushChanges(Some(HistoryLabel::EffectIntensity(event_i)))
+                                .into(),
                         );
                     }
                 }
@@ -1049,7 +1042,7 @@ impl LayoutHelper<'_> {
 
                 let name_pos = bar.cut_top(self.value_height);
                 let dropdown = context.state.get_root_or(|| {
-                    DropdownWidget::new("Shader", 0, [("<name>", Name::from("<none>"))])
+                    DropdownValueWidget::new("Shader", 0, [("<name>", Name::from("<none>"))])
                 });
                 dropdown.update_options(
                     self.editor
@@ -1062,7 +1055,7 @@ impl LayoutHelper<'_> {
 
                 let layer_pos = bar.cut_top(self.value_height);
                 let dropdown = context.state.get_root_or(|| {
-                    DropdownWidget::new(
+                    DropdownValueWidget::new(
                         "Layer",
                         0,
                         [
@@ -1143,6 +1136,7 @@ impl LayoutHelper<'_> {
                     max: r32(500.0),
                 },
                 r32(1.0),
+                2,
             )
         });
         bpm.update(bpm_pos, context, &mut bpm_value);

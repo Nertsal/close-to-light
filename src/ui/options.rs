@@ -12,8 +12,9 @@ use geng_utils::bounded::Bounded;
 
 const RANGE_VOLUME: RangeInclusive<f32> = 0.0..=100.0;
 const RANGE_MUSIC_OFFSET: RangeInclusive<f32> = -100.0..=100.0;
-const RANGE_BLUE: RangeInclusive<f32> = 50.0..=100.0;
-const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=100.0;
+const RANGE_BLUE: RangeInclusive<f32> = 0.5..=1.0;
+const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=1.0;
+const RANGE_TELEGRAPH_BRIGHTNESS: RangeInclusive<f32> = 0.25..=1.0;
 const RANGE_INNER_RADIUS: RangeInclusive<f32> = 0.1..=0.5;
 const RANGE_OUTER_RADIUS: RangeInclusive<f32> = 0.05..=0.5;
 
@@ -286,6 +287,7 @@ pub struct GraphicsWidget {
     pub blue: SliderWidget,
     pub saturation: SliderWidget,
     pub telegraph_color: ColorSelectWidget,
+    pub telegraph_brightness: SliderWidget,
     pub perfect_color: ColorSelectWidget,
 }
 
@@ -302,6 +304,7 @@ impl GraphicsWidget {
                 "Telegraph color",
                 [ThemeColor::Light, ThemeColor::Highlight],
             ),
+            telegraph_brightness: SliderWidget::new("Telegraph brightness").with_precision(0),
             perfect_color: ColorSelectWidget::new(
                 "Perfect color",
                 [ThemeColor::Light, ThemeColor::Highlight],
@@ -355,18 +358,24 @@ impl StatefulWidget for GraphicsWidget {
         self.crt
             .update_state(next_row(), context, &mut state.crt.enabled);
 
-        let mut blue = state.colors.blue * 100.0;
         self.blue
-            .update_value(next_row(), context, &mut blue, RANGE_BLUE);
-        state.colors.blue = blue / 100.0;
+            .update_value_percent(next_row(), context, &mut state.colors.blue, RANGE_BLUE);
 
-        let mut saturation = state.colors.saturation * 100.0;
-        self.saturation
-            .update_value(next_row(), context, &mut saturation, RANGE_SATURATION);
-        state.colors.saturation = saturation / 100.0;
+        self.saturation.update_value_percent(
+            next_row(),
+            context,
+            &mut state.colors.saturation,
+            RANGE_SATURATION,
+        );
 
         self.telegraph_color
             .update(next_row(), context, &mut state.lights.telegraph_color);
+        self.telegraph_brightness.update_value_percent(
+            next_row(),
+            context,
+            &mut state.lights.telegraph_brightness,
+            RANGE_TELEGRAPH_BRIGHTNESS,
+        );
         self.perfect_color
             .update(next_row(), context, &mut state.lights.perfect_color);
 

@@ -21,7 +21,7 @@ pub struct EditorUi {
 impl EditorUi {
     pub fn new(_context: Context) -> Self {
         Self {
-            game: default(),
+            game: WidgetState::new(),
             edit: EditorEditUi::new(),
             config: EditorConfigUi::new(),
             context_menu: ContextMenuWidget::empty(), // TODO: persistent widget in UI state
@@ -64,6 +64,7 @@ impl EditorUi {
             let size = vec2(20.0, 10.0) * layout_size;
             let window = screen.align_aabb(size, vec2(0.5, 0.5));
             confirm.update(window, context);
+            confirm.state.z_index = context.state.current_layer();
             if confirm.confirm_icon.icon.state.mouse_left.clicked
                 || confirm.confirm_text.text.state.mouse_left.clicked
             {
@@ -98,6 +99,8 @@ impl EditorUi {
             confirm.window.show.going_up = true;
             self.confirm = Some(confirm);
         }
+
+        context.state.decrement_layer();
 
         let mut main = screen;
 

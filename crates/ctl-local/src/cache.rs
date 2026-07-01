@@ -45,6 +45,7 @@ pub struct CacheTasks {
 enum CacheAction {
     GroupList(Vec<LevelSetInfo>),
     Group(Box<CachedGroup>),
+    #[cfg(feature = "online")]
     DownloadGroups(Vec<Id>),
 }
 
@@ -98,6 +99,9 @@ impl CacheTasks {
             match task.poll() {
                 Err(task) => self.get_recommended = Some(task),
                 Ok(Err(err)) => error!("Failed to get recommended levels: {:?}", err),
+                #[cfg(not(feature = "online"))]
+                Ok(Ok(_)) => {}
+                #[cfg(feature = "online")]
                 Ok(Ok(groups)) => {
                     let group_ids = groups.into_iter().map(|group| group.id).collect();
                     return Some(CacheAction::DownloadGroups(group_ids));
@@ -224,6 +228,9 @@ impl LevelCache {
         let result = async {
             group.meta.hash = group.data.calculate_hash();
 
+            #[cfg(not(feature = "online"))]
+            let origin = None;
+            #[cfg(feature = "online")]
             let origin = if group.meta.id == 0 {
                 None
             } else if let Some(client) = self.client() {
@@ -321,7 +328,10 @@ impl LevelCache {
             }
         };
 
-        let data = LevelSet { levels: Vec::new() };
+        let data = LevelSet {
+            levels: Vec::new(),
+            music_offset: 0,
+        };
         let group = CachedGroup {
             origin: None,
             local: LocalGroup {
@@ -351,6 +361,7 @@ impl LevelCache {
         self.inner.borrow_mut().groups.insert(group)
     }
 
+    #[cfg(feature = "online")]
     pub fn fetch_groups(&self) {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.fetch_groups.is_none()
@@ -367,6 +378,7 @@ impl LevelCache {
         }
     }
 
+    #[cfg(feature = "online")]
     pub fn download_recommended(&self) {
         let mut inner = self.inner.borrow_mut();
         if inner.tasks.get_recommended.is_none()
@@ -382,6 +394,7 @@ impl LevelCache {
         }
     }
 
+    #[cfg(feature = "online")]
     pub fn download_group(&self, group_id: Id) {
         let mut inner = self.inner.borrow_mut();
         if inner
@@ -465,6 +478,7 @@ impl LevelCache {
 
                     inner.groups.insert(Rc::new(*group));
                 }
+                #[cfg(feature = "online")]
                 CacheAction::DownloadGroups(ids) => {
                     drop(inner);
                     for group_id in ids {
@@ -595,8 +609,26 @@ impl LevelCache {
             new_music.meta = group_meta.music.clone();
             new_group.music = Some(Rc::new(new_music));
         }
+
         new_group.meta = group_meta;
         new_group.data = group;
+
+        // Make sure meta and data are matching
+        if new_group.meta.levels.len() > new_group.data.levels.len() {
+            // Too much meta information - cut
+            new_group.meta.levels.drain(new_group.data.levels.len()..);
+        } else if new_group.data.levels.len() > new_group.meta.levels.len() {
+            // Too many levels - add missing info
+            new_group.meta.levels.extend(
+                (new_group.meta.levels.len()..new_group.data.levels.len()).map(|_| LevelInfo {
+                    id: 0,
+                    name: "<diff>".into(),
+                    authors: vec![],
+                    hash: String::new(),
+                }),
+            )
+        }
+
         new_group.update_hash();
 
         drop(inner);
@@ -608,20 +640,19 @@ impl LevelCache {
         group_index: Index,
         level_index: usize,
         level: Level,
-        name: String,
     ) -> Option<(Rc<CachedGroup>, LevelFull)> {
         let inner = self.inner.borrow();
         let group = inner.groups.get(group_index)?;
         let mut new_group = group.local.data.clone();
-        let mut new_meta = group.local.meta.clone();
+        // let mut new_meta = group.local.meta.clone();
         let new_level = new_group.levels.get_mut(level_index)?;
         *new_level = Rc::new(level);
 
-        let level_meta = new_meta.levels.get_mut(level_index)?;
-        level_meta.name = name.into();
+        // let level_meta = new_meta.levels.get_mut(level_index)?;
+        // level_meta.name = name.into();
 
         drop(inner);
-        let group = self.update_group_and_meta(group_index, new_group, new_meta)?;
+        let group = self.update_group(group_index, new_group, None)?;
         let level = group.local.data.levels.get(level_index)?.clone();
         let level_meta = group.local.meta.levels.get(level_index)?.clone();
         Some((

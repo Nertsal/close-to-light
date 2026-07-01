@@ -101,10 +101,7 @@ impl WidgetOld for ConfirmWidget {
 }
 
 impl Widget for ConfirmWidget {
-    fn state_mut(&mut self) -> &mut WidgetState {
-        &mut self.state
-    }
-
+    simple_widget_state!();
     fn draw(&self, context: &UiContext) -> Geometry {
         let outline_width = context.font_size * 0.1;
         let theme = context.theme();

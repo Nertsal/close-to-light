@@ -5,7 +5,7 @@ use self::ui::UiContext;
 
 use crate::{
     prelude::*,
-    render::{dither::DitherRender, game::GameRender, post::PostRender},
+    render::{game::GameRender, post::PostRender},
 };
 
 use ctl_local::Leaderboard;
@@ -26,7 +26,7 @@ pub struct Game {
     transition: Option<geng::state::Transition>,
     render: GameRender,
     post: PostRender,
-    lights_dither: DitherRender,
+    lights_sdf: ugli::Texture,
     world_texture: ugli::Texture,
 
     model: Model,
@@ -97,7 +97,10 @@ impl Game {
             transition: None,
             render: GameRender::new(context.clone()),
             post: PostRender::new(&context),
-            lights_dither: DitherRender::new(&context.geng, &context.assets),
+            lights_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                crate::render::dither::DITHER_RESOLUTION,
+            ),
             world_texture: {
                 let mut t = geng_utils::texture::new_texture(context.geng.ugli(), vec2(1, 1));
                 t.set_filter(ugli::Filter::Nearest);
@@ -176,6 +179,7 @@ impl geng::State for Game {
         let _buffer = &mut self.post.begin(framebuffer.size(), theme.dark);
 
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
+        let flashlight_mode = !self.model.state.ended();
 
         // Render world to get the lights sdf
         let world_buffer = &mut geng_utils::texture::attach_texture(
@@ -186,7 +190,7 @@ impl geng::State for Game {
         self.render.draw_world(
             &self.model,
             self.debug_mode,
-            &mut self.lights_dither,
+            &mut self.lights_sdf,
             world_buffer,
         );
 
@@ -199,7 +203,7 @@ impl geng::State for Game {
                 self.model.real_time,
                 self.model.play_time_ms,
                 &self.level_assets,
-                self.lights_dither.get_lights_sdf(),
+                &self.lights_sdf,
             );
 
         macro_rules! apply_shaders {
@@ -241,6 +245,58 @@ impl geng::State for Game {
             buffer,
         );
 
+        // Render just the scanlines effect on the world
+        // and apply the flashlight effect before the UI and full postprocessing
+        self.post.self_process(
+            &Options {
+                graphics: ctl_assets::GraphicsOptions {
+                    crt: ctl_assets::GraphicsCrtOptions {
+                        enabled: options.graphics.crt.enabled,
+                        curvature: 0.0,
+                        vignette: 0.0,
+                        scanlines: if flashlight_mode {
+                            options.graphics.crt.scanlines
+                        } else {
+                            0.0
+                        },
+                    },
+                    ..options.graphics.clone()
+                },
+                ..options.clone()
+            },
+            &crate::render::post::PostVfx::new(
+                &Vfx::new(), // Real vfx are rendered later
+                self.model.real_time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
+        );
+        {
+            let mut spotlight = if self.model.level.config.modifiers.light.is_some() {
+                1.0
+            } else {
+                self.model.vfx.spotlight.value.current.as_f32()
+            };
+            // Transition at start/end of level
+            let transition = match self.model.state {
+                State::Starting { .. } => (self.model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0),
+                State::Lost { .. } | State::Finished => {
+                    (1.0 - self.model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0)
+                }
+                _ => 1.0,
+            };
+            spotlight *= transition;
+            if spotlight > 0.0 {
+                let mask = match self.model.level.config.modifiers.light {
+                    Some(LightMode::Flashlight) => &self.render.cursor_sdf,
+                    Some(LightMode::Spotlight) => &self.lights_sdf,
+                    None => &self.lights_sdf,
+                };
+                self.post.apply_sdf_mask(mask, spotlight);
+            }
+        }
+        let buffer = &mut self.post.continu();
+
         if !fading {
             self.ui_focused = self.ui.layout(
                 &self.model,
@@ -252,7 +308,9 @@ impl geng::State for Game {
         }
         self.ui_context.frame_end();
 
-        if !self.model.level.config.modifiers.clean_auto {
+        // Render player on top of UI when gameplay is done
+        // to be compatible with flashlight mod
+        if !self.model.level.config.modifiers.clean_auto && !flashlight_mode {
             let mut dither_buffer = self.render.dither.start();
             self.render.util.draw_player(
                 &self.model.player,
@@ -326,20 +384,24 @@ impl geng::State for Game {
         // Render postprocessing (early) shaders
         let _ = apply_shaders!(ShaderLayer::PostProcessEarly);
 
-        self.post.post_process(
+        let mut options = options.clone();
+        if flashlight_mode {
+            options.graphics.crt.scanlines = 0.0;
+        }
+        self.post.self_process(
             &options,
-            &crate::render::post::PostVfx {
-                time: self.model.real_time,
-                crt: options.graphics.crt.enabled,
-                rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
-                colors: options.graphics.colors,
-            },
+            &crate::render::post::PostVfx::new(
+                &self.model.vfx,
+                self.model.real_time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
         );
 
         // Render postprocessing (late) shaders
         let _ = apply_shaders!(ShaderLayer::PostProcessLate);
 
-        self.post.finish(framebuffer);
+        self.post.render_noop(framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {

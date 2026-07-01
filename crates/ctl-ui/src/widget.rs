@@ -4,6 +4,7 @@ mod color;
 mod confirm;
 mod dropdown;
 mod explore;
+mod geometry;
 mod icon;
 mod input;
 mod notification;
@@ -12,8 +13,8 @@ mod text;
 mod value;
 
 pub use self::{
-    beat_time::*, button::*, color::*, confirm::*, dropdown::*, explore::*, icon::*, input::*,
-    notification::*, slider::*, text::*, value::*,
+    beat_time::*, button::*, color::*, confirm::*, dropdown::*, explore::*, geometry::*, icon::*,
+    input::*, notification::*, slider::*, text::*, value::*,
 };
 
 use super::{WidgetId, context::*, geometry::Geometry, window::*};
@@ -30,11 +31,17 @@ const MAX_CLICK_DISTANCE: f32 = 10.0;
 #[macro_export]
 macro_rules! simple_widget_state {
     () => {
+        fn state(&self) -> &WidgetState {
+            &self.state
+        }
         fn state_mut(&mut self) -> &mut WidgetState {
             &mut self.state
         }
     };
     ($path:tt) => {
+        fn state(&self) -> &WidgetState {
+            &self.$path.state
+        }
         fn state_mut(&mut self) -> &mut WidgetState {
             &mut self.$path.state
         }
@@ -42,6 +49,7 @@ macro_rules! simple_widget_state {
 }
 
 pub trait Widget: WidgetToAny {
+    fn state(&self) -> &WidgetState;
     fn state_mut(&mut self) -> &mut WidgetState;
     #[must_use]
     fn draw_top(&self, context: &UiContext) -> Geometry {
@@ -104,6 +112,7 @@ pub trait StatefulWidget {
 #[derive(Debug, Clone)]
 pub struct WidgetState {
     pub id: WidgetId,
+    pub z_index: i64,
     pub position: Aabb2<f32>,
     /// Whether to show the widget.
     pub visible: bool,
@@ -141,8 +150,19 @@ pub struct WidgetSfxConfig {
 }
 
 impl WidgetState {
+    #[allow(clippy::new_without_default)]
+    #[track_caller]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            id: WidgetId::new(),
+            z_index: 0,
+            position: Aabb2::ZERO.extend_uniform(1.0),
+            visible: true,
+            hovered: false,
+            mouse_left: WidgetMouseState::default(),
+            mouse_right: WidgetMouseState::default(),
+            sfx_config: WidgetSfxConfig::default(),
+        }
     }
 
     pub fn with_sfx(self, sfx_config: WidgetSfxConfig) -> Self {
@@ -151,7 +171,17 @@ impl WidgetState {
 
     pub fn update(&mut self, position: Aabb2<f32>, context: &UiContext) {
         self.position = position;
-        if self.visible && context.can_focus() {
+        let totally_focused = context.is_totally_focused() == Some(self.id);
+        if self.visible && (context.can_focus() || totally_focused) {
+            if totally_focused
+                && context.cursor.left.down
+                && !context.cursor.left.was_down
+                && !position.contains(context.cursor.position)
+            {
+                // Clicked outside of the area of the totally focused widget
+                context.cancel_total_focus();
+            }
+
             let was_hovered = self.hovered;
             self.hovered = self.position.contains(context.cursor.position);
 
@@ -190,18 +220,12 @@ impl WidgetState {
         self.mouse_left = WidgetMouseState::default();
         self.mouse_right = WidgetMouseState::default();
     }
-}
 
-impl Default for WidgetState {
-    fn default() -> Self {
-        Self {
-            id: WidgetId::default(),
-            position: Aabb2::ZERO.extend_uniform(1.0),
-            visible: true,
-            hovered: false,
-            mouse_left: WidgetMouseState::default(),
-            mouse_right: WidgetMouseState::default(),
-            sfx_config: WidgetSfxConfig::default(),
+    pub fn set_visibility(&mut self, visible: bool) {
+        if visible {
+            self.show();
+        } else {
+            self.hide();
         }
     }
 }

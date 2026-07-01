@@ -457,14 +457,14 @@ impl geng::State for TrailerState {
         // Post processing effects
         self.post.post_process(
             &options,
-            &PostVfx {
-                time: self.time,
-                crt: true,
-                rgb_split: self.model.vfx.rgb_split.value.current.as_f32(),
-                colors: ctl_assets::GraphicsColorsOptions::default(),
-            },
+            &PostVfx::new(
+                &self.model.vfx,
+                self.time,
+                true,
+                ctl_assets::GraphicsColorsOptions::default(),
+            ),
+            framebuffer,
         );
-        self.post.finish(framebuffer);
     }
 }
 

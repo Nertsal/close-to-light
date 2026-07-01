@@ -18,11 +18,18 @@ const DIFF_SWITCH_TIME: f32 = 0.5;
 
 #[derive(Debug)]
 pub enum ConfirmAction {
+    /// Just a message for the player.
+    #[allow(dead_code)]
+    Noop,
     DeleteGroup(Index),
     DeleteLevel(Index, usize),
+    #[cfg(feature = "online")]
     SyncDiscard,
+    #[cfg(feature = "online")]
     DownloadRecommended,
+    #[cfg(feature = "online")]
     SyncUpload,
+    #[cfg(feature = "editor")]
     CreateLevel,
 }
 
@@ -76,6 +83,8 @@ pub struct MenuState {
 
     /// Whether to open a (group, level) in the editor.
     pub edit_level: Option<(Index, Option<usize>)>,
+    /// Whether to start a practice section.
+    pub practice_section: Option<(Time, Time)>,
 
     /// List of notifications to be consumed and transferred to UI.
     pub notifications: Vec<String>,
@@ -108,15 +117,29 @@ impl MenuState {
         self.switch_diff = Some(level);
     }
 
+    #[cfg(feature = "editor")]
     fn edit_level(&mut self, group: Index, level: Option<usize>) {
         self.edit_level = Some((group, level));
     }
 
+    #[cfg(feature = "editor")]
     fn new_group(&mut self) {
         self.switch_level = None; // Deselect group
         let local = &self.context.local;
         let group_index = local.new_group();
         self.edit_level(group_index, None);
+    }
+
+    #[cfg(not(feature = "editor"))]
+    pub fn editor_not_available(&mut self) {
+        self.popup_confirm_custom(
+            ConfirmAction::Noop,
+            "Oops!",
+            "The editor is not available yet\nbut it is coming soon!",
+            "Ok",
+            ThemeColor::Light,
+            "Fine",
+        );
     }
 
     /// Create a popup window with a message for the given action.
@@ -159,15 +182,17 @@ impl MenuState {
     }
 
     /// Confirm the popup action and execute it.
-    pub fn confirm_action(&mut self, ui: &mut MenuUI) {
+    pub fn confirm_action(&mut self, #[allow(unused_variables)] ui: &mut MenuUI) {
         let Some(popup) = self.confirm_popup.take() else {
             return;
         };
         match popup.action {
+            ConfirmAction::Noop => {}
             ConfirmAction::DeleteGroup(index) => self.context.local.delete_group(index),
             ConfirmAction::DeleteLevel(group, level) => {
                 self.context.local.delete_level(group, level)
             }
+            #[cfg(feature = "online")]
             ConfirmAction::SyncDiscard => {
                 if let Some(sync) = &mut ui.sync
                     && let Some(client) = self.leaderboard.get().client.clone()
@@ -175,6 +200,7 @@ impl MenuState {
                     sync.discard_changes(client);
                 }
             }
+            #[cfg(feature = "online")]
             ConfirmAction::SyncUpload => {
                 if let Some(sync) = &mut ui.sync
                     && let Some(client) = self.leaderboard.get().client.clone()
@@ -182,11 +208,13 @@ impl MenuState {
                     sync.upload(client);
                 }
             }
+            #[cfg(feature = "online")]
             ConfirmAction::DownloadRecommended => {
                 self.context.local.download_recommended();
                 self.notifications
                     .push("Please wait while the levels are being downloaded".into());
             }
+            #[cfg(feature = "editor")]
             ConfirmAction::CreateLevel => {
                 // Switch to custom view so the new level is visible
                 if let LevelsFilter::Demo = ui.level_select.active_filter {
@@ -209,6 +237,7 @@ impl LevelMenu {
             r32(0.0),
         );
 
+        #[allow(unused_mut)]
         let mut state = Self {
             render: MenuRender::new(context.clone()),
             util: UtilRender::new(context.clone()),
@@ -251,6 +280,7 @@ impl LevelMenu {
                 switch_diff: None,
 
                 edit_level: None,
+                practice_section: None,
 
                 notifications: Vec::new(),
             },
@@ -268,6 +298,7 @@ impl LevelMenu {
             transition: None,
         };
 
+        #[cfg(feature = "online")]
         if state.context.local.inner.borrow().groups.is_empty() {
             state.state.popup_confirm_custom(
                 ConfirmAction::DownloadRecommended,
@@ -325,6 +356,7 @@ impl LevelMenu {
             let context = self.context.clone();
             let leaderboard = self.state.leaderboard.clone();
             let config = self.state.config.clone();
+            let practice = self.state.practice_section.take();
 
             async move {
                 let level_assets = ctl_assets::LevelAssets::load_for(
@@ -353,11 +385,13 @@ impl LevelMenu {
                     ctl_assets::LevelAssets::default()
                 });
                 let level = ctl_logic::PlayLevel {
+                    music_offset: group.cached.local.data.music_offset,
                     group,
                     level_index,
                     level: level.clone(),
                     config,
-                    start_time: Time::ZERO,
+                    start_time: practice.map_or(Time::ZERO, |(s, _)| s),
+                    end_time: practice.map(|(_, e)| e),
                     transition_button: Some(transition_button),
                 };
                 crate::game::Game::new(context, Rc::new(level_assets), level, leaderboard)
@@ -617,10 +651,11 @@ impl geng::State for LevelMenu {
 
         let mut dither_buffer = self.dither.start();
 
-        if !fading {
+        // NOTE: hardcoded to not draw above practice
+        if !fading && self.ui.practice.window.show.time.is_min() {
             // UI lights
             let mut draw_light = |light: &SelectLightUi| {
-                let light_pos = (vec2(light.pos_x, light.light_y.current())
+                let light_pos = (vec2(light.pos_x, light.light_y.current)
                     - self.ui.screen.position.bottom_left())
                     / self.ui.screen.position.size()
                     * dither_buffer.size().as_f32();
@@ -676,14 +711,13 @@ impl geng::State for LevelMenu {
 
         self.post.post_process(
             &options,
-            &crate::render::post::PostVfx {
-                time: self.state.real_time,
-                crt: options.graphics.crt.enabled,
-                rgb_split: 0.0,
-                colors: options.graphics.colors,
-            },
+            &crate::render::post::PostVfx::minimal(
+                self.state.real_time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
+            framebuffer,
         );
-        self.post.finish(framebuffer);
 
         self.ui_context.frame_end();
     }
@@ -708,11 +742,18 @@ impl geng::State for LevelMenu {
                         if let Some(confirm) = &mut self.ui.confirm {
                             confirm.window.request = Some(WidgetRequest::Close);
                         }
-                    } else if let Some(sync) = &mut self.ui.sync {
+                        return;
+                    }
+                    #[cfg(feature = "online")]
+                    if let Some(sync) = &mut self.ui.sync {
                         sync.window.request = Some(WidgetRequest::Close);
-                    } else if self.ui.explore.window.show.time.is_max() {
+                        return;
+                    }
+                    if self.ui.practice.window.show.time.is_above_min() {
+                        self.ui.practice.window.request = Some(WidgetRequest::Close);
+                    } else if self.ui.explore.window.show.time.is_above_min() {
                         self.ui.explore.window.request = Some(WidgetRequest::Close);
-                    } else if self.ui.leaderboard.window.show.time.is_max() {
+                    } else if self.ui.leaderboard.window.show.time.is_above_min() {
                         self.ui.leaderboard.window.request = Some(WidgetRequest::Close);
                     } else if self.state.switch_diff.take().is_some()
                         || self.state.switch_level.take().is_some()
@@ -761,7 +802,7 @@ impl geng::State for LevelMenu {
         };
         if self.ui.explore.state.visible {
             let music_change = || {
-                let current = self.context.music.current();
+                let current = self.context.music.current_static();
                 let target = target_music();
                 match (current, target) {
                     (None, None) => false,
@@ -799,6 +840,10 @@ impl geng::State for LevelMenu {
         }
         self.context.music.set_speed(1.0);
 
+        if self.state.practice_section.is_some() {
+            self.play_button.force_fade = true;
+        }
+
         if let Some(button) = &mut self.transition_button {
             button.update(true, delta_time);
             if button.hover_time.is_max() {
@@ -833,7 +878,7 @@ impl geng::State for LevelMenu {
         // Update player cursor
         self.state.player.collider.position = cursor_world.as_r32();
         self.state.player.reset_distance();
-        if !self.ui_focused && self.state.selected_diff.is_some() {
+        let hovering = if !self.ui_focused && self.state.selected_diff.is_some() {
             self.state
                 .player
                 .update_distance_simple(&self.play_button.base_collider);
@@ -843,10 +888,13 @@ impl geng::State for LevelMenu {
                 .base_collider
                 .contains(cursor_world.as_r32());
             if hovering && self.ui_context.cursor.left.was_down {
-                self.play_button.clicked = true;
+                self.play_button.force_fade = true;
             }
-            self.play_button.update(hovering, delta_time);
-        }
+            hovering
+        } else {
+            false
+        };
+        self.play_button.update(hovering, delta_time);
         if self.play_button.is_fading() {
             self.play_level();
         }
@@ -889,15 +937,17 @@ impl geng::State for LevelMenu {
                 };
                 anyhow::Ok((group, level))
             });
-        let context = self.context.clone();
-        let manager = self.context.geng.asset_manager().clone();
-        let assets_path = run_dir().join("assets");
 
         if let Some(edit_level) = edit_level {
             match edit_level {
                 Err(err) => {
                     log::error!("Edit failed: {err:?}");
                 }
+                #[cfg(not(feature = "editor"))]
+                Ok(_) => {
+                    log::error!("Cannot edit levels in this version");
+                }
+                #[cfg(feature = "editor")]
                 Ok((group, level)) => {
                     let level_index = level.as_ref().map(|(idx, _)| idx);
                     log::debug!(
@@ -905,6 +955,10 @@ impl geng::State for LevelMenu {
                         group.group_index,
                         level_index
                     );
+
+                    let context = self.context.clone();
+                    let manager = self.context.geng.asset_manager().clone();
+                    let assets_path = run_dir().join("assets");
 
                     let future = async move {
                         let config: crate::editor::EditorConfig =
@@ -922,11 +976,13 @@ impl geng::State for LevelMenu {
 
                         if let Some((level_index, level)) = level {
                             let level = ctl_logic::PlayLevel {
+                                music_offset: group.cached.local.data.music_offset,
                                 group,
                                 level_index,
                                 level,
                                 config: LevelConfig::default(),
                                 start_time: Time::ZERO,
+                                end_time: None,
                                 transition_button: None,
                             };
                             crate::editor::EditorState::new_level(

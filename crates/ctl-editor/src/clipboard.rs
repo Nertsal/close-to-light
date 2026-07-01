@@ -6,7 +6,18 @@ pub struct Clipboard {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ClipboardItem {
-    Events(Time, Vec<TimedEvent>),
+    Events {
+        time: Time,
+        events: Vec<ClipboardEvent<TimedEvent>>,
+        timing: Vec<ClipboardEvent<TimingPoint>>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ClipboardEvent<E> {
+    pub event: E,
+    pub beat_aligned: bool,
+    pub beat_offset: FloatTime,
 }
 
 impl Default for Clipboard {
@@ -30,5 +41,9 @@ impl Clipboard {
 
     pub fn paste(&mut self) -> Option<ClipboardItem> {
         self.data.clone()
+    }
+
+    pub fn get(&self) -> &Option<ClipboardItem> {
+        &self.data
     }
 }

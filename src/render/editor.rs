@@ -31,6 +31,7 @@ pub struct EditorRender {
     game_texture: ugli::Texture,
     ui_texture: ugli::Texture,
     ui_depth: ugli::Renderbuffer<ugli::DepthComponent>,
+    lights_sdf: ugli::Texture,
 }
 
 impl EditorRender {
@@ -57,6 +58,10 @@ impl EditorRender {
             game_texture,
             ui_texture,
             ui_depth,
+            lights_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                dither::DITHER_RESOLUTION,
+            ),
             context,
         }
     }
@@ -94,14 +99,15 @@ impl EditorRender {
         }
 
         let edit_tab = matches!(editor.tab, EditorTab::Edit);
-        self.draw_game(
-            editor,
-            context.screen,
-            interpolation_cache,
-            edit_tab,
-            post_vfx,
-            level_assets,
-        );
+        if edit_tab {
+            self.draw_game(
+                editor,
+                context.screen,
+                interpolation_cache,
+                post_vfx,
+                level_assets,
+            );
+        }
         if !editor.render_options.hide_ui {
             self.draw_ui(ui, context);
         }

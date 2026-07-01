@@ -14,11 +14,10 @@ pub enum LevelAction {
     Paste,
     FlushChanges(Option<HistoryLabel>),
     Cancel,
-    SetName(String),
     ToggleWaypointsView,
     ScalePlacement(Change<Coord>),
     RotatePlacement(Angle<Coord>),
-    ScrollTime(Time),
+    ScrollTime(Change<Time>),
     SetBeatSnap(BeatTime),
     TimelineZoom(Change<f32>),
     CameraPan(Change<vec2<f32>>),
@@ -29,7 +28,7 @@ pub enum LevelAction {
     DeselectWaypoint,
 
     // General event
-    SelectEvent(EditorEventIdx),
+    SelectEvent(SelectMode, Vec<TopLevelEventIdx>),
     DeleteEvent(EditorEventIdx),
     MoveEvent(EditorEventIdx, Change<Time>),
     MoveEvents(Vec<(EditorEventIdx, Change<Time>)>),
@@ -44,11 +43,15 @@ pub enum LevelAction {
     UpdateShader(usize, ShaderEvent),
 
     // Vfx
-    NewRgbSplit(Time),
-    NewPaletteSwap(Time),
-    NewCameraShake(Time),
+    NewRgbSplit(BeatTime),
+    NewPaletteSwap(BeatTime),
+    NewCameraShake(BeatTime),
+    NewVignette(BeatTime),
+    NewCurvature(BeatTime),
+    NewNoiseOffset(BeatTime),
+    NewSpotlight(BeatTime),
     ChangeEffectDuration(usize, Change<Time>),
-    ChangeCameraShakeIntensity(usize, Change<R32>),
+    ChangeEffectIntensity(usize, Change<R32>),
 
     // Light actions
     NewLight(Shape),
@@ -90,39 +93,6 @@ pub enum SelectMode {
     Set,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum Change<T> {
-    Add(T),
-    Set(T),
-}
-
-impl<T: Sub<Output = T>> Change<T> {
-    pub fn into_delta(self, reference_value: T) -> T {
-        match self {
-            Change::Add(delta) => delta,
-            Change::Set(target_value) => target_value.sub(reference_value),
-        }
-    }
-}
-
-impl<T: Add<Output = T> + Copy> Change<T> {
-    pub fn apply(&self, value: &mut T) {
-        *value = match *self {
-            Change::Add(delta) => value.add(delta),
-            Change::Set(value) => value,
-        };
-    }
-}
-
-impl<T: PartialEq> Change<T> {
-    pub fn is_noop(&self, zero_delta: &T) -> bool {
-        match self {
-            Change::Add(delta) => delta == zero_delta,
-            Change::Set(_) => false,
-        }
-    }
-}
-
 impl LevelAction {
     pub fn list(iter: impl IntoIterator<Item = Self>) -> Self {
         Self::List(None, iter.into_iter().collect())
@@ -144,11 +114,10 @@ impl LevelAction {
             LevelAction::Paste => false,
             LevelAction::FlushChanges(_) => false,
             LevelAction::Cancel => false,
-            LevelAction::SetName(_) => false,
             LevelAction::ToggleWaypointsView => false,
             LevelAction::ScalePlacement(delta) => delta.is_noop(&Coord::ZERO),
             LevelAction::RotatePlacement(delta) => *delta == Angle::ZERO,
-            LevelAction::ScrollTime(delta) => *delta == Time::ZERO,
+            LevelAction::ScrollTime(delta) => delta.is_noop(&Time::ZERO),
             LevelAction::SetBeatSnap(_) => false,
             LevelAction::TimelineZoom(zoom) => zoom.is_noop(&0.0),
             LevelAction::CameraPan(delta) => delta.is_noop(&vec2::ZERO),
@@ -156,7 +125,7 @@ impl LevelAction {
             LevelAction::Deselect => false,
             LevelAction::DeselectWaypoint => false,
 
-            LevelAction::SelectEvent(_) => false,
+            LevelAction::SelectEvent(_, _) => false,
             LevelAction::DeleteEvent(_) => false,
             LevelAction::MoveEvent(_, delta) => delta.is_noop(&0),
             LevelAction::MoveEvents(events) => events.is_empty(),
@@ -171,8 +140,12 @@ impl LevelAction {
             LevelAction::NewRgbSplit(_) => false,
             LevelAction::NewPaletteSwap(_) => false,
             LevelAction::NewCameraShake(_) => false,
+            LevelAction::NewVignette(_) => false,
+            LevelAction::NewCurvature(_) => false,
+            LevelAction::NewNoiseOffset(_) => false,
+            LevelAction::NewSpotlight(_) => false,
             LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
-            LevelAction::ChangeCameraShakeIntensity(_, delta) => delta.is_noop(&R32::ZERO),
+            LevelAction::ChangeEffectIntensity(_, delta) => delta.is_noop(&R32::ZERO),
 
             LevelAction::NewLight(_) => false,
             LevelAction::ToggleDangerPlacement => false,
@@ -241,28 +214,72 @@ impl LevelEditor {
                 return;
             }
             LevelAction::Copy => self.copy(),
-            LevelAction::CopySelection(selection) => match selection {
-                Selection::Empty => self.clipboard.clear(),
-                Selection::Lights(lights) => {
-                    let lights = lights
-                        .into_iter()
-                        .flat_map(|id| self.level.events.get(id.event).cloned())
-                        .collect();
-                    self.clipboard
-                        .copy(ClipboardItem::Events(self.current_time.target, lights));
+            LevelAction::CopySelection(selection) => {
+                let beat_time = self
+                    .level
+                    .timing
+                    .get_timing(self.current_time.target)
+                    .beat_time;
+                macro_rules! to_clipboard {
+                    ($event:expr) => {
+                        ClipboardEvent {
+                            beat_aligned: $event.time
+                                == self.level.timing.snap_to_beat($event.time, BeatTime::UNIT),
+                            beat_offset: time_to_seconds($event.time - self.current_time.target)
+                                / beat_time,
+                            event: $event,
+                        }
+                    };
                 }
-                Selection::Waypoints(..) => {
-                    // TODO: copy waypoints maybe?
+                match selection {
+                    Selection::Empty => self.clipboard.clear(),
+                    Selection::Lights(lights) => {
+                        let lights = lights
+                            .into_iter()
+                            .flat_map(|id| {
+                                let event = self.level.events.get(id.event).cloned()?;
+                                Some(to_clipboard!(event))
+                            })
+                            .collect();
+                        self.clipboard.copy(ClipboardItem::Events {
+                            time: self.current_time.target,
+                            events: lights,
+                            timing: vec![],
+                        });
+                    }
+                    Selection::Waypoints(..) => {
+                        // TODO: copy waypoints maybe?
+                    }
+                    Selection::Events(idxs) => {
+                        let mut events = Vec::new();
+                        let mut timing = Vec::new();
+                        for idx in idxs {
+                            match idx {
+                                TopLevelEventIdx::Event(idx) => events.extend(
+                                    self.level
+                                        .events
+                                        .get(idx)
+                                        .cloned()
+                                        .map(|e| to_clipboard!(e)),
+                                ),
+                                TopLevelEventIdx::Timing(idx) => timing.extend(
+                                    self.level
+                                        .timing
+                                        .points
+                                        .get(idx)
+                                        .cloned()
+                                        .map(|e| to_clipboard!(e)),
+                                ),
+                            }
+                        }
+                        self.clipboard.copy(ClipboardItem::Events {
+                            time: self.current_time.target,
+                            events,
+                            timing,
+                        });
+                    }
                 }
-                Selection::Event(index) => {
-                    let events = self.level.events.get(index).cloned().into_iter().collect();
-                    self.clipboard
-                        .copy(ClipboardItem::Events(self.current_time.target, events));
-                }
-                Selection::Timing(_) => {
-                    // TODO: copy timing maybe?
-                }
-            },
+            }
             LevelAction::SetSelection(selection) => {
                 self.selection = selection;
             }
@@ -273,7 +290,6 @@ impl LevelEditor {
                 }
             }
             LevelAction::Cancel => self.cancel(),
-            LevelAction::SetName(name) => self.name = name,
             LevelAction::ToggleWaypointsView => self.view_waypoints(),
             LevelAction::ScalePlacement(delta) => {
                 delta.apply(&mut self.place_scale);
@@ -323,26 +339,7 @@ impl LevelEditor {
                 }
             }
 
-            LevelAction::SelectEvent(index) => match index {
-                EditorEventIdx::Event(index) => {
-                    if self.level.events.get(index).is_some() {
-                        self.selection = Selection::Event(index);
-                    }
-                }
-                EditorEventIdx::Waypoint(light_id, waypoint_id) => {
-                    if let Some(event) = self.level.events.get(light_id.event)
-                        && let Event::Light(light) = &event.event
-                        && light.movement.get_frame(waypoint_id).is_some()
-                    {
-                        self.selection = Selection::Waypoints(light_id, vec![waypoint_id]);
-                    }
-                }
-                EditorEventIdx::Timing(index) => {
-                    if self.level.timing.points.get(index).is_some() {
-                        self.selection = Selection::Timing(index);
-                    }
-                }
-            },
+            LevelAction::SelectEvent(mode, idxs) => self.select_event(mode, idxs),
             LevelAction::DeleteEvent(index) => match index {
                 EditorEventIdx::Event(index) => {
                     if self.level.events.get(index).is_some() {
@@ -460,6 +457,12 @@ impl LevelEditor {
 
             LevelAction::NewRgbSplit(duration) => {
                 self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::RgbSplit(duration)),
@@ -467,6 +470,12 @@ impl LevelEditor {
             }
             LevelAction::NewCameraShake(duration) => {
                 self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::CameraShake(duration, r32(0.25))),
@@ -474,30 +483,85 @@ impl LevelEditor {
             }
             LevelAction::NewPaletteSwap(duration) => {
                 self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::PaletteSwap(duration)),
+                });
+            }
+            LevelAction::NewVignette(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::Vignette(duration, r32(0.5))),
+                });
+            }
+            LevelAction::NewCurvature(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::ScreenCurvature(duration, r32(0.5))),
+                });
+            }
+            LevelAction::NewNoiseOffset(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::NoiseOffset(duration, r32(1.0))),
+                });
+            }
+            LevelAction::NewSpotlight(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::Spotlight(duration, r32(1.0))),
                 });
             }
             LevelAction::ChangeEffectDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
                     && let Event::Effect(effect) = &mut event.event
                 {
-                    let duration = match effect {
-                        EffectEvent::PaletteSwap(duration)
-                        | EffectEvent::RgbSplit(duration)
-                        | EffectEvent::CameraShake(duration, _) => duration,
-                    };
+                    let duration = effect.duration_mut();
                     change.apply(duration);
                     self.save_state(HistoryLabel::EventDuration(index));
                 }
             }
-            LevelAction::ChangeCameraShakeIntensity(index, change) => {
+            LevelAction::ChangeEffectIntensity(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
-                    && let Event::Effect(EffectEvent::CameraShake(_, intensity)) = &mut event.event
+                    && let Event::Effect(effect) = &mut event.event
+                    && let Some(intensity) = effect.intensity_mut()
                 {
                     change.apply(intensity);
-                    self.save_state(HistoryLabel::CameraShakeIntensity(index));
+                    self.save_state(HistoryLabel::EffectIntensity(index));
                 }
             }
 
@@ -657,14 +721,17 @@ impl LevelEditor {
                 continue;
             };
 
+            // Move fade as well, but keep it relative
+            let change_fade = change_pos.into_delta(frame.translation);
+
             change_pos.apply(&mut frame.translation);
+
             if let WaypointId::Frame(i) = waypoint_id {
-                // Move fade as well
                 if i == 0 {
-                    change_pos.apply(&mut event.movement.initial.transform.translation);
+                    event.movement.initial.transform.translation += change_fade;
                 }
                 if i + 1 == event.movement.waypoints.len() {
-                    change_pos.apply(&mut event.movement.last.translation);
+                    event.movement.last.translation += change_fade;
                 }
             }
         }
@@ -787,7 +854,13 @@ impl LevelEditor {
         }
         if let Some(drag) = drag {
             match &mut drag.target {
-                DragTarget::WaypointMove { light, waypoints } if *light == light_id => {
+                DragTarget::WaypointMove {
+                    light,
+                    anchor,
+                    waypoints,
+                    ..
+                } if *light == light_id => {
+                    fix_id(anchor);
                     waypoints.iter_mut().for_each(|drag| fix_id(&mut drag.id));
                 }
                 DragTarget::TimelineEvent { targets, .. } => {
@@ -864,6 +937,38 @@ impl LevelEditor {
                 self.save_state(default());
             }
             WaypointId::Last => {} // Noop
+        }
+    }
+
+    fn select_event(&mut self, mode: SelectMode, ids: Vec<TopLevelEventIdx>) {
+        self.level_state.waypoints = None;
+        self.state = EditingState::Idle;
+        match mode {
+            SelectMode::Add => {
+                for id in ids {
+                    self.selection.add_event(id);
+                }
+            }
+            SelectMode::Remove => {
+                for id in ids {
+                    self.selection.remove_event(id);
+                }
+            }
+            SelectMode::Toggle => {
+                for id in ids {
+                    if self.selection.is_selected(id.into()) {
+                        self.selection.remove_event(id);
+                    } else {
+                        self.selection.add_event(id);
+                    }
+                }
+            }
+            SelectMode::Set => {
+                self.selection.clear();
+                for id in ids {
+                    self.selection.add_event(id);
+                }
+            }
         }
     }
 
@@ -976,10 +1081,7 @@ impl LevelEditor {
                 })
                 .flatten();
             if let Some(waypoint_time) = waypoint_time {
-                self.execute(
-                    LevelAction::ScrollTime(waypoint_time - self.current_time.target),
-                    None,
-                );
+                self.execute(LevelAction::ScrollTime(Change::Set(waypoint_time)), None);
             }
         }
     }

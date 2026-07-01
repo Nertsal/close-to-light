@@ -8,9 +8,9 @@ pub use self::options::*;
 use std::path::PathBuf;
 
 use ctl_core::{
-    model::{Event, Level, ScoreGrade},
+    model::{Event, Level, LightMode, ScoreGrade},
     prelude::{Color, Modifier},
-    types::Name,
+    types::{FloatTime, Name},
 };
 pub use ctl_font::Font;
 use ctl_render_core::SubTexture;
@@ -29,10 +29,12 @@ pub struct LoadingAssets {
     pub shader_background: ugli::Program,
     #[load(path = "shaders/crt.glsl")]
     pub shader_crt: Rc<ugli::Program>,
-    #[load(path = "shaders/rgb_split.glsl")]
-    pub shader_rgb_split: Rc<ugli::Program>,
+    #[load(path = "shaders/noise_effects.glsl")]
+    pub shader_noise_effects: Rc<ugli::Program>,
     #[load(path = "shaders/color_correction.glsl")]
     pub shader_color_correction: Rc<ugli::Program>,
+    #[load(path = "shaders/masked_sdf.glsl")]
+    pub shader_masked_sdf: Rc<ugli::Program>,
 }
 
 fn load_gif(
@@ -83,9 +85,10 @@ pub struct Sounds {
 #[derive(geng::asset::Load)]
 pub struct Sprites {
     pub title: PixelTexture,
-    pub linear_gradient: PixelTexture,
-    pub radial_gradient: PixelTexture,
-    pub square_gradient: PixelTexture,
+    pub title2: PixelTexture,
+    pub linear_gradient: ugli::Texture,
+    pub radial_gradient: ugli::Texture,
+    pub square_gradient: ugli::Texture,
     pub border: PixelTexture,
     pub border_thin: PixelTexture,
     pub border_thinner: PixelTexture,
@@ -98,13 +101,12 @@ pub struct Sprites {
 ctl_derive::texture_atlas!(pub SpritesAtlas {
     white,
     title,
-    linear_gradient,
-    radial_gradient,
     button_next,
     button_next_hollow,
     button_prev,
     button_prev_hollow,
     button_close,
+    button_confirm,
     border,
     border_thin,
     border_thinner,
@@ -142,6 +144,10 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_sudden,
     mod_hidden,
     mod_touch,
+    mod_half_time,
+    mod_double_time,
+    mod_flashlight,
+    mod_spotlight,
 
     light,
     wrench,
@@ -172,6 +178,9 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
         shake,
         shader,
         unknown,
+        vignette,
+        curvature,
+        noise,
 
         circle,
         circle_fill,
@@ -192,11 +201,12 @@ pub struct Shaders {
     pub solid: Rc<ugli::Program>,
     pub light: Rc<ugli::Program>,
     pub masked: Rc<ugli::Program>,
+    pub masked_sdf: Rc<ugli::Program>,
     pub texture: Rc<ugli::Program>,
     pub ellipse: Rc<ugli::Program>,
     pub texture_ui: Rc<ugli::Program>,
     pub crt: Rc<ugli::Program>,
-    pub rgb_split: Rc<ugli::Program>,
+    pub noise_effects: Rc<ugli::Program>,
     pub color_correction: Rc<ugli::Program>,
 }
 
@@ -277,6 +287,15 @@ impl Assets {
             Modifier::Sudden => self.atlas.mod_sudden(),
             Modifier::Hidden => self.atlas.mod_hidden(),
             Modifier::Touch => self.atlas.mod_touch(),
+            Modifier::TimeScale(scale) => {
+                if scale < FloatTime::ONE {
+                    self.atlas.mod_half_time()
+                } else {
+                    self.atlas.mod_double_time()
+                }
+            }
+            Modifier::LightMode(LightMode::Flashlight) => self.atlas.mod_flashlight(),
+            Modifier::LightMode(LightMode::Spotlight) => self.atlas.mod_spotlight(),
         }
     }
 

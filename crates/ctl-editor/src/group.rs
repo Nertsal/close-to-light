@@ -1,5 +1,23 @@
 use super::*;
 
+const MAX_DIFFICULTIES: usize = 4;
+
+/// Permanent-Temporary value.
+/// A way of storing a configurable value that also allows temporary changes.
+pub struct PTValue<T> {
+    pub permanent: T,
+    pub temporary: T,
+}
+
+impl<T: Copy> PTValue<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            permanent: value,
+            temporary: value,
+        }
+    }
+}
+
 pub struct Editor {
     pub context: Context,
     pub level_assets: LevelAssets,
@@ -21,7 +39,7 @@ pub struct Editor {
     pub grid: Grid,
     pub view_zoom: SecondOrderState<f32>,
     pub music_timer: FloatTime,
-    pub snap_to_grid: bool,
+    pub snap_to_grid: PTValue<bool>,
     /// Whether to visualize the lights' movement for the current beat.
     pub visualize_beat: bool,
     /// Whether to only render the selected light.
@@ -67,10 +85,16 @@ pub enum DragTarget {
         /// If the drag is short, waypoints will be toggled.
         double: bool,
         lights: Vec<DragLight>,
+        light_anchor: LightId,
+        anchor_offset: vec2<Coord>,
+        anchor_offset_time: Time,
     },
     WaypointMove {
         light: LightId,
         waypoints: Vec<DragWaypoint>,
+        anchor: WaypointId,
+        anchor_offset: vec2<Coord>,
+        anchor_offset_time: Time,
     },
     WaypointScale {
         light: LightId,
@@ -83,19 +107,77 @@ pub enum DragTarget {
 #[derive(Debug, Clone)]
 pub struct DragLight {
     pub id: LightId,
-    pub initial_time: Time,
-    pub initial_translation: vec2<Coord>,
 }
 
 #[derive(Debug, Clone)]
 pub struct DragWaypoint {
     pub id: WaypointId,
-    pub initial_time: Time,
-    pub initial_translation: vec2<Coord>,
 }
 
 impl Editor {
+    pub fn new(
+        context: Context,
+        level_assets: LevelAssets,
+        config: EditorConfig,
+        group: PlayGroup,
+    ) -> Self {
+        Self {
+            context: context.clone(),
+            level_assets,
+
+            real_time: FloatTime::ZERO,
+            render_options: RenderOptions {
+                show_grid: true,
+                hide_ui: false,
+            },
+            cursor_world_pos: vec2::ZERO,
+            cursor_world_pos_snapped: vec2::ZERO,
+            drag: None,
+
+            confirm_popup: None,
+
+            tab: EditorTab::Config,
+            exit: false,
+
+            grid: Grid::new_with(config.grid.clone()),
+            view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
+            visualize_beat: true,
+            show_only_selected: false,
+            snap_to_grid: PTValue::new(true),
+            music_timer: FloatTime::ZERO,
+
+            group,
+            level_edit: None,
+            config,
+        }
+    }
+
+    pub fn set_music_offset(&mut self, offset: Time) {
+        // TODO: have a modified version of full level and meta so we dont have to save every frame
+        if self.cannot_edit_assets() {
+            return;
+        }
+
+        let mut new_group = self.group.cached.local.data.clone();
+        new_group.music_offset = offset;
+
+        if let Some(group) =
+            self.context
+                .local
+                .update_group(self.group.group_index, new_group, None)
+        {
+            self.group.cached = group;
+            log::info!("Saved the level successfully");
+        } else {
+            log::error!("Failed to update the level cache");
+        }
+    }
+
     pub fn delete_level(&mut self, level_index: usize) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         if let Some(level_editor) = &self.level_edit
             && level_index == level_editor.static_level.level_index
         {
@@ -110,10 +192,13 @@ impl Editor {
         let mut new_group = self.group.cached.local.data.clone();
         new_group.levels.remove(level_index);
 
+        let mut new_meta = self.group.cached.local.meta.clone();
+        new_meta.levels.remove(level_index);
+
         if let Some(group) =
             self.context
                 .local
-                .update_group(self.group.group_index, new_group, None)
+                .update_group_and_meta(self.group.group_index, new_group, new_meta)
         {
             self.group.cached = group;
             log::info!("Saved the level successfully");
@@ -123,6 +208,15 @@ impl Editor {
     }
 
     pub fn create_new_level(&mut self) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
+        if self.group.cached.local.data.levels.len() >= MAX_DIFFICULTIES {
+            log::warn!("Reached max number of difficulties");
+            return;
+        }
+
         let mut new_group = self.group.cached.local.data.clone();
         let mut new_meta = self.group.cached.local.meta.clone();
         let bpm = r32(120.0);
@@ -158,6 +252,10 @@ impl Editor {
     }
 
     pub fn swap_levels(&mut self, i: usize, j: usize) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         let levels = &self.group.cached.local.data.levels;
         if !(0..levels.len()).contains(&i) || !(0..levels.len()).contains(&j) {
             log::error!("Invalid indices to swap levels");
@@ -199,12 +297,14 @@ impl Editor {
             let level = PlayLevel {
                 group: self.group.clone(),
                 level_index,
+                music_offset: self.group.cached.local.data.music_offset,
                 level: LevelFull {
                     meta: meta.clone(),
                     data: level.clone(),
                 },
                 config: LevelConfig::default(),
                 start_time: Time::ZERO,
+                end_time: None,
                 transition_button: None,
             };
 
@@ -231,7 +331,25 @@ impl Editor {
         self.exit = true;
     }
 
+    fn cannot_edit_assets(&mut self) -> bool {
+        if self.group.cached.local.loaded_from_assets {
+            self.popup_confirm(
+                ConfirmAction::Noop,
+                "You cannot edit official levels",
+                "Ok",
+                "Fine",
+            );
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn save(&mut self) {
+        if self.cannot_edit_assets() {
+            return;
+        }
+
         let Some(level_editor) = &mut self.level_edit else {
             // Save whole group
             // NOTE: null action, but it might update the saved format/version
@@ -253,7 +371,6 @@ impl Editor {
             level_editor.static_level.group.group_index,
             level_editor.static_level.level_index,
             level_editor.level.clone(),
-            level_editor.name.clone(),
         ) {
             level_editor.model.level.level = level;
             self.group.cached = group;
@@ -266,24 +383,17 @@ impl Editor {
     /// Check whether the level has been changed.
     pub fn is_changed(&self) -> bool {
         if let Some(level_editor) = &self.level_edit {
-            let (Some(cached), Some(cached_meta)) = (
-                self.group
-                    .cached
-                    .local
-                    .data
-                    .levels
-                    .get(level_editor.static_level.level_index),
-                self.group
-                    .cached
-                    .local
-                    .meta
-                    .levels
-                    .get(level_editor.static_level.level_index),
-            ) else {
+            let Some(cached) = self
+                .group
+                .cached
+                .local
+                .data
+                .levels
+                .get(level_editor.static_level.level_index)
+            else {
                 return true;
             };
-            let level_changed =
-                level_editor.level != **cached || *level_editor.name != *cached_meta.name;
+            let level_changed = level_editor.level != **cached;
             if level_changed {
                 return true;
             }
@@ -300,11 +410,12 @@ impl Editor {
         discard_text: impl Into<Name>,
     ) {
         let (confirm_color, title) = match action {
+            ConfirmAction::Noop => (ThemeColor::Light, ""),
             ConfirmAction::ExitUnsaved => (ThemeColor::Danger, "Exit the editor?"),
             ConfirmAction::ChangeLevelUnsaved(_) => {
                 (ThemeColor::Danger, "Switch to another difficulty?")
             }
-            ConfirmAction::DeleteLevel(_) => (ThemeColor::Danger, "Delete this difficulty?"),
+            ConfirmAction::DeleteDiff(_) => (ThemeColor::Danger, "Delete this difficulty?"),
         };
         self.confirm_popup = Some(ConfirmPopup {
             action,
@@ -322,9 +433,10 @@ impl Editor {
             return;
         };
         match popup.action {
+            ConfirmAction::Noop => {}
             ConfirmAction::ExitUnsaved => self.exit(),
             ConfirmAction::ChangeLevelUnsaved(index) => self.change_level(index),
-            ConfirmAction::DeleteLevel(index) => self.delete_level(index),
+            ConfirmAction::DeleteDiff(index) => self.delete_level(index),
         }
     }
 
@@ -381,7 +493,7 @@ impl Editor {
             }
         }
 
-        level_editor.scroll_time(target - level_editor.current_time.target);
+        level_editor.scroll_time(Change::Set(target));
         if let Some(music) = &level_editor.static_level.group.music
             && self.config.playback_duration > FloatTime::ZERO
         {
