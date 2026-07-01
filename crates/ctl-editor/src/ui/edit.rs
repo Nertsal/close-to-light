@@ -1048,6 +1048,7 @@ impl LayoutHelper<'_> {
                     self.editor
                         .level_assets
                         .shaders
+                        .get()
                         .keys()
                         .map(|name| (name.clone(), name.clone())),
                 );

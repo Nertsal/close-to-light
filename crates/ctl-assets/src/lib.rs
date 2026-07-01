@@ -1,8 +1,6 @@
 mod hot;
 mod options;
 
-use self::hot::MaybeHot;
-
 pub use self::options::*;
 
 use std::path::PathBuf;
@@ -315,7 +313,7 @@ impl Assets {
 
 #[derive(Default)]
 pub struct LevelAssets {
-    pub shaders: HashMap<Name, MaybeHot<Rc<ugli::Program>>>,
+    pub shaders: hot::MaybeHotDir<Rc<ugli::Program>>,
 }
 
 impl LevelAssets {
@@ -372,25 +370,16 @@ impl LevelAssets {
         hot: bool,
     ) -> geng::asset::Future<Self> {
         let manager = manager.clone();
-        let path = path.to_owned();
+        let path = path.join("shaders");
+        let shader_list: Vec<PathBuf> = shader_list
+            .into_iter()
+            .map(|name| path.join(format!("{name}.glsl")))
+            .collect();
         async move {
-            let mut shaders = HashMap::with_capacity(shader_list.len());
-
-            let shaders_path = path.join("shaders");
-            for name in shader_list {
-                let path = shaders_path.join(format!("{name}.glsl"));
-                match MaybeHot::load(&manager, &path, &(), hot).await {
-                    Ok(shader) => {
-                        log::debug!("Loaded level shader: {:?}", path);
-                        shaders.insert(name, shader);
-                    }
-                    Err(err) => {
-                        log::error!("Failed to load level shader: {}", err);
-                    }
-                }
-            }
-
-            Ok(Self { shaders })
+            Ok(Self {
+                shaders: hot::MaybeHotDir::load_list(&manager, &path, shader_list, &(), hot)
+                    .await?,
+            })
         }
         .boxed_local()
     }
@@ -398,11 +387,7 @@ impl LevelAssets {
     /// Freezes all hot assets.
     pub fn freeze(&self) -> Self {
         Self {
-            shaders: self
-                .shaders
-                .iter()
-                .map(|(key, value)| (key.clone(), value.freeze()))
-                .collect(),
+            shaders: self.shaders.freeze(),
         }
     }
 }

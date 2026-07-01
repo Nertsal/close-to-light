@@ -78,17 +78,18 @@ pub fn prepare_shaders<'a>(
     level_assets: &'a LevelAssets,
     lights_sdf: &'a ugli::Texture,
 ) -> (
-    Vec<(Time, &'a ShaderEvent, Ref<'a, Rc<ugli::Program>>)>,
+    Vec<(Time, &'a ShaderEvent, Rc<ugli::Program>)>,
     ShaderUniformsCommon<'a>,
     impl Fn(Time, &ShaderEvent) -> ShaderUniforms,
 ) {
-    let active_shaders: Vec<(Time, &ShaderEvent, Ref<Rc<ugli::Program>>)> = shaders
+    let active_shaders: Vec<(Time, &ShaderEvent, Rc<ugli::Program>)> = shaders
         .iter()
         .flat_map(|(time, shader)| {
             level_assets
                 .shaders
+                .get()
                 .get(&shader.shader)
-                .map(|program| (*time, shader, program.get()))
+                .map(|program| (*time, shader, Rc::clone(program)))
         })
         .collect();
     let timing = level.timing.get_timing(play_time_ms);
