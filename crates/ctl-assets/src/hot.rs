@@ -104,6 +104,7 @@ impl<T: Load> MaybeHot<T> {
     }
 
     pub fn get(&'_ self) -> Ref<'_, T> {
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(hot) = &self.hot
             && let Ok(mut current) = self.current.try_borrow_mut()
         {
@@ -159,6 +160,7 @@ impl<T: Load> MaybeHot<T> {
     {
         Self {
             current: RefCell::new(self.get().clone()),
+            #[cfg(not(target_arch = "wasm32"))]
             hot: None,
         }
     }

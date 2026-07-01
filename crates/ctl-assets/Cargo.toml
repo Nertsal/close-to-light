@@ -14,4 +14,6 @@ ctl-render-core.workspace = true
 geng.workspace = true
 geng-utils.workspace = true
 serde.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 notify.workspace = true
