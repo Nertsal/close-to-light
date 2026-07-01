@@ -218,7 +218,7 @@ impl GameRender {
         //     }
         // }
 
-        self.dither.finish(model.real_time, &theme);
+        self.dither.finish(model.real_time, &theme.transparent());
         let mut framebuffer = self.dither.post();
 
         if !model.level.config.modifiers.sudden {
