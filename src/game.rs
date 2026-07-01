@@ -295,6 +295,10 @@ impl geng::State for Game {
                 self.post.apply_sdf_mask(mask, spotlight);
             }
         }
+
+        // Render foreground shaders
+        let _ = apply_shaders!(ShaderLayer::Foreground);
+
         let buffer = &mut self.post.continu();
 
         if !fading {
@@ -381,9 +385,6 @@ impl geng::State for Game {
             }
         }
 
-        // Render postprocessing (early) shaders
-        let _ = apply_shaders!(ShaderLayer::PostProcessEarly);
-
         let mut options = options.clone();
         if flashlight_mode {
             options.graphics.crt.scanlines = 0.0;
@@ -398,8 +399,8 @@ impl geng::State for Game {
             ),
         );
 
-        // Render postprocessing (late) shaders
-        let _ = apply_shaders!(ShaderLayer::PostProcessLate);
+        // Render postprocessing shaders
+        let _ = apply_shaders!(ShaderLayer::PostProcess);
 
         self.post.render_noop(framebuffer);
     }

@@ -47,10 +47,10 @@ pub struct ShaderEvent {
 pub enum ShaderLayer {
     /// Applied to a blank screen.
     Background,
-    /// Applied to the game view (before regular postprocessing effects, such as crt and vfx).
-    PostProcessEarly,
+    /// Applied to the game view before UI (before regular postprocessing effects, such as crt and vfx).
+    Foreground,
     /// Applied to the screen after all other processing.
-    PostProcessLate,
+    PostProcess,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

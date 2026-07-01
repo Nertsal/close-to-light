@@ -296,7 +296,7 @@ impl EditorRender {
         let mut pixel_buffer = self.dither.start();
 
         // Render post processing (early) shaders
-        let _ = apply_shaders!(ShaderLayer::PostProcessEarly);
+        let _ = apply_shaders!(ShaderLayer::Foreground);
 
         // Render level state
         let game_buffer = &mut geng_utils::texture::attach_texture(
@@ -319,7 +319,7 @@ impl EditorRender {
         }
 
         // Render post processing (late) shaders
-        let _ = apply_shaders!(ShaderLayer::PostProcessLate);
+        let _ = apply_shaders!(ShaderLayer::PostProcess);
 
         // Finalize post processing
         self.post_render.render_noop(game_buffer);

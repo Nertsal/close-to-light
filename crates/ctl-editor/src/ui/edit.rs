@@ -1060,8 +1060,8 @@ impl LayoutHelper<'_> {
                         0,
                         [
                             ("Background", ShaderLayer::Background),
-                            ("Post (early)", ShaderLayer::PostProcessEarly),
-                            ("Post (late)", ShaderLayer::PostProcessLate),
+                            ("Foreground", ShaderLayer::Foreground),
+                            ("Post", ShaderLayer::PostProcess),
                         ],
                     )
                 });
