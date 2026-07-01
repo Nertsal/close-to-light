@@ -371,6 +371,12 @@ impl LevelAssets {
     ) -> geng::asset::Future<Self> {
         let manager = manager.clone();
         let path = path.join("shaders");
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if !path.exists() {
+            std::fs::create_dir(&path).expect("unexpected directory structure");
+        }
+
         let shader_list: Vec<PathBuf> = shader_list
             .into_iter()
             .map(|name| path.join(format!("{name}.glsl")))
