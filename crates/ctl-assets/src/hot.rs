@@ -198,7 +198,7 @@ struct HotDir<T: Load> {
     manager: Manager,
     path: PathBuf,
     options: T::Options,
-    need_remove: Arc<Mutex<Option<Name>>>,
+    need_remove: Arc<Mutex<Vec<Name>>>,
     need_reload: Arc<Mutex<Vec<PathBuf>>>,
     // need_reload_watcher: Arc<std::sync::atomic::AtomicBool>,
     update: RefCell<Option<(Name, Future<T>)>>,
@@ -284,11 +284,12 @@ impl<T: Load> MaybeHotDir<T> {
         let path = path.to_owned();
         let options = options.clone();
         let need_reload = Arc::new(Mutex::new(Vec::new()));
-        let need_remove = Arc::new(Mutex::new(None));
+        let need_remove = Arc::new(Mutex::new(Vec::new()));
 
         log::info!("watching {path:?}");
         let dir_watcher = {
             let need_reload = Arc::clone(&need_reload);
+            let need_remove = Arc::clone(&need_remove);
             let mut watcher =
                 notify::recommended_watcher(move |result: notify::Result<notify::Event>| {
                     let event = result.unwrap();
@@ -299,8 +300,14 @@ impl<T: Load> MaybeHotDir<T> {
                         {
                             lock.push(path);
                         }
-                    } else if event.kind.is_remove() {
-                        // TODO
+                    } else if event.kind.is_remove()
+                        && let Ok(mut lock) = need_remove.lock()
+                    {
+                        for path in &event.paths {
+                            if let Some(name) = path_to_name(path.clone()) {
+                                lock.push(name);
+                            }
+                        }
                     }
                 })
                 .unwrap();
@@ -353,6 +360,13 @@ impl<T: Load> MaybeHotDir<T> {
         if let Some(hot) = &self.hot
             && let Ok(mut current) = self.current.try_borrow_mut()
         {
+            // Remove lost files
+            if let Ok(mut lock) = hot.need_remove.lock() {
+                for name in lock.drain(..) {
+                    current.remove(&name);
+                }
+            }
+
             let mut update = hot.update.borrow_mut();
             if let Some((name, future)) = &mut *update {
                 // Wait for update to finish
