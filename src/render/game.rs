@@ -84,6 +84,7 @@ impl GameRender {
         }
 
         let camera = &model.camera;
+        let locked_camera = &ctl_logic::default_camera();
         let theme = options.theme.swap(model.vfx.palette_swap.current.as_f32());
         let beat_time = model
             .level
@@ -129,7 +130,7 @@ impl GameRender {
                 }
                 let button = smooth_button(button, model.button_time);
                 self.util
-                    .draw_button(&button, text, &THEME, camera, &mut framebuffer);
+                    .draw_button(&button, text, &THEME, locked_camera, &mut framebuffer);
             }
         }
 
@@ -138,7 +139,7 @@ impl GameRender {
                 "made in rust btw",
                 vec2(0.0, -3.0).as_r32(),
                 TextRenderOptions::new(0.5).color(THEME.dark),
-                camera,
+                locked_camera,
                 &mut framebuffer,
             );
         }
@@ -183,7 +184,7 @@ impl GameRender {
                         "DARKNESS ABSORBS YOU",
                         vec2(0.0, 3.5).as_r32(),
                         TextRenderOptions::new(0.8).color(color),
-                        camera,
+                        locked_camera,
                         &mut framebuffer,
                     );
                 }
@@ -192,7 +193,7 @@ impl GameRender {
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
                         TextRenderOptions::new(1.0).color(color),
-                        camera,
+                        locked_camera,
                         &mut framebuffer,
                     );
                 }
@@ -297,6 +298,8 @@ impl GameRender {
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;
         // let precision = model.score.calculated.precision.as_f32() * 100.0;
 
+        let locked_camera = &ctl_logic::default_camera();
+
         if let State::Lost { .. } | State::Finished = model.state {
         } else if !model.level.config.modifiers.clean_auto {
             // Score
@@ -306,7 +309,7 @@ impl GameRender {
                 TextRenderOptions::new(0.85)
                     .color(theme.light)
                     .align(vec2(0.0, 1.0)),
-                &model.camera,
+                locked_camera,
                 framebuffer,
             );
             self.util.draw_text(
@@ -315,7 +318,7 @@ impl GameRender {
                 TextRenderOptions::new(0.8)
                     .color(theme.light)
                     .align(vec2(0.0, 1.0)),
-                &model.camera,
+                locked_camera,
                 framebuffer,
             );
 
@@ -326,7 +329,7 @@ impl GameRender {
                 TextRenderOptions::new(0.4)
                     .color(theme.light)
                     .align(vec2(0.0, 1.0)),
-                &model.camera,
+                locked_camera,
                 framebuffer,
             );
 
@@ -336,7 +339,7 @@ impl GameRender {
             //     TextRenderOptions::new(0.7)
             //         .color(theme.light)
             //         .align(vec2(0.0, 0.5)),
-            //     &model.camera,
+            //     locked_camera,
             //     framebuffer,
             // );
 
@@ -348,7 +351,7 @@ impl GameRender {
 
             //     let rank_world_pos = vec2(-6.0, 4.0);
             //     let rank_screen_pos = crate::util::world_to_screen(
-            //         &model.camera,
+            //         locked_camera,
             //         framebuffer.size().as_f32(),
             //         rank_world_pos,
             //     );
@@ -387,7 +390,7 @@ impl GameRender {
                     TextRenderOptions::new(0.7)
                         .color(theme.light)
                         .align(vec2(0.0, 0.5)),
-                    &model.camera,
+                    locked_camera,
                     framebuffer,
                 );
             }
