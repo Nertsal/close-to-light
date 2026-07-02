@@ -44,6 +44,8 @@ pub struct Editor {
     pub show_only_selected: bool,
     /// Whether to apply camera vfx transformation in editor view.
     pub camera_freeze: bool,
+    /// Whether to preview vfx in the editor game view.
+    pub preview_vfx: bool,
 
     pub group: PlayGroup,
     pub level_edit: Option<LevelEditor>,
@@ -137,6 +139,7 @@ impl Editor {
             visualize_beat: true,
             show_only_selected: false,
             camera_freeze: false,
+            preview_vfx: true,
             snap_to_grid: PTValue::new(true),
             music_timer: FloatTime::ZERO,
 

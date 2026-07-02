@@ -258,16 +258,27 @@ impl LayoutHelper<'_> {
         }
         toggle.checked = self.editor.camera_freeze;
 
-        let selected = bar.cut_top(context.font_size);
+        let preview_vfx = bar.cut_top(context.font_size);
         bar.cut_top(self.spacing);
         let toggle = context
             .state
-            .get_root_or(|| ToggleWidget::new("Only selected"));
-        toggle.update(selected, context);
+            .get_root_or(|| ToggleWidget::new("Preview VFX"));
+        toggle.update(preview_vfx, context);
         if toggle.state.mouse_left.clicked {
-            actions.push(EditorAction::ToggleShowOnlySelected.into());
+            actions.push(EditorAction::ToggleVfxPreview.into());
         }
-        toggle.checked = self.editor.show_only_selected;
+        toggle.checked = self.editor.preview_vfx;
+
+        // let selected = bar.cut_top(context.font_size);
+        // bar.cut_top(self.spacing);
+        // let toggle = context
+        //     .state
+        //     .get_root_or(|| ToggleWidget::new("Only selected"));
+        // toggle.update(selected, context);
+        // if toggle.state.mouse_left.clicked {
+        //     actions.push(EditorAction::ToggleShowOnlySelected.into());
+        // }
+        // toggle.checked = self.editor.show_only_selected;
 
         let dynamic = bar.cut_top(context.font_size);
         bar.cut_top(self.spacing);

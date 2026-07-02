@@ -226,7 +226,7 @@ impl EditorRender {
             .self_process(&self.context.get_options(), post_vfx);
         // Spotlight effect
         let spotlight = level_editor.model.vfx.spotlight.value.current.as_f32();
-        if spotlight > 0.0 {
+        if spotlight > 0.0 && editor.preview_vfx {
             self.post_render.apply_sdf_mask(&self.lights_sdf, spotlight);
         }
         // Draw to screen

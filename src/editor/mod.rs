@@ -294,11 +294,14 @@ impl geng::State for EditorState {
         ugli::clear(framebuffer, Some(Color::BLACK), None, None);
 
         let options = self.context.get_options();
-        let vfx = self
-            .editor
-            .level_edit
-            .as_ref()
-            .map_or(Vfx::new(), |level| level.model.vfx.clone());
+        let vfx = if self.editor.preview_vfx {
+            self.editor
+                .level_edit
+                .as_ref()
+                .map_or(Vfx::new(), |level| level.model.vfx.clone())
+        } else {
+            Vfx::new()
+        };
         let game_post_vfx = crate::render::post::PostVfx::new(
             &vfx,
             self.editor.real_time,
