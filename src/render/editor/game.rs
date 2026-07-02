@@ -485,7 +485,8 @@ impl EditorRender {
             _ => unreachable!(),
         };
         let camera_view =
-            Aabb2::point(level_editor.model.camera.center).extend_symmetric(camera_view / 2.0);
+            Aabb2::point(level_editor.model.camera.center - level_editor.camera_pan.as_f32())
+                .extend_symmetric(camera_view / 2.0);
         let mut camera_view = Collider::aabb(camera_view.as_r32());
         camera_view.rotation = level_editor.model.camera.rotation.map(r32);
         self.util.draw_outline(

@@ -20,7 +20,7 @@ pub enum LevelAction {
     ScrollTime(Change<Time>),
     SetBeatSnap(BeatTime),
     TimelineZoom(Change<f32>),
-    CameraPan(Change<vec2<f32>>),
+    CameraPan(Change<vec2<Coord>>),
     /// Selected a shape, but the specific action is up to interpretation.
     /// If there is a light selected, changes its shape; otherwise creates a new light.
     Shape(Shape),
@@ -311,7 +311,7 @@ impl LevelEditor {
                 self.timeline_zoom.target = r32(target);
             }
             LevelAction::CameraPan(delta) => {
-                delta.apply(&mut self.model.camera.center);
+                delta.apply(&mut self.camera_pan);
             }
             LevelAction::Shape(shape) => {
                 if !self.selection.is_empty() {

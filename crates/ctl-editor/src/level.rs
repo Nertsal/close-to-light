@@ -13,6 +13,7 @@ pub struct LevelEditor {
 
     /// Simulation model.
     pub model: Model,
+    pub camera_pan: vec2<Coord>,
     pub level_state: EditorLevelState,
     pub current_time: TimeInterpolation,
     pub timeline_zoom: SecondOrderState<R32>,
@@ -394,6 +395,7 @@ impl LevelEditor {
         let mut editor = Self {
             level: (*level.level.data).clone(),
 
+            camera_pan: vec2::ZERO,
             level_state: EditorLevelState::default(),
             current_time: TimeInterpolation::new(3.0),
             timeline_zoom: SecondOrderState::new(3.0, 1.0, 0.0, r32(0.5)),

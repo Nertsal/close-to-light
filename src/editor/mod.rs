@@ -151,7 +151,8 @@ impl EditorState {
                 .vfx
                 .get_camera_transform(level_editor.current_time.value)
         };
-        level_editor.model.camera.center = level_editor.model.camera_shake.as_f32();
+        level_editor.model.camera.center =
+            level_editor.model.camera_shake.as_f32() + level_editor.camera_pan.as_f32();
         level_editor.model.camera.rotation = transform.rotation.map(Float::as_f32);
         level_editor.model.camera.fov = Camera2dFov::Cover {
             width: 17.778,

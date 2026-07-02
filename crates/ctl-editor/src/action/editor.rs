@@ -114,6 +114,7 @@ impl Editor {
             }
             EditorAction::StartPlaying => {
                 if let Some(level_editor) = &mut self.level_edit {
+                    level_editor.camera_pan = vec2::ZERO;
                     level_editor.state = EditingState::Playing {
                         start_time: level_editor.current_time.value,
                         start_target_time: level_editor.current_time.target,

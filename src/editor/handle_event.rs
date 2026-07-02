@@ -399,7 +399,7 @@ impl EditorState {
                     target = self.snap_pos_grid(target);
                 }
 
-                actions.push(LevelAction::CameraPan(Change::Set(target.as_f32())).into());
+                actions.push(LevelAction::CameraPan(Change::Set(target)).into());
             }
             DragTarget::Light {
                 lights,
