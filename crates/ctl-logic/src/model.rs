@@ -225,15 +225,7 @@ impl Model {
             ),
             context,
 
-            camera: Camera2d {
-                center: vec2::ZERO,
-                rotation: Angle::ZERO,
-                fov: Camera2dFov::Cover {
-                    width: 17.778,
-                    height: 10.0,
-                    scale: 1.0,
-                },
-            },
+            camera: default_camera(),
             camera_shake: vec2::ZERO,
             player: Player::new(
                 Collider::new(
@@ -280,5 +272,17 @@ impl Model {
             transition_button: level.transition_button.clone(),
             level,
         }
+    }
+}
+
+pub fn default_camera() -> Camera2d {
+    Camera2d {
+        center: vec2::ZERO,
+        rotation: Angle::ZERO,
+        fov: Camera2dFov::Cover {
+            width: 17.778,
+            height: 10.0,
+            scale: 1.0,
+        },
     }
 }

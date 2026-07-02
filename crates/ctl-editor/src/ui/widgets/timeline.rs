@@ -299,10 +299,10 @@ impl TimelineWidget {
                     })
                     .and_then(|event| {
                         let duration = match &event.event {
-                            Event::Light(_) => return None,
-                            Event::Shader(shader) => shader.duration,
+                            Event::Light(_) => None,
+                            Event::Shader(shader) => Some(shader.duration),
                             Event::Effect(effect) => effect.duration(),
-                        };
+                        }?;
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + duration;
@@ -921,7 +921,7 @@ impl TimelineWidget {
                     let is_selected = level_editor.selection.is_single(event_idx);
                     let duration = match &event.event {
                         Event::Effect(effect) => effect.duration(),
-                        Event::Shader(shader) => shader.duration,
+                        Event::Shader(shader) => Some(shader.duration),
                         _ => unreachable!(),
                     };
 
@@ -931,7 +931,9 @@ impl TimelineWidget {
                         _ => unreachable!(),
                     };
 
-                    if is_selected {
+                    if let Some(duration) = duration
+                        && is_selected
+                    {
                         // Start time
                         timeline_tick(
                             vec2(4.0, 16.0) * self.ppu,
@@ -1006,7 +1008,7 @@ impl TimelineWidget {
                         regular_event(
                             TopLevelEventIdx::Event(event_i),
                             event.time,
-                            duration,
+                            duration.unwrap_or(0),
                             texture,
                             &mut extra_selection,
                             actions,
