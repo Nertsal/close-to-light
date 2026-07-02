@@ -12,6 +12,8 @@ pub enum HistoryLabel {
 
     // Vfx
     EffectIntensity(usize),
+    CameraZoom(usize),
+    CameraRotation(usize),
 
     // Lights
     FadeIn(LightId),

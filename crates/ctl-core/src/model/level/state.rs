@@ -173,21 +173,19 @@ impl LevelState {
                     EffectEvent::Camera(transform, interpolation) => {
                         if self.time < event.time {
                             let to = &mut vfx.camera_interpolation.1;
-                            if event.time < to.time {
-                                *to = CameraFrame {
-                                    time,
+                            if to.as_ref().is_none_or(|to| event.time < to.time) {
+                                *to = Some(CameraFrame {
+                                    time: event.time,
                                     transform: transform.clone(),
-                                };
+                                });
                             }
-                            return;
-                        }
-                        if self.time >= event.time {
-                            let from = &mut vfx.camera_interpolation.1;
-                            if event.time > from.time {
-                                *from = CameraFrame {
-                                    time,
+                        } else if self.time >= event.time {
+                            let from = &mut vfx.camera_interpolation.0;
+                            if from.as_ref().is_none_or(|from| event.time > from.time) {
+                                *from = Some(CameraFrame {
+                                    time: event.time,
                                     transform: transform.clone(),
-                                };
+                                });
                                 vfx.camera_interpolation.2 = *interpolation;
                             }
                         }

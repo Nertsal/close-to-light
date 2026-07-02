@@ -153,6 +153,7 @@ pub struct Model {
     pub leaderboard: Leaderboard,
 
     pub camera: Camera2d,
+    pub camera_shake: vec2<Coord>,
     pub player: Player,
     /// Whether the cursor clicked last frame.
     pub cursor_clicked: bool,
@@ -233,6 +234,7 @@ impl Model {
                     scale: 1.0,
                 },
             },
+            camera_shake: vec2::ZERO,
             player: Player::new(
                 Collider::new(
                     vec2::ZERO,

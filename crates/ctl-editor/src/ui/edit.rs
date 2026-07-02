@@ -1030,19 +1030,15 @@ impl LayoutHelper<'_> {
                         .state
                         .get_root_or(|| ValueWidget::new_range("Zoom", value, 0.2..=2.0, 0.1, 2));
                     if slider.update(scale, context, &mut value) {
-                        // actions.push(
-                        //     LevelAction::ScaleWaypoint(light_id, selected, Change::Set(r32(value)))
-                        //         .into(),
-                        // );
+                        actions
+                            .push(LevelAction::CameraZoom(event_i, Change::Set(r32(value))).into());
                     }
-                    // if slider.control_state.mouse_left.just_released {
-                    //     actions.push(
-                    //         LevelAction::FlushChanges(Some(HistoryLabel::Scale(
-                    //             light_id, selected,
-                    //         )))
-                    //         .into(),
-                    //     );
-                    // }
+                    if slider.control_state.mouse_left.just_released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::CameraZoom(event_i)))
+                                .into(),
+                        );
+                    }
                     context.update_focus(slider.state.hovered);
 
                     let angle = bar.cut_top(self.value_height);
@@ -1052,24 +1048,20 @@ impl LayoutHelper<'_> {
                         .state
                         .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0, 0));
                     if slider.update(angle, context, &mut value) {
-                        // actions.push(
-                        //     LevelAction::RotateWaypointAround(
-                        //         light_id,
-                        //         selected,
-                        //         frame.translation,
-                        //         Change::Set(Angle::from_degrees(r32(value.round()))),
-                        //     )
-                        //     .into(),
-                        // );
+                        actions.push(
+                            LevelAction::CameraRotation(
+                                event_i,
+                                Change::Set(Angle::from_degrees(r32(value.round()))),
+                            )
+                            .into(),
+                        );
                     }
-                    // if slider.control_state.mouse_left.just_released {
-                    //     actions.push(
-                    //         LevelAction::FlushChanges(Some(HistoryLabel::Rotate(
-                    //             light_id, selected,
-                    //         )))
-                    //         .into(),
-                    //     );
-                    // }
+                    if slider.control_state.mouse_left.just_released {
+                        actions.push(
+                            LevelAction::FlushChanges(Some(HistoryLabel::CameraRotation(event_i)))
+                                .into(),
+                        );
+                    }
                     context.update_focus(slider.state.hovered);
                     tooltip.update(&slider.state, "Q/E", context);
 
@@ -1096,14 +1088,9 @@ impl LayoutHelper<'_> {
                         context,
                         &mut move_interpolation,
                     );
-                    // actions.push(
-                    //     LevelAction::SetWaypointInterpolation(
-                    //         light_id,
-                    //         selected,
-                    //         move_interpolation,
-                    //     )
-                    //     .into(),
-                    // );
+                    actions.push(
+                        LevelAction::SetCameraInterpolation(event_i, move_interpolation).into(),
+                    );
                 }
             },
         }
