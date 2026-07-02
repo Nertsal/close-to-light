@@ -299,9 +299,9 @@ impl TimelineWidget {
                     })
                     .and_then(|event| {
                         let duration = match &event.event {
-                            Event::Light(_) => return None,
+                            Event::Light(_) => None,
                             Event::Effect(effect) => effect.duration(),
-                        };
+                        }?;
                         let from_time = event.time;
                         let from = render_time(&self.highlight_line, from_time).center();
                         let to_time = event.time + duration;
@@ -919,7 +919,9 @@ impl TimelineWidget {
                 Event::Effect(effect) => {
                     let is_selected = original_selection.is_single(event_idx);
                     let duration = effect.duration();
-                    if is_selected {
+                    if let Some(duration) = duration
+                        && is_selected
+                    {
                         // Start time
                         timeline_tick(
                             vec2(4.0, 16.0) * self.ppu,
@@ -996,7 +998,7 @@ impl TimelineWidget {
                         regular_event(
                             TopLevelEventIdx::Event(event_i),
                             event.time,
-                            duration,
+                            duration.unwrap_or(0),
                             texture,
                             &mut extra_selection,
                             actions,

@@ -111,7 +111,7 @@ impl Interpolatable for CameraTransform {
 }
 
 impl EffectEvent {
-    pub fn duration(&self) -> Time {
+    pub fn duration(&self) -> Option<Time> {
         match self {
             EffectEvent::PaletteSwap(duration)
             | EffectEvent::RgbSplit(duration)
@@ -119,8 +119,8 @@ impl EffectEvent {
             | EffectEvent::Vignette(duration, _)
             | EffectEvent::ScreenCurvature(duration, _)
             | EffectEvent::NoiseOffset(duration, _)
-            | EffectEvent::Spotlight(duration, _) => *duration,
-            EffectEvent::Camera(..) => 0,
+            | EffectEvent::Spotlight(duration, _) => Some(*duration),
+            EffectEvent::Camera(..) => None,
         }
     }
 
