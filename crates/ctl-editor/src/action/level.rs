@@ -50,6 +50,10 @@ pub enum LevelAction {
     NewCurvature(BeatTime),
     NewNoiseOffset(BeatTime),
     NewSpotlight(BeatTime),
+    NewCamera,
+    CameraZoom(usize, Change<Coord>),
+    CameraRotation(usize, Change<Angle<Coord>>),
+    SetCameraInterpolation(usize, MoveInterpolation),
     ChangeEffectDuration(usize, Change<Time>),
     ChangeEffectIntensity(usize, Change<R32>),
 
@@ -144,6 +148,10 @@ impl LevelAction {
             LevelAction::NewCurvature(_) => false,
             LevelAction::NewNoiseOffset(_) => false,
             LevelAction::NewSpotlight(_) => false,
+            LevelAction::NewCamera => false,
+            LevelAction::CameraZoom(_, change) => change.is_noop(&Coord::ZERO),
+            LevelAction::CameraRotation(_, change) => change.is_noop(&Angle::ZERO),
+            LevelAction::SetCameraInterpolation(_, _) => false,
             LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeEffectIntensity(_, delta) => delta.is_noop(&R32::ZERO),
 
@@ -566,11 +574,36 @@ impl LevelEditor {
                 });
                 self.select_event(SelectMode::Set, vec![TopLevelEventIdx::Event(idx)]);
             }
+            LevelAction::NewCamera => {
+                self.execute(LevelAction::Deselect, drag);
+                let current = self
+                    .model
+                    .vfx
+                    .get_camera_transform(self.current_time.target);
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::Camera(
+                        current,
+                        self.model.vfx.camera_interpolation.2,
+                    )),
+                });
+            }
+            LevelAction::CameraZoom(idx, change) => {
+                self.update_camera_frame(idx, |frame, _| change.apply(&mut frame.zoom));
+                self.save_state(HistoryLabel::CameraZoom(idx));
+            }
+            LevelAction::CameraRotation(idx, change) => {
+                self.update_camera_frame(idx, |frame, _| change.apply(&mut frame.rotation));
+                self.save_state(HistoryLabel::CameraRotation(idx));
+            }
+            LevelAction::SetCameraInterpolation(idx, interpolation) => {
+                self.update_camera_frame(idx, |_, interp| *interp = interpolation);
+            }
             LevelAction::ChangeEffectDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
                     && let Event::Effect(effect) = &mut event.event
+                    && let Some(duration) = effect.duration_mut()
                 {
-                    let duration = effect.duration_mut();
                     change.apply(duration);
                     self.save_state(HistoryLabel::EventDuration(index));
                 }
@@ -682,6 +715,21 @@ impl LevelEditor {
         // In case some action forgot to save the state,
         // we save it with the default label
         self.save_state(default());
+    }
+
+    fn update_camera_frame(
+        &mut self,
+        idx: usize,
+        op: impl FnOnce(&mut CameraTransform, &mut MoveInterpolation),
+    ) {
+        let Some(timed_event) = self.level.events.get_mut(idx) else {
+            return;
+        };
+        let Event::Effect(EffectEvent::Camera(transform, interpolation)) = &mut timed_event.event
+        else {
+            return;
+        };
+        op(transform, interpolation);
     }
 
     fn deselect(&mut self) {

@@ -109,12 +109,13 @@ impl LevelState {
                 self.telegraphs.extend(telegraph);
                 self.waypoints.extend(waypoints);
             }
-            Event::Effect(effect) => match *effect {
-                EffectEvent::PaletteSwap(duration) => {
-                    if self.time < event.time {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+            Event::Effect(effect) => {
+                let Some(vfx) = vfx else { return };
+                match effect {
+                    &EffectEvent::PaletteSwap(duration) => {
+                        if self.time < event.time {
+                            return;
+                        }
                         let t = (time as f32 / duration as f32).clamp(0.0, 1.0);
                         vfx.palette_swap.target = if t == 1.0 {
                             // After this palette swap - just invert target
@@ -128,61 +129,69 @@ impl LevelState {
                             r32(t)
                         };
                     }
-                }
-                EffectEvent::RgbSplit(duration) => {
-                    if self.time < event.time || self.time > event.time + duration {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+                    &EffectEvent::RgbSplit(duration) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
                         vfx.rgb_split
                             .set(time_to_seconds(duration - time), R32::ONE);
                     }
-                }
-                EffectEvent::CameraShake(duration, intensity) => {
-                    if self.time < event.time || self.time > event.time + duration {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+                    &EffectEvent::CameraShake(duration, intensity) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
                         vfx.camera_shake = vfx.camera_shake.max(intensity);
                     }
-                }
-                EffectEvent::Vignette(duration, intensity) => {
-                    if self.time < event.time || self.time > event.time + duration {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+                    &EffectEvent::Vignette(duration, intensity) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
                         vfx.vignette
                             .set(time_to_seconds(duration - time), intensity);
                     }
-                }
-                EffectEvent::ScreenCurvature(duration, intensity) => {
-                    if self.time < event.time || self.time > event.time + duration {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+                    &EffectEvent::ScreenCurvature(duration, intensity) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
                         vfx.curvature
                             .set(time_to_seconds(duration - time), intensity);
                     }
-                }
-                EffectEvent::NoiseOffset(duration, intensity) => {
-                    if self.time < event.time || self.time > event.time + duration {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+                    &EffectEvent::NoiseOffset(duration, intensity) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
                         vfx.noise_offset
                             .set(time_to_seconds(duration - time), intensity);
                     }
-                }
-                EffectEvent::Spotlight(duration, intensity) => {
-                    if self.time < event.time || self.time > event.time + duration {
-                        return;
-                    }
-                    if let Some(vfx) = vfx {
+                    &EffectEvent::Spotlight(duration, intensity) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
                         vfx.spotlight
                             .set(time_to_seconds(duration - time), intensity);
                     }
+                    EffectEvent::Camera(transform, interpolation) => {
+                        if self.time < event.time {
+                            let to = &mut vfx.camera_interpolation.1;
+                            if to.as_ref().is_none_or(|to| event.time < to.time) {
+                                *to = Some(CameraFrame {
+                                    time: event.time,
+                                    transform: transform.clone(),
+                                });
+                            }
+                        } else if self.time >= event.time {
+                            let from = &mut vfx.camera_interpolation.0;
+                            if from.as_ref().is_none_or(|from| event.time > from.time) {
+                                *from = Some(CameraFrame {
+                                    time: event.time,
+                                    transform: transform.clone(),
+                                });
+                                vfx.camera_interpolation.2 = *interpolation;
+                            }
+                        }
+                    }
                 }
-            },
+            }
             Event::Shader(shader) => {
                 if let Some(vfx) = vfx
                     && event.time <= self.time

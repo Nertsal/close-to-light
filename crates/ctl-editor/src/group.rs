@@ -44,6 +44,8 @@ pub struct Editor {
     pub visualize_beat: bool,
     /// Whether to only render the selected light.
     pub show_only_selected: bool,
+    /// Whether to apply camera vfx transformation in editor view.
+    pub camera_freeze: bool,
 
     pub group: PlayGroup,
     pub level_edit: Option<LevelEditor>,
@@ -143,6 +145,7 @@ impl Editor {
             view_zoom: SecondOrderState::new(3.0, 1.0, 1.0, 1.0),
             visualize_beat: true,
             show_only_selected: false,
+            camera_freeze: false,
             snap_to_grid: PTValue::new(true),
             music_timer: FloatTime::ZERO,
 

@@ -1,3 +1,5 @@
+use geng_utils::conversions::Aabb2RealConversions;
+
 use super::*;
 
 struct RenderHelper<'a> {
@@ -567,11 +569,21 @@ impl EditorRender {
         }
         draw_game!(1.0, game_buffer);
 
-        let gameplay_fov = 10.0;
-        let gameplay_area =
-            Aabb2::ZERO.extend_symmetric(vec2(16.0 / 9.0, 1.0) * gameplay_fov / 2.0);
+        // Camera view bounds
+        let camera_view = match helper.level_editor.model.camera.fov {
+            Camera2dFov::Cover {
+                width,
+                height,
+                scale,
+            } => vec2(width, height) * scale * helper.editor.view_zoom.current,
+            _ => unreachable!(),
+        };
+        let camera_view = Aabb2::point(helper.level_editor.model.camera.center)
+            .extend_symmetric(camera_view / 2.0);
+        let mut camera_view = Collider::aabb(camera_view.as_r32());
+        camera_view.rotation = helper.level_editor.model.camera.rotation.map(r32);
         self.util.draw_outline(
-            &Collider::aabb(gameplay_area.map(r32)),
+            &camera_view,
             0.1,
             helper.theme.highlight,
             &helper.level_editor.model.camera,

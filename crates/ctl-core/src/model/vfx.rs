@@ -30,6 +30,12 @@ impl VfxValue {
     }
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct CameraFrame {
+    pub time: Time,
+    pub transform: CameraTransform,
+}
+
 #[derive(Debug, Clone)]
 pub struct Vfx {
     pub palette_swap: SecondOrderState<R32>,
@@ -37,6 +43,7 @@ pub struct Vfx {
     pub camera_shake: R32,
     /// Active shaders (event start time, shader).
     pub shaders: Vec<(Time, ShaderEvent)>,
+    pub camera_interpolation: (Option<CameraFrame>, Option<CameraFrame>, MoveInterpolation),
     pub vignette: VfxValue,
     pub curvature: VfxValue,
     pub noise_offset: VfxValue,
@@ -50,11 +57,28 @@ impl Vfx {
             rgb_split: VfxValue::new(2.0, 1.0, 0.0),
             camera_shake: R32::ZERO,
             shaders: Vec::new(),
+            camera_interpolation: (None, None, MoveInterpolation::default()),
             vignette: VfxValue::new(2.0, 1.0, 0.0),
             curvature: VfxValue::new(2.0, 1.0, 0.0),
             noise_offset: VfxValue::new(2.0, 1.0, 0.0),
             spotlight: VfxValue::new(2.0, 1.0, 0.0),
         }
+    }
+
+    /// NOTE: Assumes that the cached VFX camera_interpolation is relevant.
+    pub fn get_camera_transform(&self, time: Time) -> CameraTransform {
+        let (from, to, interpolation) = &self.camera_interpolation;
+        let from = from.clone().unwrap_or_default();
+        let to = to.clone().unwrap_or_default();
+        let t = if to.time == from.time {
+            1.0
+        } else {
+            (time - from.time) as f32 / (to.time - from.time) as f32
+        };
+        let t = interpolation.apply(r32(t.clamp(0.0, 1.0)));
+        InterpolationSegment::linear(&[from.transform.clone(), to.transform.clone()])
+            .get(0, t)
+            .unwrap_or_else(|| from.transform.clone())
     }
 
     pub fn reset(&mut self) {
@@ -65,6 +89,7 @@ impl Vfx {
         self.noise_offset.time_left = FloatTime::ZERO;
         self.spotlight.time_left = FloatTime::ZERO;
         self.camera_shake = R32::ZERO;
+        self.camera_interpolation = (None, None, MoveInterpolation::default());
         self.shaders.clear();
     }
 

@@ -147,12 +147,28 @@ impl EditorState {
                 .snap_to(*start_target_time + seconds_to_time(*playing_time));
 
             // Camera shake
-            level_editor.model.camera.center = level_editor.model.camera.center * 0.5
-                + Angle::from_degrees(thread_rng().gen_range(0.0..=360.0)).unit_vec()
-                    * level_editor.model.vfx.camera_shake.as_f32();
+            level_editor.model.camera_shake = level_editor.model.camera_shake * r32(0.5)
+                + Angle::from_degrees(r32(thread_rng().gen_range(0.0..=360.0))).unit_vec()
+                    * level_editor.model.vfx.camera_shake;
         } else {
-            level_editor.model.camera.center = vec2::ZERO;
+            level_editor.model.camera_shake = vec2::ZERO;
         }
+        // Camera interpolation
+        let transform = if self.editor.camera_freeze {
+            CameraTransform::default()
+        } else {
+            level_editor
+                .model
+                .vfx
+                .get_camera_transform(level_editor.current_time.value)
+        };
+        level_editor.model.camera.center = level_editor.model.camera_shake.as_f32();
+        level_editor.model.camera.rotation = transform.rotation.map(Float::as_f32);
+        level_editor.model.camera.fov = Camera2dFov::Cover {
+            width: 17.778,
+            height: 10.0,
+            scale: transform.zoom.as_f32().recip().clamp(0.1, 10.0) / self.editor.view_zoom.current,
+        };
 
         let include_cursor = !self.ui_focused
             && (self.editor.render_options.hide_ui
@@ -315,11 +331,6 @@ impl geng::State for EditorState {
         self.ui_context.frame_end();
         for action in actions {
             self.execute(action);
-        }
-
-        if let Some(level_editor) = &mut self.editor.level_edit {
-            level_editor.model.camera.fov =
-                geng::Camera2dFov::Vertical(10.0 / self.editor.view_zoom.current);
         }
 
         let buffer = &mut self

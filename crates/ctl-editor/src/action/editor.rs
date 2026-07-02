@@ -7,6 +7,7 @@ pub enum EditorAction {
     SwitchTab(EditorTab),
     ToggleDynamicVisual,
     ToggleShowOnlySelected,
+    ToggleCameraFreeze,
     Save,
     ToggleUI,
     ToggleGrid,
@@ -53,6 +54,7 @@ impl Editor {
             EditorAction::ToggleShowOnlySelected => {
                 self.show_only_selected = !self.show_only_selected
             }
+            EditorAction::ToggleCameraFreeze => self.camera_freeze = !self.camera_freeze,
             EditorAction::Save => self.save(),
             EditorAction::ToggleUI => self.render_options.hide_ui = !self.render_options.hide_ui,
             EditorAction::ToggleGrid => {
