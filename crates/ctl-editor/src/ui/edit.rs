@@ -247,6 +247,17 @@ impl LayoutHelper<'_> {
         text.update(view, context);
         text.options.size = self.title_size;
 
+        let camera_freeze = bar.cut_top(context.font_size);
+        bar.cut_top(self.spacing);
+        let toggle = context
+            .state
+            .get_root_or(|| ToggleWidget::new("Freeze camera"));
+        toggle.update(camera_freeze, context);
+        if toggle.state.mouse_left.clicked {
+            actions.push(EditorAction::ToggleCameraFreeze.into());
+        }
+        toggle.checked = self.editor.camera_freeze;
+
         let selected = bar.cut_top(context.font_size);
         bar.cut_top(self.spacing);
         let toggle = context

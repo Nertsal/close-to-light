@@ -143,10 +143,14 @@ impl EditorState {
             level_editor.model.camera_shake = vec2::ZERO;
         }
         // Camera interpolation
-        let transform = level_editor
-            .model
-            .vfx
-            .get_camera_transform(level_editor.current_time.value);
+        let transform = if self.editor.camera_freeze {
+            CameraTransform::default()
+        } else {
+            level_editor
+                .model
+                .vfx
+                .get_camera_transform(level_editor.current_time.value)
+        };
         level_editor.model.camera.center = level_editor.model.camera_shake.as_f32();
         level_editor.model.camera.rotation = transform.rotation.map(Float::as_f32);
         level_editor.model.camera.fov = Camera2dFov::Cover {
