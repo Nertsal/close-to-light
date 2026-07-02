@@ -30,11 +30,18 @@ impl VfxValue {
     }
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct CameraFrame {
+    pub time: Time,
+    pub transform: CameraTransform,
+}
+
 #[derive(Debug, Clone)]
 pub struct Vfx {
     pub palette_swap: SecondOrderState<R32>,
     pub rgb_split: VfxValue,
     pub camera_shake: R32,
+    pub camera_interpolation: (CameraFrame, CameraFrame, MoveInterpolation),
     pub vignette: VfxValue,
     pub curvature: VfxValue,
     pub noise_offset: VfxValue,
@@ -47,11 +54,30 @@ impl Vfx {
             palette_swap: SecondOrderState::new(3.0, 1.0, 0.0, R32::ZERO),
             rgb_split: VfxValue::new(2.0, 1.0, 0.0),
             camera_shake: R32::ZERO,
+            camera_interpolation: (
+                CameraFrame::default(),
+                CameraFrame::default(),
+                MoveInterpolation::default(),
+            ),
             vignette: VfxValue::new(2.0, 1.0, 0.0),
             curvature: VfxValue::new(2.0, 1.0, 0.0),
             noise_offset: VfxValue::new(2.0, 1.0, 0.0),
             spotlight: VfxValue::new(2.0, 1.0, 0.0),
         }
+    }
+
+    /// NOTE: Assumes that the cached VFX camera_interpolation is relevant.
+    pub fn get_camera_transform(&self, time: Time) -> CameraTransform {
+        let (from, to, interpolation) = &self.camera_interpolation;
+        let t = if to.time == from.time {
+            1.0
+        } else {
+            (time - from.time) as f32 / (to.time - from.time) as f32
+        };
+        let t = interpolation.apply(r32(t));
+        InterpolationSegment::linear(&[from.transform.clone(), to.transform.clone()])
+            .get(0, t)
+            .unwrap_or_else(|| from.transform.clone())
     }
 
     pub fn reset(&mut self) {

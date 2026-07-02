@@ -990,6 +990,7 @@ impl TimelineWidget {
                             EffectEvent::ScreenCurvature(..) => atlas.timeline_curvature(),
                             EffectEvent::NoiseOffset(..) => atlas.timeline_noise(),
                             EffectEvent::Spotlight(..) => atlas.mod_spotlight(),
+                            EffectEvent::Camera(..) => atlas.timeline_camera(),
                         };
 
                         regular_event(

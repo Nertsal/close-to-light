@@ -176,6 +176,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
         vignette,
         curvature,
         noise,
+        camera,
 
         circle,
         circle_fill,

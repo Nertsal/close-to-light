@@ -219,6 +219,7 @@ impl LayoutHelper<'_> {
                     ("Curvature", LevelAction::NewCurvature(BeatTime::WHOLE)),
                     ("Noise", LevelAction::NewNoiseOffset(BeatTime::WHOLE)),
                     ("Spotlight", LevelAction::NewSpotlight(BeatTime::WHOLE)),
+                    ("Camera", LevelAction::NewCamera),
                 ],
             )
         });
@@ -855,8 +856,8 @@ impl LayoutHelper<'_> {
 
         match &event.event {
             Event::Light(_) => {}
-            Event::Effect(effect) => match *effect {
-                EffectEvent::PaletteSwap(duration) => {
+            Event::Effect(effect) => match effect {
+                &EffectEvent::PaletteSwap(duration) => {
                     self.event_title_delete(
                         EditorEventIdx::Event(event_i),
                         bar,
@@ -895,7 +896,7 @@ impl LayoutHelper<'_> {
                         );
                     }
                 }
-                EffectEvent::RgbSplit(duration) => {
+                &EffectEvent::RgbSplit(duration) => {
                     self.event_title_delete(
                         EditorEventIdx::Event(event_i),
                         bar,
@@ -934,11 +935,11 @@ impl LayoutHelper<'_> {
                         );
                     }
                 }
-                EffectEvent::CameraShake(duration, intensity)
-                | EffectEvent::Vignette(duration, intensity)
-                | EffectEvent::ScreenCurvature(duration, intensity)
-                | EffectEvent::NoiseOffset(duration, intensity)
-                | EffectEvent::Spotlight(duration, intensity) => {
+                &EffectEvent::CameraShake(duration, intensity)
+                | &EffectEvent::Vignette(duration, intensity)
+                | &EffectEvent::ScreenCurvature(duration, intensity)
+                | &EffectEvent::NoiseOffset(duration, intensity)
+                | &EffectEvent::Spotlight(duration, intensity) => {
                     let name = match effect {
                         EffectEvent::CameraShake(..) => "Camera Shake",
                         EffectEvent::Vignette(..) => "Vignette",
@@ -1011,6 +1012,98 @@ impl LayoutHelper<'_> {
                                 .into(),
                         );
                     }
+                }
+                EffectEvent::Camera(frame, move_interpolation) => {
+                    self.event_title_delete(
+                        EditorEventIdx::Event(event_i),
+                        bar,
+                        "Camera Transform",
+                        tooltip,
+                        actions,
+                        context,
+                    );
+
+                    let scale = bar.cut_top(self.value_height);
+                    bar.cut_top(self.spacing);
+                    let mut value = frame.zoom.as_f32();
+                    let slider = context
+                        .state
+                        .get_root_or(|| ValueWidget::new_range("Zoom", value, 0.2..=2.0, 0.1, 2));
+                    if slider.update(scale, context, &mut value) {
+                        // actions.push(
+                        //     LevelAction::ScaleWaypoint(light_id, selected, Change::Set(r32(value)))
+                        //         .into(),
+                        // );
+                    }
+                    // if slider.control_state.mouse_left.just_released {
+                    //     actions.push(
+                    //         LevelAction::FlushChanges(Some(HistoryLabel::Scale(
+                    //             light_id, selected,
+                    //         )))
+                    //         .into(),
+                    //     );
+                    // }
+                    context.update_focus(slider.state.hovered);
+
+                    let angle = bar.cut_top(self.value_height);
+                    bar.cut_top(self.spacing);
+                    let mut value = frame.rotation.as_degrees().as_f32();
+                    let slider = context
+                        .state
+                        .get_root_or(|| ValueWidget::new_circle("Angle", value, 360.0, 15.0, 0));
+                    if slider.update(angle, context, &mut value) {
+                        // actions.push(
+                        //     LevelAction::RotateWaypointAround(
+                        //         light_id,
+                        //         selected,
+                        //         frame.translation,
+                        //         Change::Set(Angle::from_degrees(r32(value.round()))),
+                        //     )
+                        //     .into(),
+                        // );
+                    }
+                    // if slider.control_state.mouse_left.just_released {
+                    //     actions.push(
+                    //         LevelAction::FlushChanges(Some(HistoryLabel::Rotate(
+                    //             light_id, selected,
+                    //         )))
+                    //         .into(),
+                    //     );
+                    // }
+                    context.update_focus(slider.state.hovered);
+                    tooltip.update(&slider.state, "Q/E", context);
+
+                    // Interpolation
+                    let mut move_interpolation = *move_interpolation;
+                    let interpolation_pos = bar.cut_top(self.button_height);
+                    bar.cut_top(self.spacing);
+
+                    let waypoint_interpolation = context.state.get_root_or(|| {
+                        DropdownValueWidget::new(
+                            "Interpolation",
+                            0,
+                            [
+                                ("Linear", MoveInterpolation::Linear),
+                                ("Smoothstep", MoveInterpolation::Smoothstep),
+                                ("EaseIn", MoveInterpolation::EaseIn),
+                                ("EaseOut", MoveInterpolation::EaseOut),
+                            ],
+                        )
+                    });
+
+                    waypoint_interpolation.update(
+                        interpolation_pos,
+                        context,
+                        &mut move_interpolation,
+                    );
+                    // actions.push(
+                    //     LevelAction::SetWaypointInterpolation(
+                    //         light_id,
+                    //         selected,
+                    //         move_interpolation,
+                    //     )
+                    //     .into(),
+                    // );
                 }
             },
         }

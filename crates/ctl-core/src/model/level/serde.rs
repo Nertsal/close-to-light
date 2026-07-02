@@ -63,6 +63,51 @@ pub enum EffectEvent {
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the dimming value (0-1).
     Spotlight(Time, R32),
+    /// Apply a transform to the camera orientation.
+    /// The camera is interpolated between each camera transform event.
+    Camera(CameraTransform, MoveInterpolation),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CameraTransform {
+    pub rotation: Angle<Coord>,
+    pub zoom: Coord,
+}
+
+impl Default for CameraTransform {
+    fn default() -> Self {
+        Self {
+            rotation: Angle::ZERO,
+            zoom: Coord::ONE,
+        }
+    }
+}
+
+impl Interpolatable for CameraTransform {
+    fn add(self, other: Self) -> Self {
+        Self {
+            rotation: Interpolatable::add(self.rotation, other.rotation),
+            zoom: Interpolatable::add(self.zoom, other.zoom),
+        }
+    }
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            rotation: Interpolatable::sub(self.rotation, other.rotation),
+            zoom: Interpolatable::sub(self.zoom, other.zoom),
+        }
+    }
+
+    fn scale(self, factor: f32) -> Self {
+        Self {
+            rotation: Interpolatable::scale(self.rotation, factor),
+            zoom: Interpolatable::scale(self.zoom, factor),
+        }
+    }
+
+    fn length_sqr(self) -> f32 {
+        self.rotation.length_sqr() + self.zoom.length_sqr()
+    }
 }
 
 impl EffectEvent {
@@ -75,10 +120,11 @@ impl EffectEvent {
             | EffectEvent::ScreenCurvature(duration, _)
             | EffectEvent::NoiseOffset(duration, _)
             | EffectEvent::Spotlight(duration, _) => *duration,
+            EffectEvent::Camera(..) => 0,
         }
     }
 
-    pub fn duration_mut(&mut self) -> &mut Time {
+    pub fn duration_mut(&mut self) -> Option<&mut Time> {
         match self {
             EffectEvent::PaletteSwap(duration)
             | EffectEvent::RgbSplit(duration)
@@ -86,7 +132,8 @@ impl EffectEvent {
             | EffectEvent::Vignette(duration, _)
             | EffectEvent::ScreenCurvature(duration, _)
             | EffectEvent::NoiseOffset(duration, _)
-            | EffectEvent::Spotlight(duration, _) => duration,
+            | EffectEvent::Spotlight(duration, _) => Some(duration),
+            EffectEvent::Camera(..) => None,
         }
     }
 

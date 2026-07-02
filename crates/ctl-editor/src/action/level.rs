@@ -45,6 +45,7 @@ pub enum LevelAction {
     NewCurvature(BeatTime),
     NewNoiseOffset(BeatTime),
     NewSpotlight(BeatTime),
+    NewCamera,
     ChangeEffectDuration(usize, Change<Time>),
     ChangeEffectIntensity(usize, Change<R32>),
 
@@ -135,6 +136,7 @@ impl LevelAction {
             LevelAction::NewCurvature(_) => false,
             LevelAction::NewNoiseOffset(_) => false,
             LevelAction::NewSpotlight(_) => false,
+            LevelAction::NewCamera => false,
             LevelAction::ChangeEffectDuration(_, delta) => delta.is_noop(&0),
             LevelAction::ChangeEffectIntensity(_, delta) => delta.is_noop(&R32::ZERO),
 
@@ -518,11 +520,25 @@ impl LevelEditor {
                     event: Event::Effect(EffectEvent::Spotlight(duration, r32(1.0))),
                 });
             }
+            LevelAction::NewCamera => {
+                self.execute(LevelAction::Deselect, drag);
+                let current = self
+                    .model
+                    .vfx
+                    .get_camera_transform(self.current_time.target);
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::Camera(
+                        current,
+                        self.model.vfx.camera_interpolation.2,
+                    )),
+                });
+            }
             LevelAction::ChangeEffectDuration(index, change) => {
                 if let Some(event) = self.level.events.get_mut(index)
                     && let Event::Effect(effect) = &mut event.event
+                    && let Some(duration) = effect.duration_mut()
                 {
-                    let duration = effect.duration_mut();
                     change.apply(duration);
                     self.save_state(HistoryLabel::EventDuration(index));
                 }
