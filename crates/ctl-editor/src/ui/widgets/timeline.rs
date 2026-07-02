@@ -290,28 +290,32 @@ impl TimelineWidget {
             self.highlight_bar = light_selection.or_else(|| {
                 original_selection
                     .single()
-                    .and_then(|id| {
-                        if let EditorEventIdx::Event(id) = id {
-                            level_editor.level.events.get(id)
-                        } else {
-                            None
+                    .and_then(|id| match id {
+                        EditorEventIdx::Event(id) => {
+                            let event = level_editor.level.events.get(id)?;
+                            let duration = match &event.event {
+                                Event::Light(_) => None,
+                                Event::Effect(effect) => Some(effect.duration().unwrap_or(0)),
+                            }?;
+                            Some((event.time, duration))
                         }
+                        EditorEventIdx::Timing(id) => {
+                            let event = level_editor.level.timing.points.get(id)?;
+                            Some((event.time, 0))
+                        }
+                        EditorEventIdx::Waypoint(..) => None,
                     })
-                    .and_then(|event| {
-                        let duration = match &event.event {
-                            Event::Light(_) => None,
-                            Event::Effect(effect) => effect.duration(),
-                        }?;
-                        let from_time = event.time;
+                    .map(|(time, duration)| {
+                        let from_time = time;
                         let from = render_time(&self.highlight_line, from_time).center();
-                        let to_time = event.time + duration;
+                        let to_time = time + duration;
                         let to = render_time(&self.highlight_line, to_time).center();
-                        Some(HighlightBar {
+                        HighlightBar {
                             from_time,
                             from,
                             to_time,
                             to,
-                        })
+                        }
                     })
             });
         } else {
