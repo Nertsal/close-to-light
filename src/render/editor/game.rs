@@ -433,9 +433,9 @@ impl EditorRender {
 
                 if let Event::Light(event) = &timed_event.event {
                     let color = if event.danger {
-                        helper.danger_color
+                        THEME.danger
                     } else {
-                        helper.light_color
+                        THEME.light
                     };
 
                     let options = util::DashRenderOptions {
