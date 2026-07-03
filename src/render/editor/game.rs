@@ -13,7 +13,10 @@ impl EditorRender {
         let options = &editor.render_options;
         let mut theme = editor.context.get_options().theme;
 
-        if let Some(level_editor) = &editor.level_edit {
+        // Palette swap vfx
+        if editor.preview_vfx
+            && let Some(level_editor) = &editor.level_edit
+        {
             let swap_t = level_editor.model.vfx.palette_swap.current.as_f32();
             let (light, dark) = (theme.light, theme.dark);
             theme.light = Color::lerp(light, dark, swap_t);
