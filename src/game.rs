@@ -286,7 +286,7 @@ impl geng::State for Game {
                     "Align cursors to resume",
                     vec2(0.0, -3.0).as_r32(),
                     ctl_render_core::TextRenderOptions::new(0.9).color(theme.light),
-                    &self.model.camera,
+                    &ctl_logic::default_camera(),
                     buffer,
                 );
             }
