@@ -2,6 +2,7 @@ use super::*;
 
 use ctl_core::score::PauseIndicator;
 use ctl_local::{CachedGroup, Leaderboard, LocalMusic};
+use ctl_util::SecondOrderState;
 use generational_arena::Index;
 
 #[derive(Debug, Clone)]
@@ -147,13 +148,56 @@ pub struct Rhythm {
     pub perfect: bool,
 }
 
+/// 2-dimensional camera with interpolation.
+#[derive(Debug, Clone)]
+pub struct Camera {
+    pub center: SecondOrderState<vec2<Coord>>,
+    pub rotation: SecondOrderState<Angle<Coord>>,
+    pub zoom: SecondOrderState<Coord>,
+    pub shake: vec2<Coord>,
+}
+
+impl Camera {
+    pub fn as_camera2d(&self) -> Camera2d {
+        Camera2d {
+            center: (self.center.current + self.shake).as_f32(),
+            rotation: self.rotation.current.map(Float::as_f32),
+            fov: Camera2dFov::Cover {
+                width: 17.778,
+                height: 10.0,
+                scale: self.zoom.current.as_f32().clamp(0.1, 10.0).recip(),
+            },
+        }
+    }
+
+    pub fn update(&mut self, delta_time: FloatTime) {
+        self.center.update(delta_time.as_f32());
+        self.rotation.update(delta_time.as_f32());
+        self.zoom.update(delta_time.as_f32());
+        self.shake *= r32(0.5);
+    }
+
+    pub fn shake(&mut self, amplitude: Coord) {
+        self.shake +=
+            Angle::from_degrees(r32(thread_rng().gen_range(0.0..=360.0))).unit_vec() * amplitude;
+    }
+}
+
+impl AbstractCamera2d for Camera {
+    fn view_matrix(&self) -> mat3<f32> {
+        self.as_camera2d().view_matrix()
+    }
+    fn projection_matrix(&self, framebuffer_size: vec2<f32>) -> mat3<f32> {
+        self.as_camera2d().projection_matrix(framebuffer_size)
+    }
+}
+
 pub struct Model {
     pub context: Context,
     pub transition: Option<Transition>,
     pub leaderboard: Leaderboard,
 
-    pub camera: Camera2d,
-    pub camera_shake: vec2<Coord>,
+    pub camera: Camera,
     pub player: Player,
     /// Whether the cursor clicked last frame.
     pub cursor_clicked: bool,
@@ -226,7 +270,6 @@ impl Model {
             context,
 
             camera: default_camera(),
-            camera_shake: vec2::ZERO,
             player: Player::new(
                 Collider::new(
                     vec2::ZERO,
@@ -275,14 +318,11 @@ impl Model {
     }
 }
 
-pub fn default_camera() -> Camera2d {
-    Camera2d {
-        center: vec2::ZERO,
-        rotation: Angle::ZERO,
-        fov: Camera2dFov::Cover {
-            width: 17.778,
-            height: 10.0,
-            scale: 1.0,
-        },
+pub fn default_camera() -> Camera {
+    Camera {
+        center: SecondOrderState::new(5.0, 1.0, 0.0, vec2::ZERO),
+        rotation: SecondOrderState::new(5.0, 1.0, 0.0, Angle::ZERO),
+        zoom: SecondOrderState::new(5.0, 1.0, 0.0, r32(1.0)),
+        shake: vec2::ZERO,
     }
 }

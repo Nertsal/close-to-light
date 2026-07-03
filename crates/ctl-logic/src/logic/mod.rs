@@ -52,21 +52,15 @@ impl Model {
 
         // Camera shake
         if let State::Playing = self.state {
-            self.camera_shake = self.camera_shake * r32(0.5)
-                + Angle::from_degrees(r32(thread_rng().gen_range(0.0..=360.0))).unit_vec()
-                    * self.vfx.camera_shake;
+            self.camera.shake(self.vfx.camera_shake);
         } else {
-            self.camera_shake = vec2::ZERO;
+            self.camera.shake = vec2::ZERO;
         }
         // Camera interpolation
         let transform = self.vfx.get_camera_transform(self.play_time_ms);
-        self.camera.center = self.camera_shake.as_f32();
-        self.camera.rotation = transform.rotation.map(Float::as_f32);
-        self.camera.fov = Camera2dFov::Cover {
-            width: 17.778,
-            height: 10.0,
-            scale: transform.zoom.as_f32().recip().clamp(0.1, 10.0),
-        };
+        self.camera.rotation.target = transform.rotation;
+        self.camera.zoom.target = transform.zoom;
+        self.camera.update(delta_time);
 
         let delta_ms = seconds_to_time(delta_time);
         self.update_rhythm(delta_ms);

@@ -476,7 +476,7 @@ impl EditorRender {
         draw_game!(1.0, game_buffer);
 
         // Camera view bounds
-        let camera_view = match level_editor.model.camera.fov {
+        let camera_view = match level_editor.model.camera.as_camera2d().fov {
             Camera2dFov::Cover {
                 width,
                 height,
@@ -485,10 +485,11 @@ impl EditorRender {
             _ => unreachable!(),
         };
         let camera_view =
-            Aabb2::point(level_editor.model.camera.center - level_editor.camera_pan.as_f32())
+            Aabb2::point(level_editor.model.camera.center.target - level_editor.camera_pan)
+                .as_f32()
                 .extend_symmetric(camera_view / 2.0);
         let mut camera_view = Collider::aabb(camera_view.as_r32());
-        camera_view.rotation = level_editor.model.camera.rotation.map(r32);
+        camera_view.rotation = level_editor.model.camera.rotation.target;
         self.util.draw_outline(
             &camera_view,
             0.1,

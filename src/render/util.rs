@@ -318,7 +318,7 @@ impl UtilRender {
     pub fn draw_level_sdf(
         &self,
         level_state: &LevelState,
-        camera: &Camera2d,
+        camera: &impl AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         // Lights
@@ -547,7 +547,7 @@ impl UtilRender {
         button: &HoverButton,
         text: impl AsRef<str>,
         theme: &Theme,
-        camera: &Camera2d,
+        camera: &impl AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let collider = button.get_relevant_collider();
@@ -568,7 +568,7 @@ impl UtilRender {
         &self,
         chain: &[draw2d::ColoredVertex],
         options: &DashRenderOptions,
-        camera: &Camera2d,
+        camera: &impl AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let vertices: Vec<_> = chain
@@ -753,7 +753,7 @@ impl UtilRender {
     pub fn draw_player(
         &self,
         player: &Player,
-        camera: &Camera2d,
+        camera: &impl AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let options = self.context.get_options();
@@ -764,7 +764,7 @@ impl UtilRender {
         &self,
         options: &Options,
         player: &Player,
-        camera: &Camera2d,
+        camera: &impl AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         // Player tail

@@ -549,7 +549,7 @@ impl EditorState {
 
         if let geng::MouseButton::Middle = button {
             actions.push(EditorStateAction::StartDrag(DragTarget::Camera {
-                initial_center: level_editor.model.camera.center.as_r32(),
+                initial_center: level_editor.model.camera.center.target,
             }));
             return actions;
         }
