@@ -20,6 +20,25 @@ impl Model {
             start_timer: r32(1.0),
             music_start_time: target_time,
         };
+
+        self.render_level();
+        self.update_camera(r32(0.016), true);
+    }
+
+    fn update_camera(&mut self, delta_time: FloatTime, snap: bool) {
+        let transform = self.vfx.get_camera_transform(self.play_time_ms);
+        if snap {
+            self.camera
+                .rotation
+                .snap_to(transform.rotation, delta_time.as_f32());
+            self.camera
+                .zoom
+                .snap_to(transform.zoom, delta_time.as_f32());
+        } else {
+            self.camera.rotation.target = transform.rotation;
+            self.camera.zoom.target = transform.zoom;
+        }
+        self.camera.update(delta_time);
     }
 
     pub fn update(&mut self, player_target: vec2<Coord>, delta_time: FloatTime, is_paused: bool) {
@@ -57,10 +76,7 @@ impl Model {
             self.camera.shake = vec2::ZERO;
         }
         // Camera interpolation
-        let transform = self.vfx.get_camera_transform(self.play_time_ms);
-        self.camera.rotation.target = transform.rotation;
-        self.camera.zoom.target = transform.zoom;
-        self.camera.update(delta_time);
+        self.update_camera(delta_time, false);
 
         let delta_ms = seconds_to_time(delta_time);
         self.update_rhythm(delta_ms);
