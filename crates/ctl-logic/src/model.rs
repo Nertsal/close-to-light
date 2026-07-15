@@ -127,6 +127,10 @@ pub enum State {
 }
 
 impl State {
+    pub fn started(&self) -> bool {
+        !matches!(self, Self::Starting { .. })
+    }
+
     /// Returns `true` when the player finished or lost the level.
     pub fn ended(&self) -> bool {
         matches!(self, Self::Lost { .. } | Self::Finished)

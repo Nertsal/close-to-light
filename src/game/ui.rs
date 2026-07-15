@@ -8,6 +8,9 @@ pub struct GameUI {
     pub leaderboard: LeaderboardWidget,
     pub score: ScoreWidget,
     pub pause: PauseWidget,
+
+    pub restart: IconWidget,
+    pub restart_timer: Bounded<FloatTime>,
 }
 
 impl GameUI {
@@ -20,6 +23,9 @@ impl GameUI {
             leaderboard,
             score: ScoreWidget::new(assets),
             pause: PauseWidget::new(),
+
+            restart: IconWidget::new(assets.atlas.circle_outline()),
+            restart_timer: Bounded::new_zero(r32(super::HOLD_RESTART_DURATION)),
         }
     }
 
@@ -50,6 +56,10 @@ impl GameUI {
 
         // Margin
         let mut main = screen.extend_uniform(-layout_size * 2.0);
+
+        // Restart icon
+        let restart = main.align_aabb(vec2(1.0, 1.0) * context.font_size, vec2(0.5, 0.0));
+        self.restart.update(restart, context);
 
         // Logo
         let _ctl_logo = main.cut_top(layout_size * 4.0);

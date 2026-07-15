@@ -9,9 +9,13 @@ use crate::{
 };
 
 use ctl_local::Leaderboard;
+use geng_utils::key::EventKey;
 
 /// Max world distance within which the cursor is considered aligned with the paused state.
 const CURSOR_ALIGNMENT_RANGE: f32 = 0.1;
+
+/// How long (in seconds) you have to hold the restart key to restart the level.
+const HOLD_RESTART_DURATION: f32 = 0.7;
 
 enum PauseState {
     Normal {
@@ -292,6 +296,46 @@ impl geng::State for Game {
             }
         }
 
+        {
+            // Restart icon
+            let icon = &self.ui.restart;
+            let t = self.ui.restart_timer.get_ratio().as_f32();
+            let pos = geng_utils::pixel::pixel_perfect_aabb(
+                icon.state.position.center(),
+                vec2(0.5, 0.5),
+                (icon.texture.size().as_f32() * icon.pixel_scale).map(|x| x.round() as usize),
+                &geng::PixelPerfectCamera,
+                buffer.size().as_f32(),
+            );
+            let transform = mat3::translate(pos.center()) * mat3::scale(pos.size());
+            ugli::draw(
+                buffer,
+                &self.context.assets.shaders.radial_texture,
+                ugli::DrawMode::TriangleFan,
+                &ugli::VertexBuffer::new_dynamic(
+                    self.context.geng.ugli(),
+                    geng_utils::geometry::unit_quad()
+                        .map(|mut pos| {
+                            pos.a_vt =
+                                (pos.a_vt * icon.texture.uv.size()) + icon.texture.uv.bottom_left();
+                            pos
+                        })
+                        .to_vec(),
+                ),
+                (
+                    ugli::uniforms! {
+                        u_model_matrix: transform,
+                        u_color: theme.danger,
+                        u_texture: &*icon.texture.texture,
+                        u_angle: Angle::from_degrees(90.0).as_radians(),
+                        u_angle_range: Angle::from_degrees(-360.0).as_radians() * t,
+                    },
+                    &geng::PixelPerfectCamera.uniforms(buffer.size().as_f32()),
+                ),
+                ugli::DrawParameters::default(),
+            );
+        }
+
         let mut options = options.clone();
         if flashlight_mode {
             options.graphics.crt.scanlines = 0.0;
@@ -377,6 +421,22 @@ impl geng::State for Game {
             } else if ui.quit.text.state.mouse_left.clicked {
                 self.transition = Some(geng::state::Transition::Pop);
             }
+        }
+
+        // Hold R to restart
+        if self.model.state.started()
+            && geng_utils::key::is_key_pressed(
+                self.context.geng.window(),
+                [EventKey::Key(geng::Key::R)],
+            )
+        {
+            self.ui.restart_timer.change(delta_time);
+            if self.ui.restart_timer.is_max() {
+                self.model.restart(false);
+                self.ui.restart_timer.set_ratio(R32::ZERO);
+            }
+        } else {
+            self.ui.restart_timer.change(-delta_time * r32(2.0));
         }
 
         if let Some(transition) = self.model.transition.take() {
