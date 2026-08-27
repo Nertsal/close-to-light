@@ -767,11 +767,14 @@ impl UtilRender {
         camera: &impl AbstractCamera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let danger_t = player.danger_cooldown.unwrap_or(R32::ZERO);
+        let danger_t = crate::util::smoothstep((danger_t.as_f32() / 0.25).clamp(0.0, 1.0));
+
         // Player tail
         let mut trail_point = |tail: &PlayerTail| {
             let radius = r32(options.cursor.inner_radius) * tail.lifetime.get_ratio();
             let collider = Collider::new(tail.pos, Shape::Circle { radius });
-            let (in_color, out_color) = match tail.state {
+            let (in_color, mut out_color) = match tail.state {
                 LitState::Dark => (THEME.danger, THEME.dark),
                 LitState::Light { perfect: false } => (THEME.dark, THEME.light),
                 LitState::Light { perfect: true } => (
@@ -780,6 +783,7 @@ impl UtilRender {
                 ),
                 LitState::Danger => (THEME.light, THEME.danger),
             };
+            out_color = Color::lerp(out_color, THEME.danger, danger_t);
             self.context.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
@@ -802,23 +806,19 @@ impl UtilRender {
                 shape: Shape::circle(size.max(r32(options.cursor.inner_radius))),
                 ..player.collider.clone()
             };
+            let mut outline_color = THEME.get_color(options.cursor.outer_color);
+            outline_color = Color::lerp(outline_color, THEME.danger, danger_t);
             self.draw_outline(
                 &collider,
                 options.cursor.outer_radius,
-                THEME.get_color(options.cursor.outer_color),
+                outline_color,
                 camera,
                 framebuffer,
             );
         }
     }
 
-    pub fn draw_health(
-        &self,
-        health: &Lifetime,
-        state: LitState,
-        theme: Theme,
-        framebuffer: &mut ugli::Framebuffer,
-    ) {
+    pub fn draw_health(&self, player: &Player, theme: Theme, framebuffer: &mut ugli::Framebuffer) {
         let camera = &geng::PixelPerfectCamera;
         let screen = Aabb2::ZERO.extend_positive(framebuffer.size().as_f32());
         let font_size = screen.height() * 0.05;
@@ -833,17 +833,16 @@ impl UtilRender {
         .extend_up(height);
 
         // Outline
-        // self.draw_outline(
-        //     &Collider::aabb(aabb.map(r32)),
-        //     font_size * 0.2,
-        //     theme.light,
-        //     camera,
-        //     framebuffer,
-        // );
+        let outline_color = if let Some(t) = player.danger_cooldown {
+            let t = crate::util::smoothstep((t.as_f32() / 0.25).clamp(0.0, 1.0));
+            Color::lerp(theme.light, theme.danger, t)
+        } else {
+            theme.light
+        };
         self.context.geng.draw2d().draw2d(
             framebuffer,
             camera,
-            &draw2d::Quad::new(aabb.extend_uniform(font_size * 0.06), theme.light),
+            &draw2d::Quad::new(aabb.extend_uniform(font_size * 0.06), outline_color),
         );
 
         // Dark fill
@@ -854,24 +853,18 @@ impl UtilRender {
         );
 
         // Health fill
-        let color = match state {
+        let color = match player.get_lit_state() {
             LitState::Light { .. } => crate::util::with_alpha(theme.light, 1.0),
             LitState::Dark => crate::util::with_alpha(theme.light, 0.7),
             LitState::Danger => crate::util::with_alpha(theme.danger, 0.7),
         };
-        // self.geng.draw2d().draw2d(
-        //     framebuffer,
-        //     camera,
-        //     &draw2d::Quad::new(
-        //         aabb.extend_symmetric(
-        //             vec2((health.get_ratio().as_f32() - 1.0) * aabb.width(), 0.0) / 2.0,
-        //         ),
-        //         color,
-        //     ),
-        // );
         let framebuffer_size = framebuffer.size();
-        let aabb = aabb
-            .extend_symmetric(vec2((health.get_ratio().as_f32() - 1.0) * aabb.width(), 0.0) / 2.0);
+        let aabb = aabb.extend_symmetric(
+            vec2(
+                (player.health.get_ratio().as_f32() - 1.0) * aabb.width(),
+                0.0,
+            ) / 2.0,
+        );
         let transform = mat3::translate(aabb.center()) * mat3::scale(aabb.size() / 2.0);
         ugli::draw(
             framebuffer,

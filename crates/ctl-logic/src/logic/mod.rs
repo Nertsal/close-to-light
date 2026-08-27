@@ -200,6 +200,16 @@ impl Model {
                 .update_light_distance(light, &self.recent_rhythm);
         }
 
+        // Check danger penalty
+        if self.player.danger_cooldown.is_none() && self.player.danger_distance.is_some() {
+            if let State::Playing = self.state {
+                self.player
+                    .health
+                    .change(-self.level.config.health.danger_penalty);
+            }
+            self.player.danger_cooldown = Some(self.level.config.health.danger_cooldown);
+        }
+
         if let State::Playing = self.state {
             // Check missed rhythm
             let light = get_light(self.player.closest_light, false);
@@ -217,6 +227,14 @@ impl Model {
         if !self.level.config.modifiers.clean_auto {
             // Player tail
             self.player.update_tail(delta_time);
+        }
+
+        // Danger cooldown
+        if let Some(cooldown) = &mut self.player.danger_cooldown {
+            *cooldown -= delta_time;
+            if *cooldown <= FloatTime::ZERO {
+                self.player.danger_cooldown = None;
+            }
         }
     }
 

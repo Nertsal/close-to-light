@@ -9,6 +9,7 @@ pub struct Player {
     pub info: UserInfo,
     pub collider: Collider,
     pub health: Bounded<FloatTime>,
+    pub danger_cooldown: Option<FloatTime>,
 
     /// Whether currently perfectly inside of any light.
     /// Controlled by the collider.
@@ -50,6 +51,7 @@ impl Player {
             },
             collider,
             health: Bounded::new_max(health),
+            danger_cooldown: None,
 
             is_perfect: false,
             perfect_waypoints: Vec::new(),

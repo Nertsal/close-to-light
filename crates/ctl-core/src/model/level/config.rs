@@ -20,6 +20,10 @@ pub struct HealthConfig {
     pub max: FloatTime,
     /// How fast health decreases per second in darkness.
     pub dark_decrease_rate: FloatTime,
+    /// The initial health penalty for touching a red light.
+    pub danger_penalty: FloatTime,
+    /// Cooldown between danger penalties.
+    pub danger_cooldown: FloatTime,
     /// How fast health decreases per second in danger.
     pub danger_decrease_rate: FloatTime,
     /// How much health restores per second while in light.
@@ -196,7 +200,9 @@ impl HealthConfig {
         Self {
             max: r32(1.0),
             dark_decrease_rate: r32(0.7),
-            danger_decrease_rate: r32(1.5),
+            danger_penalty: r32(0.2),
+            danger_cooldown: r32(0.6),
+            danger_decrease_rate: r32(1.3),
             restore_rate: r32(0.4),
         }
     }

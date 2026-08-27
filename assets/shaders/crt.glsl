@@ -13,6 +13,7 @@ void main() {
 #ifdef FRAGMENT_SHADER
 uniform sampler2D u_texture;
 uniform float u_curvature;
+uniform vec4 u_vignette_color;
 uniform float u_vignette_multiplier;
 uniform float u_scanlines_multiplier;
 uniform float u_time;
@@ -26,7 +27,7 @@ void main() {
         + step(centered_uv.x + centered_uv.y * 0.15, sin(u_time * 0.3) * 1.2) * 0.002;
     vec3 cutoff = vec3(step(abs(warped_uv.x), 1.0) * step(abs(warped_uv.y), 1.0));
     float scanlines = sin(2.0 * warped_uv.y * 180.0 + mod(u_time, 3.14159) * 2.0);
-    vec3 vignette = vec3(length(pow(abs(centered_uv), vec2(4.0)) / 3.0));
+    float vignette = length(pow(abs(centered_uv), vec2(4.0)) / 3.0);
 
     vec3 texel = texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb;
     float dark = min(texel.r, min(texel.g, texel.b));
@@ -45,7 +46,8 @@ void main() {
         texel * cutoff
         + vec3(light_offset)
         + vec3(0.05) * scanlines * u_scanlines_multiplier;
-    screen_color -= vignette * u_vignette_multiplier;
+    screen_color -= vec3(vignette * u_vignette_multiplier);
+    screen_color = mix(screen_color, u_vignette_color.rgb, vignette * u_vignette_multiplier);
     gl_FragColor = vec4(screen_color, 1.0);
 }
 #endif

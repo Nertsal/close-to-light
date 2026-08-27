@@ -287,12 +287,7 @@ impl GameRender {
         if let State::Playing = model.state
             && !model.level.config.modifiers.clean_auto
         {
-            self.util.draw_health(
-                &model.player.health,
-                model.player.get_lit_state(),
-                theme,
-                framebuffer,
-            );
+            self.util.draw_health(&model.player, theme, framebuffer);
         }
 
         let accuracy = model.score.calculated.accuracy.as_f32() * 100.0;

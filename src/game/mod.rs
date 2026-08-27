@@ -343,7 +343,14 @@ impl geng::State for Game {
         self.post.post_process(
             &options,
             crate::render::post::PostVfx::new(
-                &self.model.vfx,
+                &Vfx {
+                    vignette_color: {
+                        let t = self.model.player.danger_cooldown.unwrap_or(FloatTime::ZERO);
+                        let t = (t.as_f32() / 0.25).clamp(0.0, 1.0);
+                        Color::lerp(self.model.vfx.vignette_color, theme.danger, t)
+                    },
+                    ..self.model.vfx.clone()
+                },
                 self.model.real_time,
                 options.graphics.crt.enabled,
                 options.graphics.colors,
