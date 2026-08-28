@@ -82,6 +82,7 @@ impl Default for GraphicsCrtOptions {
 pub struct GraphicsColorsOptions {
     pub blue: f32,
     pub saturation: f32,
+    pub brightness: f32,
 }
 
 impl Default for GraphicsColorsOptions {
@@ -89,6 +90,7 @@ impl Default for GraphicsColorsOptions {
         Self {
             blue: 1.0,
             saturation: 1.0,
+            brightness: 1.0,
         }
     }
 }

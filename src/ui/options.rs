@@ -13,6 +13,7 @@ use geng_utils::bounded::Bounded;
 const RANGE_VOLUME: RangeInclusive<f32> = 0.0..=100.0;
 const RANGE_MUSIC_OFFSET: RangeInclusive<f32> = -100.0..=100.0;
 const RANGE_BLUE: RangeInclusive<f32> = 0.5..=1.0;
+const RANGE_BRIGHTNESS: RangeInclusive<f32> = 0.25..=1.0;
 const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=1.0;
 const RANGE_TELEGRAPH_BRIGHTNESS: RangeInclusive<f32> = 0.25..=1.0;
 const RANGE_INNER_RADIUS: RangeInclusive<f32> = 0.1..=0.5;
@@ -284,6 +285,7 @@ pub struct GraphicsWidget {
     pub title: TextWidget,
     pub fullscreen: ToggleWidget,
     pub crt: ToggleWidget,
+    pub brightness: SliderWidget,
     pub blue: SliderWidget,
     pub saturation: SliderWidget,
     pub telegraph_color: ColorSelectWidget,
@@ -298,6 +300,7 @@ impl GraphicsWidget {
             title: TextWidget::new("Graphics"),
             fullscreen: ToggleWidget::new("Fullscreen"),
             crt: ToggleWidget::new("CRT Shader"),
+            brightness: SliderWidget::new("Brightness").with_precision(0),
             blue: SliderWidget::new("Blue light").with_precision(0),
             saturation: SliderWidget::new("Saturation").with_precision(0),
             telegraph_color: ColorSelectWidget::new(
@@ -358,9 +361,14 @@ impl StatefulWidget for GraphicsWidget {
         self.crt
             .update_state(next_row(), context, &mut state.crt.enabled);
 
+        self.brightness.update_value_percent(
+            next_row(),
+            context,
+            &mut state.colors.brightness,
+            RANGE_BRIGHTNESS,
+        );
         self.blue
             .update_value_percent(next_row(), context, &mut state.colors.blue, RANGE_BLUE);
-
         self.saturation.update_value_percent(
             next_row(),
             context,

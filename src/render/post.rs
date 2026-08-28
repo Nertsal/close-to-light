@@ -186,6 +186,7 @@ impl PostRender {
                 ugli::uniforms! {
                     u_texture: texture,
                     u_saturation: vfx.colors.saturation,
+                    u_brightness: vfx.colors.brightness,
                     u_blue: vfx.colors.blue,
                 },
                 ugli::DrawParameters::default(),

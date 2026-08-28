@@ -910,6 +910,7 @@ impl UiRender {
                     self.draw_text(&graphics.title, framebuffer);
                     self.draw_toggle_widget(&graphics.fullscreen, theme, framebuffer);
                     self.draw_toggle_widget(&graphics.crt, theme, framebuffer);
+                    self.draw_slider(&graphics.brightness, theme, framebuffer);
                     self.draw_slider(&graphics.blue, theme, framebuffer);
                     self.draw_slider(&graphics.saturation, theme, framebuffer);
                     self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
