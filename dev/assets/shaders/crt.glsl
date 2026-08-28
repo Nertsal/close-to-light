@@ -15,6 +15,7 @@ uniform sampler2D u_texture;
 uniform float u_curvature;
 uniform vec4 u_vignette_color;
 uniform float u_vignette_multiplier;
+uniform float u_vignette_curve;
 uniform float u_scanlines_multiplier;
 uniform float u_time;
 
@@ -27,7 +28,7 @@ void main() {
         + step(centered_uv.x + centered_uv.y * 0.15, sin(u_time * 0.3) * 1.2) * 0.002;
     vec3 cutoff = vec3(step(abs(warped_uv.x), 1.0) * step(abs(warped_uv.y), 1.0));
     float scanlines = sin(2.0 * warped_uv.y * 180.0 + mod(u_time, 3.14159) * 2.0);
-    float vignette = length(pow(abs(centered_uv), vec2(4.0)) / 3.0);
+    float vignette = length(pow(abs(centered_uv), vec2(u_vignette_curve)) / 3.0);
 
     vec3 texel = texture2D(u_texture, (warped_uv + 1.0) / 2.0, 0.2).rgb;
     float dark = min(texel.r, min(texel.g, texel.b));
