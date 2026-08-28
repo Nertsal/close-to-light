@@ -42,7 +42,6 @@ pub struct Vfx {
     pub rgb_split: VfxValue,
     pub camera_shake: R32,
     pub camera_interpolation: (Option<CameraFrame>, Option<CameraFrame>, MoveInterpolation),
-    pub vignette_color: Color,
     pub vignette: VfxValue,
     pub curvature: VfxValue,
     pub noise_offset: VfxValue,
@@ -56,7 +55,6 @@ impl Vfx {
             rgb_split: VfxValue::new(2.0, 1.0, 0.0),
             camera_shake: R32::ZERO,
             camera_interpolation: (None, None, MoveInterpolation::default()),
-            vignette_color: Color::BLACK,
             vignette: VfxValue::new(2.0, 1.0, 0.0),
             curvature: VfxValue::new(2.0, 1.0, 0.0),
             noise_offset: VfxValue::new(2.0, 1.0, 0.0),
@@ -83,7 +81,6 @@ impl Vfx {
     pub fn reset(&mut self) {
         self.palette_swap.target = R32::ZERO;
         self.rgb_split.time_left = FloatTime::ZERO;
-        self.vignette_color = Color::BLACK;
         self.vignette.time_left = FloatTime::ZERO;
         self.curvature.time_left = FloatTime::ZERO;
         self.noise_offset.time_left = FloatTime::ZERO;

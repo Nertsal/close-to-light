@@ -338,25 +338,25 @@ impl geng::State for Game {
 
         let mut options = options.clone();
         if flashlight_mode {
+            // in flashlight mode scanlines are rendered before masking
             options.graphics.crt.scanlines = 0.0;
         }
-        self.post.post_process(
-            &options,
-            crate::render::post::PostVfx::new(
-                &Vfx {
-                    vignette_color: {
-                        let t = self.model.player.danger_cooldown.unwrap_or(FloatTime::ZERO);
-                        let t = (t.as_f32() / 0.25).clamp(0.0, 1.0);
-                        Color::lerp(self.model.vfx.vignette_color, theme.danger, t)
-                    },
-                    ..self.model.vfx.clone()
-                },
-                self.model.real_time,
-                options.graphics.crt.enabled,
-                options.graphics.colors,
-            ),
-            framebuffer,
+
+        let mut vfx = crate::render::post::PostVfx::new(
+            &self.model.vfx,
+            self.model.real_time,
+            options.graphics.crt.enabled,
+            options.graphics.colors,
         );
+
+        // apply red light vignette feedback
+        let danger_t = self.model.player.danger_cooldown.unwrap_or(FloatTime::ZERO);
+        let danger_t = (danger_t.as_f32() / 0.25).clamp(0.0, 1.0);
+        vfx.vignette_color = Color::lerp(Color::BLACK, theme.danger, danger_t); // red vignette
+        vfx.vignette += 0.3 * danger_t;
+        vfx.vignette_curve -= 2.0 * danger_t; // makes the vignette flatter so all screen is red
+
+        self.post.post_process(&options, vfx, framebuffer);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
