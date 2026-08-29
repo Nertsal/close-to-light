@@ -174,7 +174,7 @@ impl GameRender {
         }
 
         if !fading {
-            let t = (model.switch_time.as_f32() / 2.0).min(1.0);
+            let t = (model.switch_time.as_f32() / 3.0).min(1.0);
             // let t = crate::util::smoothstep(t);
             let color = THEME.light.map_rgb(|x| x * t);
             match model.state {

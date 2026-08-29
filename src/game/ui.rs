@@ -114,7 +114,7 @@ impl GameUI {
                     .extend_left(width)
                     .extend_down(height);
 
-                let t = (model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0);
+                let t = (model.switch_time.as_f32() / 2.5).clamp(0.0, 1.0);
                 let t = crate::util::smoothstep(1.0 - t);
                 let offset = main.height() + screen.height() * t;
 
