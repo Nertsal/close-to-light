@@ -45,6 +45,7 @@ pub struct LevelMenu {
 
     framebuffer_size: vec2<usize>,
     last_delta_time: FloatTime,
+    active_touch: Option<u64>,
 
     ui: MenuUI,
     ui_focused: bool,
@@ -247,6 +248,7 @@ impl LevelMenu {
 
             framebuffer_size: vec2(1, 1),
             last_delta_time: FloatTime::ONE,
+            active_touch: None,
 
             ui: MenuUI::new(context.clone()),
             ui_focused: false,
@@ -744,6 +746,17 @@ impl geng::State for LevelMenu {
             }
             geng::Event::CursorMove { position } => {
                 self.ui_context.cursor.cursor_move(position.as_f32());
+            }
+            geng::Event::TouchStart(touch) if self.active_touch.is_none() => {
+                // self.enable_touch_mod();
+                self.active_touch = Some(touch.id);
+            }
+            geng::Event::TouchMove(touch) if Some(touch.id) == self.active_touch => {
+                // self.enable_touch_mod();
+                self.ui_context.cursor.cursor_move(touch.position.as_f32());
+            }
+            geng::Event::TouchEnd(touch) if Some(touch.id) == self.active_touch => {
+                self.active_touch = None;
             }
             _ => (),
         }
