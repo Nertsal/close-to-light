@@ -823,9 +823,13 @@ impl UiRender {
         );
     }
 
-    pub fn draw_profile(&self, ui: &ProfileWidget, framebuffer: &mut ugli::Framebuffer) {
-        let theme = self.context.get_options().theme;
-        self.draw_text(&ui.offline, framebuffer);
+    pub fn draw_profile(
+        &self,
+        ui: &ProfileWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.draw_text_colored(&ui.offline, theme.light, framebuffer);
 
         let register = &ui.register;
         if register.state.visible {
@@ -877,7 +881,7 @@ impl UiRender {
             theme,
             framebuffer,
             |framebuffer| {
-                self.draw_profile(&ui.options.profile, framebuffer);
+                self.draw_profile(&ui.options.profile, theme, framebuffer);
 
                 self.draw_quad(ui.options.separator.position, theme.light, framebuffer);
 

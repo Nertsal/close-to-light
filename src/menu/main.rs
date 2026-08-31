@@ -248,6 +248,7 @@ impl geng::State for MainMenu {
         let fading = self.play_button.is_fading();
         if !fading {
             // Title
+            let transition_t = crate::util::smoothstep((self.time.as_f32() / 2.0).clamp(0.0, 1.0));
             let pos = crate::util::world_to_screen(
                 &self.camera,
                 framebuffer.size().as_f32(),
@@ -256,7 +257,7 @@ impl geng::State for MainMenu {
             self.ui_render.draw_texture(
                 Aabb2::point(pos),
                 &self.context.assets.sprites.title2,
-                THEME.light,
+                crate::util::with_alpha(THEME.light, transition_t),
                 1.0,
                 &mut framebuffer,
             );
@@ -280,10 +281,14 @@ impl geng::State for MainMenu {
             );
 
             // UI
-            let theme = self.context.get_options().theme;
+            let mut theme = self.context.get_options().theme;
+            let transition_t =
+                crate::util::smoothstep(((self.time.as_f32() - 1.5) / 2.0).clamp(0.0, 1.0));
+            theme.light = crate::util::with_alpha(theme.light, transition_t);
             let ui = &self.ui;
 
-            self.ui_render.draw_text(&ui.version, buffer);
+            self.ui_render
+                .draw_text_colored(&ui.version, theme.light, buffer);
             self.ui_render.draw_button(&ui.exit, theme, buffer);
 
             // Options
@@ -306,10 +311,11 @@ impl geng::State for MainMenu {
                 );
             }
 
-            self.ui_render.draw_text(&ui.join_community, buffer);
+            self.ui_render
+                .draw_text_colored(&ui.join_community, theme.light, buffer);
             self.ui_render
                 .draw_icon_button(&ui.join_discord, theme, buffer);
-            self.ui_render.draw_profile(&ui.profile, buffer);
+            self.ui_render.draw_profile(&ui.profile, theme, buffer);
         }
 
         let mut dither_buffer = self.dither.start();
