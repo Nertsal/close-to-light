@@ -837,8 +837,11 @@ impl geng::State for LevelMenu {
         }
 
         if let Some(button) = &mut self.transition_button {
-            button.update(true, delta_time);
+            button.force_fade = true;
+            button.update(false, delta_time * r32(4.0));
             if button.hover_time.is_max() {
+                button.force_unfade = true;
+            } else if button.hover_time.is_min() {
                 self.transition_button = None;
             }
         }
