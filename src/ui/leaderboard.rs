@@ -19,10 +19,22 @@ pub struct LeaderboardWidget {
     pub separator_title: WidgetState,
     pub status: TextWidget,
     pub scroll: ScrollState,
+
+    pub tab: LeaderboardTab,
+    pub tab_global: ToggleButtonWidget,
+    pub tab_local: ToggleButtonWidget,
+
     pub rows_state: WidgetState,
     pub rows: Vec<LeaderboardEntryWidget>,
     pub separator_highscore: WidgetState,
     pub highscore: LeaderboardEntryWidget,
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LeaderboardTab {
+    #[default]
+    Global,
+    Local,
 }
 
 pub struct LeaderboardEntryWidget {
@@ -38,7 +50,7 @@ pub struct LeaderboardEntryWidget {
 }
 
 impl LeaderboardWidget {
-    pub fn new(assets: &Rc<Assets>, show_title: bool) -> Self {
+    pub fn new(assets: &Rc<Assets>, show_title: bool, online: bool) -> Self {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             assets: assets.clone(),
@@ -52,6 +64,15 @@ impl LeaderboardWidget {
             separator_title: WidgetState::new(),
             status: TextWidget::new(""),
             scroll: ScrollState::new(),
+
+            tab: if online {
+                LeaderboardTab::Global
+            } else {
+                LeaderboardTab::Local
+            },
+            tab_global: ToggleButtonWidget::new("GLOBAL"),
+            tab_local: ToggleButtonWidget::new("LOCAL"),
+
             rows_state: WidgetState::new(),
             rows: Vec::new(),
             separator_highscore: WidgetState::new(),
@@ -91,25 +112,45 @@ impl LeaderboardWidget {
         // let player_name = board.local_high.as_ref().map_or("", |entry| &entry.player);
 
         self.rows.clear();
+        self.load_scores(&leaderboard.get_loaded(), user);
         self.status.text = "".into();
+        let global = self.tab == LeaderboardTab::Global;
         match leaderboard.get().status {
-            LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".into(),
-            LeaderboardStatus::Offline => self.status.text = "OFFLINE".into(),
-            LeaderboardStatus::Pending => self.status.text = "LOADING...".into(),
-            LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".into(),
+            LeaderboardStatus::None => {
+                if global {
+                    self.status.text = "NOT AVAILABLE".into()
+                }
+            }
+            LeaderboardStatus::Offline => {
+                if global {
+                    self.status.text = "OFFLINE".into()
+                }
+            }
+            LeaderboardStatus::Pending => {
+                if global {
+                    self.status.text = "LOADING...".into()
+                }
+            }
+            LeaderboardStatus::Failed => {
+                if global {
+                    self.status.text = "FETCH FAILED :(".into()
+                }
+            }
             LeaderboardStatus::Done => {
-                if leaderboard.get_loaded().filtered.is_empty() {
+                if self.rows.is_empty() {
                     self.status.text = "EMPTY :(".into();
                 }
             }
         }
-        self.load_scores(&leaderboard.get_loaded(), user);
     }
 
     pub fn load_scores(&mut self, board: &LoadedBoard, user: &UserInfo) {
         self.level_name.text = format!("{} - {}", board.music.name, board.level.name).into();
-        self.rows = board
-            .filtered
+        let scores = match self.tab {
+            LeaderboardTab::Global => &board.filtered,
+            LeaderboardTab::Local => &board.local,
+        };
+        self.rows = scores
             .iter()
             .enumerate()
             .map(|(rank, entry)| {
@@ -211,6 +252,21 @@ impl WidgetOld for LeaderboardWidget {
             .with_height(context.font_size * 0.1, 0.0)
             .with_width(main.width() * 0.8, 0.5);
         self.separator_highscore.update(separator, context);
+
+        let tabs = main
+            .cut_bottom(context.font_size * 1.0)
+            .with_width(main.width() * 0.6, 0.5);
+        let widgets = [
+            (&mut self.tab_global, LeaderboardTab::Global),
+            (&mut self.tab_local, LeaderboardTab::Local),
+        ];
+        for (pos, (widget, tab)) in itertools::izip![tabs.split_columns(widgets.len()), widgets] {
+            widget.selected = tab == self.tab;
+            widget.update(pos, context);
+            if widget.state.mouse_left.clicked {
+                self.tab = tab;
+            }
+        }
 
         main.cut_bottom(0.2 * context.font_size);
 

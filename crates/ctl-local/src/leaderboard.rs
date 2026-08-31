@@ -8,7 +8,7 @@ use ctl_core::{
 #[cfg(feature = "online")]
 use ctl_core::{prelude::Uuid, score::SubmitScore};
 use ctl_util::Task;
-use geng::prelude::*;
+use geng::prelude::{itertools::Itertools, *};
 
 use crate::{achievements::Achievements, fs::LocalLevelId};
 
@@ -34,9 +34,10 @@ pub struct Leaderboard {
 }
 
 #[derive(Debug)]
-struct NewScore {
+struct UpdateLocalScore {
     new_score: Option<SavedScore>,
     new_highscore: Option<SavedScore>,
+    all_scores: Vec<SavedScore>,
 }
 
 pub struct LeaderboardImpl {
@@ -48,7 +49,7 @@ pub struct LeaderboardImpl {
     pub achievements: Achievements,
     log_task: Option<Task<ctl_client::Result<Result<UserLogin, String>>>>,
     task: Option<Task<ctl_client::Result<BoardUpdate>>>,
-    new_score_task: Option<Task<anyhow::Result<NewScore>>>,
+    update_score_task: Option<Task<anyhow::Result<UpdateLocalScore>>>,
     highscores_task: Option<Task<anyhow::Result<HashMap<LocalLevelId, SavedScore>>>>,
     pub status: LeaderboardStatus,
     pub loaded: LoadedBoard,
@@ -70,6 +71,7 @@ pub struct LoadedBoard {
     pub my_position: Option<usize>,
     pub all_scores: Vec<ScoreEntry>,
     pub filtered: Vec<ScoreEntry>,
+    pub local: Vec<ScoreEntry>,
     pub local_high: Option<SavedScore>,
 }
 
@@ -125,7 +127,7 @@ impl LeaderboardImpl {
             client: None,
             log_task: None,
             task: None,
-            new_score_task: None,
+            update_score_task: None,
             highscores_task: None,
             status: LeaderboardStatus::None,
             loaded: LoadedBoard::new(),
@@ -346,9 +348,9 @@ impl LeaderboardImpl {
             }
         }
 
-        if let Some(task) = self.new_score_task.take() {
+        if let Some(task) = self.update_score_task.take() {
             match task.poll() {
-                Err(task) => self.new_score_task = Some(task),
+                Err(task) => self.update_score_task = Some(task),
                 Ok(res) => match res {
                     Ok(update) => {
                         log::debug!(
@@ -369,6 +371,15 @@ impl LeaderboardImpl {
                             );
                         }
                         self.loaded.local_high = update.new_highscore;
+                        self.loaded.local = update
+                            .all_scores
+                            .into_iter()
+                            .sorted_by_key(|score| -score.score)
+                            .map(|score| ScoreEntry {
+                                user: score.user,
+                                score: score.meta,
+                            })
+                            .collect();
                         self.loaded.refresh();
                     }
                     Err(err) => {
@@ -453,6 +464,7 @@ impl LeaderboardImpl {
             self.status = LeaderboardStatus::Pending;
             self.loaded.filtered.clear();
             self.loaded.all_scores.clear();
+            self.loaded.local.clear();
         }
     }
 
@@ -550,12 +562,13 @@ impl LeaderboardImpl {
                 .filter(|score| score.meta.category.version == version)
                 .max_by_key(|score| score.score)
                 .cloned();
-            Ok(NewScore {
+            Ok(UpdateLocalScore {
                 new_score,
                 new_highscore,
+                all_scores: scores,
             })
         };
-        self.new_score_task = Some(Task::new(&self.geng, task));
+        self.update_score_task = Some(Task::new(&self.geng, task));
     }
 }
 
@@ -570,6 +583,7 @@ impl LoadedBoard {
             my_position: None,
             all_scores: Vec::new(),
             filtered: Vec::new(),
+            local: Vec::new(),
             local_high: None,
         }
     }

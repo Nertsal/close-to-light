@@ -148,6 +148,10 @@ impl LevelCache {
         std::mem::take(&mut inner.notifications)
     }
 
+    pub fn is_online(&self) -> bool {
+        self.client().is_some_and(|client| client.is_online())
+    }
+
     pub fn client(&self) -> Option<Arc<Nertboard>> {
         let inner = self.inner.borrow();
         inner.tasks.client.as_ref().cloned()

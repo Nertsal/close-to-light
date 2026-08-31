@@ -14,8 +14,9 @@ pub struct GameUI {
 }
 
 impl GameUI {
-    pub fn new(assets: &Rc<Assets>) -> Self {
-        let mut leaderboard = LeaderboardWidget::new(assets, true);
+    pub fn new(context: &Context) -> Self {
+        let assets = &context.assets;
+        let mut leaderboard = LeaderboardWidget::new(assets, true, context.local.is_online());
         leaderboard.pin.hide();
         leaderboard.reload.hide();
         Self {

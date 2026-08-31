@@ -645,6 +645,10 @@ impl UiRender {
 
         masked.draw(draw_parameters(), framebuffer);
 
+        for tab in [&leaderboard.tab_global, &leaderboard.tab_local] {
+            self.draw_toggle_button(tab, theme, framebuffer);
+        }
+
         self.draw_quad(
             leaderboard.separator_highscore.position,
             theme.light,
@@ -710,7 +714,7 @@ impl UiRender {
         };
 
         let width = toggle.text.options.size * 0.2;
-        let shrink = if state.hovered && toggle.selected {
+        let shrink = if toggle.can_deselect && state.hovered && toggle.selected {
             width
         } else {
             0.0

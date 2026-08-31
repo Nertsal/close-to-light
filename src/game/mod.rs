@@ -74,7 +74,7 @@ impl Game {
             delta_time: r32(0.1),
 
             active_touch: None,
-            ui: GameUI::new(&context.assets),
+            ui: GameUI::new(&context),
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
 

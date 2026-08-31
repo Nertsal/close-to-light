@@ -72,7 +72,7 @@ impl MenuUI {
             leaderboard_head: TextWidget::new("Leaderboard")
                 .rotated(Angle::from_degrees(90.0))
                 .aligned(vec2(0.5, 0.5)),
-            leaderboard: LeaderboardWidget::new(assets, true),
+            leaderboard: LeaderboardWidget::new(assets, true, context.local.is_online()),
 
             context,
         }
