@@ -232,13 +232,13 @@ impl LevelMenu {
         context: Context,
         leaderboard: Leaderboard,
         transition_button: Option<HoverButton>,
+        cursor_position: Option<vec2<f32>>,
     ) -> Self {
         let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
             r32(0.0),
         );
 
-        #[allow(unused_mut)]
         let mut state = Self {
             render: MenuRender::new(context.clone()),
             util: UtilRender::new(context.clone()),
@@ -310,6 +310,10 @@ impl LevelMenu {
                 ThemeColor::Light,
                 "",
             );
+        }
+
+        if let Some(pos) = cursor_position {
+            state.ui_context.cursor.cursor_move(pos);
         }
 
         state

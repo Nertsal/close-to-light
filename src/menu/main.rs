@@ -49,7 +49,11 @@ struct MainUI {
 }
 
 impl MainMenu {
-    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
+    pub fn new(
+        context: Context,
+        client: Option<&Arc<ctl_client::Nertboard>>,
+        cursor_position: Option<vec2<f32>>,
+    ) -> Self {
         let leaderboard = Leaderboard::new(
             &context.geng,
             client,
@@ -58,7 +62,7 @@ impl MainMenu {
             context.get_options().account.auto_login,
         );
 
-        Self {
+        let mut state = Self {
             dither_preview: DitherRender::new_sized(
                 &context.geng,
                 &context.assets,
@@ -102,7 +106,14 @@ impl MainMenu {
             transition: None,
             context,
             leaderboard,
+        };
+
+        if let Some(pos) = cursor_position {
+            state.cursor_pos = pos.map(Into::into);
+            state.ui_context.cursor.cursor_move(pos);
         }
+
+        state
     }
 
     fn play(&mut self) {
@@ -111,6 +122,7 @@ impl MainMenu {
             context,
             self.leaderboard.clone(),
             Some(self.play_button.clone()),
+            Some(self.cursor_pos.as_f32()),
         );
         self.play_button.reset();
         self.transition = Some(geng::state::Transition::Push(Box::new(state)));
@@ -192,7 +204,10 @@ impl geng::State for MainMenu {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = FloatTime::new(delta_time as _);
-        self.player.update_tail(delta_time);
+        if self.time > FloatTime::ZERO {
+            // wait for the cursor to initialize
+            self.player.update_tail(delta_time);
+        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -318,13 +333,16 @@ impl geng::State for MainMenu {
             self.ui_render.draw_profile(&ui.profile, theme, buffer);
         }
 
-        let mut dither_buffer = self.dither.start();
-        self.util_render
-            .draw_player(&self.player, &self.camera, &mut dither_buffer);
-        self.dither.finish(self.time, &theme.transparent());
-        geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
-            .fit_screen(vec2(0.5, 0.5), buffer)
-            .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+        if self.time > FloatTime::ZERO {
+            // wait for the cursor to initialize
+            let mut dither_buffer = self.dither.start();
+            self.util_render
+                .draw_player(&self.player, &self.camera, &mut dither_buffer);
+            self.dither.finish(self.time, &theme.transparent());
+            geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
+                .fit_screen(vec2(0.5, 0.5), buffer)
+                .draw(&geng::PixelPerfectCamera, &self.context.geng, buffer);
+        }
 
         self.post_render.post_process(
             &options,

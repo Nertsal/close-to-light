@@ -97,6 +97,11 @@ trigger seizures for people with photosensitive epilepsy
             self.transition = Some(geng::state::Transition::Switch(Box::new(MainMenu::new(
                 self.context.clone(),
                 self.client.as_ref(),
+                self.context
+                    .geng
+                    .window()
+                    .cursor_position()
+                    .map(|pos| pos.as_f32()),
             ))));
         }
     }
