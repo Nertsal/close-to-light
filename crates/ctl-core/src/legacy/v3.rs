@@ -368,6 +368,7 @@ pub fn migrate(value: LevelSet, info: LevelSetInfo) -> (crate::LevelSet, crate::
                     .into_iter()
                     .map(|author| crate::MusicianInfo {
                         id: author.id,
+                        user: None,
                         name: author.name,
                         romanized: author.romanized,
                     })
@@ -510,6 +511,7 @@ impl From<MusicianInfo> for crate::MusicianInfo {
     fn from(value: MusicianInfo) -> Self {
         Self {
             id: value.id,
+            user: None,
             name: value.name,
             romanized: value.romanized,
         }

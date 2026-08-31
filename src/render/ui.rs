@@ -629,6 +629,9 @@ impl UiRender {
         for row in &leaderboard.rows {
             self.draw_text(&row.rank, &mut buffer.color);
             self.draw_text(&row.player, &mut buffer.color);
+            for badge in &row.badges {
+                self.draw_badge(badge, theme, &mut buffer.color)
+            }
             self.draw_text(&row.score, &mut buffer.color);
             self.draw_text(&row.accuracy, &mut buffer.color);
             self.draw_icon(&row.grade, theme, &mut buffer.color);
@@ -658,12 +661,36 @@ impl UiRender {
         if leaderboard.highscore.state.visible {
             self.draw_text(&leaderboard.highscore.rank, framebuffer);
             self.draw_text(&leaderboard.highscore.player, framebuffer);
+            for badge in &leaderboard.highscore.badges {
+                self.draw_badge(badge, theme, framebuffer)
+            }
             self.draw_text(&leaderboard.highscore.score, framebuffer);
             self.draw_icon(&leaderboard.highscore.grade, theme, framebuffer);
             self.draw_text(&leaderboard.highscore.accuracy, framebuffer);
             for icon in &leaderboard.highscore.modifiers {
                 self.draw_icon(icon, theme, framebuffer);
             }
+        }
+    }
+
+    pub fn draw_badge(
+        &self,
+        badge: &BadgeWidget,
+        theme: Theme,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        // Background
+        self.fill_quad(
+            badge.state.position,
+            theme.get_color(badge.color),
+            framebuffer,
+        );
+
+        if let Some(text) = &badge.text {
+            self.draw_text_colored(text, theme.dark, framebuffer);
+        }
+        if let Some(icon) = &badge.icon {
+            self.draw_icon(icon, theme, framebuffer);
         }
     }
 

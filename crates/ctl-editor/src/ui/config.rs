@@ -137,6 +137,7 @@ impl EditorConfigUi {
             if button.text.state.mouse_left.clicked {
                 actions.push(EditorStateAction::AddMusicAuthor(MusicianInfo {
                     id: 0,
+                    user: None,
                     name: "".into(),
                     romanized: "".into(),
                 }));

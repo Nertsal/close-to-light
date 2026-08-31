@@ -123,6 +123,7 @@ pub struct UiContext {
     pub real_time: f32,
     pub delta_time: f32,
     pub screen: Aabb2<f32>,
+    pub pixel_size: f32,
     pub layout_size: f32,
     pub font_size: f32,
 }
@@ -226,6 +227,7 @@ impl UiContext {
             override_focus: Rc::new(false.into()),
 
             screen: Aabb2::ZERO.extend_positive(vec2(1.0, 1.0)),
+            pixel_size: 4.0,
             layout_size: 1.0,
             font_size: 1.0,
             real_time: 0.0,

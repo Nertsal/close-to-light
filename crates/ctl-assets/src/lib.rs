@@ -152,6 +152,9 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     all,
     plus,
 
+    badge_mapper,
+    badge_musician,
+
     grade_sss,
     grade_ss,
     grade_s,

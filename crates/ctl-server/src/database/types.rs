@@ -47,6 +47,7 @@ impl From<MusicianRow> for MusicianInfo {
     fn from(value: MusicianRow) -> Self {
         Self {
             id: value.musician_id,
+            user: value.user_id,
             name: value.name.into(),
             romanized: value.romanized_name.into(),
         }
@@ -59,16 +60,6 @@ pub struct MusicAuthorRow {
     pub music_id: Id,
     pub name: String,
     pub romanized_name: String,
-}
-
-impl From<MusicAuthorRow> for MusicianInfo {
-    fn from(value: MusicAuthorRow) -> Self {
-        Self {
-            id: value.musician_id.unwrap_or(0),
-            name: value.name.into(),
-            romanized: value.romanized_name.into(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

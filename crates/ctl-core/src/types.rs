@@ -333,6 +333,7 @@ pub struct MapperInfo {
 pub struct MusicianInfo {
     /// Id `0` for non-registered musicians.
     pub id: Id,
+    pub user: Option<Id>,
     pub name: Name,
     pub romanized: Name,
 }

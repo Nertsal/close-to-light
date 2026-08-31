@@ -4,6 +4,7 @@ use crate::{prelude::Assets, ui::layout::AreaOps};
 
 use ctl_core::types::{Name, UserInfo};
 use ctl_local::{Leaderboard, LeaderboardStatus, LoadedBoard, SavedScore};
+use ctl_render_core::SubTexture;
 use ctl_ui::util::ScrollState;
 
 pub struct LeaderboardWidget {
@@ -37,10 +38,49 @@ pub enum LeaderboardTab {
     Local,
 }
 
+pub struct BadgeWidget {
+    pub state: WidgetState,
+    pub color: ThemeColor,
+    pub text: Option<TextWidget>,
+    pub icon: Option<IconWidget>,
+}
+
+impl BadgeWidget {
+    pub fn new(color: ThemeColor, text: Option<&str>, icon: Option<SubTexture>) -> Self {
+        Self {
+            state: WidgetState::new(),
+            color,
+            text: text.map(TextWidget::new),
+            icon: icon.map(IconWidget::new),
+        }
+    }
+
+    pub fn new_dev() -> Self {
+        Self::new(ThemeColor::Danger, Some("dev"), None)
+    }
+
+    pub fn new_mapper(assets: &Assets) -> Self {
+        Self::new(
+            ThemeColor::Highlight,
+            None,
+            Some(assets.atlas.badge_mapper()),
+        )
+    }
+
+    pub fn new_musician(assets: &Assets) -> Self {
+        Self::new(
+            ThemeColor::Highlight,
+            None,
+            Some(assets.atlas.badge_musician()),
+        )
+    }
+}
+
 pub struct LeaderboardEntryWidget {
     pub state: WidgetState,
     pub rank: TextWidget,
     pub player: TextWidget,
+    pub badges: Vec<BadgeWidget>,
     pub score: TextWidget,
     pub accuracy: TextWidget,
     pub highlight: bool,
@@ -78,6 +118,8 @@ impl LeaderboardWidget {
             separator_highscore: WidgetState::new(),
             highscore: LeaderboardEntryWidget::new(
                 assets,
+                &MusicInfo::default(),
+                &LevelInfo::default(),
                 "",
                 SavedScore {
                     user: UserInfo {
@@ -161,6 +203,8 @@ impl LeaderboardWidget {
                 };
                 LeaderboardEntryWidget::new(
                     &self.assets,
+                    &board.music,
+                    &board.level,
                     (rank + 1).to_string(),
                     score,
                     entry.user.id == user.id,
@@ -172,6 +216,8 @@ impl LeaderboardWidget {
             Some(score) => {
                 self.highscore = LeaderboardEntryWidget::new(
                     &self.assets,
+                    &board.music,
+                    &board.level,
                     board
                         .my_position
                         .map_or("??".into(), |rank| format!("{}", rank + 1)),
@@ -290,6 +336,8 @@ impl WidgetOld for LeaderboardWidget {
 impl LeaderboardEntryWidget {
     pub fn new(
         assets: &Rc<Assets>,
+        music: &MusicInfo,
+        level: &LevelInfo,
         rank: impl Into<Name>,
         score: SavedScore,
         highlight: bool,
@@ -300,6 +348,25 @@ impl LeaderboardEntryWidget {
 
         let mut player = TextWidget::new(score.user.name.clone());
         player.align(vec2(0.0, 0.0));
+
+        let mut badges = Vec::new();
+        let player_id = score.user.id;
+        if player_id != 0 {
+            if player_id == 1 {
+                // TODO: query developer id from the server
+                badges.push(BadgeWidget::new_dev());
+            }
+            if music
+                .authors
+                .iter()
+                .any(|author| author.user == Some(player_id))
+            {
+                badges.push(BadgeWidget::new_musician(assets));
+            }
+            if level.authors.iter().any(|author| author.id == player_id) {
+                badges.push(BadgeWidget::new_mapper(assets));
+            }
+        }
 
         let modifiers = score
             .meta
@@ -323,6 +390,7 @@ impl LeaderboardEntryWidget {
             state: WidgetState::new(),
             rank,
             player,
+            badges,
             score,
             accuracy,
             highlight,
@@ -396,6 +464,21 @@ impl WidgetOld for LeaderboardEntryWidget {
             theme.highlight
         } else {
             theme.light
+        };
+
+        let mut badges = position.extend_uniform(-context.pixel_size);
+        badges.cut_left(context.font_size * 1.0);
+        let mut badges = badges.cut_bottom(context.font_size * 0.9);
+        for badge in &mut self.badges {
+            let width = if badge.text.is_some() { 1.5 } else { 1.0 };
+            let position = badges.cut_left(width * badges.height());
+            badge.state.update(position, context);
+            if let Some(state) = &mut badge.text {
+                state.update(position, context);
+            }
+            if let Some(state) = &mut badge.icon {
+                state.update(position, context);
+            }
         }
     }
 }
