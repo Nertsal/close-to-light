@@ -94,6 +94,7 @@ impl LeaderboardWidget {
         self.status.text = "".into();
         match leaderboard.get().status {
             LeaderboardStatus::None => self.status.text = "NOT AVAILABLE".into(),
+            LeaderboardStatus::Offline => self.status.text = "OFFLINE".into(),
             LeaderboardStatus::Pending => self.status.text = "LOADING...".into(),
             LeaderboardStatus::Failed => self.status.text = "FETCH FAILED :(".into(),
             LeaderboardStatus::Done => {

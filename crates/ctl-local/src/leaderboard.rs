@@ -18,6 +18,7 @@ const LOCAL_SCORES_LIMIT_PER_LEVEL: usize = 50;
 #[derive(Debug)]
 pub enum LeaderboardStatus {
     None,
+    Offline,
     Pending,
     Failed,
     Done,
@@ -335,7 +336,11 @@ impl LeaderboardImpl {
                     }
                     Err(err) => {
                         log::error!("Loading leaderboard failed: {err:?}");
-                        self.status = LeaderboardStatus::Failed;
+                        if let ctl_client::ClientError::Connection = err {
+                            self.status = LeaderboardStatus::Offline;
+                        } else {
+                            self.status = LeaderboardStatus::Failed;
+                        }
                     }
                 },
             }
@@ -420,7 +425,7 @@ impl LeaderboardImpl {
                 #[cfg(feature = "online")]
                 self.refetch();
             }
-            LeaderboardStatus::Pending => {}
+            LeaderboardStatus::Pending | LeaderboardStatus::Offline => {}
             LeaderboardStatus::Done => {
                 self.loaded.refresh();
             }
