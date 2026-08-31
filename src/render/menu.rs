@@ -345,7 +345,8 @@ impl MenuRender {
 
                 let mut masking = self.masked2.start();
                 masking.mask_quad(ui.levels_area.position);
-                masking.mask_quad(ui.diffs_area.position);
+                // make space for the grade icon
+                masking.mask_quad(ui.diffs_area.position.extend_right(self.font_size * 0.5));
 
                 // Levels
                 for level in &ui.levels {
