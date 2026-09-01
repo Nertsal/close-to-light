@@ -4,6 +4,7 @@ use crate::game::ui::layout::AreaOps;
 pub use crate::ui::{layout, widget::*, *};
 
 pub struct GameUI {
+    pub options: OptionsButtonWidget,
     pub leaderboard_head: TextWidget,
     pub leaderboard: LeaderboardWidget,
     pub score: ScoreWidget,
@@ -20,6 +21,7 @@ impl GameUI {
         leaderboard.pin.hide();
         leaderboard.reload.hide();
         Self {
+            options: OptionsButtonWidget::new(&context.assets, 0.25),
             leaderboard_head: TextWidget::new("Leaderboard").rotated(Angle::from_degrees(90.0)),
             leaderboard,
             score: ScoreWidget::new(assets),
@@ -35,6 +37,7 @@ impl GameUI {
         model: &mut Model,
         screen: Aabb2<f32>,
         context: &mut UiContext,
+        state: &mut GameOptions,
     ) -> bool {
         // Fix aspect
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
@@ -53,6 +56,22 @@ impl GameUI {
                 .align_aabb(size, vec2(0.5, 0.5))
                 .translate(vec2(0.0, slide * (1.0 - t)));
             self.pause.update(pos, context);
+        }
+
+        {
+            // Options
+            let t = match model.state {
+                State::Starting { .. } | State::Playing => 0.0,
+                State::Lost { .. } | State::Finished => model.switch_time.as_f32() / 1.0,
+            };
+            let t = crate::util::smoothstep(1.0 - t.clamp(0.0, 1.0));
+            let offset = vec2(0.0, 4.0) * layout_size * t;
+            let options = screen
+                .extend_positive(-vec2(2.0, 0.5) * layout_size)
+                .translate(offset);
+            self.options
+                .update(options, &mut context.scale_font(0.06 / 0.05), state);
+            context.update_focus(self.options.options.state.hovered);
         }
 
         // Margin
@@ -79,6 +98,10 @@ impl GameUI {
                 let head_size = vec2(context.font_size, layout_size * 8.0);
                 let pos = main.align_pos(vec2(1.0, 0.5));
 
+                let t = (model.switch_time.as_f32() / 1.0).clamp(0.0, 1.0);
+                let t = crate::util::smoothstep(1.0 - t);
+                let offset = vec2(head_size.x, 0.0) * t;
+
                 let hover_t = self.leaderboard.window.show.time.get_ratio();
                 let hover_t = crate::util::smoothstep(hover_t);
 
@@ -86,11 +109,11 @@ impl GameUI {
                     vec2(-1.0, 0.0) * (hover_t * (size.x + layout_size * 2.0) + head_size.x);
 
                 let up = 0.4;
-                let leaderboard = Aabb2::point(pos + vec2(head_size.x, 0.0) + slide)
+                let leaderboard = Aabb2::point(pos + vec2(head_size.x, 0.0) + slide + offset)
                     .extend_right(size.x)
                     .extend_up(size.y * up)
                     .extend_down(size.y * (1.0 - up));
-                let leaderboard_head = Aabb2::point(pos + slide)
+                let leaderboard_head = Aabb2::point(pos + slide + offset)
                     .extend_right(head_size.x)
                     .extend_symmetric(vec2(0.0, head_size.y) / 2.0);
 

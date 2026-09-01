@@ -6,7 +6,7 @@ use super::{
     *,
 };
 
-use crate::game::GameUI;
+use crate::{game::GameUI, menu::GameOptions};
 
 pub struct GameRender {
     context: Context,
@@ -273,6 +273,7 @@ impl GameRender {
         &mut self,
         ui: &GameUI,
         model: &Model,
+        game_options: &GameOptions,
         debug_mode: bool,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -416,6 +417,28 @@ impl GameRender {
                 },
             );
             self.ui.draw_text(&ui.leaderboard_head, framebuffer);
+        }
+
+        // Options
+        if ui.options.open_time.is_above_min() {
+            self.ui.draw_options(
+                &mut self.masked,
+                &mut self.dither,
+                &ui.options,
+                game_options,
+                framebuffer,
+            );
+        } else {
+            // Options button
+            self.ui.draw_icon(&ui.options.button, theme, framebuffer);
+            self.ui.draw_outline(
+                ui.options.button.state.position,
+                self.font_size * 0.1,
+                theme.light,
+                framebuffer,
+            );
+            // Volume icon
+            self.ui.draw_icon(&ui.options.volume, theme, framebuffer);
         }
     }
 }

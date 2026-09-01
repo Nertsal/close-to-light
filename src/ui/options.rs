@@ -31,10 +31,10 @@ pub struct OptionsButtonWidget {
 }
 
 impl OptionsButtonWidget {
-    pub fn new(assets: &Rc<Assets>, time: f32) -> Self {
+    pub fn new(assets: &Rc<Assets>, open_time: f32) -> Self {
         Self {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
-            open_time: Bounded::new_zero(time),
+            open_time: Bounded::new_zero(open_time),
             button: IconWidget::new(assets.atlas.settings()),
             volume: IconWidget::new(assets.atlas.volume_mute()).colored(ThemeColor::Danger),
             options: OptionsWidget::new(

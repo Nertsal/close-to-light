@@ -4,6 +4,7 @@ pub use self::ui::GameUI;
 use self::ui::UiContext;
 
 use crate::{
+    menu::GameOptions,
     prelude::*,
     render::{game::GameRender, post::PostRender},
 };
@@ -29,6 +30,7 @@ pub struct Game {
     transition: Option<geng::state::Transition>,
     render: GameRender,
     post: PostRender,
+    options: GameOptions,
 
     model: Model,
     debug_mode: bool,
@@ -86,6 +88,7 @@ impl Game {
             pause_state: None,
             was_paused: false,
 
+            options: GameOptions::new(context.clone(), model.leaderboard.clone()),
             model,
             debug_mode: false,
 
@@ -227,9 +230,15 @@ impl geng::State for Game {
                 &mut self.model,
                 Aabb2::ZERO.extend_positive(buffer.size().as_f32()),
                 &mut self.ui_context,
+                &mut self.options,
             );
-            self.render
-                .draw_ui(&self.ui, &self.model, self.debug_mode, buffer);
+            self.render.draw_ui(
+                &self.ui,
+                &self.model,
+                &self.options,
+                self.debug_mode,
+                buffer,
+            );
         }
         self.ui_context.frame_end();
 
@@ -420,6 +429,19 @@ impl geng::State for Game {
         }
 
         self.ui_context.update(delta_time.as_f32());
+
+        let options = self.context.get_options();
+        self.options.preview.update(
+            delta_time,
+            self.ui
+                .options
+                .options
+                .gameplay
+                .music_offset
+                .state
+                .hovered
+                .then_some(options.gameplay.music_offset),
+        );
 
         if self.is_paused() {
             if let Some(PauseState::Normal { cursor_aligned }) = &mut self.pause_state {
