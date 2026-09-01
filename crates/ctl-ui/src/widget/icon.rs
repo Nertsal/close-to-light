@@ -35,6 +35,10 @@ impl IconWidget {
         }
     }
 
+    pub fn colored(self, color: ThemeColor) -> Self {
+        Self { color, ..self }
+    }
+
     pub fn with_pixel_scale(self, pixel_scale: f32) -> Self {
         Self {
             pixel_scale,

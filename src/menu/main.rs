@@ -324,6 +324,8 @@ impl geng::State for MainMenu {
                     theme.light,
                     buffer,
                 );
+                // Volume icon
+                self.ui_render.draw_icon(&ui.options.volume, theme, buffer);
             }
 
             self.ui_render

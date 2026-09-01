@@ -26,6 +26,7 @@ pub struct OptionsButtonWidget {
     pub state: WidgetState,
     pub open_time: Bounded<f32>,
     pub button: IconWidget,
+    pub volume: IconWidget,
     pub options: OptionsWidget,
 }
 
@@ -35,6 +36,7 @@ impl OptionsButtonWidget {
             state: WidgetState::new().with_sfx(WidgetSfxConfig::hover()),
             open_time: Bounded::new_zero(time),
             button: IconWidget::new(assets.atlas.settings()),
+            volume: IconWidget::new(assets.atlas.volume_mute()).colored(ThemeColor::Danger),
             options: OptionsWidget::new(
                 assets,
                 vec![
@@ -67,6 +69,13 @@ impl StatefulWidget for OptionsButtonWidget {
         let button = position.align_aabb(button_size, vec2(1.0, 1.0));
         self.state.update(button, context);
         self.button.update(button, context);
+        self.volume.update(
+            button.translate(vec2(-button_size.x - context.layout_size * 0.5, 0.0)),
+            context,
+        );
+        self.volume
+            .state
+            .set_visibility(context.context.get_options().volume.music() == 0.0);
 
         if self.button.state.hovered
             || self.options.state.hovered

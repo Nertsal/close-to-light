@@ -138,6 +138,8 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     dropdown,
     pin,
 
+    volume_mute,
+
     mod_nofail,
     mod_sudden,
     mod_hidden,

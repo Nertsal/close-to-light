@@ -58,6 +58,8 @@ impl MenuRender {
             theme.light,
             framebuffer,
         );
+        // Volume icon
+        self.ui.draw_icon(&ui.options.volume, theme, framebuffer);
 
         self.draw_leaderboard(ui, state, framebuffer);
         self.draw_modifiers(ui, state, framebuffer);
