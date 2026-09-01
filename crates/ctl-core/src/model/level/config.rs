@@ -47,6 +47,21 @@ pub struct LevelModifiers {
     pub time_scale: FloatTime,
     /// Normal/Flashlight/Spotlight.
     pub light: Option<LightMode>,
+    /// Difficulty settings of gameplay: health drain, red penalty, coyote time.
+    pub difficulty: DifficultyMode,
+}
+
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum DifficultyMode {
+    // Reduced difficulty.
+    Candle,
+    /// Normal difficulty settings.
+    #[default]
+    Normal,
+    /// Increased difficulty.
+    Laser,
+    /// Max difficulty - touching red is instant death.
+    Solar,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -58,15 +73,41 @@ pub enum LightMode {
 }
 
 impl LevelModifiers {
+    pub fn get_mut(&mut self, modifier: Modifier) -> Option<&mut bool> {
+        match modifier {
+            Modifier::NoFail => Some(&mut self.nofail),
+            Modifier::Sudden => Some(&mut self.sudden),
+            Modifier::Hidden => Some(&mut self.hidden),
+            Modifier::Touch => Some(&mut self.touch),
+            Modifier::TimeScale(_) => None,
+            Modifier::LightMode(_) => None,
+            Modifier::Difficulty(_) => None,
+        }
+    }
+
+    pub fn reset(&mut self, modifier: Modifier) {
+        match modifier {
+            Modifier::NoFail => self.nofail = false,
+            Modifier::Sudden => self.sudden = false,
+            Modifier::Hidden => self.hidden = false,
+            Modifier::Touch => self.touch = false,
+            Modifier::TimeScale(_) => self.time_scale = FloatTime::ONE,
+            Modifier::LightMode(_) => self.light = None,
+            Modifier::Difficulty(_) => self.difficulty = DifficultyMode::default(),
+        }
+    }
+
     /// Iterate over active modifiers.
     pub fn iter(&self) -> impl Iterator<Item = Modifier> {
         [
-            self.nofail.then_some(Modifier::NoFail),
+            self.touch.then_some(Modifier::Touch),
             self.sudden.then_some(Modifier::Sudden),
             self.hidden.then_some(Modifier::Hidden),
-            self.touch.then_some(Modifier::Touch),
             (self.time_scale != FloatTime::ONE).then_some(Modifier::TimeScale(self.time_scale)),
             self.light.map(Modifier::LightMode),
+            (self.difficulty != DifficultyMode::Normal)
+                .then_some(Modifier::Difficulty(self.difficulty)),
+            self.nofail.then_some(Modifier::NoFail),
         ]
         .into_iter()
         .flatten()
@@ -80,6 +121,22 @@ impl LevelModifiers {
     }
 }
 
+#[allow(clippy::derivable_impls)]
+impl Default for LevelModifiers {
+    fn default() -> Self {
+        Self {
+            clean_auto: false,
+            nofail: false,
+            sudden: false,
+            hidden: false,
+            touch: false,
+            time_scale: FloatTime::ONE,
+            light: None,
+            difficulty: DifficultyMode::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Modifier {
     NoFail,
@@ -88,9 +145,27 @@ pub enum Modifier {
     Touch,
     TimeScale(FloatTime),
     LightMode(LightMode),
+    Difficulty(DifficultyMode),
 }
 
 impl Modifier {
+    /// Whether two modifiers are compatible with each other.
+    /// Same variants are considered inconstructible.
+    pub fn is_compatible(self, other: Self) -> bool {
+        fn compat_assym(a: Modifier, b: Modifier) -> bool {
+            if let Modifier::NoFail = a
+                && matches!(b, Modifier::Difficulty(_))
+            {
+                // nofail is not compatible with difficulty changes
+                return false;
+            }
+
+            true
+        }
+
+        compat_assym(self, other) && compat_assym(other, self)
+    }
+
     pub fn multiplier(&self) -> R32 {
         match self {
             Modifier::NoFail => r32(0.8),
@@ -106,6 +181,10 @@ impl Modifier {
             }
             Modifier::LightMode(LightMode::Flashlight) => r32(1.05),
             Modifier::LightMode(LightMode::Spotlight) => r32(1.05),
+            Modifier::Difficulty(DifficultyMode::Candle) => r32(0.9),
+            Modifier::Difficulty(DifficultyMode::Normal) => r32(1.0),
+            Modifier::Difficulty(DifficultyMode::Laser) => r32(1.1),
+            Modifier::Difficulty(DifficultyMode::Solar) => r32(1.2),
         }
     }
 
@@ -128,6 +207,10 @@ impl Modifier {
             Modifier::LightMode(LightMode::Spotlight) => {
                 "the lights are spot on!\nvision is limited"
             }
+            Modifier::Difficulty(DifficultyMode::Candle) => "game difficulty is reduced",
+            Modifier::Difficulty(DifficultyMode::Normal) => "the intended game experience",
+            Modifier::Difficulty(DifficultyMode::Laser) => "laser-like precision is required",
+            Modifier::Difficulty(DifficultyMode::Solar) => "difficulty of the sun\nred means death",
         }
     }
 }
@@ -148,34 +231,10 @@ impl Display for Modifier {
             }
             Modifier::LightMode(LightMode::Flashlight) => write!(f, "Flashlight"),
             Modifier::LightMode(LightMode::Spotlight) => write!(f, "Spotlight"),
-        }
-    }
-}
-
-impl LevelModifiers {
-    pub fn get_mut(&mut self, modifier: Modifier) -> Option<&mut bool> {
-        match modifier {
-            Modifier::NoFail => Some(&mut self.nofail),
-            Modifier::Sudden => Some(&mut self.sudden),
-            Modifier::Hidden => Some(&mut self.hidden),
-            Modifier::Touch => Some(&mut self.touch),
-            Modifier::TimeScale(_) => None,
-            Modifier::LightMode(_) => None,
-        }
-    }
-}
-
-#[allow(clippy::derivable_impls)]
-impl Default for LevelModifiers {
-    fn default() -> Self {
-        Self {
-            clean_auto: false,
-            nofail: false,
-            sudden: false,
-            hidden: false,
-            touch: false,
-            time_scale: FloatTime::ONE,
-            light: None,
+            Modifier::Difficulty(DifficultyMode::Candle) => write!(f, "Candle"),
+            Modifier::Difficulty(DifficultyMode::Normal) => write!(f, "Normal"),
+            Modifier::Difficulty(DifficultyMode::Laser) => write!(f, "Laser"),
+            Modifier::Difficulty(DifficultyMode::Solar) => write!(f, "Solar"),
         }
     }
 }
@@ -187,15 +246,28 @@ impl Default for PlayerConfig {
 }
 
 impl HealthConfig {
-    // pub fn preset_easy() -> Self {
-    //     Self {
-    //         max: r32(1.0),
-    //         dark_decrease_rate: r32(0.3),
-    //         danger_decrease_rate: r32(0.5),
-    //         restore_rate: r32(0.5),
-    //     }
-    // }
+    pub fn preset(mode: DifficultyMode) -> Self {
+        match mode {
+            DifficultyMode::Candle => Self::preset_candle(),
+            DifficultyMode::Normal => Self::preset_normal(),
+            DifficultyMode::Laser => Self::preset_laser(),
+            DifficultyMode::Solar => Self::preset_solar(),
+        }
+    }
 
+    /// Easy mode.
+    pub fn preset_candle() -> Self {
+        Self {
+            max: r32(1.0),
+            dark_decrease_rate: r32(0.5),
+            danger_penalty: r32(0.2),
+            danger_cooldown: r32(0.6),
+            danger_decrease_rate: r32(0.7),
+            restore_rate: r32(0.5),
+        }
+    }
+
+    /// Normal mode.
     pub fn preset_normal() -> Self {
         Self {
             max: r32(1.0),
@@ -207,18 +279,33 @@ impl HealthConfig {
         }
     }
 
-    // pub fn preset_hard() -> Self {
-    //     Self {
-    //         max: r32(1.0),
-    //         dark_decrease_rate: r32(1.0),
-    //         danger_decrease_rate: r32(2.0),
-    //         restore_rate: r32(0.25),
-    //     }
-    // }
+    /// Hard mode.
+    pub fn preset_laser() -> Self {
+        Self {
+            max: r32(1.0),
+            dark_decrease_rate: r32(0.85),
+            danger_penalty: r32(0.3),
+            danger_cooldown: r32(0.6),
+            danger_decrease_rate: r32(2.0),
+            restore_rate: r32(0.25),
+        }
+    }
+
+    /// Impossible mode.
+    pub fn preset_solar() -> Self {
+        Self {
+            max: r32(1.0),
+            dark_decrease_rate: r32(0.9),
+            danger_penalty: r32(1.0),
+            danger_cooldown: r32(0.6),
+            danger_decrease_rate: r32(2.0),
+            restore_rate: r32(0.2),
+        }
+    }
 }
 
 impl Default for HealthConfig {
     fn default() -> Self {
-        Self::preset_normal()
+        Self::preset(DifficultyMode::default())
     }
 }

@@ -373,7 +373,7 @@ impl LeaderboardEntryWidget {
             .category
             .mods
             .iter()
-            .map(|modifier| IconWidget::new(assets.get_modifier(modifier)))
+            .filter_map(|modifier| Some(IconWidget::new(assets.get_modifier(modifier)?)))
             .collect();
 
         let score_grade = score.meta.score.calculate_grade(score.meta.completion);

@@ -71,6 +71,25 @@ impl ModButtonWidget {
             if self.state.mouse_left.clicked {
                 *value = if self.selected { None } else { Some(mode) }
             }
+        } else if let Modifier::Difficulty(mode) = self.modifier {
+            let value = &mut state.config.modifiers.difficulty;
+            self.selected = *value == mode;
+            if self.state.mouse_left.clicked {
+                *value = if self.selected {
+                    DifficultyMode::default()
+                } else {
+                    mode
+                }
+            }
+        }
+
+        if self.state.mouse_left.clicked {
+            // Check compatibility with other mods
+            for modifier in state.config.modifiers.iter().collect_vec() {
+                if !self.modifier.is_compatible(modifier) {
+                    state.config.modifiers.reset(modifier);
+                }
+            }
         }
     }
 }
@@ -86,7 +105,13 @@ impl ModifiersWidget {
             description: Vec::new(),
             description_lerp: Lerp::new_smooth(0.25, 0.0, 0.0),
             mods: [
-                vec![Modifier::NoFail, Modifier::Sudden, Modifier::Hidden],
+                vec![
+                    Modifier::NoFail,
+                    Modifier::Difficulty(DifficultyMode::Candle),
+                    Modifier::Difficulty(DifficultyMode::Laser),
+                    Modifier::Difficulty(DifficultyMode::Solar),
+                ],
+                vec![Modifier::Sudden, Modifier::Hidden],
                 vec![
                     Modifier::TimeScale(r32(0.75)),
                     Modifier::TimeScale(r32(1.5)),
@@ -99,7 +124,14 @@ impl ModifiersWidget {
             .into_iter()
             .map(|row| {
                 row.into_iter()
-                    .map(|modifier| ModButtonWidget::new(modifier, assets.get_modifier(modifier)))
+                    .map(|modifier| {
+                        ModButtonWidget::new(
+                            modifier,
+                            assets
+                                .get_modifier(modifier)
+                                .expect("UI visible modifiers need icons"),
+                        )
+                    })
                     .collect()
             })
             .collect(),
@@ -118,7 +150,11 @@ impl ModifiersWidget {
                 .config
                 .modifiers
                 .iter()
-                .map(|modifier| IconWidget::new(context.context.assets.get_modifier(modifier)))
+                .filter_map(|modifier| {
+                    Some(IconWidget::new(
+                        context.context.assets.get_modifier(modifier)?,
+                    ))
+                })
                 .collect();
             let mods = head.translate(vec2(0.0, head.height()));
             let mod_pos = mods.align_aabb(vec2(mods.height(), mods.height()), vec2(0.5, 0.5));
@@ -242,10 +278,10 @@ impl ModifiersWidget {
     }
 
     fn update_buttons(&mut self, main: Aabb2<f32>, state: &mut MenuState, context: &mut UiContext) {
-        let spacing = 1.0 * context.layout_size;
         let rows = self.mod_rows();
         for (widget_row, row) in itertools::izip![&mut self.mods, main.split_rows(rows)] {
             let columns = widget_row.len();
+            let spacing = 1.0 * context.layout_size / columns as f32;
             let button_size = vec2(
                 (main.width() - spacing * (columns as f32 - 1.0)) / columns as f32,
                 1.9 * context.font_size,

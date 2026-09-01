@@ -5,7 +5,7 @@ pub use self::options::*;
 use std::path::PathBuf;
 
 use ctl_core::{
-    model::{LightMode, ScoreGrade},
+    model::{DifficultyMode, LightMode, ScoreGrade},
     prelude::{Color, Modifier},
     types::FloatTime,
 };
@@ -148,6 +148,9 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     mod_double_time,
     mod_flashlight,
     mod_spotlight,
+    mod_candle,
+    mod_laser,
+    mod_solar,
 
     light,
     wrench,
@@ -284,21 +287,25 @@ impl Assets {
             .context("failed to load assets")
     }
 
-    pub fn get_modifier(&self, modifier: Modifier) -> SubTexture {
+    pub fn get_modifier(&self, modifier: Modifier) -> Option<SubTexture> {
         match modifier {
-            Modifier::NoFail => self.atlas.mod_nofail(),
-            Modifier::Sudden => self.atlas.mod_sudden(),
-            Modifier::Hidden => self.atlas.mod_hidden(),
-            Modifier::Touch => self.atlas.mod_touch(),
+            Modifier::NoFail => Some(self.atlas.mod_nofail()),
+            Modifier::Sudden => Some(self.atlas.mod_sudden()),
+            Modifier::Hidden => Some(self.atlas.mod_hidden()),
+            Modifier::Touch => Some(self.atlas.mod_touch()),
             Modifier::TimeScale(scale) => {
                 if scale < FloatTime::ONE {
-                    self.atlas.mod_half_time()
+                    Some(self.atlas.mod_half_time())
                 } else {
-                    self.atlas.mod_double_time()
+                    Some(self.atlas.mod_double_time())
                 }
             }
-            Modifier::LightMode(LightMode::Flashlight) => self.atlas.mod_flashlight(),
-            Modifier::LightMode(LightMode::Spotlight) => self.atlas.mod_spotlight(),
+            Modifier::LightMode(LightMode::Flashlight) => Some(self.atlas.mod_flashlight()),
+            Modifier::LightMode(LightMode::Spotlight) => Some(self.atlas.mod_spotlight()),
+            Modifier::Difficulty(DifficultyMode::Candle) => Some(self.atlas.mod_candle()),
+            Modifier::Difficulty(DifficultyMode::Normal) => None,
+            Modifier::Difficulty(DifficultyMode::Laser) => Some(self.atlas.mod_laser()),
+            Modifier::Difficulty(DifficultyMode::Solar) => Some(self.atlas.mod_solar()),
         }
     }
 

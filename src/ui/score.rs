@@ -67,10 +67,10 @@ impl ScoreWidget {
             .category
             .mods
             .iter()
-            .map(|modifier| {
-                let mut icon = IconWidget::new(self.assets.get_modifier(modifier));
+            .filter_map(|modifier| {
+                let mut icon = IconWidget::new(self.assets.get_modifier(modifier)?);
                 icon.color = ThemeColor::Danger;
-                icon
+                Some(icon)
             })
             .collect();
         self.score_value.text = format!("{}", score.score.calculated.combined).into();

@@ -366,8 +366,8 @@ impl GameRender {
                 let position = position.translate(vec2(-(i as f32), 0.0) * position.size());
                 if let Ok(position) =
                     locked_camera.world_to_screen(framebuffer.size().as_f32(), position.center())
+                    && let Some(texture) = self.context.assets.get_modifier(modifier)
                 {
-                    let texture = self.context.assets.get_modifier(modifier);
                     self.ui.draw_subtexture(
                         Aabb2::point(position),
                         &texture,
