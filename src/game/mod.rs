@@ -380,15 +380,27 @@ impl geng::State for Game {
 
     fn handle_event(&mut self, event: geng::Event) {
         match event {
-            geng::Event::KeyPress { key } => match key {
-                geng::Key::Escape => {
-                    self.toggle_pause();
+            geng::Event::EditText(text) => {
+                self.ui_context.text_edit.set_text(text);
+            }
+            geng::Event::KeyPress { key } => {
+                if self.ui_context.text_edit.any_active()
+                    && let geng::Key::Escape | geng::Key::Enter = key
+                {
+                    self.ui_context.text_edit.stop();
+                    return;
                 }
-                geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
-                #[cfg(debug_assertions)]
-                geng::Key::F1 => self.debug_mode = !self.debug_mode,
-                _ => {}
-            },
+
+                match key {
+                    geng::Key::Escape => {
+                        self.toggle_pause();
+                    }
+                    geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
+                    #[cfg(debug_assertions)]
+                    geng::Key::F1 => self.debug_mode = !self.debug_mode,
+                    _ => {}
+                }
+            }
             geng::Event::Wheel { delta } => {
                 self.ui_context.cursor.scroll += delta as f32;
             }
