@@ -55,6 +55,7 @@ impl From<MusicianRow> for MusicianInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[allow(dead_code)]
 pub struct MusicAuthorRow {
     pub musician_id: Option<Id>,
     pub music_id: Id,
