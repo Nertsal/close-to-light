@@ -114,7 +114,7 @@ impl Game {
     fn toggle_pause(&mut self) {
         if self.is_paused() {
             self.unpause();
-        } else {
+        } else if !self.model.state.ended() {
             self.pause();
         }
     }
