@@ -472,9 +472,13 @@ impl LevelMenu {
         // Immediately leaderboard if it's open and on a different level
         if self.ui.leaderboard.window.show.time.is_above_min()
             && let Some((_, _, level)) = self.get_active_level()
-            && self.state.leaderboard.get_loaded().level.id != level.meta.id
         {
-            self.fetch_leaderboard();
+            let board = self.state.leaderboard.get_loaded();
+            let loaded = &board.level;
+            if loaded.id != level.meta.id || loaded.id == 0 && loaded.hash != level.meta.hash {
+                drop(board);
+                self.fetch_leaderboard();
+            }
         }
     }
 
