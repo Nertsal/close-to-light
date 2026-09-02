@@ -315,10 +315,12 @@ impl geng::State for Game {
             }
         }
 
-        {
-            // Restart icon
-            let icon = &self.ui.restart;
-            let t = self.ui.restart_timer.get_ratio().as_f32();
+        // Restart and quit icon
+        for (icon, timer) in [
+            (&self.ui.restart, &self.ui.restart_timer),
+            (&self.ui.quit, &self.ui.quit_timer),
+        ] {
+            let t = timer.get_ratio().as_f32();
             let pos = geng_utils::pixel::pixel_perfect_aabb(
                 icon.state.position.center(),
                 vec2(0.5, 0.5),
@@ -327,6 +329,7 @@ impl geng::State for Game {
                 buffer.size().as_f32(),
             );
             let transform = mat3::translate(pos.center()) * mat3::scale(pos.size());
+            let color = theme.get_color(icon.color);
             ugli::draw(
                 buffer,
                 &self.context.assets.shaders.radial_texture,
@@ -344,7 +347,7 @@ impl geng::State for Game {
                 (
                     ugli::uniforms! {
                         u_model_matrix: transform,
-                        u_color: theme.danger,
+                        u_color: color,
                         u_texture: &*icon.texture.texture,
                         u_angle: Angle::from_degrees(90.0).as_radians(),
                         u_angle_range: Angle::from_degrees(-360.0).as_radians() * t,
@@ -488,6 +491,19 @@ impl geng::State for Game {
             }
         } else {
             self.ui.restart_timer.change(-delta_time * r32(2.0));
+        }
+        // Hold Escape to quit
+        if geng_utils::key::is_key_pressed(
+            self.context.geng.window(),
+            [EventKey::Key(geng::Key::Escape)],
+        ) {
+            self.ui.quit_timer.change(delta_time);
+            if self.ui.quit_timer.is_max() {
+                self.model.transition = Some(Transition::Exit);
+                self.ui.quit_timer.set_ratio(R32::ZERO);
+            }
+        } else {
+            self.ui.quit_timer.change(-delta_time * r32(2.0));
         }
 
         if let Some(transition) = self.model.transition.take() {

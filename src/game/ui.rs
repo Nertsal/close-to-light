@@ -12,6 +12,8 @@ pub struct GameUI {
 
     pub restart: IconWidget,
     pub restart_timer: Bounded<FloatTime>,
+    pub quit: IconWidget,
+    pub quit_timer: Bounded<FloatTime>,
 }
 
 impl GameUI {
@@ -27,8 +29,10 @@ impl GameUI {
             score: ScoreWidget::new(assets),
             pause: PauseWidget::new(),
 
-            restart: IconWidget::new(assets.atlas.circle_outline()),
+            restart: IconWidget::new(assets.atlas.circle_outline()).colored(ThemeColor::Danger),
             restart_timer: Bounded::new_zero(r32(super::HOLD_RESTART_DURATION)),
+            quit: IconWidget::new(assets.atlas.circle_outline()),
+            quit_timer: Bounded::new_zero(r32(super::HOLD_RESTART_DURATION)),
         }
     }
 
@@ -77,9 +81,10 @@ impl GameUI {
         // Margin
         let mut main = screen.extend_uniform(-layout_size * 2.0);
 
-        // Restart icon
+        // Restart and quit icon
         let restart = main.align_aabb(vec2(1.0, 1.0) * context.font_size, vec2(0.5, 0.0));
         self.restart.update(restart, context);
+        self.quit.update(restart, context);
 
         // Logo
         let _ctl_logo = main.cut_top(layout_size * 4.0);
