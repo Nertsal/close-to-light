@@ -15,8 +15,6 @@ impl Model {
         self.play_time_ms = seconds_to_time(self.play_time) - self.music_offset;
         self.completion_time = FloatTime::ZERO;
 
-        self.level.config.health = HealthConfig::preset(self.level.config.modifiers.difficulty);
-        self.level.config.player = PlayerConfig::preset(self.level.config.modifiers.difficulty);
         self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),

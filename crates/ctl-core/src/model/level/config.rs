@@ -74,6 +74,13 @@ pub enum LightMode {
     Spotlight,
 }
 
+impl LevelConfig {
+    pub fn validate(&mut self) {
+        self.health = HealthConfig::preset(self.modifiers.difficulty);
+        self.player = PlayerConfig::preset(self.modifiers.difficulty);
+    }
+}
+
 impl LevelModifiers {
     pub fn get_mut(&mut self, modifier: Modifier) -> Option<&mut bool> {
         match modifier {
@@ -186,7 +193,7 @@ impl Modifier {
             Modifier::Difficulty(DifficultyMode::Candle) => r32(0.9),
             Modifier::Difficulty(DifficultyMode::Normal) => r32(1.0),
             Modifier::Difficulty(DifficultyMode::Laser) => r32(1.1),
-            Modifier::Difficulty(DifficultyMode::Solar) => r32(1.2),
+            Modifier::Difficulty(DifficultyMode::Solar) => r32(1.15),
         }
     }
 
@@ -211,7 +218,9 @@ impl Modifier {
             }
             Modifier::Difficulty(DifficultyMode::Candle) => "game difficulty is reduced",
             Modifier::Difficulty(DifficultyMode::Normal) => "the intended game experience",
-            Modifier::Difficulty(DifficultyMode::Laser) => "laser-like precision is required",
+            Modifier::Difficulty(DifficultyMode::Laser) => {
+                "laser-like precision is required\nrhythm is tighter"
+            }
             Modifier::Difficulty(DifficultyMode::Solar) => "difficulty of the sun\nred means death",
         }
     }
@@ -243,14 +252,14 @@ impl Display for Modifier {
 
 impl PlayerConfig {
     pub fn preset(mode: DifficultyMode) -> Self {
-        let (buffer_time, coyote_time) = match mode {
-            DifficultyMode::Candle => (80, 80),
-            DifficultyMode::Normal => (80, 80),
-            DifficultyMode::Laser => (50, 50),
-            DifficultyMode::Solar => (50, 50),
+        let (radius, buffer_time, coyote_time) = match mode {
+            DifficultyMode::Candle => (0.5, 80, 80),
+            DifficultyMode::Normal => (0.5, 80, 80),
+            DifficultyMode::Laser => (0.45, 50, 50),
+            DifficultyMode::Solar => (0.45, 50, 50),
         };
         Self {
-            radius: r32(0.5),
+            radius: r32(radius),
             buffer_time: TIME_IN_FLOAT_TIME * buffer_time / 1000,
             coyote_time: TIME_IN_FLOAT_TIME * coyote_time / 1000,
         }
@@ -313,7 +322,7 @@ impl HealthConfig {
     pub fn preset_solar() -> Self {
         Self {
             max: r32(1.0),
-            dark_decrease_rate: r32(0.9),
+            dark_decrease_rate: r32(1.0),
             danger_penalty: r32(1.0),
             danger_cooldown: r32(0.6),
             danger_decrease_rate: r32(2.0),

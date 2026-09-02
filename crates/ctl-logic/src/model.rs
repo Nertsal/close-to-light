@@ -261,9 +261,10 @@ impl Model {
         model
     }
 
-    pub fn empty(context: Context, level: PlayLevel) -> Self {
+    pub fn empty(context: Context, mut level: PlayLevel) -> Self {
         context.music.stop();
         let options = context.get_options();
+        level.config.validate();
         Self {
             transition: None,
             leaderboard: Leaderboard::empty(
