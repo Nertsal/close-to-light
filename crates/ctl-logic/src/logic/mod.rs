@@ -16,6 +16,7 @@ impl Model {
         self.completion_time = FloatTime::ZERO;
 
         self.level.config.health = HealthConfig::preset(self.level.config.modifiers.difficulty);
+        self.level.config.player = PlayerConfig::preset(self.level.config.modifiers.difficulty);
         self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
@@ -164,6 +165,8 @@ impl Model {
 
     /// Update player's light state and check for missed rhythm.
     fn update_player(&mut self, delta_time: FloatTime) {
+        let config = &self.level.config.player;
+
         let get_light = |id: Option<usize>, pass: bool| {
             id.and_then(|id| {
                 self.level_state
@@ -185,7 +188,8 @@ impl Model {
                         let (time, waypoint) = light.closest_waypoint;
                         matches!(waypoint, WaypointId::Frame(_))
                             && time < 0
-                            && (time > -COYOTE_TIME || pass && time > -COYOTE_TIME * 2)
+                            && (time > -config.coyote_time
+                                || pass && time > -config.coyote_time * 2)
                     })
                     .map(|light| (id, light.closest_waypoint.1))
             })
@@ -195,10 +199,10 @@ impl Model {
         // Update light state
         self.player.reset_distance();
         self.recent_rhythm
-            .retain(|_, time| (self.level_state.time() - *time).abs() <= COYOTE_TIME * 2);
+            .retain(|_, time| (self.level_state.time() - *time).abs() <= config.coyote_time * 2);
         for light in self.level_state.lights.iter() {
             self.player
-                .update_light_distance(light, &self.recent_rhythm);
+                .update_light_distance(config, light, &self.recent_rhythm);
         }
 
         // Check danger penalty

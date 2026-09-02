@@ -11,6 +11,8 @@ pub struct LevelConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PlayerConfig {
     pub radius: Coord,
+    pub buffer_time: Time,
+    pub coyote_time: Time,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -239,9 +241,25 @@ impl Display for Modifier {
     }
 }
 
+impl PlayerConfig {
+    pub fn preset(mode: DifficultyMode) -> Self {
+        let (buffer_time, coyote_time) = match mode {
+            DifficultyMode::Candle => (80, 80),
+            DifficultyMode::Normal => (80, 80),
+            DifficultyMode::Laser => (50, 50),
+            DifficultyMode::Solar => (50, 50),
+        };
+        Self {
+            radius: r32(0.5),
+            buffer_time: TIME_IN_FLOAT_TIME * buffer_time / 1000,
+            coyote_time: TIME_IN_FLOAT_TIME * coyote_time / 1000,
+        }
+    }
+}
+
 impl Default for PlayerConfig {
     fn default() -> Self {
-        Self { radius: r32(0.5) }
+        Self::preset(DifficultyMode::default())
     }
 }
 

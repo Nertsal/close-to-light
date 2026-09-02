@@ -112,13 +112,14 @@ impl Player {
     /// Uses `last_rhythm` to account for completed rhythms to avoid double counting.
     pub fn update_light_distance(
         &mut self,
+        config: &PlayerConfig,
         light: &Light,
         last_rhythm: &HashMap<(usize, WaypointId), Time>,
     ) {
         let (time, waypoint) = light.closest_waypoint;
         let at_waypoint = matches!(waypoint, WaypointId::Frame(_))
-            && time > -COYOTE_TIME
-            && time < BUFFER_TIME
+            && time > -config.coyote_time
+            && time < config.buffer_time
             && light
                 .event_id
                 .is_some_and(|event| !last_rhythm.contains_key(&(event, waypoint)));
