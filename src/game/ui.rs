@@ -48,6 +48,8 @@ impl GameUI {
 
         let layout_size = screen.height() * 0.03;
 
+        context.screen = screen;
+        context.pixel_size = ctl_render_core::get_pixel_scale(screen.size().map(|x| x as usize));
         context.layout_size = layout_size;
         context.font_size = screen.height() * 0.05;
 

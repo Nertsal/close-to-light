@@ -411,15 +411,15 @@ impl WidgetOld for LeaderboardEntryWidget {
         let mut main = position;
         let theme = context.theme();
 
-        main.cut_top(context.layout_size * 0.5);
-        main.cut_bottom(context.layout_size * 0.5);
+        main.cut_top(context.pixel_size * 4.0);
+        main.cut_bottom(context.pixel_size * 2.0);
+
+        let icon_height = context.pixel_size * 16.0;
 
         let mut top_row = main;
-        let bottom_row = top_row.split_bottom(0.5);
-        let mod_pos = bottom_row.align_aabb(
-            vec2(bottom_row.height(), bottom_row.height()),
-            vec2(0.5, 0.5),
-        );
+        let bottom_row = top_row.cut_bottom(icon_height);
+        top_row.cut_bottom(context.pixel_size * 2.0);
+        let mod_pos = bottom_row.with_width(bottom_row.height(), 0.5);
         let mods = mod_pos.stack_aligned(
             vec2(mod_pos.width(), 0.0),
             self.modifiers.len(),
