@@ -149,7 +149,14 @@ impl LevelCache {
     }
 
     pub fn is_online(&self) -> bool {
-        self.client().is_some_and(|client| client.is_online())
+        #[cfg(not(feature = "online"))]
+        {
+            false
+        }
+        #[cfg(feature = "online")]
+        {
+            self.client().is_some_and(|client| client.is_online())
+        }
     }
 
     pub fn client(&self) -> Option<Arc<Nertboard>> {

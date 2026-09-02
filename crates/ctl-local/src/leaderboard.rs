@@ -338,6 +338,11 @@ impl LeaderboardImpl {
                     }
                     Err(err) => {
                         log::error!("Loading leaderboard failed: {err:?}");
+                        #[cfg(not(feature = "online"))]
+                        {
+                            self.status = LeaderboardStatus::Offline;
+                        }
+                        #[cfg(feature = "online")]
                         if let ctl_client::ClientError::Connection = err {
                             self.status = LeaderboardStatus::Offline;
                         } else {
