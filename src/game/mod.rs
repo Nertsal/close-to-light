@@ -375,7 +375,7 @@ impl geng::State for Game {
         let danger_t = self.model.player.danger_cooldown.unwrap_or(FloatTime::ZERO);
         let danger_t = (danger_t.as_f32() / 0.25).clamp(0.0, 1.0).max(loss_t);
         vfx.vignette_color = Color::lerp(Color::BLACK, theme.danger, danger_t); // red vignette
-        vfx.vignette += 0.3 * danger_t;
+        vfx.vignette += 0.5 * danger_t;
         vfx.vignette_curve -= 2.0 * danger_t; // makes the vignette flatter so all screen is red
 
         self.post.post_process(&options, vfx, framebuffer);
