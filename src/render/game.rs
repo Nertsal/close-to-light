@@ -361,7 +361,8 @@ impl GameRender {
             //         .draw_subtexture(rank_quad, &grade_texture, grade_color, 3.5, framebuffer);
             // }
 
-            let position = Aabb2::point(vec2(7.3, 4.5)).extend_uniform(0.3);
+            // Modifiers
+            let position = Aabb2::point(vec2(8.0, 4.0)).extend_uniform(0.3);
             for (i, modifier) in model.level.config.modifiers.iter().enumerate() {
                 let position = position.translate(vec2(-(i as f32), 0.0) * position.size());
                 if let Ok(position) =
@@ -378,7 +379,21 @@ impl GameRender {
                 }
             }
 
+            if model.is_practice() {
+                // Practice mode
+                self.util.draw_text(
+                    "Practice",
+                    vec2(8.2, 4.5).as_r32(),
+                    TextRenderOptions::new(0.5)
+                        .color(theme.light)
+                        .align(vec2(1.0, 0.5)),
+                    locked_camera,
+                    framebuffer,
+                );
+            }
+
             if debug_mode {
+                // Debug score
                 self.util.draw_text(
                     format!("{:#?}", model.score),
                     vec2(-7.0, 0.0).as_r32(),
