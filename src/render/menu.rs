@@ -545,12 +545,12 @@ impl MenuRender {
                             (theme.dark, theme.light)
                         };
 
-                        let width = widget.text.options.size * 0.2;
+                        let width = self.font_size * 0.1;
                         let shrink = if state.hovered && widget.selected {
                             width
                         } else {
                             0.0
-                        };
+                        } + self.font_size * 0.1;
                         let pos = state.position.extend_uniform(-shrink);
                         self.ui
                             .draw_quad(pos.extend_uniform(-width), bg_color, framebuffer);
