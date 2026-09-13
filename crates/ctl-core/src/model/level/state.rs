@@ -142,6 +142,13 @@ impl LevelState {
                         }
                         vfx.camera_shake = vfx.camera_shake.max(intensity);
                     }
+                    &EffectEvent::Saturation(duration, intensity) => {
+                        if self.time < event.time || self.time > event.time + duration {
+                            return;
+                        }
+                        vfx.saturation
+                            .set(time_to_seconds(duration - time), intensity);
+                    }
                     &EffectEvent::Vignette(duration, intensity) => {
                         if self.time < event.time || self.time > event.time + duration {
                             return;

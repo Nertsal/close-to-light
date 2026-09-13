@@ -992,6 +992,7 @@ impl TimelineWidget {
                             EffectEvent::PaletteSwap(_) => atlas.timeline_palette_swap(),
                             EffectEvent::RgbSplit(_) => atlas.timeline_rgb_split(),
                             EffectEvent::CameraShake(..) => atlas.timeline_shake(),
+                            EffectEvent::Saturation(..) => atlas.timeline_saturation(),
                             EffectEvent::Vignette(..) => atlas.timeline_vignette(),
                             EffectEvent::ScreenCurvature(..) => atlas.timeline_curvature(),
                             EffectEvent::NoiseOffset(..) => atlas.timeline_noise(),

@@ -47,6 +47,10 @@ pub enum EffectEvent {
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the intensity/amplitude.
     CameraShake(Time, R32),
+    /// Apply a post-processing saturation change effect.
+    /// Time specifies the duration of the **effect**.
+    /// R32 specifies the intensity/saturation.
+    Saturation(Time, R32),
     /// Apply a CRT screen vignette effect.
     /// Time specifies the duration of the **effect**.
     /// R32 specifies the intensity/darkness.
@@ -57,7 +61,7 @@ pub enum EffectEvent {
     ScreenCurvature(Time, R32),
     /// Apply a horizontal noise offset effect.
     /// Time specifies the duration of the **effect**.
-    /// R32 specifies the intensity/curvature.
+    /// R32 specifies the intensity/amplitude.
     NoiseOffset(Time, R32),
     /// Apply a spotlight vision effect.
     /// Time specifies the duration of the **effect**.
@@ -116,6 +120,7 @@ impl EffectEvent {
             EffectEvent::PaletteSwap(duration)
             | EffectEvent::RgbSplit(duration)
             | EffectEvent::CameraShake(duration, _)
+            | EffectEvent::Saturation(duration, _)
             | EffectEvent::Vignette(duration, _)
             | EffectEvent::ScreenCurvature(duration, _)
             | EffectEvent::NoiseOffset(duration, _)
@@ -129,6 +134,7 @@ impl EffectEvent {
             EffectEvent::PaletteSwap(duration)
             | EffectEvent::RgbSplit(duration)
             | EffectEvent::CameraShake(duration, _)
+            | EffectEvent::Saturation(duration, _)
             | EffectEvent::Vignette(duration, _)
             | EffectEvent::ScreenCurvature(duration, _)
             | EffectEvent::NoiseOffset(duration, _)
@@ -140,6 +146,7 @@ impl EffectEvent {
     pub fn intensity_mut(&mut self) -> Option<&mut R32> {
         match self {
             EffectEvent::CameraShake(_, intensity)
+            | EffectEvent::Saturation(_, intensity)
             | EffectEvent::Vignette(_, intensity)
             | EffectEvent::ScreenCurvature(_, intensity)
             | EffectEvent::NoiseOffset(_, intensity)

@@ -341,7 +341,7 @@ impl geng::State for EditorState {
         let editor_post_vfx = crate::render::post::PostVfx::minimal(
             game_post_vfx.time,
             options.graphics.crt.enabled,
-            game_post_vfx.colors,
+            options.graphics.colors,
         );
         self.post_render
             .post_process(&options, editor_post_vfx, framebuffer);

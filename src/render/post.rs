@@ -31,7 +31,8 @@ pub struct PostVfx {
 }
 
 impl PostVfx {
-    pub fn new(vfx: &Vfx, time: FloatTime, crt: bool, colors: GraphicsColorsOptions) -> Self {
+    pub fn new(vfx: &Vfx, time: FloatTime, crt: bool, mut colors: GraphicsColorsOptions) -> Self {
+        colors.saturation *= vfx.saturation.value.current.as_f32();
         Self {
             time,
             crt,

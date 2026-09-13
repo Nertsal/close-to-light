@@ -215,6 +215,7 @@ impl LayoutHelper<'_> {
                         "Camera shake",
                         LevelAction::NewCameraShake(BeatTime::QUARTER),
                     ),
+                    ("Saturation", LevelAction::NewSaturation(BeatTime::WHOLE)),
                     ("Vignette", LevelAction::NewVignette(BeatTime::WHOLE)),
                     ("Curvature", LevelAction::NewCurvature(BeatTime::WHOLE)),
                     ("Noise", LevelAction::NewNoiseOffset(BeatTime::WHOLE)),
@@ -958,12 +959,14 @@ impl LayoutHelper<'_> {
                     }
                 }
                 &EffectEvent::CameraShake(duration, intensity)
+                | &EffectEvent::Saturation(duration, intensity)
                 | &EffectEvent::Vignette(duration, intensity)
                 | &EffectEvent::ScreenCurvature(duration, intensity)
                 | &EffectEvent::NoiseOffset(duration, intensity)
                 | &EffectEvent::Spotlight(duration, intensity) => {
                     let name = match effect {
                         EffectEvent::CameraShake(..) => "Camera Shake",
+                        EffectEvent::Saturation(..) => "Saturation",
                         EffectEvent::Vignette(..) => "Vignette",
                         EffectEvent::ScreenCurvature(..) => "Curvature",
                         EffectEvent::NoiseOffset(..) => "Noise",

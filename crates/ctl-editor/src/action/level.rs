@@ -41,6 +41,7 @@ pub enum LevelAction {
     NewRgbSplit(BeatTime),
     NewPaletteSwap(BeatTime),
     NewCameraShake(BeatTime),
+    NewSaturation(BeatTime),
     NewVignette(BeatTime),
     NewCurvature(BeatTime),
     NewNoiseOffset(BeatTime),
@@ -135,6 +136,7 @@ impl LevelAction {
             LevelAction::NewRgbSplit(_) => false,
             LevelAction::NewPaletteSwap(_) => false,
             LevelAction::NewCameraShake(_) => false,
+            LevelAction::NewSaturation(_) => false,
             LevelAction::NewVignette(_) => false,
             LevelAction::NewCurvature(_) => false,
             LevelAction::NewNoiseOffset(_) => false,
@@ -472,6 +474,19 @@ impl LevelEditor {
                 self.level.events.push(TimedEvent {
                     time: self.current_time.target,
                     event: Event::Effect(EffectEvent::PaletteSwap(duration)),
+                });
+            }
+            LevelAction::NewSaturation(duration) => {
+                self.execute(LevelAction::Deselect, drag);
+                let duration = duration.as_time(
+                    self.level
+                        .timing
+                        .get_timing(self.current_time.target)
+                        .beat_time,
+                );
+                self.level.events.push(TimedEvent {
+                    time: self.current_time.target,
+                    event: Event::Effect(EffectEvent::Saturation(duration, r32(0.5))),
                 });
             }
             LevelAction::NewVignette(duration) => {
