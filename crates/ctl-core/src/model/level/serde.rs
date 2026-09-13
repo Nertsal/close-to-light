@@ -151,7 +151,9 @@ impl EffectEvent {
             | EffectEvent::ScreenCurvature(_, intensity)
             | EffectEvent::NoiseOffset(_, intensity)
             | EffectEvent::Spotlight(_, intensity) => Some(intensity),
-            _ => None,
+            EffectEvent::PaletteSwap(_) | EffectEvent::RgbSplit(_) | EffectEvent::Camera(..) => {
+                None
+            }
         }
     }
 }
