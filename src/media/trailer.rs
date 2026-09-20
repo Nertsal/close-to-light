@@ -16,7 +16,7 @@ const fn convert(seconds: i32, fraction: i32) -> f32 {
     seconds as f32 + fraction as f32 / 60.0
 }
 
-const INTRO_TIME: f32 = 5.0;
+const INTRO_TIME: f32 = 0.0;
 const FIRST_HIT: f32 = convert(11, 15);
 const SECOND_HIT: f32 = convert(16, 55);
 // const THIRD_HIT: f32 = convert(22, 33);
@@ -29,6 +29,9 @@ pub struct TrailerState {
     /// When set to `true`, disables all hard-coded trailer-specific effects.
     custom: bool,
     duration: FloatTime,
+
+    cursor_sdf: ugli::Texture,
+    lights_sdf: ugli::Texture,
 
     util_render: UtilRender,
     ui_render: UiRender,
@@ -64,6 +67,15 @@ impl TrailerState {
             dither: DitherRender::new(&context.geng, &context.assets),
             post: PostRender::new(&context),
             framebuffer_size: vec2(1, 1),
+
+            cursor_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                crate::render::dither::DITHER_RESOLUTION,
+            ),
+            lights_sdf: geng_utils::texture::new_texture(
+                context.geng.ugli(),
+                crate::render::dither::DITHER_RESOLUTION,
+            ),
 
             model: Model::new(
                 context.clone(),
@@ -151,10 +163,39 @@ impl geng::State for TrailerState {
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
 
+        {
+            // Light SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.lights_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util_render.draw_level_sdf(
+                &self.model.level_state,
+                &self.model.camera,
+                framebuffer,
+            );
+        }
+        {
+            // Cursor SDF
+            let framebuffer = &mut geng_utils::texture::attach_texture(
+                &mut self.cursor_sdf,
+                self.context.geng.ugli(),
+            );
+            ugli::clear(framebuffer, Some(Color::TRANSPARENT_BLACK), None, None);
+            self.util_render.draw_light_sdf(
+                &Collider::circle(self.model.player.collider.position, r32(1.0)),
+                r32(-1.0),
+                crate::render::THEME.light,
+                &self.model.camera,
+                framebuffer,
+            );
+        }
+
         let mut dither_buffer = self.dither.start();
 
         let options = self.context.get_options();
-        let intro_time = if self.custom { 2.0 } else { INTRO_TIME };
+        let intro_time = if self.custom { 0.0 } else { INTRO_TIME };
 
         if self.time.as_f32() > intro_time {
             // Level
@@ -320,8 +361,8 @@ impl geng::State for TrailerState {
                 );
             }
             self.util_render.draw_text(
-                "Wishlist now on Steam!",
-                vec2(0.0, 0.0),
+                "Demo out now!",
+                vec2(0.0, -1.0),
                 TextRenderOptions::new(1.0).color(light),
                 &self.camera,
                 &mut dither_buffer,
@@ -344,6 +385,52 @@ impl geng::State for TrailerState {
         geng_utils::texture::DrawTexture::new(self.dither.get_buffer())
             .fit_screen(vec2(0.5, 0.5), post_buffer)
             .draw(&geng::PixelPerfectCamera, &self.context.geng, post_buffer);
+
+        // Render just the scanlines effect on the world
+        // and apply the flashlight effect before the UI and full postprocessing
+        self.post.self_process(
+            &Options {
+                graphics: ctl_assets::GraphicsOptions {
+                    crt: ctl_assets::GraphicsCrtOptions {
+                        enabled: options.graphics.crt.enabled,
+                        curvature: 0.0,
+                        vignette: 0.0,
+                        scanlines: 0.0,
+                    },
+                    ..options.graphics.clone()
+                },
+                ..options.clone()
+            },
+            crate::render::post::PostVfx::new(
+                &Vfx::new(), // Real vfx are rendered later
+                self.model.real_time,
+                options.graphics.crt.enabled,
+                options.graphics.colors,
+            ),
+        );
+        {
+            let mut spotlight = if self.model.level.config.modifiers.light.is_some() {
+                1.0
+            } else {
+                self.model.vfx.spotlight.value.current.as_f32()
+            };
+            // Transition at start/end of level
+            let transition = match self.model.state {
+                State::Starting { .. } => (self.model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0),
+                State::Lost { .. } | State::Finished => {
+                    (1.0 - self.model.switch_time.as_f32() / 1.5).clamp(0.0, 1.0)
+                }
+                _ => 1.0,
+            };
+            spotlight *= transition;
+            let mask = match self.model.level.config.modifiers.light {
+                Some(LightMode::Flashlight) => &self.cursor_sdf,
+                Some(LightMode::Spotlight) => &self.lights_sdf,
+                None => &self.lights_sdf,
+            };
+            self.post.apply_sdf_mask(mask, spotlight);
+        }
+        let post_buffer = &mut self.post.continu();
 
         if !self.custom && self.time.as_f32() < INTRO_TIME {
             // Fake loading bar
@@ -410,7 +497,8 @@ impl geng::State for TrailerState {
             }
         }
 
-        if self.time.as_f32() < intro_time + 0.5 {
+        let transition_time = 0.5 * intro_time.min(1.0);
+        if self.time.as_f32() < intro_time + transition_time {
             // Transition light
             let dither_buffer = &mut self.dither.start();
             let collider = Collider {
