@@ -36,7 +36,7 @@ impl MediaState {
             dither: DitherRender::new(&context.geng, &context.assets),
             post: PostRender::new(&context),
 
-            theme: Theme::default(),
+            theme: context.get_options().theme,
             time: FloatTime::ZERO,
             camera: Camera2d {
                 center: vec2::ZERO,
