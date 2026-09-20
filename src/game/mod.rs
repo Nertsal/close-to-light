@@ -43,6 +43,7 @@ pub struct Game {
     delta_time: FloatTime,
 
     active_touch: Option<u64>,
+    hide_ui: bool,
     ui: GameUI,
     ui_focused: bool,
     ui_context: UiContext,
@@ -76,6 +77,7 @@ impl Game {
             delta_time: r32(0.1),
 
             active_touch: None,
+            hide_ui: false,
             ui: GameUI::new(&context),
             ui_focused: false,
             ui_context: UiContext::new(context.clone()),
@@ -163,7 +165,8 @@ impl geng::State for Game {
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
         let flashlight_mode = !self.model.state.ended();
 
-        self.render.draw_world(&self.model, self.debug_mode, buffer);
+        self.render
+            .draw_world(&self.model, self.debug_mode, self.hide_ui, buffer);
 
         // Loss transition
         let loss_t = match self.model.state {
@@ -237,6 +240,7 @@ impl geng::State for Game {
                 &self.model,
                 &self.options,
                 self.debug_mode,
+                self.hide_ui,
                 buffer,
             );
         }
@@ -399,8 +403,9 @@ impl geng::State for Game {
                         self.toggle_pause();
                     }
                     geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
+                    geng::Key::F1 => self.hide_ui = !self.hide_ui,
                     #[cfg(debug_assertions)]
-                    geng::Key::F1 => self.debug_mode = !self.debug_mode,
+                    geng::Key::F2 => self.debug_mode = !self.debug_mode,
                     _ => {}
                 }
             }

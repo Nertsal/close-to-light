@@ -51,6 +51,7 @@ impl GameRender {
         &mut self,
         model: &Model,
         _debug_mode: bool,
+        hide_ui: bool,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {
         self.dither.set_noise(1.0);
@@ -275,6 +276,7 @@ impl GameRender {
         model: &Model,
         game_options: &GameOptions,
         debug_mode: bool,
+        hide_ui: bool,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.font_size = framebuffer.size().y as f32 * 0.04;
@@ -286,6 +288,7 @@ impl GameRender {
 
         // Draw player health bar
         if let State::Playing = model.state
+            && !hide_ui
             && !model.level.config.modifiers.clean_auto
         {
             self.util.draw_health(&model.player, theme, framebuffer);
@@ -297,7 +300,7 @@ impl GameRender {
         let locked_camera = &ctl_logic::default_camera();
 
         if let State::Lost { .. } | State::Finished = model.state {
-        } else if !model.level.config.modifiers.clean_auto {
+        } else if !hide_ui && !model.level.config.modifiers.clean_auto {
             // Score
             self.util.draw_text(
                 "SCORE",
