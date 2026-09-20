@@ -362,7 +362,7 @@ impl geng::State for TrailerState {
             }
             self.util_render.draw_text(
                 "Demo out now!",
-                vec2(0.0, -1.0),
+                vec2(0.0, -0.5),
                 TextRenderOptions::new(1.0).color(light),
                 &self.camera,
                 &mut dither_buffer,

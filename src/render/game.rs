@@ -382,7 +382,7 @@ impl GameRender {
                 }
             }
 
-            if model.is_practice() {
+            if !hide_ui && model.is_practice() {
                 // Practice mode
                 self.util.draw_text(
                     "Practice",
