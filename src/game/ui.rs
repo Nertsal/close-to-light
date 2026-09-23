@@ -44,6 +44,7 @@ impl GameUI {
         state: &mut GameOptions,
     ) -> bool {
         // Fix aspect
+        let original_screen = screen;
         let screen = layout::fit_aabb(vec2(16.0, 9.0), screen, vec2::splat(0.5));
 
         let layout_size = screen.height() * 0.03;
@@ -71,7 +72,10 @@ impl GameUI {
                 State::Lost { .. } | State::Finished => model.switch_time.as_f32() / 1.0,
             };
             let t = crate::util::smoothstep(1.0 - t.clamp(0.0, 1.0));
-            let offset = vec2(0.0, 4.0) * layout_size * t;
+            let offset = vec2(
+                0.0,
+                original_screen.max.y - screen.max.y + 4.0 * layout_size,
+            ) * t;
             let options = screen
                 .extend_positive(-vec2(2.0, 0.5) * layout_size)
                 .translate(offset);
