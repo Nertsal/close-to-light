@@ -12,17 +12,47 @@ use crate::{
 use ctl_render_core::TextRenderOptions;
 use geng_utils::conversions::AngleRealConversions;
 
-const fn convert(seconds: i32, fraction: i32) -> f32 {
-    seconds as f32 + fraction as f32 / 60.0
-}
+// const fn convert(seconds: i32, fraction: i32) -> f32 {
+//     seconds as f32 + fraction as f32 / 60.0
+// }
 
 const INTRO_TIME: f32 = 0.0;
-const FIRST_HIT: f32 = convert(11, 15);
-const SECOND_HIT: f32 = convert(16, 55);
-// const THIRD_HIT: f32 = convert(22, 33);
-const FOURTH_HIT: f32 = convert(28, 32);
-const FIFTH_HIT: f32 = convert(33, 50);
-const OUTRO: f32 = convert(39, 35);
+// const FIRST_HIT: f32 = convert(11, 15);
+// const SECOND_HIT: f32 = convert(16, 55);
+// // const THIRD_HIT: f32 = convert(22, 33);
+// const FOURTH_HIT: f32 = convert(28, 32);
+// const FIFTH_HIT: f32 = convert(33, 50);
+// const OUTRO: f32 = convert(39, 35);
+
+// Mirage
+const OUTRO: f32 = 117.0 - 79.0;
+
+fn themes() -> Vec<(f32, Theme)> {
+    // FFD (cut)
+    // vec![
+    //     (INTRO_TIME, Theme::frostlight()),
+    //     (convert(11, 15), Theme::corruption()),
+    //     (convert(16, 55), Theme::classic()),
+    //     (convert(28, 32), Theme::stargazer()),
+    //     (convert(33, 50), Theme::linksider()),
+    // ]
+
+    // Mirage (level-time-bounds 79-117)
+    vec![
+        (INTRO_TIME, Theme::frostlight()),
+        // (81.455 - 79.0, Theme::corruption()),
+        (90.182 - 79.0, Theme::classic()),
+        (93.091 - 79.0, Theme::stargazer()),
+        (104.727 - 79.0, Theme::linksider()),
+        (106.182 - 79.0, Theme::corruption()),
+        (107.636 - 79.0, Theme::frostlight()),
+        (109.091 - 79.0, Theme::classic()),
+        (110.545 - 79.0, Theme::stargazer()),
+        (112.0 - 79.0, Theme::linksider()),
+        (113.455 - 79.0, Theme::classic()),
+        (116.364 - 79.0, Theme::frostlight()),
+    ]
+}
 
 pub struct TrailerState {
     context: Context,
@@ -138,28 +168,14 @@ impl geng::State for TrailerState {
         self.framebuffer_size = framebuffer.size();
 
         let mut theme = self.theme;
-        if !self.custom {
-            if self.time.as_f32() > FIRST_HIT - 0.25 {
-                let t = ((self.time.as_f32() - FIRST_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-                theme = lerp_theme(theme, Theme::corruption(), t);
-            }
-            if self.time.as_f32() > SECOND_HIT - 0.25 {
-                let t = ((self.time.as_f32() - SECOND_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-                theme = lerp_theme(theme, Theme::classic(), t);
-            }
-            // if self.time.as_f32() > THIRD_HIT - 0.25 {
-            //     let t = ((self.time.as_f32() - THIRD_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-            //     theme = lerp_theme(theme, Theme::peach_mint(), t);
-            // }
-            if self.time.as_f32() > FOURTH_HIT - 0.25 {
-                let t = ((self.time.as_f32() - FOURTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-                theme = lerp_theme(theme, Theme::stargazer(), t);
-            }
-            if self.time.as_f32() > FIFTH_HIT - 0.25 {
-                let t = ((self.time.as_f32() - FIFTH_HIT + 0.25) / 0.5).clamp(0.0, 1.0);
-                theme = lerp_theme(theme, Theme::linksider(), t);
+        // if !self.custom {
+        for (switch_time, switch_theme) in themes() {
+            if self.time.as_f32() > switch_time - 0.25 {
+                let t = ((self.time.as_f32() - switch_time + 0.25) / 0.5).clamp(0.0, 1.0);
+                theme = lerp_theme(theme, switch_theme, t);
             }
         }
+        // }
 
         ugli::clear(framebuffer, Some(theme.dark), None, None);
 
