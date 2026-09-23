@@ -64,8 +64,14 @@ impl Default for SelectLightUi {
 }
 
 impl SelectLightUi {
-    pub fn update(&mut self, delta_time: f32) {
+    pub fn update(&mut self, delta_time: f32, bounds: RangeInclusive<f32>) {
+        self.light_y.target = self.light_y.target.clamp(*bounds.start(), *bounds.end());
         self.light_y.update(delta_time);
+        if self.light_y.current < *bounds.start() {
+            self.light_y.snap_to(*bounds.start(), delta_time);
+        } else if self.light_y.current > *bounds.end() {
+            self.light_y.snap_to(*bounds.end(), delta_time);
+        }
         // self.telegraph_y.update(delta_time);
     }
 }
@@ -121,8 +127,14 @@ impl LevelSelectUI {
         context: &mut UiContext,
     ) -> Option<LevelSelectAction> {
         self.state.update(main, context);
-        self.light_level.update(context.delta_time);
-        self.light_diff.update(context.delta_time);
+        let light_bounds = self
+            .state
+            .position
+            .extend_symmetric(-vec2(0.0, 2.0) * context.layout_size);
+        let light_range = light_bounds.min.y..=light_bounds.max.y;
+        self.light_level
+            .update(context.delta_time, light_range.clone());
+        self.light_diff.update(context.delta_time, light_range);
 
         // Filter tabs on the side
         let filter_size = vec2(1.0, 1.2) * context.font_size;
