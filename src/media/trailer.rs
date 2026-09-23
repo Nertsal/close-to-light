@@ -90,7 +90,6 @@ impl TrailerState {
             .window()
             .set_cursor_type(geng::CursorType::None);
 
-        let start_time_level = level.start_time;
         let mut state = Self {
             util_render: UtilRender::new(context.clone()),
             ui_render: UiRender::new(context.clone()),
@@ -133,7 +132,7 @@ impl TrailerState {
             custom,
             duration: duration.unwrap_or(r32(OUTRO)),
         };
-        state.model.start(start_time_level);
+        state.model.start();
         state
     }
 }

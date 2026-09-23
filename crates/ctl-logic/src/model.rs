@@ -115,8 +115,6 @@ pub enum State {
     Starting {
         /// Time until we can start the game.
         start_timer: FloatTime,
-        /// Time to start playing music from.
-        music_start_time: Time,
     },
     Playing,
     Lost {
@@ -292,7 +290,6 @@ impl Model {
             level_state: LevelState::default(),
             state: State::Starting {
                 start_timer: FloatTime::ZERO, // reset during init
-                music_start_time: Time::ZERO,
             },
             score: Score::new(level.config.modifiers.multiplier()),
 

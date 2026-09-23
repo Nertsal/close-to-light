@@ -548,15 +548,9 @@ impl geng::State for Game {
         let delta_time = FloatTime::new(delta_time as _);
         let is_paused = self.is_paused();
 
-        if self.was_paused
-            && !is_paused
-            && let State::Playing = self.model.state
-            && let Some(music) = &self.model.level.group.music
-        {
+        if self.was_paused && !is_paused {
             // Resume from pause
-            self.context
-                .music
-                .play_from_time(music, self.model.play_time_ms, false);
+            self.model.resume_music();
         }
 
         let pos = self.ui_context.cursor.position;

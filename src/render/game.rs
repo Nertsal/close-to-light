@@ -51,7 +51,7 @@ impl GameRender {
         &mut self,
         model: &Model,
         _debug_mode: bool,
-        hide_ui: bool,
+        _hide_ui: bool,
         old_framebuffer: &mut ugli::Framebuffer,
     ) {
         self.dither.set_noise(1.0);

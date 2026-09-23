@@ -18,7 +18,6 @@ impl Model {
         self.player.health.set_ratio(FloatTime::ONE);
         self.state = State::Starting {
             start_timer: r32(1.0),
-            music_start_time: target_time,
         };
 
         self.render_level();
@@ -243,14 +242,10 @@ impl Model {
 
     fn update_state(&mut self, delta_time: FloatTime, is_paused: bool) {
         match &mut self.state {
-            State::Starting {
-                start_timer,
-                music_start_time,
-            } => {
-                let music_start_time = *music_start_time;
+            State::Starting { start_timer } => {
                 *start_timer -= delta_time;
                 if !is_paused && *start_timer <= FloatTime::ZERO && self.player.is_perfect {
-                    self.start(music_start_time);
+                    self.start();
                 }
             }
             State::Playing => {
@@ -341,9 +336,16 @@ impl Model {
         );
     }
 
-    pub fn start(&mut self, music_start_time: Time) {
+    pub fn start(&mut self) {
         self.state = State::Playing;
-        if let Some(music) = &self.level.group.music {
+        self.resume_music();
+    }
+
+    pub fn resume_music(&mut self) {
+        if let State::Playing = self.state
+            && let Some(music) = &self.level.group.music
+        {
+            let music_start_time = self.play_time_ms + self.music_offset;
             let speed = self.level.config.modifiers.time_scale;
             log::debug!("Starting music at {music_start_time}, speed: x{speed:.2}");
             if speed.as_f32() == 1.0 {
