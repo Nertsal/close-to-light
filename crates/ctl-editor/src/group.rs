@@ -164,7 +164,6 @@ impl Editor {
                 .update_group(self.group.group_index, new_group, None)
         {
             self.group.cached = group;
-            log::info!("Saved the level successfully");
         } else {
             log::error!("Failed to update the level cache");
         }
@@ -198,7 +197,6 @@ impl Editor {
                 .update_group_and_meta(self.group.group_index, new_group, new_meta)
         {
             self.group.cached = group;
-            log::info!("Saved the level successfully");
         } else {
             log::error!("Failed to update the level cache");
         }
@@ -231,7 +229,6 @@ impl Editor {
                 .update_group_and_meta(self.group.group_index, new_group, new_meta)
         {
             self.group.cached = group;
-            log::info!("Saved the level successfully");
         } else {
             log::error!("Failed to update the level cache");
         }
@@ -278,7 +275,6 @@ impl Editor {
                 }
             }
             self.group.cached = group;
-            log::info!("Saved the level successfully");
         } else {
             log::error!("Failed to update the level cache");
         }
@@ -356,7 +352,6 @@ impl Editor {
                 None,
             ) {
                 self.group.cached = group;
-                log::info!("Saved the levelset successfully");
             } else {
                 log::error!("Failed to write levelset data");
             }
@@ -371,7 +366,6 @@ impl Editor {
         ) {
             level_editor.model.level.level = level;
             self.group.cached = group;
-            log::info!("Saved the level successfully");
         } else {
             log::error!("Failed to update the level cache");
         }

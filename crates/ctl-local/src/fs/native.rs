@@ -1,6 +1,6 @@
 use super::*;
 
-use zip::{ZipArchive, result::ZipError};
+use zip::{ZipArchive, ZipWriter, result::ZipError, write::SimpleFileOptions};
 
 pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let mut groups = load_groups_from(geng, &fs::all_groups_path()).await?;
@@ -33,6 +33,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     Ok(groups)
 }
 
+#[derive(Debug, Clone, Copy)]
 enum LevelFormat {
     Folder,
     Zip,
@@ -40,10 +41,10 @@ enum LevelFormat {
 
 impl LevelFormat {
     pub fn detect(path: &Path) -> Option<LevelFormat> {
-        if path.is_dir() {
-            Some(Self::Folder)
-        } else if path.extension().and_then(|e| e.to_str()) == Some("ctz") {
+        if path.extension().and_then(|e| e.to_str()) == Some("ctz") {
             Some(Self::Zip)
+        } else if !path.exists() || path.is_dir() {
+            Some(Self::Folder)
         } else {
             None
         }
@@ -112,12 +113,16 @@ async fn load_group_from_dir(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
     load_group_with(geng, path.clone(), extract_file).await
 }
 
+fn archive_name(path: &Path) -> Option<String> {
+    path.file_stem().and_then(|n| n.to_str()).map(String::from)
+}
+
 async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
     let mut archive = std::fs::File::open(&path)
         .map_err(ZipError::from)
         .and_then(ZipArchive::new)?;
 
-    let archive_name = path.file_stem().and_then(|n| n.to_str()).map(String::from);
+    let archive_name = archive_name(&path);
     let extract_file = |name: &str| -> Result<Vec<u8>> {
         let by_name = if let Some(archive) = &archive_name {
             format!("{}/{}", archive, name)
@@ -174,28 +179,144 @@ async fn load_group_with(
     anyhow::Ok(local)
 }
 
+trait LevelWriter {
+    fn add_file(
+        &mut self,
+        name: &str,
+        contents: &mut dyn FnMut(&mut dyn Write) -> Result<()>,
+    ) -> Result<()>;
+
+    fn finish(&mut self) -> Result<()>;
+}
+
+fn level_writer(path: &Path) -> Result<Box<dyn LevelWriter>> {
+    let Some(format) = LevelFormat::detect(path) else {
+        return Err(anyhow::anyhow!(
+            "Unknown level format, cannot save the level ¯\\_(ツ)_/¯"
+        ));
+    };
+
+    Ok(match format {
+        LevelFormat::Folder => Box::new(LevelWriterFolder::new(path)?),
+        LevelFormat::Zip => Box::new(LevelWriterZip::new(path)?),
+    })
+}
+
+struct LevelWriterFolder {
+    path: PathBuf,
+}
+
+impl LevelWriterFolder {
+    pub fn new(path: &Path) -> Result<Self> {
+        std::fs::create_dir_all(path)?;
+        Ok(Self {
+            path: path.to_owned(),
+        })
+    }
+}
+
+impl LevelWriter for LevelWriterFolder {
+    fn add_file(
+        &mut self,
+        name: &str,
+        contents: &mut dyn FnMut(&mut dyn Write) -> Result<()>,
+    ) -> Result<()> {
+        let mut writer = std::io::BufWriter::new(std::fs::File::create(self.path.join(name))?);
+        contents(&mut writer)?;
+        Ok(())
+    }
+
+    fn finish(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+
+struct LevelWriterZip {
+    target_path: PathBuf,
+    temp_path: PathBuf,
+    archive_name: String,
+    archive: ZipWriter<std::fs::File>,
+}
+
+impl LevelWriterZip {
+    pub fn new(path: &Path) -> Result<Self> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        let archive_name =
+            archive_name(path).ok_or_else(|| anyhow::anyhow!("Could not detect archive name"))?;
+
+        let target_path = path.to_owned();
+        let temp_path = path.with_file_name(format!("{archive_name}_tmp"));
+
+        // create a temporary file to avoid corrupted data with incomplete writes
+        let file = std::fs::File::create(&temp_path)?;
+
+        let mut archive = ZipWriter::new(file);
+        archive.add_directory(&archive_name, SimpleFileOptions::default())?;
+
+        Ok(Self {
+            target_path,
+            temp_path,
+            archive_name,
+            archive,
+        })
+    }
+}
+
+impl LevelWriter for LevelWriterZip {
+    fn add_file(
+        &mut self,
+        name: &str,
+        contents: &mut dyn FnMut(&mut dyn Write) -> Result<()>,
+    ) -> Result<()> {
+        let options = SimpleFileOptions::default();
+        self.archive
+            .start_file(format!("{}/{}", self.archive_name, name), options)?;
+        contents(&mut self.archive)?;
+        Ok(())
+    }
+
+    fn finish(&mut self) -> Result<()> {
+        // rename the temporary file
+        std::fs::rename(&self.temp_path, &self.target_path)?;
+        Ok(())
+    }
+}
+
 pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {
     let path = &group.local.path;
-    std::fs::create_dir_all(path)?;
+
+    let mut level_writer = level_writer(path)?;
 
     // Save levels
-    let writer = std::io::BufWriter::new(std::fs::File::create(path.join("levels.cbor"))?);
-    cbor4ii::serde::to_writer(
-        writer,
-        &ctl_core::legacy::VersionedLevelSet::latest(group.local.data.clone()),
-    )?;
+    level_writer.add_file("levels.cbor", &mut |writer| {
+        cbor4ii::serde::to_writer(
+            writer,
+            &ctl_core::legacy::VersionedLevelSet::latest(group.local.data.clone()),
+        )?;
+        Ok(())
+    })?;
 
     // Save meta
-    let mut writer = std::io::BufWriter::new(std::fs::File::create(path.join("meta.toml"))?);
-    let s = toml::ser::to_string_pretty(&ctl_core::legacy::VersionedLevelSetInfo::latest(
-        group.local.meta.clone(),
-    ))?;
-    write!(writer, "{s}")?;
+    level_writer.add_file("meta.toml", &mut |writer| {
+        let s = toml::ser::to_string_pretty(&ctl_core::legacy::VersionedLevelSetInfo::latest(
+            group.local.meta.clone(),
+        ))?;
+        write!(writer, "{s}")?;
+        Ok(())
+    })?;
 
     // Save music
     if save_music && let Some(music) = &group.local.music {
-        std::fs::write(path.join("music.mp3"), &music.bytes)?;
+        level_writer.add_file("music.mp3", &mut |writer| {
+            writer.write_all(&music.bytes)?;
+            Ok(())
+        })?;
     }
+
+    level_writer.finish()?;
 
     log::debug!("Saved group ({}) successfully", group.local.meta.id);
 

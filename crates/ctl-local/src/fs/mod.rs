@@ -134,6 +134,7 @@ impl Controller {
         {
             native::save_group(group, save_music)?;
         }
+        log::info!("Saved level group successfully at {:?}", group.local.path);
         Ok(())
     }
 

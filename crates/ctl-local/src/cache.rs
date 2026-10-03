@@ -75,6 +75,7 @@ impl CacheTasks {
     fn poll(&mut self) -> Option<CacheAction> {
         macro_rules! error {
             ($pat:literal, $($arg:expr),*) => {{
+                log::error!($pat, $($arg),*);
                 let message = format!($pat, $($arg),*);
                 self.notifications.push(message);
             }}
