@@ -274,14 +274,14 @@ pub fn generate_group_path(group: Id) -> PathBuf {
         let mut rng = rand::thread_rng();
         loop {
             let name: String = (0..5).map(|_| rng.gen_range('a'..='z')).collect();
-            let path = base_path.join(name);
+            let path = base_path.join(format!("{name}.ctz"));
             // TODO: validate on web
             if !path.exists() {
                 return path;
             }
         }
     } else {
-        base_path.join(format!("{group}"))
+        base_path.join(format!("{group}.ctz"))
     }
 }
 
