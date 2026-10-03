@@ -2,7 +2,7 @@ use super::*;
 
 pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let mut groups = load_groups_from(geng, &fs::all_groups_path()).await?;
-    if cfg!(debug_assertions) {
+    if cfg!(debug_assertions) || cfg!(feature = "dev") {
         // Demo levels
         groups.extend(
             load_groups_from(
