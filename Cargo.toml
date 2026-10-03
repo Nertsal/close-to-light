@@ -59,6 +59,7 @@ rfd = "0.15.3"
 # Local storage
 webbrowser = "1.0.1"
 directories = "5.0.1"
+zip = "8.6.0"
 
 # Derive
 darling = "0.20"
@@ -146,4 +147,3 @@ web-sys = "=0.3.83"
 geng = { git = "https://github.com/geng-engine/geng", rev = "fe7c3f96d3eeb7200c23dbdd8a66fa8489522618" }
 # geng = { path = "../geng" }
 geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}
-time = { git = "https://github.com/Nertsal/time", rev = "748366af4446aa890220a9da14873ee728fe0108" } # NOTE: until <https://github.com/time-rs/time/issues/751> is resolved

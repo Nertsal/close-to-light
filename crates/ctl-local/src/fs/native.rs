@@ -1,5 +1,7 @@
 use super::*;
 
+use zip::{ZipArchive, result::ZipError};
+
 pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let mut groups = load_groups_from(geng, &fs::all_groups_path()).await?;
     if cfg!(debug_assertions) || cfg!(feature = "dev") {
@@ -31,6 +33,23 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     Ok(groups)
 }
 
+enum LevelFormat {
+    Folder,
+    Zip,
+}
+
+impl LevelFormat {
+    pub fn detect(path: &Path) -> Option<LevelFormat> {
+        if path.is_dir() {
+            Some(Self::Folder)
+        } else if path.extension().and_then(|e| e.to_str()) == Some("ctz") {
+            Some(Self::Zip)
+        } else {
+            None
+        }
+    }
+}
+
 async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<LocalGroup>> {
     log::debug!("Looking for levels in {:?}", groups_path);
     if !groups_path.exists() {
@@ -41,7 +60,7 @@ async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<Loca
         .flat_map(|entry| {
             let entry = entry?;
             let path = entry.path();
-            if !path.is_dir() {
+            if LevelFormat::detect(&path).is_none() {
                 log::warn!("Unexpected file inside levels: {path:?}");
                 return Ok(None);
             }
@@ -53,37 +72,11 @@ async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<Loca
     let load_group = |path: PathBuf| async move {
         let context = format!("when loading {path:?}");
         async move {
-            let bytes = file::load_bytes(&path.join("levels.cbor"))
-                .await
-                .with_context(|| "when loading file")?;
-            let meta_str = file::load_string(&path.join("meta.toml"))
-                .await
-                .with_context(|| "when loading file")?;
-            let (group, meta) =
-                decode_group(&bytes, &meta_str).with_context(|| "when deserializing")?;
-
-            let music_bytes = file::load_bytes(&path.join("music.mp3")).await;
-            let music = match music_bytes {
-                Ok(bytes) => {
-                    let music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
-                    Some((music, bytes))
-                }
-                Err(_) => None,
-            };
-
-            let music_meta = meta.music.clone();
-            let music = music
-                .map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes.into())));
-
-            let local = LocalGroup {
-                path,
-                loaded_from_assets: false,
-                meta,
-                music,
-                data: group,
-            };
-
-            anyhow::Ok(local)
+            match LevelFormat::detect(&path) {
+                Some(LevelFormat::Folder) => load_group_from_dir(geng, path).await,
+                Some(LevelFormat::Zip) => load_group_from_zip(geng, path).await,
+                None => Err(anyhow::anyhow!("Unrecognized level format at: {path:?}")),
+            }
         }
         .await
         .with_context(|| context)
@@ -103,6 +96,82 @@ async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<Loca
     }
 
     Ok(res)
+}
+
+async fn load_group_from_dir(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
+    let extract_file = |name: &str| -> Result<Vec<u8>> {
+        let file = std::fs::File::open(path.join(name))
+            .with_context(|| format!("when looking for {:?}", name))?;
+        let mut buf = Vec::new();
+        let mut reader = std::io::BufReader::new(file);
+        reader
+            .read_to_end(&mut buf)
+            .with_context(|| format!("when reading file {:?}", name))?;
+        Ok(buf)
+    };
+    load_group_with(geng, path.clone(), extract_file).await
+}
+
+async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
+    let mut archive = std::fs::File::open(&path)
+        .map_err(ZipError::from)
+        .and_then(ZipArchive::new)?;
+
+    let archive_name = path.file_stem().and_then(|n| n.to_str()).map(String::from);
+    let extract_file = |name: &str| -> Result<Vec<u8>> {
+        let by_name = if let Some(archive) = &archive_name {
+            format!("{}/{}", archive, name)
+        } else {
+            name.to_owned()
+        };
+        let file = archive
+            .by_name(&by_name)
+            .with_context(|| format!("when looking for {:?}", name))?;
+        if !file.is_file() {
+            return Err(anyhow::anyhow!("expected {:?} to be a file", name));
+        }
+        let mut buf = Vec::with_capacity(file.size() as usize);
+        let mut reader = std::io::BufReader::new(file);
+        reader
+            .read_to_end(&mut buf)
+            .with_context(|| format!("when reading file {:?}", name))?;
+        Ok(buf)
+    };
+    load_group_with(geng, path, extract_file).await
+}
+
+async fn load_group_with(
+    geng: &Geng,
+    path: PathBuf,
+    mut extract_file: impl FnMut(&str) -> Result<Vec<u8>>,
+) -> Result<LocalGroup> {
+    let bytes = extract_file("levels.cbor")?;
+    let meta_bytes = extract_file("meta.toml")?;
+    let meta_str = String::from_utf8_lossy(&meta_bytes);
+    let (group, meta) = decode_group(&bytes, &meta_str).with_context(|| "when deserializing")?;
+
+    let music_bytes = extract_file("music.mp3");
+    let music = match music_bytes {
+        Ok(bytes) => {
+            let music: geng::Sound = geng.audio().decode(bytes.clone()).await?;
+            Some((music, bytes))
+        }
+        Err(_) => None,
+    };
+
+    let music_meta = meta.music.clone();
+    let music =
+        music.map(|(music, bytes)| Rc::new(LocalMusic::new(music_meta, music, bytes.into())));
+
+    let local = LocalGroup {
+        path,
+        loaded_from_assets: false,
+        meta,
+        music,
+        data: group,
+    };
+
+    anyhow::Ok(local)
 }
 
 pub fn save_group(group: &CachedGroup, save_music: bool) -> Result<()> {

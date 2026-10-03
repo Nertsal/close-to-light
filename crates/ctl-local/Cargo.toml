@@ -21,8 +21,9 @@ geng.workspace = true
 serde.workspace = true
 cbor4ii.workspace = true
 base64.workspace = true
-directories.workspace = true
 webbrowser.workspace = true
+directories.workspace = true
+zip.workspace = true
 time.workspace = true
 steamworks = { workspace = true, optional = true }
 
