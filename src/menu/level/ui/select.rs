@@ -6,6 +6,7 @@ use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
 use ctl_ui::util::ScrollState;
 
 const ALL_DEMO_SETS: [Id; 4] = [1, 2, 4, 5];
+const ALL_RELEASE_SETS: [Id; 3] = [7, 8, 9];
 
 pub struct LevelSelectUI {
     // geng: Geng,
@@ -41,7 +42,7 @@ pub struct LevelSelectUI {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LevelsFilter {
     All,
-    Demo,
+    Official,
     Custom,
 }
 
@@ -93,7 +94,7 @@ impl LevelSelectUI {
             assets: assets.clone(),
             state: WidgetState::new(),
 
-            active_filter: LevelsFilter::Demo,
+            active_filter: LevelsFilter::Official,
             tab_filter_demo: ToggleButtonWidget::new("").with_icon(assets.atlas.light()),
             tab_filter_custom: ToggleButtonWidget::new("").with_icon(assets.atlas.wrench()),
             tab_filter_all: ToggleButtonWidget::new("").with_icon(assets.atlas.all()),
@@ -156,7 +157,7 @@ impl LevelSelectUI {
             pos.align_pos(vec2(0.5, 0.5))
         });
         for ((tab, filter), pos) in [
-            (&mut self.tab_filter_demo, LevelsFilter::Demo),
+            (&mut self.tab_filter_demo, LevelsFilter::Official),
             (&mut self.tab_filter_custom, LevelsFilter::Custom),
             (&mut self.tab_filter_all, LevelsFilter::All),
         ]
@@ -173,7 +174,13 @@ impl LevelSelectUI {
             if tab.state.hovered {
                 let msg = match filter {
                     LevelsFilter::All => "All Levels",
-                    LevelsFilter::Demo => "Demo Levels",
+                    LevelsFilter::Official => {
+                        if cfg!(feature = "demo") {
+                            "Demo Levels"
+                        } else {
+                            "Official Levels"
+                        }
+                    }
                     LevelsFilter::Custom => "Custom Levels",
                 };
                 tooltip = Some((tab.state.position, msg));
@@ -316,8 +323,14 @@ impl LevelSelectUI {
             .sorted_by_key(|(_, group)| group.local.meta.id)
             .filter(|(_, group)| match self.active_filter {
                 LevelsFilter::All => true,
-                LevelsFilter::Demo => ALL_DEMO_SETS.contains(&group.local.meta.id),
-                LevelsFilter::Custom => !ALL_DEMO_SETS.contains(&group.local.meta.id),
+                LevelsFilter::Official => {
+                    ALL_DEMO_SETS.contains(&group.local.meta.id)
+                        || ALL_RELEASE_SETS.contains(&group.local.meta.id)
+                }
+                LevelsFilter::Custom => {
+                    !ALL_DEMO_SETS.contains(&group.local.meta.id)
+                        && !ALL_RELEASE_SETS.contains(&group.local.meta.id)
+                }
             })
             .collect();
 

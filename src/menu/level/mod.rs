@@ -218,7 +218,7 @@ impl MenuState {
             #[cfg(feature = "editor")]
             ConfirmAction::CreateLevel => {
                 // Switch to custom view so the new level is visible
-                if let LevelsFilter::Demo = ui.level_select.active_filter {
+                if let LevelsFilter::Official = ui.level_select.active_filter {
                     ui.level_select.active_filter = LevelsFilter::Custom;
                 }
                 self.new_group();
