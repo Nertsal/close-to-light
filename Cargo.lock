@@ -1805,6 +1805,7 @@ name = "ctl-client"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "cbor4ii",
  "ctl-constants",
  "ctl-core",
  "hex",

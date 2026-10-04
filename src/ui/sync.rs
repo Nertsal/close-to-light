@@ -79,8 +79,8 @@ impl SyncWidget {
         let group_id = self.cached_group.local.meta.id;
         let future = async move {
             let info = client.get_group_info(group_id).await?;
-            let bytes = client.download_group(group_id).await?;
-            let group: LevelSet = bincode::deserialize(&bytes)?;
+            let bytes = client.download_group(group_id).await?.to_vec();
+            let group: LevelSet = cbor4ii::serde::from_slice(&bytes)?;
             Ok((group, info))
         };
         self.task_group_download = Some(Task::new(&self.geng, future));

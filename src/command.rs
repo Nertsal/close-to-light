@@ -48,7 +48,7 @@ pub enum Command {
         level_time_bounds: Option<String>,
     },
     Music(MusicArgs),
-    Artist(ArtistArgs),
+    Musician(MusicianArgs),
 }
 
 #[derive(clap::Args)]
@@ -58,9 +58,9 @@ pub struct MusicArgs {
 }
 
 #[derive(clap::Args)]
-pub struct ArtistArgs {
+pub struct MusicianArgs {
     #[command(subcommand)]
-    pub command: ArtistCommand,
+    pub command: MusicianCommand,
 }
 
 #[derive(clap::Subcommand)]
@@ -112,7 +112,7 @@ pub enum MusicAuthorCommand {
 }
 
 #[derive(clap::Subcommand)]
-pub enum ArtistCommand {
+pub enum MusicianCommand {
     #[cfg(feature = "online")]
     Create {
         name: String,
@@ -500,27 +500,27 @@ impl Command {
                     },
                 }
             }
-            Command::Artist(artist) => {
+            Command::Musician(musician) => {
                 #[cfg(feature = "online")]
                 let client = init_client(secrets.as_ref())
                     .await?
-                    .expect("Cannot update artists without secrets");
-                match artist.command {
+                    .expect("Cannot update musicians without secrets");
+                match musician.command {
                     #[cfg(feature = "online")]
-                    ArtistCommand::Create {
+                    MusicianCommand::Create {
                         name,
                         romanized,
                         user,
                     } => {
-                        log::info!("Creating a new artist {name} (user: {user:?})");
+                        log::info!("Creating a new musicians {name} (user: {user:?})");
                         client
-                            .create_artist(NewMusician {
+                            .create_musician(NewMusician {
                                 romanized_name: romanized.unwrap_or(name.clone()),
                                 name,
                                 user,
                             })
                             .await
-                            .context("when creating a new artist")?;
+                            .context("when creating a new musicians")?;
                     }
                 }
             }

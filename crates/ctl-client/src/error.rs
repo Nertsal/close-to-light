@@ -20,6 +20,8 @@ pub enum ClientError {
     #[error("Unexpected error occurred")]
     Reqwest(reqwest::Error),
     #[error("Unexpected error occurred")]
+    Cbor4ii(#[from] cbor4ii::serde::DecodeError<std::convert::Infallible>),
+    #[error("Unexpected error occurred")]
     Bincode(#[from] bincode::Error),
     #[error("Unexpected error occurred")]
     Json(#[from] serde_json::Error),

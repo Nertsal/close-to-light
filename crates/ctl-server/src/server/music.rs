@@ -85,21 +85,43 @@ pub(super) async fn music_get(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
 ) -> Result<Json<MusicInfo>> {
-    let row: Option<MusicRow> =
-        sqlx::query_as("SELECT * FROM musics JOIN music_authors ON musics.music_id = music_authors.music_id WHERE musics.music_id = ?")
-            .bind(music_id)
-            .fetch_optional(&app.database)
-            .await?;
+    let row: Option<MusicRow> = sqlx::query_as("SELECT * FROM musics WHERE musics.music_id = ?")
+        .bind(music_id)
+        .fetch_optional(&app.database)
+        .await?;
     let Some(music) = row else {
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
-    let authors: Vec<MusicianRow> =
+    let musicians: Vec<MusicianRow> =
         sqlx::query_as("SELECT * FROM music_authors JOIN musicians ON music_authors.musician_id = musicians.musician_id WHERE music_id = ?")
             .bind(music_id)
             .fetch_all(&app.database)
             .await?;
-    let authors: Vec<MusicianInfo> = authors.into_iter().map(Into::into).collect();
+    let authors: Vec<MusicAuthorRow> =
+        sqlx::query_as("SELECT * FROM music_authors WHERE music_id = ?")
+            .bind(music_id)
+            .fetch_all(&app.database)
+            .await?;
+    let authors: Vec<MusicianInfo> = authors
+        .into_iter()
+        .map(|author| {
+            if let Some(musician_id) = author.musician_id
+                && let Some(musician) = musicians
+                    .iter()
+                    .find(|musician| musician.musician_id == musician_id)
+            {
+                musician.clone().into()
+            } else {
+                MusicianInfo {
+                    id: 0,
+                    user: None,
+                    name: author.name.into(),
+                    romanized: author.romanized_name.into(),
+                }
+            }
+        })
+        .collect();
 
     let music = MusicInfo {
         id: music_id,

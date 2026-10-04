@@ -599,6 +599,14 @@ impl LevelCache {
 
         let mut new_group: LocalGroup = cached.local.clone();
         new_group.data = group;
+        if let Some(origin) = &reset_origin {
+            new_group.meta = origin.clone();
+            if let Some(music) = &mut new_group.music {
+                let mut new_music: LocalMusic = (**music).clone();
+                new_music.meta = origin.music.clone();
+                new_group.music = Some(Rc::new(new_music));
+            }
+        }
         new_group.update_hash();
 
         drop(inner);

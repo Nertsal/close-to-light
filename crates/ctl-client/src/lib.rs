@@ -245,8 +245,8 @@ mod inner {
             Ok(())
         }
 
-        pub async fn create_artist(&self, artist: NewMusician) -> Result<Id> {
-            let url = self.url.join("artists").unwrap();
+        pub async fn create_musician(&self, artist: NewMusician) -> Result<Id> {
+            let url = self.url.join("musicians").unwrap();
 
             let req = self.client.post(url).form(&artist);
 

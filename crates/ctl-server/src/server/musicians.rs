@@ -14,8 +14,8 @@ pub async fn musician_create(
     check_auth(&session, &app, AuthorityLevel::Admin).await?;
     let mut trans = app.database.begin().await?;
 
-    let artist_id: Id = sqlx::query_scalar(
-        "INSERT INTO musicians (name, romanized_name, user_id, created_at) VALUES (?, ?, ?, ?) RETURNING artist_id",
+    let musician_id: Id = sqlx::query_scalar(
+        "INSERT INTO musicians (name, romanized_name, user_id, created_at) VALUES (?, ?, ?, ?) RETURNING musician_id",
     )
     .bind(&musician.name)
     .bind(&musician.romanized_name)
@@ -25,5 +25,5 @@ pub async fn musician_create(
     .await?;
 
     trans.commit().await?;
-    Ok(Json(artist_id))
+    Ok(Json(musician_id))
 }
