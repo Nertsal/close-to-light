@@ -2,8 +2,8 @@
 
 pub const GAME_VERSION: GameVersion = GameVersion {
     major: 0,
-    minor: 1,
-    patch: 5,
+    minor: 2,
+    patch: 0,
     commit: option_env!("GIT_COMMIT_HASH"),
 };
 
