@@ -45,6 +45,8 @@ impl MenuRender {
         //     .draw_quad(ui.separator.position, theme.light, framebuffer);
 
         self.ui.draw_button(&ui.exit, theme, framebuffer);
+        self.ui
+            .draw_text_colored(&ui.version, theme.light, framebuffer);
         self.ui.draw_button(&ui.practice_button, theme, framebuffer);
 
         self.draw_levels(ui, state, framebuffer);

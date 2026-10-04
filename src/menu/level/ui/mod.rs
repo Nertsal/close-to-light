@@ -21,6 +21,7 @@ pub struct MenuUI {
     // pub ctl_logo: IconWidget,
     // pub separator: WidgetState,
     pub exit: ButtonWidget,
+    pub version: TextWidget,
     pub options: OptionsButtonWidget,
 
     pub confirm: Option<ConfirmWidget>,
@@ -54,6 +55,8 @@ impl MenuUI {
             // ctl_logo: IconWidget::new(assets.atlas.title()),
             // separator: WidgetState::new(),
             exit: ButtonWidget::new("Back"),
+            version: TextWidget::new(ctl_constants::GAME_VERSION.to_string())
+                .aligned(vec2(0.0, 0.5)),
             options: OptionsButtonWidget::new(assets, 0.25),
 
             confirm: None,
@@ -370,6 +373,11 @@ impl MenuUI {
         if self.exit.text.state.mouse_left.clicked {
             state.exit = true;
         }
+
+        let version = Aabb2::point(exit.align_pos(vec2(1.0, 1.0)) + vec2(0.5 * font_size, 0.0))
+            .extend_positive(vec2(6.5 * font_size, 0.0))
+            .extend_down(font_size);
+        self.version.update(version, &context.scale_font(0.7));
 
         self.options.update(options, context, &mut state.options);
         context.update_focus(self.options.options.state.hovered);
