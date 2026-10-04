@@ -54,7 +54,7 @@ pub(super) async fn music_list(
         .fetch_all(&app.database)
         .await?;
 
-    let authors: Vec<(Id, MusicianRow)> = sqlx::query("SELECT * FROM music_authors JOIN musicians on music_authors.musician_id = musicians.musician_id")
+    let authors: Vec<(Id, MusicianRow)> = sqlx::query("SELECT * FROM music_authors JOIN musicians ON music_authors.musician_id = musicians.musician_id")
         .try_map(|row: DBRow| Ok((row.try_get("music_id")?, MusicianRow::from_row(&row)?)))
         .fetch_all(&app.database)
         .await?;
@@ -85,16 +85,17 @@ pub(super) async fn music_get(
     State(app): State<Arc<App>>,
     Path(music_id): Path<Id>,
 ) -> Result<Json<MusicInfo>> {
-    let row: Option<MusicRow> = sqlx::query_as("SELECT * FROM musics WHERE music_id = ? JOIN musicians on music_authors.musician_id = musicians.musician_id")
-        .bind(music_id)
-        .fetch_optional(&app.database)
-        .await?;
+    let row: Option<MusicRow> =
+        sqlx::query_as("SELECT * FROM musics JOIN music_authors ON musics.music_id = music_authors.music_id WHERE musics.music_id = ?")
+            .bind(music_id)
+            .fetch_optional(&app.database)
+            .await?;
     let Some(music) = row else {
         return Err(RequestError::NoSuchMusic(music_id));
     };
 
     let authors: Vec<MusicianRow> =
-        sqlx::query_as("SELECT * FROM music_authors WHERE music_id = ?")
+        sqlx::query_as("SELECT * FROM music_authors JOIN musicians ON music_authors.musician_id = musicians.musician_id WHERE music_id = ?")
             .bind(music_id)
             .fetch_all(&app.database)
             .await?;
