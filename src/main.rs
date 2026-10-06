@@ -101,9 +101,23 @@ fn main() {
 
     log::info!("Running Close to Light {}", ctl_constants::GAME_VERSION);
 
-    let mut options = geng::ContextOptions::default();
-    options.window.title = "Close to Light".to_string();
-    options.window.antialias = false;
+    let game_options: ctl_logic::Options =
+        preferences::load(ctl_logic::OPTIONS_STORAGE).unwrap_or_default();
+
+    let mut options = geng::ContextOptions {
+        window: geng::window::Options {
+            fullscreen: true, //game_options.graphics.fullscreen,
+            vsync: game_options.graphics.display.vsync,
+            title: "Close to Light".to_string(),
+            antialias: false,
+            transparency: false,
+            mouse_passthrough: false,
+            size: None,
+            auto_close: true,
+            start_hidden: false,
+        },
+        ..default()
+    };
     options.fixed_delta_time = 1.0 / FIXED_FPS;
     options.with_cli(&opts.geng);
 

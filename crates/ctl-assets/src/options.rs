@@ -49,9 +49,22 @@ impl Default for AccountOptions {
 #[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct GraphicsOptions {
+    pub display: GraphicsDisplayOptions,
     pub crt: GraphicsCrtOptions,
     pub lights: GraphicsLightsOptions,
     pub colors: GraphicsColorsOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct GraphicsDisplayOptions {
+    pub vsync: bool,
+}
+
+impl Default for GraphicsDisplayOptions {
+    fn default() -> Self {
+        Self { vsync: true }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -372,7 +372,9 @@ impl StatefulWidget for GraphicsWidget {
         self.vsync.checked = window.is_vsync();
         self.vsync.update(next_row(), context);
         if self.vsync.state.mouse_left.clicked {
-            window.set_vsync(!self.vsync.checked);
+            let vsync = !self.vsync.checked;
+            window.set_vsync(vsync);
+            state.display.vsync = vsync;
         }
 
         self.crt
