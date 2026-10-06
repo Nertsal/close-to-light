@@ -639,7 +639,7 @@ impl geng::State for LevelMenu {
         // NOTE: hardcoded to not draw above practice
         if !fading && self.ui.practice.window.show.time.is_min() {
             // UI lights
-            let mut draw_light = |light: &SelectLightUi| {
+            let mut draw_light = |light: &SelectLightUi, scale: f32| {
                 let light_pos = (vec2(light.pos_x, light.light_y.current)
                     - self.ui.screen.position.bottom_left())
                     / self.ui.screen.position.size()
@@ -656,7 +656,8 @@ impl geng::State for LevelMenu {
                         .camera
                         .screen_to_world(self.framebuffer_size.as_f32(), vec2(light.radius, 0.0)))
                 .len()
-                .as_r32();
+                .as_r32()
+                    * r32(scale);
 
                 self.util.draw_light_gradient(
                     &Collider::new(light_pos, Shape::Circle { radius }),
@@ -667,9 +668,13 @@ impl geng::State for LevelMenu {
                 );
             };
 
-            draw_light(&self.ui.level_select.light_level);
+            draw_light(&self.ui.level_select.light_level, 1.0);
             if self.ui.level_select.tab_diffs.state.visible {
-                draw_light(&self.ui.level_select.light_diff);
+                // NOTE: hardcoded relation to the options widget to hide when its open
+                draw_light(
+                    &self.ui.level_select.light_diff,
+                    1.0 - self.ui.options.open_time.get_ratio(),
+                );
             }
         }
 
