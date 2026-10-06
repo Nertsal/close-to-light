@@ -136,6 +136,7 @@ impl PostRender {
         // CRT
         {
             let crt_mult = if vfx.crt { 1.0 } else { 0.0 };
+            let pixel_shift = 1.0 * crt_mult;
             let curvature = options.graphics.crt.curvature * crt_mult + vfx.curvature;
             let vignette = options.graphics.crt.vignette * crt_mult + vfx.vignette;
             let scanlines = options.graphics.crt.scanlines * crt_mult;
@@ -148,6 +149,7 @@ impl PostRender {
                 ugli::uniforms! {
                     u_time: vfx.time.as_f32(),
                     u_texture: texture,
+                    u_pixel_shift: pixel_shift,
                     u_curvature: curvature,
                     u_vignette_color: vfx.vignette_color,
                     u_vignette_multiplier: vignette,
