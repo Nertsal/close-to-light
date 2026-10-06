@@ -59,7 +59,6 @@ rfd = "0.15.3"
 # Local storage
 webbrowser = "1.0.1"
 directories = "5.0.1"
-zip = "8.6.0"
 
 # Derive
 darling = "0.20"
