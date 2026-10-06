@@ -868,7 +868,7 @@ impl UiRender {
             // self.draw_input(&register.password, framebuffer);
             // self.draw_button(&register.login, framebuffer);
             // self.draw_button(&register.register, framebuffer);
-            self.draw_text(&register.login_with, framebuffer);
+            self.draw_text_colored(&register.login_with, theme.light, framebuffer);
             self.draw_icon(&register.discord.icon, theme, framebuffer);
             #[cfg(feature = "steam")]
             self.draw_icon(&register.steam.icon, theme, framebuffer);
@@ -876,13 +876,13 @@ impl UiRender {
 
         let logged = &ui.logged;
         if logged.state.visible {
-            self.draw_text(&logged.username, framebuffer);
+            self.draw_text_colored(&logged.username, theme.light, framebuffer);
             self.draw_button(&logged.logout, theme, framebuffer);
         }
 
         let connecting = &ui.connecting;
         if connecting.state.visible {
-            self.draw_text(connecting, framebuffer);
+            self.draw_text_colored(connecting, theme.light, framebuffer);
         }
     }
 
