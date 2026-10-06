@@ -142,5 +142,6 @@ tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 web-sys = "=0.3.83"
 
 [patch.crates-io]
-geng = { git = "https://github.com/geng-engine/geng", rev = "c98e9b28594b9740b7fcb64c0d65f22f510a3193" }
+geng = { git = "https://github.com/geng-engine/geng", rev = "884f09e7ccb9ca40b0fb96d8a68bef07b2845f9b" }
+# geng = { path = "../geng" }
 geng-utils = { git = "https://github.com/Nertsal/geng-utils", rev = "f6e07e1db3096d710d5242c80c3781fd2d554045"}
