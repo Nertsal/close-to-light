@@ -293,6 +293,7 @@ pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub fullscreen: ToggleWidget,
+    pub vsync: ToggleWidget,
     pub crt: ToggleWidget,
     pub brightness: SliderWidget,
     pub blue: SliderWidget,
@@ -308,6 +309,7 @@ impl GraphicsWidget {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             fullscreen: ToggleWidget::new("Fullscreen"),
+            vsync: ToggleWidget::new("Vsync"),
             crt: ToggleWidget::new("CRT Shader"),
             brightness: SliderWidget::new("Brightness").with_precision(0),
             blue: SliderWidget::new("Blue light").with_precision(0),
@@ -365,6 +367,12 @@ impl StatefulWidget for GraphicsWidget {
         self.fullscreen.update(next_row(), context);
         if self.fullscreen.state.mouse_left.clicked {
             window.toggle_fullscreen();
+        }
+
+        self.vsync.checked = window.is_vsync();
+        self.vsync.update(next_row(), context);
+        if self.vsync.state.mouse_left.clicked {
+            window.set_vsync(!self.vsync.checked);
         }
 
         self.crt
