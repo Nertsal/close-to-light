@@ -20,8 +20,11 @@ impl std::fmt::Display for GameVersion {
         write!(f, "v")?;
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)?;
 
-        #[cfg(feature = "demo")]
-        write!(f, "-demo")?;
+        if cfg!(feature = "beta") {
+            write!(f, "-beta")?;
+        } else if cfg!(feature = "demo") {
+            write!(f, "-demo")?;
+        }
 
         // #[cfg(feature = "playtest")]
         // write!(f, "-playtest")?;
