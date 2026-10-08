@@ -97,12 +97,18 @@ impl SliderWidget {
                 context,
             );
         }
+        let was_editing = self.value.editing;
         self.value.update(value, context);
-        if !self.value.editing
-            && let Ok(value) = self.value.raw.parse::<f32>()
-            && value != state.value()
+        if was_editing
+            && !self.value.editing
+            && let Ok(mut value) = self.value.raw.parse::<f32>()
         {
-            state.set(value);
+            if value == -0.0 {
+                value = 0.0;
+            }
+            if value != state.value() {
+                state.set(value);
+            }
         }
 
         main.cut_left(context.layout_size * 0.1);
