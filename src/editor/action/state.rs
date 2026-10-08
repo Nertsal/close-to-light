@@ -12,18 +12,12 @@ impl EditorState {
             EditorStateAction::StopTextEdit => {
                 self.ui_context.text_edit.stop();
             }
-            EditorStateAction::UpdateTextEdit(text) => {
-                self.ui_context.text_edit.set_text(text);
-            }
-            EditorStateAction::CursorMove(position) => {
-                self.ui_context.cursor.cursor_move(position);
+            EditorStateAction::CursorMove(_position) => {
                 if let Some(drag) = &mut self.editor.drag {
                     drag.moved = true;
                 }
             }
-            EditorStateAction::WheelScroll(delta) => {
-                self.ui_context.cursor.scroll += delta;
-            }
+            EditorStateAction::WheelScroll(_delta) => {}
             EditorStateAction::StartPlaytest => self.play_game(),
             EditorStateAction::EndDrag => self.end_drag(),
             EditorStateAction::StartDrag(target) => self.start_drag(target),

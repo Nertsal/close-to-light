@@ -4,6 +4,7 @@ use crate::WidgetId;
 
 use ctl_assets::Theme;
 use ctl_context::Context;
+use ctl_core::prelude::Vec2RealConversions;
 use ctl_font::Font;
 
 use geng::prelude::*;
@@ -343,5 +344,30 @@ impl UiContext {
     /// Reset accumulators to prepare for the next frame.
     pub fn frame_end(&mut self) {
         self.cursor.scroll = 0.0
+    }
+
+    /// Returns `true` when the event is consumed and should not be reused for other logic.
+    pub fn handle_event(&mut self, event: &geng::Event) -> bool {
+        match event {
+            geng::Event::EditText(text) => {
+                self.text_edit.set_text(text.clone());
+            }
+            &geng::Event::Wheel { delta } => {
+                self.cursor.scroll += delta as f32;
+            }
+            &geng::Event::CursorMove { position } => {
+                self.cursor.cursor_move(position.as_f32());
+            }
+            geng::Event::KeyPress { key } => {
+                if self.text_edit.any_active() {
+                    if let geng::Key::Escape | geng::Key::Enter = key {
+                        self.text_edit.stop();
+                    }
+                    return true;
+                }
+            }
+            _ => {}
+        }
+        false
     }
 }

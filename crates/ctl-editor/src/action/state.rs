@@ -6,7 +6,6 @@ pub enum EditorStateAction {
     Editor(EditorAction),
     Cancel,
     StopTextEdit,
-    UpdateTextEdit(String),
     CursorMove(vec2<f32>),
     WheelScroll(f32),
     StartPlaytest,

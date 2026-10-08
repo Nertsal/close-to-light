@@ -211,16 +211,15 @@ impl geng::State for MainMenu {
     }
 
     fn handle_event(&mut self, event: geng::Event) {
+        if self.ui_context.handle_event(&event) {
+            return;
+        }
         match event {
             geng::Event::KeyPress {
                 key: geng::Key::F11,
             } => self.context.geng.window().toggle_fullscreen(),
-            geng::Event::Wheel { delta } => {
-                self.ui_context.cursor.scroll += delta as f32;
-            }
             geng::Event::CursorMove { position } => {
                 self.cursor_pos = position;
-                self.ui_context.cursor.cursor_move(position.as_f32());
             }
             geng::Event::MousePress {
                 button: geng::MouseButton::Left,

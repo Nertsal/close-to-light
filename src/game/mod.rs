@@ -386,35 +386,20 @@ impl geng::State for Game {
     }
 
     fn handle_event(&mut self, event: geng::Event) {
+        if self.ui_context.handle_event(&event) {
+            return;
+        }
         match event {
-            geng::Event::EditText(text) => {
-                self.ui_context.text_edit.set_text(text);
-            }
-            geng::Event::KeyPress { key } => {
-                if self.ui_context.text_edit.any_active()
-                    && let geng::Key::Escape | geng::Key::Enter = key
-                {
-                    self.ui_context.text_edit.stop();
-                    return;
+            geng::Event::KeyPress { key } => match key {
+                geng::Key::Escape => {
+                    self.toggle_pause();
                 }
-
-                match key {
-                    geng::Key::Escape => {
-                        self.toggle_pause();
-                    }
-                    geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
-                    geng::Key::F1 => self.hide_ui = !self.hide_ui,
-                    #[cfg(debug_assertions)]
-                    geng::Key::F2 => self.debug_mode = !self.debug_mode,
-                    _ => {}
-                }
-            }
-            geng::Event::Wheel { delta } => {
-                self.ui_context.cursor.scroll += delta as f32;
-            }
-            geng::Event::CursorMove { position } => {
-                self.ui_context.cursor.cursor_move(position.as_f32());
-            }
+                geng::Key::F11 => self.context.geng.window().toggle_fullscreen(),
+                geng::Key::F1 => self.hide_ui = !self.hide_ui,
+                #[cfg(debug_assertions)]
+                geng::Key::F2 => self.debug_mode = !self.debug_mode,
+                _ => {}
+            },
             geng::Event::MousePress {
                 button: geng::MouseButton::Left,
             } => self.model.cursor_clicked = true,
@@ -423,6 +408,7 @@ impl geng::State for Game {
                 self.active_touch = Some(touch.id);
             }
             geng::Event::TouchMove(touch) if Some(touch.id) == self.active_touch => {
+                // TODO: extract into UiContext probably
                 self.enable_touch_mod();
                 self.ui_context.cursor.cursor_move(touch.position.as_f32());
             }

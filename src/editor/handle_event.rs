@@ -10,22 +10,16 @@ impl EditorState {
         let shift = window.is_key_pressed(geng::Key::ShiftLeft);
         let alt = window.is_key_pressed(geng::Key::AltLeft);
 
+        if self.ui_context.handle_event(&event) {
+            return actions;
+        }
         match &event {
             geng::Event::KeyPress { key } => {
-                if self.ui_context.text_edit.any_active() {
-                    if let geng::Key::Escape | geng::Key::Enter = key {
-                        actions.push(EditorStateAction::StopTextEdit);
-                    }
-                    return actions;
-                }
                 if let geng::Key::S = key
                     && ctrl
                 {
                     actions.push(EditorAction::Save.into());
                 }
-            }
-            geng::Event::EditText(text) => {
-                actions.push(EditorStateAction::UpdateTextEdit(text.clone()));
             }
             geng::Event::CursorMove { position } => {
                 actions.push(EditorStateAction::CursorMove(position.as_f32()));
