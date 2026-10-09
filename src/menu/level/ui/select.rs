@@ -574,7 +574,7 @@ impl ItemLevelWidget {
         } else {
             self.menu.delete.show();
         }
-        if cfg!(feature = "online") && !cfg!(feature = "demo") {
+        if cfg!(feature = "online") && !cfg!(feature = "demo") && !cfg!(feature = "beta") {
             self.menu.sync.show();
         } else {
             // Cannot synchronise in offline mode or demo
