@@ -105,46 +105,46 @@ jobs:
           publish_dir: web
           destination_dir: dev
 
-  deploy-itch:
-    name: Deploy Itch
-    if: github.ref == 'refs/heads/release/itch' && github.repository_owner == 'nertsal'
-    runs-on: ubuntu-latest
-    needs:
-      - build-web
-      - build-native
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-      - name: Upload itch.io (Web)
-        # NOTE: changed from 'josephbmanley' to fork due to <https://github.com/yeslayla/butler-publish-itchio-action/pull/17>
-        uses: XanatosX/butler-publish-itchio-action@master
-        env:
-          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-          CHANNEL: html5
-          ITCH_GAME: close-to-light
-          ITCH_USER: nertsal
-          PACKAGE: web
-      - name: Upload itch.io (Windows)
-        uses: XanatosX/butler-publish-itchio-action@master
-        env:
-          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-          CHANNEL: windows
-          ITCH_GAME: close-to-light
-          ITCH_USER: nertsal
-          PACKAGE: windows
-      - name: Upload itch.io (Linux)
-        uses: XanatosX/butler-publish-itchio-action@master
-        env:
-          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-          CHANNEL: linux
-          ITCH_GAME: close-to-light
-          ITCH_USER: nertsal
-          PACKAGE: linux
-      - name: Upload itch.io (MacOS)
-        uses: XanatosX/butler-publish-itchio-action@master
-        env:
-          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-          CHANNEL: mac
-          ITCH_GAME: close-to-light
-          ITCH_USER: nertsal
-          PACKAGE: mac
+  # deploy-itch:
+  #   name: Deploy Itch
+  #   if: github.ref == 'refs/heads/release/itch' && github.repository_owner == 'nertsal'
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build-web
+  #     - build-native
+  #   steps:
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v4
+  #     - name: Upload itch.io (Web)
+  #       # NOTE: changed from 'josephbmanley' to fork due to <https://github.com/yeslayla/butler-publish-itchio-action/pull/17>
+  #       uses: XanatosX/butler-publish-itchio-action@master
+  #       env:
+  #         BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+  #         CHANNEL: html5
+  #         ITCH_GAME: close-to-light
+  #         ITCH_USER: nertsal
+  #         PACKAGE: web
+  #     - name: Upload itch.io (Windows)
+  #       uses: XanatosX/butler-publish-itchio-action@master
+  #       env:
+  #         BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+  #         CHANNEL: windows
+  #         ITCH_GAME: close-to-light
+  #         ITCH_USER: nertsal
+  #         PACKAGE: windows
+  #     - name: Upload itch.io (Linux)
+  #       uses: XanatosX/butler-publish-itchio-action@master
+  #       env:
+  #         BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+  #         CHANNEL: linux
+  #         ITCH_GAME: close-to-light
+  #         ITCH_USER: nertsal
+  #         PACKAGE: linux
+  #     - name: Upload itch.io (MacOS)
+  #       uses: XanatosX/butler-publish-itchio-action@master
+  #       env:
+  #         BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+  #         CHANNEL: mac
+  #         ITCH_GAME: close-to-light
+  #         ITCH_USER: nertsal
+  #         PACKAGE: mac
