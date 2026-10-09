@@ -51,18 +51,47 @@ mod constants {
 }
 #[cfg(not(feature = "demo"))]
 mod constants {
-    // TODO
+    pub const EASY_LEVEL_IDS: [u32; 5] = [1, 4, 11, 14, 21];
+    pub const NORMAL_LEVEL_IDS: [u32; 5] = [2, 5, 12, 15, 18];
+    pub const HARD_LEVEL_IDS: [u32; 7] = [3, 6, 13, 16, 19, 20, 22];
+    pub const LEVEL_TUNNEL_VISION: [u32; 2] = [18, 19];
+    pub const LEVEL_GLITCH: [u32; 1] = [20];
+    pub const LEVEL_MIRAGE: [u32; 2] = [21, 22];
 
     #[derive(Debug)]
     pub enum Achievement {
-        // TODO
+        /// Fail any level.
+        DarknessAbsorbsYou,
+        /// Complete an easy level.
+        TheBeginning,
+        /// Complete a normal level.
+        PathForward,
+        /// Complete a hard level.
+        ProofOfSkill,
+        /// Complete a level with Solar mod.
+        FeelTheSun,
+        /// Get an S rank in any level.
+        Mastery,
+        /// Get an A rank in Tunnel Vision.
+        Concentration,
+        /// Get an A rank in Glitch.
+        Glitch,
+        /// Get an A rank in Mirage.
+        Vision,
     }
 
     impl Achievement {
         pub fn api_key(&self) -> &'static str {
-            #[allow(clippy::match_single_binding)]
             match self {
-                _ => todo!(),
+                Self::DarknessAbsorbsYou => "FAIL_ANY_LEVEL",
+                Self::TheBeginning => "COMPLETE_EASY_LEVEL",
+                Self::PathForward => "COMPLETE_NORMAL_LEVEL",
+                Self::ProofOfSkill => "COMPLETE_HARD_LEVEL",
+                Self::FeelTheSun => "COMPLETE_ANY_LEVEL_SOLAR",
+                Self::Mastery => "GET_GRADE_S",
+                Self::Concentration => "LEVEL_TUNNEL_VISION_A",
+                Self::Glitch => "LEVEL_GLITCH_A",
+                Self::Vision => "LEVEL_MIRAGE_A",
             }
         }
     }
@@ -177,7 +206,51 @@ impl Achievements {
         {
             // TODO
             let _ = highscores;
-            let _ = new_score;
+
+            if let Some((new_score_level, new_score)) = new_score {
+                // Check grade
+                let new_grade = new_score.meta.calculate_grade();
+                if new_grade >= ScoreGrade::S {
+                    self.unlock_achievement(Achievement::Mastery);
+                }
+                if new_grade == ScoreGrade::F {
+                    self.unlock_achievement(Achievement::DarknessAbsorbsYou)
+                }
+
+                // General completion
+                if new_grade != ScoreGrade::F {
+                    // Solar
+                    if let ctl_core::model::DifficultyMode::Solar =
+                        new_score.meta.category.mods.difficulty
+                    {
+                        self.unlock_achievement(Achievement::FeelTheSun);
+                    }
+
+                    // Difficulty grades
+                    if let LocalLevelId::Id(id) = new_score_level {
+                        if EASY_LEVEL_IDS.contains(id) {
+                            self.unlock_achievement(Achievement::TheBeginning);
+                        } else if NORMAL_LEVEL_IDS.contains(id) {
+                            self.unlock_achievement(Achievement::PathForward);
+                        } else if HARD_LEVEL_IDS.contains(id) {
+                            self.unlock_achievement(Achievement::ProofOfSkill);
+                        }
+                    }
+                }
+
+                // Specific level completion
+                if new_grade >= ScoreGrade::A
+                    && let LocalLevelId::Id(id) = new_score_level
+                {
+                    if LEVEL_TUNNEL_VISION.contains(id) {
+                        self.unlock_achievement(Achievement::Concentration);
+                    } else if LEVEL_GLITCH.contains(id) {
+                        self.unlock_achievement(Achievement::Glitch);
+                    } else if LEVEL_MIRAGE.contains(id) {
+                        self.unlock_achievement(Achievement::Vision);
+                    }
+                }
+            }
         }
     }
 
