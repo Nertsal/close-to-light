@@ -211,6 +211,7 @@ impl EditorState {
         };
 
         let level = ctl_logic::PlayLevel {
+            editor: true,
             start_time: level_editor.current_time.target,
             music_offset: self.editor.group.cached.local.data.music_offset,
             level: LevelFull {

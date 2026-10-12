@@ -26,6 +26,7 @@ pub struct PlayLevel {
     pub level: LevelFull,
     pub config: LevelConfig,
     pub music_offset: Time,
+    pub editor: bool,
     pub start_time: Time,
     pub end_time: Option<Time>,
     pub transition_button: Option<HoverButton>,

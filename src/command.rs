@@ -221,6 +221,7 @@ impl Command {
 
                 let level = ctl_logic::PlayLevel {
                     music_offset: group.local.data.music_offset,
+                    editor: false,
                     start_time: start_time.unwrap_or(0),
                     end_time: None,
                     level: diff,
@@ -280,6 +281,7 @@ impl Command {
                         level_index,
                         level,
                         config: ctl_logic::LevelConfig::default(),
+                        editor: false,
                         start_time: 0,
                         end_time: None,
                         transition_button: None,
@@ -356,6 +358,7 @@ impl Command {
                             .map_or(0, |(from, _to)| ctl_logic::seconds_to_time(from));
                     ctl_logic::PlayLevel {
                         music_offset: group.local.data.music_offset,
+                        editor: false,
                         start_time,
                         end_time: None,
                         level: diff,
@@ -423,6 +426,7 @@ impl Command {
                             },
                             ..default()
                         },
+                        editor: false,
                         start_time,
                         end_time: None,
                         transition_button: None,

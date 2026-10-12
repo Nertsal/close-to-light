@@ -296,6 +296,7 @@ impl Editor {
                     data: level.clone(),
                 },
                 config: LevelConfig::default(),
+                editor: true,
                 start_time: Time::ZERO,
                 end_time: None,
                 transition_button: None,

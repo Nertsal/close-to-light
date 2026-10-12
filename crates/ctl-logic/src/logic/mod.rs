@@ -382,7 +382,7 @@ impl Model {
     }
 
     pub fn is_practice(&self) -> bool {
-        self.level.start_time != Time::ZERO || self.level.end_time.is_some()
+        self.level.editor || self.level.start_time != Time::ZERO || self.level.end_time.is_some()
     }
 
     /// Calculates the current completion percentage (in range 0..=1).
