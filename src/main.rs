@@ -28,6 +28,7 @@ struct Opts {
     #[cfg(not(target_arch = "wasm32"))]
     #[command(subcommand)]
     command: Option<command::Command>,
+
     /// Faster loading screen.
     #[clap(long)]
     fast_load: bool,
@@ -37,6 +38,10 @@ struct Opts {
     /// Move through the level without player input.
     #[clap(long)]
     clean_auto: bool,
+    /// Modified UI for recording showcase videos.
+    #[clap(long)]
+    showcase: bool,
+
     #[clap(flatten)]
     geng: geng::CliArgs,
 
@@ -158,7 +163,7 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(command) = opts.command {
         command
-            .execute(context, secrets)
+            .execute(opts.showcase, context, secrets)
             .await
             .context("failed to execute the command")?;
         return Ok(());
@@ -175,10 +180,10 @@ async fn geng_main(geng: Geng, opts: Opts) -> anyhow::Result<()> {
             &context.achievements,
             context.get_options().account.auto_login,
         );
-        let state = menu::LevelMenu::new(context, leaderboard, None, None);
+        let state = menu::LevelMenu::new(context, leaderboard, None, None, opts.showcase);
         geng.run_state(state).await;
     } else {
-        let state = menu::SplashScreen::new(context, client.as_ref());
+        let state = menu::SplashScreen::new(context, client.as_ref(), opts.showcase);
         geng.run_state(state).await;
     }
 

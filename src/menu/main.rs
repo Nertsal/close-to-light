@@ -12,6 +12,7 @@ pub struct MainMenu {
     leaderboard: Leaderboard,
     options: GameOptions,
     transition: Option<geng::state::Transition>,
+    level_showcase: bool,
 
     dither_preview: DitherRender,
     masked: MaskedRender,
@@ -53,6 +54,7 @@ impl MainMenu {
         context: Context,
         client: Option<&Arc<ctl_client::Nertboard>>,
         cursor_position: Option<vec2<f32>>,
+        level_showcase: bool,
     ) -> Self {
         let leaderboard = Leaderboard::new(
             &context.geng,
@@ -106,6 +108,7 @@ impl MainMenu {
             transition: None,
             context,
             leaderboard,
+            level_showcase,
         };
 
         if let Some(pos) = cursor_position {
@@ -123,6 +126,7 @@ impl MainMenu {
             self.leaderboard.clone(),
             Some(self.play_button.clone()),
             Some(self.cursor_pos.as_f32()),
+            self.level_showcase,
         );
         self.play_button.reset();
         self.transition = Some(geng::state::Transition::Push(Box::new(state)));

@@ -300,6 +300,7 @@ impl Editor {
                 start_time: Time::ZERO,
                 end_time: None,
                 transition_button: None,
+                showcase: false,
             };
 
             let editor = self.level_edit.take().map_or_else(

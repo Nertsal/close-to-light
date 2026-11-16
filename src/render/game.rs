@@ -121,28 +121,31 @@ impl GameRender {
 
         let fading = model.restart_button.is_fading() || model.exit_button.is_fading();
         let end_screen = matches!(model.state, State::Lost { .. } | State::Finished);
-        if end_screen {
-            for (button, text) in [
-                (&model.restart_button, "RESTART"),
-                (&model.exit_button, "EXIT"),
-            ] {
-                if fading && !button.is_fading() {
-                    continue;
-                }
-                let button = smooth_button(button, model.button_time);
-                self.util
-                    .draw_button(&button, text, &THEME, locked_camera, &mut framebuffer);
-            }
-        }
 
-        if end_screen || model.transition_button.is_some() {
-            self.util.draw_text(
-                "made in rust btw",
-                vec2(0.0, -3.0).as_r32(),
-                TextRenderOptions::new(0.5).color(THEME.dark),
-                locked_camera,
-                &mut framebuffer,
-            );
+        if !model.level.showcase {
+            if end_screen {
+                for (button, text) in [
+                    (&model.restart_button, "RESTART"),
+                    (&model.exit_button, "EXIT"),
+                ] {
+                    if fading && !button.is_fading() {
+                        continue;
+                    }
+                    let button = smooth_button(button, model.button_time);
+                    self.util
+                        .draw_button(&button, text, &THEME, locked_camera, &mut framebuffer);
+                }
+            }
+
+            if end_screen || model.transition_button.is_some() {
+                self.util.draw_text(
+                    "made in rust btw",
+                    vec2(0.0, -3.0).as_r32(),
+                    TextRenderOptions::new(0.5).color(THEME.dark),
+                    locked_camera,
+                    &mut framebuffer,
+                );
+            }
         }
 
         if options.cursor.show_rhythm_circles {
@@ -174,7 +177,7 @@ impl GameRender {
                 .draw_player(&model.player, camera, &mut framebuffer);
         }
 
-        if !fading {
+        if !model.level.showcase && !fading {
             let t = (model.switch_time.as_f32() / 3.0).min(1.0);
             // let t = crate::util::smoothstep(t);
             let color = THEME.light.map_rgb(|x| x * t);
@@ -409,54 +412,58 @@ impl GameRender {
             }
         }
 
-        if ui.score.state.visible {
-            self.ui
-                .draw_score(&ui.score, theme, self.font_size * 0.1, framebuffer);
-        }
-        if ui.leaderboard.state.visible {
-            // let theme = self.context.get_options().theme;
-            let width = self.font_size * 0.2;
+        if !model.level.showcase {
+            if ui.score.state.visible {
+                self.ui
+                    .draw_score(&ui.score, theme, self.font_size * 0.1, framebuffer);
+            }
+            if ui.leaderboard.state.visible {
+                // let theme = self.context.get_options().theme;
+                let width = self.font_size * 0.2;
 
-            self.ui.draw_window(
-                &mut self.masked,
-                ui.leaderboard.state.position,
-                Some(ui.leaderboard_head.state.position),
-                width,
-                theme,
-                framebuffer,
-                |framebuffer| {
-                    self.ui.draw_leaderboard(
-                        &ui.leaderboard,
-                        theme,
-                        self.font_size * 0.1,
-                        &mut self.masked2,
-                        framebuffer,
-                    );
-                },
-            );
-            self.ui.draw_text(&ui.leaderboard_head, framebuffer);
+                self.ui.draw_window(
+                    &mut self.masked,
+                    ui.leaderboard.state.position,
+                    Some(ui.leaderboard_head.state.position),
+                    width,
+                    theme,
+                    framebuffer,
+                    |framebuffer| {
+                        self.ui.draw_leaderboard(
+                            &ui.leaderboard,
+                            theme,
+                            self.font_size * 0.1,
+                            &mut self.masked2,
+                            framebuffer,
+                        );
+                    },
+                );
+                self.ui.draw_text(&ui.leaderboard_head, framebuffer);
+            }
         }
 
-        // Options
-        if ui.options.open_time.is_above_min() {
-            self.ui.draw_options(
-                &mut self.masked,
-                &mut self.dither,
-                &ui.options,
-                game_options,
-                framebuffer,
-            );
-        } else {
-            // Options button
-            self.ui.draw_icon(&ui.options.button, theme, framebuffer);
-            self.ui.draw_outline(
-                ui.options.button.state.position,
-                self.font_size * 0.1,
-                theme.light,
-                framebuffer,
-            );
-            // Volume icon
-            self.ui.draw_icon(&ui.options.volume, theme, framebuffer);
+        if !model.level.showcase {
+            // Options
+            if ui.options.open_time.is_above_min() {
+                self.ui.draw_options(
+                    &mut self.masked,
+                    &mut self.dither,
+                    &ui.options,
+                    game_options,
+                    framebuffer,
+                );
+            } else {
+                // Options button
+                self.ui.draw_icon(&ui.options.button, theme, framebuffer);
+                self.ui.draw_outline(
+                    ui.options.button.state.position,
+                    self.font_size * 0.1,
+                    theme.light,
+                    framebuffer,
+                );
+                // Volume icon
+                self.ui.draw_icon(&ui.options.volume, theme, framebuffer);
+            }
         }
     }
 }

@@ -165,6 +165,20 @@ impl geng::State for Game {
         let fading = self.model.restart_button.is_fading() || self.model.exit_button.is_fading();
         let flashlight_mode = !self.model.state.ended();
 
+        if self.model.level.showcase {
+            let t = if self.model.state.ended() {
+                crate::util::smoothstep(
+                    1.0 - (self.model.switch_time.as_f32() / 0.5).clamp(0.0, 1.0),
+                )
+            } else {
+                1.0
+            };
+            let mut options = self.context.get_options();
+            options.cursor.inner_radius = 0.15 * t;
+            self.context.set_options(options.clone());
+            self.model.player.collider.shape = Shape::circle(r32(0.5 * t));
+        }
+
         self.render
             .draw_world(&self.model, self.debug_mode, self.hide_ui, buffer);
 
@@ -255,6 +269,55 @@ impl geng::State for Game {
                 &self.model.camera,
                 &mut dither_buffer,
             );
+
+            if self.model.level.showcase
+                && self.model.state.ended()
+                && let Some(music) = &self.model.level.group.music
+            {
+                let level_info = &self.model.level.level.meta;
+                let music_info = &music.meta;
+
+                // Outro screen
+                let t = ((self.model.switch_time).as_f32() / 2.5).clamp(0.0, 1.0);
+                let light = crate::util::with_alpha(crate::render::THEME.light, t);
+                let buffer = &mut dither_buffer;
+
+                if let Ok(pos) = self
+                    .model
+                    .camera
+                    .world_to_screen(buffer.size().as_f32(), vec2(0.0, 3.0))
+                {
+                    self.render.ui.draw_texture(
+                        Aabb2::point(pos),
+                        &self.context.assets.sprites.title,
+                        light,
+                        2.0,
+                        buffer,
+                    );
+                }
+                self.render.util.draw_text(
+                    &music_info.name,
+                    vec2(0.0, -0.0),
+                    ctl_render_core::TextRenderOptions::new(1.2).color(light),
+                    &self.model.camera,
+                    buffer,
+                );
+                self.render.util.draw_text(
+                    format!("music by {}", music_info.authors()),
+                    vec2(0.0, -1.2),
+                    ctl_render_core::TextRenderOptions::new(0.7).color(light),
+                    &self.model.camera,
+                    buffer,
+                );
+                self.render.util.draw_text(
+                    format!("level by {}", level_info.authors()),
+                    vec2(0.0, -1.9),
+                    ctl_render_core::TextRenderOptions::new(0.7).color(light),
+                    &self.model.camera,
+                    buffer,
+                );
+            }
+
             self.render
                 .dither
                 .finish(self.model.real_time, &theme.transparent());

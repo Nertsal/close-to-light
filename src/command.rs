@@ -126,6 +126,7 @@ pub enum MusicianCommand {
 impl Command {
     pub async fn execute(
         self,
+        showcase: bool,
         context: Context,
         #[allow(unused_variables)] secrets: Option<Secrets>,
     ) -> Result<()> {
@@ -233,6 +234,7 @@ impl Command {
                     level_index: diff_index,
                     config: ctl_logic::LevelConfig::default(),
                     transition_button: None,
+                    showcase,
                 };
 
                 let state = crate::game::Game::new(
@@ -285,6 +287,7 @@ impl Command {
                         start_time: 0,
                         end_time: None,
                         transition_button: None,
+                        showcase,
                     };
                     crate::editor::EditorState::new_level(context.clone(), config, level)
                 } else {
@@ -376,6 +379,7 @@ impl Command {
                             ..default()
                         },
                         transition_button: None,
+                        showcase: false,
                     }
                 } else {
                     // Load default trailer path
@@ -430,6 +434,7 @@ impl Command {
                         start_time,
                         end_time: None,
                         transition_button: None,
+                        showcase,
                     }
                 };
                 let state = crate::media::trailer::TrailerState::new(

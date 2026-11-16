@@ -8,6 +8,7 @@ pub struct SplashScreen {
     context: Context,
     client: Option<Arc<ctl_client::Nertboard>>,
     transition: Option<geng::state::Transition>,
+    level_showcase: bool,
 
     util: UtilRender,
     post: PostRender,
@@ -16,7 +17,11 @@ pub struct SplashScreen {
 }
 
 impl SplashScreen {
-    pub fn new(context: Context, client: Option<&Arc<ctl_client::Nertboard>>) -> Self {
+    pub fn new(
+        context: Context,
+        client: Option<&Arc<ctl_client::Nertboard>>,
+        level_showcase: bool,
+    ) -> Self {
         Self {
             util: UtilRender::new(context.clone()),
             post: PostRender::new(&context),
@@ -26,6 +31,7 @@ impl SplashScreen {
             context,
             client: client.cloned(),
             transition: None,
+            level_showcase,
         }
     }
 }
@@ -102,6 +108,7 @@ trigger seizures for people with photosensitive epilepsy
                     .window()
                     .cursor_position()
                     .map(|pos| pos.as_f32()),
+                self.level_showcase,
             ))));
         }
     }

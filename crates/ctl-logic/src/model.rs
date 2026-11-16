@@ -30,6 +30,7 @@ pub struct PlayLevel {
     pub start_time: Time,
     pub end_time: Option<Time>,
     pub transition_button: Option<HoverButton>,
+    pub showcase: bool,
 }
 
 #[derive(Debug, Clone)]

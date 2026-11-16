@@ -36,6 +36,7 @@ pub enum ConfirmAction {
 pub struct LevelMenu {
     context: Context,
     transition: Option<geng::state::Transition>,
+    level_showcase: bool,
 
     render: MenuRender,
     util: UtilRender,
@@ -233,6 +234,7 @@ impl LevelMenu {
         leaderboard: Leaderboard,
         transition_button: Option<HoverButton>,
         cursor_position: Option<vec2<f32>>,
+        level_showcase: bool,
     ) -> Self {
         let player = Player::new(
             Collider::new(vec2::ZERO, Shape::Circle { radius: r32(0.1) }),
@@ -298,6 +300,7 @@ impl LevelMenu {
 
             context,
             transition: None,
+            level_showcase,
         };
 
         #[cfg(feature = "online")]
@@ -363,6 +366,7 @@ impl LevelMenu {
             let leaderboard = self.state.leaderboard.clone();
             let config = self.state.config.clone();
             let practice = self.state.practice_section.take();
+            let showcase = self.level_showcase;
 
             async move {
                 let level = ctl_logic::PlayLevel {
@@ -375,6 +379,7 @@ impl LevelMenu {
                     start_time: practice.map_or(Time::ZERO, |(s, _)| s),
                     end_time: practice.map(|(_, e)| e),
                     transition_button: Some(transition_button),
+                    showcase,
                 };
                 crate::game::Game::new(context, level, leaderboard)
             }
@@ -977,6 +982,7 @@ impl geng::State for LevelMenu {
                                 start_time: Time::ZERO,
                                 end_time: None,
                                 transition_button: None,
+                                showcase: false,
                             };
                             crate::editor::EditorState::new_level(context, config, level)
                         } else {
