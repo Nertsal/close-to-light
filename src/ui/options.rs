@@ -46,6 +46,7 @@ impl OptionsButtonWidget {
                     PaletteWidget::new("Stargazer", Theme::stargazer()),
                     PaletteWidget::new("Corruption", Theme::corruption()),
                     PaletteWidget::new("Linksider", Theme::linksider()),
+                    PaletteWidget::new("Oxide", Theme::oxide()),
                 ],
             ),
         }

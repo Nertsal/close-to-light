@@ -275,6 +275,10 @@ impl Theme {
         Self::new("#18284A", "#EBF9FF", "#D75672", "#369ADD").unwrap()
     }
 
+    pub fn oxide() -> Self {
+        Self::new("#2B303A", "#209C77", "#AF4C12", "#1f6682").unwrap()
+    }
+
     /// Make `dark` color transparent black.
     pub fn transparent(self) -> Self {
         Self {
