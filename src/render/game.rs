@@ -1,3 +1,4 @@
+use ctl_render_core::get_pixel_scale;
 use ctl_ui::layout::AreaOps;
 
 use super::{
@@ -21,6 +22,7 @@ pub struct GameRender {
     pub ui: UiRender,
 
     font_size: f32,
+    pixel_size: f32,
 }
 
 impl GameRender {
@@ -42,6 +44,7 @@ impl GameRender {
             context,
 
             font_size: 1.0,
+            pixel_size: 1.0,
         }
     }
 
@@ -285,6 +288,7 @@ impl GameRender {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.font_size = framebuffer.size().y as f32 * 0.04;
+        self.pixel_size = get_pixel_scale(framebuffer.size());
         self.masked.update_size(framebuffer.size());
         self.masked2.update_size(framebuffer.size());
 
@@ -417,7 +421,7 @@ impl GameRender {
         if !hide_ui && !model.level.showcase {
             // Completion bar
             let bar = ui.completion_bar.position;
-            let width = self.font_size * 0.1;
+            let width = self.pixel_size * 1.0;
             let completion_t = model.current_completion().as_f32();
 
             // border
@@ -431,13 +435,41 @@ impl GameRender {
             );
 
             // completed fill
-            let completed_width = crate::util::lerp(width * 6.0, bar.width(), completion_t);
+            let completed_width =
+                crate::util::lerp(self.pixel_size * 8.0, bar.width(), completion_t);
             self.ui.fill_quad_width(
                 bar.with_width(completed_width, 0.0),
                 width,
                 crate::util::with_alpha(theme.highlight, 0.5),
                 framebuffer,
             );
+
+            // attempt markers
+            let mut tick = |t: R32, color| {
+                let size = vec2(self.pixel_size, bar.height());
+                let pos =
+                    bar.min.x + crate::util::lerp(self.pixel_size * 8.0, bar.width(), t.as_f32());
+                let mut pos = Aabb2::point(vec2(pos, bar.center().y)).extend_symmetric(size / 2.0);
+                if bar.max.x - pos.max.x < self.pixel_size * 2.0 {
+                    pos = pos.translate(vec2(bar.max.x - self.pixel_size * 2.0 - pos.max.x, 0.0));
+                }
+                self.ui.fill_quad_width(pos, width, color, framebuffer);
+            };
+            // marker: latest attempt (if failed)
+            if let Some(score) = model
+                .leaderboard
+                .get_loaded()
+                .local
+                .iter()
+                .max_by_key(|score| score.score.time)
+                && score.score.completion < R32::ONE
+            {
+                tick(score.score.completion, theme.danger);
+            }
+            // marker: highscore
+            if let Some(score) = &model.leaderboard.get_loaded().local_high {
+                tick(score.meta.completion, theme.highlight);
+            }
         }
 
         if !model.level.showcase {

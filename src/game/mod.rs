@@ -50,7 +50,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(context: Context, level: PlayLevel, leaderboard: Leaderboard) -> Self {
+    pub fn new(context: Context, level: PlayLevel, mut leaderboard: Leaderboard) -> Self {
         if let Some(music) = &level.group.music {
             context.set_status(format!(
                 "Playing {} - {}",
@@ -64,6 +64,26 @@ impl Game {
                 level.level.meta.name
             );
         }
+
+        // Refresh leaderboard
+        let category = ctl_core::score::ScoreCategory::new(
+            level.config.modifiers.clone(),
+            level.config.health.clone(),
+        );
+        let score = Score::new(category.mods.multiplier());
+        let meta = ctl_core::score::ScoreMeta::new_category(category, score, R32::ZERO);
+        leaderboard.get_mut().reload_submit(
+            None,
+            false,
+            level
+                .group
+                .music
+                .as_ref()
+                .map(|music| music.meta.clone())
+                .unwrap_or_default(),
+            level.level.meta.clone(),
+            meta,
+        );
 
         Self::preloaded(
             context.clone(),
