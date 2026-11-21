@@ -1,3 +1,5 @@
+use ctl_ui::layout::AreaOps;
+
 use super::{
     dither::DitherRender,
     mask::MaskedRender,
@@ -410,6 +412,32 @@ impl GameRender {
                     framebuffer,
                 );
             }
+        }
+
+        if !hide_ui && !model.level.showcase {
+            // Completion bar
+            let bar = ui.completion_bar.position;
+            let width = self.font_size * 0.1;
+            let completion_t = model.current_completion().as_f32();
+
+            // border
+            self.ui.draw_outline(bar, width, theme.light, framebuffer);
+            // background
+            self.ui.fill_quad_width(
+                bar,
+                width,
+                crate::util::with_alpha(theme.dark, 0.5),
+                framebuffer,
+            );
+
+            // completed fill
+            let completed_width = crate::util::lerp(width * 6.0, bar.width(), completion_t);
+            self.ui.fill_quad_width(
+                bar.with_width(completed_width, 0.0),
+                width,
+                crate::util::with_alpha(theme.highlight, 0.5),
+                framebuffer,
+            );
         }
 
         if !model.level.showcase {

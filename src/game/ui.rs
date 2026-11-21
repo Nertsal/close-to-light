@@ -9,6 +9,7 @@ pub struct GameUI {
     pub leaderboard: LeaderboardWidget,
     pub score: ScoreWidget,
     pub pause: PauseWidget,
+    pub completion_bar: WidgetState,
 
     pub restart: IconWidget,
     pub restart_timer: Bounded<FloatTime>,
@@ -28,6 +29,7 @@ impl GameUI {
             leaderboard,
             score: ScoreWidget::new(assets),
             pause: PauseWidget::new(),
+            completion_bar: WidgetState::new(),
 
             restart: IconWidget::new(assets.atlas.circle_outline()).colored(ThemeColor::Danger),
             restart_timer: Bounded::new_zero(r32(super::HOLD_RESTART_DURATION)),
@@ -53,6 +55,17 @@ impl GameUI {
         context.pixel_size = ctl_render_core::get_pixel_scale(screen.size().map(|x| x as usize));
         context.layout_size = layout_size;
         context.font_size = screen.height() * 0.05;
+
+        {
+            // Completion bar
+            let pos = screen
+                .align_aabb(
+                    vec2(screen.width() - layout_size * 2.0, context.pixel_size * 8.0),
+                    vec2(0.5, 0.0),
+                )
+                .translate(vec2(0.0, context.pixel_size * 4.0));
+            self.completion_bar.update(pos, context);
+        }
 
         {
             // Pause menu

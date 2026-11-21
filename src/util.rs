@@ -1,6 +1,10 @@
 use ctl_font::Font;
 pub use ctl_util::*;
 
+pub fn lerp<T: ctl_logic::Float>(min: T, max: T, t: T) -> T {
+    min + (max - min) * t
+}
+
 pub fn wrap_text(font: &Font, text: &str, target_width: f32) -> Vec<String> {
     let mut lines = Vec::new();
     for source_line in text.lines() {
