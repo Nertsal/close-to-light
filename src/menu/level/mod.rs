@@ -642,8 +642,7 @@ impl geng::State for LevelMenu {
 
         let mut dither_buffer = self.dither.start();
 
-        // NOTE: hardcoded to not draw above practice
-        if !fading && self.ui.practice.window.show.time.is_min() {
+        if !fading {
             // UI lights
             let mut draw_light = |light: &SelectLightUi| {
                 let light_pos = (vec2(light.pos_x, light.light_y.current)
@@ -655,15 +654,25 @@ impl geng::State for LevelMenu {
                     .screen_to_world(dither_buffer.size().as_f32(), light_pos)
                     .as_r32();
 
-                let mut scale = 1.0;
-                // NOTE: hardcoded relation to the options widget to hide when its open
-                let hide_under = &self.ui.options.options.state;
-                if hide_under.visible {
-                    /// pixel margin to determine when the light should start hiding
-                    /// as a neat little bug-turned-feature mhm
-                    const MARGIN: f32 = 200.0;
-                    scale = ((hide_under.position.min.x - light.pos_x - light.radius) / MARGIN)
-                        .clamp(0.0, 1.0);
+                let mut scale: f32 = 1.0;
+                // NOTE: hardcoded relation to some widgets to hide when they're open
+                let hide_under = [&self.ui.options.options.state, &self.ui.practice.state];
+                for hide_under in hide_under {
+                    if hide_under.visible {
+                        /// pixel margin to determine when the light should start hiding
+                        /// as a neat little bug-turned-feature mhm
+                        const MARGIN: f32 = 200.0;
+                        if let Some(collision) = Collider::circle(
+                            vec2(light.pos_x, light.light_y.current).as_r32(),
+                            r32(MARGIN),
+                        )
+                        .collide(&Collider::aabb(hide_under.position.as_r32()))
+                        {
+                            scale = scale.min(
+                                (1.0 - collision.penetration.as_f32() / MARGIN).clamp(0.0, 1.0),
+                            );
+                        }
+                    }
                 }
 
                 let radius = (self

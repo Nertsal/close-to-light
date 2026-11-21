@@ -14,7 +14,7 @@ pub mod prelude {
     pub use geng::prelude::*;
     pub use geng_utils::{
         bounded::Bounded,
-        conversions::{RealConversions, Vec2RealConversions},
+        conversions::{Aabb2RealConversions, RealConversions, Vec2RealConversions},
     };
     pub use serde::{Deserialize, Serialize};
     pub use uuid::Uuid;
