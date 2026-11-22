@@ -53,10 +53,11 @@ mod constants {
 mod constants {
     pub const EASY_LEVEL_IDS: [u32; 5] = [1, 4, 11, 14, 21];
     pub const NORMAL_LEVEL_IDS: [u32; 5] = [2, 5, 12, 15, 18];
-    pub const HARD_LEVEL_IDS: [u32; 7] = [3, 6, 13, 16, 19, 20, 22];
+    pub const HARD_LEVEL_IDS: [u32; 8] = [3, 6, 13, 16, 19, 20, 22, 24];
     pub const LEVEL_TUNNEL_VISION: [u32; 2] = [18, 19];
     pub const LEVEL_GLITCH: [u32; 1] = [20];
     pub const LEVEL_MIRAGE: [u32; 2] = [21, 22];
+    pub const LEVEL_FRACTURED_REFLECTION: [u32; 2] = [23, 24];
 
     #[derive(Debug)]
     pub enum Achievement {
@@ -78,6 +79,8 @@ mod constants {
         Glitch,
         /// Get an A rank in Mirage.
         Vision,
+        /// Get an A rank in Fractured Reflection.
+        LookInTheMirror,
     }
 
     impl Achievement {
@@ -92,6 +95,7 @@ mod constants {
                 Self::Concentration => "LEVEL_TUNNEL_VISION_A",
                 Self::Glitch => "LEVEL_GLITCH_A",
                 Self::Vision => "LEVEL_MIRAGE_A",
+                Self::LookInTheMirror => "LEVEL_FRACTURED_REFLECTION_A",
             }
         }
     }
@@ -248,6 +252,8 @@ impl Achievements {
                         self.unlock_achievement(Achievement::Glitch);
                     } else if LEVEL_MIRAGE.contains(id) {
                         self.unlock_achievement(Achievement::Vision);
+                    } else if LEVEL_FRACTURED_REFLECTION.contains(id) {
+                        self.unlock_achievement(Achievement::LookInTheMirror);
                     }
                 }
             }

@@ -6,7 +6,7 @@ use ctl_local::{CachedGroup, SavedScore, fs::LocalLevelId};
 use ctl_ui::util::ScrollState;
 
 const ALL_DEMO_SETS: [Id; 4] = [1, 2, 4, 5];
-const ALL_RELEASE_SETS: [Id; 3] = [7, 8, 9];
+const ALL_RELEASE_SETS: [Id; 4] = [7, 8, 9, 10];
 
 pub struct LevelSelectUI {
     // geng: Geng,
