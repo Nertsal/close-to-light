@@ -118,8 +118,12 @@ vec4 dither_final(vec3 amps) {
 	float noise_light = u_noise * 0.1 * (noise(vec3(u_time * 16.0, get_pixel_pos() * 2.0)) * 2.0 - 1.0);
 	float noise_danger = u_noise * 0.1 * (noise(vec3(u_time * 16.0, (get_pixel_pos() + vec2(10.0)) * 2.0)) * 2.0 - 1.0);
 	
-	float amp_light = (amps.g - amps.r + noise_light);
 	float amp_danger = amps.r + noise_danger;
+	float light_cutout = sqrt(amps.r);
+	if (amps.r < 0.1) {
+		light_cutout = 0.0;
+	}
+	float amp_light = max(0.0, amps.g - light_cutout + noise_light);
 	float amp_highlight = amps.b;
 	float total = amp_light + amp_danger;
 	if (total > 1.0) {
