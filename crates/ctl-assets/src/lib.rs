@@ -110,6 +110,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     fill,
     fill_thin,
     fill_thinner,
+    striped,
     circle,
     circle_outline,
     help,

@@ -4,6 +4,7 @@ use super::*;
 
 use crate::ui::geometry::Geometry;
 
+use ctl_render_core::SubTexture;
 pub use ctl_render_core::{DashRenderOptions, TextRenderOptions};
 
 pub struct UtilRender {
@@ -172,6 +173,45 @@ impl UtilRender {
         // self.geng
         //     .draw2d()
         //     .textured_quad(framebuffer, camera, pos, texture, color);
+    }
+
+    pub fn draw_tiled(
+        &self,
+        pos: Aabb2<f32>,
+        color: Color,
+        texture: &SubTexture,
+        scale: f32,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        let tile_size = texture.size().as_f32() * scale;
+
+        let tiles = crate::util::tile_area_subtexture(texture.uv, tile_size, vec2::ZERO, pos);
+        let tiles = ugli::VertexBuffer::new_dynamic(self.context.geng.ugli(), tiles);
+
+        ugli::draw(
+            framebuffer,
+            &self.context.assets.shaders.texture,
+            ugli::DrawMode::Triangles,
+            &tiles,
+            (
+                ugli::uniforms! {
+                    u_model_matrix: mat3::identity(),
+                    u_color: color,
+                    u_texture: &*texture.texture,
+                },
+                camera.uniforms(framebuffer.size().as_f32()),
+            ),
+            ugli::DrawParameters {
+                blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                ..default()
+            },
+        );
+
+        // self.context
+        //     .geng
+        //     .draw2d()
+        //     .quad(framebuffer, camera, pos, color);
     }
 
     pub fn draw_text(

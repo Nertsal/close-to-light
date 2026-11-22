@@ -544,7 +544,7 @@ pub struct ItemLevelWidget {
     pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
-    pub diffs: Vec<(WidgetState, ThemeColor)>,
+    pub diffs: Vec<(WidgetState, Option<ScoreGrade>)>,
 }
 
 impl ItemLevelWidget {
@@ -608,17 +608,11 @@ impl ItemLevelWidget {
             self.diffs.drain(local_highscores.len()..);
         } else {
             self.diffs.extend(
-                (self.diffs.len()..local_highscores.len())
-                    .map(|_| (WidgetState::new(), ThemeColor::Dark)),
+                (self.diffs.len()..local_highscores.len()).map(|_| (WidgetState::new(), None)),
             );
         }
         for ((_, color), score) in self.diffs.iter_mut().zip(local_highscores) {
-            *color = score.map_or(ThemeColor::Dark, |score| {
-                match score.meta.score.calculate_grade(score.meta.completion) {
-                    ScoreGrade::F => ThemeColor::Danger,
-                    _ => ThemeColor::Highlight,
-                }
-            });
+            *color = score.map(|score| score.meta.score.calculate_grade(score.meta.completion));
         }
     }
 

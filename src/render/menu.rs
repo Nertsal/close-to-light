@@ -1,3 +1,4 @@
+use ctl_render_core::get_pixel_scale;
 use ctl_ui::layout::AreaOps;
 
 use super::{mask::MaskedRender, ui::UiRender, *};
@@ -366,7 +367,7 @@ impl MenuRender {
                     );
                     self.ui.draw_icon(&level.edited, theme, &mut masking.color);
                     self.ui.draw_icon(&level.local, theme, &mut masking.color);
-                    for (diff, color) in &level.diffs {
+                    for (diff, grade) in &level.diffs {
                         let mut pp_quad = |pos: Aabb2<f32>, color| {
                             let size = pos.size().map(|x| {
                                 let mut x = x as usize;
@@ -383,12 +384,39 @@ impl MenuRender {
                                 framebuffer.size().as_f32(),
                             );
                             self.ui.draw_quad(pos, color, &mut masking.color);
+                            pos
                         };
                         pp_quad(diff.position, theme.light);
-                        pp_quad(
+
+                        let tiled_color = match *grade {
+                            Some(ScoreGrade::F) => Some(theme.danger),
+                            Some(g) if g < ScoreGrade::S => Some(theme.highlight),
+                            _ => None,
+                        };
+                        let bg_color = if tiled_color.is_none() {
+                            match *grade {
+                                Some(ScoreGrade::F) => theme.danger,
+                                Some(_) => theme.highlight,
+                                None => theme.dark,
+                            }
+                        } else {
+                            theme.dark
+                        };
+
+                        let inner = pp_quad(
                             diff.position.extend_uniform(-diff.position.height() * 0.2),
-                            theme.get_color(*color),
+                            bg_color,
                         );
+                        if let Some(color) = tiled_color {
+                            self.ui.util.draw_tiled(
+                                inner,
+                                color,
+                                &self.context.assets.atlas.striped(),
+                                get_pixel_scale(framebuffer.size()),
+                                &geng::PixelPerfectCamera,
+                                &mut masking.color,
+                            );
+                        }
                     }
                     self.ui.draw_outline(
                         level.state.position,
