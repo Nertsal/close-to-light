@@ -184,19 +184,28 @@ impl GameRender {
         if !model.level.showcase && !fading {
             let t = (model.switch_time.as_f32() / 3.0).min(1.0);
             // let t = crate::util::smoothstep(t);
-            let color = THEME.light.map_rgb(|x| x * t);
             match model.state {
                 State::Starting { .. } | State::Playing => {}
                 State::Lost { .. } => {
+                    let light = THEME.light.map_rgb(|x| x * t * 0.9);
+                    let danger = THEME.danger.map_rgb(|x| x * 0.05);
                     self.util.draw_text(
                         "DARKNESS ABSORBS YOU",
                         vec2(0.0, 3.5).as_r32(),
-                        TextRenderOptions::new(0.8).color(color),
+                        TextRenderOptions::new(0.85).color(danger),
+                        locked_camera,
+                        &mut framebuffer,
+                    );
+                    self.util.draw_text(
+                        "DARKNESS ABSORBS YOU",
+                        vec2(0.0, 3.5).as_r32(),
+                        TextRenderOptions::new(0.8).color(light),
                         locked_camera,
                         &mut framebuffer,
                     );
                 }
                 State::Finished => {
+                    let color = THEME.light.map_rgb(|x| x * t);
                     self.util.draw_text(
                         "YOU CAUGHT THE LIGHT",
                         vec2(0.0, 3.5).as_r32(),
