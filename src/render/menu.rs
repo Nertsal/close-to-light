@@ -388,30 +388,44 @@ impl MenuRender {
                         };
                         pp_quad(diff.position, theme.light);
 
+                        let atlas = &self.context.assets.atlas;
                         let tiled_color = match *grade {
-                            Some(ScoreGrade::F) => Some(theme.danger),
-                            Some(g) if g < ScoreGrade::S => Some(theme.highlight),
+                            Some(ScoreGrade::F) => Some((theme.danger, atlas.completion_striped())),
+                            Some(g) if g < ScoreGrade::S => {
+                                Some((theme.highlight, atlas.completion_striped()))
+                            }
+                            Some(ScoreGrade::SS) => {
+                                Some((theme.highlight, atlas.completion_plus()))
+                            }
+                            Some(ScoreGrade::SSS) => {
+                                Some((theme.highlight, atlas.completion_plus_plus()))
+                            }
                             _ => None,
                         };
                         let bg_color = if tiled_color.is_none() {
+                            // solid fill
                             match *grade {
                                 Some(ScoreGrade::F) => theme.danger,
                                 Some(_) => theme.highlight,
                                 None => theme.dark,
                             }
                         } else {
-                            theme.dark
+                            // tile background
+                            match *grade {
+                                Some(ScoreGrade::F) => theme.dark,
+                                _ => theme.light,
+                            }
                         };
 
                         let inner = pp_quad(
                             diff.position.extend_uniform(-diff.position.height() * 0.2),
                             bg_color,
                         );
-                        if let Some(color) = tiled_color {
+                        if let Some((color, texture)) = tiled_color {
                             self.ui.util.draw_tiled(
                                 inner,
                                 color,
-                                &self.context.assets.atlas.striped(),
+                                &texture,
                                 get_pixel_scale(framebuffer.size()),
                                 &geng::PixelPerfectCamera,
                                 &mut masking.color,
