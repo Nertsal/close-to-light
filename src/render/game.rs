@@ -1,5 +1,4 @@
 use ctl_render_core::get_pixel_scale;
-use ctl_ui::layout::AreaOps;
 
 use super::{
     dither::DitherRender,
@@ -422,6 +421,12 @@ impl GameRender {
             // Completion bar
             let bar = ui.completion_bar.position;
             let width = self.pixel_size * 1.0;
+            let level_duration = model.level.level.data.last_time();
+            let start_t = model.level.start_time as f32 / level_duration as f32;
+            let end_t = model
+                .level
+                .end_time
+                .map(|t| t as f32 / level_duration as f32);
             let completion_t = model.current_completion().as_f32();
 
             // border
@@ -435,26 +440,46 @@ impl GameRender {
             );
 
             // completed fill
-            let completed_width =
+            let mut start_x = crate::util::lerp(self.pixel_size * 8.0, bar.width(), start_t)
+                - self.pixel_size * 8.0;
+            if start_t > 0.0 {
+                start_x -= self.pixel_size;
+            }
+            let mut completed_x =
                 crate::util::lerp(self.pixel_size * 8.0, bar.width(), completion_t);
+            completed_x = completed_x.max(start_x + self.pixel_size * 8.0);
             self.ui.fill_quad_width(
-                bar.with_width(completed_width, 0.0),
+                Aabb2::from_corners(
+                    vec2(bar.min.x + start_x, bar.min.y),
+                    vec2(bar.min.x + completed_x, bar.max.y),
+                ),
                 width,
                 crate::util::with_alpha(theme.highlight, 0.5),
                 framebuffer,
             );
 
-            // attempt markers
-            let mut tick = |t: R32, color| {
+            // time markers
+            let mut tick = |t: R32, end: bool, color| {
                 let size = vec2(self.pixel_size, bar.height());
-                let pos =
+                let mut pos =
                     bar.min.x + crate::util::lerp(self.pixel_size * 8.0, bar.width(), t.as_f32());
+                if !end {
+                    pos -= self.pixel_size * 8.0;
+                }
                 let mut pos = Aabb2::point(vec2(pos, bar.center().y)).extend_symmetric(size / 2.0);
                 if bar.max.x - pos.max.x < self.pixel_size * 2.0 {
                     pos = pos.translate(vec2(bar.max.x - self.pixel_size * 2.0 - pos.max.x, 0.0));
                 }
                 self.ui.fill_quad_width(pos, width, color, framebuffer);
             };
+            // marker: time started (practice)
+            if start_t > 0.0 {
+                tick(r32(start_t), false, theme.light);
+            }
+            if let Some(end_t) = end_t {
+                tick(r32(end_t), true, theme.light);
+            }
+            // marker: time to end (practice)
             // marker: latest attempt (if failed)
             if let Some(score) = model
                 .leaderboard
@@ -464,11 +489,11 @@ impl GameRender {
                 .max_by_key(|score| score.score.time)
                 && score.score.completion < R32::ONE
             {
-                tick(score.score.completion, theme.danger);
+                tick(score.score.completion, true, theme.danger);
             }
             // marker: highscore
             if let Some(score) = &model.leaderboard.get_loaded().local_high {
-                tick(score.meta.completion, theme.highlight);
+                tick(score.meta.completion, true, theme.highlight);
             }
         }
 
