@@ -9,8 +9,8 @@ EditorConfig(
         fast_speed: 16,
     ),
     theme: EditorTheme(
-        hover: "#9ff",
-        select: "#0ff",
+        hover: "#00a",
+        select: "#00f",
     ),
     shapes: [
         Circle( radius: 1.3 ),

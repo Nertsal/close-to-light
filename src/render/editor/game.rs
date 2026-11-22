@@ -113,14 +113,17 @@ impl EditorRender {
                     base_color
                 };
 
-                let a = Hsva::<f32>::from(base_color);
-                let b = Hsva::<f32>::from(mod_color);
-                Color::from(Hsva {
-                    h: (a.h + b.h) / 2.0,
-                    s: (a.s + b.s) / 2.0,
-                    v: (a.v + b.v) / 2.0,
-                    a: (a.a + b.a) / 2.0,
-                })
+                let t = 0.5;
+                Color::lerp(base_color, mod_color, t)
+                // let a = Hsva::<f32>::from(base_color);
+                // let b = Hsva::<f32>::from(mod_color);
+                // let lerp = crate::util::lerp;
+                // Color::from(Hsva {
+                //     h: lerp(a.h, b.h, t),
+                //     s: lerp(a.s, b.s, t),
+                //     v: lerp(a.v, b.v, t),
+                //     a: lerp(a.a, b.a, t),
+                // })
             } else {
                 active_color
             }
