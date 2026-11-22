@@ -544,7 +544,7 @@ pub struct ItemLevelWidget {
     pub menu: ItemMenuWidget,
     pub text: TextWidget,
     pub index: Index,
-    pub diffs: Vec<(WidgetState, Option<ScoreGrade>)>,
+    pub diffs: Vec<(WidgetState, Option<SavedScore>)>,
 }
 
 impl ItemLevelWidget {
@@ -612,7 +612,7 @@ impl ItemLevelWidget {
             );
         }
         for ((_, color), score) in self.diffs.iter_mut().zip(local_highscores) {
-            *color = score.map(|score| score.meta.score.calculate_grade(score.meta.completion));
+            *color = score.cloned();
         }
     }
 

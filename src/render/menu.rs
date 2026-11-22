@@ -345,6 +345,8 @@ impl MenuRender {
             theme,
             framebuffer,
             |framebuffer| {
+                let pixel_scale = get_pixel_scale(framebuffer.size());
+
                 self.ui.draw_text(&ui.tab_levels, framebuffer);
                 self.ui.draw_text(&ui.tab_diffs, framebuffer);
 
@@ -367,7 +369,10 @@ impl MenuRender {
                     );
                     self.ui.draw_icon(&level.edited, theme, &mut masking.color);
                     self.ui.draw_icon(&level.local, theme, &mut masking.color);
-                    for (diff, grade) in &level.diffs {
+                    for (diff, score) in &level.diffs {
+                        let score = score.as_ref();
+                        let grade = score.map(|score| score.meta.calculate_grade());
+
                         let mut pp_quad = |pos: Aabb2<f32>, color| {
                             let size = pos.size().map(|x| {
                                 let mut x = x as usize;
@@ -386,12 +391,17 @@ impl MenuRender {
                             self.ui.draw_quad(pos, color, &mut masking.color);
                             pos
                         };
-                        pp_quad(diff.position, theme.light);
+
+                        let outline_color = match grade {
+                            Some(ScoreGrade::F) => theme.danger,
+                            _ => theme.light,
+                        };
+                        pp_quad(diff.position, outline_color);
 
                         let atlas = &self.context.assets.atlas;
-                        let tiled_color = match *grade {
+                        let tiled_color = match grade {
                             Some(ScoreGrade::F) => Some((theme.danger, atlas.completion_striped())),
-                            Some(g) if g < ScoreGrade::S => {
+                            Some(ScoreGrade::S) => {
                                 Some((theme.highlight, atlas.completion_striped()))
                             }
                             Some(ScoreGrade::SS) => {
@@ -404,32 +414,52 @@ impl MenuRender {
                         };
                         let bg_color = if tiled_color.is_none() {
                             // solid fill
-                            match *grade {
+                            match grade {
                                 Some(ScoreGrade::F) => theme.danger,
                                 Some(_) => theme.highlight,
                                 None => theme.dark,
                             }
                         } else {
                             // tile background
-                            match *grade {
+                            match grade {
                                 Some(ScoreGrade::F) => theme.dark,
                                 _ => theme.light,
                             }
                         };
 
-                        let inner = pp_quad(
+                        let mut fill = pp_quad(
                             diff.position.extend_uniform(-diff.position.height() * 0.2),
                             bg_color,
                         );
+
                         if let Some((color, texture)) = tiled_color {
                             self.ui.util.draw_tiled(
-                                inner,
+                                fill,
                                 color,
                                 &texture,
-                                get_pixel_scale(framebuffer.size()),
+                                pixel_scale,
                                 &geng::PixelPerfectCamera,
                                 &mut masking.color,
                             );
+                        }
+
+                        if let Some(ScoreGrade::F) = grade {
+                            // render fill partway to show completion
+                            let t = score.map_or(0.0, |score| score.meta.completion.as_f32());
+                            let complete_width = (fill.width() * t)
+                                .min(fill.width() - 4.0 * pixel_scale)
+                                .floor();
+                            if complete_width >= 2.0 * pixel_scale {
+                                let completed = fill.cut_left(complete_width);
+                                self.ui.util.draw_tiled(
+                                    completed,
+                                    theme.highlight,
+                                    &atlas.completion_striped(),
+                                    pixel_scale,
+                                    &geng::PixelPerfectCamera,
+                                    &mut masking.color,
+                                );
+                            }
                         }
                     }
                     self.ui.draw_outline(
