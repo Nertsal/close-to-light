@@ -401,9 +401,12 @@ impl MenuRender {
                         let atlas = &self.context.assets.atlas;
                         let tiled_color = match grade {
                             Some(ScoreGrade::F) => Some((theme.danger, atlas.completion_striped())),
-                            Some(ScoreGrade::S) => {
+                            Some(g) if g < ScoreGrade::S => {
                                 Some((theme.highlight, atlas.completion_striped()))
                             }
+                            // Some(ScoreGrade::S) => {
+                            //     Some((theme.highlight, atlas.completion_striped()))
+                            // }
                             Some(ScoreGrade::SS) => {
                                 Some((theme.highlight, atlas.completion_plus()))
                             }
@@ -423,6 +426,7 @@ impl MenuRender {
                             // tile background
                             match grade {
                                 Some(ScoreGrade::F) => theme.dark,
+                                Some(g) if g < ScoreGrade::S => theme.dark,
                                 _ => theme.light,
                             }
                         };
