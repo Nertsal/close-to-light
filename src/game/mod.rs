@@ -206,9 +206,12 @@ impl geng::State for Game {
         let loss_t = match self.model.state {
             State::Lost { .. } => {
                 let duration = 1.0;
-                (1.0 - (self.model.switch_time.as_f32() / duration - 1.0).abs()).clamp(0.0, 1.0)
+                Some(
+                    (1.0 - (self.model.switch_time.as_f32() / duration - 1.0).abs())
+                        .clamp(0.0, 1.0),
+                )
             }
-            _ => 0.0,
+            _ => None,
         };
 
         // Render just the scanlines effect on the world
@@ -252,7 +255,7 @@ impl geng::State for Game {
                 _ => 1.0,
             };
             spotlight *= transition;
-            spotlight = spotlight.max(loss_t * 0.8);
+            spotlight = spotlight.max(loss_t.map_or(0.0, |t| t * 0.9 + 0.1) * 0.8);
             let mask = match self.model.level.config.modifiers.light {
                 Some(LightMode::Flashlight) => &self.render.cursor_sdf,
                 Some(LightMode::Spotlight) => &self.render.lights_sdf,
@@ -460,7 +463,10 @@ impl geng::State for Game {
 
         // apply red light vignette feedback
         let danger_t = self.model.player.danger_cooldown.unwrap_or(FloatTime::ZERO);
-        let danger_t = (danger_t.as_f32() / 0.25).clamp(0.0, 1.0).max(loss_t);
+        let loss_danger_t = loss_t.map_or(0.0, |t| t * 0.25 + 0.75);
+        let danger_t = (danger_t.as_f32() / 0.25)
+            .clamp(0.0, 1.0)
+            .max(loss_danger_t);
         vfx.vignette_color = Color::lerp(Color::BLACK, theme.danger, danger_t); // red vignette
         vfx.vignette += 0.5 * danger_t;
         vfx.vignette_curve -= 2.0 * danger_t; // makes the vignette flatter so all screen is red
