@@ -107,6 +107,11 @@ impl Controller {
         Ok(groups)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn load_group_zip(&self, path: PathBuf) -> Result<LocalGroup> {
+        native::load_group_from_zip(&self.geng, path).await
+    }
+
     /// Saves group in the local filesystem.
     /// If `save_music` is false, skips writing music to the filesystem.
     pub async fn save_group(&self, group: &CachedGroup, save_music: bool) -> Result<()> {

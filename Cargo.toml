@@ -54,7 +54,7 @@ parry2d = "0.13.5"
 async-executor = "1.8.0"
 base64 = "0.22.1"
 async-compat = "0.2.4"
-rfd = "0.15.3"
+rfd = "0.18.0"
 
 # Local storage
 webbrowser = "1.0.1"

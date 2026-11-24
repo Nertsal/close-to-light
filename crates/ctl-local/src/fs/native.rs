@@ -117,7 +117,7 @@ fn archive_name(path: &Path) -> Option<String> {
     path.file_stem().and_then(|n| n.to_str()).map(String::from)
 }
 
-async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
+pub async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
     let mut archive = std::fs::File::open(&path)
         .map_err(ZipError::from)
         .and_then(ZipArchive::new)?;

@@ -226,6 +226,17 @@ impl MenuState {
             }
         }
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn import_level(&mut self) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("level", &["ctz"])
+            .set_can_create_directories(false)
+            .pick_file()
+        {
+            self.context.local.load_group(path);
+        }
+    }
 }
 
 impl LevelMenu {

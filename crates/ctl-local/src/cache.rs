@@ -32,7 +32,8 @@ pub enum CacheState<T> {
 pub struct CacheTasks {
     client: Option<Arc<Nertboard>>,
 
-    fs: VecDeque<Task<anyhow::Result<()>>>,
+    fs: VecDeque<Task<Result<()>>>,
+    load_group: VecDeque<Task<Result<CachedGroup>>>,
 
     fetch_groups: TaskRes<Vec<LevelSetInfo>>,
     // downloading_groups: HashSet<Id>,
@@ -55,6 +56,8 @@ impl CacheTasks {
             client: client.cloned(),
 
             fs: VecDeque::new(),
+            load_group: VecDeque::new(),
+
             fetch_groups: None,
             // downloading_groups: HashSet::new(),
             download_group: VecDeque::new(),
@@ -67,6 +70,7 @@ impl CacheTasks {
     /// Checks if there are currently any pending tasks.
     fn any(&self) -> bool {
         !self.fs.is_empty()
+            || !self.load_group.is_empty()
             || self.fetch_groups.is_some()
             || !self.download_group.is_empty()
             || self.get_recommended.is_some()
@@ -86,6 +90,17 @@ impl CacheTasks {
                 Err(task) => self.fs.push_front(task),
                 Ok(Err(err)) => error!("File system task failed: {:?}", err),
                 Ok(Ok(())) => {}
+            }
+        } else if let Some(task) = self.load_group.pop_front() {
+            match task.poll() {
+                Err(task) => self.load_group.push_front(task),
+                Ok(Err(err)) => {
+                    error!("Failed to load group: {:?}", err);
+                }
+                Ok(Ok(group)) => {
+                    log::debug!("loaded group from {:?}", group.local.path);
+                    return Some(CacheAction::Group(Box::new(group)));
+                }
             }
         } else if let Some(task) = self.fetch_groups.take() {
             match task.poll() {
@@ -764,5 +779,43 @@ impl LevelCache {
                 self.update_group(group_index, new_group, None);
             }
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_group(&self, path: PathBuf) {
+        let mut inner = self.inner.borrow_mut();
+        if inner
+            .groups
+            .iter()
+            .any(|(_, group)| path == group.local.path)
+        {
+            // Already loaded
+            return;
+        }
+
+        let fs = self.fs.clone();
+
+        let future = {
+            async move {
+                log::debug!("Loading group from {path:?}");
+                let local = fs.load_group_zip(path).await?;
+
+                let group = CachedGroup {
+                    local,
+                    origin: None,
+                };
+
+                // Write to fs
+                if let Err(err) = fs.save_group(&group, true).await {
+                    log::error!("Failed to save group locally: {err:?}");
+                }
+
+                Ok(group)
+            }
+        };
+        inner
+            .tasks
+            .load_group
+            .push_back(Task::new(&self.geng, future));
     }
 }

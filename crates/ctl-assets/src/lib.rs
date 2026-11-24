@@ -159,6 +159,7 @@ ctl_derive::texture_atlas!(pub SpritesAtlas {
     wrench,
     all,
     plus,
+    import,
 
     badge_mapper,
     badge_musician,

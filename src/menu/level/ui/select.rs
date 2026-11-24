@@ -18,6 +18,7 @@ pub struct LevelSelectUI {
     pub tab_filter_custom: ToggleButtonWidget,
     pub tab_filter_all: ToggleButtonWidget,
     pub tab_new: IconButtonWidget,
+    pub tab_import: IconButtonWidget,
     pub tooltip: TextWidget,
 
     pub tab_levels: TextWidget,
@@ -99,6 +100,7 @@ impl LevelSelectUI {
             tab_filter_custom: ToggleButtonWidget::new("").with_icon(assets.atlas.wrench()),
             tab_filter_all: ToggleButtonWidget::new("").with_icon(assets.atlas.all()),
             tab_new: IconButtonWidget::new_normal(assets.atlas.plus()),
+            tab_import: IconButtonWidget::new_normal(assets.atlas.import()),
             tooltip: TextWidget::new("<tooltip>"),
 
             tab_levels: TextWidget::new("Level"),
@@ -146,13 +148,10 @@ impl LevelSelectUI {
             .extend_symmetric(-vec2(0.0, context.layout_size * 0.5));
 
         let mut tooltip = None;
+        let tab_spacing = filter_size.y + context.font_size * 0.5;
         let filter_tabs = Aabb2::point(filter_tabs_area.center())
             .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2))
-            .stack_aligned(
-                vec2(0.0, -filter_size.y - context.font_size * 0.5),
-                3,
-                vec2(0.0, 0.5),
-            );
+            .stack_aligned(vec2(0.0, -tab_spacing), 3, vec2(0.0, 0.5));
         let bottom_tab = filter_tabs.last().map_or(filter_tabs_area.center(), |pos| {
             pos.align_pos(vec2(0.5, 0.5))
         });
@@ -187,7 +186,7 @@ impl LevelSelectUI {
             }
         }
 
-        // Plus
+        // Create level
         let plus = Aabb2::point(bottom_tab - vec2(0.0, 2.0) * context.font_size)
             .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2));
         self.tab_new.update(plus, context);
@@ -204,6 +203,27 @@ impl LevelSelectUI {
                 "Create",
                 ThemeColor::Highlight,
                 "Cancel",
+            );
+        }
+
+        // Import level
+        let import = Aabb2::point(bottom_tab - vec2(0.0, 2.0 * context.font_size + tab_spacing))
+            .extend_symmetric(filter_size / 2.0 + vec2::splat(context.font_size * 0.2));
+        self.tab_import.update(import, context);
+        if self.tab_import.icon.state.hovered {
+            tooltip = Some((self.tab_import.icon.state.position, "Import Level"));
+        }
+        if self.tab_import.icon.state.mouse_left.clicked {
+            #[cfg(not(target_arch = "wasm32"))]
+            state.import_level();
+            #[cfg(target_arch = "wasm32")]
+            state.popup_confirm_custom(
+                ConfirmAction::Noop,
+                "Oops!",
+                "Importing levels is not supported on web",
+                "Ok",
+                ThemeColor::Light,
+                "Fine",
             );
         }
 
