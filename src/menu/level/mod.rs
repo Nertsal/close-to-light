@@ -230,11 +230,11 @@ impl MenuState {
     #[cfg(not(target_arch = "wasm32"))]
     fn import_level(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("level", &["ctz"])
+            .add_filter("ctz (level)", &["ctz"])
             .set_can_create_directories(false)
             .pick_file()
         {
-            self.context.local.load_group(path);
+            self.context.local.load_group(path, true);
         }
     }
 }

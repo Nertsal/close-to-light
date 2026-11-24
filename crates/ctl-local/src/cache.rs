@@ -345,7 +345,7 @@ impl LevelCache {
 
         // Generate a non-occupied path
         let path = loop {
-            let path = fs::generate_group_path(0);
+            let path = fs::generate_group_path(0, None);
             if !inner
                 .groups
                 .iter()
@@ -462,7 +462,7 @@ impl LevelCache {
 
                     let mut group = CachedGroup {
                         local: LocalGroup {
-                            path: fs::generate_group_path(info.id),
+                            path: fs::generate_group_path(info.id, None),
                             loaded_from_assets: false,
                             meta: info.clone(),
                             music: Some(music),
@@ -499,7 +499,7 @@ impl LevelCache {
                         .as_ref()
                         .map_or(&group.local.meta.owner.name, |music| &music.meta.name);
                     inner.notifications.push(format!(
-                        "Downloaded level {} - {}",
+                        "Loaded level {} - {}",
                         name, group.local.meta.owner.name
                     ));
 
@@ -568,7 +568,7 @@ impl LevelCache {
             new_group.local.meta.id != cached.local.meta.id && new_group.local.meta.id == 0;
         // || move_from_assets
         if move_to_local {
-            new_group.local.path = fs::generate_group_path(new_group.local.meta.id);
+            new_group.local.path = fs::generate_group_path(new_group.local.meta.id, None);
         }
 
         let group = Rc::new(new_group);
@@ -782,7 +782,7 @@ impl LevelCache {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn load_group(&self, path: PathBuf) {
+    pub fn load_group(&self, path: PathBuf, move_to_local: bool) {
         let mut inner = self.inner.borrow_mut();
         if inner
             .groups
@@ -798,7 +798,7 @@ impl LevelCache {
         let future = {
             async move {
                 log::debug!("Loading group from {path:?}");
-                let local = fs.load_group_zip(path).await?;
+                let local = fs.load_group_zip(path, move_to_local).await?;
 
                 let group = CachedGroup {
                     local,

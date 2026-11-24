@@ -75,7 +75,7 @@ async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<Loca
         async move {
             match LevelFormat::detect(&path) {
                 Some(LevelFormat::Folder) => load_group_from_dir(geng, path).await,
-                Some(LevelFormat::Zip) => load_group_from_zip(geng, path).await,
+                Some(LevelFormat::Zip) => load_group_from_zip(geng, path, false).await,
                 None => Err(anyhow::anyhow!("Unrecognized level format at: {path:?}")),
             }
         }
@@ -113,16 +113,35 @@ async fn load_group_from_dir(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
     load_group_with(geng, path.clone(), extract_file).await
 }
 
-fn archive_name(path: &Path) -> Option<String> {
+fn archive_name(path: &Path, archive: Option<&ZipArchive<std::fs::File>>) -> Option<String> {
+    if let Some(archive) = archive
+        && let Some(name) = archive.file_names().find_map(|file| {
+            file.ends_with("/")
+                .then(|| {
+                    let as_path = std::path::PathBuf::from(file);
+                    as_path.file_name().map(|n| n.to_owned())
+                })
+                .flatten()
+        })
+        && let Some(name) = name.to_str()
+    {
+        // the archive is a directory - use the name of that directory
+        log::debug!("extracted archive name of {:?}: {:?}", path, name);
+        return Some(name.to_owned());
+    }
     path.file_stem().and_then(|n| n.to_str()).map(String::from)
 }
 
-pub async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
+pub async fn load_group_from_zip(
+    geng: &Geng,
+    path: PathBuf,
+    move_to_local: bool,
+) -> Result<LocalGroup> {
     let mut archive = std::fs::File::open(&path)
         .map_err(ZipError::from)
         .and_then(ZipArchive::new)?;
 
-    let archive_name = archive_name(&path);
+    let archive_name = archive_name(&path, Some(&archive));
     let extract_file = |name: &str| -> Result<Vec<u8>> {
         let by_name = if let Some(archive) = &archive_name {
             format!("{}/{}", archive, name)
@@ -142,7 +161,11 @@ pub async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGrou
             .with_context(|| format!("when reading file {:?}", name))?;
         Ok(buf)
     };
-    load_group_with(geng, path, extract_file).await
+    let mut group = load_group_with(geng, path, extract_file).await?;
+    if move_to_local {
+        group.path = generate_group_path(0, group.path.file_stem().and_then(|name| name.to_str()));
+    }
+    Ok(group)
 }
 
 async fn load_group_with(
@@ -244,8 +267,8 @@ impl LevelWriterZip {
             std::fs::create_dir_all(parent)?;
         }
 
-        let archive_name =
-            archive_name(path).ok_or_else(|| anyhow::anyhow!("Could not detect archive name"))?;
+        let archive_name = archive_name(path, None)
+            .ok_or_else(|| anyhow::anyhow!("Could not detect archive name"))?;
 
         let target_path = path.to_owned();
         let temp_path = path.with_file_name(format!("{archive_name}_tmp"));

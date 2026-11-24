@@ -108,8 +108,8 @@ impl Controller {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub async fn load_group_zip(&self, path: PathBuf) -> Result<LocalGroup> {
-        native::load_group_from_zip(&self.geng, path).await
+    pub async fn load_group_zip(&self, path: PathBuf, move_to_local: bool) -> Result<LocalGroup> {
+        native::load_group_from_zip(&self.geng, path, move_to_local).await
     }
 
     /// Saves group in the local filesystem.
@@ -276,9 +276,18 @@ pub fn all_groups_path() -> PathBuf {
     base_path().join("levels")
 }
 
-pub fn generate_group_path(group: Id) -> PathBuf {
+pub fn generate_group_path(group: Id, name: Option<&str>) -> PathBuf {
     let base_path = all_groups_path();
-    if group == 0 {
+    if let Some(name) = name {
+        // use the name (find unoccupied version)
+        let mut path = base_path.join(format!("{name}.ctz"));
+        let mut i = 0;
+        while path.exists() {
+            i += 1;
+            path = base_path.join(format!("{name} ({i}).ctz"));
+        }
+        path
+    } else if group == 0 {
         // Generate a random string until it is available
         let mut rng = rand::thread_rng();
         loop {
