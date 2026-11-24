@@ -161,9 +161,12 @@ pub async fn load_group_from_zip(
             .with_context(|| format!("when reading file {:?}", name))?;
         Ok(buf)
     };
-    let mut group = load_group_with(geng, path, extract_file).await?;
+    let mut group = load_group_with(geng, path.clone(), extract_file).await?;
     if move_to_local {
-        group.path = generate_group_path(0, group.path.file_stem().and_then(|name| name.to_str()));
+        group.path = generate_group_path(0, path.file_stem().and_then(|name| name.to_str()));
+        if let Err(err) = std::fs::remove_file(&path) {
+            log::error!("Failed to remove imported file: {:?}", err);
+        }
     }
     Ok(group)
 }
