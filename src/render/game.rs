@@ -254,8 +254,13 @@ impl GameRender {
                     theme.get_color(options.graphics.lights.telegraph_color)
                 };
                 color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness(0.0));
-                self.util
-                    .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+                self.util.draw_telegraph(
+                    &tele.light.collider,
+                    options.graphics.lights.telegraph_width,
+                    color,
+                    camera,
+                    &mut framebuffer,
+                );
             }
             // Waypoints
             // TODO: config

@@ -16,6 +16,7 @@ const RANGE_BLUE: RangeInclusive<f32> = 0.5..=1.0;
 const RANGE_BRIGHTNESS: RangeInclusive<f32> = 0.25..=1.0;
 const RANGE_SATURATION: RangeInclusive<f32> = 0.0..=1.0;
 const RANGE_TELEGRAPH_BRIGHTNESS: RangeInclusive<f32> = 0.25..=1.0;
+const RANGE_TELEGRAPH_WIDTH: RangeInclusive<f32> = 0.02..=0.2;
 const RANGE_INNER_RADIUS: RangeInclusive<f32> = 0.1..=0.5;
 const RANGE_OUTER_RADIUS: RangeInclusive<f32> = 0.05..=0.5;
 
@@ -301,6 +302,7 @@ pub struct GraphicsWidget {
     pub saturation: SliderWidget,
     pub telegraph_color: ColorSelectWidget,
     pub telegraph_brightness: SliderWidget,
+    pub telegraph_width: SliderWidget,
     pub perfect_color: ColorSelectWidget,
 }
 
@@ -320,6 +322,7 @@ impl GraphicsWidget {
                 [ThemeColor::Light, ThemeColor::Highlight],
             ),
             telegraph_brightness: SliderWidget::new("Telegraph brightness").with_precision(0),
+            telegraph_width: SliderWidget::new("Telegraph width").with_precision(0),
             perfect_color: ColorSelectWidget::new(
                 "Perfect color",
                 [ThemeColor::Light, ThemeColor::Highlight],
@@ -403,6 +406,12 @@ impl StatefulWidget for GraphicsWidget {
             context,
             &mut state.lights.telegraph_brightness,
             RANGE_TELEGRAPH_BRIGHTNESS,
+        );
+        self.telegraph_width.update_value_percent(
+            next_row(),
+            context,
+            &mut state.lights.telegraph_width,
+            RANGE_TELEGRAPH_WIDTH,
         );
         self.perfect_color
             .update(next_row(), context, &mut state.lights.perfect_color);

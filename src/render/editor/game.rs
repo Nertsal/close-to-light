@@ -11,7 +11,8 @@ impl EditorRender {
         post_vfx: PostVfx,
     ) {
         let options = &editor.render_options;
-        let mut theme = editor.context.get_options().theme;
+        let global_options = editor.context.get_options();
+        let mut theme = global_options.theme;
 
         // Palette swap vfx
         if editor.preview_vfx
@@ -148,9 +149,9 @@ impl EditorRender {
                 x * ctl_assets::GraphicsLightsOptions::default()
                     .telegraph_brightness(level_editor.model.vfx.palette_swap.current.as_f32())
             }); // telegraph brightness
-            self.util.draw_outline(
+            self.util.draw_telegraph(
                 &tele.light.collider,
-                0.02,
+                global_options.graphics.lights.telegraph_width,
                 color,
                 &level_editor.model.camera,
                 framebuffer,

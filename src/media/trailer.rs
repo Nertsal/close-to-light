@@ -231,9 +231,9 @@ impl geng::State for TrailerState {
                     } else {
                         THEME.get_color(options.graphics.lights.telegraph_color)
                     };
-                    self.util_render.draw_outline(
+                    self.util_render.draw_telegraph(
                         &tele.light.collider,
-                        0.05,
+                        options.graphics.lights.telegraph_width,
                         color,
                         &model.camera,
                         &mut dither_buffer,

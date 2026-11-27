@@ -951,6 +951,7 @@ impl UiRender {
                     self.draw_slider(&graphics.saturation, theme, framebuffer);
                     self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
                     self.draw_slider(&graphics.telegraph_brightness, theme, framebuffer);
+                    self.draw_slider(&graphics.telegraph_width, theme, framebuffer);
                     self.draw_color_select(&graphics.perfect_color, theme, framebuffer);
                 }
 
@@ -983,6 +984,8 @@ impl UiRender {
             Some(ui.options.graphics.telegraph_color.state.position)
         } else if ui.options.graphics.telegraph_brightness.state.hovered {
             Some(ui.options.graphics.telegraph_brightness.state.position)
+        } else if ui.options.graphics.telegraph_width.state.hovered {
+            Some(ui.options.graphics.telegraph_width.state.position)
         } else if ui.options.graphics.perfect_color.state.hovered {
             Some(ui.options.graphics.perfect_color.state.position)
         } else {
@@ -1121,8 +1124,13 @@ impl UiRender {
                 theme.get_color(options.graphics.lights.telegraph_color)
             };
             color = color.map_rgb(|x| x * options.graphics.lights.telegraph_brightness);
-            self.util
-                .draw_outline(&tele.light.collider, 0.05, color, camera, &mut framebuffer);
+            self.util.draw_telegraph(
+                &tele.light.collider,
+                options.graphics.lights.telegraph_width,
+                color,
+                camera,
+                &mut framebuffer,
+            );
         }
     }
 

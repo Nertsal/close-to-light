@@ -355,6 +355,23 @@ impl UtilRender {
         );
     }
 
+    pub fn draw_telegraph(
+        &self,
+        collider: &Collider,
+        width_multiplier: f32,
+        color: Rgba<f32>,
+        camera: &impl geng::AbstractCamera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
+        self.draw_outline(
+            collider,
+            width_multiplier.clamp(0.01, 0.5),
+            color,
+            camera,
+            framebuffer,
+        );
+    }
+
     pub fn draw_level_sdf(
         &self,
         level_state: &LevelState,
