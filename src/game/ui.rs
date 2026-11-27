@@ -9,6 +9,7 @@ pub struct GameUI {
     pub leaderboard: LeaderboardWidget,
     pub score: ScoreWidget,
     pub pause: PauseWidget,
+    pub level_duration: TextWidget,
     pub completion_bar: WidgetState,
 
     pub restart: IconWidget,
@@ -29,6 +30,7 @@ impl GameUI {
             leaderboard,
             score: ScoreWidget::new(assets),
             pause: PauseWidget::new(),
+            level_duration: TextWidget::new("00:00").aligned(vec2(1.0, 0.0)),
             completion_bar: WidgetState::new(),
 
             restart: IconWidget::new(assets.atlas.circle_outline()).colored(ThemeColor::Danger),
@@ -65,6 +67,16 @@ impl GameUI {
                 )
                 .translate(vec2(0.0, context.pixel_size * 4.0));
             self.completion_bar.update(pos, context);
+
+            // Level duration
+            let pos = Aabb2::point(pos.top_right() + vec2(-1.0, 2.0) * context.pixel_size)
+                .extend_up(0.75 * context.font_size)
+                .extend_left(5.0 * context.font_size);
+            self.level_duration.update(pos, context);
+            let duration = time_to_seconds(model.level.level.data.last_time()).as_f32();
+            let m = (duration / 60.0).floor();
+            let s = (duration - m * 60.0).floor();
+            self.level_duration.text = format!("{:02}:{:02}", m, s).into();
         }
 
         {

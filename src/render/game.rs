@@ -504,6 +504,18 @@ impl GameRender {
             if let Some(score) = &model.leaderboard.get_loaded().local_high {
                 tick(score.meta.completion, true, theme.highlight);
             }
+
+            // Level duration
+            let t = match model.state {
+                State::Starting { .. } => 1.0,
+                State::Playing => 1.0 - model.play_time.as_f32(),
+                State::Lost { .. } => 0.0,
+                State::Finished => 0.0,
+            };
+            let t = t.clamp(0.0, 1.0);
+            let color = crate::util::with_alpha(theme.light, t);
+            self.ui
+                .draw_text_colored(&ui.level_duration, color, framebuffer);
         }
 
         if !model.level.showcase {
