@@ -15,6 +15,9 @@ pub struct LevelCache {
 pub struct LevelCacheImpl {
     tasks: CacheTasks,
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fs_watcher: Option<fs::native::LevelsWatcher>,
+
     /// List of downloadable level groups.
     pub group_list: CacheState<Vec<LevelSetInfo>>,
 
@@ -85,6 +88,7 @@ impl CacheTasks {
             }}
         }
 
+        // poll tasks in progress
         if let Some(task) = self.fs.pop_front() {
             match task.poll() {
                 Err(task) => self.fs.push_front(task),
@@ -144,6 +148,15 @@ impl LevelCache {
     pub async fn new(client: Option<&Arc<Nertboard>>, fs: Rc<fs::Controller>, geng: &Geng) -> Self {
         let inner = LevelCacheImpl {
             tasks: CacheTasks::new(client),
+
+            #[cfg(not(target_arch = "wasm32"))]
+            fs_watcher: match fs::native::LevelsWatcher::new() {
+                Ok(w) => Some(w),
+                Err(err) => {
+                    log::error!("Failed to initialize levels watcher: {:?}", err);
+                    None
+                }
+            },
 
             group_list: CacheState::Offline,
 
@@ -488,28 +501,71 @@ impl LevelCache {
     }
 
     pub fn poll(&self) {
-        let mut inner = self.inner.borrow_mut();
-        if let Some(action) = inner.tasks.poll() {
-            match action {
-                CacheAction::GroupList(groups) => inner.group_list = CacheState::Loaded(groups),
-                CacheAction::Group(group) => {
-                    let name = group
-                        .local
-                        .music
-                        .as_ref()
-                        .map_or(&group.local.meta.owner.name, |music| &music.meta.name);
-                    inner.notifications.push(format!(
-                        "Loaded level {} - {}",
-                        name, group.local.meta.owner.name
-                    ));
+        // poll tasks
+        {
+            let mut inner = self.inner.borrow_mut();
+            if let Some(action) = inner.tasks.poll() {
+                match action {
+                    CacheAction::GroupList(groups) => inner.group_list = CacheState::Loaded(groups),
+                    CacheAction::Group(group) => {
+                        let name = group
+                            .local
+                            .music
+                            .as_ref()
+                            .map_or(&group.local.meta.owner.name, |music| &music.meta.name);
+                        inner.notifications.push(format!("Loaded level {}", name));
 
-                    inner.groups.insert(Rc::new(*group));
+                        inner.groups.insert(Rc::new(*group));
+                    }
+                    #[cfg(feature = "online")]
+                    CacheAction::DownloadGroups(ids) => {
+                        drop(inner);
+                        for group_id in ids {
+                            self.download_group(group_id);
+                        }
+                    }
                 }
-                #[cfg(feature = "online")]
-                CacheAction::DownloadGroups(ids) => {
-                    drop(inner);
-                    for group_id in ids {
-                        self.download_group(group_id);
+            }
+        }
+
+        // check levels watcher
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let mut inner = self.inner.borrow_mut();
+            if let Some(watcher) = &mut inner.fs_watcher {
+                let removed = watcher.take_removed();
+                let reloaded = watcher.take_reloaded().into_iter().collect::<HashSet<_>>();
+
+                // remove levels
+                if !removed.is_empty() || !reloaded.is_empty() {
+                    log::debug!("Level watcher noticed removed files: {:?}", removed);
+                    let mut notifications = Vec::new();
+                    inner.groups.retain(|_idx, cached| {
+                        let f = !cached.local.path.exists()
+                            && (removed.contains(&cached.local.path)
+                                || reloaded.contains(&cached.local.path));
+                        if f {
+                            let name = cached
+                                .local
+                                .music
+                                .as_ref()
+                                .map_or(&cached.local.meta.owner.name, |music| &music.meta.name);
+                            notifications.push(format!("Removed level {}", name));
+                        }
+                        !f
+                    });
+                    inner.notifications.extend(notifications);
+                }
+                drop(inner);
+                // load new/changed levels
+                if !reloaded.is_empty() {
+                    log::debug!("Level watcher noticed new/changed files: {:?}", reloaded);
+                }
+                for reload_path in reloaded {
+                    if reload_path.exists()
+                        && fs::native::LevelFormat::detect(&reload_path).is_some()
+                    {
+                        self.load_group(reload_path, false);
                     }
                 }
             }
@@ -798,16 +854,24 @@ impl LevelCache {
         let future = {
             async move {
                 log::debug!("Loading group from {path:?}");
-                let local = fs.load_group_zip(path, move_to_local).await?;
+                let local = fs.load_group(path.clone()).await?;
 
-                let group = CachedGroup {
+                let mut group = CachedGroup {
                     local,
                     origin: None,
                 };
 
                 // Write to fs
-                if let Err(err) = fs.save_group(&group, true).await {
-                    log::error!("Failed to save group locally: {err:?}");
+                if move_to_local {
+                    group.local.path =
+                        fs::generate_group_path(0, path.file_stem().and_then(|name| name.to_str()));
+                    if let Err(err) = std::fs::remove_file(&path) {
+                        log::error!("Failed to remove imported file: {:?}", err);
+                    }
+
+                    if let Err(err) = fs.save_group(&group, true).await {
+                        log::error!("Failed to save group locally: {err:?}");
+                    }
                 }
 
                 Ok(group)

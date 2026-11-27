@@ -1,5 +1,5 @@
 #[cfg(not(target_arch = "wasm32"))]
-mod native;
+pub mod native;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
@@ -108,8 +108,8 @@ impl Controller {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub async fn load_group_zip(&self, path: PathBuf, move_to_local: bool) -> Result<LocalGroup> {
-        native::load_group_from_zip(&self.geng, path, move_to_local).await
+    pub async fn load_group(&self, path: PathBuf) -> Result<LocalGroup> {
+        native::load_group_from(&self.geng, path).await
     }
 
     /// Saves group in the local filesystem.

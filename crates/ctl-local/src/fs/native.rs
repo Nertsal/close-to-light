@@ -2,6 +2,72 @@ use super::*;
 
 use zip::{ZipArchive, ZipWriter, result::ZipError, write::SimpleFileOptions};
 
+pub struct LevelsWatcher {
+    #[allow(dead_code)] // This is here for delaying the drop of the watcher
+    watcher: notify::INotifyWatcher,
+    need_reload: Arc<Mutex<Vec<PathBuf>>>,
+    need_remove: Arc<Mutex<Vec<PathBuf>>>,
+}
+
+impl LevelsWatcher {
+    pub fn new() -> Result<Self> {
+        use notify::Watcher;
+
+        let watch_path = fs::all_groups_path();
+
+        let need_reload = Arc::new(Mutex::new(Vec::new()));
+        let need_remove = Arc::new(Mutex::new(Vec::new()));
+
+        log::info!("Setting up levels watcher at {watch_path:?}");
+        let watcher = {
+            let need_reload = Arc::clone(&need_reload);
+            let need_remove = Arc::clone(&need_remove);
+            let mut watcher =
+                notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
+                    let Ok(event) = event else { return };
+                    if event.kind.is_create() || event.kind.is_modify() {
+                        // NOTE: in case of renaming, only the last path is relevant
+                        if let Some(path) = event.paths.into_iter().next_back()
+                            && let Ok(mut lock) = need_reload.lock()
+                        {
+                            lock.push(path);
+                        }
+                    } else if event.kind.is_remove()
+                        && let Ok(mut lock) = need_remove.lock()
+                    {
+                        for path in &event.paths {
+                            lock.push(path.clone());
+                        }
+                    }
+                })?;
+            watcher
+                .watch(&watch_path, notify::RecursiveMode::NonRecursive)
+                .unwrap();
+            watcher
+        };
+
+        Ok(Self {
+            watcher,
+            need_reload,
+            need_remove,
+        })
+    }
+
+    pub fn take_removed(&mut self) -> Vec<PathBuf> {
+        let Ok(mut lock) = self.need_remove.lock() else {
+            return vec![];
+        };
+        std::mem::take(&mut *lock)
+    }
+
+    pub fn take_reloaded(&mut self) -> Vec<PathBuf> {
+        let Ok(mut lock) = self.need_reload.lock() else {
+            return vec![];
+        };
+        std::mem::take(&mut *lock)
+    }
+}
+
 pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
     let mut groups = load_groups_from(geng, &fs::all_groups_path()).await?;
     if cfg!(debug_assertions) || cfg!(feature = "dev") {
@@ -34,7 +100,7 @@ pub async fn load_groups_all(geng: &Geng) -> Result<Vec<LocalGroup>> {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum LevelFormat {
+pub enum LevelFormat {
     Folder,
     Zip,
 }
@@ -70,18 +136,7 @@ async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<Loca
         .flatten()
         .collect();
 
-    let load_group = |path: PathBuf| async move {
-        let context = format!("when loading {path:?}");
-        async move {
-            match LevelFormat::detect(&path) {
-                Some(LevelFormat::Folder) => load_group_from_dir(geng, path).await,
-                Some(LevelFormat::Zip) => load_group_from_zip(geng, path, false).await,
-                None => Err(anyhow::anyhow!("Unrecognized level format at: {path:?}")),
-            }
-        }
-        .await
-        .with_context(|| context)
-    };
+    let load_group = |path: PathBuf| load_group_from(geng, path);
 
     let group_loaders = paths.into_iter().map(load_group);
     let groups = future::join_all(group_loaders).await;
@@ -99,7 +154,20 @@ async fn load_groups_from(geng: &Geng, groups_path: &PathBuf) -> Result<Vec<Loca
     Ok(res)
 }
 
-async fn load_group_from_dir(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
+pub async fn load_group_from(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
+    let context = format!("when loading {path:?}");
+    async move {
+        match LevelFormat::detect(&path) {
+            Some(LevelFormat::Folder) => load_group_from_dir(geng, path).await,
+            Some(LevelFormat::Zip) => load_group_from_zip(geng, path).await,
+            None => Err(anyhow::anyhow!("Unrecognized level format at: {path:?}")),
+        }
+    }
+    .await
+    .with_context(|| context)
+}
+
+pub async fn load_group_from_dir(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
     let extract_file = |name: &str| -> Result<Vec<u8>> {
         let file = std::fs::File::open(path.join(name))
             .with_context(|| format!("when looking for {:?}", name))?;
@@ -132,11 +200,7 @@ fn archive_name(path: &Path, archive: Option<&ZipArchive<std::fs::File>>) -> Opt
     path.file_stem().and_then(|n| n.to_str()).map(String::from)
 }
 
-pub async fn load_group_from_zip(
-    geng: &Geng,
-    path: PathBuf,
-    move_to_local: bool,
-) -> Result<LocalGroup> {
+pub async fn load_group_from_zip(geng: &Geng, path: PathBuf) -> Result<LocalGroup> {
     let mut archive = std::fs::File::open(&path)
         .map_err(ZipError::from)
         .and_then(ZipArchive::new)?;
@@ -161,13 +225,7 @@ pub async fn load_group_from_zip(
             .with_context(|| format!("when reading file {:?}", name))?;
         Ok(buf)
     };
-    let mut group = load_group_with(geng, path.clone(), extract_file).await?;
-    if move_to_local {
-        group.path = generate_group_path(0, path.file_stem().and_then(|name| name.to_str()));
-        if let Err(err) = std::fs::remove_file(&path) {
-            log::error!("Failed to remove imported file: {:?}", err);
-        }
-    }
+    let group = load_group_with(geng, path.clone(), extract_file).await?;
     Ok(group)
 }
 
