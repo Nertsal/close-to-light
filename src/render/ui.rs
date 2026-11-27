@@ -945,27 +945,101 @@ impl UiRender {
                     self.draw_text(&graphics.title, framebuffer);
                     self.draw_toggle_widget(&graphics.fullscreen, theme, framebuffer);
                     self.draw_toggle_widget(&graphics.vsync, theme, framebuffer);
-                    self.draw_toggle_widget(&graphics.crt, theme, framebuffer);
-                    self.draw_slider(&graphics.brightness, theme, framebuffer);
-                    self.draw_slider(&graphics.blue, theme, framebuffer);
-                    self.draw_slider(&graphics.saturation, theme, framebuffer);
-                    self.draw_color_select(&graphics.telegraph_color, theme, framebuffer);
-                    self.draw_slider(&graphics.telegraph_brightness, theme, framebuffer);
-                    self.draw_slider(&graphics.telegraph_width, theme, framebuffer);
-                    self.draw_color_select(&graphics.perfect_color, theme, framebuffer);
+
+                    if graphics.crt.state.visible {
+                        self.draw_icon_button(&graphics.crt.reset, theme, framebuffer);
+                        self.draw_toggle_widget(&graphics.crt.inner, theme, framebuffer);
+                    }
+                    if graphics.brightness.state.visible {
+                        self.draw_icon_button(&graphics.brightness.reset, theme, framebuffer);
+                        self.draw_slider(&graphics.brightness.inner, theme, framebuffer);
+                    }
+                    if graphics.blue.state.visible {
+                        self.draw_icon_button(&graphics.blue.reset, theme, framebuffer);
+                        self.draw_slider(&graphics.blue.inner, theme, framebuffer);
+                    }
+                    if graphics.saturation.state.visible {
+                        self.draw_icon_button(&graphics.saturation.reset, theme, framebuffer);
+                        self.draw_slider(&graphics.saturation.inner, theme, framebuffer);
+                    }
+                    if graphics.telegraph_color.state.visible {
+                        self.draw_icon_button(&graphics.telegraph_color.reset, theme, framebuffer);
+                        self.draw_color_select(&graphics.telegraph_color.inner, theme, framebuffer);
+                    }
+                    if graphics.telegraph_brightness.state.visible {
+                        self.draw_icon_button(
+                            &graphics.telegraph_brightness.reset,
+                            theme,
+                            framebuffer,
+                        );
+                        self.draw_slider(&graphics.telegraph_brightness.inner, theme, framebuffer);
+                    }
+                    if graphics.telegraph_width.state.visible {
+                        self.draw_icon_button(&graphics.telegraph_width.reset, theme, framebuffer);
+                        self.draw_slider(&graphics.telegraph_width.inner, theme, framebuffer);
+                    }
+                    if graphics.perfect_color.state.visible {
+                        self.draw_icon_button(&graphics.perfect_color.reset, theme, framebuffer);
+                        self.draw_color_select(&graphics.perfect_color.inner, theme, framebuffer);
+                    }
                 }
 
                 {
                     // Cursor
                     let cursor = &ui.options.cursor;
                     self.draw_text(&cursor.title, framebuffer);
-                    self.draw_toggle_widget(&cursor.show_trail, theme, framebuffer);
-                    self.draw_slider(&cursor.inner_radius, theme, framebuffer);
-                    self.draw_toggle_widget(&cursor.show_perfect_radius, theme, framebuffer);
-                    self.draw_slider(&cursor.outer_radius, theme, framebuffer);
-                    self.draw_color_select(&cursor.outer_color, theme, framebuffer);
-                    self.draw_toggle_widget(&cursor.show_rhythm_circles, theme, framebuffer);
-                    self.draw_toggle_widget(&cursor.show_rhythm_only_miss, theme, framebuffer);
+                    if cursor.show_trail.state.visible {
+                        self.draw_icon_button(&cursor.show_trail.reset, theme, framebuffer);
+                        self.draw_toggle_widget(&cursor.show_trail.inner, theme, framebuffer);
+                    }
+                    if cursor.inner_radius.state.visible {
+                        self.draw_icon_button(&cursor.inner_radius.reset, theme, framebuffer);
+                        self.draw_slider(&cursor.inner_radius.inner, theme, framebuffer);
+                    }
+                    if cursor.show_perfect_radius.state.visible {
+                        self.draw_icon_button(
+                            &cursor.show_perfect_radius.reset,
+                            theme,
+                            framebuffer,
+                        );
+                        self.draw_toggle_widget(
+                            &cursor.show_perfect_radius.inner,
+                            theme,
+                            framebuffer,
+                        );
+                    }
+                    if cursor.outer_radius.state.visible {
+                        self.draw_icon_button(&cursor.outer_radius.reset, theme, framebuffer);
+                        self.draw_slider(&cursor.outer_radius.inner, theme, framebuffer);
+                    }
+                    if cursor.outer_color.state.visible {
+                        self.draw_icon_button(&cursor.outer_color.reset, theme, framebuffer);
+                        self.draw_color_select(&cursor.outer_color.inner, theme, framebuffer);
+                    }
+                    if cursor.show_rhythm_circles.state.visible {
+                        self.draw_icon_button(
+                            &cursor.show_rhythm_circles.reset,
+                            theme,
+                            framebuffer,
+                        );
+                        self.draw_toggle_widget(
+                            &cursor.show_rhythm_circles.inner,
+                            theme,
+                            framebuffer,
+                        );
+                    }
+                    if cursor.show_rhythm_only_miss.state.visible {
+                        self.draw_icon_button(
+                            &cursor.show_rhythm_only_miss.reset,
+                            theme,
+                            framebuffer,
+                        );
+                        self.draw_toggle_widget(
+                            &cursor.show_rhythm_only_miss.inner,
+                            theme,
+                            framebuffer,
+                        );
+                    }
                 }
 
                 // Scrollbar

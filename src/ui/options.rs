@@ -7,6 +7,7 @@ use crate::{
 };
 
 use ctl_assets::{CursorOptions, GameplayOptions, GraphicsOptions};
+use ctl_render_core::SubTexture;
 use ctl_ui::util::ScrollState;
 use geng_utils::bounded::Bounded;
 
@@ -134,8 +135,8 @@ impl OptionsWidget {
             separator: WidgetState::new(),
             volume: VolumeWidget::new(),
             palette: PaletteChooseWidget::new(palettes),
-            graphics: GraphicsWidget::new(),
-            cursor: CursorWidget::new(),
+            graphics: GraphicsWidget::new(assets),
+            cursor: CursorWidget::new(assets),
             gameplay: GameplayWidget::new(),
         }
     }
@@ -291,41 +292,125 @@ impl StatefulWidget for VolumeWidget {
     }
 }
 
+pub trait ResetWidget {
+    type ValueType: Clone + PartialEq;
+}
+
+impl ResetWidget for ToggleWidget {
+    type ValueType = bool;
+}
+
+impl ResetWidget for SliderWidget {
+    type ValueType = f32;
+}
+
+impl ResetWidget for ColorSelectWidget {
+    type ValueType = ThemeColor;
+}
+
+pub struct WithReset<T: ResetWidget> {
+    pub reset_value: T::ValueType,
+    pub state: WidgetState,
+    pub inner: T,
+    pub reset: IconButtonWidget,
+}
+
+impl<T: ResetWidget> WithReset<T> {
+    pub fn new(inner: T, reset_value: T::ValueType, reset_icon: &SubTexture) -> Self {
+        Self {
+            reset_value,
+            state: WidgetState::new(),
+            inner,
+            reset: IconButtonWidget::new_danger(reset_icon.clone()),
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        position: Aabb2<f32>,
+        context: &UiContext,
+        state: &mut T::ValueType,
+    ) -> Aabb2<f32> {
+        self.state.update(position, context);
+        let size = (self.reset.icon.texture.size() + vec2(2, 2)).as_f32() * context.pixel_size;
+        // let reset = position.cut_right(size.x).align_aabb(size, vec2(0.5, 0.5));
+        let reset = position
+            .align_aabb(size, vec2(1.0, 0.5))
+            .translate(vec2(size.x, 0.0));
+        self.reset
+            .icon
+            .state
+            .set_visibility(self.reset_value != *state);
+        self.reset.update(reset, context);
+        if self.reset.icon.state.mouse_left.clicked {
+            *state = self.reset_value.clone();
+        }
+        position
+    }
+}
+
 pub struct GraphicsWidget {
     pub state: WidgetState,
     pub title: TextWidget,
     pub fullscreen: ToggleWidget,
     pub vsync: ToggleWidget,
-    pub crt: ToggleWidget,
-    pub brightness: SliderWidget,
-    pub blue: SliderWidget,
-    pub saturation: SliderWidget,
-    pub telegraph_color: ColorSelectWidget,
-    pub telegraph_brightness: SliderWidget,
-    pub telegraph_width: SliderWidget,
-    pub perfect_color: ColorSelectWidget,
+    pub crt: WithReset<ToggleWidget>,
+    pub brightness: WithReset<SliderWidget>,
+    pub blue: WithReset<SliderWidget>,
+    pub saturation: WithReset<SliderWidget>,
+    pub telegraph_color: WithReset<ColorSelectWidget>,
+    pub telegraph_brightness: WithReset<SliderWidget>,
+    pub telegraph_width: WithReset<SliderWidget>,
+    pub perfect_color: WithReset<ColorSelectWidget>,
 }
 
 impl GraphicsWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Assets) -> Self {
+        let reset_icon = &assets.atlas.reset();
+        let def = GraphicsOptions::default();
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Graphics"),
             fullscreen: ToggleWidget::new("Fullscreen"),
             vsync: ToggleWidget::new("Vsync"),
-            crt: ToggleWidget::new("CRT Shader"),
-            brightness: SliderWidget::new("Brightness").with_precision(0),
-            blue: SliderWidget::new("Blue light").with_precision(0),
-            saturation: SliderWidget::new("Saturation").with_precision(0),
-            telegraph_color: ColorSelectWidget::new(
-                "Telegraph color",
-                [ThemeColor::Light, ThemeColor::Highlight],
+            crt: WithReset::new(ToggleWidget::new("CRT Shader"), def.crt.enabled, reset_icon),
+            brightness: WithReset::new(
+                SliderWidget::new("Brightness").with_precision(0),
+                def.colors.brightness,
+                reset_icon,
             ),
-            telegraph_brightness: SliderWidget::new("Telegraph brightness").with_precision(0),
-            telegraph_width: SliderWidget::new("Telegraph width").with_precision(0),
-            perfect_color: ColorSelectWidget::new(
-                "Perfect color",
-                [ThemeColor::Light, ThemeColor::Highlight],
+            blue: WithReset::new(
+                SliderWidget::new("Blue light").with_precision(0),
+                def.colors.blue,
+                reset_icon,
+            ),
+            saturation: WithReset::new(
+                SliderWidget::new("Saturation").with_precision(0),
+                def.colors.saturation,
+                reset_icon,
+            ),
+            telegraph_color: WithReset::new(
+                ColorSelectWidget::new(
+                    "Telegraph color",
+                    [ThemeColor::Light, ThemeColor::Highlight],
+                ),
+                def.lights.telegraph_color,
+                reset_icon,
+            ),
+            telegraph_brightness: WithReset::new(
+                SliderWidget::new("Telegraph brightness").with_precision(0),
+                def.lights.telegraph_brightness,
+                reset_icon,
+            ),
+            telegraph_width: WithReset::new(
+                SliderWidget::new("Telegraph width").with_precision(0),
+                def.lights.telegraph_width,
+                reset_icon,
+            ),
+            perfect_color: WithReset::new(
+                ColorSelectWidget::new("Perfect color", [ThemeColor::Light, ThemeColor::Highlight]),
+                def.lights.perfect_color,
+                reset_icon,
             ),
         }
     }
@@ -381,40 +466,68 @@ impl StatefulWidget for GraphicsWidget {
             state.display.vsync = vsync;
         }
 
+        let crt = self.crt.update(next_row(), context, &mut state.crt.enabled);
         self.crt
-            .update_state(next_row(), context, &mut state.crt.enabled);
+            .inner
+            .update_state(crt, context, &mut state.crt.enabled);
 
-        self.brightness.update_value_percent(
-            next_row(),
+        let brightness = self
+            .brightness
+            .update(next_row(), context, &mut state.colors.brightness);
+        self.brightness.inner.update_value_percent(
+            brightness,
             context,
             &mut state.colors.brightness,
             RANGE_BRIGHTNESS,
         );
+        let blue = self
+            .blue
+            .update(next_row(), context, &mut state.colors.blue);
         self.blue
-            .update_value_percent(next_row(), context, &mut state.colors.blue, RANGE_BLUE);
-        self.saturation.update_value_percent(
-            next_row(),
+            .inner
+            .update_value_percent(blue, context, &mut state.colors.blue, RANGE_BLUE);
+        let saturation = self
+            .saturation
+            .update(next_row(), context, &mut state.colors.saturation);
+        self.saturation.inner.update_value_percent(
+            saturation,
             context,
             &mut state.colors.saturation,
             RANGE_SATURATION,
         );
 
+        let t_color =
+            self.telegraph_color
+                .update(next_row(), context, &mut state.lights.telegraph_color);
         self.telegraph_color
-            .update(next_row(), context, &mut state.lights.telegraph_color);
-        self.telegraph_brightness.update_value_percent(
+            .inner
+            .update(t_color, context, &mut state.lights.telegraph_color);
+        let t_bright = self.telegraph_brightness.update(
             next_row(),
+            context,
+            &mut state.lights.telegraph_brightness,
+        );
+        self.telegraph_brightness.inner.update_value_percent(
+            t_bright,
             context,
             &mut state.lights.telegraph_brightness,
             RANGE_TELEGRAPH_BRIGHTNESS,
         );
-        self.telegraph_width.update_value_percent(
-            next_row(),
+        let t_width =
+            self.telegraph_width
+                .update(next_row(), context, &mut state.lights.telegraph_width);
+        self.telegraph_width.inner.update_value_percent(
+            t_width,
             context,
             &mut state.lights.telegraph_width,
             RANGE_TELEGRAPH_WIDTH,
         );
+        let p_color =
+            self.perfect_color
+                .update(next_row(), context, &mut state.lights.perfect_color);
         self.perfect_color
-            .update(next_row(), context, &mut state.lights.perfect_color);
+            .inner
+            .update(p_color, context, &mut state.lights.perfect_color);
 
         let mut position = position;
         position.min.y = min_y;
@@ -425,36 +538,62 @@ impl StatefulWidget for GraphicsWidget {
 pub struct CursorWidget {
     pub state: WidgetState,
     pub title: TextWidget,
-    pub show_trail: ToggleWidget,
-    pub inner_radius: SliderWidget,
-    pub show_perfect_radius: ToggleWidget,
-    pub outer_radius: SliderWidget,
-    pub outer_color: ColorSelectWidget,
-    pub show_rhythm_circles: ToggleWidget,
-    pub show_rhythm_only_miss: ToggleWidget,
+    pub show_trail: WithReset<ToggleWidget>,
+    pub inner_radius: WithReset<SliderWidget>,
+    pub show_perfect_radius: WithReset<ToggleWidget>,
+    pub outer_radius: WithReset<SliderWidget>,
+    pub outer_color: WithReset<ColorSelectWidget>,
+    pub show_rhythm_circles: WithReset<ToggleWidget>,
+    pub show_rhythm_only_miss: WithReset<ToggleWidget>,
 }
 
 impl CursorWidget {
-    pub fn new() -> Self {
+    pub fn new(assets: &Assets) -> Self {
+        let reset_icon = &assets.atlas.reset();
+        let def = CursorOptions::default();
         Self {
             state: WidgetState::new(),
             title: TextWidget::new("Cursor"),
-            show_trail: ToggleWidget::new("Show trail"),
-            inner_radius: SliderWidget::new("Trail size").with_precision(2),
-            show_perfect_radius: ToggleWidget::new("Show outline"),
-            outer_radius: SliderWidget::new("Outline width").with_precision(2),
-            outer_color: ColorSelectWidget::new(
-                "Outline color",
-                [
-                    // TODO: currently does not render properly in the menu because of transparency
-                    // ThemeColor::Dark,
-                    ThemeColor::Light,
-                    ThemeColor::Highlight,
-                    ThemeColor::Danger,
-                ],
+            show_trail: WithReset::new(ToggleWidget::new("Show trail"), def.show_trail, reset_icon),
+            inner_radius: WithReset::new(
+                SliderWidget::new("Trail size").with_precision(2),
+                def.inner_radius,
+                reset_icon,
             ),
-            show_rhythm_circles: ToggleWidget::new("Rhythm circles"),
-            show_rhythm_only_miss: ToggleWidget::new("Show only misses"),
+            show_perfect_radius: WithReset::new(
+                ToggleWidget::new("Show outline"),
+                def.show_perfect_radius,
+                reset_icon,
+            ),
+            outer_radius: WithReset::new(
+                SliderWidget::new("Outline width").with_precision(2),
+                def.outer_radius,
+                reset_icon,
+            ),
+            outer_color: WithReset::new(
+                ColorSelectWidget::new(
+                    "Outline color",
+                    [
+                        // TODO: currently does not render properly in the menu because of transparency
+                        // ThemeColor::Dark,
+                        ThemeColor::Light,
+                        ThemeColor::Highlight,
+                        ThemeColor::Danger,
+                    ],
+                ),
+                def.outer_color,
+                reset_icon,
+            ),
+            show_rhythm_circles: WithReset::new(
+                ToggleWidget::new("Rhythm circles"),
+                def.show_rhythm_circles,
+                reset_icon,
+            ),
+            show_rhythm_only_miss: WithReset::new(
+                ToggleWidget::new("Show only misses"),
+                def.show_rhythm_only_miss,
+                reset_icon,
+            ),
         }
     }
 }
@@ -494,41 +633,72 @@ impl StatefulWidget for CursorWidget {
 
         let context = &mut context.scale_font(FONT_FIT_SCALE);
 
+        let show_trail = self
+            .show_trail
+            .update(next_row(), context, &mut state.show_trail);
         self.show_trail
-            .update_state(next_row(), context, &mut state.show_trail);
+            .inner
+            .update_state(show_trail, context, &mut state.show_trail);
 
-        self.inner_radius.update_value(
-            next_row(),
+        let inner_r = self
+            .inner_radius
+            .update(next_row(), context, &mut state.inner_radius);
+        self.inner_radius.inner.update_value(
+            inner_r,
             context,
             &mut state.inner_radius,
             RANGE_INNER_RADIUS,
         );
 
-        self.show_perfect_radius
-            .update_state(next_row(), context, &mut state.show_perfect_radius);
+        let show_p =
+            self.show_perfect_radius
+                .update(next_row(), context, &mut state.show_perfect_radius);
+        self.show_perfect_radius.inner.update_state(
+            show_p,
+            context,
+            &mut state.show_perfect_radius,
+        );
         if state.show_perfect_radius {
             self.outer_radius.state.show();
-            self.outer_radius.update_value(
-                next_row(),
+            let outer_r = self
+                .outer_radius
+                .update(next_row(), context, &mut state.outer_radius);
+            self.outer_radius.inner.update_value(
+                outer_r,
                 context,
                 &mut state.outer_radius,
                 RANGE_OUTER_RADIUS,
             );
 
             self.outer_color.state.show();
-            self.outer_color
+            let outer_c = self
+                .outer_color
                 .update(next_row(), context, &mut state.outer_color);
+            self.outer_color
+                .inner
+                .update(outer_c, context, &mut state.outer_color);
         } else {
             self.outer_radius.state.hide();
             self.outer_color.state.hide();
         }
 
-        self.show_rhythm_circles
-            .update_state(next_row(), context, &mut state.show_rhythm_circles);
+        let show_r =
+            self.show_rhythm_circles
+                .update(next_row(), context, &mut state.show_rhythm_circles);
+        self.show_rhythm_circles.inner.update_state(
+            show_r,
+            context,
+            &mut state.show_rhythm_circles,
+        );
         if state.show_rhythm_circles {
             self.show_rhythm_only_miss.state.show();
-            self.show_rhythm_only_miss.update_state(
+            let show_rom = self.show_rhythm_only_miss.update(
                 next_row(),
+                context,
+                &mut state.show_rhythm_only_miss,
+            );
+            self.show_rhythm_only_miss.inner.update_state(
+                show_rom,
                 context,
                 &mut state.show_rhythm_only_miss,
             );
