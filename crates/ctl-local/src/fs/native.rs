@@ -4,7 +4,7 @@ use zip::{ZipArchive, ZipWriter, result::ZipError, write::SimpleFileOptions};
 
 pub struct LevelsWatcher {
     #[allow(dead_code)] // This is here for delaying the drop of the watcher
-    watcher: notify::INotifyWatcher,
+    watcher: notify::RecommendedWatcher,
     need_reload: Arc<Mutex<Vec<PathBuf>>>,
     need_remove: Arc<Mutex<Vec<PathBuf>>>,
 }
